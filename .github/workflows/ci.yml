@@ -1,0 +1,24 @@
+name: CI
+on: [pull_request]
+
+jobs:
+  compile:
+        runs-on: ${{ matrix.os }}
+        strategy:
+          matrix:
+            os: [macos-latest, ubuntu-latest, windows-latest]
+        steps:
+        - uses: actions/checkout@v4
+        - uses: pnpm/action-setup@v2
+        - uses: actions/setup-node@v4
+          with:
+            # File containing the version Spec of the version to use.  Examples: .nvmrc, .node-version, .tool-versions.
+            # If node-version and node-version-file are both provided the action will use version from node-version. 
+            node-version-file: '.nvmrc'
+
+            # Used to specify a package manager for caching in the default directory. Supported values: npm, yarn, pnpm.
+            # Package manager should be pre-installed
+            # Default: ''
+            cache: 'pnpm'
+        - run: pnpm install
+        - run: pnpm build
