@@ -29,7 +29,7 @@ export const SignupCommandData = new SlashCommandBuilder()
   .addStringOption((option) =>
     option
       .setRequired(true)
-      .setDescription('FF Logs Link showing prog point')
+      .setDescription('FF Logs Link for selected encounter showing prog point')
       .setName('fflogs'),
   )
   .addStringOption((option) =>
@@ -48,3 +48,12 @@ export const CancelButton = new ButtonBuilder()
   .setCustomId('cancel')
   .setLabel('Cancel')
   .setStyle(ButtonStyle.Primary);
+
+export const SIGNUP_MESSAGES = {
+  CONFIRMATION_TIMEOUT:
+    'Confirmation not received within 1 minute, cancelling signup. Please use /signup if you wish to try again.',
+  SIGNUP_SUBMISSION_CANCELLED:
+    'Signup canceled. Please use /signup if you wish to try again.',
+  SIGNUP_SUBMISSION_CONFIRMED:
+    'Confirmed! A coordinator will review your submission and reach out to you soon.',
+};

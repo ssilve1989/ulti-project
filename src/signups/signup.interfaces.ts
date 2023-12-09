@@ -1,4 +1,4 @@
-import { Encounter } from '../../app.consts.js';
+import { Encounter } from '../app.consts.js';
 
 export interface Signup {
   availability: string;
@@ -6,5 +6,6 @@ export interface Signup {
   discordId: string;
   encounter: Encounter;
   fflogsLink: string;
+  username: string;
   world: string;
 }
