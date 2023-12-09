@@ -47,6 +47,7 @@
     "@commitlint/cz-commitlint": "^18.4.3",
     "@commitlint/prompt-cli": "^18.4.3",
     "@golevelup/ts-jest": "^0.4.0",
+    "@jest/globals": "^29.7.0",
     "@nestjs/cli": "^10.2.1",
     "@nestjs/schematics": "^10.0.3",
     "@nestjs/testing": "^10.2.10",
