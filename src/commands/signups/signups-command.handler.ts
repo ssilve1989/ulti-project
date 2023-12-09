@@ -1,126 +1,102 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {
-  Client,
-  ComponentType,
-  EmbedBuilder,
-  MessageComponentInteraction,
-} from 'discord.js';
-import { InjectDiscordClient } from '../../client/client.decorators.js';
-import { Rows } from './signup.consts.js';
+import { ActionRowBuilder, EmbedBuilder } from 'discord.js';
+import { Encounter, EncounterFriendlyDescription } from '../../app.consts.js';
+import { CancelButton, ConfirmButton } from './signup.consts.js';
+import { Signup } from './signup.interfaces.js';
 import { SignupCommand } from './signups.command.js';
+import { isSameUserFilter } from '../../interactions/interactions.filters.js';
+
+// reusable object to clear a messages emebed + button interaction
+const CLEAR_EMBED = {
+  embeds: [],
+  components: [],
+};
 
 @CommandHandler(SignupCommand)
 class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   private readonly logger = new Logger(SignupCommandHandler.name);
-
-  constructor(@InjectDiscordClient() private readonly client: Client) {}
+  private static readonly SIGNUP_TIMEOUT = 60_000;
 
   async execute({ interaction }: SignupCommand) {
-    this.logger.log(
-      `handling signup command for user: ${interaction.user.username}`,
+    const username = interaction.user.username;
+    this.logger.log(`handling signup command for user: ${username}`);
+
+    await interaction.deferReply({ ephemeral: true });
+
+    // the fields are marked required so they should come in with values. empty strings are not allowed
+    /* eslint-disable @typescript-eslint/no-non-null-assertion */
+    const signup: Signup = {
+      encounter: interaction.options.getString('encounter')! as Encounter,
+      character: interaction.options.getString('character')!,
+      fflogsLink: interaction.options.getString('fflogs')!,
+      availability: interaction.options.getString('availability')!,
+    };
+
+    // TODO: Additional validation could be done on the data here now but would require a followup message
+    // if any action is required from the user. For now, we'll just assume the data will be understood by the
+    // coordinators reviewing the submission
+    const embed = this.createSummaryEmbed(signup);
+
+    const ConfirmationRow = new ActionRowBuilder().addComponents(
+      ConfirmButton,
+      CancelButton,
     );
 
-    const response = await interaction.reply({
-      content: 'Select an encounter to sign up for',
-      components: [Rows.EncounterSelector] as any[],
-      ephemeral: true,
+    const confirmationInteraction = await interaction.editReply({
+      components: [ConfirmationRow as any], // the typings are wrong here? annoying af
+      embeds: [embed],
     });
 
-    const encounterSelectInteraction = await response.awaitMessageComponent({
-      componentType: ComponentType.StringSelect,
-      interactionResponse: response,
-    });
-
-    const availability = await this.getAvailability(encounterSelectInteraction);
-
-    const embed = this.createSummaryEmbed(
-      encounterSelectInteraction.values[0],
-      availability,
-    );
-
-    await this.client.users.send(interaction.user.id, { embeds: [embed] });
-  }
-
-  private async getAvailability(interaction: MessageComponentInteraction) {
-    const availability: Record<string, any> = {};
-    let done = false;
-    let currentInteraction: MessageComponentInteraction = interaction;
-
-    while (!done) {
-      const dayOfWeekRequest = await currentInteraction.update({
-        content: 'Select a day to sign up for',
-        components: [Rows.DayOfWeek] as any[],
+    try {
+      const response = await confirmationInteraction.awaitMessageComponent({
+        filter: isSameUserFilter(interaction),
+        time: SignupCommandHandler.SIGNUP_TIMEOUT,
       });
 
-      const dayOfWeekReply = await dayOfWeekRequest.awaitMessageComponent({
-        componentType: ComponentType.StringSelect,
-        interactionResponse: dayOfWeekRequest,
-      });
+      // TODO: Is there a safer way to access the id's we expect?
+      if (response.customId === 'confirm') {
+        await interaction.editReply({
+          content:
+            'Confirmed! A coordinator will review your submission and reach out to you soon.',
+          ...CLEAR_EMBED,
+        });
 
-      const startTimeRequest = await dayOfWeekReply.update({
-        content: 'Select the earliest time available',
-        components: [Rows.StartTime] as any[],
-      });
-
-      const startTimeReply = await startTimeRequest.awaitMessageComponent({
-        componentType: ComponentType.StringSelect,
-        interactionResponse: startTimeRequest,
-      });
-
-      const endTimeRequest = await startTimeReply.update({
-        content: 'Select the latest time available',
-        components: [Rows.EndTime] as any[],
-      });
-
-      const endTimeReply = await endTimeRequest.awaitMessageComponent({
-        componentType: ComponentType.StringSelect,
-        interactionResponse: endTimeRequest,
-      });
-
-      Object.assign(availability, {
-        [dayOfWeekReply.values[0]]: {
-          start: startTimeReply.values[0],
-          end: endTimeReply.values[0],
-        },
-      });
-
-      const confirmationRequest = await endTimeReply.update({
-        components: [Rows.Confirmation] as any[],
-        content: 'Add More Days?',
-      });
-
-      const confirmationReply = await confirmationRequest.awaitMessageComponent(
-        {
-          componentType: ComponentType.Button,
-          interactionResponse: confirmationRequest,
-        },
-      );
-
-      if (confirmationReply.customId === 'done') {
-        done = true;
-        confirmationReply.reply('Thanks for your submission!');
-      } else {
-        currentInteraction = confirmationReply;
+        // TODO: Do something with the data collected. Push to Google Sheets/Persist in DB, etc.
+        this.logger.log({
+          message: `signup submitted for ${username}`,
+          ...signup,
+        });
+      } else if (response.customId === 'cancel') {
+        await interaction.editReply({
+          content:
+            'Signup canceled. Pleaes use /signup if you wish to try again.',
+          ...CLEAR_EMBED,
+        });
       }
+    } catch (e) {
+      await interaction.editReply({
+        content:
+          'Confirmation not received within 1 minute, cancelling signup. Please use /signup if you wish to try again.',
+        ...CLEAR_EMBED,
+      });
     }
-
-    return availability;
   }
 
-  private createSummaryEmbed(
-    encounter: string,
-    availability: Record<string, { start: string; end: string }>,
-  ) {
+  private createSummaryEmbed({
+    availability,
+    character,
+    encounter,
+    fflogsLink,
+  }: Signup) {
     const embed = new EmbedBuilder()
-      .setTitle(`${encounter} Signup`)
+      .setTitle(`${EncounterFriendlyDescription[encounter]} Signup`)
       .setDescription("Here's a summary of your selections")
-      .addFields(
-        Object.entries(availability).map(([day, { start, end }]) => ({
-          name: day,
-          value: `${start} - ${end}`,
-        })),
-      );
+      .addFields([
+        { name: 'Character', value: character },
+        { name: 'FF Logs Link', value: fflogsLink },
+        { name: 'Availability', value: availability },
+      ]);
 
     return embed;
   }

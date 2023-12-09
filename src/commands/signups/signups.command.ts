@@ -1,9 +1,5 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction } from 'discord.js';
 import { DiscordCommand } from '../commands.interfaces.js';
-
-const SignupCommandData = new SlashCommandBuilder()
-  .setName('signup')
-  .setDescription('Signup for an ultimate prog/clear party!');
 
 class SignupCommand implements DiscordCommand {
   public static readonly NAME = 'signup';
@@ -11,4 +7,4 @@ class SignupCommand implements DiscordCommand {
   constructor(public readonly interaction: ChatInputCommandInteraction) {}
 }
 
-export { SignupCommand, SignupCommandData };
+export { SignupCommand };

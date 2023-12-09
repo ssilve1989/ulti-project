@@ -1,4 +1,3 @@
-import { SlashCommandBuilder } from 'discord.js';
-import { SignupCommandData } from './signups/signups.command.js';
+import { SignupCommandData } from './signups/signup.consts.js';
 
-export const COMMANDS: SlashCommandBuilder[] = [SignupCommandData];
+export const COMMANDS = [SignupCommandData];
