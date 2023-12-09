@@ -19,11 +19,18 @@ export const SignupCommandData = new SlashCommandBuilder()
   .addStringOption((option) =>
     option
       .setRequired(true)
-      .setDescription('Character Name @ World')
+      .setDescription('Character Name')
       .setName('character'),
   )
   .addStringOption((option) =>
-    option.setRequired(true).setDescription('FF Logs Link').setName('fflogs'),
+    // TODO: Could use FFLogs API to create validated autocomplete list of choices?
+    option.setRequired(true).setDescription('Home World').setName('world'),
+  )
+  .addStringOption((option) =>
+    option
+      .setRequired(true)
+      .setDescription('FF Logs Link showing prog point')
+      .setName('fflogs'),
   )
   .addStringOption((option) =>
     option

@@ -35,6 +35,8 @@ describe('Signups Command Handler', () => {
               return 'https://www.fflogs.com';
             case 'availability':
               return 'Monday, Wednesday, Friday';
+            case 'world':
+              return 'Jenova';
           }
         },
       },
