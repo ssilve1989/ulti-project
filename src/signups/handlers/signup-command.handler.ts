@@ -1,12 +1,23 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ActionRowBuilder, EmbedBuilder } from 'discord.js';
-import { match } from 'ts-pattern';
+import {
+  ActionRowBuilder,
+  ChatInputCommandInteraction,
+  DiscordjsError,
+  DiscordjsErrorCodes,
+  EmbedBuilder,
+} from 'discord.js';
+import { P, match } from 'ts-pattern';
 import { Encounter, EncounterFriendlyDescription } from '../../app.consts.js';
 import { isSameUserFilter } from '../../interactions/interactions.filters.js';
-import { CancelButton, ConfirmButton } from './signup.consts.js';
-import { Signup } from './signup.interfaces.js';
-import { SignupCommand } from './signups.command.js';
+import {
+  CancelButton,
+  ConfirmButton,
+  SIGNUP_MESSAGES,
+} from '../signup.consts.js';
+import { Signup } from '../signup.interfaces.js';
+import { SignupCommand } from '../signup.command.js';
+import { SignupService } from '../signup.service.js';
 
 // reusable object to clear a messages emebed + button interaction
 const CLEAR_EMBED = {
@@ -18,6 +29,8 @@ const CLEAR_EMBED = {
 class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   private readonly logger = new Logger(SignupCommandHandler.name);
   private static readonly SIGNUP_TIMEOUT = 60_000;
+
+  constructor(private readonly signupService: SignupService) {}
 
   async execute({ interaction }: SignupCommand) {
     const username = interaction.user.username;
@@ -34,6 +47,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       encounter: interaction.options.getString('encounter')! as Encounter,
       fflogsLink: interaction.options.getString('fflogs')!,
       world: interaction.options.getString('world')!,
+      username,
     };
 
     // TODO: Additional validation could be done on the data here now but would require a followup message
@@ -58,29 +72,25 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       });
 
       await match(response)
-        .with({ customId: 'confirm' }, () =>
-          interaction.editReply({
-            content:
-              'Confirmed! A coordinator will review your submission and reach out to you soon.',
+        .with({ customId: 'confirm' }, async () => {
+          await this.signupService.upsertSignup(signup);
+
+          return interaction.editReply({
+            content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED,
             ...CLEAR_EMBED,
-          }),
-        )
+          });
+        })
         .with({ customId: 'cancel' }, () =>
           interaction.editReply({
-            content:
-              'Signup canceled. Pleaes use /signup if you wish to try again.',
+            content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CANCELLED,
             ...CLEAR_EMBED,
           }),
         )
         .run();
 
       this.logger.log({ message: `signup ${response.customId}`, ...signup });
-    } catch (e) {
-      await interaction.editReply({
-        content:
-          'Confirmation not received within 1 minute, cancelling signup. Please use /signup if you wish to try again.',
-        ...CLEAR_EMBED,
-      });
+    } catch (e: unknown) {
+      await this.handleError(e, interaction);
     }
   }
 
@@ -102,6 +112,31 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       ]);
 
     return embed;
+  }
+
+  private handleError(
+    error: unknown,
+    interaction: ChatInputCommandInteraction,
+  ) {
+    this.logger.error(error);
+
+    return match(error)
+      .with(
+        P.instanceOf(DiscordjsError),
+        ({ code }) => code === DiscordjsErrorCodes.InteractionCollectorError,
+        () => {
+          return interaction.editReply({
+            content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
+            ...CLEAR_EMBED,
+          });
+        },
+      )
+      .otherwise(() => {
+        return interaction.editReply({
+          content: 'Sorry an unexpected error occurred',
+          ...CLEAR_EMBED,
+        });
+      });
   }
 }
 

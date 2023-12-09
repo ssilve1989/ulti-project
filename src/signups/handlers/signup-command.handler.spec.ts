@@ -4,12 +4,15 @@ import { DeepMocked, createMock } from '@golevelup/ts-jest';
 import {
   ChannelSelectMenuInteraction,
   ChatInputCommandInteraction,
+  DiscordjsError,
+  DiscordjsErrorCodes,
   Message,
 } from 'discord.js';
-import { SignupCommandHandler } from './signups-command.handler.js';
-import { SignupCommand } from './signups.command.js';
+import { SignupCommandHandler } from './signup-command.handler.js';
+import { SignupCommand } from '../signup.command.js';
+import { SIGNUP_MESSAGES } from '../signup.consts.js';
 
-describe('Signups Command Handler', () => {
+describe('Signup Command Handler', () => {
   let handler: SignupCommandHandler;
   let interaction: DeepMocked<ChatInputCommandInteraction>;
   let confirmationInteraction: DeepMocked<Message<boolean>>;
@@ -18,6 +21,7 @@ describe('Signups Command Handler', () => {
     const fixture = await Test.createTestingModule({
       providers: [SignupCommandHandler],
     })
+      .useMocker(() => createMock())
       .setLogger(createMock())
       .compile();
 
@@ -37,6 +41,8 @@ describe('Signups Command Handler', () => {
               return 'Monday, Wednesday, Friday';
             case 'world':
               return 'Jenova';
+            case 'username':
+              'Test User';
           }
         },
       },
@@ -69,7 +75,7 @@ describe('Signups Command Handler', () => {
     expect(editReplySpy).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        content: expect.stringMatching(/Confirmed/i),
+        content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED,
       }),
     );
   });
@@ -95,7 +101,7 @@ describe('Signups Command Handler', () => {
     expect(editReplySpy).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        content: expect.stringMatching(/Canceled/i),
+        content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CANCELLED,
       }),
     );
   });
@@ -105,7 +111,7 @@ describe('Signups Command Handler', () => {
     const editReplySpy = jest.spyOn(interaction, 'editReply');
 
     confirmationInteraction.awaitMessageComponent.mockRejectedValueOnce(
-      new Error('Timeout!'),
+      new DiscordjsError(DiscordjsErrorCodes.InteractionCollectorError),
     );
 
     interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
@@ -117,7 +123,7 @@ describe('Signups Command Handler', () => {
     expect(editReplySpy).toHaveBeenCalledTimes(2);
     expect(editReplySpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        content: expect.stringMatching(/Confirmation not received/i),
+        content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
       }),
     );
   });
