@@ -5,18 +5,17 @@ import {
   ChatInputCommandInteraction,
   DiscordjsError,
   DiscordjsErrorCodes,
-  EmbedBuilder,
 } from 'discord.js';
 import { P, match } from 'ts-pattern';
-import { Encounter, EncounterFriendlyDescription } from '../../app.consts.js';
+import { Encounter } from '../../app.consts.js';
 import { isSameUserFilter } from '../../interactions/interactions.filters.js';
+import { SignupCommand } from '../signup.commands.js';
 import {
   CancelButton,
   ConfirmButton,
   SIGNUP_MESSAGES,
 } from '../signup.consts.js';
 import { SignupRequest } from '../signup.interfaces.js';
-import { SignupCommand } from '../signup.command.js';
 import { SignupService } from '../signup.service.js';
 
 // reusable object to clear a messages emebed + button interaction
@@ -53,7 +52,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     // TODO: Additional validation could be done on the data here now but would require a followup message
     // if any action is required from the user. For now, we'll just assume the data will be understood by the
     // coordinators reviewing the submission
-    const embed = this.createSummaryEmbed(signup);
+    const embed = this.signupService.createSignupConfirmationEmbed(signup);
 
     const ConfirmationRow = new ActionRowBuilder().addComponents(
       ConfirmButton,
@@ -92,26 +91,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     } catch (e: unknown) {
       await this.handleError(e, interaction);
     }
-  }
-
-  private createSummaryEmbed({
-    availability,
-    character,
-    encounter,
-    fflogsLink,
-    world,
-  }: SignupRequest) {
-    const embed = new EmbedBuilder()
-      .setTitle(`${EncounterFriendlyDescription[encounter]} Signup`)
-      .setDescription("Here's a summary of your selections")
-      .addFields([
-        { name: 'Character', value: character },
-        { name: 'Home World', value: world },
-        { name: 'FF Logs Link', value: fflogsLink },
-        { name: 'Availability', value: availability },
-      ]);
-
-    return embed;
   }
 
   private handleError(

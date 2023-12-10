@@ -8,9 +8,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Client, Events } from 'discord.js';
 import { first, firstValueFrom, fromEvent } from 'rxjs';
 import { DISCORD_CLIENT, InjectDiscordClient } from './client.decorators.js';
-import { INTENTS } from './client.intents.js';
+import { INTENTS, PARTIALS } from './client.intents.js';
 import { AppConfig } from '../app.config.js';
 import { ClientsService } from './clients.service.js';
+import { CommandBus } from '@nestjs/cqrs';
 
 @Module({
   imports: [ConfigModule],
@@ -18,7 +19,7 @@ import { ClientsService } from './clients.service.js';
     ClientsService,
     {
       provide: DISCORD_CLIENT,
-      useFactory: () => new Client({ intents: INTENTS }),
+      useFactory: () => new Client({ intents: INTENTS, partials: PARTIALS }),
     },
   ],
   exports: [DISCORD_CLIENT, ClientsService],
@@ -27,6 +28,7 @@ class ClientModule implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger();
   constructor(
     private readonly configService: ConfigService<AppConfig, true>,
+    private readonly commandBus: CommandBus,
     @InjectDiscordClient() private client: Client,
   ) {}
 
@@ -36,6 +38,8 @@ class ClientModule implements OnApplicationBootstrap, OnApplicationShutdown {
     this.client.on('error' as any, (error) => {
       this.logger.error(error);
     });
+
+    this.client.on(Events.MessageReactionAdd, (reaction, user) => {});
 
     this.client.login(this.configService.get('DISCORD_TOKEN'));
 

@@ -9,11 +9,14 @@ import { CommandsModule } from './commands/commands.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
 import { firestoreSchema } from './firebase/firebase.config.js';
 import { SignupModule } from './signups/signup.module.js';
+import { AppService } from './app.service.js';
+import { CqrsModule } from '@nestjs/cqrs';
 
 @Module({
   imports: [
     ClientModule,
     CommandsModule,
+    CqrsModule,
     FirebaseModule,
     InteractionsModule,
     SignupModule,
@@ -32,6 +35,7 @@ import { SignupModule } from './signups/signup.module.js';
       }),
     }),
   ],
+  providers: [AppService],
   controllers: [AppController],
 })
 export class AppModule {}
