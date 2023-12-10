@@ -15,7 +15,7 @@ import {
   ConfirmButton,
   SIGNUP_MESSAGES,
 } from '../signup.consts.js';
-import { Signup } from '../signup.interfaces.js';
+import { SignupRequest } from '../signup.interfaces.js';
 import { SignupCommand } from '../signup.command.js';
 import { SignupService } from '../signup.service.js';
 
@@ -40,7 +40,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
     // the fields are marked required so they should come in with values. empty strings are not allowed
     /* eslint-disable @typescript-eslint/no-non-null-assertion */
-    const signup: Signup = {
+    const signup: SignupRequest = {
       availability: interaction.options.getString('availability')!,
       character: interaction.options.getString('character')!,
       discordId: interaction.user.id,
@@ -100,7 +100,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     encounter,
     fflogsLink,
     world,
-  }: Signup) {
+  }: SignupRequest) {
     const embed = new EmbedBuilder()
       .setTitle(`${EncounterFriendlyDescription[encounter]} Signup`)
       .setDescription("Here's a summary of your selections")
