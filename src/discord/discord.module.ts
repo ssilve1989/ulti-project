@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Client, Events } from 'discord.js';
 import { first, firstValueFrom, fromEvent } from 'rxjs';
 import { AppConfig } from '../app.config.js';
-import { INTENTS } from './discord.consts.js';
+import { INTENTS, PARTIALS } from './discord.consts.js';
 import { DISCORD_CLIENT, InjectDiscordClient } from './discord.decorators.js';
 import { DiscordService } from './discord.service.js';
 
@@ -16,7 +16,7 @@ import { DiscordService } from './discord.service.js';
       inject: [ConfigService],
       useFactory: async (configService: ConfigService<AppConfig, true>) => {
         const logger = new Logger(DISCORD_CLIENT);
-        const client = new Client({ intents: INTENTS });
+        const client = new Client({ intents: INTENTS, partials: PARTIALS });
         const started$ = fromEvent(client, Events.ClientReady).pipe(first());
 
         client.once('error' as any, (error) => {

@@ -1,8 +1,9 @@
 import { Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
 import {
   ActionRowBuilder,
   ChatInputCommandInteraction,
+  ComponentType,
   DiscordjsError,
   DiscordjsErrorCodes,
   EmbedBuilder,
@@ -10,14 +11,16 @@ import {
 import { P, match } from 'ts-pattern';
 import { Encounter, EncounterFriendlyDescription } from '../../app.consts.js';
 import { isSameUserFilter } from '../../interactions/interactions.filters.js';
+import { SignupCommand } from '../signup.commands.js';
 import {
   CancelButton,
   ConfirmButton,
   SIGNUP_MESSAGES,
 } from '../signup.consts.js';
+import { SignupEvent } from '../signup.events.js';
+import { UnhandledButtonInteractionException } from '../signup.exceptions.js';
 import { SignupRequest } from '../signup.interfaces.js';
-import { SignupCommand } from '../signup.command.js';
-import { SignupService } from '../signup.service.js';
+import { SignupRepository } from '../signup.repository.js';
 
 // reusable object to clear a messages emebed + button interaction
 const CLEAR_EMBED = {
@@ -30,7 +33,10 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   private readonly logger = new Logger(SignupCommandHandler.name);
   private static readonly SIGNUP_TIMEOUT = 60_000;
 
-  constructor(private readonly signupService: SignupService) {}
+  constructor(
+    private readonly eventBus: EventBus,
+    private readonly repository: SignupRepository,
+  ) {}
 
   async execute({ interaction }: SignupCommand) {
     const username = interaction.user.username;
@@ -40,20 +46,12 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
     // the fields are marked required so they should come in with values. empty strings are not allowed
     /* eslint-disable @typescript-eslint/no-non-null-assertion */
-    const signup: SignupRequest = {
-      availability: interaction.options.getString('availability')!,
-      character: interaction.options.getString('character')!,
-      discordId: interaction.user.id,
-      encounter: interaction.options.getString('encounter')! as Encounter,
-      fflogsLink: interaction.options.getString('fflogs')!,
-      world: interaction.options.getString('world')!,
-      username,
-    };
+    const request = this.createSignupRequest(interaction);
 
     // TODO: Additional validation could be done on the data here now but would require a followup message
     // if any action is required from the user. For now, we'll just assume the data will be understood by the
     // coordinators reviewing the submission
-    const embed = this.createSummaryEmbed(signup);
+    const embed = this.createSignupConfirmationEmbed(request);
 
     const ConfirmationRow = new ActionRowBuilder().addComponents(
       ConfirmButton,
@@ -66,35 +64,72 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     });
 
     try {
-      const response = await confirmationInteraction.awaitMessageComponent({
-        filter: isSameUserFilter(interaction),
-        time: SignupCommandHandler.SIGNUP_TIMEOUT,
+      const response =
+        await confirmationInteraction.awaitMessageComponent<ComponentType.Button>(
+          {
+            filter: isSameUserFilter(interaction),
+            time: SignupCommandHandler.SIGNUP_TIMEOUT,
+          },
+        );
+
+      const signup = await match(response)
+        .with({ customId: 'confirm' }, () =>
+          this.handleConfirm(request, interaction),
+        )
+        .with({ customId: 'cancel' }, () => this.handleCancel(interaction))
+        .otherwise(() => {
+          throw new UnhandledButtonInteractionException(response);
+        });
+
+      this.logger.log({
+        message: `signup ${response.customId}`,
+        ...request,
       });
 
-      await match(response)
-        .with({ customId: 'confirm' }, async () => {
-          await this.signupService.upsertSignup(signup);
-
-          return interaction.editReply({
-            content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED,
-            ...CLEAR_EMBED,
-          });
-        })
-        .with({ customId: 'cancel' }, () =>
-          interaction.editReply({
-            content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CANCELLED,
-            ...CLEAR_EMBED,
-          }),
-        )
-        .run();
-
-      this.logger.log({ message: `signup ${response.customId}`, ...signup });
+      if (signup) {
+        this.eventBus.publish(new SignupEvent(signup));
+      }
     } catch (e: unknown) {
       await this.handleError(e, interaction);
     }
   }
 
-  private createSummaryEmbed({
+  private async handleConfirm(
+    request: SignupRequest,
+    interaction: ChatInputCommandInteraction,
+  ) {
+    const signup = this.repository.createSignup(request);
+
+    await interaction.editReply({
+      content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED,
+      ...CLEAR_EMBED,
+    });
+
+    return signup;
+  }
+
+  private async handleCancel(interaction: ChatInputCommandInteraction) {
+    await interaction.editReply({
+      content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CANCELLED,
+      ...CLEAR_EMBED,
+    });
+  }
+
+  private createSignupRequest(
+    interaction: ChatInputCommandInteraction,
+  ): SignupRequest {
+    return {
+      availability: interaction.options.getString('availability')!,
+      character: interaction.options.getString('character')!,
+      discordId: interaction.user.id,
+      encounter: interaction.options.getString('encounter')! as Encounter,
+      fflogsLink: interaction.options.getString('fflogs')!,
+      world: interaction.options.getString('world')!,
+      username: interaction.user.username,
+    };
+  }
+
+  private createSignupConfirmationEmbed({
     availability,
     character,
     encounter,
@@ -103,11 +138,11 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   }: SignupRequest) {
     const embed = new EmbedBuilder()
       .setTitle(`${EncounterFriendlyDescription[encounter]} Signup`)
-      .setDescription("Here's a summary of your selections")
+      .setDescription("Here's a summary of your request")
       .addFields([
         { name: 'Character', value: character },
         { name: 'Home World', value: world },
-        { name: 'FF Logs Link', value: fflogsLink },
+        { name: 'FF Logs Link', value: `[Click Here](${fflogsLink})` },
         { name: 'Availability', value: availability },
       ]);
 
@@ -133,7 +168,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       )
       .otherwise(() => {
         return interaction.editReply({
-          content: 'Sorry an unexpected error occurred',
+          content: 'Sorry an unexpected error has occurred',
           ...CLEAR_EMBED,
         });
       });

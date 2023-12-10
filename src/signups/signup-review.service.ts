@@ -1,0 +1,188 @@
+import {
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+  OnModuleDestroy,
+} from '@nestjs/common';
+import {
+  Colors,
+  EmbedBuilder,
+  Events,
+  Message,
+  MessageReaction,
+  PartialMessage,
+  PartialMessageReaction,
+  PartialUser,
+  User,
+} from 'discord.js';
+import { EMPTY, Subscription, concatMap, fromEvent } from 'rxjs';
+import { match } from 'ts-pattern';
+import { DiscordService } from '../discord/discord.service.js';
+import {
+  SIGNUP_APPROVAL_CHANNEL,
+  SIGNUP_REVIEW_REACTIONS,
+  SignupStatus,
+} from './signup.consts.js';
+import { Signup } from './signup.interfaces.js';
+import { SignupRepository } from './signup.repository.js';
+
+@Injectable()
+class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
+  private readonly logger = new Logger(SignupReviewService.name);
+  private subscription?: Subscription;
+  // TODO: setup role configuration via slash command?
+  private static readonly ALLOWED_ROLE_ID = '1115661841771798599';
+
+  constructor(
+    private readonly repository: SignupRepository,
+    private readonly discordService: DiscordService,
+  ) {}
+
+  onApplicationBootstrap() {
+    this.subscription = fromEvent(
+      this.discordService.client,
+      Events.MessageReactionAdd,
+      (
+        reaction: MessageReaction | PartialMessageReaction,
+        user: User | PartialUser,
+      ) => ({ reaction, user }),
+    )
+      .pipe(
+        concatMap(async ({ reaction, user }) => {
+          const shouldHandle = await this.shouldHandleReaction(reaction, user);
+          return shouldHandle ? this.handleReaction(reaction, user) : EMPTY;
+        }),
+      )
+      .subscribe();
+  }
+
+  onModuleDestroy() {
+    this.subscription?.unsubscribe();
+  }
+
+  private async handleReaction(
+    reactionOrPartial: MessageReaction | PartialMessageReaction,
+    userOrPartial: User | PartialUser,
+  ) {
+    const [{ message, emoji }, user] = await Promise.all([
+      this.hydrateReaction(reactionOrPartial),
+      this.hydrateUser(userOrPartial),
+    ]);
+
+    const signup = await this.repository.findByReviewId(message.id);
+
+    if (signup.reviewedBy) {
+      this.logger.debug(
+        `signup ${signup.reviewMessageId} already reviewed by ${user.displayName}`,
+      );
+      return;
+    }
+
+    try {
+      await match(emoji.name)
+        .with(SIGNUP_REVIEW_REACTIONS.Approved, () =>
+          this.handleApprovedReaction(signup, message, user),
+        )
+        .with(SIGNUP_REVIEW_REACTIONS.Declined, () =>
+          this.handleDeclinedReaction(signup, message, user),
+        )
+        .otherwise(() => {});
+    } catch (error) {
+      this.handleReactionError(error, user);
+    }
+  }
+
+  private hydrateReaction(
+    reaction: MessageReaction | PartialMessageReaction,
+  ): Promise<MessageReaction> {
+    if (reaction.partial) {
+      return reaction.fetch();
+    } else {
+      return Promise.resolve(reaction);
+    }
+  }
+
+  private hydrateUser(user: User | PartialUser): Promise<User> {
+    if (user.partial) {
+      return user.fetch();
+    } else {
+      return Promise.resolve(user);
+    }
+  }
+
+  private async shouldHandleReaction(
+    reaction: MessageReaction | PartialMessageReaction,
+    user: User | PartialUser,
+  ) {
+    const isAllowedUser = await this.discordService.userHasRole(
+      user.id,
+      SignupReviewService.ALLOWED_ROLE_ID,
+    );
+
+    const isAllowedChannel =
+      reaction.message.channelId === SIGNUP_APPROVAL_CHANNEL;
+    const isExpectedReactionType =
+      reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.Approved ||
+      reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.Declined;
+
+    return isAllowedChannel && isAllowedUser && isExpectedReactionType;
+  }
+
+  private async handleApprovedReaction(
+    signup: Signup,
+    message: Message | PartialMessage,
+    user: User,
+  ) {
+    // otherwise approve this signup and update the embedded messag with a footer of who approved it
+    await this.repository.updateSignupStatus(
+      SignupStatus.APPROVED,
+      signup,
+      user.username,
+    );
+
+    const embed = EmbedBuilder.from(message.embeds[0]);
+    const displayName = await this.discordService.getDisplayName(user.id);
+
+    embed
+      .setFooter({
+        text: `Approved by ${displayName}`,
+        iconURL: user.displayAvatarURL(),
+      })
+      .setDescription(null)
+      .setColor(Colors.Green)
+      .setTimestamp(new Date());
+
+    await message.edit({ embeds: [embed] });
+  }
+
+  private async handleDeclinedReaction(
+    signup: Signup,
+    message: Message | PartialMessage,
+    user: User,
+  ) {
+    await this.repository.updateSignupStatus(
+      SignupStatus.DECLINED,
+      signup,
+      user.username,
+    );
+
+    const displayName = await this.discordService.getDisplayName(user.id);
+    const embed = EmbedBuilder.from(message.embeds[0])
+      .setDescription(null)
+      .setFooter({
+        text: `Declined by ${displayName}`,
+        iconURL: user.displayAvatarURL(),
+      })
+      .setColor(Colors.Red)
+      .setTimestamp(new Date());
+
+    await message.edit({ embeds: [embed] });
+  }
+
+  private handleReactionError(error: unknown, user: User) {
+    this.logger.debug({ error, user });
+    throw new Error('Unimplemented');
+  }
+}
+
+export { SignupReviewService };

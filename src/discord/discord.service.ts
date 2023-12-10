@@ -9,8 +9,8 @@ class DiscordService implements OnApplicationBootstrap {
   private server: Guild;
 
   constructor(
+    @InjectDiscordClient() public readonly client: Client,
     private readonly configService: ConfigService<AppConfig, true>,
-    @InjectDiscordClient() private readonly client: Client,
   ) {}
 
   async onApplicationBootstrap() {
@@ -32,6 +32,11 @@ class DiscordService implements OnApplicationBootstrap {
   public async getDisplayName(userId: string) {
     const member = await this.server.members.fetch(userId);
     return member.displayName;
+  }
+
+  public async userHasRole(userId: string, roleId: string) {
+    const member = await this.server.members.fetch(userId);
+    return member.roles.cache.has(roleId);
   }
 }
 
