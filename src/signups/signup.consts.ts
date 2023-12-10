@@ -39,6 +39,7 @@ export const SignupCommandData = new SlashCommandBuilder()
       .setName('availability'),
   );
 
+// TODO: move buttons to a components directory
 export const ConfirmButton = new ButtonBuilder()
   .setCustomId('confirm')
   .setLabel('Confirm')
@@ -49,6 +50,7 @@ export const CancelButton = new ButtonBuilder()
   .setLabel('Cancel')
   .setStyle(ButtonStyle.Primary);
 
+// TODO: Move messages to a different constants file for messages
 export const SIGNUP_MESSAGES = {
   CONFIRMATION_TIMEOUT:
     'Confirmation not received within 1 minute, cancelling signup. Please use /signup if you wish to try again.',
@@ -57,3 +59,16 @@ export const SIGNUP_MESSAGES = {
   SIGNUP_SUBMISSION_CONFIRMED:
     'Confirmed! A coordinator will review your submission and reach out to you soon.',
 };
+
+// TODO: dynamically assign the appropriate channel id via some configuration setting on the bot
+export const SIGNUP_APPROVAL_CHANNEL = '1183780444437762139';
+export const SIGNUP_REVIEW_REACTIONS = {
+  Approved: '✅',
+  Declined: '❌',
+};
+
+export enum SignupStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  DECLINED = 'DECLINED',
+}

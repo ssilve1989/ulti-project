@@ -1,22 +1,23 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CqrsModule } from '@nestjs/cqrs';
 import { LoggerModule } from 'nestjs-pino';
 import { AppConfig, configSchema } from './app.config.js';
 import { AppController } from './app.controller.js';
-import { DiscordModule } from './discord/discord.module.js';
-import { InteractionsModule } from './interactions/interactions.module.js';
-import { CommandsModule } from './commands/commands.module.js';
-import { FirebaseModule } from './firebase/firebase.module.js';
-import { firestoreSchema } from './firebase/firebase.config.js';
-import { SignupModule } from './signups/signup.module.js';
-import { CqrsModule } from '@nestjs/cqrs';
 import { AppService } from './app.service.js';
+import { CommandsModule } from './commands/commands.module.js';
+import { DiscordModule } from './discord/discord.module.js';
+import { firestoreSchema } from './firebase/firebase.config.js';
+import { FirebaseModule } from './firebase/firebase.module.js';
+import { InteractionsModule } from './interactions/interactions.module.js';
+import { SignupModule } from './signups/signup.module.js';
 
 @Module({
   imports: [
     CqrsModule,
     DiscordModule,
     CommandsModule,
+    CqrsModule,
     FirebaseModule,
     InteractionsModule,
     SignupModule,
@@ -35,7 +36,7 @@ import { AppService } from './app.service.js';
       }),
     }),
   ],
-  controllers: [AppController],
   providers: [AppService],
+  controllers: [AppController],
 })
 export class AppModule {}

@@ -1,4 +1,5 @@
 import { Encounter } from '../app.consts.js';
+import { SignupStatus } from './signup.consts.js';
 
 export interface SignupRequest {
   availability: string;
@@ -11,5 +12,9 @@ export interface SignupRequest {
 }
 
 export interface Signup extends SignupRequest {
-  approved: boolean;
+  status: SignupStatus;
+  reviewedBy?: string;
+  reviewMessageId?: string;
 }
+
+export type SignupCompositeKeyProps = Pick<Signup, 'username' | 'encounter'>;

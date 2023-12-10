@@ -12,7 +12,7 @@ import { DiscordModule } from '../discord/discord.module.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { Client, Events } from 'discord.js';
 import { match } from 'ts-pattern';
-import { SignupCommand } from '../signups/signup.command.js';
+import { SignupCommand } from '../signups/signup.commands.js';
 import { CommandBus, CqrsModule } from '@nestjs/cqrs';
 
 @Module({
