@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
-import { configSchema } from './app.config.js';
+import { AppConfig, configSchema } from './app.config.js';
 import { AppController } from './app.controller.js';
 import { ClientModule } from './client/client.module.js';
 import { InteractionsModule } from './interactions/interactions.module.js';
@@ -13,18 +13,23 @@ import { SignupModule } from './signups/signup.module.js';
 @Module({
   imports: [
     ClientModule,
+    CommandsModule,
     FirebaseModule,
     InteractionsModule,
-    CommandsModule,
     SignupModule,
     ConfigModule.forRoot({
       validationSchema: configSchema.concat(firestoreSchema),
       cache: true,
     }),
-    LoggerModule.forRoot({
-      pinoHttp: {
-        transport: { target: 'pino-pretty' },
-      },
+    LoggerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService<AppConfig, true>) => ({
+        pinoHttp: {
+          transport: { target: 'pino-pretty' },
+          level: configService.get('LOG_LEVEL'),
+        },
+      }),
     }),
   ],
   controllers: [AppController],
