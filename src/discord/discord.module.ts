@@ -1,15 +1,10 @@
-import {
-  Logger,
-  Module,
-  OnApplicationBootstrap,
-  OnApplicationShutdown,
-} from '@nestjs/common';
+import { Logger, Module, OnApplicationShutdown } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Client, Events } from 'discord.js';
 import { first, firstValueFrom, fromEvent } from 'rxjs';
-import { DISCORD_CLIENT, InjectDiscordClient } from './discord.decorators.js';
-import { INTENTS } from './discord.consts.js';
 import { AppConfig } from '../app.config.js';
+import { INTENTS } from './discord.consts.js';
+import { DISCORD_CLIENT, InjectDiscordClient } from './discord.decorators.js';
 import { DiscordService } from './discord.service.js';
 
 @Module({
@@ -18,29 +13,27 @@ import { DiscordService } from './discord.service.js';
     DiscordService,
     {
       provide: DISCORD_CLIENT,
-      useFactory: () => new Client({ intents: INTENTS }),
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService<AppConfig, true>) => {
+        const logger = new Logger(DISCORD_CLIENT);
+        const client = new Client({ intents: INTENTS });
+        const started$ = fromEvent(client, Events.ClientReady).pipe(first());
+
+        client.once('error' as any, (error) => {
+          logger.error(error);
+        });
+
+        client.login(configService.get('DISCORD_TOKEN'));
+
+        await firstValueFrom(started$);
+        return client;
+      },
     },
   ],
   exports: [DISCORD_CLIENT, DiscordService],
 })
-class DiscordModule implements OnApplicationBootstrap, OnApplicationShutdown {
-  private readonly logger = new Logger();
-  constructor(
-    private readonly configService: ConfigService<AppConfig, true>,
-    @InjectDiscordClient() private client: Client,
-  ) {}
-
-  async onApplicationBootstrap() {
-    const started$ = fromEvent(this.client, Events.ClientReady).pipe(first());
-
-    this.client.on('error' as any, (error) => {
-      this.logger.error(error);
-    });
-
-    this.client.login(this.configService.get('DISCORD_TOKEN'));
-
-    return firstValueFrom(started$);
-  }
+class DiscordModule implements OnApplicationShutdown {
+  constructor(@InjectDiscordClient() private client: Client) {}
 
   onApplicationShutdown() {
     this.client.removeAllListeners();
