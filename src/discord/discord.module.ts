@@ -7,23 +7,23 @@ import {
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Client, Events } from 'discord.js';
 import { first, firstValueFrom, fromEvent } from 'rxjs';
-import { DISCORD_CLIENT, InjectDiscordClient } from './client.decorators.js';
-import { INTENTS } from './client.intents.js';
+import { DISCORD_CLIENT, InjectDiscordClient } from './discord.decorators.js';
+import { INTENTS } from './discord.consts.js';
 import { AppConfig } from '../app.config.js';
-import { ClientsService } from './clients.service.js';
+import { DiscordService } from './discord.service.js';
 
 @Module({
   imports: [ConfigModule],
   providers: [
-    ClientsService,
+    DiscordService,
     {
       provide: DISCORD_CLIENT,
       useFactory: () => new Client({ intents: INTENTS }),
     },
   ],
-  exports: [DISCORD_CLIENT, ClientsService],
+  exports: [DISCORD_CLIENT, DiscordService],
 })
-class ClientModule implements OnApplicationBootstrap, OnApplicationShutdown {
+class DiscordModule implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger();
   constructor(
     private readonly configService: ConfigService<AppConfig, true>,
@@ -47,4 +47,4 @@ class ClientModule implements OnApplicationBootstrap, OnApplicationShutdown {
   }
 }
 
-export { ClientModule };
+export { DiscordModule };

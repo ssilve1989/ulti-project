@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { InjectDiscordClient } from './client.decorators.js';
+import { InjectDiscordClient } from './discord.decorators.js';
 import { Client } from 'discord.js';
 
 @Injectable()
-class ClientsService {
+class DiscordService {
   constructor(@InjectDiscordClient() private readonly client: Client) {}
 
   public async sendDirectMessage(userId: string, message: string) {
@@ -13,4 +13,4 @@ class ClientsService {
   }
 }
 
-export { ClientsService };
+export { DiscordService };

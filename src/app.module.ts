@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import { AppConfig, configSchema } from './app.config.js';
 import { AppController } from './app.controller.js';
-import { ClientModule } from './client/client.module.js';
+import { DiscordModule } from './discord/discord.module.js';
 import { InteractionsModule } from './interactions/interactions.module.js';
 import { CommandsModule } from './commands/commands.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
@@ -12,7 +12,7 @@ import { SignupModule } from './signups/signup.module.js';
 
 @Module({
   imports: [
-    ClientModule,
+    DiscordModule,
     CommandsModule,
     FirebaseModule,
     InteractionsModule,

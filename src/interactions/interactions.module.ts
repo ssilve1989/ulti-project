@@ -8,15 +8,15 @@ import { verifyKeyMiddleware } from 'discord-interactions';
 import { InteractionsController } from './interactions.controller.js';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppConfig } from '../app.config.js';
-import { ClientModule } from '../client/client.module.js';
-import { InjectDiscordClient } from '../client/client.decorators.js';
+import { DiscordModule } from '../discord/discord.module.js';
+import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { Client, Events } from 'discord.js';
 import { match } from 'ts-pattern';
 import { SignupCommand } from '../signups/signup.command.js';
 import { CommandBus, CqrsModule } from '@nestjs/cqrs';
 
 @Module({
-  imports: [ConfigModule, ClientModule, CqrsModule],
+  imports: [ConfigModule, DiscordModule, CqrsModule],
   controllers: [InteractionsController],
 })
 class InteractionsModule implements NestModule, OnApplicationBootstrap {

@@ -1,10 +1,10 @@
 import { Module, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ClientModule } from '../client/client.module.js';
+import { DiscordModule } from '../discord/discord.module.js';
 import { CommandsService } from './commands.service.js';
 
 @Module({
-  imports: [ClientModule, ConfigModule],
+  imports: [DiscordModule, ConfigModule],
   providers: [CommandsService],
 })
 export class CommandsModule implements OnApplicationBootstrap {
