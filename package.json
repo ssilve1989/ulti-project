@@ -18,6 +18,7 @@
     "pm2:start": "pm2 start ecosystem.config.cjs",
     "lint": "eslint src --fix",
     "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules\" jest --passWithNoTests",
+    "test:ci": "pnpm test -- --ci --coverage",
     "test:watch": "pnpm test -- --watch",
     "test:cov": "pnpm test -- --coverage",
     "commitlint": "commitlint --edit",
