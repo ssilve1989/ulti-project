@@ -88,7 +88,7 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
         )
         .otherwise(() => {});
     } catch (error) {
-      this.handleReactionError(error, user);
+      this.handleReactionError(error, message);
     }
   }
 
@@ -179,9 +179,13 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
     await message.edit({ embeds: [embed] });
   }
 
-  private handleReactionError(error: unknown, user: User) {
-    this.logger.debug({ error, user });
-    throw new Error('Unimplemented');
+  private async handleReactionError(
+    error: unknown,
+    message: Message | PartialMessage,
+  ) {
+    this.logger.error(error);
+    // TODO: consolidate error messages to consts
+    await message.reply('Sorry an unexpected error has occurred');
   }
 }
 
