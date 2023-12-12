@@ -62,9 +62,13 @@ export const SIGNUP_MESSAGES = {
 
 // TODO: dynamically assign the appropriate channel id via some configuration setting on the bot
 export const SIGNUP_APPROVAL_CHANNEL = '1183780444437762139';
-export const SIGNUP_REVIEW_REACTIONS = {
-  Approved: '✅',
-  Declined: '❌',
+export const SIGNUP_REVIEW_REACTIONS: Record<
+  keyof typeof SignupStatus,
+  string
+> = {
+  APPROVED: '✅',
+  DECLINED: '❌',
+  PENDING: ':question:',
 };
 
 export enum SignupStatus {

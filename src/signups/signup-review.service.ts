@@ -80,10 +80,10 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
 
     try {
       await match(emoji.name)
-        .with(SIGNUP_REVIEW_REACTIONS.Approved, () =>
+        .with(SIGNUP_REVIEW_REACTIONS.APPROVED, () =>
           this.handleApprovedReaction(signup, message, user),
         )
-        .with(SIGNUP_REVIEW_REACTIONS.Declined, () =>
+        .with(SIGNUP_REVIEW_REACTIONS.DECLINED, () =>
           this.handleDeclinedReaction(signup, message, user),
         )
         .otherwise(() => {});
@@ -121,9 +121,10 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
 
     const isAllowedChannel =
       reaction.message.channelId === SIGNUP_APPROVAL_CHANNEL;
+
     const isExpectedReactionType =
-      reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.Approved ||
-      reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.Declined;
+      reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.APPROVED ||
+      reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.DECLINED;
 
     return isAllowedChannel && isAllowedUser && isExpectedReactionType;
   }
