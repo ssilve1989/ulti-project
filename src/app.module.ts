@@ -11,6 +11,7 @@ import { firestoreSchema } from './firebase/firebase.config.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
 import { InteractionsModule } from './interactions/interactions.module.js';
 import { SignupModule } from './signups/signup.module.js';
+import { StatusModule } from './status/status.module.js';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { SignupModule } from './signups/signup.module.js';
     FirebaseModule,
     InteractionsModule,
     SignupModule,
+    StatusModule,
     ConfigModule.forRoot({
       validationSchema: configSchema.concat(firestoreSchema),
       cache: true,

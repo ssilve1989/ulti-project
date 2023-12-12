@@ -52,7 +52,7 @@ class SendSignupReviewCommandHandler
   }: Signup) {
     return new EmbedBuilder()
       .setDescription(
-        `Please react to approve ${SIGNUP_REVIEW_REACTIONS.Approved} or deny ${SIGNUP_REVIEW_REACTIONS.Declined} the following applicants request`,
+        `Please react to approve ${SIGNUP_REVIEW_REACTIONS.APPROVED} or deny ${SIGNUP_REVIEW_REACTIONS.DECLINED} the following applicants request`,
       )
       .setTitle(`Signup Approval`)
       .addFields([
