@@ -39,6 +39,11 @@ class SendSignupReviewCommandHandler
       embeds: [embed],
     });
 
+    await Promise.all([
+      message.react(SIGNUP_REVIEW_REACTIONS.APPROVED),
+      message.react(SIGNUP_REVIEW_REACTIONS.DECLINED),
+    ]);
+
     // update firebase with the message that correlates to this signup
     await this.repository.setReviewMessageId(signup, message.id);
   }
