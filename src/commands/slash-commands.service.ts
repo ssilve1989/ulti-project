@@ -3,11 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '../app.config.js';
 import { REST, Routes } from 'discord.js';
 import { Logger } from '@nestjs/common';
-import { COMMANDS } from './commands.js';
+import { SLASH_COMMANDS } from './slash-commands.js';
 
 @Injectable()
-class CommandsService {
-  private readonly logger = new Logger(CommandsService.name);
+class SlashCommandsService {
+  private readonly logger = new Logger(SlashCommandsService.name);
   constructor(private readonly configService: ConfigService<AppConfig, true>) {}
 
   async registerCommands() {
@@ -21,11 +21,11 @@ class CommandsService {
 
     try {
       await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
-        body: COMMANDS,
+        body: SLASH_COMMANDS,
       });
 
       this.logger.log(
-        `Successfully registered ${COMMANDS.length} application commands.`,
+        `Successfully registered ${SLASH_COMMANDS.length} application commands.`,
       );
     } catch (e) {
       this.logger.error(e);
@@ -33,4 +33,4 @@ class CommandsService {
   }
 }
 
-export { CommandsService };
+export { SlashCommandsService };

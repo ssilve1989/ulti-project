@@ -27,6 +27,7 @@ class InteractionsModule implements NestModule, OnApplicationBootstrap {
     private readonly commandBus: CommandBus,
   ) {}
 
+  // TODO: I think this can beremoved and is unused
   configure(consumer: MiddlewareConsumer) {
     const PUBLIC_KEY = this.configService.get('PUBLIC_KEY');
     consumer

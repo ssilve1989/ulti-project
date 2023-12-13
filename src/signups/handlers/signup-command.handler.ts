@@ -12,11 +12,9 @@ import { P, match } from 'ts-pattern';
 import { Encounter, EncounterFriendlyDescription } from '../../app.consts.js';
 import { isSameUserFilter } from '../../interactions/interactions.filters.js';
 import { SignupCommand } from '../signup.commands.js';
-import {
-  CancelButton,
-  ConfirmButton,
-  SIGNUP_MESSAGES,
-} from '../signup.consts.js';
+import { SIGNUP_MESSAGES } from '../signup.consts.js';
+import { CancelButton } from '../../common/components/buttons.js';
+import { ConfirmButton } from '../../common/components/buttons.js';
 import { SignupEvent } from '../signup.events.js';
 import { UnhandledButtonInteractionException } from '../signup.exceptions.js';
 import { SignupRequest } from '../signup.interfaces.js';

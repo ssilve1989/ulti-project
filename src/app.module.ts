@@ -5,7 +5,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { AppConfig, configSchema } from './app.config.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import { CommandsModule } from './commands/commands.module.js';
+import { SlashCommandsModule } from './commands/slash-commands.module.js';
 import { DiscordModule } from './discord/discord.module.js';
 import { firestoreSchema } from './firebase/firebase.config.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
@@ -17,7 +17,7 @@ import { StatusModule } from './status/status.module.js';
   imports: [
     CqrsModule,
     DiscordModule,
-    CommandsModule,
+    SlashCommandsModule,
     CqrsModule,
     FirebaseModule,
     InteractionsModule,
