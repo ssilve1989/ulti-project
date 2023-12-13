@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 
-export const SignupCommandData = new SlashCommandBuilder()
+export const SignupSlashCommand = new SlashCommandBuilder()
   .setName('signup')
   .setDescription('Signup for an ultimate prog/clear party!')
   .addStringOption((option) =>

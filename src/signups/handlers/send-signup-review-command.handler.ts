@@ -2,7 +2,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import { EncounterFriendlyDescription } from '../../app.consts.js';
 import { InjectDiscordClient } from '../../discord/discord.decorators.js';
-import { SendSignupReviewCommand } from '../signup.commands.js';
+import { SendSignupReviewCommand } from '../commands/send-signup-review.command.js';
 import {
   SIGNUP_APPROVAL_CHANNEL,
   SIGNUP_REVIEW_REACTIONS,
