@@ -10,8 +10,8 @@ import {
 } from 'discord.js';
 import { P, match } from 'ts-pattern';
 import { Encounter, EncounterFriendlyDescription } from '../../app.consts.js';
-import { isSameUserFilter } from '../../interactions/interactions.filters.js';
-import { SignupCommand } from '../signup.commands.js';
+import { isSameUserFilter } from '../../common/collection-filters.js';
+import { SignupCommand } from '../commands/signup.commands.js';
 import { SIGNUP_MESSAGES } from '../signup.consts.js';
 import { CancelButton } from '../../common/components/buttons.js';
 import { ConfirmButton } from '../../common/components/buttons.js';

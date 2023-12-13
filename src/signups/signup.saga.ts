@@ -2,10 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { ICommand, Saga, ofType } from '@nestjs/cqrs';
 import { SignupEvent, SignupReviewCreatedEvent } from './signup.events.js';
 import { Observable, map } from 'rxjs';
-import {
-  SendSignupReviewCommand,
-  UpdateSignupReviewCommand,
-} from './signup.commands.js';
+import { UpdateSignupReviewCommand } from './commands/update-signup-review.command.js';
+import { SendSignupReviewCommand } from './commands/send-signup-review.command.js';
 
 @Injectable()
 class SignupSagas {
