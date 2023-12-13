@@ -24,12 +24,12 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
   constructor(private readonly service: StatusService) {}
 
   async execute({ interaction }: StatusCommand) {
-    await interaction.deferReply();
+    await interaction.deferReply({ ephemeral: true });
     try {
       const signups = await this.service.getSignups(interaction.user.id);
       const embed = this.createStatusEmbed(signups);
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (e: unknown) {
       await this.handleError(e, interaction);
     }
