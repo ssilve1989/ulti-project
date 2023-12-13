@@ -126,7 +126,12 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
       reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.APPROVED ||
       reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.DECLINED;
 
-    return isAllowedChannel && isAllowedUser && isExpectedReactionType;
+    return (
+      !reaction.me &&
+      isAllowedChannel &&
+      isAllowedUser &&
+      isExpectedReactionType
+    );
   }
 
   private async handleApprovedReaction(
