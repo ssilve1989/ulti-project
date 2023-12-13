@@ -72,7 +72,7 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
     const signup = await this.repository.findByReviewId(message.id);
 
     if (signup.reviewedBy) {
-      this.logger.debug(
+      this.logger.log(
         `signup ${signup.reviewMessageId} already reviewed by ${user.displayName}`,
       );
       return;
@@ -126,8 +126,10 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
       reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.APPROVED ||
       reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.DECLINED;
 
+    const isBotReacting = reaction.message.author?.id === user.id;
+
     return (
-      !reaction.me &&
+      !isBotReacting &&
       isAllowedChannel &&
       isAllowedUser &&
       isExpectedReactionType
