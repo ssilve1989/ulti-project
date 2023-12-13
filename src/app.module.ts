@@ -9,7 +9,6 @@ import { SlashCommandsModule } from './commands/slash-commands.module.js';
 import { DiscordModule } from './discord/discord.module.js';
 import { firestoreSchema } from './firebase/firebase.config.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
-import { InteractionsModule } from './interactions/interactions.module.js';
 import { SignupModule } from './signups/signup.module.js';
 import { StatusModule } from './status/status.module.js';
 
@@ -20,7 +19,6 @@ import { StatusModule } from './status/status.module.js';
     SlashCommandsModule,
     CqrsModule,
     FirebaseModule,
-    InteractionsModule,
     SignupModule,
     StatusModule,
     ConfigModule.forRoot({

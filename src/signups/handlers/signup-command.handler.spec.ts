@@ -9,7 +9,7 @@ import {
   Message,
 } from 'discord.js';
 import { SignupCommandHandler } from './signup-command.handler.js';
-import { SignupCommand } from '../signup.commands.js';
+import { SignupCommand } from '../commands/signup.commands.js';
 import { SIGNUP_MESSAGES } from '../signup.consts.js';
 
 describe('Signup Command Handler', () => {
