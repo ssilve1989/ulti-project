@@ -11,6 +11,7 @@ import { firestoreSchema } from './firebase/firebase.config.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
 import { SignupModule } from './signups/signup.module.js';
 import { StatusModule } from './status/status.module.js';
+import { SettingsModule } from './settings/settings.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { StatusModule } from './status/status.module.js';
     SlashCommandsModule,
     CqrsModule,
     FirebaseModule,
+    SettingsModule,
     SignupModule,
     StatusModule,
     ConfigModule.forRoot({

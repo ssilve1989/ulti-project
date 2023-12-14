@@ -10,6 +10,8 @@ import { StatusCommand } from '../status/commands/status.command.js';
 import { CommandBus, CqrsModule } from '@nestjs/cqrs';
 import { StatusSlashCommand } from './status-slash-command.js';
 import { SignupSlashCommand } from './signup-slash-command.js';
+import { SettingsSlashCommand } from './settings-slash-command.js';
+import { SettingsCommand } from '../settings/settings.command.js';
 
 @Module({
   imports: [DiscordModule, ConfigModule, CqrsModule],
@@ -24,12 +26,13 @@ export class SlashCommandsModule implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     this.client.on(Events.InteractionCreate, (interaction) => {
-      if (!interaction.isChatInputCommand()) return;
+      if (!interaction.isChatInputCommand() || !interaction.inGuild()) return;
 
       // TODO: This could be more generic somehow
       const command = match(interaction.commandName)
         .with(SignupSlashCommand.name, () => new SignupCommand(interaction))
         .with(StatusSlashCommand.name, () => new StatusCommand(interaction))
+        .with(SettingsSlashCommand.name, () => new SettingsCommand(interaction))
         .run();
 
       this.commandBus.execute(command);
