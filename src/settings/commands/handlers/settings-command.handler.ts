@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { SettingsCommand } from './settings.command.js';
-import { SettingsService } from './settings.service.js';
+import { SettingsCommand } from '../settings.command.js';
+import { SettingsService } from '../../settings.service.js';
 import { Logger } from '@nestjs/common';
 import { ChatInputCommandInteraction } from 'discord.js';
 

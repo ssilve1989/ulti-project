@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction } from 'discord.js';
-import { DiscordCommand } from '../commands/slash-commands.interfaces.js';
+import { DiscordCommand } from '../../slash-commands/slash-commands.interfaces.js';
 
 export class SettingsCommand implements DiscordCommand {
   constructor(

@@ -11,7 +11,7 @@ import { CommandBus, CqrsModule } from '@nestjs/cqrs';
 import { StatusSlashCommand } from './status-slash-command.js';
 import { SignupSlashCommand } from './signup-slash-command.js';
 import { SettingsSlashCommand } from './settings-slash-command.js';
-import { SettingsCommand } from '../settings/settings.command.js';
+import { SettingsCommand } from '../settings/commands/settings.command.js';
 
 @Module({
   imports: [DiscordModule, ConfigModule, CqrsModule],
