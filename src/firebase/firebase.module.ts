@@ -18,7 +18,11 @@ import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
     {
       provide: FIRESTORE,
       inject: [FIREBASE_APP],
-      useFactory: (app: App) => getFirestore(app),
+      useFactory: (app: App) => {
+        const firestore = getFirestore(app);
+        firestore.settings({ ignoreUndefinedProperties: true });
+        return firestore;
+      },
     },
   ],
   exports: [FIRESTORE],
