@@ -1,4 +1,4 @@
 export interface Settings {
   reviewerRole?: string;
-  reviewChannel?: string;
+  reviewChannel: string;
 }
