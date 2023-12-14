@@ -17,6 +17,11 @@ class SettingsService {
     return this.collection.doc(guildId).set(settings, { merge: true });
   }
 
+  public async getSettings(guildId: string) {
+    const doc = await this.collection.doc(guildId).get();
+    return doc.data();
+  }
+
   public async getReviewChannel(guildId: string) {
     const doc = await this.collection.doc(guildId).get();
     return doc.data()?.reviewChannel;

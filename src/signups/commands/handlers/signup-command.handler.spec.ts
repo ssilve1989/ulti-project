@@ -14,7 +14,7 @@ import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 
 describe('Signup Command Handler', () => {
   let handler: SignupCommandHandler;
-  let interaction: DeepMocked<ChatInputCommandInteraction>;
+  let interaction: DeepMocked<ChatInputCommandInteraction<'cached' | 'raw'>>;
   let confirmationInteraction: DeepMocked<Message<boolean>>;
 
   beforeEach(async () => {
@@ -27,7 +27,7 @@ describe('Signup Command Handler', () => {
 
     handler = fixture.get(SignupCommandHandler);
     confirmationInteraction = createMock<Message<boolean>>({});
-    interaction = createMock<ChatInputCommandInteraction>({
+    interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
       options: {
         getString: (value: string) => {
           switch (value) {
@@ -59,7 +59,7 @@ describe('Signup Command Handler', () => {
     const editReplySpy = jest.spyOn(interaction, 'editReply');
 
     confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
-      createMock<ChannelSelectMenuInteraction<any>>({
+      createMock<ChannelSelectMenuInteraction>({
         customId: 'confirm',
         valueOf: () => '',
       }),

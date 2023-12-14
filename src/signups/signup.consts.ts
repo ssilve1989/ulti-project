@@ -5,6 +5,8 @@ export const SIGNUP_MESSAGES = {
     'Signup canceled. Please use /signup if you wish to try again.',
   SIGNUP_SUBMISSION_CONFIRMED:
     'Confirmed! A coordinator will review your submission and reach out to you soon.',
+  MISSING_SIGNUP_REVIEW_CHANNEL:
+    'A review channel has not been configured for this bot. Please contact an administrator',
 };
 
 // TODO: dynamically assign the appropriate channel id via some configuration setting on the bot

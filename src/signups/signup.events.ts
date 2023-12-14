@@ -1,7 +1,10 @@
 import { Signup } from './signup.interfaces.js';
 
 export class SignupEvent {
-  constructor(public readonly signup: Signup) {}
+  constructor(
+    public readonly signup: Signup,
+    public guildId: string,
+  ) {}
 }
 
 export class SignupReviewCreatedEvent {
