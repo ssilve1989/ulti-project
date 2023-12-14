@@ -7,9 +7,10 @@ import { DiscordModule } from '../discord/discord.module.js';
 import { SendSignupReviewCommandHandler } from './commands/handlers/send-signup-review-command.handler.js';
 import { SignupReviewService } from './signup-review.service.js';
 import { SignupRepository } from './signup.repository.js';
+import { SettingsModule } from '../settings/settings.module.js';
 
 @Module({
-  imports: [CqrsModule, FirebaseModule, DiscordModule],
+  imports: [CqrsModule, FirebaseModule, DiscordModule, SettingsModule],
   providers: [
     SendSignupReviewCommandHandler,
     SignupReviewService,

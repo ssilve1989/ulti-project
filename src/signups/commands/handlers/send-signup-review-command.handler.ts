@@ -9,17 +9,29 @@ import {
 } from '../../signup.consts.js';
 import { Signup } from '../../signup.interfaces.js';
 import { SignupRepository } from '../../signup.repository.js';
+import { SettingsService } from '../../../settings/settings.service.js';
+import { Logger } from '@nestjs/common';
 
 @CommandHandler(SendSignupReviewCommand)
 class SendSignupReviewCommandHandler
   implements ICommandHandler<SendSignupReviewCommand>
 {
+  private readonly logger = new Logger(SendSignupReviewCommandHandler.name);
+
   constructor(
-    private readonly repository: SignupRepository,
     @InjectDiscordClient() private readonly client: Client,
+    private readonly repository: SignupRepository,
+    private readonly settingsService: SettingsService,
   ) {}
 
-  async execute({ signup }: SendSignupReviewCommand) {
+  async execute({ signup, guildId }: SendSignupReviewCommand) {
+    const reviewChannel = await this.settingsService.getReviewChannel(guildId);
+
+    if (!reviewChannel) {
+      this.logger.warn(`no review channel set for guild ${guildId}`);
+      return;
+    }
+
     await this.sendSignupForApproval(signup);
   }
 

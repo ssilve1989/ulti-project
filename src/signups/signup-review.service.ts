@@ -25,17 +25,17 @@ import {
 } from './signup.consts.js';
 import { Signup } from './signup.interfaces.js';
 import { SignupRepository } from './signup.repository.js';
+import { SettingsService } from '../settings/settings.service.js';
 
 @Injectable()
 class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(SignupReviewService.name);
   private subscription?: Subscription;
-  // TODO: setup role configuration via slash command?
-  private static readonly ALLOWED_ROLE_ID = '1115661841771798599';
 
   constructor(
     private readonly repository: SignupRepository,
     private readonly discordService: DiscordService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   onApplicationBootstrap() {
@@ -48,7 +48,11 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
       ) => ({ reaction, user }),
     )
       .pipe(
-        concatMap(async ({ reaction, user }) => {
+        concatMap(async (event) => {
+          const [reaction, user] = await Promise.all([
+            this.hydrateReaction(event.reaction),
+            this.hydrateUser(event.user),
+          ]);
           const shouldHandle = await this.shouldHandleReaction(reaction, user);
           return shouldHandle ? this.handleReaction(reaction, user) : EMPTY;
         }),
@@ -111,13 +115,18 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async shouldHandleReaction(
-    reaction: MessageReaction | PartialMessageReaction,
+    reaction: MessageReaction,
     user: User | PartialUser,
   ) {
-    const isAllowedUser = await this.discordService.userHasRole(
-      user.id,
-      SignupReviewService.ALLOWED_ROLE_ID,
+    if (!reaction.message.inGuild()) return false;
+
+    const reviewerRoleId = await this.settingsService.getReviewerRole(
+      reaction.message.guildId,
     );
+
+    const isAllowedUser = reviewerRoleId
+      ? await this.discordService.userHasRole(user.id, reviewerRoleId)
+      : true;
 
     const isAllowedChannel =
       reaction.message.channelId === SIGNUP_APPROVAL_CHANNEL;

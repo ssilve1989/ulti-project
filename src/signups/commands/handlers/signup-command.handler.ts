@@ -14,14 +14,17 @@ import {
   EncounterFriendlyDescription,
 } from '../../../app.consts.js';
 import { isSameUserFilter } from '../../../common/collection-filters.js';
-import { SignupCommand } from '../signup.commands.js';
+import {
+  CancelButton,
+  ConfirmButton,
+} from '../../../common/components/buttons.js';
+import { SettingsService } from '../../../settings/settings.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
-import { CancelButton } from '../../../common/components/buttons.js';
-import { ConfirmButton } from '../../../common/components/buttons.js';
 import { SignupEvent } from '../../signup.events.js';
 import { UnhandledButtonInteractionException } from '../../signup.exceptions.js';
 import { SignupRequest } from '../../signup.interfaces.js';
 import { SignupRepository } from '../../signup.repository.js';
+import { SignupCommand } from '../signup.commands.js';
 
 // reusable object to clear a messages emebed + button interaction
 const CLEAR_EMBED = {
@@ -37,16 +40,26 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   constructor(
     private readonly eventBus: EventBus,
     private readonly repository: SignupRepository,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async execute({ interaction }: SignupCommand) {
     const username = interaction.user.username;
+
     this.logger.log(`handling signup command for user: ${username}`);
 
     await interaction.deferReply({ ephemeral: true });
 
-    // the fields are marked required so they should come in with values. empty strings are not allowed
-    /* eslint-disable @typescript-eslint/no-non-null-assertion */
+    const hasReviewChannelConfigured =
+      !!(await this.settingsService.getReviewChannel(interaction.guildId));
+
+    if (!hasReviewChannelConfigured) {
+      await interaction.editReply(
+        SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL,
+      );
+      return;
+    }
+
     const request = this.createSignupRequest(interaction);
 
     // TODO: Additional validation could be done on the data here now but would require a followup message
@@ -88,7 +101,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       });
 
       if (signup) {
-        this.eventBus.publish(new SignupEvent(signup));
+        this.eventBus.publish(new SignupEvent(signup, interaction.guildId));
       }
     } catch (e: unknown) {
       await this.handleError(e, interaction);
@@ -119,6 +132,8 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   private createSignupRequest(
     interaction: ChatInputCommandInteraction,
   ): SignupRequest {
+    // the fields are marked required so they should come in with values. empty strings are not allowed
+    /* eslint-disable @typescript-eslint/no-non-null-assertion */
     return {
       availability: interaction.options.getString('availability')!,
       character: interaction.options.getString('character')!,
