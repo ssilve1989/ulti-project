@@ -9,16 +9,19 @@ import {
   EmbedBuilder,
 } from 'discord.js';
 import { P, match } from 'ts-pattern';
-import { Encounter, EncounterFriendlyDescription } from '../../app.consts.js';
-import { isSameUserFilter } from '../../common/collection-filters.js';
-import { SignupCommand } from '../commands/signup.commands.js';
-import { SIGNUP_MESSAGES } from '../signup.consts.js';
-import { CancelButton } from '../../common/components/buttons.js';
-import { ConfirmButton } from '../../common/components/buttons.js';
-import { SignupEvent } from '../signup.events.js';
-import { UnhandledButtonInteractionException } from '../signup.exceptions.js';
-import { SignupRequest } from '../signup.interfaces.js';
-import { SignupRepository } from '../signup.repository.js';
+import {
+  Encounter,
+  EncounterFriendlyDescription,
+} from '../../../app.consts.js';
+import { isSameUserFilter } from '../../../common/collection-filters.js';
+import { SignupCommand } from '../signup.commands.js';
+import { SIGNUP_MESSAGES } from '../../signup.consts.js';
+import { CancelButton } from '../../../common/components/buttons.js';
+import { ConfirmButton } from '../../../common/components/buttons.js';
+import { SignupEvent } from '../../signup.events.js';
+import { UnhandledButtonInteractionException } from '../../signup.exceptions.js';
+import { SignupRequest } from '../../signup.interfaces.js';
+import { SignupRepository } from '../../signup.repository.js';
 
 // reusable object to clear a messages emebed + button interaction
 const CLEAR_EMBED = {

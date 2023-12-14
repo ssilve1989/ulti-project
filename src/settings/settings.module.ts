@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { SettingsCommandHandler } from './settings-command.handler.js';
+import { SettingsCommandHandler } from './commands/handlers/settings-command.handler.js';
 import { SettingsService } from './settings.service.js';
 import { FirebaseModule } from '../firebase/firebase.module.js';
 
