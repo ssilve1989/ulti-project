@@ -8,11 +8,13 @@ class SettingsService {
   private readonly collection: CollectionReference<Settings>;
 
   constructor(@InjectFirestore() firestore: Firestore) {
-    this.collection = firestore.collection('settings');
+    this.collection = firestore.collection(
+      'settings',
+    ) as CollectionReference<Settings>;
   }
 
-  public upsertSettings(guildId: string, settings: Settings) {
-    return this.collection.doc(guildId).set(settings);
+  public upsertSettings(guildId: string, settings: Partial<Settings>) {
+    return this.collection.doc(guildId).set(settings, { merge: true });
   }
 
   public async getReviewChannel(guildId: string) {

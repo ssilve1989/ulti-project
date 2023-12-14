@@ -40,7 +40,9 @@ describe('SettingsService', () => {
 
     expect(firestore.collection).toHaveBeenCalledWith('settings');
     expect(firestore.collection('').doc).toHaveBeenCalledWith(guildId);
-    expect(firestore.collection('').doc().set).toHaveBeenCalledWith(settings);
+    expect(firestore.collection('').doc().set).toHaveBeenCalledWith(settings, {
+      merge: true,
+    });
   });
 
   it('should call getReviewChannel with correct arguments', async () => {
