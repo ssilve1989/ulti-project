@@ -16,7 +16,9 @@ class SignupSagas {
   signupModified = (event$: Observable<any>): Observable<ICommand> =>
     event$.pipe(
       ofType(SignupEvent),
-      map((event) => new SendSignupReviewCommand(event.signup)),
+      map(
+        ({ signup, guildId }) => new SendSignupReviewCommand(signup, guildId),
+      ),
     );
 
   /**

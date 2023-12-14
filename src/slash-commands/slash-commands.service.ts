@@ -1,14 +1,42 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Client, Events, REST, Routes } from 'discord.js';
+import { match } from 'ts-pattern';
 import { AppConfig } from '../app.config.js';
-import { REST, Routes } from 'discord.js';
-import { Logger } from '@nestjs/common';
+import { InjectDiscordClient } from '../discord/discord.decorators.js';
+import { SignupCommand } from '../signups/commands/signup.commands.js';
+import { StatusCommand } from '../status/commands/status.command.js';
+import { SettingsSlashCommand } from './settings-slash-command.js';
+import { SignupSlashCommand } from './signup-slash-command.js';
 import { SLASH_COMMANDS } from './slash-commands.js';
+import { StatusSlashCommand } from './status-slash-command.js';
+import { CommandBus } from '@nestjs/cqrs';
+import { SettingsCommand } from '../settings/commands/settings.command.js';
 
 @Injectable()
 class SlashCommandsService {
   private readonly logger = new Logger(SlashCommandsService.name);
-  constructor(private readonly configService: ConfigService<AppConfig, true>) {}
+
+  constructor(
+    @InjectDiscordClient() private readonly client: Client,
+    private readonly commandBus: CommandBus,
+    private readonly configService: ConfigService<AppConfig, true>,
+  ) {}
+
+  listenToCommands() {
+    this.client.on(Events.InteractionCreate, (interaction) => {
+      if (!interaction.isChatInputCommand() || !interaction.inGuild()) return;
+
+      // TODO: This could be more generic somehow
+      const command = match(interaction.commandName)
+        .with(SignupSlashCommand.name, () => new SignupCommand(interaction))
+        .with(StatusSlashCommand.name, () => new StatusCommand(interaction))
+        .with(SettingsSlashCommand.name, () => new SettingsCommand(interaction))
+        .run();
+
+      this.commandBus.execute(command);
+    });
+  }
 
   async registerCommands() {
     this.logger.log(`refreshing slash commands`);
