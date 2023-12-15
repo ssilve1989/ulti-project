@@ -64,4 +64,14 @@ describe('SettingsService', () => {
     expect(firestore.collection('').doc).toHaveBeenCalledWith(guildId);
     expect(firestore.collection('').doc().get).toHaveBeenCalled();
   });
+
+  it('should call getSettings with correct arguments', async () => {
+    const guildId = 'guildId';
+
+    await service.getSettings(guildId);
+
+    expect(firestore.collection).toHaveBeenCalledWith('settings');
+    expect(firestore.collection('').doc).toHaveBeenCalledWith(guildId);
+    expect(firestore.collection('').doc().get).toHaveBeenCalled();
+  });
 });
