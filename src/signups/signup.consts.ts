@@ -9,8 +9,6 @@ export const SIGNUP_MESSAGES = {
     'A review channel has not been configured for this bot. Please contact an administrator',
 };
 
-// TODO: dynamically assign the appropriate channel id via some configuration setting on the bot
-export const SIGNUP_APPROVAL_CHANNEL = '1183780444437762139';
 export const SIGNUP_REVIEW_REACTIONS: Record<
   keyof typeof SignupStatus,
   string

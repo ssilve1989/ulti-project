@@ -1,16 +1,17 @@
+import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Client, EmbedBuilder, TextChannel } from 'discord.js';
+import { Client, EmbedBuilder } from 'discord.js';
 import { EncounterFriendlyDescription } from '../../../app.consts.js';
 import { InjectDiscordClient } from '../../../discord/discord.decorators.js';
-import { SendSignupReviewCommand } from '../send-signup-review.command.js';
+import { SettingsService } from '../../../settings/settings.service.js';
+import { SIGNUP_REVIEW_REACTIONS } from '../../signup.consts.js';
 import {
-  SIGNUP_APPROVAL_CHANNEL,
-  SIGNUP_REVIEW_REACTIONS,
-} from '../../signup.consts.js';
+  InvalidReviewChannelException,
+  MissingChannelException,
+} from '../../signup.exceptions.js';
 import { Signup } from '../../signup.interfaces.js';
 import { SignupRepository } from '../../signup.repository.js';
-import { SettingsService } from '../../../settings/settings.service.js';
-import { Logger } from '@nestjs/common';
+import { SendSignupReviewCommand } from '../send-signup-review.command.js';
 
 @CommandHandler(SendSignupReviewCommand)
 class SendSignupReviewCommandHandler
@@ -32,7 +33,7 @@ class SendSignupReviewCommandHandler
       return;
     }
 
-    await this.sendSignupForApproval(signup);
+    await this.sendSignupForApproval(signup, reviewChannel, guildId);
   }
 
   /**
@@ -40,10 +41,22 @@ class SendSignupReviewCommandHandler
    * and listens for reactions on the message so we can update the approval status
    * @param signup
    */
-  async sendSignupForApproval(signup: Signup) {
-    const channel = this.client.channels.cache.get(
-      SIGNUP_APPROVAL_CHANNEL,
-    ) as TextChannel;
+  async sendSignupForApproval(
+    signup: Signup,
+    channelId: string,
+    guildId: string,
+  ) {
+    const channel = this.client.guilds.cache
+      .get(guildId)
+      ?.channels.cache.get(channelId);
+
+    if (!channel) {
+      throw new MissingChannelException(channelId, guildId);
+    }
+
+    if (!channel.isTextBased()) {
+      throw new InvalidReviewChannelException(channel.name, guildId);
+    }
 
     const embed = this.createSignupApprovalEmbed(signup);
 

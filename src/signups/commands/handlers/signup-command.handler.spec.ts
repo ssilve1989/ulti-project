@@ -11,11 +11,13 @@ import {
 import { SignupCommandHandler } from './signup-command.handler.js';
 import { SignupCommand } from '../signup.commands.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
+import { SettingsService } from '../../../settings/settings.service.js';
 
 describe('Signup Command Handler', () => {
   let handler: SignupCommandHandler;
   let interaction: DeepMocked<ChatInputCommandInteraction<'cached' | 'raw'>>;
   let confirmationInteraction: DeepMocked<Message<boolean>>;
+  let settingsService: DeepMocked<SettingsService>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
@@ -27,6 +29,7 @@ describe('Signup Command Handler', () => {
 
     handler = fixture.get(SignupCommandHandler);
     confirmationInteraction = createMock<Message<boolean>>({});
+
     interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
       options: {
         getString: (value: string) => {
@@ -48,6 +51,8 @@ describe('Signup Command Handler', () => {
       },
       valueOf: () => '',
     });
+
+    settingsService = fixture.get(SettingsService);
   });
 
   test('is defined', () => {
@@ -125,6 +130,21 @@ describe('Signup Command Handler', () => {
       expect.objectContaining({
         content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
       }),
+    );
+  });
+
+  it('should not handle a signup if there is no review channel set', async () => {
+    const deferReplySpy = jest.spyOn(interaction, 'deferReply');
+    const editReplySpy = jest.spyOn(interaction, 'editReply');
+
+    settingsService.getReviewChannel.mockResolvedValueOnce(undefined);
+
+    const command = new SignupCommand(interaction);
+    await handler.execute(command);
+
+    expect(deferReplySpy).toHaveBeenCalledWith({ ephemeral: true });
+    expect(editReplySpy).toHaveBeenCalledWith(
+      SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL,
     );
   });
 });

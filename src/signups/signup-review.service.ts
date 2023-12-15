@@ -18,11 +18,7 @@ import {
 import { EMPTY, Subscription, concatMap, fromEvent } from 'rxjs';
 import { match } from 'ts-pattern';
 import { DiscordService } from '../discord/discord.service.js';
-import {
-  SIGNUP_APPROVAL_CHANNEL,
-  SIGNUP_REVIEW_REACTIONS,
-  SignupStatus,
-} from './signup.consts.js';
+import { SIGNUP_REVIEW_REACTIONS, SignupStatus } from './signup.consts.js';
 import { Signup } from './signup.interfaces.js';
 import { SignupRepository } from './signup.repository.js';
 import { SettingsService } from '../settings/settings.service.js';
@@ -128,21 +124,13 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
       ? await this.discordService.userHasRole(user.id, reviewerRoleId)
       : true;
 
-    const isAllowedChannel =
-      reaction.message.channelId === SIGNUP_APPROVAL_CHANNEL;
-
     const isExpectedReactionType =
       reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.APPROVED ||
       reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.DECLINED;
 
     const isBotReacting = reaction.message.author?.id === user.id;
 
-    return (
-      !isBotReacting &&
-      isAllowedChannel &&
-      isAllowedUser &&
-      isExpectedReactionType
-    );
+    return !isBotReacting && isAllowedUser && isExpectedReactionType;
   }
 
   private async handleApprovedReaction(

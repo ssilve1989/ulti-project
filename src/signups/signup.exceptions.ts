@@ -7,3 +7,15 @@ export class UnhandledButtonInteractionException extends Error {
     );
   }
 }
+
+export class MissingChannelException extends Error {
+  constructor(channelId: string, guildId: string) {
+    super(`No channel found with id ${channelId} for guild ${guildId}`);
+  }
+}
+
+export class InvalidReviewChannelException extends Error {
+  constructor(channelName: string, guildId: string) {
+    super(`${channelName} is not a valid text channel for guild ${guildId}`);
+  }
+}
