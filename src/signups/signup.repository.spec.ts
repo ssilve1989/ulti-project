@@ -69,9 +69,19 @@ describe('Signup Repository', () => {
 
     await repository.createSignup(signupRequest);
 
-    expect(doc.set).toHaveBeenCalledWith(signupRequest, {
-      mergeFields: ['fflogsLink', 'character', 'world', 'availability'],
-    });
+    expect(doc.set).toHaveBeenCalledWith(
+      { ...signupRequest, status: SignupStatus.PENDING, reviewedBy: null },
+      {
+        mergeFields: [
+          'fflogsLink',
+          'character',
+          'world',
+          'availability',
+          'status',
+          'reviewedBy',
+        ],
+      },
+    );
 
     expect(doc.create).not.toHaveBeenCalled();
   });

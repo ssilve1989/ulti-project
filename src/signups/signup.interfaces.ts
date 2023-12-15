@@ -13,7 +13,7 @@ export interface SignupRequest {
 
 export interface Signup extends SignupRequest {
   status: SignupStatus;
-  reviewedBy?: string;
+  reviewedBy?: string | null;
   reviewMessageId?: string;
 }
 

@@ -30,10 +30,20 @@ class SignupRepository {
     const snapshot = await document.get();
 
     if (snapshot.exists) {
-      await document.set(signup, {
-        // only update these fields if the document already exists. This allows approvals that were made to remain intact
-        mergeFields: ['fflogsLink', 'character', 'world', 'availability'],
-      });
+      await document.set(
+        { ...signup, status: SignupStatus.PENDING, reviewedBy: null },
+        {
+          // only update these fields if the document already exists. This allows approvals that were made to remain intact
+          mergeFields: [
+            'fflogsLink',
+            'character',
+            'world',
+            'availability',
+            'status',
+            'reviewedBy',
+          ],
+        },
+      );
     } else {
       await document.create({ ...signup, status: SignupStatus.PENDING });
     }
