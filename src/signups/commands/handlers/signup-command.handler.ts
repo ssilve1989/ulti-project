@@ -1,8 +1,11 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
+import { plainToInstance } from 'class-transformer';
+import { ValidationError, validate } from 'class-validator';
 import {
   ActionRowBuilder,
   ChatInputCommandInteraction,
+  Colors,
   ComponentType,
   DiscordjsError,
   DiscordjsErrorCodes,
@@ -19,10 +22,10 @@ import {
   ConfirmButton,
 } from '../../../common/components/buttons.js';
 import { SettingsService } from '../../../settings/settings.service.js';
+import { SignupRequestDto } from '../../dto/signup-request.dto.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { SignupEvent } from '../../signup.events.js';
 import { UnhandledButtonInteractionException } from '../../signup.exceptions.js';
-import { SignupRequest } from '../../signup.interfaces.js';
 import { SignupRepository } from '../../signup.repository.js';
 import { SignupCommand } from '../signup.commands.js';
 
@@ -44,7 +47,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   ) {}
 
   async execute({ interaction }: SignupCommand) {
-    const username = interaction.user.username;
+    const { username } = interaction.user;
 
     this.logger.log(`handling signup command for user: ${username}`);
 
@@ -60,12 +63,17 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       return;
     }
 
-    const request = this.createSignupRequest(interaction);
+    const [signupRequest, validationErrors] =
+      await this.createSignupRequest(interaction);
 
-    // TODO: Additional validation could be done on the data here now but would require a followup message
-    // if any action is required from the user. For now, we'll just assume the data will be understood by the
-    // coordinators reviewing the submission
-    const embed = this.createSignupConfirmationEmbed(request);
+    if (validationErrors) {
+      await interaction.editReply({
+        embeds: [this.createValidationErrorsEmbed(validationErrors)],
+      });
+      return;
+    }
+
+    const embed = this.createSignupConfirmationEmbed(signupRequest);
 
     const ConfirmationRow = new ActionRowBuilder().addComponents(
       ConfirmButton,
@@ -76,7 +84,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       components: [ConfirmationRow as any], // the typings are wrong here? annoying af
       embeds: [embed],
     });
-
     try {
       const response =
         await confirmationInteraction.awaitMessageComponent<ComponentType.Button>(
@@ -88,16 +95,16 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
       const signup = await match(response)
         .with({ customId: 'confirm' }, () =>
-          this.handleConfirm(request, interaction),
+          this.handleConfirm(signupRequest, interaction),
         )
         .with({ customId: 'cancel' }, () => this.handleCancel(interaction))
         .otherwise(() => {
           throw new UnhandledButtonInteractionException(response);
         });
 
-      this.logger.log({
+      this.logger.debug({
         message: `signup ${response.customId}`,
-        ...request,
+        ...signupRequest,
       });
 
       if (signup) {
@@ -109,7 +116,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   }
 
   private async handleConfirm(
-    request: SignupRequest,
+    request: SignupRequestDto,
     interaction: ChatInputCommandInteraction,
   ) {
     const signup = this.repository.createSignup(request);
@@ -129,38 +136,61 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     });
   }
 
-  private createSignupRequest(
-    interaction: ChatInputCommandInteraction,
-  ): SignupRequest {
-    // the fields are marked required so they should come in with values. empty strings are not allowed
+  private async createSignupRequest({
+    options,
+    user,
+  }: ChatInputCommandInteraction): Promise<
+    [SignupRequestDto, ValidationError[] | undefined]
+  > {
+    // the fields that are marked required should come in with values. empty strings are not allowed
     /* eslint-disable @typescript-eslint/no-non-null-assertion */
-    return {
-      availability: interaction.options.getString('availability')!,
-      character: interaction.options.getString('character')!,
-      discordId: interaction.user.id,
-      encounter: interaction.options.getString('encounter')! as Encounter,
-      fflogsLink: interaction.options.getString('fflogs')!,
-      world: interaction.options.getString('world')!,
-      username: interaction.user.username,
+    const request = {
+      availability: options.getString('availability')!,
+      character: options.getString('character')!,
+      discordId: user.id,
+      encounter: options.getString('encounter')! as Encounter,
+      fflogsLink: options.getString('fflogs'),
+      world: options.getString('world')!,
+      username: user.username,
+      screenshot: options.getAttachment('screenshot')?.url,
     };
+
+    const transformed = plainToInstance(SignupRequestDto, request);
+    const errors = await validate(transformed);
+
+    if (errors.length > 0) {
+      return [transformed, errors];
+    }
+
+    return [transformed, undefined];
   }
 
   private createSignupConfirmationEmbed({
     availability,
     character,
     encounter,
+    screenshot,
     fflogsLink,
     world,
-  }: SignupRequest) {
-    const embed = new EmbedBuilder()
+  }: SignupRequestDto) {
+    let embed = new EmbedBuilder()
       .setTitle(`${EncounterFriendlyDescription[encounter]} Signup`)
       .setDescription("Here's a summary of your request")
       .addFields([
         { name: 'Character', value: character },
         { name: 'Home World', value: world },
-        { name: 'FF Logs Link', value: `[Click Here](${fflogsLink})` },
         { name: 'Availability', value: availability },
       ]);
+
+    if (fflogsLink) {
+      embed = embed.addFields([
+        { name: 'FF Logs Link', value: `[View Report](${fflogsLink})` },
+      ]);
+    }
+
+    if (screenshot) {
+      embed = embed.setImage(screenshot);
+    }
 
     return embed;
   }
@@ -175,19 +205,39 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       .with(
         P.instanceOf(DiscordjsError),
         ({ code }) => code === DiscordjsErrorCodes.InteractionCollectorError,
-        () => {
-          return interaction.editReply({
+        () =>
+          interaction.editReply({
             content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
             ...CLEAR_EMBED,
-          });
-        },
+          }),
       )
-      .otherwise(() => {
-        return interaction.editReply({
+      .otherwise(() =>
+        interaction.editReply({
           content: 'Sorry an unexpected error has occurred',
           ...CLEAR_EMBED,
-        });
-      });
+        }),
+      );
+  }
+
+  private createValidationErrorsEmbed(errors: ValidationError[]) {
+    const fields = errors.flatMap((error, index) => {
+      const { constraints = {} } = error;
+
+      return Object.entries(constraints).map(([, value]) => ({
+        // The property names are ugly to present to the user. Alternatively we could use a dictionary to map the property names
+        // to friendly names
+        name: `Error #${index + 1}`,
+        value,
+      }));
+    });
+
+    const embed = new EmbedBuilder()
+      .setTitle('Error')
+      .setColor(Colors.Red)
+      .setDescription('Please correct the following errors')
+      .addFields(fields);
+
+    return embed;
   }
 }
 
