@@ -8,14 +8,14 @@ import {
 import {
   EncounterEmoji,
   EncounterFriendlyDescription,
-} from '../../app.consts.js';
+} from '../../../app.consts.js';
 import {
   SIGNUP_REVIEW_REACTIONS,
   SignupStatus,
-} from '../../signups/signup.consts.js';
-import { Signup } from '../../signups/signup.interfaces.js';
-import { StatusCommand } from '../commands/status.command.js';
-import { StatusService } from '../status.service.js';
+} from '../../../signups/signup.consts.js';
+import { Signup } from '../../../signups/signup.interfaces.js';
+import { StatusCommand } from '../status.command.js';
+import { StatusService } from '../../status.service.js';
 
 @CommandHandler(StatusCommand)
 class StatusCommandHandler implements ICommandHandler<StatusCommand> {
