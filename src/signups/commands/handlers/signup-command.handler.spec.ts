@@ -12,6 +12,8 @@ import { SignupCommandHandler } from './signup-command.handler.js';
 import { SignupCommand } from '../signup.commands.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { SettingsService } from '../../../settings/settings.service.js';
+import { Encounter } from '../../../app.consts.js';
+import { UnhandledButtonInteractionException } from '../../signup.exceptions.js';
 
 describe('Signup Command Handler', () => {
   let handler: SignupCommandHandler;
@@ -31,23 +33,26 @@ describe('Signup Command Handler', () => {
     confirmationInteraction = createMock<Message<boolean>>({});
 
     interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
+      user: {
+        username: 'Test User',
+        id: '123456',
+      },
       options: {
         getString: (value: string) => {
           switch (value) {
             case 'encounter':
-              return 'E9S';
+              return Encounter.DSR;
             case 'character':
               return 'Test Character';
             case 'fflogs':
-              return 'https://www.fflogs.com';
+              return 'https://www.fflogs.com/reports/foo';
             case 'availability':
               return 'Monday, Wednesday, Friday';
             case 'world':
               return 'Jenova';
-            case 'username':
-              'Test User';
           }
         },
+        getAttachment: () => null,
       },
       valueOf: () => '',
     });
@@ -85,6 +90,26 @@ describe('Signup Command Handler', () => {
     );
   });
 
+  it('throws UnhandledButtonInteractionException if the interaction is unknown', async () => {
+    const spy = jest.spyOn(handler, 'handleError' as any);
+
+    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
+      createMock<ChannelSelectMenuInteraction>({
+        customId: 'foo',
+        valueOf: () => '',
+      }),
+    );
+
+    interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
+
+    const command = new SignupCommand(interaction);
+    await handler.execute(command);
+    expect(spy).toHaveBeenCalledWith(
+      expect.any(UnhandledButtonInteractionException),
+      interaction,
+    );
+  });
+
   it('handles cancelling a signup', async () => {
     const deferReplySpy = jest.spyOn(interaction, 'deferReply');
     const editReplySpy = jest.spyOn(interaction, 'editReply');
@@ -119,7 +144,7 @@ describe('Signup Command Handler', () => {
       new DiscordjsError(DiscordjsErrorCodes.InteractionCollectorError),
     );
 
-    interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
+    interaction.editReply.mockResolvedValue(confirmationInteraction);
 
     const command = new SignupCommand(interaction);
     await handler.execute(command);
