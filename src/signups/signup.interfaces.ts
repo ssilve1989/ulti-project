@@ -1,20 +1,11 @@
-import { Encounter } from '../app.consts.js';
+import { SignupRequestDto } from './dto/signup-request.dto.js';
 import { SignupStatus } from './signup.consts.js';
 
-export interface SignupRequest {
-  availability: string;
-  character: string;
-  discordId: string;
-  encounter: Encounter;
-  fflogsLink: string;
-  username: string;
-  world: string;
-}
-
-export interface Signup extends SignupRequest {
+export interface Signup extends Omit<SignupRequestDto, 'screenshot'> {
   status: SignupStatus;
   reviewedBy?: string | null;
   reviewMessageId?: string;
+  screenshot?: string | null;
 }
 
 export type SignupCompositeKeyProps = Pick<Signup, 'username' | 'encounter'>;

@@ -23,6 +23,7 @@ describe('Send Signup Review Command Handler', () => {
     character: 'foo',
     world: 'bar',
     availability: 'baz',
+    screenshot: 'http://somelinksurely',
   });
 
   beforeEach(async () => {

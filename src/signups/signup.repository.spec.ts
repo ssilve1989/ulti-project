@@ -14,15 +14,16 @@ import {
 } from 'firebase-admin/firestore';
 import { FIRESTORE } from '../firebase/firebase.consts.js';
 import { Encounter } from '../app.consts.js';
-import { Signup, SignupRequest } from './signup.interfaces.js';
+import { Signup } from './signup.interfaces.js';
 import { SignupStatus } from './signup.consts.js';
+import { SignupRequestDto } from './dto/signup-request.dto.js';
 
 describe('Signup Repository', () => {
   let repository: SignupRepository;
   let firestore: DeepMocked<Firestore>;
   let collection: DeepMocked<CollectionReference<DocumentData>>;
   let doc: DeepMocked<DocumentReference<DocumentData>>;
-  const signupRequest: SignupRequest = {
+  const signupRequest: SignupRequestDto = {
     availability: 'availability',
     character: 'character',
     discordId: 'discordId',
@@ -72,14 +73,7 @@ describe('Signup Repository', () => {
     expect(doc.set).toHaveBeenCalledWith(
       { ...signupRequest, status: SignupStatus.PENDING, reviewedBy: null },
       {
-        mergeFields: [
-          'fflogsLink',
-          'character',
-          'world',
-          'availability',
-          'status',
-          'reviewedBy',
-        ],
+        merge: true,
       },
     );
 

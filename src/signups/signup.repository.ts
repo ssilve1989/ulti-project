@@ -1,12 +1,9 @@
 import { CollectionReference, Firestore } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase/firebase.decorators.js';
 import { Injectable } from '@nestjs/common';
-import {
-  Signup,
-  SignupCompositeKeyProps,
-  SignupRequest,
-} from './signup.interfaces.js';
+import { Signup, SignupCompositeKeyProps } from './signup.interfaces.js';
 import { SignupStatus } from './signup.consts.js';
+import { SignupRequestDto } from './dto/signup-request.dto.js';
 
 @Injectable()
 class SignupRepository {
@@ -23,7 +20,7 @@ class SignupRepository {
    * fflogsLink, character, world, and availability fields. Otherwise, it will create a new signup
    * @param signup
    */
-  public async createSignup(signup: SignupRequest): Promise<Signup> {
+  public async createSignup({ ...signup }: SignupRequestDto): Promise<Signup> {
     const key = this.getKeyForSignup(signup);
 
     const document = this.collection.doc(key);
@@ -31,21 +28,20 @@ class SignupRepository {
 
     if (snapshot.exists) {
       await document.set(
-        { ...signup, status: SignupStatus.PENDING, reviewedBy: null },
         {
-          // only update these fields if the document already exists. This allows approvals that were made to remain intact
-          mergeFields: [
-            'fflogsLink',
-            'character',
-            'world',
-            'availability',
-            'status',
-            'reviewedBy',
-          ],
+          ...signup,
+          status: SignupStatus.PENDING,
+          reviewedBy: null,
+        },
+        {
+          merge: true,
         },
       );
     } else {
-      await document.create({ ...signup, status: SignupStatus.PENDING });
+      await document.create({
+        ...signup,
+        status: SignupStatus.PENDING,
+      });
     }
 
     const updatedSnapshot = await this.collection.doc(key).get();

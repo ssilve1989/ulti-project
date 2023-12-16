@@ -29,12 +29,16 @@ export const SignupSlashCommand = new SlashCommandBuilder()
   .addStringOption((option) =>
     option
       .setRequired(true)
-      .setDescription('FF Logs Link for selected encounter showing prog point')
-      .setName('fflogs'),
+      .setDescription('Availability. Ex: M-F 8pm-12am EST')
+      .setName('availability'),
   )
   .addStringOption((option) =>
     option
-      .setRequired(true)
-      .setDescription('Availability. Ex: M-F 8pm-12am EST')
-      .setName('availability'),
+      .setDescription('FF Logs Link for selected encounter showing prog point')
+      .setName('fflogs'),
+  )
+  .addAttachmentOption((option) =>
+    option
+      .setName('screenshot')
+      .setDescription('Screenshot proof of prog point'),
   );

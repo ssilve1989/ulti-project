@@ -78,9 +78,10 @@ class SendSignupReviewCommandHandler
     character,
     encounter,
     fflogsLink,
+    screenshot,
     world,
   }: Signup) {
-    return new EmbedBuilder()
+    let embed = new EmbedBuilder()
       .setDescription(
         `Please react to approve ${SIGNUP_REVIEW_REACTIONS.APPROVED} or deny ${SIGNUP_REVIEW_REACTIONS.DECLINED} the following applicants request`,
       )
@@ -92,13 +93,20 @@ class SendSignupReviewCommandHandler
         },
         { name: 'Character', value: character, inline: true },
         { name: 'Home World', value: world, inline: true },
-        {
-          name: 'FF Logs Link',
-          value: `[Click Here](${fflogsLink})`,
-          inline: true,
-        },
         { name: 'Availability', value: availability, inline: true },
       ]);
+
+    if (fflogsLink) {
+      embed = embed.addFields([
+        { name: 'FFLogs Link', value: `[View Report](${fflogsLink})` },
+      ]);
+    }
+
+    if (screenshot) {
+      embed = embed.setImage(screenshot);
+    }
+
+    return embed;
   }
 }
 
