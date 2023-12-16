@@ -9,7 +9,8 @@ class AppService implements OnModuleDestroy {
 
   constructor(private readonly unhandledExceptionBus: UnhandledExceptionBus) {
     this.unhandledExceptionBus.pipe(takeUntil(this.destroy$)).subscribe({
-      next: (exceptionInfo) => this.logger.error(exceptionInfo),
+      // TODO: The logger doesn't log unhandledExceptionInfo correctly if given the entire object
+      next: ({ exception }) => this.logger.error(exception),
     });
   }
 
