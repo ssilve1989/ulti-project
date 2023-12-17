@@ -5,6 +5,7 @@ export interface AppConfig {
   DISCORD_TOKEN: string;
   GUILD_ID: string;
   LOG_LEVEL: string;
+  NODE_ENV: string;
   PORT: number;
   PUBLIC_KEY: string;
 }
@@ -16,6 +17,9 @@ export const configSchema = Joi.object({
   LOG_LEVEL: Joi.string()
     .allow('debug', 'info', 'warn', 'error', 'silent', 'fatal')
     .default('info'),
+  NODE_ENV: Joi.string()
+    .allow('development', 'production', 'test')
+    .default('development'),
   PORT: Joi.number().default(3000),
   PUBLIC_KEY: Joi.string().optional(),
 });
