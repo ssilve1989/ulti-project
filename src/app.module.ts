@@ -32,7 +32,10 @@ import { SettingsModule } from './settings/settings.module.js';
       inject: [ConfigService],
       useFactory: (configService: ConfigService<AppConfig, true>) => ({
         pinoHttp: {
-          transport: { target: 'pino-pretty' },
+          transport:
+            configService.get('NODE_ENV') === 'production'
+              ? undefined
+              : { target: 'pino-pretty' },
           level: configService.get('LOG_LEVEL'),
         },
       }),
