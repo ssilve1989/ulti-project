@@ -17,11 +17,10 @@ import { SettingsModule } from './settings/settings.module.js';
   imports: [
     CqrsModule,
     DiscordModule,
-    SlashCommandsModule,
-    CqrsModule,
     FirebaseModule,
     SettingsModule,
     SignupModule,
+    SlashCommandsModule,
     StatusModule,
     ConfigModule.forRoot({
       validationSchema: configSchema.concat(firestoreSchema),
