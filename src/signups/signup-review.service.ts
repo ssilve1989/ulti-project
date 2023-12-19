@@ -138,7 +138,6 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
     message: Message | PartialMessage,
     user: User,
   ) {
-    // otherwise approve this signup and update the embedded messag with a footer of who approved it
     await this.repository.updateSignupStatus(
       SignupStatus.APPROVED,
       signup,
