@@ -11,6 +11,9 @@ class SignupRequestDto {
   @IsString()
   discordId: string;
 
+  @IsString()
+  role: string; // freeform for now but could be restricted via enum
+
   @IsEnum(Encounter)
   encounter: Encounter;
 

@@ -27,6 +27,9 @@ export const SignupSlashCommand = new SlashCommandBuilder()
     option.setRequired(true).setDescription('Home World').setName('world'),
   )
   .addStringOption((option) =>
+    option.setRequired(true).setDescription('Job/Role').setName('role'),
+  )
+  .addStringOption((option) =>
     option
       .setRequired(true)
       .setDescription('Availability. Ex: M-F 8pm-12am EST')
