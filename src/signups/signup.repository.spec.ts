@@ -29,6 +29,7 @@ describe('Signup Repository', () => {
     discordId: 'discordId',
     encounter: Encounter.DSR,
     fflogsLink: 'fflogsLink',
+    role: 'tank',
     username: 'username',
     world: 'world',
   };

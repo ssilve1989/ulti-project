@@ -24,6 +24,7 @@ describe('Send Signup Review Command Handler', () => {
     world: 'bar',
     availability: 'baz',
     screenshot: 'http://somelinksurely',
+    role: 'healer',
   });
 
   beforeEach(async () => {
