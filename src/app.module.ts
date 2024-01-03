@@ -11,11 +11,13 @@ import { FirebaseModule } from './firebase/firebase.module.js';
 import { SignupModule } from './signups/signup.module.js';
 import { StatusModule } from './status/status.module.js';
 import { SettingsModule } from './settings/settings.module.js';
+import { SheetsModule } from './sheets/sheets.module.js';
 
 @Module({
   imports: [
     CqrsModule,
     DiscordModule,
+    SheetsModule,
     FirebaseModule,
     SettingsModule,
     SignupModule,
