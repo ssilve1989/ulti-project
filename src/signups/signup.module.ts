@@ -8,9 +8,16 @@ import { SendSignupReviewCommandHandler } from './commands/handlers/send-signup-
 import { SignupReviewService } from './signup-review.service.js';
 import { SignupRepository } from './signup.repository.js';
 import { SettingsModule } from '../settings/settings.module.js';
+import { SheetsModule } from '../sheets/sheets.module.js';
 
 @Module({
-  imports: [CqrsModule, FirebaseModule, DiscordModule, SettingsModule],
+  imports: [
+    CqrsModule,
+    DiscordModule,
+    FirebaseModule,
+    SettingsModule,
+    SheetsModule,
+  ],
   providers: [
     SendSignupReviewCommandHandler,
     SignupReviewService,
