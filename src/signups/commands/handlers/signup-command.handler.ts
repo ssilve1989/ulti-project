@@ -150,9 +150,10 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       discordId: user.id,
       encounter: options.getString('encounter')! as Encounter,
       fflogsLink: options.getString('fflogs'),
-      world: options.getString('world')!,
-      username: user.username,
+      role: options.getString('role'),
       screenshot: options.getAttachment('screenshot')?.url,
+      username: user.username,
+      world: options.getString('world')!,
     };
 
     const transformed = plainToInstance(SignupRequestDto, request);
@@ -172,14 +173,16 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     screenshot,
     fflogsLink,
     world,
+    role,
   }: SignupRequestDto) {
     let embed = new EmbedBuilder()
       .setTitle(`${EncounterFriendlyDescription[encounter]} Signup`)
       .setDescription("Here's a summary of your request")
       .addFields([
-        { name: 'Character', value: character },
-        { name: 'Home World', value: world },
-        { name: 'Availability', value: availability },
+        { name: 'Character', value: character, inline: true },
+        { name: 'Home World', value: world, inline: true },
+        { name: 'Availability', value: availability, inline: true },
+        { name: 'Role', value: role, inline: true },
       ]);
 
     if (fflogsLink) {
