@@ -22,6 +22,7 @@ import { SIGNUP_REVIEW_REACTIONS, SignupStatus } from './signup.consts.js';
 import { Signup } from './signup.interfaces.js';
 import { SignupRepository } from './signup.repository.js';
 import { SettingsService } from '../settings/settings.service.js';
+import { SheetsService } from '../sheets/sheets.service.js';
 
 @Injectable()
 class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -32,6 +33,7 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
     private readonly repository: SignupRepository,
     private readonly discordService: DiscordService,
     private readonly settingsService: SettingsService,
+    private readonly sheetsService: SheetsService,
   ) {}
 
   onApplicationBootstrap() {
@@ -138,12 +140,6 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
     message: Message | PartialMessage,
     user: User,
   ) {
-    await this.repository.updateSignupStatus(
-      SignupStatus.APPROVED,
-      signup,
-      user.username,
-    );
-
     const embed = EmbedBuilder.from(message.embeds[0]);
     const displayName = await this.discordService.getDisplayName(user.id);
 
@@ -156,7 +152,31 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
       .setColor(Colors.Green)
       .setTimestamp(new Date());
 
-    await message.edit({ embeds: [embed] });
+    try {
+      // confirm we posted the signup to the google sheet before updating the embed and database
+      await this.sheetsService.upsertSignup(signup);
+
+      await this.repository.updateSignupStatus(
+        SignupStatus.APPROVED,
+        signup,
+        user.username,
+      );
+
+      await message.edit({ embeds: [embed] });
+    } catch (e) {
+      // if there was an error posting to the google sheet, undo the reaction and let the user that reacted know
+      this.logger.error(e);
+
+      await Promise.all([
+        message.reactions.cache
+          .get(SIGNUP_REVIEW_REACTIONS.APPROVED)
+          ?.users.remove(user.id),
+        this.discordService.sendDirectMessage(
+          user.id,
+          `There was an error posting [this signup](${message.url}) to Google Sheets. Your approval has not been recorded`,
+        ),
+      ]);
+    }
   }
 
   private async handleDeclinedReaction(
