@@ -1,18 +1,24 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigType } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { App, cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { firestoreConfig } from './firebase.config.js';
+import { AppConfig } from '../app.config.js';
 import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
 
 @Module({
-  imports: [ConfigModule.forFeature(firestoreConfig)],
+  imports: [ConfigModule],
   providers: [
     {
       provide: FIREBASE_APP,
-      inject: [firestoreConfig.KEY],
-      useFactory: (config: ConfigType<typeof firestoreConfig>) => {
-        return initializeApp({ credential: cert(config) });
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService<AppConfig, true>) => {
+        return initializeApp({
+          credential: cert({
+            clientEmail: configService.get('GCP_ACCOUNT_EMAIL'),
+            privateKey: configService.get('GCP_PRIVATE_KEY'),
+            projectId: configService.get('GCP_PROJECT_ID'),
+          }),
+        });
       },
     },
     {
