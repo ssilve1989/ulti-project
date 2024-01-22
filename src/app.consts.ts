@@ -18,9 +18,9 @@ export const EncounterFriendlyDescription = Object.freeze({
 // these identifiers are specific to the ulti-project sausfest discord
 // they should only render correctly in that discord
 export const EncounterEmoji = Object.freeze({
+  [Encounter.DSR]: '<:dsr_totem:1128006062780448768>',
+  [Encounter.TEA]: '<:tea_totem:1128006067419369612>',
   [Encounter.TOP]: '<:top_totem:1128023323796852877>',
-  [Encounter.UWU]: '<:ucob_totem:1128006065930375333>',
-  [Encounter.UCOB]: '<:dsr_totem:1128006062780448768>',
-  [Encounter.TEA]: '<:uwu_totem:1128006064701444188>',
-  [Encounter.DSR]: '<:tea_totem:1128006067419369612>',
+  [Encounter.UCOB]: '<:ucob_totem:1128006065930375333>',
+  [Encounter.UWU]: '<:uwu_totem:1128006064701444188>',
 });
