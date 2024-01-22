@@ -7,7 +7,6 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { SlashCommandsModule } from './slash-commands/slash-commands.module.js';
 import { DiscordModule } from './discord/discord.module.js';
-import { firestoreSchema } from './firebase/firebase.config.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
 import { SignupModule } from './signups/signup.module.js';
 import { StatusModule } from './status/status.module.js';
@@ -23,7 +22,7 @@ import { SettingsModule } from './settings/settings.module.js';
     SlashCommandsModule,
     StatusModule,
     ConfigModule.forRoot({
-      validationSchema: configSchema.concat(firestoreSchema),
+      validationSchema: configSchema,
       cache: true,
     }),
     LoggerModule.forRootAsync({
