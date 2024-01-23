@@ -11,7 +11,8 @@ import { SignupSlashCommand } from './signup-slash-command.js';
 import { SLASH_COMMANDS } from './slash-commands.js';
 import { StatusSlashCommand } from './status-slash-command.js';
 import { CommandBus } from '@nestjs/cqrs';
-import { SettingsCommand } from '../settings/commands/settings.command.js';
+import { EditSettingsCommand } from '../settings/commands/edit-settings.command.js';
+import { ViewSettingsCommand } from '../settings/commands/view-settings.command.js';
 
 @Injectable()
 class SlashCommandsService {
@@ -31,7 +32,13 @@ class SlashCommandsService {
       const command = match(interaction.commandName)
         .with(SignupSlashCommand.name, () => new SignupCommand(interaction))
         .with(StatusSlashCommand.name, () => new StatusCommand(interaction))
-        .with(SettingsSlashCommand.name, () => new SettingsCommand(interaction))
+        .with(SettingsSlashCommand.name, () => {
+          const subcommand = interaction.options.getSubcommand();
+          return match(subcommand)
+            .with('edit', () => new EditSettingsCommand(interaction))
+            .with('view', () => new ViewSettingsCommand(interaction))
+            .run();
+        })
         .run();
 
       this.commandBus.execute(command);
