@@ -6,5 +6,9 @@ module.exports = {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   extensionsToTreatAsEsm: ['.ts'],
-  collectCoverageFrom: ['**/*.{ts,tsx}', '!**/node_modules/**'],
+  collectCoverageFrom: [
+    '**/*.{ts,tsx}',
+    '!**/node_modules/**',
+    '!src/slash-commands/**/*-command.ts',
+  ],
 };

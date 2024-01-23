@@ -1,11 +1,16 @@
 import { Module } from '@nestjs/common';
-import { SettingsCommandHandler } from './commands/handlers/settings-command.handler.js';
+import { EditSettingsCommandHandler } from './commands/handlers/edit-settings-command.handler.js';
 import { SettingsService } from './settings.service.js';
 import { FirebaseModule } from '../firebase/firebase.module.js';
+import { ViewSettingsCommandHandler } from './commands/handlers/view-settings-command.handler.js';
 
 @Module({
   imports: [FirebaseModule],
-  providers: [SettingsCommandHandler, SettingsService],
+  providers: [
+    EditSettingsCommandHandler,
+    SettingsService,
+    ViewSettingsCommandHandler,
+  ],
   exports: [SettingsService],
 })
 export class SettingsModule {}
