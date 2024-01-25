@@ -24,8 +24,10 @@ import { SheetsModule } from './sheets/sheets.module.js';
     SlashCommandsModule,
     StatusModule,
     ConfigModule.forRoot({
-      validationSchema: configSchema,
       cache: true,
+      envFilePath: ['.env', '.env.development'],
+      ignoreEnvFile: process.env.NODE_ENV === 'production',
+      validationSchema: configSchema,
     }),
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
