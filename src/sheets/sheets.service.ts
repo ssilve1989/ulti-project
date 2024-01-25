@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { InjectSheetsClient } from './sheets.decorators.js';
+import { ConfigType } from '@nestjs/config';
 import { sheets_v4 } from 'googleapis';
 import { Signup } from '../signups/signup.interfaces.js';
 import { sheetsConfig } from './sheets.config.js';
-import { ConfigType } from '@nestjs/config';
+import { InjectSheetsClient } from './sheets.decorators.js';
 
 // TODO: Needs unit testing but mocking the google client is a PITA
 @Injectable()
@@ -34,7 +34,8 @@ class SheetsService {
       range: encounter,
     });
 
-    const row = values?.findIndex((row) => row.at(1) === character) ?? -1;
+    // depends on knowing that character is at the 2nd index of th row
+    const row = values?.findIndex((row) => row.at(2) === character) ?? -1;
 
     // This depends on knowing the structure of the spreadsheet
     // Current non-automated iterations of the spreadsheet have a progpoint dropdown. We don't currently
@@ -42,8 +43,9 @@ class SheetsService {
     if (row === -1) {
       await this.client.spreadsheets.values.append({
         spreadsheetId: this.config.GOOGLE_SPREADSHEET_ID,
-        // the encounter value should match the Sheet name and is used as the range
-        range: encounter,
+        // the encounter value should match the sheet name and is used as the range
+        // this used to work without needing to specify column range but on the actual ulti-project sheet it needs this I believe due to empty columns at the start of the document
+        range: `${encounter}!C:F`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [[character, world, role, proofOfProg]],
@@ -53,7 +55,7 @@ class SheetsService {
       // If the row was found, update the existing data
       await this.client.spreadsheets.values.update({
         spreadsheetId: this.config.GOOGLE_SPREADSHEET_ID,
-        range: `${encounter}!B${row + 1}:E${row + 1}`,
+        range: `${encounter}!C${row + 1}:F${row + 1}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [[character, world, role, proofOfProg]],

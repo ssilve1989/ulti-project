@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
+import { Encounter } from '../app.consts.js';
 
 export const SignupSlashCommand = new SlashCommandBuilder()
   .setName('signup')
@@ -9,11 +10,14 @@ export const SignupSlashCommand = new SlashCommandBuilder()
       .setDescription('Select an encounter')
       .setName('encounter')
       .addChoices(
-        { name: 'The Epic of Alexander (Ultimate)', value: 'tea' },
-        { name: 'The Omega Protocol (Ultimate)', value: 'top' },
-        { name: 'The Unending Coil of Bahamut (Ultimate)', value: 'ucob' },
-        { name: 'The Weapons Refrain (Ultimate)', value: 'uwu' },
-        { name: `Dragonsong Reprise (Ultimate)`, value: 'dsr' },
+        { name: 'The Epic of Alexander (Ultimate)', value: Encounter.TEA },
+        { name: 'The Omega Protocol (Ultimate)', value: Encounter.TOP },
+        {
+          name: 'The Unending Coil of Bahamut (Ultimate)',
+          value: Encounter.UCOB,
+        },
+        { name: 'The Weapons Refrain (Ultimate)', value: Encounter.UWU },
+        { name: `Dragonsong Reprise (Ultimate)`, value: Encounter.DSR },
       ),
   )
   .addStringOption((option) =>
@@ -27,7 +31,10 @@ export const SignupSlashCommand = new SlashCommandBuilder()
     option.setRequired(true).setDescription('Home World').setName('world'),
   )
   .addStringOption((option) =>
-    option.setRequired(true).setDescription('Job/Role').setName('role'),
+    option
+      .setRequired(true)
+      .setDescription('Job/Role. Ex. SGE/WHM, Healer/Tank, etc')
+      .setName('role'),
   )
   .addStringOption((option) =>
     option
