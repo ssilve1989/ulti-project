@@ -1,10 +1,10 @@
 // TODO: cleanup file into domain specific files
 export enum Encounter {
-  'TOP' = 'top',
-  'UWU' = 'uwu',
-  'UCOB' = 'ucob',
-  'TEA' = 'tea',
-  'DSR' = 'dsr',
+  'TOP' = 'TOP',
+  'UWU' = 'UWU',
+  'UCOB' = 'UCOB',
+  'TEA' = 'TEA',
+  'DSR' = 'DSR',
 }
 
 export const EncounterFriendlyDescription = Object.freeze({
