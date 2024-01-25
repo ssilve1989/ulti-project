@@ -52,11 +52,15 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
       ]);
     }, [] as APIEmbedField[]);
 
-    const embed = new EmbedBuilder()
-      .setDescription('Signup Summary')
-      .addFields(fields);
+    const embed = new EmbedBuilder().setTitle('Signup Summary');
 
-    return embed;
+    if (fields.length === 0) {
+      return embed.setDescription(
+        'You have no active signups. Use /signup to signup for an encounter.',
+      );
+    } else {
+      return embed.addFields(fields);
+    }
   }
 
   private handleError(

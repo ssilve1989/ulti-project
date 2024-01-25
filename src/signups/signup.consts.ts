@@ -4,7 +4,7 @@ export const SIGNUP_MESSAGES = {
   SIGNUP_SUBMISSION_CANCELLED:
     'Signup canceled. Please use /signup if you wish to try again.',
   SIGNUP_SUBMISSION_CONFIRMED:
-    'Confirmed! A coordinator will review your submission and reach out to you soon.',
+    'Confirmed! A coordinator will review your submission and reach out to you soon. You can use `/status` to review the state of your signups.',
   MISSING_SIGNUP_REVIEW_CHANNEL:
     'A review channel has not been configured for this bot. Please contact an administrator',
 };
