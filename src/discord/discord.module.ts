@@ -1,6 +1,11 @@
-import { Logger, Module, OnApplicationShutdown } from '@nestjs/common';
+import {
+  Logger,
+  Module,
+  OnApplicationBootstrap,
+  OnApplicationShutdown,
+} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { Client, Events } from 'discord.js';
+import { ActivityType, Client, Events } from 'discord.js';
 import { first, firstValueFrom, fromEvent } from 'rxjs';
 import { AppConfig } from '../app.config.js';
 import { INTENTS, PARTIALS } from './discord.consts.js';
@@ -32,8 +37,15 @@ import { DiscordService } from './discord.service.js';
   ],
   exports: [DISCORD_CLIENT, DiscordService],
 })
-class DiscordModule implements OnApplicationShutdown {
+class DiscordModule implements OnApplicationBootstrap, OnApplicationShutdown {
   constructor(@InjectDiscordClient() private client: Client) {}
+
+  onApplicationBootstrap() {
+    this.client.user?.setActivity({
+      type: ActivityType.Listening,
+      name: 'to slashcommands!',
+    });
+  }
 
   onApplicationShutdown() {
     this.client.removeAllListeners();
