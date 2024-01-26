@@ -5,7 +5,7 @@ import { Channel, Client, TextChannel } from 'discord.js';
 import { Encounter } from '../../../app.consts.js';
 import { DISCORD_CLIENT } from '../../../discord/discord.decorators.js';
 import { SettingsService } from '../../../settings/settings.service.js';
-import { SignupStatus } from '../../signup.consts.js';
+import { PartyType, SignupStatus } from '../../signup.consts.js';
 import { Signup } from '../../signup.interfaces.js';
 import { SendSignupReviewCommandHandler } from './send-signup-review-command.handler.js';
 import {
@@ -18,13 +18,14 @@ describe('Send Signup Review Command Handler', () => {
   let settingsService: DeepMocked<SettingsService>;
   let get: jest.Mock<() => Channel | undefined>;
   const signup = createMock<Signup>({
-    encounter: Encounter.DSR,
-    status: SignupStatus.PENDING,
-    character: 'foo',
-    world: 'bar',
     availability: 'baz',
-    screenshot: 'http://somelinksurely',
+    character: 'foo',
+    encounter: Encounter.DSR,
+    partyType: PartyType.CLEAR_PARTY,
     role: 'healer',
+    screenshot: 'http://somelinksurely',
+    status: SignupStatus.PENDING,
+    world: 'bar',
   });
 
   beforeEach(async () => {

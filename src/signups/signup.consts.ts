@@ -23,3 +23,8 @@ export enum SignupStatus {
   APPROVED = 'APPROVED',
   DECLINED = 'DECLINED',
 }
+
+export enum PartyType {
+  PROG_PARTY = 'Prog Party',
+  CLEAR_PARTY = 'Clear Party',
+}

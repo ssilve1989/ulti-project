@@ -36,7 +36,7 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
   }
 
   private createStatusEmbed(signups: Signup[]) {
-    const fields = signups.reduce((acc, { encounter, status }) => {
+    const fields = signups.reduce((acc, { encounter, status, partyType }) => {
       return acc.concat([
         {
           name: 'Encounter',
@@ -48,7 +48,7 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
           value: `${SIGNUP_REVIEW_REACTIONS[status]} ${SignupStatus[status]}`,
           inline: true,
         },
-        { name: '\u200B', value: '\u200B' },
+        { name: 'Party Type', value: partyType, inline: true },
       ]);
     }, [] as APIEmbedField[]);
 
