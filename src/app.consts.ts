@@ -16,7 +16,7 @@ export const EncounterFriendlyDescription = Object.freeze({
 });
 
 // these identifiers are specific to the ulti-project sausfest discord
-// they should only render correctly in that discord
+// the bot would need to be part of that discord for these to render correctly
 export const EncounterEmoji = Object.freeze({
   [Encounter.DSR]: '<:dsr_totem:1128006062780448768>',
   [Encounter.TEA]: '<:tea_totem:1128006067419369612>',
