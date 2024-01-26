@@ -16,8 +16,7 @@ class SignupRepository {
   }
 
   /**
-   * Upserts a signup request into the database. If the signup already exists, it will update the
-   * fflogsLink, character, world, and availability fields. Otherwise, it will create a new signup
+   * Upserts a signup request into the database
    * @param signup
    */
   public async createSignup({ ...signup }: SignupRequestDto): Promise<Signup> {

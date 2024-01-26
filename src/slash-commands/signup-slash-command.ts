@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { Encounter } from '../app.consts.js';
+import { PartyType } from '../signups/signup.consts.js';
 
 export const SignupSlashCommand = new SlashCommandBuilder()
   .setName('signup')
@@ -18,6 +19,19 @@ export const SignupSlashCommand = new SlashCommandBuilder()
         },
         { name: 'The Weapons Refrain (Ultimate)', value: Encounter.UWU },
         { name: `Dragonsong Reprise (Ultimate)`, value: Encounter.DSR },
+      ),
+  )
+  .addStringOption((option) =>
+    option
+      .setRequired(true)
+      .setName('party-type')
+      .setDescription('Signing up for a Prog or Clear party?')
+      .addChoices(
+        {
+          name: 'Prog Party',
+          value: PartyType.PROG_PARTY,
+        },
+        { name: 'Clear Party', value: PartyType.CLEAR_PARTY },
       ),
   )
   .addStringOption((option) =>

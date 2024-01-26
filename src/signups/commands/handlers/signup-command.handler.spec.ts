@@ -10,7 +10,7 @@ import {
 } from 'discord.js';
 import { SignupCommandHandler } from './signup-command.handler.js';
 import { SignupCommand } from '../signup.commands.js';
-import { SIGNUP_MESSAGES } from '../../signup.consts.js';
+import { PartyType, SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { SettingsService } from '../../../settings/settings.service.js';
 import { Encounter } from '../../../app.consts.js';
 import { UnhandledButtonInteractionException } from '../../signup.exceptions.js';
@@ -52,6 +52,8 @@ describe('Signup Command Handler', () => {
               return 'Jenova';
             case 'role':
               return 'tank';
+            case 'party-type':
+              return PartyType.CLEAR_PARTY;
           }
         },
         getAttachment: () => null,
