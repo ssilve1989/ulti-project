@@ -23,7 +23,7 @@ import {
 } from '../../../common/components/buttons.js';
 import { SettingsService } from '../../../settings/settings.service.js';
 import { SignupRequestDto } from '../../dto/signup-request.dto.js';
-import { SIGNUP_MESSAGES } from '../../signup.consts.js';
+import { PartyType, SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { SignupEvent } from '../../signup.events.js';
 import { UnhandledButtonInteractionException } from '../../signup.exceptions.js';
 import { SignupRepository } from '../../signup.repository.js';
@@ -144,14 +144,15 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   > {
     // the fields that are marked required should come in with values. empty strings are not allowed
     /* eslint-disable @typescript-eslint/no-non-null-assertion */
-    const request = {
+    const request: SignupRequestDto = {
       availability: options.getString('availability')!,
       character: options.getString('character')!,
       discordId: user.id,
       encounter: options.getString('encounter')! as Encounter,
       fflogsLink: options.getString('fflogs'),
-      role: options.getString('role'),
+      role: options.getString('role')!,
       screenshot: options.getAttachment('screenshot')?.url,
+      partyType: options.getString('party-type')! as PartyType,
       username: user.username,
       world: options.getString('world')!,
     };
@@ -170,13 +171,14 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     availability,
     character,
     encounter,
-    screenshot,
     fflogsLink,
-    world,
+    partyType,
     role,
+    screenshot,
+    world,
   }: SignupRequestDto) {
     let embed = new EmbedBuilder()
-      .setTitle(`${EncounterFriendlyDescription[encounter]} Signup`)
+      .setTitle(`${EncounterFriendlyDescription[encounter]} ${partyType}`)
       .setDescription("Here's a summary of your request")
       .addFields([
         { name: 'Character', value: character, inline: true },

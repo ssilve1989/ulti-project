@@ -81,6 +81,7 @@ class SendSignupReviewCommandHandler
     screenshot,
     world,
     role,
+    partyType,
   }: Signup) {
     let embed = new EmbedBuilder()
       .setDescription(
@@ -91,7 +92,9 @@ class SendSignupReviewCommandHandler
         {
           name: 'Encounter',
           value: EncounterFriendlyDescription[encounter],
+          inline: true,
         },
+        { name: 'Party Type', value: partyType, inline: true },
         { name: 'Character', value: character, inline: true },
         { name: 'Home World', value: world, inline: true },
         { name: 'Availability', value: availability, inline: true },

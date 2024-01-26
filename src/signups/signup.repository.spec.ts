@@ -23,16 +23,9 @@ describe('Signup Repository', () => {
   let firestore: DeepMocked<Firestore>;
   let collection: DeepMocked<CollectionReference<DocumentData>>;
   let doc: DeepMocked<DocumentReference<DocumentData>>;
-  const signupRequest: SignupRequestDto = {
-    availability: 'availability',
-    character: 'character',
-    discordId: 'discordId',
+  const signupRequest = createMock<SignupRequestDto>({
     encounter: Encounter.DSR,
-    fflogsLink: 'fflogsLink',
-    role: 'tank',
-    username: 'username',
-    world: 'world',
-  };
+  });
 
   beforeEach(async () => {
     doc = createMock<DocumentReference>();
