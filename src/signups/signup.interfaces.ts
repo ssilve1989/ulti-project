@@ -8,4 +8,7 @@ export interface Signup extends Omit<SignupRequestDto, 'screenshot'> {
   screenshot?: string | null;
 }
 
-export type SignupCompositeKeyProps = Pick<Signup, 'username' | 'encounter'>;
+export type SignupCompositeKeyProps = Pick<
+  Signup,
+  'character' | 'world' | 'encounter'
+>;

@@ -82,10 +82,12 @@ class SignupRepository {
     });
   }
 
-  private getKeyForSignup({ username, encounter }: SignupCompositeKeyProps) {
-    // usernames are supposed to be unique right? The recent change discord
-    // made to remove #discriminator from the username might make this wonky
-    return `${username}-${encounter}`;
+  private getKeyForSignup({
+    character,
+    world,
+    encounter,
+  }: SignupCompositeKeyProps) {
+    return `${character.toLowerCase()}-${world.toLowerCase()}-${encounter}`;
   }
 }
 
