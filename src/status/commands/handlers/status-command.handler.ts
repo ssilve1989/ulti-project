@@ -5,10 +5,7 @@ import {
   ChatInputCommandInteraction,
   EmbedBuilder,
 } from 'discord.js';
-import {
-  EncounterEmoji,
-  EncounterFriendlyDescription,
-} from '../../../app.consts.js';
+import { EncounterFriendlyDescription } from '../../../app.consts.js';
 import {
   SIGNUP_REVIEW_REACTIONS,
   SignupStatus,
