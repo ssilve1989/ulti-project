@@ -43,7 +43,7 @@ class DiscordModule implements OnApplicationBootstrap, OnApplicationShutdown {
   onApplicationBootstrap() {
     this.client.user?.setActivity({
       type: ActivityType.Listening,
-      name: 'to slashcommands!',
+      name: 'Slashcommands!',
     });
   }
 
