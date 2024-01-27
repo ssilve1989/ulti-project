@@ -18,14 +18,18 @@ import { Signup } from './signup.interfaces.js';
 import { SignupStatus } from './signup.consts.js';
 import { SignupRequestDto } from './dto/signup-request.dto.js';
 
+const SIGNUP_KEY = {
+  character: 'some name',
+  world: 'someworld',
+  encounter: Encounter.DSR,
+};
+
 describe('Signup Repository', () => {
   let repository: SignupRepository;
   let firestore: DeepMocked<Firestore>;
   let collection: DeepMocked<CollectionReference<DocumentData>>;
   let doc: DeepMocked<DocumentReference<DocumentData>>;
-  const signupRequest = createMock<SignupRequestDto>({
-    encounter: Encounter.DSR,
-  });
+  const signupRequest = createMock<SignupRequestDto>(SIGNUP_KEY);
 
   beforeEach(async () => {
     doc = createMock<DocumentReference>();
@@ -89,14 +93,9 @@ describe('Signup Repository', () => {
   });
 
   it('should call updateSignupStatus with the correct arguments', async () => {
-    const key = {
-      username: 'username',
-      encounter: Encounter.DSR,
-    };
-
     await repository.updateSignupStatus(
       SignupStatus.APPROVED,
-      key,
+      SIGNUP_KEY,
       'reviewedBy',
     );
 
@@ -107,12 +106,7 @@ describe('Signup Repository', () => {
   });
 
   it('should call setReviewMessageId with the correct arguments', async () => {
-    const key = {
-      username: 'username',
-      encounter: Encounter.DSR,
-    };
-
-    await repository.setReviewMessageId(key, 'messageId');
+    await repository.setReviewMessageId(SIGNUP_KEY, 'messageId');
 
     expect(doc.update).toHaveBeenCalledWith({
       reviewMessageId: 'messageId',
