@@ -31,6 +31,11 @@ class SettingsService {
     const doc = await this.collection.doc(guildId).get();
     return doc.data()?.reviewerRole;
   }
+
+  public async getSpreadsheetId(guildId: string) {
+    const doc = await this.collection.doc(guildId).get();
+    return doc.data()?.spreadsheetId;
+  }
 }
 
 export { SettingsService };

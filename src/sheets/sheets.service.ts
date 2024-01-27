@@ -1,29 +1,30 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ConfigType } from '@nestjs/config';
+import { Injectable, Logger } from '@nestjs/common';
 import { sheets_v4 } from 'googleapis';
 import { PartyType } from '../signups/signup.consts.js';
 import { Signup } from '../signups/signup.interfaces.js';
-import { sheetsConfig } from './sheets.config.js';
+
 import { ProgSheetRanges } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
 
-// TODO: Needs unit testing but mocking the google client is a PITA
 @Injectable()
 class SheetsService {
   private readonly logger: Logger = new Logger(SheetsService.name);
+  // TODO: hardcoded sheet name, but should be configurable
   private static readonly PROG_SHEET_NAME = 'Ulti Proj: Prog Parties';
+
   constructor(
     @InjectSheetsClient() private readonly client: sheets_v4.Sheets,
-    @Inject(sheetsConfig.KEY)
-    private readonly config: ConfigType<typeof sheetsConfig>,
   ) {}
 
-  public async upsertSignup({ partyType, ...signup }: Signup) {
+  public async upsertSignup(
+    { partyType, ...signup }: Signup,
+    spreadsheetId: string,
+  ) {
     switch (partyType) {
       case PartyType.CLEAR_PARTY:
-        return this.upsertClearParty(signup);
+        return this.upsertClearParty(signup, spreadsheetId);
       case PartyType.PROG_PARTY:
-        return this.upsertProgParty(signup);
+        return this.upsertProgParty(signup, spreadsheetId);
 
       default:
         this.logger.error(
@@ -32,21 +33,21 @@ class SheetsService {
     }
   }
 
-  public createHyperLinkCell(name: string, url: string): string {
+  private createHyperLinkCell(name: string, url: string): string {
     return `=HYPERLINK("${url}","${name}")`;
   }
 
-  private async upsertClearParty({
-    encounter,
-    character,
-    role,
-    world,
-    ...rest
-  }: Omit<Signup, 'partyType'>) {
+  private async upsertClearParty(
+    { encounter, character, role, world, ...rest }: Omit<Signup, 'partyType'>,
+    spreadsheetId: string,
+  ) {
     const proofOfProg = this.getProgProof(rest);
     const cellValues = [character, world, role, proofOfProg];
 
-    const sheetValues = await this.getSheetValues(encounter);
+    const sheetValues = await this.getSheetValues({
+      spreadsheetId,
+      range: encounter,
+    });
 
     const row =
       sheetValues?.findIndex((row: string[]) =>
@@ -57,9 +58,15 @@ class SheetsService {
     // Current non-automated iterations of the spreadsheet have a progpoint dropdown. We don't currently
     // capture this as part of the signup so we'll replace that value with the proof of prog link
     if (row === -1) {
-      return this.updateSheet(`${encounter}!C:F`, cellValues, 'append');
+      return this.updateSheet(
+        spreadsheetId,
+        `${encounter}!C:F`,
+        cellValues,
+        'append',
+      );
     } else {
       return this.updateSheet(
+        spreadsheetId,
         `${encounter}!C${row + 1}:F${row + 1}`,
         cellValues,
         'update',
@@ -67,18 +74,17 @@ class SheetsService {
     }
   }
 
-  private async upsertProgParty({
-    encounter,
-    character,
-    role,
-    ...rest
-  }: Omit<Signup, 'partyType'>) {
+  private async upsertProgParty(
+    { encounter, character, role, ...rest }: Omit<Signup, 'partyType'>,
+    spreadsheetId: string,
+  ) {
     const range = ProgSheetRanges[encounter];
     const progProof = this.getProgProof(rest);
 
-    const values = await this.getSheetValues(
-      `${SheetsService.PROG_SHEET_NAME}!${range.start}:${range.end}`,
-    );
+    const values = await this.getSheetValues({
+      spreadsheetId,
+      range: `${SheetsService.PROG_SHEET_NAME}!${range.start}:${range.end}`,
+    });
 
     const row =
       values?.findIndex((row: string[]) => {
@@ -99,7 +105,7 @@ class SheetsService {
             range.end
           }${row + 1}`;
 
-    return this.updateSheet(updateRange, cellValues, 'update');
+    return this.updateSheet(spreadsheetId, updateRange, cellValues, 'update');
   }
 
   private getProgProof({
@@ -111,11 +117,17 @@ class SheetsService {
       : '';
   }
 
-  private async getSheetValues(range: string) {
+  private async getSheetValues({
+    spreadsheetId,
+    range,
+  }: {
+    spreadsheetId: string;
+    range: string;
+  }) {
     const {
       data: { values },
     } = await this.client.spreadsheets.values.get({
-      spreadsheetId: this.config.GOOGLE_SPREADSHEET_ID,
+      spreadsheetId,
       range,
     });
 
@@ -123,12 +135,13 @@ class SheetsService {
   }
 
   private updateSheet(
+    spreadsheetId: string,
     range: string,
     values: string[],
     type: 'update' | 'append',
   ) {
     const payload = {
-      spreadsheetId: this.config.GOOGLE_SPREADSHEET_ID,
+      spreadsheetId,
       range,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
@@ -139,6 +152,21 @@ class SheetsService {
     return type === 'update'
       ? this.client.spreadsheets.values.update(payload)
       : this.client.spreadsheets.values.append(payload);
+  }
+
+  public async getSheetTitle(spreadsheetId: string) {
+    const response = await this.client.spreadsheets.get({
+      spreadsheetId,
+      includeGridData: false,
+    });
+
+    // Assuming you want the name of the first sheet
+    const title = response.data.properties?.title ?? 'Untitled Spreadsheet';
+
+    // Generate a link to the sheet
+    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=0`;
+
+    return { title, url };
   }
 }
 

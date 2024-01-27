@@ -23,6 +23,7 @@ import { Signup } from './signup.interfaces.js';
 import { SignupRepository } from './signup.repository.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { SheetsService } from '../sheets/sheets.service.js';
+import { Settings } from '../settings/settings.interfaces.js';
 
 @Injectable()
 class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -47,12 +48,22 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
     )
       .pipe(
         concatMap(async (event) => {
-          const [reaction, user] = await Promise.all([
+          if (!event.reaction.message.inGuild()) return EMPTY;
+
+          const [reaction, user, settings] = await Promise.all([
             this.hydrateReaction(event.reaction),
             this.hydrateUser(event.user),
+            this.settingsService.getSettings(event.reaction.message.guildId),
           ]);
-          const shouldHandle = await this.shouldHandleReaction(reaction, user);
-          return shouldHandle ? this.handleReaction(reaction, user) : EMPTY;
+          const shouldHandle = await this.shouldHandleReaction(
+            reaction,
+            user,
+            settings,
+          );
+
+          return shouldHandle
+            ? this.handleReaction(reaction, user, settings)
+            : EMPTY;
         }),
       )
       .subscribe();
@@ -63,15 +74,13 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async handleReaction(
-    reactionOrPartial: MessageReaction | PartialMessageReaction,
-    userOrPartial: User | PartialUser,
+    { message, emoji }: MessageReaction,
+    user: User,
+    settings?: Settings,
   ) {
-    const [{ message, emoji }, user] = await Promise.all([
-      this.hydrateReaction(reactionOrPartial),
-      this.hydrateUser(userOrPartial),
-    ]);
-
     try {
+      // TODO: If for some reason this throws and there is no signup, we should inform the person performing the interaction
+      // that there is no associated signup anymore
       const signup = await this.repository.findByReviewId(message.id);
 
       if (signup.reviewedBy) {
@@ -83,7 +92,7 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
 
       await match(emoji.name)
         .with(SIGNUP_REVIEW_REACTIONS.APPROVED, () =>
-          this.handleApprovedReaction(signup, message, user),
+          this.handleApprovedReaction(signup, message, user, settings),
         )
         .with(SIGNUP_REVIEW_REACTIONS.DECLINED, () =>
           this.handleDeclinedReaction(signup, message, user),
@@ -115,15 +124,12 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
   private async shouldHandleReaction(
     reaction: MessageReaction,
     user: User | PartialUser,
+    settings?: Settings,
   ) {
     if (!reaction.message.inGuild()) return false;
 
-    const reviewerRoleId = await this.settingsService.getReviewerRole(
-      reaction.message.guildId,
-    );
-
-    const isAllowedUser = reviewerRoleId
-      ? await this.discordService.userHasRole(user.id, reviewerRoleId)
+    const isAllowedUser = settings?.reviewerRole
+      ? await this.discordService.userHasRole(user.id, settings.reviewerRole)
       : true;
 
     const isExpectedReactionType =
@@ -139,7 +145,9 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
     signup: Signup,
     message: Message | PartialMessage,
     user: User,
+    settings?: Settings,
   ) {
+    console.log('here?');
     const embed = EmbedBuilder.from(message.embeds[0]);
     const displayName = await this.discordService.getDisplayName(user.id);
 
@@ -153,8 +161,9 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
       .setTimestamp(new Date());
 
     try {
-      // confirm we posted the signup to the google sheet before updating the embed and database
-      await this.sheetsService.upsertSignup(signup);
+      if (settings?.spreadsheetId) {
+        await this.sheetsService.upsertSignup(signup, settings.spreadsheetId);
+      }
 
       await this.repository.updateSignupStatus(
         SignupStatus.APPROVED,
@@ -205,18 +214,19 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
 
   private async handleReactionError(
     error: unknown,
-    user: User | PartialUser,
+    user: User,
     message: Message | PartialMessage,
   ) {
     this.logger.error(error);
-    // TODO: consolidate error messages to consts
+    // TODO: Improve error reporting to better inform user what happened
     await Promise.all([
       message.reactions.cache
         .get(SIGNUP_REVIEW_REACTIONS.APPROVED)
         ?.users.remove(user.id),
+
       this.discordService.sendDirectMessage(
         user.id,
-        `There was an error posting [this signup](${message.url}) to Google Sheets. Your approval has not been recorded`,
+        `There was an error handling [this signup](${message.url}). Your approval has not been recorded`,
       ),
     ]);
   }
