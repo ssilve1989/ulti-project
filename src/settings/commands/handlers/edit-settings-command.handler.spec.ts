@@ -28,6 +28,7 @@ describe('Edit Settings Command Handler', () => {
     const guildId = '12345';
     const reviewerRole = '67890';
     const reviewChannel = '09876';
+    const spreadsheetId = 'spreadsheetId';
 
     const upsertSpy = jest.spyOn(settingsService, 'upsertSettings');
 
@@ -37,6 +38,7 @@ describe('Edit Settings Command Handler', () => {
         options: {
           getRole: () => createMock({ id: reviewerRole }),
           getChannel: () => createMock({ id: reviewChannel }),
+          getString: () => 'spreadsheetId',
         },
         valueOf: () => '',
       }),
@@ -45,6 +47,7 @@ describe('Edit Settings Command Handler', () => {
     expect(upsertSpy).toHaveBeenCalledWith(guildId, {
       reviewerRole,
       reviewChannel,
+      spreadsheetId,
     });
   });
 });

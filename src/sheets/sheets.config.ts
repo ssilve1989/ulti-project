@@ -2,12 +2,10 @@ import { registerAs } from '@nestjs/config';
 import Joi from 'joi';
 
 export interface SheetsConfig {
-  GOOGLE_SPREADSHEET_ID: string;
   GOOGLE_UNIVERSE_DOMAIN: string;
 }
 
 const schema = Joi.object({
-  GOOGLE_SPREADSHEET_ID: Joi.string().required(),
   GOOGLE_UNIVERSE_DOMAIN: Joi.string().default('googleapis.com'),
 });
 
