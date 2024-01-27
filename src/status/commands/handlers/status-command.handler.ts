@@ -40,7 +40,7 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
       return acc.concat([
         {
           name: 'Encounter',
-          value: `${EncounterEmoji[encounter]} ${EncounterFriendlyDescription[encounter]}`,
+          value: EncounterFriendlyDescription[encounter],
           inline: true,
         },
         {
