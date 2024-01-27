@@ -27,6 +27,13 @@ export const SettingsSlashCommand = new SlashCommandBuilder()
           .setDescription(
             'an optional role that is allowed to review signups. If not set, anyone can review signups',
           ),
+      )
+      .addStringOption((option) =>
+        option
+          .setName('spreadsheet-id')
+          .setDescription(
+            'The id of the spreadsheet to use for persistence modifications',
+          ),
       ),
   )
   .addSubcommand((subcommand) =>

@@ -8,6 +8,7 @@ import { FIRESTORE } from '../firebase/firebase.consts.js';
 describe('SettingsService', () => {
   let service: SettingsService;
   let firestore: DeepMocked<Firestore>;
+  const guildId = 'guildId';
 
   beforeEach(async () => {
     const docMock = {
@@ -33,7 +34,6 @@ describe('SettingsService', () => {
   });
 
   it('should call upsertSettings with correct arguments', async () => {
-    const guildId = 'guildId';
     const settings = { reviewChannel: 'channel', reviewerRole: 'role' };
 
     await service.upsertSettings(guildId, settings);
@@ -46,8 +46,6 @@ describe('SettingsService', () => {
   });
 
   it('should call getReviewChannel with correct arguments', async () => {
-    const guildId = 'guildId';
-
     await service.getReviewChannel(guildId);
 
     expect(firestore.collection).toHaveBeenCalledWith('settings');
@@ -56,8 +54,6 @@ describe('SettingsService', () => {
   });
 
   it('should call getReviewerRole with correct arguments', async () => {
-    const guildId = 'guildId';
-
     await service.getReviewerRole(guildId);
 
     expect(firestore.collection).toHaveBeenCalledWith('settings');
@@ -66,11 +62,16 @@ describe('SettingsService', () => {
   });
 
   it('should call getSettings with correct arguments', async () => {
-    const guildId = 'guildId';
-
     await service.getSettings(guildId);
 
     expect(firestore.collection).toHaveBeenCalledWith('settings');
+    expect(firestore.collection('').doc).toHaveBeenCalledWith(guildId);
+    expect(firestore.collection('').doc().get).toHaveBeenCalled();
+  });
+
+  it('should call getSpreadsheetId with correct arguments', async () => {
+    await service.getSpreadsheetId(guildId);
+
     expect(firestore.collection('').doc).toHaveBeenCalledWith(guildId);
     expect(firestore.collection('').doc().get).toHaveBeenCalled();
   });

@@ -3,9 +3,10 @@ import { EditSettingsCommandHandler } from './commands/handlers/edit-settings-co
 import { SettingsService } from './settings.service.js';
 import { FirebaseModule } from '../firebase/firebase.module.js';
 import { ViewSettingsCommandHandler } from './commands/handlers/view-settings-command.handler.js';
+import { SheetsModule } from '../sheets/sheets.module.js';
 
 @Module({
-  imports: [FirebaseModule],
+  imports: [FirebaseModule, SheetsModule],
   providers: [
     EditSettingsCommandHandler,
     SettingsService,

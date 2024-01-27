@@ -1,12 +1,16 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ViewSettingsCommand } from '../view-settings.command.js';
 import { SettingsService } from '../../settings.service.js';
+import { SheetsService } from '../../../sheets/sheets.service.js';
 
 @CommandHandler(ViewSettingsCommand)
 class ViewSettingsCommandHandler
   implements ICommandHandler<ViewSettingsCommand>
 {
-  constructor(private readonly settingsService: SettingsService) {}
+  constructor(
+    private readonly settingsService: SettingsService,
+    private readonly sheetsService: SheetsService,
+  ) {}
 
   async execute({ interaction }: ViewSettingsCommand) {
     await interaction.deferReply({ ephemeral: true });
@@ -19,12 +23,22 @@ class ViewSettingsCommandHandler
       return interaction.editReply('No settings found!');
     }
 
-    const { reviewChannel, reviewerRole } = settings;
+    const { reviewChannel, reviewerRole, spreadsheetId } = settings;
     const role = reviewerRole ? `<@&${reviewerRole}>` : 'No Role Set';
 
-    await interaction.editReply(
-      `**Review Channel:** <#${reviewChannel}>\n**Reviewer Role:** ${role}`,
-    );
+    const messages = [
+      `**Review Channel:** <#${reviewChannel}>`,
+      `**Reviewer Role:** ${role}`,
+    ];
+
+    if (spreadsheetId) {
+      const { title, url } =
+        await this.sheetsService.getSheetTitle(spreadsheetId);
+
+      messages.push(`**Managaed Spreadsheet:** [${title}](${url})`);
+    }
+
+    await interaction.editReply(messages.join('\n'));
   }
 }
 
