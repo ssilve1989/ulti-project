@@ -24,4 +24,3 @@ primary_region = 'sea'
 
 [env]
   GCP_PROJECT_ID = "ulti-project-407621"
-  GOOGLE_SPREADSHEET_ID = "1bbxDXOAXD6Quf4XSxKvXDwyWi4JepQ-XgK1703EdmIA"
