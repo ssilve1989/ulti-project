@@ -71,16 +71,16 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
       this.hydrateUser(userOrPartial),
     ]);
 
-    const signup = await this.repository.findByReviewId(message.id);
-
-    if (signup.reviewedBy) {
-      this.logger.log(
-        `signup ${signup.reviewMessageId} already reviewed by ${user.displayName}`,
-      );
-      return;
-    }
-
     try {
+      const signup = await this.repository.findByReviewId(message.id);
+
+      if (signup.reviewedBy) {
+        this.logger.log(
+          `signup ${signup.reviewMessageId} already reviewed by ${user.displayName}`,
+        );
+        return;
+      }
+
       await match(emoji.name)
         .with(SIGNUP_REVIEW_REACTIONS.APPROVED, () =>
           this.handleApprovedReaction(signup, message, user),
@@ -90,7 +90,7 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
         )
         .otherwise(() => {});
     } catch (error) {
-      this.handleReactionError(error, message);
+      this.handleReactionError(error, user, message);
     }
   }
 
@@ -205,11 +205,20 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
 
   private async handleReactionError(
     error: unknown,
+    user: User | PartialUser,
     message: Message | PartialMessage,
   ) {
     this.logger.error(error);
     // TODO: consolidate error messages to consts
-    await message.reply('Sorry an unexpected error has occurred');
+    await Promise.all([
+      message.reactions.cache
+        .get(SIGNUP_REVIEW_REACTIONS.APPROVED)
+        ?.users.remove(user.id),
+      this.discordService.sendDirectMessage(
+        user.id,
+        `There was an error posting [this signup](${message.url}) to Google Sheets. Your approval has not been recorded`,
+      ),
+    ]);
   }
 }
 
