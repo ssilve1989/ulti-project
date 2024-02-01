@@ -33,7 +33,7 @@ class ViewSettingsCommandHandler
 
     if (spreadsheetId) {
       const { title, url } =
-        await this.sheetsService.getSheetTitle(spreadsheetId);
+        await this.sheetsService.getSheetMetadata(spreadsheetId);
 
       messages.push(`**Managaed Spreadsheet:** [${title}](${url})`);
     }

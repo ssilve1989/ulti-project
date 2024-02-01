@@ -9,6 +9,7 @@ import { SignupReviewService } from './signup-review.service.js';
 import { SignupRepository } from './signup.repository.js';
 import { SettingsModule } from '../settings/settings.module.js';
 import { SheetsModule } from '../sheets/sheets.module.js';
+import { RemoveSignupCommandHandler } from './commands/handlers/remove-signup-command.handler.js';
 
 @Module({
   imports: [
@@ -19,11 +20,12 @@ import { SheetsModule } from '../sheets/sheets.module.js';
     SheetsModule,
   ],
   providers: [
+    RemoveSignupCommandHandler,
     SendSignupReviewCommandHandler,
-    SignupReviewService,
     SignupCommandHandler,
-    SignupSagas,
     SignupRepository,
+    SignupReviewService,
+    SignupSagas,
   ],
 })
 class SignupModule {}
