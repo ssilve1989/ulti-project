@@ -1,7 +1,10 @@
 import { CollectionReference, Firestore } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase/firebase.decorators.js';
 import { Injectable } from '@nestjs/common';
-import { Signup, SignupCompositeKeyProps } from './signup.interfaces.js';
+import {
+  Signup,
+  SignupCompositeKeyProps as SignupCompositeKey,
+} from './signup.interfaces.js';
 import { SignupStatus } from './signup.consts.js';
 import { SignupRequestDto } from './dto/signup-request.dto.js';
 
@@ -62,7 +65,7 @@ class SignupRepository {
 
   public updateSignupStatus(
     status: SignupStatus,
-    key: SignupCompositeKeyProps,
+    key: SignupCompositeKey,
     reviewedBy: string,
   ) {
     return this.collection.doc(this.getKeyForSignup(key)).update({
@@ -71,10 +74,7 @@ class SignupRepository {
     });
   }
 
-  public setReviewMessageId(
-    signup: SignupCompositeKeyProps,
-    messageId: string,
-  ) {
+  public setReviewMessageId(signup: SignupCompositeKey, messageId: string) {
     const key = this.getKeyForSignup(signup);
 
     return this.collection.doc(key).update({
@@ -82,11 +82,13 @@ class SignupRepository {
     });
   }
 
-  private getKeyForSignup({
-    character,
-    world,
-    encounter,
-  }: SignupCompositeKeyProps) {
+  public removeSignup(signup: SignupCompositeKey) {
+    const key = this.getKeyForSignup(signup);
+
+    return this.collection.doc(key).delete();
+  }
+
+  private getKeyForSignup({ character, world, encounter }: SignupCompositeKey) {
     return `${character.toLowerCase()}-${world.toLowerCase()}-${encounter}`;
   }
 }

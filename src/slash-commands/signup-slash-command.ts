@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { Encounter } from '../app.consts.js';
 import { PartyType } from '../signups/signup.consts.js';
+import { ENCOUNTER_CHOICES } from './slash-commands.consts.js';
 
 export const SignupSlashCommand = new SlashCommandBuilder()
   .setName('signup')
@@ -10,16 +10,7 @@ export const SignupSlashCommand = new SlashCommandBuilder()
       .setRequired(true)
       .setDescription('Select an encounter')
       .setName('encounter')
-      .addChoices(
-        { name: 'The Epic of Alexander (Ultimate)', value: Encounter.TEA },
-        { name: 'The Omega Protocol (Ultimate)', value: Encounter.TOP },
-        {
-          name: 'The Unending Coil of Bahamut (Ultimate)',
-          value: Encounter.UCOB,
-        },
-        { name: 'The Weapons Refrain (Ultimate)', value: Encounter.UWU },
-        { name: `Dragonsong Reprise (Ultimate)`, value: Encounter.DSR },
-      ),
+      .addChoices(...ENCOUNTER_CHOICES),
   )
   .addStringOption((option) =>
     option

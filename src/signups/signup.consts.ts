@@ -7,6 +7,8 @@ export const SIGNUP_MESSAGES = {
     'Confirmed! A coordinator will review your submission and reach out to you soon. You can use `/status` to review the state of your signups.',
   MISSING_SIGNUP_REVIEW_CHANNEL:
     'A review channel has not been configured for this bot. Please contact an administrator',
+  MISSING_SETTINGS:
+    'No settings have been configured for this bot. Commands may not function until properly configured',
 };
 
 export const SIGNUP_REVIEW_REACTIONS: Record<

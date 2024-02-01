@@ -13,6 +13,8 @@ import { StatusSlashCommand } from './status-slash-command.js';
 import { CommandBus } from '@nestjs/cqrs';
 import { EditSettingsCommand } from '../settings/commands/edit-settings.command.js';
 import { ViewSettingsCommand } from '../settings/commands/view-settings.command.js';
+import { RemoveSignupSlashCommand } from './remove-signup-slash-command.js';
+import { RemoveSignupCommand } from '../signups/commands/remove-signup.command.js';
 
 @Injectable()
 class SlashCommandsService {
@@ -39,9 +41,15 @@ class SlashCommandsService {
             .with('view', () => new ViewSettingsCommand(interaction))
             .run();
         })
-        .run();
+        .with(
+          RemoveSignupSlashCommand.name,
+          () => new RemoveSignupCommand(interaction),
+        )
+        .otherwise(() => undefined);
 
-      this.commandBus.execute(command);
+      if (command) {
+        this.commandBus.execute(command);
+      }
     });
   }
 
