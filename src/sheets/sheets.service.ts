@@ -1,11 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { sheets_v4 } from '@googleapis/sheets';
 import { PartyType } from '../signups/signup.consts.js';
-import { Signup } from '../signups/signup.interfaces.js';
+import {
+  Signup,
+  SignupCompositeKeyProps,
+} from '../signups/signup.interfaces.js';
 
-import { ProgSheetRanges } from './sheets.consts.js';
+import { ProgSheetRanges, columnToIndex } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
 
+/**
+ * This module depends on knowing the structure of the spreadsheet
+ * Current non-automated iterations of the spreadsheet have a progpoint dropdown. We don't currently
+ * capture this as part of the signup so we'll replace that value with the proof of prog link.
+ * Ranges are very brittle and will need to be updated if the spreadsheet changes.
+ */
 @Injectable()
 class SheetsService {
   private readonly logger: Logger = new Logger(SheetsService.name);
@@ -16,6 +25,12 @@ class SheetsService {
     @InjectSheetsClient() private readonly client: sheets_v4.Sheets,
   ) {}
 
+  /**
+   * Upsert a signup into the spreadsheet. If the character is already signed up, it will update the row
+   * @param signup
+   * @param spreadsheetId
+   * @returns
+   */
   public async upsertSignup(
     { partyType, ...signup }: Signup,
     spreadsheetId: string,
@@ -31,6 +46,101 @@ class SheetsService {
           `Unknown party type: ${partyType} for user: ${signup.discordId}`,
         );
     }
+  }
+
+  /**
+   * Remove a signup from the spreadsheet
+   * @param signup
+   * @param spreadsheetId
+   */
+  public async removeSignup(
+    { encounter, character, world }: SignupCompositeKeyProps,
+    spreadsheetId: string,
+  ) {
+    const requests: sheets_v4.Schema$Request[] = [];
+    const clearPartyValues = await this.getSheetValues({
+      spreadsheetId,
+      range: encounter,
+    });
+
+    const clearRowIndex = this.findCharacterRow(
+      clearPartyValues,
+      (values) =>
+        values.has(character.toLowerCase()) && values.has(world.toLowerCase()),
+    );
+
+    if (clearRowIndex !== -1) {
+      const sheetId = await this.getSheetIdByName(spreadsheetId, encounter);
+
+      if (sheetId != null) {
+        requests.push({
+          updateCells: {
+            range: {
+              sheetId,
+              startRowIndex: clearRowIndex,
+              endRowIndex: clearRowIndex + 3,
+            },
+            fields: 'userEnteredValue',
+          },
+        });
+      }
+    }
+
+    const range = ProgSheetRanges[encounter];
+    const progPartyValues = await this.getSheetValues({
+      spreadsheetId,
+      range: `${SheetsService.PROG_SHEET_NAME}!${range.start}:${range.end}`,
+    });
+
+    // TODO: need to incorporate world
+    const progRowIndex = this.findCharacterRow(progPartyValues, (values) =>
+      values.has(character.toLowerCase()),
+    );
+
+    if (progRowIndex !== -1) {
+      const sheetId = await this.getSheetIdByName(
+        spreadsheetId,
+        SheetsService.PROG_SHEET_NAME,
+      );
+
+      if (sheetId != null) {
+        requests.push({
+          updateCells: {
+            range: {
+              sheetId,
+              startRowIndex: progRowIndex,
+              endRowIndex: progRowIndex + 3,
+              startColumnIndex: columnToIndex(range.start),
+              endColumnIndex: columnToIndex(range.end) + 1,
+            },
+            fields: 'userEnteredValue',
+          },
+        });
+      }
+    }
+
+    // TODO: Handle Prog Party Sheet? Its a bit more annoying to handle that one
+    return requests.length && this.batchUpdate(spreadsheetId, requests);
+  }
+
+  /**
+   * Get the title and url of the spreadsheet
+   * @param spreadsheetId
+   * @returns
+   */
+  public async getSheetMetadata(spreadsheetId: string) {
+    const response = await this.client.spreadsheets.get({
+      spreadsheetId,
+      includeGridData: false,
+    });
+
+    // Assuming you want the name of the first sheet
+    const title = response.data.properties?.title ?? 'Untitled Spreadsheet';
+
+    // Generate a link to the sheet
+    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=0`;
+
+    return { title, url };
   }
 
   private createHyperLinkCell(name: string, url: string): string {
@@ -49,14 +159,12 @@ class SheetsService {
       range: encounter,
     });
 
-    const row =
-      sheetValues?.findIndex((row: string[]) =>
-        row.find((value) => value.toLowerCase() === character.toLowerCase()),
-      ) ?? -1;
+    const row = this.findCharacterRow(
+      sheetValues,
+      (values) =>
+        values.has(character.toLowerCase()) && values.has(world.toLowerCase()),
+    );
 
-    // This depends on knowing the structure of the spreadsheet
-    // Current non-automated iterations of the spreadsheet have a progpoint dropdown. We don't currently
-    // capture this as part of the signup so we'll replace that value with the proof of prog link
     if (row === -1) {
       return this.updateSheet(
         spreadsheetId,
@@ -86,12 +194,12 @@ class SheetsService {
       range: `${SheetsService.PROG_SHEET_NAME}!${range.start}:${range.end}`,
     });
 
-    const row =
-      values?.findIndex((row: string[]) => {
-        return row.find(
-          (value) => value.toLowerCase() === character.toLowerCase(),
-        );
-      }) ?? -1;
+    const row = this.findCharacterRow(
+      values,
+      (values) =>
+        values.has(character.toLowerCase()) &&
+        values.has(rest.world.toLowerCase()),
+    );
 
     // This is needed to find the right row in the sub-group to update. Append will not work
     // with how the prog sheet is setup visually with multiple column groups spanning different row lengths
@@ -154,19 +262,61 @@ class SheetsService {
       : this.client.spreadsheets.values.append(payload);
   }
 
-  public async getSheetTitle(spreadsheetId: string) {
+  /**
+   * Batch update the spreadsheet with the given requests
+   * @param spreadsheetId
+   * @param requests
+   * @returns
+   */
+  private batchUpdate(
+    spreadsheetId: string,
+    requests: sheets_v4.Schema$Request[],
+  ) {
+    return this.client.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests,
+      },
+    });
+  }
+
+  /**
+   * Find the row in the sheet values for the given character
+   * @param signup
+   * @param predicate a function that determines if a character is found in the given set of values
+   * @param values
+   * @returns the row index or -1 if not found
+   */
+  private findCharacterRow(
+    values: any[][] | undefined | null,
+    predicate: (values: Set<any>) => boolean,
+  ): number {
+    if (!values) return -1;
+
+    return values.findIndex((row: string[]) => {
+      const set = new Set(row.map((values) => values.toLowerCase()));
+      return predicate(set);
+    });
+  }
+
+  private async getSheetIdByName(spreadsheetId: string, name: string) {
     const response = await this.client.spreadsheets.get({
       spreadsheetId,
       includeGridData: false,
     });
 
-    // Assuming you want the name of the first sheet
-    const title = response.data.properties?.title ?? 'Untitled Spreadsheet';
+    const sheet = response.data.sheets?.find((sheet) => {
+      const title = sheet.properties?.title;
+      return title === name;
+    });
 
-    // Generate a link to the sheet
-    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=0`;
+    const sheetId = sheet?.properties?.sheetId;
 
-    return { title, url };
+    if (sheetId == null) {
+      this.logger.error(`Sheet not found for encounter: ${name}`);
+    }
+
+    return sheetId;
   }
 }
 
