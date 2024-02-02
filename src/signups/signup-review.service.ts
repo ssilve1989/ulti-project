@@ -147,7 +147,6 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User,
     settings?: Settings,
   ) {
-    console.log('here?');
     const embed = EmbedBuilder.from(message.embeds[0]);
     const displayName = await this.discordService.getDisplayName(user.id);
 
