@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { sheets_v4 } from 'googleapis';
+import { sheets_v4 } from '@googleapis/sheets';
 import { PartyType } from '../signups/signup.consts.js';
 import { Signup } from '../signups/signup.interfaces.js';
 

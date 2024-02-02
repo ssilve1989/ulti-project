@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { Auth, google } from 'googleapis';
+import { sheets } from '@googleapis/sheets';
+import { GoogleAuth } from 'google-auth-library';
 import { SheetsConfig, sheetsConfig } from './sheets.config.js';
 import { SHEETS_CLIENT } from './sheets.consts.js';
 import { SheetsService } from './sheets.service.js';
@@ -21,7 +22,7 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
           true
         >,
       ) => {
-        const client = new Auth.GoogleAuth({
+        const client = new GoogleAuth({
           scopes: SCOPES,
           credentials: {
             client_email: configService.get('GCP_ACCOUNT_EMAIL'),
@@ -30,9 +31,10 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
           },
         });
 
-        // TODO: Unsure about type cast here
-        const auth = (await client.getClient()) as Auth.Compute;
-        return google.sheets({ version: 'v4', auth });
+        // TODO: Unsure about type cast here. This code works
+        // but googleapis is complaining about the types
+        const auth = await client.getClient();
+        return sheets({ version: 'v4', auth: auth as any });
       },
     },
   ],

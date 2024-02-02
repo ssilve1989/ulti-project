@@ -25,6 +25,7 @@
     "prepare": "node scripts/prepare.js"
   },
   "dependencies": {
+    "@googleapis/sheets": "^5.0.5",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.1.1",
     "@nestjs/core": "^10.3.0",
@@ -33,7 +34,7 @@
     "class-validator": "^0.14.0",
     "discord.js": "^14.14.1",
     "firebase-admin": "^12.0.0",
-    "googleapis": "^129.0.0",
+    "google-auth-library": "^9.6.2",
     "joi": "^17.11.0",
     "nestjs-pino": "^3.5.0",
     "pino-http": "^8.6.1",
