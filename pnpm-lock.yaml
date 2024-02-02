@@ -30,8 +30,8 @@ dependencies:
     specifier: ^12.0.0
     version: 12.0.0
   googleapis:
-    specifier: ^129.0.0
-    version: 129.0.0
+    specifier: ^131.0.0
+    version: 131.0.0
   joi:
     specifier: ^17.11.0
     version: 17.11.0
@@ -3529,6 +3529,7 @@ packages:
   /event-target-shim@5.0.1:
     resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
     engines: {node: '>=6'}
+    requiresBuild: true
     dev: false
 
   /events@3.3.0:
@@ -4123,8 +4124,8 @@ packages:
       - supports-color
     dev: false
 
-  /googleapis@129.0.0:
-    resolution: {integrity: sha512-gFatrzby+oh/GxEeMhJOKzgs9eG7yksRcTon9b+kPie4ZnDSgGQ85JgtUaBtLSBkcKpUKukdSP6Km1aCjs4y4Q==}
+  /googleapis@131.0.0:
+    resolution: {integrity: sha512-fa4kdkY0VwHDw/04ItpQv2tlvlPIwbh6NjHDoWAVrV52GuaZbYCMOC5Y+hRmprp5HHIMRODmyb2YujlbZSRUbQ==}
     engines: {node: '>=14.0.0'}
     dependencies:
       google-auth-library: 9.4.1
