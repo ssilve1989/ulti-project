@@ -48,7 +48,7 @@
     "@commitlint/cli": "^18.4.3",
     "@commitlint/config-conventional": "^18.4.3",
     "@commitlint/cz-commitlint": "^18.6.0",
-    "@commitlint/prompt-cli": "^18.4.3",
+    "@commitlint/prompt-cli": "^18.6.0",
     "@flydotio/dockerfile": "^0.5.0",
     "@golevelup/ts-jest": "^0.4.0",
     "@jest/globals": "^29.7.0",
