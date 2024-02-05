@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/ssilve1989/ulti-project/compare/v1.0.0...v1.1.0) (2024-02-05)
+
+
+### Features
+
+* **signups:** implement remove-signup command ([da949f1](https://github.com/ssilve1989/ulti-project/commit/da949f16dabb6843330e5c85dc63b02800c89318))
+
 ## 1.0.0 (2024-01-28)
 
 
