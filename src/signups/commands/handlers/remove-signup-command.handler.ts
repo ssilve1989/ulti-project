@@ -1,12 +1,13 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RemoveSignupCommand } from '../remove-signup.command.js';
-import { ChatInputCommandInteraction } from 'discord.js';
+import { APIUser, ChatInputCommandInteraction, User } from 'discord.js';
 import { Encounter } from '../../../app.consts.js';
 import { SignupRepository } from '../../signup.repository.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
 import { SettingsService } from '../../../settings/settings.service.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
+import { SignupCompositeKeyProps } from '../../signup.interfaces.js';
 
 @CommandHandler(RemoveSignupCommand)
 class RemoveSignupCommandHandler
@@ -34,25 +35,15 @@ class RemoveSignupCommandHandler
 
     const { spreadsheetId, reviewerRole } = settings;
 
-    // TODO: Abstract into some authorization mechanism?
-    if (reviewerRole) {
-      const {
-        member: { user },
-      } = interaction;
+    const canModify = await this.canModifySignup(
+      interaction.user,
+      options,
+      reviewerRole,
+    );
 
-      const hasRole = await this.discordService.userHasRole(
-        user.id,
-        reviewerRole,
-      );
-
-      if (!hasRole) {
-        return interaction.editReply(
-          'You do not have permission to remove signups',
-        );
-      }
-    } else {
+    if (!canModify) {
       return interaction.editReply(
-        'No role has been configured to be allowed to run this command.',
+        'You do not have permission to remove this signup',
       );
     }
 
@@ -71,6 +62,23 @@ class RemoveSignupCommandHandler
       world: options.getString('world')!,
       encounter: options.getString('encounter')! as Encounter,
     };
+  }
+
+  private async canModifySignup(
+    user: User | APIUser,
+    options: SignupCompositeKeyProps,
+    reviewerRole: string = '',
+  ) {
+    const hasRole = await this.discordService.userHasRole(
+      user.id,
+      reviewerRole,
+    );
+
+    if (hasRole) return true;
+
+    const signup = await this.signupsRepository.findOne(options);
+
+    return signup.discordId === user.id;
   }
 }
 

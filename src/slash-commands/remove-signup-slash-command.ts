@@ -3,7 +3,7 @@ import { ENCOUNTER_CHOICES } from './slash-commands.consts.js';
 
 export const RemoveSignupSlashCommand = new SlashCommandBuilder()
   .setName('remove-signup')
-  .setDescription('remove a player from signups')
+  .setDescription('Remove a signup')
   .addStringOption((option) =>
     option
       .setName('character')
