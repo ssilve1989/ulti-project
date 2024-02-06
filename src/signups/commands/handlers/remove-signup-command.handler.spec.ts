@@ -30,9 +30,7 @@ describe('Remove Signup Command Handler', () => {
     signupsRepository = fixture.get(SignupRepository);
 
     interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
-      member: {
-        user: createMock<User>({ id: '1', toString: () => '<@1>' }),
-      },
+      user: createMock<User>({ id: '1', toString: () => '<@1>' }),
       options: createMock({}),
       valueOf: () => '',
     });
@@ -61,18 +59,7 @@ describe('Remove Signup Command Handler', () => {
 
     await handler.execute({ interaction });
     expect(interaction.editReply).toHaveBeenCalledWith(
-      'You do not have permission to remove signups',
-    );
-  });
-
-  it('replies with missing role if no role is set', async () => {
-    settingsService.getSettings.mockResolvedValue({
-      reviewChannel: '1234',
-    });
-
-    await handler.execute({ interaction });
-    expect(interaction.editReply).toHaveBeenCalledWith(
-      'No role has been configured to be allowed to run this command.',
+      'You do not have permission to remove this signup',
     );
   });
 
@@ -96,5 +83,34 @@ describe('Remove Signup Command Handler', () => {
 
     await handler.execute({ interaction });
     expect(sheetsService.removeSignup).toHaveBeenCalled();
+  });
+
+  it('does not allow removal if the userId does not match the signups discordId', async () => {
+    settingsService.getSettings.mockResolvedValue({
+      reviewerRole: 'reviewer',
+      reviewChannel: '1234',
+    });
+
+    discordService.userHasRole.mockResolvedValue(false);
+    signupsRepository.findOne.mockResolvedValue({ discordId: '2' } as any);
+
+    await handler.execute({ interaction });
+    expect(interaction.editReply).toHaveBeenCalledWith(
+      'You do not have permission to remove this signup',
+    );
+  });
+
+  it('removes the signup if the userId matches the signups discordId', async () => {
+    settingsService.getSettings.mockResolvedValue({
+      reviewerRole: 'reviewer',
+      reviewChannel: '1234',
+    });
+
+    discordService.userHasRole.mockResolvedValue(false);
+    signupsRepository.findOne.mockResolvedValue({ discordId: '1' } as any);
+
+    await handler.execute({ interaction });
+    expect(signupsRepository.removeSignup).toHaveBeenCalled();
+    expect(interaction.editReply).toHaveBeenCalledWith('Signup removed');
   });
 });

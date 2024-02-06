@@ -19,3 +19,9 @@ export class InvalidReviewChannelException extends Error {
     super(`${channelName} is not a valid text channel for guild ${guildId}`);
   }
 }
+
+export class DocumentNotFoundException extends Error {
+  constructor(message: string) {
+    super(message);
+  }
+}
