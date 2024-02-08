@@ -20,6 +20,7 @@ class SheetsService {
   private readonly logger: Logger = new Logger(SheetsService.name);
   // TODO: hardcoded sheet name, but should be configurable
   private static readonly PROG_SHEET_NAME = 'Ulti Proj: Prog Parties';
+  private static readonly PROG_SHEET_STARTING_ROW = 15; // the row where entries start on the prog sheet
 
   constructor(
     @InjectSheetsClient() private readonly client: sheets_v4.Sheets,
@@ -183,7 +184,7 @@ class SheetsService {
   }
 
   private async upsertProgParty(
-    { encounter, character, role, ...rest }: Omit<Signup, 'partyType'>,
+    { encounter, character, world, role, ...rest }: Omit<Signup, 'partyType'>,
     spreadsheetId: string,
   ) {
     const range = ProgSheetRanges[encounter];
@@ -197,14 +198,16 @@ class SheetsService {
     const row = this.findCharacterRow(
       values,
       (values) =>
-        values.has(character.toLowerCase()) &&
-        values.has(rest.world.toLowerCase()),
+        values.has(character.toLowerCase()) && values.has(world.toLowerCase()),
     );
 
     // This is needed to find the right row in the sub-group to update. Append will not work
     // with how the prog sheet is setup visually with multiple column groups spanning different row lengths
-    const rowOffset = values ? values.length + 1 : 15;
-    const cellValues = [character, role, progProof];
+    const rowOffset = values
+      ? values.length + 1
+      : SheetsService.PROG_SHEET_STARTING_ROW;
+
+    const cellValues = [character, world, role, progProof];
 
     const updateRange =
       row === -1
