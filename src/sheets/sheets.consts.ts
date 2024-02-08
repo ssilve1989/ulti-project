@@ -5,24 +5,24 @@ export const SHEETS_CLIENT = '@goolge/sheets-client';
 // brittle, requires to be in sync with the sheet
 export const ProgSheetRanges = {
   [Encounter.DSR]: {
-    start: 'N',
-    end: 'P',
+    start: 'Q',
+    end: 'T',
   },
   [Encounter.TEA]: {
-    start: 'J',
-    end: 'L',
+    start: 'L',
+    end: 'O',
   },
   [Encounter.TOP]: {
-    start: 'R',
-    end: 'T',
+    start: 'V',
+    end: 'Y',
   },
   [Encounter.UCOB]: {
     start: 'B',
-    end: 'D',
+    end: 'E',
   },
   [Encounter.UWU]: {
-    start: 'F',
-    end: 'H',
+    start: 'G',
+    end: 'J',
   },
 };
 
