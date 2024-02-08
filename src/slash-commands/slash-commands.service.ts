@@ -57,7 +57,9 @@ class SlashCommandsService {
     this.logger.log(`refreshing slash commands`);
 
     const clientId = this.configService.get<string>('CLIENT_ID');
+
     const guildId = this.configService.get<string>('GUILD_ID');
+    console.log('registering commands for', guildId);
     const rest = new REST().setToken(
       this.configService.get<string>('DISCORD_TOKEN'),
     );
