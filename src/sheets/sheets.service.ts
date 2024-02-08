@@ -115,7 +115,7 @@ class SheetsService {
             range: {
               sheetId,
               startRowIndex: progRowIndex,
-              endRowIndex: progRowIndex + 3,
+              endRowIndex: progRowIndex + 1,
               startColumnIndex: columnToIndex(range.start),
               endColumnIndex: columnToIndex(range.end) + 1,
             },
