@@ -55,73 +55,17 @@ class SheetsService {
    * @param spreadsheetId
    */
   public async removeSignup(
-    { encounter, character, world }: SignupCompositeKeyProps,
+    signup: SignupCompositeKeyProps,
     spreadsheetId: string,
   ) {
-    const requests: sheets_v4.Schema$Request[] = [];
-    const clearPartyValues = await this.getSheetValues({
-      spreadsheetId,
-      range: encounter,
-    });
+    const requests = await Promise.all([
+      this.createRemoveClearSignupRequest(signup, spreadsheetId),
+      this.createRemoveProgSignupRequest(signup, spreadsheetId),
+    ]);
 
-    const clearRowIndex = this.findCharacterRow(
-      clearPartyValues,
-      (values) =>
-        values.has(character.toLowerCase()) && values.has(world.toLowerCase()),
-    );
+    const filtered = requests.filter(Boolean) as sheets_v4.Schema$Request[];
 
-    if (clearRowIndex !== -1) {
-      const sheetId = await this.getSheetIdByName(spreadsheetId, encounter);
-
-      if (sheetId != null) {
-        requests.push({
-          updateCells: {
-            range: {
-              sheetId,
-              startRowIndex: clearRowIndex,
-              endRowIndex: clearRowIndex + 3,
-            },
-            fields: 'userEnteredValue',
-          },
-        });
-      }
-    }
-
-    const range = ProgSheetRanges[encounter];
-    const progPartyValues = await this.getSheetValues({
-      spreadsheetId,
-      range: `${SheetsService.PROG_SHEET_NAME}!${range.start}:${range.end}`,
-    });
-
-    // TODO: need to incorporate world
-    const progRowIndex = this.findCharacterRow(progPartyValues, (values) =>
-      values.has(character.toLowerCase()),
-    );
-
-    if (progRowIndex !== -1) {
-      const sheetId = await this.getSheetIdByName(
-        spreadsheetId,
-        SheetsService.PROG_SHEET_NAME,
-      );
-
-      if (sheetId != null) {
-        requests.push({
-          updateCells: {
-            range: {
-              sheetId,
-              startRowIndex: progRowIndex,
-              endRowIndex: progRowIndex + 3,
-              startColumnIndex: columnToIndex(range.start),
-              endColumnIndex: columnToIndex(range.end) + 1,
-            },
-            fields: 'userEnteredValue',
-          },
-        });
-      }
-    }
-
-    // TODO: Handle Prog Party Sheet? Its a bit more annoying to handle that one
-    return requests.length && this.batchUpdate(spreadsheetId, requests);
+    return filtered.length && this.batchUpdate(spreadsheetId, filtered);
   }
 
   /**
@@ -144,6 +88,77 @@ class SheetsService {
     return { title, url };
   }
 
+  private async createRemoveProgSignupRequest(
+    { encounter, character }: SignupCompositeKeyProps,
+    spreadsheetId: string,
+  ): Promise<sheets_v4.Schema$Request | undefined> {
+    const range = ProgSheetRanges[encounter];
+    const progPartyValues = await this.getSheetValues({
+      spreadsheetId,
+      range: `${SheetsService.PROG_SHEET_NAME}!${range.start}:${range.end}`,
+    });
+
+    // TODO: need to incorporate world
+    const progRowIndex = this.findCharacterRow(progPartyValues, (values) =>
+      values.has(character.toLowerCase()),
+    );
+
+    if (progRowIndex !== -1) {
+      const sheetId = await this.getSheetIdByName(
+        spreadsheetId,
+        SheetsService.PROG_SHEET_NAME,
+      );
+
+      if (sheetId != null) {
+        return {
+          updateCells: {
+            range: {
+              sheetId,
+              startRowIndex: progRowIndex,
+              endRowIndex: progRowIndex + 3,
+              startColumnIndex: columnToIndex(range.start),
+              endColumnIndex: columnToIndex(range.end) + 1,
+            },
+            fields: 'userEnteredValue',
+          },
+        };
+      }
+    }
+  }
+
+  private async createRemoveClearSignupRequest(
+    { encounter, world, character }: SignupCompositeKeyProps,
+    spreadsheetId: string,
+  ): Promise<sheets_v4.Schema$Request | undefined> {
+    const clearPartyValues = await this.getSheetValues({
+      spreadsheetId,
+      range: encounter,
+    });
+
+    const clearRowIndex = this.findCharacterRow(
+      clearPartyValues,
+      (values) =>
+        values.has(character.toLowerCase()) && values.has(world.toLowerCase()),
+    );
+
+    if (clearRowIndex !== -1) {
+      const sheetId = await this.getSheetIdByName(spreadsheetId, encounter);
+
+      if (sheetId != null) {
+        return {
+          updateCells: {
+            range: {
+              sheetId,
+              startRowIndex: clearRowIndex,
+              endRowIndex: clearRowIndex + 3,
+            },
+            fields: 'userEnteredValue',
+          },
+        };
+      }
+    }
+  }
+
   private createHyperLinkCell(name: string, url: string): string {
     return `=HYPERLINK("${url}","${name}")`;
   }
@@ -154,6 +169,17 @@ class SheetsService {
   ) {
     const proofOfProg = this.getProgProof(rest);
     const cellValues = [character, world, role, proofOfProg];
+
+    // remove prog signup if it exists
+    const request = await this.createRemoveProgSignupRequest(
+      { encounter, character, world },
+      spreadsheetId,
+    );
+
+    if (request) {
+      // has to be a batchUpdate call to do in-line removal?
+      await this.batchUpdate(spreadsheetId, [request]);
+    }
 
     const sheetValues = await this.getSheetValues({
       spreadsheetId,
