@@ -1,4 +1,4 @@
-import { Encounter } from '../app.consts.js';
+import { Encounter } from '../encounters/encounters.consts.js';
 
 export const SHEETS_CLIENT = '@goolge/sheets-client';
 

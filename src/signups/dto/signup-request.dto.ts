@@ -1,5 +1,5 @@
 import { IsEnum, IsString, IsUrl, ValidateIf } from 'class-validator';
-import { Encounter } from '../../app.consts.js';
+import { Encounter } from '../../encounters/encounters.consts.js';
 import { PartyType } from '../signup.consts.js';
 
 class SignupRequestDto {

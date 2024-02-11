@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RemoveSignupCommand } from '../remove-signup.command.js';
 import { APIUser, ChatInputCommandInteraction, User } from 'discord.js';
-import { Encounter } from '../../../app.consts.js';
+import { Encounter } from '../../../encounters/encounters.consts.js';
 import { SignupRepository } from '../../signup.repository.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
 import { SettingsService } from '../../../settings/settings.service.js';

@@ -2,7 +2,7 @@ import { DeepMocked, createMock } from '@golevelup/ts-jest';
 import { jest } from '@jest/globals';
 import { Test } from '@nestjs/testing';
 import { Channel, Client, TextChannel } from 'discord.js';
-import { Encounter } from '../../../app.consts.js';
+import { Encounter } from '../../../encounters/encounters.consts.js';
 import { DISCORD_CLIENT } from '../../../discord/discord.decorators.js';
 import { SettingsService } from '../../../settings/settings.service.js';
 import { PartyType, SignupStatus } from '../../signup.consts.js';

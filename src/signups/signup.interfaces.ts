@@ -2,10 +2,11 @@ import { SignupRequestDto } from './dto/signup-request.dto.js';
 import { SignupStatus } from './signup.consts.js';
 
 export interface Signup extends Omit<SignupRequestDto, 'screenshot'> {
-  status: SignupStatus;
+  progPoint?: string;
   reviewedBy?: string | null;
   reviewMessageId?: string;
   screenshot?: string | null;
+  status: SignupStatus;
 }
 
 export type SignupCompositeKeyProps = Pick<

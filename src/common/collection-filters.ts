@@ -1,4 +1,4 @@
-import { Interaction } from 'discord.js';
+import { Interaction, User } from 'discord.js';
 
 /**
  * Matches if the message component this is attached to is from the same user as the source interaction
@@ -6,5 +6,5 @@ import { Interaction } from 'discord.js';
  * @returns
  */
 export const isSameUserFilter =
-  (i: Interaction) => (sourceInteraction: Interaction) =>
-    i.user.id === sourceInteraction.user.id;
+  (user: User) => (sourceInteraction: Interaction) =>
+    user.id === sourceInteraction.user.id;
