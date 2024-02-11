@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Client, EmbedBuilder } from 'discord.js';
-import { EncounterFriendlyDescription } from '../../../app.consts.js';
+import { EncounterFriendlyDescription } from '../../../encounters/encounters.consts.js';
 import { InjectDiscordClient } from '../../../discord/discord.decorators.js';
 import { SettingsService } from '../../../settings/settings.service.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../../signup.consts.js';

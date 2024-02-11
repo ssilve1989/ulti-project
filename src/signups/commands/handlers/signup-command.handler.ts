@@ -15,7 +15,7 @@ import { P, match } from 'ts-pattern';
 import {
   Encounter,
   EncounterFriendlyDescription,
-} from '../../../app.consts.js';
+} from '../../../encounters/encounters.consts.js';
 import { isSameUserFilter } from '../../../common/collection-filters.js';
 import {
   CancelButton,
@@ -88,7 +88,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       const response =
         await confirmationInteraction.awaitMessageComponent<ComponentType.Button>(
           {
-            filter: isSameUserFilter(interaction),
+            filter: isSameUserFilter(interaction.user),
             time: SignupCommandHandler.SIGNUP_TIMEOUT,
           },
         );

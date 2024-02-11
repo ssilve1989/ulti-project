@@ -1,4 +1,4 @@
-import { Encounter } from '../app.consts.js';
+import { Encounter } from '../encounters/encounters.consts.js';
 
 export const ENCOUNTER_CHOICES = [
   { name: 'The Epic of Alexander (Ultimate)', value: Encounter.TEA },

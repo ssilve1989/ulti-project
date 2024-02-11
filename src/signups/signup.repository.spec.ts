@@ -13,7 +13,7 @@ import {
   QuerySnapshot,
 } from 'firebase-admin/firestore';
 import { FIRESTORE } from '../firebase/firebase.consts.js';
-import { Encounter } from '../app.consts.js';
+import { Encounter } from '../encounters/encounters.consts.js';
 import { Signup } from './signup.interfaces.js';
 import { SignupStatus } from './signup.consts.js';
 import { SignupRequestDto } from './dto/signup-request.dto.js';
