@@ -12,7 +12,7 @@ import { SignupCommandHandler } from './signup-command.handler.js';
 import { SignupCommand } from '../signup.commands.js';
 import { PartyType, SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { SettingsService } from '../../../settings/settings.service.js';
-import { Encounter } from '../../../app.consts.js';
+import { Encounter } from '../../../encounters/encounters.consts.js';
 import { UnhandledButtonInteractionException } from '../../signup.exceptions.js';
 
 describe('Signup Command Handler', () => {

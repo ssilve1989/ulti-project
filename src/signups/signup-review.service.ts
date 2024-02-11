@@ -5,7 +5,11 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import {
+  ActionRowBuilder,
   Colors,
+  DiscordjsError,
+  DiscordjsErrorCodes,
+  Embed,
   EmbedBuilder,
   Events,
   Message,
@@ -16,7 +20,7 @@ import {
   User,
 } from 'discord.js';
 import { EMPTY, Subscription, concatMap, fromEvent } from 'rxjs';
-import { match } from 'ts-pattern';
+import { P, match } from 'ts-pattern';
 import { DiscordService } from '../discord/discord.service.js';
 import { SIGNUP_REVIEW_REACTIONS, SignupStatus } from './signup.consts.js';
 import { Signup } from './signup.interfaces.js';
@@ -24,6 +28,11 @@ import { SignupRepository } from './signup.repository.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { SheetsService } from '../sheets/sheets.service.js';
 import { Settings } from '../settings/settings.interfaces.js';
+import {
+  EncounterProgMenus,
+  PROG_POINT_SELECT_ID,
+} from '../encounters/encounters.components.js';
+import { isSameUserFilter } from '../common/collection-filters.js';
 
 @Injectable()
 class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -147,8 +156,17 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User,
     settings?: Settings,
   ) {
-    const embed = EmbedBuilder.from(message.embeds[0]);
+    const [sourceEmbed] = message.embeds;
+    const embed = EmbedBuilder.from(sourceEmbed);
     const displayName = await this.discordService.getDisplayName(user.id);
+
+    const progPoint = await this.requestProgPointConfirmation(
+      signup,
+      sourceEmbed,
+      user,
+    );
+
+    const confirmedSignup: Signup = { ...signup, progPoint };
 
     embed
       .setFooter({
@@ -161,12 +179,15 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
 
     try {
       if (settings?.spreadsheetId) {
-        await this.sheetsService.upsertSignup(signup, settings.spreadsheetId);
+        await this.sheetsService.upsertSignup(
+          confirmedSignup,
+          settings.spreadsheetId,
+        );
       }
 
       await this.repository.updateSignupStatus(
         SignupStatus.APPROVED,
-        signup,
+        confirmedSignup,
         user.username,
       );
 
@@ -228,6 +249,62 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
         `There was an error handling [this signup](${message.url}). Your approval has not been recorded`,
       ),
     ]);
+  }
+
+  private async requestProgPointConfirmation(
+    signup: Signup,
+    embed: Embed,
+    user: User,
+  ): Promise<string | undefined> {
+    const menu = EncounterProgMenus[signup.encounter];
+
+    const row = new ActionRowBuilder().addComponents(menu);
+
+    try {
+      const message = await this.discordService.sendDirectMessage(user.id, {
+        content: 'Please confirm the prog point of the following signup',
+        embeds: [embed],
+        components: [row as any],
+      });
+
+      const reply = await message.awaitMessageComponent({
+        time: 60_000,
+        filter: isSameUserFilter(user),
+      });
+
+      await reply.deferReply();
+
+      if (
+        reply.customId === PROG_POINT_SELECT_ID &&
+        reply.isStringSelectMenu()
+      ) {
+        await reply.followUp('Confirmation Received!');
+        return reply.values.at(0) as string;
+      }
+
+      await reply.update(
+        'Unable to determine prog point selection. This could be an internal error. Please report this as an error and manually update the prog on the google sheet',
+      );
+    } catch (error) {
+      this.logger.error(error);
+
+      await match(error)
+        .with(
+          P.instanceOf(DiscordjsError),
+          ({ code }) => code === DiscordjsErrorCodes.InteractionCollectorError,
+          () =>
+            this.discordService.sendDirectMessage(
+              user.id,
+              "You didn't respond in time. Please manually update the google sheet with the intended prog point",
+            ),
+        )
+        .otherwise(() =>
+          this.discordService.sendDirectMessage(
+            user.id,
+            'Sorry an unexpected error has occurred. Please report this problem and manually update the google sheet with the intended prog point ',
+          ),
+        );
+    }
   }
 }
 

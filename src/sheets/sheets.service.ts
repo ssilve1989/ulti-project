@@ -164,11 +164,16 @@ class SheetsService {
   }
 
   private async upsertClearParty(
-    { encounter, character, role, world, ...rest }: Omit<Signup, 'partyType'>,
+    {
+      encounter,
+      character,
+      role,
+      world,
+      progPoint = '',
+    }: Omit<Signup, 'partyType'>,
     spreadsheetId: string,
   ) {
-    const proofOfProg = this.getProgProof(rest);
-    const cellValues = [character, world, role, proofOfProg];
+    const cellValues = [character, world, role, progPoint];
 
     // remove prog signup if it exists
     const request = await this.createRemoveProgSignupRequest(
@@ -210,11 +215,16 @@ class SheetsService {
   }
 
   private async upsertProgParty(
-    { encounter, character, world, role, ...rest }: Omit<Signup, 'partyType'>,
+    {
+      encounter,
+      character,
+      world,
+      role,
+      progPoint = '',
+    }: Omit<Signup, 'partyType'>,
     spreadsheetId: string,
   ) {
     const range = ProgSheetRanges[encounter];
-    const progProof = this.getProgProof(rest);
 
     const values = await this.getSheetValues({
       spreadsheetId,
@@ -233,7 +243,7 @@ class SheetsService {
       ? values.length + 1
       : SheetsService.PROG_SHEET_STARTING_ROW;
 
-    const cellValues = [character, world, role, progProof];
+    const cellValues = [character, world, role, progPoint];
 
     const updateRange =
       row === -1
