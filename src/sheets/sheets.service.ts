@@ -55,7 +55,7 @@ class SheetsService {
    * @param spreadsheetId
    */
   public async removeSignup(
-    signup: SignupCompositeKeyProps,
+    signup: SignupCompositeKeyProps & Pick<Signup, 'character' | 'world'>,
     spreadsheetId: string,
   ) {
     const requests = await Promise.all([
@@ -89,7 +89,10 @@ class SheetsService {
   }
 
   private async createRemoveProgSignupRequest(
-    { encounter, character }: SignupCompositeKeyProps,
+    {
+      encounter,
+      character,
+    }: SignupCompositeKeyProps & Pick<Signup, 'character' | 'world'>,
     spreadsheetId: string,
   ): Promise<sheets_v4.Schema$Request | undefined> {
     const range = ProgSheetRanges[encounter];
@@ -127,7 +130,11 @@ class SheetsService {
   }
 
   private async createRemoveClearSignupRequest(
-    { encounter, world, character }: SignupCompositeKeyProps,
+    {
+      encounter,
+      world,
+      character,
+    }: SignupCompositeKeyProps & Pick<Signup, 'character' | 'world'>,
     spreadsheetId: string,
   ): Promise<sheets_v4.Schema$Request | undefined> {
     const clearPartyValues = await this.getSheetValues({
@@ -169,6 +176,7 @@ class SheetsService {
       character,
       role,
       world,
+      discordId,
       progPoint = '',
     }: Omit<Signup, 'partyType'>,
     spreadsheetId: string,
@@ -177,7 +185,7 @@ class SheetsService {
 
     // remove prog signup if it exists
     const request = await this.createRemoveProgSignupRequest(
-      { encounter, character, world },
+      { encounter, character, world, discordId },
       spreadsheetId,
     );
 
