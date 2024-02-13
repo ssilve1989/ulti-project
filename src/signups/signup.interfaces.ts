@@ -9,7 +9,4 @@ export interface Signup extends Omit<SignupRequestDto, 'screenshot'> {
   status: SignupStatus;
 }
 
-export type SignupCompositeKeyProps = Pick<
-  Signup,
-  'character' | 'world' | 'encounter'
->;
+export type SignupCompositeKeyProps = Pick<Signup, 'discordId' | 'encounter'>;

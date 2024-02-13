@@ -23,7 +23,10 @@ class RemoveSignupCommandHandler
   async execute({ interaction }: RemoveSignupCommand): Promise<any> {
     await interaction.deferReply({ ephemeral: true });
 
-    const options = this.getOptions(interaction);
+    const options = {
+      ...this.getOptions(interaction),
+      discordId: interaction.user.id,
+    };
 
     const settings = await this.settingsService.getSettings(
       interaction.guildId,
