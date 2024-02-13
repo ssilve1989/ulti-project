@@ -19,8 +19,7 @@ import { SignupStatus } from './signup.consts.js';
 import { SignupRequestDto } from './dto/signup-request.dto.js';
 
 const SIGNUP_KEY = {
-  character: 'some name',
-  world: 'someworld',
+  discordId: '12345',
   encounter: Encounter.DSR,
 };
 

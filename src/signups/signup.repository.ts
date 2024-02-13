@@ -103,8 +103,8 @@ class SignupRepository {
     return this.collection.doc(key).delete();
   }
 
-  private getKeyForSignup({ character, world, encounter }: SignupCompositeKey) {
-    return `${character.toLowerCase()}-${world.toLowerCase()}-${encounter}`;
+  private getKeyForSignup({ discordId, encounter }: SignupCompositeKey) {
+    return `${discordId.toLowerCase()}-${encounter}`;
   }
 
   /**
