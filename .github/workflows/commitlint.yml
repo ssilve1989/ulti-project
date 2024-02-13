@@ -4,6 +4,8 @@ on: [pull_request]
 jobs:
   commitlint:
     runs-on: ubuntu-latest
+    # important to have trailing / on the branch name or it could match other branches that contain solely the word dependabot
+    if: (github.actor!= 'dependabot[bot]') && (contains(github.head_ref, 'dependabot/') == false)
     steps:
       - uses: actions/checkout@v4
       - uses: wagoid/commitlint-github-action@v5
