@@ -21,6 +21,14 @@ export const SettingsSlashCommand = new SlashCommandBuilder()
           )
           .addChannelTypes(ChannelType.GuildText),
       )
+      .addChannelOption((option) =>
+        option
+          .setName('signup-public-channel')
+          .setDescription(
+            'The channel in which signup approvals will be posted. This must be set to a text channel',
+          )
+          .addChannelTypes(ChannelType.GuildText),
+      )
       .addRoleOption((option) =>
         option
           .setName('reviewer-role')

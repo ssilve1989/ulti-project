@@ -23,19 +23,24 @@ class ViewSettingsCommandHandler
       return interaction.editReply('No settings found!');
     }
 
-    const { reviewChannel, reviewerRole, spreadsheetId } = settings;
+    const { reviewChannel, reviewerRole, spreadsheetId, signupChannel } =
+      settings;
     const role = reviewerRole ? `<@&${reviewerRole}>` : 'No Role Set';
+    const publicSignupChannel = signupChannel
+      ? `<#${signupChannel}>`
+      : 'No Channel Set';
 
     const messages = [
       `**Review Channel:** <#${reviewChannel}>`,
       `**Reviewer Role:** ${role}`,
+      `**Signup Channel:** ${publicSignupChannel}`,
     ];
 
     if (spreadsheetId) {
       const { title, url } =
         await this.sheetsService.getSheetMetadata(spreadsheetId);
 
-      messages.push(`**Managaed Spreadsheet:** [${title}](${url})`);
+      messages.push(`**Managed Spreadsheet:** [${title}](${url})`);
     }
 
     await interaction.editReply(messages.join('\n'));
