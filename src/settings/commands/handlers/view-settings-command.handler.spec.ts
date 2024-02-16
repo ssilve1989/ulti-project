@@ -34,6 +34,7 @@ describe('View Settings Command Handler', () => {
     settingsService.getSettings.mockResolvedValueOnce({
       reviewChannel: '12345',
       reviewerRole: '67890',
+      signupChannel: '09876',
     });
 
     await handler.execute({ interaction });
