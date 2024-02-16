@@ -1,8 +1,8 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
-import { InjectDiscordClient } from './discord.decorators.js';
-import { Client, DMChannel, Guild } from 'discord.js';
 import { ConfigService } from '@nestjs/config';
+import { Client, DMChannel, Guild } from 'discord.js';
 import { AppConfig } from '../app.config.js';
+import { InjectDiscordClient } from './discord.decorators.js';
 
 @Injectable()
 class DiscordService implements OnApplicationBootstrap {
@@ -20,11 +20,16 @@ class DiscordService implements OnApplicationBootstrap {
 
   public async sendDirectMessage(
     userId: string,
-    ...message: Parameters<DMChannel['send']>
+    message: Parameters<DMChannel['send']>[0],
   ) {
     const user = await this.client.users.fetch(userId);
     const dm = await user.createDM();
-    return dm.send(...message);
+    return dm.send(message);
+  }
+
+  public async getTextChannel(channelId: string) {
+    const channel = await this.server.channels.fetch(channelId);
+    return channel?.isTextBased() ? channel : null;
   }
 
   /**

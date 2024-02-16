@@ -21,18 +21,22 @@ import {
 } from 'discord.js';
 import { EMPTY, Subscription, concatMap, fromEvent } from 'rxjs';
 import { P, match } from 'ts-pattern';
+import { isSameUserFilter } from '../common/collection-filters.js';
 import { DiscordService } from '../discord/discord.service.js';
-import { SIGNUP_REVIEW_REACTIONS, SignupStatus } from './signup.consts.js';
-import { Signup } from './signup.interfaces.js';
-import { SignupRepository } from './signup.repository.js';
-import { SettingsService } from '../settings/settings.service.js';
-import { SheetsService } from '../sheets/sheets.service.js';
-import { Settings } from '../settings/settings.interfaces.js';
 import {
   EncounterProgMenus,
   PROG_POINT_SELECT_ID,
 } from '../encounters/encounters.components.js';
-import { isSameUserFilter } from '../common/collection-filters.js';
+import { Settings } from '../settings/settings.interfaces.js';
+import { SettingsService } from '../settings/settings.service.js';
+import { SheetsService } from '../sheets/sheets.service.js';
+import {
+  SIGNUP_MESSAGES,
+  SIGNUP_REVIEW_REACTIONS,
+  SignupStatus,
+} from './signup.consts.js';
+import { Signup } from './signup.interfaces.js';
+import { SignupRepository } from './signup.repository.js';
 
 @Injectable()
 class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -158,13 +162,11 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
   ) {
     const [sourceEmbed] = message.embeds;
     const embed = EmbedBuilder.from(sourceEmbed);
-    const displayName = await this.discordService.getDisplayName(user.id);
 
-    const progPoint = await this.requestProgPointConfirmation(
-      signup,
-      sourceEmbed,
-      user,
-    );
+    const [displayName, progPoint] = await Promise.all([
+      this.discordService.getDisplayName(user.id),
+      this.requestProgPointConfirmation(signup, sourceEmbed, user),
+    ]);
 
     const confirmedSignup: Signup = { ...signup, progPoint };
 
@@ -178,12 +180,15 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
       .setTimestamp(new Date());
 
     try {
-      if (settings?.spreadsheetId) {
-        await this.sheetsService.upsertSignup(
-          confirmedSignup,
-          settings.spreadsheetId,
-        );
-      }
+      const [publicSignupChannel] = await Promise.all([
+        settings?.signupChannel &&
+          this.discordService.getTextChannel(settings.signupChannel),
+        settings?.spreadsheetId &&
+          this.sheetsService.upsertSignup(
+            confirmedSignup,
+            settings.spreadsheetId,
+          ),
+      ]);
 
       await this.repository.updateSignupStatus(
         SignupStatus.APPROVED,
@@ -191,7 +196,14 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
         user.username,
       );
 
-      await message.edit({ embeds: [embed] });
+      await Promise.all([
+        message.edit({ embeds: [embed] }),
+        publicSignupChannel &&
+          publicSignupChannel.send({
+            content: `<@${confirmedSignup.discordId}> Signup Approved!`,
+            embeds: [embed],
+          }),
+      ]);
     } catch (e) {
       // if there was an error posting to the google sheet, undo the reaction and let the user that reacted know
       this.logger.error(e);
@@ -213,13 +225,15 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
     message: Message | PartialMessage,
     user: User,
   ) {
-    await this.repository.updateSignupStatus(
-      SignupStatus.DECLINED,
-      signup,
-      user.username,
-    );
+    const [displayName] = await Promise.all([
+      this.discordService.getDisplayName(user.id),
+      this.repository.updateSignupStatus(
+        SignupStatus.DECLINED,
+        signup,
+        user.username,
+      ),
+    ]);
 
-    const displayName = await this.discordService.getDisplayName(user.id);
     const embed = EmbedBuilder.from(message.embeds[0])
       .setDescription(null)
       .setFooter({
@@ -229,7 +243,13 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
       .setColor(Colors.Red)
       .setTimestamp(new Date());
 
-    await message.edit({ embeds: [embed] });
+    await Promise.all([
+      message.edit({ embeds: [embed] }),
+      this.discordService.sendDirectMessage(user.id, {
+        content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_DENIED,
+        embeds: [embed.setTitle('Signup Declined')],
+      }),
+    ]);
   }
 
   private async handleReactionError(
@@ -282,9 +302,7 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
         return reply.values.at(0) as string;
       }
 
-      await reply.update(
-        'Unable to determine prog point selection. This could be an internal error. Please report this as an error and manually update the prog on the google sheet',
-      );
+      await reply.update(SIGNUP_MESSAGES.UNEXPECTED_PROG_SELECTION_ERROR);
     } catch (error) {
       this.logger.error(error);
 
@@ -295,13 +313,13 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
           () =>
             this.discordService.sendDirectMessage(
               user.id,
-              "You didn't respond in time. Please manually update the google sheet with the intended prog point",
+              SIGNUP_MESSAGES.PROG_DM_TIMEOUT,
             ),
         )
         .otherwise(() =>
           this.discordService.sendDirectMessage(
             user.id,
-            'Sorry an unexpected error has occurred. Please report this problem and manually update the google sheet with the intended prog point ',
+            SIGNUP_MESSAGES.UNEXPECTED_PROG_SELECTION_ERROR,
           ),
         );
     }
