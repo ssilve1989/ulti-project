@@ -22,12 +22,16 @@ class EditSettingsCommandHandler
       const reviewChannel = interaction.options.getChannel(
         'signup-review-channel',
       );
+      const signupChannel = interaction.options.getChannel(
+        'signup-public-channel',
+      );
       const spreadsheetId =
         interaction.options.getString('spreadsheet-id') ?? undefined;
 
       await this.service.upsertSettings(guildId, {
-        reviewerRole: reviewerRole?.id,
+        signupChannel: signupChannel?.id,
         reviewChannel: reviewChannel?.id,
+        reviewerRole: reviewerRole?.id,
         spreadsheetId,
       });
 

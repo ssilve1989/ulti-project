@@ -48,6 +48,7 @@ describe('Edit Settings Command Handler', () => {
       reviewerRole,
       reviewChannel,
       spreadsheetId,
+      signupChannel: reviewChannel,
     });
   });
 });
