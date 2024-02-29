@@ -1,9 +1,9 @@
-import { jest } from '@jest/globals';
-import { DeepMocked, createMock } from '@golevelup/ts-jest';
-import { ViewSettingsCommandHandler } from './view-settings-command.handler.js';
 import { Test } from '@nestjs/testing';
-import { SettingsService } from '../../settings.service.js';
 import { ChatInputCommandInteraction } from 'discord.js';
+
+import { DeepMocked, createMock } from '../../../../test/create-mock.js';
+import { SettingsService } from '../../settings.service.js';
+import { ViewSettingsCommandHandler } from './view-settings-command.handler.js';
 
 describe('View Settings Command Handler', () => {
   let handler: ViewSettingsCommandHandler;
@@ -28,9 +28,6 @@ describe('View Settings Command Handler', () => {
     const interaction =
       createMock<ChatInputCommandInteraction<'cached' | 'raw'>>();
 
-    const deferSpy = jest.spyOn(interaction, 'deferReply');
-    const replySpy = jest.spyOn(interaction, 'editReply');
-
     settingsService.getSettings.mockResolvedValueOnce({
       reviewChannel: '12345',
       reviewerRole: '67890',
@@ -39,7 +36,7 @@ describe('View Settings Command Handler', () => {
 
     await handler.execute({ interaction });
 
-    expect(deferSpy).toHaveBeenCalled();
-    expect(replySpy).toHaveBeenCalled();
+    expect(interaction.deferReply).toHaveBeenCalled();
+    expect(interaction.editReply).toHaveBeenCalled();
   });
 });

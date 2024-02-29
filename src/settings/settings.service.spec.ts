@@ -1,9 +1,8 @@
-import { jest } from '@jest/globals';
 import { Test } from '@nestjs/testing';
-import { DeepMocked, createMock } from '@golevelup/ts-jest';
 import { Firestore } from 'firebase-admin/firestore';
 import { SettingsService } from './settings.service.js';
 import { FIRESTORE } from '../firebase/firebase.consts.js';
+import { DeepMocked, createMock } from '../../test/create-mock.js';
 
 describe('SettingsService', () => {
   let service: SettingsService;
@@ -12,18 +11,18 @@ describe('SettingsService', () => {
 
   beforeEach(async () => {
     const docMock = {
-      set: jest.fn(),
-      get: jest.fn<any>().mockResolvedValue({
+      set: vi.fn(),
+      get: vi.fn<any>().mockResolvedValue({
         data: () => ({ reviewChannel: 'channel', reviewerRole: 'role' }),
       }),
     };
 
     const collectionMock = {
-      doc: jest.fn().mockReturnValue(docMock),
+      doc: vi.fn().mockReturnValue(docMock),
     };
 
     firestore = createMock<Firestore>({
-      collection: jest.fn<any>().mockReturnValue(collectionMock),
+      collection: vi.fn().mockReturnValue(collectionMock),
     });
 
     const module = await Test.createTestingModule({
