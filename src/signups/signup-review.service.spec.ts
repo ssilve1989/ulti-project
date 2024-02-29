@@ -1,12 +1,13 @@
-import { jest } from '@jest/globals';
 import { Test, TestingModule } from '@nestjs/testing';
-import { DeepMocked, createMock } from '@golevelup/ts-jest';
-import { SignupReviewService } from './signup-review.service.js';
 import { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
-import { Signup } from './signup.interfaces.js';
+
 import { Settings } from '../settings/settings.interfaces.js';
+import { SignupReviewService } from './signup-review.service.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
+import { Signup } from './signup.interfaces.js';
 import { SignupRepository } from './signup.repository.js';
+
+import { DeepMocked, createMock } from '../../test/create-mock.js';
 
 describe('SignupReviewService', () => {
   let service: SignupReviewService;
@@ -53,7 +54,7 @@ describe('SignupReviewService', () => {
 
     messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
 
-    const spy = jest
+    const spy = vi
       .spyOn(service, 'handleApprovedReaction' as any)
       .mockResolvedValue({});
 
@@ -72,7 +73,7 @@ describe('SignupReviewService', () => {
 
     messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.DECLINED;
 
-    const spy = jest
+    const spy = vi
       .spyOn(service, 'handleDeclinedReaction' as any)
       .mockResolvedValue({});
 
@@ -91,7 +92,7 @@ describe('SignupReviewService', () => {
 
     await service['handleReaction'](messageReaction, user, settings);
 
-    const spy = jest.spyOn(service, 'handleApprovedReaction' as any);
+    const spy = vi.spyOn(service, 'handleApprovedReaction' as any);
     expect(spy).not.toHaveBeenCalled();
   });
 });

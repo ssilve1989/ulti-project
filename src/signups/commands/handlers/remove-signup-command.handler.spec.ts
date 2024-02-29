@@ -1,12 +1,13 @@
 import { Test } from '@nestjs/testing';
-import { RemoveSignupCommandHandler } from './remove-signup-command.handler.js';
-import { DeepMocked, createMock } from '@golevelup/ts-jest';
-import { SettingsService } from '../../../settings/settings.service.js';
 import { ChatInputCommandInteraction, User } from 'discord.js';
-import { SIGNUP_MESSAGES } from '../../signup.consts.js';
+
+import { DeepMocked, createMock } from '../../../../test/create-mock.js';
 import { DiscordService } from '../../../discord/discord.service.js';
-import { SignupRepository } from '../../signup.repository.js';
+import { SettingsService } from '../../../settings/settings.service.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
+import { SIGNUP_MESSAGES } from '../../signup.consts.js';
+import { SignupRepository } from '../../signup.repository.js';
+import { RemoveSignupCommandHandler } from './remove-signup-command.handler.js';
 
 describe('Remove Signup Command Handler', () => {
   let discordService: DeepMocked<DiscordService>;

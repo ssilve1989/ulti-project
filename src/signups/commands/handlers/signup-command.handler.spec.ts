@@ -1,6 +1,4 @@
-import { jest } from '@jest/globals';
 import { Test } from '@nestjs/testing';
-import { DeepMocked, createMock } from '@golevelup/ts-jest';
 import {
   ChannelSelectMenuInteraction,
   ChatInputCommandInteraction,
@@ -8,12 +6,14 @@ import {
   DiscordjsErrorCodes,
   Message,
 } from 'discord.js';
-import { SignupCommandHandler } from './signup-command.handler.js';
-import { SignupCommand } from '../signup.commands.js';
-import { PartyType, SIGNUP_MESSAGES } from '../../signup.consts.js';
-import { SettingsService } from '../../../settings/settings.service.js';
+
+import { DeepMocked, createMock } from '../../../../test/create-mock.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
+import { SettingsService } from '../../../settings/settings.service.js';
+import { PartyType, SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { UnhandledButtonInteractionException } from '../../signup.exceptions.js';
+import { SignupCommand } from '../signup.commands.js';
+import { SignupCommandHandler } from './signup-command.handler.js';
 
 describe('Signup Command Handler', () => {
   let handler: SignupCommandHandler;
@@ -69,9 +69,6 @@ describe('Signup Command Handler', () => {
   });
 
   it('confirms a signup', async () => {
-    const deferReplySpy = jest.spyOn(interaction, 'deferReply');
-    const editReplySpy = jest.spyOn(interaction, 'editReply');
-
     confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
       createMock<ChannelSelectMenuInteraction>({
         customId: 'confirm',
@@ -84,9 +81,9 @@ describe('Signup Command Handler', () => {
     const command = new SignupCommand(interaction);
     await handler.execute(command);
 
-    expect(deferReplySpy).toHaveBeenCalledWith({ ephemeral: true });
-    expect(editReplySpy).toHaveBeenCalledTimes(2);
-    expect(editReplySpy).toHaveBeenNthCalledWith(
+    expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(interaction.editReply).toHaveBeenCalledTimes(2);
+    expect(interaction.editReply).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
         content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED,
@@ -95,7 +92,7 @@ describe('Signup Command Handler', () => {
   });
 
   it('throws UnhandledButtonInteractionException if the interaction is unknown', async () => {
-    const spy = jest.spyOn(handler, 'handleError' as any);
+    const spy = vi.spyOn(handler, 'handleError' as any);
 
     confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
       createMock<ChannelSelectMenuInteraction>({
@@ -115,9 +112,6 @@ describe('Signup Command Handler', () => {
   });
 
   it('handles cancelling a signup', async () => {
-    const deferReplySpy = jest.spyOn(interaction, 'deferReply');
-    const editReplySpy = jest.spyOn(interaction, 'editReply');
-
     confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
       createMock<ChannelSelectMenuInteraction<any>>({
         customId: 'cancel',
@@ -130,9 +124,9 @@ describe('Signup Command Handler', () => {
     const command = new SignupCommand(interaction);
     await handler.execute(command);
 
-    expect(deferReplySpy).toHaveBeenCalledWith({ ephemeral: true });
-    expect(editReplySpy).toHaveBeenCalledTimes(2);
-    expect(editReplySpy).toHaveBeenNthCalledWith(
+    expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(interaction.editReply).toHaveBeenCalledTimes(2);
+    expect(interaction.editReply).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
         content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CANCELLED,
@@ -141,9 +135,6 @@ describe('Signup Command Handler', () => {
   });
 
   it('handles a timeout', async () => {
-    const deferReplySpy = jest.spyOn(interaction, 'deferReply');
-    const editReplySpy = jest.spyOn(interaction, 'editReply');
-
     confirmationInteraction.awaitMessageComponent.mockRejectedValueOnce(
       new DiscordjsError(DiscordjsErrorCodes.InteractionCollectorError),
     );
@@ -153,9 +144,9 @@ describe('Signup Command Handler', () => {
     const command = new SignupCommand(interaction);
     await handler.execute(command);
 
-    expect(deferReplySpy).toHaveBeenCalledWith({ ephemeral: true });
-    expect(editReplySpy).toHaveBeenCalledTimes(2);
-    expect(editReplySpy).toHaveBeenCalledWith(
+    expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(interaction.editReply).toHaveBeenCalledTimes(2);
+    expect(interaction.editReply).toHaveBeenCalledWith(
       expect.objectContaining({
         content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
       }),
@@ -163,16 +154,13 @@ describe('Signup Command Handler', () => {
   });
 
   it('should not handle a signup if there is no review channel set', async () => {
-    const deferReplySpy = jest.spyOn(interaction, 'deferReply');
-    const editReplySpy = jest.spyOn(interaction, 'editReply');
-
     settingsService.getReviewChannel.mockResolvedValueOnce(undefined);
 
     const command = new SignupCommand(interaction);
     await handler.execute(command);
 
-    expect(deferReplySpy).toHaveBeenCalledWith({ ephemeral: true });
-    expect(editReplySpy).toHaveBeenCalledWith(
+    expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(interaction.editReply).toHaveBeenCalledWith(
       SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL,
     );
   });

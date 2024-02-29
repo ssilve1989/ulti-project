@@ -1,9 +1,8 @@
-import { jest } from '@jest/globals';
 import { Test } from '@nestjs/testing';
 import { EditSettingsCommandHandler } from './edit-settings-command.handler.js';
-import { DeepMocked, createMock } from '@golevelup/ts-jest';
 import { SettingsService } from '../../settings.service.js';
 import { ChatInputCommandInteraction } from 'discord.js';
+import { DeepMocked, createMock } from '../../../../test/create-mock.js';
 
 describe('Edit Settings Command Handler', () => {
   let handler: EditSettingsCommandHandler;
@@ -30,8 +29,6 @@ describe('Edit Settings Command Handler', () => {
     const reviewChannel = '09876';
     const spreadsheetId = 'spreadsheetId';
 
-    const upsertSpy = jest.spyOn(settingsService, 'upsertSettings');
-
     await handler.execute({
       interaction: createMock<ChatInputCommandInteraction<'raw' | 'cached'>>({
         guildId,
@@ -44,7 +41,7 @@ describe('Edit Settings Command Handler', () => {
       }),
     });
 
-    expect(upsertSpy).toHaveBeenCalledWith(guildId, {
+    expect(settingsService.upsertSettings).toHaveBeenCalledWith(guildId, {
       reviewerRole,
       reviewChannel,
       spreadsheetId,
