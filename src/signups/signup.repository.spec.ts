@@ -1,7 +1,4 @@
-import { jest } from '@jest/globals';
 import { Test } from '@nestjs/testing';
-import { SignupRepository } from './signup.repository.js';
-import { DeepMocked, createMock } from '@golevelup/ts-jest';
 import {
   CollectionReference,
   DocumentData,
@@ -12,11 +9,14 @@ import {
   QueryDocumentSnapshot,
   QuerySnapshot,
 } from 'firebase-admin/firestore';
-import { FIRESTORE } from '../firebase/firebase.consts.js';
+
+import { DeepMocked, createMock } from '../../test/create-mock.js';
 import { Encounter } from '../encounters/encounters.consts.js';
-import { Signup } from './signup.interfaces.js';
-import { SignupStatus } from './signup.consts.js';
+import { FIRESTORE } from '../firebase/firebase.consts.js';
 import { SignupRequestDto } from './dto/signup-request.dto.js';
+import { SignupStatus } from './signup.consts.js';
+import { Signup } from './signup.interfaces.js';
+import { SignupRepository } from './signup.repository.js';
 
 const SIGNUP_KEY = {
   discordId: '12345',
@@ -33,16 +33,15 @@ describe('Signup Repository', () => {
   beforeEach(async () => {
     doc = createMock<DocumentReference>();
 
-    // TODO: Why do we need to cast `as any` in jest ESM configuration? Without this TSC fails
     collection = createMock<CollectionReference<DocumentData>>({
-      get: jest.fn() as any,
-      where: jest.fn() as any,
-      limit: jest.fn() as any,
-      doc: jest.fn().mockReturnValue(doc) as any,
+      get: vi.fn(),
+      where: vi.fn(),
+      limit: vi.fn(),
+      doc: vi.fn().mockReturnValue(doc) as any,
     });
 
     firestore = createMock<Firestore>({
-      collection: jest.fn().mockReturnValue(collection) as any,
+      collection: vi.fn().mockReturnValue(collection) as any,
     });
 
     const fixture = await Test.createTestingModule({

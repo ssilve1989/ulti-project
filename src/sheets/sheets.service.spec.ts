@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
+
+import { createMock } from '../../test/create-mock.js';
 import { SheetsService } from './sheets.service.js';
-import { createMock } from '@golevelup/ts-jest';
 
 describe('Sheets Service', () => {
   let service: SheetsService;

@@ -1,22 +1,22 @@
-import { DeepMocked, createMock } from '@golevelup/ts-jest';
-import { jest } from '@jest/globals';
 import { Test } from '@nestjs/testing';
 import { Channel, Client, TextChannel } from 'discord.js';
-import { Encounter } from '../../../encounters/encounters.consts.js';
+
+import { DeepMocked, createMock } from '../../../../test/create-mock.js';
 import { DISCORD_CLIENT } from '../../../discord/discord.decorators.js';
+import { Encounter } from '../../../encounters/encounters.consts.js';
 import { SettingsService } from '../../../settings/settings.service.js';
 import { PartyType, SignupStatus } from '../../signup.consts.js';
-import { Signup } from '../../signup.interfaces.js';
-import { SendSignupReviewCommandHandler } from './send-signup-review-command.handler.js';
 import {
   InvalidReviewChannelException,
   MissingChannelException,
 } from '../../signup.exceptions.js';
+import { Signup } from '../../signup.interfaces.js';
+import { SendSignupReviewCommandHandler } from './send-signup-review-command.handler.js';
 
 describe('Send Signup Review Command Handler', () => {
   let handler: SendSignupReviewCommandHandler;
   let settingsService: DeepMocked<SettingsService>;
-  let get: jest.Mock<() => Channel | undefined>;
+  let get: Mock;
   const signup = createMock<Signup>({
     availability: 'baz',
     character: 'foo',
@@ -29,7 +29,7 @@ describe('Send Signup Review Command Handler', () => {
   });
 
   beforeEach(async () => {
-    get = jest.fn(() => undefined);
+    get = vi.fn(() => undefined);
 
     const fixture = await Test.createTestingModule({
       providers: [
@@ -62,7 +62,7 @@ describe('Send Signup Review Command Handler', () => {
   });
 
   it('does not send a review if no review channel has been configured', async () => {
-    const spy = jest.spyOn(handler, 'sendSignupForApproval');
+    const spy = vi.spyOn(handler, 'sendSignupForApproval');
 
     settingsService.getReviewChannel.mockResolvedValueOnce(undefined);
 
@@ -73,7 +73,7 @@ describe('Send Signup Review Command Handler', () => {
   });
 
   it('sends a review if a review channel has been configured', async () => {
-    const spy = jest.spyOn(handler, 'sendSignupForApproval');
+    const spy = vi.spyOn(handler, 'sendSignupForApproval');
 
     settingsService.getReviewChannel.mockResolvedValueOnce('#foo');
     get.mockReturnValueOnce(createMock<TextChannel>({}));
