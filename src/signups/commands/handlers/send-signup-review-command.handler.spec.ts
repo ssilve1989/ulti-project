@@ -1,6 +1,5 @@
 import { Test } from '@nestjs/testing';
 import { Channel, Client, TextChannel } from 'discord.js';
-
 import { DeepMocked, createMock } from '../../../../test/create-mock.js';
 import { DISCORD_CLIENT } from '../../../discord/discord.decorators.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
@@ -12,6 +11,7 @@ import {
 } from '../../signup.exceptions.js';
 import { Signup } from '../../signup.interfaces.js';
 import { SendSignupReviewCommandHandler } from './send-signup-review-command.handler.js';
+import { Mock } from 'vitest';
 
 describe('Send Signup Review Command Handler', () => {
   let handler: SendSignupReviewCommandHandler;
