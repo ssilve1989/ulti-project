@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { Channel, Client, TextChannel } from 'discord.js';
-
+import { Mock } from 'vitest';
 import { DeepMocked, createMock } from '../../../../test/create-mock.js';
 import { DISCORD_CLIENT } from '../../../discord/discord.decorators.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
