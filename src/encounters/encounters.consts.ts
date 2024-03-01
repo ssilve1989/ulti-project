@@ -1,4 +1,3 @@
-// TODO: cleanup file into domain specific files
 export enum Encounter {
   'TOP' = 'TOP',
   'UWU' = 'UWU',
