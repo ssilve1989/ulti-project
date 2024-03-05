@@ -54,8 +54,8 @@ dependencies:
     specifier: ^7.8.1
     version: 7.8.1
   ts-pattern:
-    specifier: ^5.0.6
-    version: 5.0.6
+    specifier: ^5.0.8
+    version: 5.0.8
   tslib:
     specifier: ^2.6.2
     version: 2.6.2
@@ -6116,8 +6116,8 @@ packages:
       yn: 3.1.1
     dev: true
 
-  /ts-pattern@5.0.6:
-    resolution: {integrity: sha512-Y+jOjihlFriWzcBjncPCf2/am+Hgz7LtsWs77pWg5vQQKLQj07oNrJryo/wK2G0ndNaoVn2ownFMeoeAuReu3Q==}
+  /ts-pattern@5.0.8:
+    resolution: {integrity: sha512-aafbuAQOTEeWmA7wtcL94w6I89EgLD7F+IlWkr596wYxeb0oveWDO5dQpv85YP0CGbxXT/qXBIeV6IYLcoZ2uA==}
     dev: false
 
   /tsconfig-paths-webpack-plugin@4.1.0:
