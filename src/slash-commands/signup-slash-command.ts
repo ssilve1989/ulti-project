@@ -39,7 +39,9 @@ export const SignupSlashCommand = new SlashCommandBuilder()
     option
       .setRequired(true)
       .setDescription('Job/Role. Ex. SGE/WHM, Healer/Tank, etc')
-      .setName('role'),
+      // we want the display label to be job, but its actually broader than a specific job so we'll refer to it as
+      // role still internally, even though that's not broad enough either since people can multi-role
+      .setName('job'),
   )
   .addStringOption((option) =>
     option
