@@ -50,7 +50,7 @@ describe('Signup Command Handler', () => {
               return 'Monday, Wednesday, Friday';
             case 'world':
               return 'Jenova';
-            case 'role':
+            case 'job':
               return 'tank';
             case 'party-type':
               return PartyType.CLEAR_PARTY;

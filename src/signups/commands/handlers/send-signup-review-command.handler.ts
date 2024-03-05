@@ -98,7 +98,7 @@ class SendSignupReviewCommandHandler
         { name: 'Character', value: character, inline: true },
         { name: 'Home World', value: world, inline: true },
         { name: 'Availability', value: availability, inline: true },
-        { name: 'Role', value: role, inline: true },
+        { name: 'Job', value: role, inline: true },
       ]);
 
     if (fflogsLink) {
