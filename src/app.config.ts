@@ -19,6 +19,7 @@ export const configSchema = Joi.object({
   GCP_PRIVATE_KEY: Joi.string().required(),
   GCP_ACCOUNT_EMAIL: Joi.string().required(),
   GCP_PROJECT_ID: Joi.string().required(),
+  // TODO: This should be replaced when multi-server support is put into the DiscordService class
   GUILD_ID: Joi.string().optional(),
   LOG_LEVEL: Joi.string()
     .allow('debug', 'info', 'warn', 'error', 'silent', 'fatal')
