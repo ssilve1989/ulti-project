@@ -15,6 +15,7 @@ import { EditSettingsCommand } from '../settings/commands/edit-settings.command.
 import { ViewSettingsCommand } from '../settings/commands/view-settings.command.js';
 import { RemoveSignupSlashCommand } from './remove-signup-slash-command.js';
 import { RemoveSignupCommand } from '../signups/commands/remove-signup.command.js';
+import { EMPTY, catchError, defer, forkJoin, lastValueFrom, retry } from 'rxjs';
 
 @Injectable()
 class SlashCommandsService {
@@ -57,23 +58,42 @@ class SlashCommandsService {
     this.logger.log(`refreshing slash commands`);
 
     const clientId = this.configService.get<string>('CLIENT_ID');
-    const guildId = this.configService.get<string>('GUILD_ID');
+    const guildIds = this.client.guilds.cache.map((guild) => guild.id);
 
     const rest = new REST().setToken(
       this.configService.get<string>('DISCORD_TOKEN'),
     );
 
-    try {
+    await lastValueFrom(
+      forkJoin(
+        guildIds.map((guildId) =>
+          this.registerCommandsForGuild(clientId, guildId, rest),
+        ),
+      ),
+      { defaultValue: undefined },
+    );
+  }
+
+  private registerCommandsForGuild(
+    clientId: string,
+    guildId: string,
+    rest: REST,
+  ) {
+    return defer(async () => {
       await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
         body: SLASH_COMMANDS,
       });
 
       this.logger.log(
-        `Successfully registered ${SLASH_COMMANDS.length} application commands.`,
+        `Successfully registered ${SLASH_COMMANDS.length} application commands for guild: ${guildId}`,
       );
-    } catch (e) {
-      this.logger.error(e);
-    }
+    }).pipe(
+      retry({ count: 10, delay: 1000 }),
+      catchError((err) => {
+        this.logger.error(err);
+        return EMPTY;
+      }),
+    );
   }
 }
 

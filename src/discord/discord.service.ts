@@ -4,6 +4,7 @@ import { Client, DMChannel, Guild } from 'discord.js';
 import { AppConfig } from '../app.config.js';
 import { InjectDiscordClient } from './discord.decorators.js';
 
+// TODO: This should be agnostic to a specfic discord server and work with all servers its part of
 @Injectable()
 class DiscordService implements OnApplicationBootstrap {
   private server: Guild;
