@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { sheets_v4 } from '@googleapis/sheets';
-import { PartyType } from '../signups/signup.consts.js';
+import { PartyType } from '../commands/signup/signup.consts.js';
 import {
   Signup,
   SignupCompositeKeyProps,
-} from '../signups/signup.interfaces.js';
+} from '../commands/signup/signup.interfaces.js';
 
 import { ProgSheetRanges, columnToIndex } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
