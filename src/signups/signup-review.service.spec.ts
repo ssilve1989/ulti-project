@@ -1,13 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
-
+import { DeepMocked, createMock } from '../../test/create-mock.js';
+import { DiscordService } from '../discord/discord.service.js';
 import { Settings } from '../settings/settings.interfaces.js';
 import { SignupReviewService } from './signup-review.service.js';
-import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
+import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { Signup } from './signup.interfaces.js';
 import { SignupRepository } from './signup.repository.js';
-
-import { DeepMocked, createMock } from '../../test/create-mock.js';
 
 describe('SignupReviewService', () => {
   let service: SignupReviewService;
@@ -16,6 +15,7 @@ describe('SignupReviewService', () => {
   let settings: DeepMocked<Settings>;
   let signup: DeepMocked<Signup>;
   let repository: DeepMocked<SignupRepository>;
+  let discordService: DeepMocked<DiscordService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -26,9 +26,14 @@ describe('SignupReviewService', () => {
 
     service = module.get(SignupReviewService);
     repository = module.get(SignupRepository);
+    discordService = module.get(DiscordService);
 
     messageReaction = createMock<MessageReaction>({
-      message: createMock<Message>({ id: 'messageId', valueOf: () => '' }),
+      message: createMock<Message>({
+        id: 'messageId',
+        valueOf: () => '',
+        edit: vi.fn(),
+      }),
       emoji: createMock<ReactionEmoji>({
         name: 'emojiName',
         valueOf: () => '',
@@ -36,11 +41,16 @@ describe('SignupReviewService', () => {
       valueOf: () => '',
     });
 
-    user = createMock<User>();
+    user = createMock<User>({
+      displayAvatarURL: () => 'http://someurl.com',
+      valueOf: () => '',
+      toString: () => '<@someuser>',
+    });
     settings = createMock<Settings>();
     signup = createMock<Signup>({
       reviewMessageId: 'messageId',
       reviewedBy: undefined,
+      discordId: 'abc123',
     });
   });
 
@@ -69,17 +79,30 @@ describe('SignupReviewService', () => {
   });
 
   it('should handle a declined reaction', async () => {
-    repository.findByReviewId.mockResolvedValue(signup);
-
     messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.DECLINED;
 
-    const spy = vi
-      .spyOn(service, 'handleDeclinedReaction' as any)
-      .mockResolvedValue({});
+    repository.findByReviewId.mockResolvedValueOnce(signup);
+    discordService.getDisplayName.mockResolvedValueOnce('someuser');
+    repository.updateSignupStatus.mockResolvedValueOnce({} as any);
+    vi.spyOn(messageReaction.message, 'edit').mockResolvedValueOnce({} as any);
+
+    const handleDeclineSpy = vi.spyOn(service, 'handleDeclinedReaction' as any);
 
     await service['handleReaction'](messageReaction, user, settings);
 
-    expect(spy).toHaveBeenCalledWith(signup, messageReaction.message, user);
+    expect(handleDeclineSpy).toHaveBeenCalledWith(
+      signup,
+      messageReaction.message,
+      user,
+    );
+
+    expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
+      signup.discordId,
+      expect.objectContaining({
+        content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_DENIED,
+        embeds: expect.any(Array),
+      }),
+    );
   });
 
   it('should return early if a signup has been reviewed', async () => {
