@@ -23,7 +23,8 @@ import {
 } from '../../common/components/buttons.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { SignupRequestDto } from './signup-request.dto.js';
-import { PartyType, SIGNUP_MESSAGES } from './signup.consts.js';
+import { SIGNUP_MESSAGES } from './signup.consts.js';
+import { PartyType } from '../../firebase/models/signup.model.js';
 import { SignupEvent } from './signup.events.js';
 import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
 import { SignupRepository } from '../../firebase/repositories/signup.repository.js';
