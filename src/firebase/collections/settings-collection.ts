@@ -26,16 +26,6 @@ class SettingsCollection {
     const doc = await this.collection.doc(guildId).get();
     return doc.data()?.reviewChannel;
   }
-
-  public async getReviewerRole(guildId: string) {
-    const doc = await this.collection.doc(guildId).get();
-    return doc.data()?.reviewerRole;
-  }
-
-  public async getSpreadsheetId(guildId: string) {
-    const doc = await this.collection.doc(guildId).get();
-    return doc.data()?.spreadsheetId;
-  }
 }
 
 export { SettingsCollection };

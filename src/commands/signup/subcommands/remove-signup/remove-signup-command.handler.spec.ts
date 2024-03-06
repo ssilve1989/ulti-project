@@ -6,7 +6,7 @@ import { DiscordService } from '../../../../discord/discord.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
-import { SignupRepository } from '../../../../firebase/repositories/signup.repository.js';
+import { SignupRepository } from '../../../../firebase/collections/signup.repository.js';
 import { RemoveSignupCommandHandler } from './remove-signup-command.handler.js';
 
 describe('Remove Signup Command Handler', () => {

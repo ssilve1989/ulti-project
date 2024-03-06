@@ -12,6 +12,7 @@ import { SignupModule } from './commands/signup/signup.module.js';
 import { StatusModule } from './commands/status/status.module.js';
 import { SettingsModule } from './commands/settings/settings.module.js';
 import { SheetsModule } from './sheets/sheets.module.js';
+import { LookupModule } from './commands/lookup/lookup.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { SheetsModule } from './sheets/sheets.module.js';
     DiscordModule,
     SheetsModule,
     FirebaseModule,
+    LookupModule,
     SettingsModule,
     SignupModule,
     SlashCommandsModule,

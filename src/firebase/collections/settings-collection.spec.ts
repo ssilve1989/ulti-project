@@ -55,25 +55,10 @@ describe('SettingsCollection', () => {
     expect(firestore.collection('').doc().get).toHaveBeenCalled();
   });
 
-  it('should call getReviewerRole with correct arguments', async () => {
-    await service.getReviewerRole(guildId);
-
-    expect(firestore.collection).toHaveBeenCalledWith('settings');
-    expect(firestore.collection('').doc).toHaveBeenCalledWith(guildId);
-    expect(firestore.collection('').doc().get).toHaveBeenCalled();
-  });
-
   it('should call getSettings with correct arguments', async () => {
     await service.getSettings(guildId);
 
     expect(firestore.collection).toHaveBeenCalledWith('settings');
-    expect(firestore.collection('').doc).toHaveBeenCalledWith(guildId);
-    expect(firestore.collection('').doc().get).toHaveBeenCalled();
-  });
-
-  it('should call getSpreadsheetId with correct arguments', async () => {
-    await service.getSpreadsheetId(guildId);
-
     expect(firestore.collection('').doc).toHaveBeenCalledWith(guildId);
     expect(firestore.collection('').doc().get).toHaveBeenCalled();
   });

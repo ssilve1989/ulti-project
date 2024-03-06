@@ -2,7 +2,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RemoveSignupCommand } from './remove-signup.command.js';
 import { APIUser, ChatInputCommandInteraction, User } from 'discord.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
-import { SignupRepository } from '../../../../firebase/repositories/signup.repository.js';
+import { SignupRepository } from '../../../../firebase/collections/signup.repository.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
