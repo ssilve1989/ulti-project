@@ -7,7 +7,7 @@ import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SettingsService } from '../../../settings/settings.service.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
-import { SignupCompositeKeyProps } from '../../signup.interfaces.js';
+import { SignupCompositeKeyProps } from '../../../../firebase/models/signup.model.js';
 
 @CommandHandler(RemoveSignupCommand)
 class RemoveSignupCommandHandler

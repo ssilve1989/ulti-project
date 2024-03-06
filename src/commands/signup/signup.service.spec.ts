@@ -5,15 +5,16 @@ import { DiscordService } from '../../discord/discord.service.js';
 import { Settings } from '../settings/settings.interfaces.js';
 import { SignupService } from './signup.service.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
-import { Signup } from './signup.interfaces.js';
+
 import { SignupRepository } from '../../firebase/repositories/signup.repository.js';
+import { SignupDocument } from '../../firebase/models/signup.model.js';
 
 describe('SignupService', () => {
   let service: SignupService;
   let messageReaction: DeepMocked<MessageReaction>;
   let user: DeepMocked<User>;
   let settings: DeepMocked<Settings>;
-  let signup: DeepMocked<Signup>;
+  let signup: DeepMocked<SignupDocument>;
   let repository: DeepMocked<SignupRepository>;
   let discordService: DeepMocked<DiscordService>;
 
@@ -47,7 +48,7 @@ describe('SignupService', () => {
       toString: () => '<@someuser>',
     });
     settings = createMock<Settings>();
-    signup = createMock<Signup>({
+    signup = createMock<SignupDocument>({
       reviewMessageId: 'messageId',
       reviewedBy: undefined,
       discordId: 'abc123',

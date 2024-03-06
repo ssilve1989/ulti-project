@@ -6,11 +6,11 @@ import {
   EmbedBuilder,
 } from 'discord.js';
 import { EncounterFriendlyDescription } from '../../encounters/encounters.consts.js';
+import { SIGNUP_REVIEW_REACTIONS } from '../signup/signup.consts.js';
 import {
-  SIGNUP_REVIEW_REACTIONS,
+  SignupDocument,
   SignupStatus,
-} from '../signup/signup.consts.js';
-import { Signup } from '../signup/signup.interfaces.js';
+} from '../../firebase/models/signup.model.js';
 import { StatusCommand } from './status.command.js';
 import { StatusService } from './status.service.js';
 
@@ -32,7 +32,7 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
     }
   }
 
-  private createStatusEmbed(signups: Signup[]) {
+  private createStatusEmbed(signups: SignupDocument[]) {
     const fields = signups.reduce((acc, { encounter, status, partyType }) => {
       return acc.concat([
         {

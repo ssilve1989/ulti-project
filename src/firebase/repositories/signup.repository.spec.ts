@@ -9,13 +9,11 @@ import {
   QueryDocumentSnapshot,
   QuerySnapshot,
 } from 'firebase-admin/firestore';
-
 import { DeepMocked, createMock } from '../../../test/create-mock.js';
+import { SignupRequestDto } from '../../commands/signup/signup-request.dto.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { FIRESTORE } from '../firebase.consts.js';
-import { SignupRequestDto } from '../../commands/signup/signup-request.dto.js';
-import { SignupStatus } from '../../commands/signup/signup.consts.js';
-import { Signup } from '../../commands/signup/signup.interfaces.js';
+import { SignupDocument, SignupStatus } from '../models/signup.model.js';
 import { SignupRepository } from './signup.repository.js';
 
 const SIGNUP_KEY = {
@@ -112,7 +110,7 @@ describe('Signup Repository', () => {
   });
 
   describe('#findByReviewId', () => {
-    const mockFetch = (empty = false, signup: Signup) => {
+    const mockFetch = (empty = false, signup: SignupDocument) => {
       collection.where.mockReturnValueOnce(
         createMock<Query>({
           limit: () =>
@@ -122,7 +120,7 @@ describe('Signup Repository', () => {
                   createMock<QuerySnapshot>({
                     empty,
                     docs: [
-                      createMock<QueryDocumentSnapshot<Signup>>({
+                      createMock<QueryDocumentSnapshot<SignupDocument>>({
                         data: () => signup,
                       }),
                     ],
@@ -149,7 +147,7 @@ describe('Signup Repository', () => {
     });
 
     it('should throw an error if no signup exists', () => {
-      mockFetch(true, {} as Signup);
+      mockFetch(true, {} as SignupDocument);
 
       expect(repository.findByReviewId('reviewMessageId')).rejects.toThrow(
         `No signup found for review message id: ${'reviewMessageId'}`,

@@ -5,29 +5,31 @@ import {
   Query,
 } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
-import { SignupRequestDto } from '../../commands/signup/signup-request.dto.js';
-import { SignupStatus } from '../../commands/signup/signup.consts.js';
-import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import {
-  Signup,
-  SignupCompositeKeyProps as SignupCompositeKey,
-} from '../../commands/signup/signup.interfaces.js';
+  CreateSignupDocumentProps,
+  SignupDocument,
+  SignupStatus,
+} from '../models/signup.model.js';
+import { DocumentNotFoundException } from '../firebase.exceptions.js';
+import { SignupCompositeKeyProps as SignupCompositeKey } from '../models/signup.model.js';
 
 @Injectable()
 class SignupRepository {
-  private readonly collection: CollectionReference<Signup>;
+  private readonly collection: CollectionReference<SignupDocument>;
 
   constructor(@InjectFirestore() private readonly firestore: Firestore) {
     this.collection = this.firestore.collection(
       'signups',
-    ) as CollectionReference<Signup>;
+    ) as CollectionReference<SignupDocument>;
   }
 
   /**
    * Upserts a signup request into the database
    * @param signup
    */
-  public async createSignup({ ...signup }: SignupRequestDto): Promise<Signup> {
+  public async createSignup(
+    signup: CreateSignupDocumentProps,
+  ): Promise<SignupDocument> {
     const key = this.getKeyForSignup(signup);
 
     const document = this.collection.doc(key);
@@ -55,11 +57,13 @@ class SignupRepository {
     return updatedSnapshot.data()!;
   }
 
-  public async findOne(query: Partial<Signup>): Promise<Signup> {
+  public async findOne(
+    query: Partial<SignupDocument>,
+  ): Promise<SignupDocument> {
     const snapshot = await this.where(query).limit(1).get();
 
     if (snapshot.empty) {
-      throw new DocumentNotFoundException('Signup not found');
+      throw new DocumentNotFoundException('SignupDocument not found');
     }
 
     return snapshot.docs[0].data();
@@ -112,14 +116,14 @@ class SignupRepository {
    * @param props
    * @returns
    */
-  private where(props: Partial<Signup>) {
+  private where(props: Partial<SignupDocument>) {
     let query: Query = this.collection;
 
     for (const [key, value] of Object.entries(props)) {
       query = query.where(key, '==', value);
     }
 
-    return query as Query<Signup, FirebaseFirestore.DocumentData>;
+    return query as Query<SignupDocument, FirebaseFirestore.DocumentData>;
   }
 }
 
