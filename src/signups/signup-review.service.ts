@@ -245,7 +245,7 @@ class SignupReviewService implements OnApplicationBootstrap, OnModuleDestroy {
 
     await Promise.all([
       message.edit({ embeds: [embed] }),
-      this.discordService.sendDirectMessage(user.id, {
+      this.discordService.sendDirectMessage(signup.discordId, {
         content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_DENIED,
         embeds: [embed.setTitle('Signup Declined')],
       }),
