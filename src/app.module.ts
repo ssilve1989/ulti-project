@@ -5,12 +5,12 @@ import { LoggerModule } from 'nestjs-pino';
 import { AppConfig, configSchema } from './app.config.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import { SlashCommandsModule } from './slash-commands/slash-commands.module.js';
+import { SlashCommandsModule } from './commands/slash-commands.module.js';
 import { DiscordModule } from './discord/discord.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
-import { SignupModule } from './signups/signup.module.js';
-import { StatusModule } from './status/status.module.js';
-import { SettingsModule } from './settings/settings.module.js';
+import { SignupModule } from './commands/signup/signup.module.js';
+import { StatusModule } from './commands/status/status.module.js';
+import { SettingsModule } from './commands/settings/settings.module.js';
 import { SheetsModule } from './sheets/sheets.module.js';
 
 @Module({
