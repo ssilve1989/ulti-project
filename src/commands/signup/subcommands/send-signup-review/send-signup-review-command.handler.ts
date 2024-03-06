@@ -9,9 +9,9 @@ import {
   InvalidReviewChannelException,
   MissingChannelException,
 } from '../../../../discord/discord.exceptions.js';
-import { Signup } from '../../signup.interfaces.js';
 import { SignupRepository } from '../../../../firebase/repositories/signup.repository.js';
 import { SendSignupReviewCommand } from './send-signup-review.command.js';
+import { SignupDocument } from '../../../../firebase/models/signup.model.js';
 
 @CommandHandler(SendSignupReviewCommand)
 class SendSignupReviewCommandHandler
@@ -42,7 +42,7 @@ class SendSignupReviewCommandHandler
    * @param signup
    */
   async sendSignupForApproval(
-    signup: Signup,
+    signup: SignupDocument,
     channelId: string,
     guildId: string,
   ) {
@@ -82,7 +82,7 @@ class SendSignupReviewCommandHandler
     world,
     role,
     partyType,
-  }: Signup) {
+  }: SignupDocument) {
     let embed = new EmbedBuilder()
       .setDescription(
         `Please react to approve ${SIGNUP_REVIEW_REACTIONS.APPROVED} or deny ${SIGNUP_REVIEW_REACTIONS.DECLINED} the following applicants request`,

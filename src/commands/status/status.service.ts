@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectFirestore } from '../../firebase/firebase.decorators.js';
 import { Firestore } from 'firebase-admin/firestore';
-import { Signup } from '../signup/signup.interfaces.js';
+import { SignupDocument } from '../../firebase/models/signup.model.js';
 
 @Injectable()
 class StatusService {
@@ -12,12 +12,14 @@ class StatusService {
    * @param discordId
    * @returns
    */
-  public getSignups(discordId: string): Promise<Signup[]> {
+  public getSignups(discordId: string): Promise<SignupDocument[]> {
     return this.firestore
       .collection('signups')
       .where('discordId', '==', discordId)
       .get()
-      .then((snapshot) => snapshot.docs.map((doc) => doc.data() as Signup));
+      .then((snapshot) =>
+        snapshot.docs.map((doc) => doc.data() as SignupDocument),
+      );
   }
 }
 

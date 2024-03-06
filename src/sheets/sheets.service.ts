@@ -1,11 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { sheets_v4 } from '@googleapis/sheets';
-import { PartyType } from '../commands/signup/signup.consts.js';
-import {
-  Signup,
-  SignupCompositeKeyProps,
-} from '../commands/signup/signup.interfaces.js';
-
+import { PartyType, SignupDocument } from '../firebase/models/signup.model.js';
+import { SignupCompositeKeyProps } from '../firebase/models/signup.model.js';
 import { ProgSheetRanges, columnToIndex } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
 
@@ -33,7 +29,7 @@ class SheetsService {
    * @returns
    */
   public async upsertSignup(
-    { partyType, ...signup }: Signup,
+    { partyType, ...signup }: SignupDocument,
     spreadsheetId: string,
   ) {
     switch (partyType) {
@@ -55,7 +51,8 @@ class SheetsService {
    * @param spreadsheetId
    */
   public async removeSignup(
-    signup: SignupCompositeKeyProps & Pick<Signup, 'character' | 'world'>,
+    signup: SignupCompositeKeyProps &
+      Pick<SignupDocument, 'character' | 'world'>,
     spreadsheetId: string,
   ) {
     const requests = await Promise.all([
@@ -92,7 +89,7 @@ class SheetsService {
     {
       encounter,
       character,
-    }: SignupCompositeKeyProps & Pick<Signup, 'character' | 'world'>,
+    }: SignupCompositeKeyProps & Pick<SignupDocument, 'character' | 'world'>,
     spreadsheetId: string,
   ): Promise<sheets_v4.Schema$Request | undefined> {
     const range = ProgSheetRanges[encounter];
@@ -134,7 +131,7 @@ class SheetsService {
       encounter,
       world,
       character,
-    }: SignupCompositeKeyProps & Pick<Signup, 'character' | 'world'>,
+    }: SignupCompositeKeyProps & Pick<SignupDocument, 'character' | 'world'>,
     spreadsheetId: string,
   ): Promise<sheets_v4.Schema$Request | undefined> {
     const clearPartyValues = await this.getSheetValues({
@@ -178,7 +175,7 @@ class SheetsService {
       world,
       discordId,
       progPoint = '',
-    }: Omit<Signup, 'partyType'>,
+    }: Omit<SignupDocument, 'partyType'>,
     spreadsheetId: string,
   ) {
     const cellValues = [character, world, role, progPoint];
@@ -229,7 +226,7 @@ class SheetsService {
       world,
       role,
       progPoint = '',
-    }: Omit<Signup, 'partyType'>,
+    }: Omit<SignupDocument, 'partyType'>,
     spreadsheetId: string,
   ) {
     const range = ProgSheetRanges[encounter];
@@ -266,7 +263,7 @@ class SheetsService {
   private getProgProof({
     fflogsLink,
     screenshot,
-  }: Pick<Signup, 'fflogsLink' | 'screenshot'>) {
+  }: Pick<SignupDocument, 'fflogsLink' | 'screenshot'>) {
     return fflogsLink || screenshot
       ? this.createHyperLinkCell('Proof of Prog', (fflogsLink || screenshot)!)
       : '';

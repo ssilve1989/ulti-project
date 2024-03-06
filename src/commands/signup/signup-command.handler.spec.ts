@@ -10,7 +10,8 @@ import {
 import { DeepMocked, createMock } from '../../../test/create-mock.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { SettingsService } from '../settings/settings.service.js';
-import { PartyType, SIGNUP_MESSAGES } from './signup.consts.js';
+import { SIGNUP_MESSAGES } from './signup.consts.js';
+import { PartyType } from '../../firebase/models/signup.model.js';
 import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
 import { SignupCommand } from './signup.commands.js';
 import { SignupCommandHandler } from './signup-command.handler.js';

@@ -5,19 +5,22 @@ import { DeepMocked, createMock } from '../../../../../test/create-mock.js';
 import { DISCORD_CLIENT } from '../../../../discord/discord.decorators.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
 import { SettingsService } from '../../../settings/settings.service.js';
-import { PartyType, SignupStatus } from '../../signup.consts.js';
+import {
+  PartyType,
+  SignupDocument,
+} from '../../../../firebase/models/signup.model.js';
+import { SignupStatus } from '../../../../firebase/models/signup.model.js';
 import {
   InvalidReviewChannelException,
   MissingChannelException,
 } from '../../../../discord/discord.exceptions.js';
-import { Signup } from '../../signup.interfaces.js';
 import { SendSignupReviewCommandHandler } from './send-signup-review-command.handler.js';
 
 describe('Send Signup Review Command Handler', () => {
   let handler: SendSignupReviewCommandHandler;
   let settingsService: DeepMocked<SettingsService>;
   let get: Mock;
-  const signup = createMock<Signup>({
+  const signup = createMock<SignupDocument>({
     availability: 'baz',
     character: 'foo',
     encounter: Encounter.DSR,
@@ -93,7 +96,7 @@ describe('Send Signup Review Command Handler', () => {
 
     expect(() =>
       handler.execute({
-        signup: createMock<Signup>({
+        signup: createMock<SignupDocument>({
           encounter: Encounter.DSR,
           status: SignupStatus.PENDING,
           character: 'foo',
@@ -111,7 +114,7 @@ describe('Send Signup Review Command Handler', () => {
 
     expect(() =>
       handler.execute({
-        signup: createMock<Signup>({
+        signup: createMock<SignupDocument>({
           encounter: Encounter.DSR,
           status: SignupStatus.PENDING,
           character: 'foo',

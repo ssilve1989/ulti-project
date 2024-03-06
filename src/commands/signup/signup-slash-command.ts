@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { PartyType } from './signup.consts.js';
+import { PartyType } from '../../firebase/models/signup.model.js';
 import { ENCOUNTER_CHOICES } from '../slash-commands.consts.js';
 
 export const SignupSlashCommand = new SlashCommandBuilder()

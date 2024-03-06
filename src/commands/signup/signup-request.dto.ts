@@ -1,8 +1,11 @@
 import { IsEnum, IsString, IsUrl, ValidateIf } from 'class-validator';
 import { Encounter } from '../../encounters/encounters.consts.js';
-import { PartyType } from './signup.consts.js';
+import {
+  PartyType,
+  SignupDocument,
+} from '../../firebase/models/signup.model.js';
 
-class SignupRequestDto {
+class SignupRequestDto implements Omit<SignupDocument, 'status'> {
   @IsString()
   availability: string;
 

@@ -30,12 +30,11 @@ import {
 import { Settings } from '../settings/settings.interfaces.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
+import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import {
-  SIGNUP_MESSAGES,
-  SIGNUP_REVIEW_REACTIONS,
+  SignupDocument,
   SignupStatus,
-} from './signup.consts.js';
-import { Signup } from './signup.interfaces.js';
+} from '../../firebase/models/signup.model.js';
 import { SignupRepository } from '../../firebase/repositories/signup.repository.js';
 
 @Injectable()
@@ -155,7 +154,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async handleApprovedReaction(
-    signup: Signup,
+    signup: SignupDocument,
     message: Message | PartialMessage,
     user: User,
     settings?: Settings,
@@ -168,7 +167,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       this.requestProgPointConfirmation(signup, sourceEmbed, user),
     ]);
 
-    const confirmedSignup: Signup = { ...signup, progPoint };
+    const confirmedSignup: SignupDocument = { ...signup, progPoint };
 
     embed
       .setFooter({
@@ -221,7 +220,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async handleDeclinedReaction(
-    signup: Signup,
+    signup: SignupDocument,
     message: Message | PartialMessage,
     user: User,
   ) {
@@ -272,7 +271,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async requestProgPointConfirmation(
-    signup: Signup,
+    signup: SignupDocument,
     embed: Embed,
     user: User,
   ): Promise<string | undefined> {

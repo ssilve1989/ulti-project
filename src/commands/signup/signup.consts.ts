@@ -1,3 +1,5 @@
+import { SignupStatus } from '../../firebase/models/signup.model.js';
+
 export const SIGNUP_MESSAGES = {
   CONFIRMATION_TIMEOUT:
     'Confirmation not received within 1 minute, cancelling signup. Please use /signup if you wish to try again.',
@@ -29,14 +31,3 @@ export const SIGNUP_REVIEW_REACTIONS: Record<
   DECLINED: '❌',
   PENDING: ':question:',
 };
-
-export enum SignupStatus {
-  PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
-  DECLINED = 'DECLINED',
-}
-
-export enum PartyType {
-  PROG_PARTY = 'Prog Party',
-  CLEAR_PARTY = 'Clear Party',
-}
