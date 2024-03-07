@@ -10,7 +10,7 @@ import {
   QuerySnapshot,
 } from 'firebase-admin/firestore';
 import { DeepMocked, createMock } from '../../../test/create-mock.js';
-import { SignupRequestDto } from '../../commands/signup/signup-request.dto.js';
+import { SignupInteractionDto } from '../../commands/signup/signup-request.dto.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { SignupDocument, SignupStatus } from '../models/signup.model.js';
@@ -26,7 +26,7 @@ describe('Signup Repository', () => {
   let firestore: DeepMocked<Firestore>;
   let collection: DeepMocked<CollectionReference<DocumentData>>;
   let doc: DeepMocked<DocumentReference<DocumentData>>;
-  const signupRequest = createMock<SignupRequestDto>(SIGNUP_KEY);
+  const signupRequest = createMock<SignupInteractionDto>(SIGNUP_KEY);
 
   beforeEach(async () => {
     doc = createMock<DocumentReference>();

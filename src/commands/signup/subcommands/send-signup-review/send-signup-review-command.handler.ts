@@ -12,6 +12,7 @@ import {
 import { SignupRepository } from '../../../../firebase/repositories/signup.repository.js';
 import { SendSignupReviewCommand } from './send-signup-review.command.js';
 import { SignupDocument } from '../../../../firebase/models/signup.model.js';
+import { capitalCase } from 'change-case';
 
 @CommandHandler(SendSignupReviewCommand)
 class SendSignupReviewCommandHandler
@@ -95,8 +96,8 @@ class SendSignupReviewCommandHandler
           inline: true,
         },
         { name: 'Party Type', value: partyType, inline: true },
-        { name: 'Character', value: character, inline: true },
-        { name: 'Home World', value: world, inline: true },
+        { name: 'Character', value: capitalCase(character), inline: true },
+        { name: 'Home World', value: capitalCase(world), inline: true },
         { name: 'Availability', value: availability, inline: true },
         { name: 'Job', value: role, inline: true },
       ]);

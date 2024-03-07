@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { capitalCase } from 'change-case';
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
 import { plainToInstance } from 'class-transformer';
 import { ValidationError, validate } from 'class-validator';
@@ -22,7 +23,7 @@ import {
   ConfirmButton,
 } from '../../common/components/buttons.js';
 import { SettingsService } from '../settings/settings.service.js';
-import { SignupRequestDto } from './signup-request.dto.js';
+import { SignupInteractionDto } from './signup-request.dto.js';
 import { SIGNUP_MESSAGES } from './signup.consts.js';
 import { PartyType } from '../../firebase/models/signup.model.js';
 import { SignupCreatedEvent } from './signup.events.js';
@@ -119,7 +120,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   }
 
   private async handleConfirm(
-    request: SignupRequestDto,
+    request: SignupInteractionDto,
     interaction: ChatInputCommandInteraction,
   ) {
     const signup = this.repository.createSignup(request);
@@ -143,11 +144,11 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     options,
     user,
   }: ChatInputCommandInteraction): Promise<
-    [SignupRequestDto, ValidationError[] | undefined]
+    [SignupInteractionDto, ValidationError[] | undefined]
   > {
     // the fields that are marked required should come in with values. empty strings are not allowed
     /* eslint-disable @typescript-eslint/no-non-null-assertion */
-    const request: SignupRequestDto = {
+    const request: SignupInteractionDto = {
       availability: options.getString('availability')!,
       character: options.getString('character')!,
       discordId: user.id,
@@ -160,7 +161,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       world: options.getString('world')!,
     };
 
-    const transformed = plainToInstance(SignupRequestDto, request);
+    const transformed = plainToInstance(SignupInteractionDto, request);
     const errors = await validate(transformed);
 
     if (errors.length > 0) {
@@ -179,13 +180,13 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     role,
     screenshot,
     world,
-  }: SignupRequestDto) {
+  }: SignupInteractionDto) {
     let embed = new EmbedBuilder()
       .setTitle(`${EncounterFriendlyDescription[encounter]} ${partyType}`)
       .setDescription("Here's a summary of your request")
       .addFields([
-        { name: 'Character', value: character, inline: true },
-        { name: 'Home World', value: world, inline: true },
+        { name: 'Character', value: capitalCase(character), inline: true },
+        { name: 'Home World', value: capitalCase(world), inline: true },
         { name: 'Availability', value: availability, inline: true },
         { name: 'Role', value: role, inline: true },
       ]);
