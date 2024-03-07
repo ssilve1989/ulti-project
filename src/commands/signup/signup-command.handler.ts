@@ -25,7 +25,7 @@ import { SettingsService } from '../settings/settings.service.js';
 import { SignupRequestDto } from './signup-request.dto.js';
 import { SIGNUP_MESSAGES } from './signup.consts.js';
 import { PartyType } from '../../firebase/models/signup.model.js';
-import { SignupEvent } from './signup.events.js';
+import { SignupCreatedEvent } from './signup.events.js';
 import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
 import { SignupRepository } from '../../firebase/repositories/signup.repository.js';
 import { SignupCommand } from './signup.commands.js';
@@ -109,7 +109,9 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       });
 
       if (signup) {
-        this.eventBus.publish(new SignupEvent(signup, interaction.guildId));
+        this.eventBus.publish(
+          new SignupCreatedEvent(signup, interaction.guildId),
+        );
       }
     } catch (e: unknown) {
       await this.handleError(e, interaction);

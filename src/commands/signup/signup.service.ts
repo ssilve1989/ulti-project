@@ -36,6 +36,7 @@ import {
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
 import { SignupRepository } from '../../firebase/repositories/signup.repository.js';
+import { hydrateReaction, hydrateUser } from '../../discord/discord.helpers.js';
 
 @Injectable()
 class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -63,8 +64,8 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
           if (!event.reaction.message.inGuild()) return EMPTY;
 
           const [reaction, user, settings] = await Promise.all([
-            this.hydrateReaction(event.reaction),
-            this.hydrateUser(event.user),
+            hydrateReaction(event.reaction),
+            hydrateUser(event.user),
             this.settingsService.getSettings(event.reaction.message.guildId),
           ]);
           const shouldHandle = await this.shouldHandleReaction(
@@ -112,24 +113,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         .otherwise(() => {});
     } catch (error) {
       this.handleReactionError(error, user, message);
-    }
-  }
-
-  private hydrateReaction(
-    reaction: MessageReaction | PartialMessageReaction,
-  ): Promise<MessageReaction> {
-    if (reaction.partial) {
-      return reaction.fetch();
-    } else {
-      return Promise.resolve(reaction);
-    }
-  }
-
-  private hydrateUser(user: User | PartialUser): Promise<User> {
-    if (user.partial) {
-      return user.fetch();
-    } else {
-      return Promise.resolve(user);
     }
   }
 

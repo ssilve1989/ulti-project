@@ -1,0 +1,49 @@
+import { PartialMessageReaction, PartialUser } from 'discord.js';
+import { hydrateReaction, hydrateUser } from './discord.helpers.js';
+import { createMock } from '../../test/create-mock.js';
+
+describe('Discord Helper Methods', () => {
+  it('hydrates a partial reaction', async () => {
+    const fetch = vi.fn().mockResolvedValue({});
+    const reaction = createMock<PartialMessageReaction>({
+      partial: true,
+      valueOf: () => '',
+      fetch,
+    });
+
+    await hydrateReaction(reaction);
+    expect(fetch).toHaveBeenCalled();
+  });
+
+  it('returns the given reaction if not partial', () => {
+    const reaction = createMock<PartialMessageReaction>({
+      partial: undefined,
+      valueOf: () => '',
+    });
+
+    expect(hydrateReaction(reaction)).resolves.toBe(reaction);
+  });
+
+  it('hydrates a partial user', async () => {
+    const fetch = vi.fn().mockResolvedValue({});
+    const user = createMock<PartialUser>({
+      partial: true,
+      valueOf: () => '',
+      fetch,
+      toString: () => '<@foo>',
+    });
+
+    await hydrateUser(user);
+    expect(fetch).toHaveBeenCalled();
+  });
+
+  it('returns the given user if not partial', () => {
+    const user = createMock<PartialUser>({
+      partial: undefined,
+      valueOf: () => '',
+      toString: () => '<@foo>',
+    });
+
+    expect(hydrateUser(user)).resolves.toBe(user);
+  });
+});
