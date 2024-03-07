@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ICommand, Saga, ofType } from '@nestjs/cqrs';
-import { SignupEvent, SignupReviewCreatedEvent } from './signup.events.js';
+import { SignupCreatedEvent } from './signup.events.js';
 import { Observable, map } from 'rxjs';
-import { UpdateSignupReviewCommand } from './subcommands/update-signup-review/update-signup-review.command.js';
 import { SendSignupReviewCommand } from './subcommands/send-signup-review/send-signup-review.command.js';
 
 @Injectable()
@@ -15,24 +14,9 @@ class SignupSagas {
   @Saga()
   signupModified = (event$: Observable<any>): Observable<ICommand> =>
     event$.pipe(
-      ofType(SignupEvent),
+      ofType(SignupCreatedEvent),
       map(
         ({ signup, guildId }) => new SendSignupReviewCommand(signup, guildId),
-      ),
-    );
-
-  /**
-   * When a signup review is created, dispatch a command that updates the firestore with the message id that correlates to the signup
-   * @param event$
-   * @returns
-   */
-  @Saga()
-  signupReviewSend = (event$: Observable<any>): Observable<ICommand> =>
-    event$.pipe(
-      ofType(SignupReviewCreatedEvent),
-      map(
-        ({ signup, messageId }) =>
-          new UpdateSignupReviewCommand(signup, messageId),
       ),
     );
 }
