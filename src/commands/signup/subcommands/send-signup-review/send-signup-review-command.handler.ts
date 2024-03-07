@@ -3,7 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Client, EmbedBuilder } from 'discord.js';
 import { EncounterFriendlyDescription } from '../../../../encounters/encounters.consts.js';
 import { InjectDiscordClient } from '../../../../discord/discord.decorators.js';
-import { SettingsService } from '../../../settings/settings.service.js';
+import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../../signup.consts.js';
 import {
   InvalidReviewChannelException,
@@ -23,11 +23,12 @@ class SendSignupReviewCommandHandler
   constructor(
     @InjectDiscordClient() private readonly client: Client,
     private readonly repository: SignupRepository,
-    private readonly settingsService: SettingsService,
+    private readonly settingsCollection: SettingsCollection,
   ) {}
 
   async execute({ signup, guildId }: SendSignupReviewCommand) {
-    const reviewChannel = await this.settingsService.getReviewChannel(guildId);
+    const reviewChannel =
+      await this.settingsCollection.getReviewChannel(guildId);
 
     if (!reviewChannel) {
       this.logger.warn(`no review channel set for guild ${guildId}`);

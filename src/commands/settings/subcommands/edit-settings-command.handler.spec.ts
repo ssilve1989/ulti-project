@@ -1,12 +1,12 @@
 import { Test } from '@nestjs/testing';
 import { EditSettingsCommandHandler } from './edit-settings-command.handler.js';
-import { SettingsService } from '../settings.service.js';
+import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { ChatInputCommandInteraction } from 'discord.js';
 import { DeepMocked, createMock } from '../../../../test/create-mock.js';
 
 describe('Edit Settings Command Handler', () => {
   let handler: EditSettingsCommandHandler;
-  let settingsService: DeepMocked<SettingsService>;
+  let settingsCollection: DeepMocked<SettingsCollection>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
@@ -16,7 +16,7 @@ describe('Edit Settings Command Handler', () => {
       .compile();
 
     handler = fixture.get(EditSettingsCommandHandler);
-    settingsService = fixture.get(SettingsService);
+    settingsCollection = fixture.get(SettingsCollection);
   });
 
   it('should be defined', () => {
@@ -41,7 +41,7 @@ describe('Edit Settings Command Handler', () => {
       }),
     });
 
-    expect(settingsService.upsertSettings).toHaveBeenCalledWith(guildId, {
+    expect(settingsCollection.upsertSettings).toHaveBeenCalledWith(guildId, {
       reviewerRole,
       reviewChannel,
       spreadsheetId,

@@ -1,11 +1,11 @@
 import { Test } from '@nestjs/testing';
 import { Firestore } from 'firebase-admin/firestore';
-import { SettingsService } from './settings.service.js';
-import { FIRESTORE } from '../../firebase/firebase.consts.js';
+import { SettingsCollection } from './settings-collection.js';
+import { FIRESTORE } from '../firebase.consts.js';
 import { DeepMocked, createMock } from '../../../test/create-mock.js';
 
-describe('SettingsService', () => {
-  let service: SettingsService;
+describe('SettingsCollection', () => {
+  let service: SettingsCollection;
   let firestore: DeepMocked<Firestore>;
   const guildId = 'guildId';
 
@@ -26,10 +26,13 @@ describe('SettingsService', () => {
     });
 
     const module = await Test.createTestingModule({
-      providers: [SettingsService, { provide: FIRESTORE, useValue: firestore }],
+      providers: [
+        SettingsCollection,
+        { provide: FIRESTORE, useValue: firestore },
+      ],
     }).compile();
 
-    service = module.get<SettingsService>(SettingsService);
+    service = module.get<SettingsCollection>(SettingsCollection);
   });
 
   it('should call upsertSettings with correct arguments', async () => {
