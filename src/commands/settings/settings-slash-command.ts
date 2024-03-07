@@ -7,7 +7,7 @@ import {
 export const SettingsSlashCommand = new SlashCommandBuilder()
   .setName('settings')
   .setDescription('Configure/Review the bots roles and channel settings')
-  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
   .addSubcommand((subcommand) =>
     subcommand
       .setName('edit')
