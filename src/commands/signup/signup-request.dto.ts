@@ -4,12 +4,14 @@ import {
   PartyType,
   SignupDocument,
 } from '../../firebase/models/signup.model.js';
+import { ToLowercase } from '../../common/decorators/to-lowercase.js';
 
-class SignupRequestDto implements Omit<SignupDocument, 'status'> {
+class SignupInteractionDto implements Omit<SignupDocument, 'status'> {
   @IsString()
   availability: string;
 
   @IsString()
+  @ToLowercase()
   character: string;
 
   @IsString()
@@ -41,10 +43,12 @@ class SignupRequestDto implements Omit<SignupDocument, 'status'> {
   partyType: PartyType;
 
   @IsString()
+  @ToLowercase()
   username: string;
 
   @IsString()
+  @ToLowercase()
   world: string;
 }
 
-export { SignupRequestDto };
+export { SignupInteractionDto };
