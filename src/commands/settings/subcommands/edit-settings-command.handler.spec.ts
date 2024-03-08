@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
-import { ChatInputCommandInteraction } from 'discord.js';
+import { ChatInputCommandInteraction, Role } from 'discord.js';
 import { DeepMocked, createMock } from '../../../../test/create-mock.js';
+import { Encounter } from '../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { EditSettingsCommandHandler } from './edit-settings-command.handler.js';
 
@@ -33,7 +34,24 @@ describe('Edit Settings Command Handler', () => {
       interaction: createMock<ChatInputCommandInteraction<'raw' | 'cached'>>({
         guildId,
         options: {
-          getRole: () => createMock({ id: reviewerRole }),
+          getRole: (key: string) => {
+            switch (key) {
+              case 'reviewer-role':
+                return createMock({ id: reviewerRole });
+              case `${Encounter.DSR.toLowerCase()}-prog-role`:
+              case `${Encounter.UCOB.toLowerCase()}-prog-role`:
+              case `${Encounter.TEA.toLowerCase()}-prog-role`:
+              case `${Encounter.TOP.toLowerCase()}-prog-role`:
+              case `${Encounter.UWU.toLowerCase()}-prog-role`:
+                return createMock<Role>({
+                  id: key,
+                  valueOf: () => '',
+                  toString: () => '<@&role>',
+                });
+              default:
+                return null;
+            }
+          },
           getChannel: () => createMock({ id: reviewChannel }),
           getString: () => 'spreadsheetId',
         },
@@ -46,6 +64,13 @@ describe('Edit Settings Command Handler', () => {
       reviewChannel,
       spreadsheetId,
       signupChannel: reviewChannel,
+      progRoles: {
+        [Encounter.DSR]: 'dsr-prog-role',
+        [Encounter.UCOB]: 'ucob-prog-role',
+        [Encounter.TEA]: 'tea-prog-role',
+        [Encounter.TOP]: 'top-prog-role',
+        [Encounter.UWU]: 'uwu-prog-role',
+      },
     });
   });
 });
