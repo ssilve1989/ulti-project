@@ -8,5 +8,5 @@ export const ENCOUNTER_CHOICES = [
     value: Encounter.UCOB,
   },
   { name: 'The Weapons Refrain (Ultimate)', value: Encounter.UWU },
-  { name: `Dragonsong Reprise (Ultimate)`, value: Encounter.DSR },
+  { name: 'Dragonsong Reprise (Ultimate)', value: Encounter.DSR },
 ];

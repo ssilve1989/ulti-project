@@ -22,21 +22,21 @@ import {
 import { EMPTY, Subscription, concatMap, fromEvent } from 'rxjs';
 import { P, match } from 'ts-pattern';
 import { isSameUserFilter } from '../../common/collection-filters.js';
+import { hydrateReaction, hydrateUser } from '../../discord/discord.helpers.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import {
   EncounterProgMenus,
   PROG_POINT_SELECT_ID,
 } from '../../encounters/encounters.components.js';
-import { Settings } from '../settings/settings.interfaces.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { SheetsService } from '../../sheets/sheets.service.js';
-import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
+import { SignupRepository } from '../../firebase/collections/signup.repository.js';
 import {
   SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
-import { SignupRepository } from '../../firebase/collections/signup.repository.js';
-import { hydrateReaction, hydrateUser } from '../../discord/discord.helpers.js';
+import { SheetsService } from '../../sheets/sheets.service.js';
+import { Settings } from '../settings/settings.interfaces.js';
+import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 
 @Injectable()
 class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -180,6 +180,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
       await Promise.all([
         message.edit({ embeds: [embed] }),
+        // biome-ignore lint/complexity/useOptionalChain: using optional chaining doesn't properly handle asserting the type of the channel
         publicSignupChannel &&
           publicSignupChannel.send({
             content: `<@${confirmedSignup.discordId}> Signup Approved!`,

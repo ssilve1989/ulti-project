@@ -8,13 +8,13 @@ import {
 } from 'discord.js';
 
 import { DeepMocked, createMock } from '../../../test/create-mock.js';
+import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { SIGNUP_MESSAGES } from './signup.consts.js';
 import { PartyType } from '../../firebase/models/signup.model.js';
-import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
-import { SignupCommand } from './signup.commands.js';
 import { SignupCommandHandler } from './signup-command.handler.js';
+import { SignupCommand } from './signup.commands.js';
+import { SIGNUP_MESSAGES } from './signup.consts.js';
 
 describe('Signup Command Handler', () => {
   let handler: SignupCommandHandler;
@@ -82,7 +82,9 @@ describe('Signup Command Handler', () => {
     const command = new SignupCommand(interaction);
     await handler.execute(command);
 
-    expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(interaction.deferReply).toHaveBeenCalledWith({
+      ephemeral: true,
+    });
     expect(interaction.editReply).toHaveBeenCalledTimes(2);
     expect(interaction.editReply).toHaveBeenNthCalledWith(
       2,
@@ -125,7 +127,9 @@ describe('Signup Command Handler', () => {
     const command = new SignupCommand(interaction);
     await handler.execute(command);
 
-    expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(interaction.deferReply).toHaveBeenCalledWith({
+      ephemeral: true,
+    });
     expect(interaction.editReply).toHaveBeenCalledTimes(2);
     expect(interaction.editReply).toHaveBeenNthCalledWith(
       2,
@@ -145,7 +149,9 @@ describe('Signup Command Handler', () => {
     const command = new SignupCommand(interaction);
     await handler.execute(command);
 
-    expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(interaction.deferReply).toHaveBeenCalledWith({
+      ephemeral: true,
+    });
     expect(interaction.editReply).toHaveBeenCalledTimes(2);
     expect(interaction.editReply).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -160,7 +166,9 @@ describe('Signup Command Handler', () => {
     const command = new SignupCommand(interaction);
     await handler.execute(command);
 
-    expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(interaction.deferReply).toHaveBeenCalledWith({
+      ephemeral: true,
+    });
     expect(interaction.editReply).toHaveBeenCalledWith(
       SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL,
     );

@@ -1,8 +1,8 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { EditSettingsCommand } from './edit-settings.command.js';
-import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { Logger } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ChatInputCommandInteraction } from 'discord.js';
+import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
+import { EditSettingsCommand } from './edit-settings.command.js';
 
 @CommandHandler(EditSettingsCommand)
 class EditSettingsCommandHandler

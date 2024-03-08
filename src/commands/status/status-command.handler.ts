@@ -6,11 +6,11 @@ import {
   EmbedBuilder,
 } from 'discord.js';
 import { EncounterFriendlyDescription } from '../../encounters/encounters.consts.js';
-import { SIGNUP_REVIEW_REACTIONS } from '../signup/signup.consts.js';
 import {
   SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
+import { SIGNUP_REVIEW_REACTIONS } from '../signup/signup.consts.js';
 import { StatusCommand } from './status.command.js';
 import { StatusService } from './status.service.js';
 
@@ -55,9 +55,8 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
       return embed.setDescription(
         'You have no active signups. Use /signup to signup for an encounter.',
       );
-    } else {
-      return embed.addFields(fields);
     }
+    return embed.addFields(fields);
   }
 
   private handleError(

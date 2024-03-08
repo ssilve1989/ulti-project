@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ViewSettingsCommand } from './view-settings.command.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
+import { ViewSettingsCommand } from './view-settings.command.js';
 
 @CommandHandler(ViewSettingsCommand)
 class ViewSettingsCommandHandler

@@ -65,7 +65,11 @@ describe('Signup Repository', () => {
     await repository.createSignup(signupRequest);
 
     expect(doc.set).toHaveBeenCalledWith(
-      { ...signupRequest, status: SignupStatus.PENDING, reviewedBy: null },
+      {
+        ...signupRequest,
+        status: SignupStatus.PENDING,
+        reviewedBy: null,
+      },
       {
         merge: true,
       },
@@ -110,7 +114,7 @@ describe('Signup Repository', () => {
   });
 
   describe('#findByReviewId', () => {
-    const mockFetch = (empty = false, signup: SignupDocument) => {
+    const mockFetch = (empty, signup: SignupDocument) => {
       collection.where.mockReturnValueOnce(
         createMock<Query>({
           limit: () =>

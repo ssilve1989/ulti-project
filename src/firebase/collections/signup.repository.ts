@@ -5,12 +5,12 @@ import {
   Query,
 } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
+import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import {
   CreateSignupDocumentProps,
   SignupDocument,
   SignupStatus,
 } from '../models/signup.model.js';
-import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import { SignupCompositeKeyProps as SignupCompositeKey } from '../models/signup.model.js';
 
 @Injectable()
@@ -81,7 +81,7 @@ class SignupRepository {
 
     if (snapshot.empty) {
       throw new DocumentNotFoundException(
-        'No signup found for review message id: ' + reviewMessageId,
+        `No signup found for review message id: ${reviewMessageId}`,
       );
     }
 

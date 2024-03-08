@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { InjectFirestore } from '../../firebase/firebase.decorators.js';
 import { Firestore } from 'firebase-admin/firestore';
+import { InjectFirestore } from '../../firebase/firebase.decorators.js';
 import { SignupDocument } from '../../firebase/models/signup.model.js';
 
 @Injectable()
