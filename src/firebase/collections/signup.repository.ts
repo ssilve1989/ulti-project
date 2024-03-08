@@ -69,6 +69,13 @@ class SignupRepository {
     return snapshot.docs[0].data();
   }
 
+  public async findAll(
+    query: Partial<SignupDocument>,
+  ): Promise<SignupDocument[]> {
+    const snapshot = await this.where(query).get();
+    return snapshot.docs.map((doc) => doc.data() as SignupDocument);
+  }
+
   public async findByReviewId(reviewMessageId: string) {
     const snapshot = await this.where({ reviewMessageId }).limit(1).get();
 
@@ -120,6 +127,7 @@ class SignupRepository {
     let query: Query = this.collection;
 
     for (const [key, value] of Object.entries(props)) {
+      if (!value) continue;
       query = query.where(key, '==', value);
     }
 

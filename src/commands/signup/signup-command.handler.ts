@@ -28,7 +28,7 @@ import { SIGNUP_MESSAGES } from './signup.consts.js';
 import { PartyType } from '../../firebase/models/signup.model.js';
 import { SignupCreatedEvent } from './signup.events.js';
 import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
-import { SignupRepository } from '../../firebase/repositories/signup.repository.js';
+import { SignupRepository } from '../../firebase/collections/signup.repository.js';
 import { SignupCommand } from './signup.commands.js';
 
 // reusable object to clear a messages emebed + button interaction
