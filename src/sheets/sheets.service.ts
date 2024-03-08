@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
 import { sheets_v4 } from '@googleapis/sheets';
+import { Injectable, Logger } from '@nestjs/common';
 import { PartyType, SignupDocument } from '../firebase/models/signup.model.js';
 import { SignupCompositeKeyProps } from '../firebase/models/signup.model.js';
 import { ProgSheetRanges, columnToIndex } from './sheets.consts.js';
@@ -209,14 +209,13 @@ class SheetsService {
         cellValues,
         'append',
       );
-    } else {
-      return this.updateSheet(
-        spreadsheetId,
-        `${encounter}!C${row + 1}:F${row + 1}`,
-        cellValues,
-        'update',
-      );
     }
+    return this.updateSheet(
+      spreadsheetId,
+      `${encounter}!C${row + 1}:F${row + 1}`,
+      cellValues,
+      'update',
+    );
   }
 
   private async upsertProgParty(

@@ -3,6 +3,10 @@ import { Channel, Client, TextChannel } from 'discord.js';
 import { Mock } from 'vitest';
 import { DeepMocked, createMock } from '../../../../../test/create-mock.js';
 import { DISCORD_CLIENT } from '../../../../discord/discord.decorators.js';
+import {
+  InvalidReviewChannelException,
+  MissingChannelException,
+} from '../../../../discord/discord.exceptions.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import {
@@ -10,10 +14,6 @@ import {
   SignupDocument,
 } from '../../../../firebase/models/signup.model.js';
 import { SignupStatus } from '../../../../firebase/models/signup.model.js';
-import {
-  InvalidReviewChannelException,
-  MissingChannelException,
-} from '../../../../discord/discord.exceptions.js';
 import { SendSignupReviewCommandHandler } from './send-signup-review-command.handler.js';
 
 describe('Send Signup Review Command Handler', () => {

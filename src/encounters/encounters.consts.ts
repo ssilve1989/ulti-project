@@ -1,9 +1,9 @@
 export enum Encounter {
-  'TOP' = 'TOP',
-  'UWU' = 'UWU',
-  'UCOB' = 'UCOB',
-  'TEA' = 'TEA',
-  'DSR' = 'DSR',
+  TOP = 'TOP',
+  UWU = 'UWU',
+  UCOB = 'UCOB',
+  TEA = 'TEA',
+  DSR = 'DSR',
 }
 
 export const EncounterFriendlyDescription = Object.freeze({

@@ -4,9 +4,9 @@ import { ChatInputCommandInteraction, User } from 'discord.js';
 import { DeepMocked, createMock } from '../../../../../test/create-mock.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
+import { SignupRepository } from '../../../../firebase/collections/signup.repository.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
-import { SignupRepository } from '../../../../firebase/collections/signup.repository.js';
 import { RemoveSignupCommandHandler } from './remove-signup-command.handler.js';
 
 describe('Remove Signup Command Handler', () => {

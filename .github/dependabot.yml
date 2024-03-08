@@ -5,24 +5,21 @@
 
 version: 2
 updates:
-  - package-ecosystem: "npm" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  - package-ecosystem: 'npm' # See documentation for possible values
+    directory: '/' # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     groups:
       nest:
         patterns:
-          - "@nestjs/common"
-          - "@nestjs/core"
-          - "@nestjs/cqrs"
-          - "@nestjs/testing"
+          - '@nestjs/common'
+          - '@nestjs/core'
+          - '@nestjs/cqrs'
+          - '@nestjs/testing'
       pino:
         patterns:
           - pino-http
           - pino-pretty
       commitlint:
         patterns:
-          - "@commitlint*"
-      tslint:
-        patterns:
-          - "@typescript-eslint*"
+          - '@commitlint*'

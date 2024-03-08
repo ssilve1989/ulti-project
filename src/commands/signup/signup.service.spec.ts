@@ -3,8 +3,8 @@ import { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
 import { DeepMocked, createMock } from '../../../test/create-mock.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { Settings } from '../settings/settings.interfaces.js';
-import { SignupService } from './signup.service.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
+import { SignupService } from './signup.service.js';
 
 import { SignupRepository } from '../../firebase/collections/signup.repository.js';
 import { SignupDocument } from '../../firebase/models/signup.model.js';

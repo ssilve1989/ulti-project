@@ -1,6 +1,6 @@
 import { PartialMessageReaction, PartialUser } from 'discord.js';
-import { hydrateReaction, hydrateUser } from './discord.helpers.js';
 import { createMock } from '../../test/create-mock.js';
+import { hydrateReaction, hydrateUser } from './discord.helpers.js';
 
 describe('Discord Helper Methods', () => {
   it('hydrates a partial reaction', async () => {

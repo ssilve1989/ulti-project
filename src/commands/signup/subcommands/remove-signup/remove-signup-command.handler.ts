@@ -1,13 +1,13 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { RemoveSignupCommand } from './remove-signup.command.js';
 import { APIUser, ChatInputCommandInteraction, User } from 'discord.js';
-import { Encounter } from '../../../../encounters/encounters.consts.js';
-import { SignupRepository } from '../../../../firebase/collections/signup.repository.js';
-import { SheetsService } from '../../../../sheets/sheets.service.js';
-import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
-import { SIGNUP_MESSAGES } from '../../signup.consts.js';
+import { Encounter } from '../../../../encounters/encounters.consts.js';
+import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
+import { SignupRepository } from '../../../../firebase/collections/signup.repository.js';
 import { SignupCompositeKeyProps } from '../../../../firebase/models/signup.model.js';
+import { SheetsService } from '../../../../sheets/sheets.service.js';
+import { SIGNUP_MESSAGES } from '../../signup.consts.js';
+import { RemoveSignupCommand } from './remove-signup.command.js';
 
 @CommandHandler(RemoveSignupCommand)
 class RemoveSignupCommandHandler
@@ -70,7 +70,7 @@ class RemoveSignupCommandHandler
   private async canModifySignup(
     user: User | APIUser,
     options: SignupCompositeKeyProps,
-    reviewerRole: string = '',
+    reviewerRole = '',
   ) {
     const hasRole = await this.discordService.userHasRole(
       user.id,

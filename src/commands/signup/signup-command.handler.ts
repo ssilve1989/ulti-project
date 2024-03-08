@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
-import { capitalCase } from 'change-case';
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
+import { capitalCase } from 'change-case';
 import { plainToInstance } from 'class-transformer';
 import { ValidationError, validate } from 'class-validator';
 import {
@@ -13,23 +13,23 @@ import {
   EmbedBuilder,
 } from 'discord.js';
 import { P, match } from 'ts-pattern';
-import {
-  Encounter,
-  EncounterFriendlyDescription,
-} from '../../encounters/encounters.consts.js';
 import { isSameUserFilter } from '../../common/collection-filters.js';
 import {
   CancelButton,
   ConfirmButton,
 } from '../../common/components/buttons.js';
-import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { SignupInteractionDto } from './signup-request.dto.js';
-import { SIGNUP_MESSAGES } from './signup.consts.js';
-import { PartyType } from '../../firebase/models/signup.model.js';
-import { SignupCreatedEvent } from './signup.events.js';
 import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
+import {
+  Encounter,
+  EncounterFriendlyDescription,
+} from '../../encounters/encounters.consts.js';
+import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupRepository } from '../../firebase/collections/signup.repository.js';
+import { PartyType } from '../../firebase/models/signup.model.js';
+import { SignupInteractionDto } from './signup-request.dto.js';
 import { SignupCommand } from './signup.commands.js';
+import { SIGNUP_MESSAGES } from './signup.consts.js';
+import { SignupCreatedEvent } from './signup.events.js';
 
 // reusable object to clear a messages emebed + button interaction
 const CLEAR_EMBED = {
@@ -185,7 +185,11 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       .setTitle(`${EncounterFriendlyDescription[encounter]} ${partyType}`)
       .setDescription("Here's a summary of your request")
       .addFields([
-        { name: 'Character', value: capitalCase(character), inline: true },
+        {
+          name: 'Character',
+          value: capitalCase(character),
+          inline: true,
+        },
         { name: 'Home World', value: capitalCase(world), inline: true },
         { name: 'Availability', value: availability, inline: true },
         { name: 'Role', value: role, inline: true },

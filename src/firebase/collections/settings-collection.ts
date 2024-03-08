@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { InjectFirestore } from '../firebase.decorators.js';
 import { CollectionReference, Firestore } from 'firebase-admin/firestore';
 import { Settings } from '../../commands/settings/settings.interfaces.js';
+import { InjectFirestore } from '../firebase.decorators.js';
 
 @Injectable()
 class SettingsCollection {

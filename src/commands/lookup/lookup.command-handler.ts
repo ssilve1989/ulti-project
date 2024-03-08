@@ -48,7 +48,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
       ],
     );
 
-    return new EmbedBuilder().setTitle(`Lookup Results`).addFields(fields);
+    return new EmbedBuilder().setTitle('Lookup Results').addFields(fields);
   }
 
   private getLookupRequest(
