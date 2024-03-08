@@ -21,7 +21,10 @@ import { DiscordService } from './discord.service.js';
       inject: [ConfigService],
       useFactory: async (configService: ConfigService<AppConfig, true>) => {
         const logger = new Logger(DISCORD_CLIENT);
-        const client = new Client({ intents: INTENTS, partials: PARTIALS });
+        const client = new Client({
+          intents: INTENTS,
+          partials: PARTIALS,
+        });
         const started$ = fromEvent(client, Events.ClientReady).pipe(first());
 
         client.once('error' as any, (error) => {

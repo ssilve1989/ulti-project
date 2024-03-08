@@ -1,10 +1,10 @@
 import { IsEnum, IsString, IsUrl, ValidateIf } from 'class-validator';
+import { ToLowercase } from '../../common/decorators/to-lowercase.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import {
   PartyType,
   SignupDocument,
 } from '../../firebase/models/signup.model.js';
-import { ToLowercase } from '../../common/decorators/to-lowercase.js';
 
 class SignupInteractionDto implements Omit<SignupDocument, 'status'> {
   @IsString()

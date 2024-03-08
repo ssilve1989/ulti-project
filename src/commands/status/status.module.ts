@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { StatusService } from './status.service.js';
-import { StatusCommandHandler } from './status-command.handler.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
+import { StatusCommandHandler } from './status-command.handler.js';
+import { StatusService } from './status.service.js';
 
 @Module({
   imports: [FirebaseModule],

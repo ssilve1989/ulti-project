@@ -1,8 +1,8 @@
 import { Test } from '@nestjs/testing';
-import { EditSettingsCommandHandler } from './edit-settings-command.handler.js';
-import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { ChatInputCommandInteraction } from 'discord.js';
 import { DeepMocked, createMock } from '../../../../test/create-mock.js';
+import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
+import { EditSettingsCommandHandler } from './edit-settings-command.handler.js';
 
 describe('Edit Settings Command Handler', () => {
   let handler: EditSettingsCommandHandler;

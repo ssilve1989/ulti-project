@@ -1,11 +1,11 @@
+import { sheets } from '@googleapis/sheets';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { sheets } from '@googleapis/sheets';
 import { GoogleAuth } from 'google-auth-library';
+import { AppConfig } from '../app.config.js';
 import { SheetsConfig, sheetsConfig } from './sheets.config.js';
 import { SHEETS_CLIENT } from './sheets.consts.js';
 import { SheetsService } from './sheets.service.js';
-import { AppConfig } from '../app.config.js';
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 

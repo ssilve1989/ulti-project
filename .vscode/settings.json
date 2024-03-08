@@ -1,0 +1,7 @@
+{
+  "biome.enabled": true,
+  "eslint.enable": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "always"
+  }
+}

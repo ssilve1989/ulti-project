@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ICommand, Saga, ofType } from '@nestjs/cqrs';
-import { SignupCreatedEvent } from './signup.events.js';
 import { Observable, map } from 'rxjs';
+import { SignupCreatedEvent } from './signup.events.js';
 import { SendSignupReviewCommand } from './subcommands/send-signup-review/send-signup-review.command.js';
 
 @Injectable()

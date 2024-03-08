@@ -1,8 +1,8 @@
 import { Test } from '@nestjs/testing';
 import { Firestore } from 'firebase-admin/firestore';
-import { SettingsCollection } from './settings-collection.js';
-import { FIRESTORE } from '../firebase.consts.js';
 import { DeepMocked, createMock } from '../../../test/create-mock.js';
+import { FIRESTORE } from '../firebase.consts.js';
+import { SettingsCollection } from './settings-collection.js';
 
 describe('SettingsCollection', () => {
   let service: SettingsCollection;
@@ -13,7 +13,10 @@ describe('SettingsCollection', () => {
     const docMock = {
       set: vi.fn(),
       get: vi.fn<any>().mockResolvedValue({
-        data: () => ({ reviewChannel: 'channel', reviewerRole: 'role' }),
+        data: () => ({
+          reviewChannel: 'channel',
+          reviewerRole: 'role',
+        }),
       }),
     };
 

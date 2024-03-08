@@ -1,18 +1,18 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { capitalCase } from 'change-case';
 import { Client, EmbedBuilder } from 'discord.js';
-import { EncounterFriendlyDescription } from '../../../../encounters/encounters.consts.js';
 import { InjectDiscordClient } from '../../../../discord/discord.decorators.js';
-import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { SIGNUP_REVIEW_REACTIONS } from '../../signup.consts.js';
 import {
   InvalidReviewChannelException,
   MissingChannelException,
 } from '../../../../discord/discord.exceptions.js';
+import { EncounterFriendlyDescription } from '../../../../encounters/encounters.consts.js';
+import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupRepository } from '../../../../firebase/collections/signup.repository.js';
-import { SendSignupReviewCommand } from './send-signup-review.command.js';
 import { SignupDocument } from '../../../../firebase/models/signup.model.js';
-import { capitalCase } from 'change-case';
+import { SIGNUP_REVIEW_REACTIONS } from '../../signup.consts.js';
+import { SendSignupReviewCommand } from './send-signup-review.command.js';
 
 @CommandHandler(SendSignupReviewCommand)
 class SendSignupReviewCommandHandler
@@ -89,7 +89,7 @@ class SendSignupReviewCommandHandler
       .setDescription(
         `Please react to approve ${SIGNUP_REVIEW_REACTIONS.APPROVED} or deny ${SIGNUP_REVIEW_REACTIONS.DECLINED} the following applicants request`,
       )
-      .setTitle(`Signup Approval`)
+      .setTitle('Signup Approval')
       .addFields([
         {
           name: 'Encounter',
@@ -97,7 +97,11 @@ class SendSignupReviewCommandHandler
           inline: true,
         },
         { name: 'Party Type', value: partyType, inline: true },
-        { name: 'Character', value: capitalCase(character), inline: true },
+        {
+          name: 'Character',
+          value: capitalCase(character),
+          inline: true,
+        },
         { name: 'Home World', value: capitalCase(world), inline: true },
         { name: 'Availability', value: availability, inline: true },
         { name: 'Job', value: role, inline: true },
