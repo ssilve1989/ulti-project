@@ -2,6 +2,7 @@
   "biome.enabled": true,
   "eslint.enable": false,
   "editor.codeActionsOnSave": {
-    "source.fixAll.biome": "always"
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
   }
 }
