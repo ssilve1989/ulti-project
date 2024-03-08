@@ -35,7 +35,7 @@ import {
   SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
-import { SignupRepository } from '../../firebase/repositories/signup.repository.js';
+import { SignupRepository } from '../../firebase/collections/signup.repository.js';
 import { hydrateReaction, hydrateUser } from '../../discord/discord.helpers.js';
 
 @Injectable()

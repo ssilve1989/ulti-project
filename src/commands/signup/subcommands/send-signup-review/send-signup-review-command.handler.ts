@@ -9,7 +9,7 @@ import {
   InvalidReviewChannelException,
   MissingChannelException,
 } from '../../../../discord/discord.exceptions.js';
-import { SignupRepository } from '../../../../firebase/repositories/signup.repository.js';
+import { SignupRepository } from '../../../../firebase/collections/signup.repository.js';
 import { SendSignupReviewCommand } from './send-signup-review.command.js';
 import { SignupDocument } from '../../../../firebase/models/signup.model.js';
 import { capitalCase } from 'change-case';

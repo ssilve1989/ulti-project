@@ -16,6 +16,8 @@ import { ViewSettingsCommand } from './settings/subcommands/view-settings.comman
 import { RemoveSignupSlashCommand } from './signup/subcommands/remove-signup/remove-signup-slash-command.js';
 import { RemoveSignupCommand } from './signup/subcommands/remove-signup/remove-signup.command.js';
 import { EMPTY, catchError, defer, forkJoin, lastValueFrom, retry } from 'rxjs';
+import { LookupCommand } from './lookup/lookup.command.js';
+import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
 
 @Injectable()
 class SlashCommandsService {
@@ -33,6 +35,7 @@ class SlashCommandsService {
 
       // TODO: This could be more generic somehow
       const command = match(interaction.commandName)
+        .with(LookupSlashCommand.name, () => new LookupCommand(interaction))
         .with(SignupSlashCommand.name, () => new SignupCommand(interaction))
         .with(StatusSlashCommand.name, () => new StatusCommand(interaction))
         .with(SettingsSlashCommand.name, () => {

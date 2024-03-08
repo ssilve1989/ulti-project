@@ -6,6 +6,7 @@ import { AppConfig } from '../app.config.js';
 import { firebaseConfig } from './firebase.config.js';
 import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
 import { SettingsCollection } from './collections/settings-collection.js';
+import { SignupRepository } from './collections/signup.repository.js';
 
 @Module({
   imports: [ConfigModule.forFeature(firebaseConfig)],
@@ -37,8 +38,9 @@ import { SettingsCollection } from './collections/settings-collection.js';
         return firestore;
       },
     },
+    SignupRepository,
     SettingsCollection,
   ],
-  exports: [FIRESTORE, SettingsCollection],
+  exports: [FIRESTORE, SignupRepository, SettingsCollection],
 })
 export class FirebaseModule {}
