@@ -35,7 +35,7 @@ import {
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
-import { Settings } from '../settings/settings.interfaces.js';
+import { Settings } from '../../firebase/models/settings.model.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 
 @Injectable()
