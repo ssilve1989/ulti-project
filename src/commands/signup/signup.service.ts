@@ -30,12 +30,12 @@ import {
 } from '../../encounters/encounters.components.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupRepository } from '../../firebase/collections/signup.repository.js';
+import { Settings } from '../../firebase/models/settings.model.js';
 import {
   SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
-import { Settings } from '../../firebase/models/settings.model.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 
 @Injectable()
