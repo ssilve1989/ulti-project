@@ -23,17 +23,33 @@ class ViewSettingsCommandHandler
       return interaction.editReply('No settings found!');
     }
 
-    const { reviewChannel, reviewerRole, spreadsheetId, signupChannel } =
-      settings;
+    const {
+      reviewChannel,
+      reviewerRole,
+      spreadsheetId,
+      signupChannel,
+      progRoles,
+    } = settings;
     const role = reviewerRole ? `<@&${reviewerRole}>` : 'No Role Set';
     const publicSignupChannel = signupChannel
       ? `<#${signupChannel}>`
       : 'No Channel Set';
 
+    const progRoleSettings = Object.entries(progRoles).reduce<string[]>(
+      (acc, [encounter, role]) => {
+        if (role) {
+          acc.push(`**${encounter} Prog Role:** <@&${role}>`);
+        }
+        return acc;
+      },
+      [],
+    );
+
     const messages = [
       `**Review Channel:** <#${reviewChannel}>`,
       `**Reviewer Role:** ${role}`,
       `**Signup Channel:** ${publicSignupChannel}`,
+      ...progRoleSettings,
     ];
 
     if (spreadsheetId) {

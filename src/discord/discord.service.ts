@@ -19,6 +19,13 @@ class DiscordService implements OnApplicationBootstrap {
     this.server = await this.client.guilds.fetch(guildId);
   }
 
+  public async getGuildMember(memberId: string, guildId: string) {
+    const member = await this.client.guilds.cache
+      .get(guildId)
+      ?.members.fetch(memberId);
+    return member;
+  }
+
   public async sendDirectMessage(
     userId: string,
     message: Parameters<DMChannel['send']>[0],

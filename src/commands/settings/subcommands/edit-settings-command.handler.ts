@@ -1,6 +1,10 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ChatInputCommandInteraction } from 'discord.js';
+import {
+  ChatInputCommandInteraction,
+  CommandInteractionOptionResolver,
+} from 'discord.js';
+import { Encounter } from '../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { EditSettingsCommand } from './edit-settings.command.js';
 
@@ -18,21 +22,14 @@ class EditSettingsCommandHandler
     const guildId = interaction.guildId;
 
     try {
-      const reviewerRole = interaction.options.getRole('reviewer-role');
-      const reviewChannel = interaction.options.getChannel(
-        'signup-review-channel',
-      );
-      const signupChannel = interaction.options.getChannel(
-        'signup-public-channel',
-      );
-      const spreadsheetId =
-        interaction.options.getString('spreadsheet-id') ?? undefined;
+      const { signupChannel, reviewChannel, reviewerRole, ...rest } =
+        this.getInteractionOptions(interaction.options);
 
       await this.settingsCollection.upsertSettings(guildId, {
         signupChannel: signupChannel?.id,
         reviewChannel: reviewChannel?.id,
         reviewerRole: reviewerRole?.id,
-        spreadsheetId,
+        ...rest,
       });
 
       await interaction.editReply('Settings updated!');
@@ -44,6 +41,35 @@ class EditSettingsCommandHandler
   private handleError(e: unknown, interaction: ChatInputCommandInteraction) {
     this.logger.error(e);
     return interaction.editReply('Something went wrong!');
+  }
+
+  private getInteractionOptions(
+    options: Omit<
+      CommandInteractionOptionResolver<'cached' | 'raw'>,
+      'getMessage' | 'getFocused'
+    >,
+  ) {
+    const reviewerRole = options.getRole('reviewer-role');
+    const reviewChannel = options.getChannel('signup-review-channel');
+    const signupChannel = options.getChannel('signup-public-channel');
+    const spreadsheetId = options.getString('spreadsheet-id') ?? undefined;
+
+    const progRoles: Record<string, string | undefined> = {};
+
+    for (const encounter in Encounter) {
+      const role = options.getRole(`${encounter.toLowerCase()}-prog-role`);
+      if (role) {
+        progRoles[encounter] = role.id;
+      }
+    }
+
+    return {
+      reviewerRole,
+      reviewChannel,
+      signupChannel,
+      spreadsheetId,
+      progRoles,
+    };
   }
 }
 
