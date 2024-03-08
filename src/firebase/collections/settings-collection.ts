@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CollectionReference, Firestore } from 'firebase-admin/firestore';
-import { Settings } from '../../commands/settings/settings.interfaces.js';
+import { Settings } from '../models/settings.model.js';
 import { InjectFirestore } from '../firebase.decorators.js';
 
 @Injectable()

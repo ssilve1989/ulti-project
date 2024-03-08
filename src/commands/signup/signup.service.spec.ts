@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
 import { DeepMocked, createMock } from '../../../test/create-mock.js';
 import { DiscordService } from '../../discord/discord.service.js';
-import { Settings } from '../settings/settings.interfaces.js';
+import { Settings } from '../../firebase/models/settings.model.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
 
