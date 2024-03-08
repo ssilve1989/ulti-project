@@ -63,11 +63,18 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         concatMap(async (event) => {
           if (!event.reaction.message.inGuild()) return EMPTY;
 
-          const [reaction, user, settings] = await Promise.all([
-            hydrateReaction(event.reaction),
-            hydrateUser(event.user),
-            this.settingsCollection.getSettings(event.reaction.message.guildId),
-          ]);
+          // TODO: dangerous cast to Settings, but know its safe from current usage
+          // attempts to type it correctly just result in weirdness since all the other fields on the object are optional
+          const [reaction, user, settings = {} as Settings] = await Promise.all(
+            [
+              hydrateReaction(event.reaction),
+              hydrateUser(event.user),
+              this.settingsCollection.getSettings(
+                event.reaction.message.guildId,
+              ),
+            ],
+          );
+
           const shouldHandle = await this.shouldHandleReaction(
             reaction,
             user,
@@ -89,7 +96,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   private async handleReaction(
     { message, emoji }: MessageReaction,
     user: User,
-    settings?: Settings,
+    settings: Settings,
   ) {
     try {
       // TODO: If for some reason this throws and there is no signup, we should inform the person performing the interaction
@@ -119,7 +126,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   private async shouldHandleReaction(
     reaction: MessageReaction,
     user: User | PartialUser,
-    settings?: Settings,
+    settings: Settings,
   ) {
     if (!reaction.message.inGuild()) return false;
 
@@ -140,8 +147,16 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     signup: SignupDocument,
     message: Message | PartialMessage,
     user: User,
-    settings?: Settings,
+    settings: Settings,
   ) {
+    if (!message.inGuild()) {
+      this.logger.warn(
+        `received message that was not part of a guild: ${message.content}`,
+      );
+
+      return;
+    }
+
     const [sourceEmbed] = message.embeds;
     const embed = EmbedBuilder.from(sourceEmbed);
 
@@ -163,9 +178,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
     try {
       const [publicSignupChannel] = await Promise.all([
-        settings?.signupChannel &&
+        settings.signupChannel &&
           this.discordService.getTextChannel(settings.signupChannel),
-        settings?.spreadsheetId &&
+        settings.spreadsheetId &&
           this.sheetsService.upsertSignup(
             confirmedSignup,
             settings.spreadsheetId,
@@ -186,6 +201,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
             content: `<@${confirmedSignup.discordId}> Signup Approved!`,
             embeds: [embed],
           }),
+        this.assignProgRole(message.guild.id, settings, signup),
       ]);
     } catch (e) {
       // if there was an error posting to the google sheet, undo the reaction and let the user that reacted know
@@ -305,6 +321,28 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
             SIGNUP_MESSAGES.UNEXPECTED_PROG_SELECTION_ERROR,
           ),
         );
+    }
+  }
+
+  private async assignProgRole(
+    guildId: string,
+    settings: Pick<Settings, 'progRoles'>,
+    { encounter, discordId }: Pick<SignupDocument, 'encounter' | 'discordId'>,
+  ) {
+    const role = settings.progRoles[encounter];
+    if (!role) return;
+
+    try {
+      const member = await this.discordService.getGuildMember(
+        discordId,
+        guildId,
+      );
+
+      if (member) {
+        await member.roles.add(role);
+      }
+    } catch (e) {
+      this.logger.error(e);
     }
   }
 }

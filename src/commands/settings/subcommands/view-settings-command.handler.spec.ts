@@ -32,6 +32,7 @@ describe('View Settings Command Handler', () => {
       reviewChannel: '12345',
       reviewerRole: '67890',
       signupChannel: '09876',
+      progRoles: {},
     });
 
     await handler.execute({ interaction });
