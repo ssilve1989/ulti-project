@@ -9,7 +9,7 @@ import {
 
 import { DeepMocked, createMock } from '../../../test/create-mock.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
-import { SettingsService } from '../settings/settings.service.js';
+import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SIGNUP_MESSAGES } from './signup.consts.js';
 import { PartyType } from '../../firebase/models/signup.model.js';
 import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
@@ -20,7 +20,7 @@ describe('Signup Command Handler', () => {
   let handler: SignupCommandHandler;
   let interaction: DeepMocked<ChatInputCommandInteraction<'cached' | 'raw'>>;
   let confirmationInteraction: DeepMocked<Message<boolean>>;
-  let settingsService: DeepMocked<SettingsService>;
+  let settingsCollection: DeepMocked<SettingsCollection>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
@@ -62,7 +62,7 @@ describe('Signup Command Handler', () => {
       valueOf: () => '',
     });
 
-    settingsService = fixture.get(SettingsService);
+    settingsCollection = fixture.get(SettingsCollection);
   });
 
   test('is defined', () => {
@@ -155,7 +155,7 @@ describe('Signup Command Handler', () => {
   });
 
   it('should not handle a signup if there is no review channel set', async () => {
-    settingsService.getReviewChannel.mockResolvedValueOnce(undefined);
+    settingsCollection.getReviewChannel.mockResolvedValueOnce(undefined);
 
     const command = new SignupCommand(interaction);
     await handler.execute(command);

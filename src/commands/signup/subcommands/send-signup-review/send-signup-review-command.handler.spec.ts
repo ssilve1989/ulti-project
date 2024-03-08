@@ -4,7 +4,7 @@ import { Mock } from 'vitest';
 import { DeepMocked, createMock } from '../../../../../test/create-mock.js';
 import { DISCORD_CLIENT } from '../../../../discord/discord.decorators.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
-import { SettingsService } from '../../../settings/settings.service.js';
+import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import {
   PartyType,
   SignupDocument,
@@ -18,7 +18,7 @@ import { SendSignupReviewCommandHandler } from './send-signup-review-command.han
 
 describe('Send Signup Review Command Handler', () => {
   let handler: SendSignupReviewCommandHandler;
-  let settingsService: DeepMocked<SettingsService>;
+  let settingsCollection: DeepMocked<SettingsCollection>;
   let get: Mock;
   const signup = createMock<SignupDocument>({
     availability: 'baz',
@@ -61,24 +61,24 @@ describe('Send Signup Review Command Handler', () => {
       .compile();
 
     handler = fixture.get(SendSignupReviewCommandHandler);
-    settingsService = fixture.get(SettingsService);
+    settingsCollection = fixture.get(SettingsCollection);
   });
 
   it('does not send a review if no review channel has been configured', async () => {
     const spy = vi.spyOn(handler, 'sendSignupForApproval');
 
-    settingsService.getReviewChannel.mockResolvedValueOnce(undefined);
+    settingsCollection.getReviewChannel.mockResolvedValueOnce(undefined);
 
     await handler.execute({ signup: createMock({}), guildId: '' });
 
-    expect(settingsService.getReviewChannel).toHaveBeenCalled();
+    expect(settingsCollection.getReviewChannel).toHaveBeenCalled();
     expect(spy).not.toHaveBeenCalled();
   });
 
   it('sends a review if a review channel has been configured', async () => {
     const spy = vi.spyOn(handler, 'sendSignupForApproval');
 
-    settingsService.getReviewChannel.mockResolvedValueOnce('#foo');
+    settingsCollection.getReviewChannel.mockResolvedValueOnce('#foo');
     get.mockReturnValueOnce(createMock<TextChannel>({}));
 
     await handler.execute({
@@ -86,12 +86,12 @@ describe('Send Signup Review Command Handler', () => {
       guildId: '',
     });
 
-    expect(settingsService.getReviewChannel).toHaveBeenCalled();
+    expect(settingsCollection.getReviewChannel).toHaveBeenCalled();
     expect(spy).toHaveBeenCalled();
   });
 
   it('throws MissingChannelException if the channel does not exist in the guild', () => {
-    settingsService.getReviewChannel.mockResolvedValueOnce('#foo');
+    settingsCollection.getReviewChannel.mockResolvedValueOnce('#foo');
     get.mockReturnValueOnce(undefined);
 
     expect(() =>
@@ -109,7 +109,7 @@ describe('Send Signup Review Command Handler', () => {
   });
 
   it('throws InvalidReviewChannelException if the channel is not a text channel', () => {
-    settingsService.getReviewChannel.mockResolvedValueOnce('#foo');
+    settingsCollection.getReviewChannel.mockResolvedValueOnce('#foo');
     get.mockReturnValueOnce(createMock<Channel>({ isTextBased: () => false }));
 
     expect(() =>

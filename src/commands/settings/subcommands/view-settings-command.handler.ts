@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ViewSettingsCommand } from './view-settings.command.js';
-import { SettingsService } from '../settings.service.js';
+import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
 
 @CommandHandler(ViewSettingsCommand)
@@ -8,14 +8,14 @@ class ViewSettingsCommandHandler
   implements ICommandHandler<ViewSettingsCommand>
 {
   constructor(
-    private readonly settingsService: SettingsService,
+    private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
   ) {}
 
   async execute({ interaction }: ViewSettingsCommand) {
     await interaction.deferReply({ ephemeral: true });
 
-    const settings = await this.settingsService.getSettings(
+    const settings = await this.settingsCollection.getSettings(
       interaction.guildId,
     );
 

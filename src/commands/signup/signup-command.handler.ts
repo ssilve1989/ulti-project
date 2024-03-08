@@ -22,7 +22,7 @@ import {
   CancelButton,
   ConfirmButton,
 } from '../../common/components/buttons.js';
-import { SettingsService } from '../settings/settings.service.js';
+import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupInteractionDto } from './signup-request.dto.js';
 import { SIGNUP_MESSAGES } from './signup.consts.js';
 import { PartyType } from '../../firebase/models/signup.model.js';
@@ -45,7 +45,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   constructor(
     private readonly eventBus: EventBus,
     private readonly repository: SignupRepository,
-    private readonly settingsService: SettingsService,
+    private readonly settingsService: SettingsCollection,
   ) {}
 
   async execute({ interaction }: SignupCommand) {

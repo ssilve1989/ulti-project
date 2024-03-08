@@ -2,12 +2,12 @@ import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction } from 'discord.js';
 
 import { DeepMocked, createMock } from '../../../../test/create-mock.js';
-import { SettingsService } from '../settings.service.js';
+import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { ViewSettingsCommandHandler } from './view-settings-command.handler.js';
 
 describe('View Settings Command Handler', () => {
   let handler: ViewSettingsCommandHandler;
-  let settingsService: DeepMocked<SettingsService>;
+  let settingsCollection: DeepMocked<SettingsCollection>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
@@ -17,7 +17,7 @@ describe('View Settings Command Handler', () => {
       .compile();
 
     handler = fixture.get(ViewSettingsCommandHandler);
-    settingsService = fixture.get(SettingsService);
+    settingsCollection = fixture.get(SettingsCollection);
   });
 
   it('should be defined', () => {
@@ -28,7 +28,7 @@ describe('View Settings Command Handler', () => {
     const interaction =
       createMock<ChatInputCommandInteraction<'cached' | 'raw'>>();
 
-    settingsService.getSettings.mockResolvedValueOnce({
+    settingsCollection.getSettings.mockResolvedValueOnce({
       reviewChannel: '12345',
       reviewerRole: '67890',
       signupChannel: '09876',

@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { EditSettingsCommand } from './edit-settings.command.js';
-import { SettingsService } from '../settings.service.js';
+import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { Logger } from '@nestjs/common';
 import { ChatInputCommandInteraction } from 'discord.js';
 
@@ -10,7 +10,7 @@ class EditSettingsCommandHandler
 {
   private readonly logger = new Logger(EditSettingsCommandHandler.name);
 
-  constructor(private readonly service: SettingsService) {}
+  constructor(private readonly settingsCollection: SettingsCollection) {}
 
   async execute({ interaction }: EditSettingsCommand) {
     await interaction.deferReply({ ephemeral: true });
@@ -28,7 +28,7 @@ class EditSettingsCommandHandler
       const spreadsheetId =
         interaction.options.getString('spreadsheet-id') ?? undefined;
 
-      await this.service.upsertSettings(guildId, {
+      await this.settingsCollection.upsertSettings(guildId, {
         signupChannel: signupChannel?.id,
         reviewChannel: reviewChannel?.id,
         reviewerRole: reviewerRole?.id,

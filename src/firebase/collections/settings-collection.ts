@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { InjectFirestore } from '../../firebase/firebase.decorators.js';
+import { InjectFirestore } from '../firebase.decorators.js';
 import { CollectionReference, Firestore } from 'firebase-admin/firestore';
-import { Settings } from './settings.interfaces.js';
+import { Settings } from '../../commands/settings/settings.interfaces.js';
 
 @Injectable()
-class SettingsService {
+class SettingsCollection {
   private readonly collection: CollectionReference<Settings>;
 
   constructor(@InjectFirestore() firestore: Firestore) {
@@ -38,4 +38,4 @@ class SettingsService {
   }
 }
 
-export { SettingsService };
+export { SettingsCollection };
