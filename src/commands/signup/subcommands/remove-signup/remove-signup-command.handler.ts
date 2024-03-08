@@ -4,7 +4,7 @@ import { APIUser, ChatInputCommandInteraction, User } from 'discord.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
 import { SignupRepository } from '../../../../firebase/repositories/signup.repository.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
-import { SettingsService } from '../../../settings/settings.service.js';
+import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { SignupCompositeKeyProps } from '../../../../firebase/models/signup.model.js';
@@ -15,7 +15,7 @@ class RemoveSignupCommandHandler
 {
   constructor(
     private readonly discordService: DiscordService,
-    private readonly settingsService: SettingsService,
+    private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
     private readonly signupsRepository: SignupRepository,
   ) {}
@@ -28,7 +28,7 @@ class RemoveSignupCommandHandler
       discordId: interaction.user.id,
     };
 
-    const settings = await this.settingsService.getSettings(
+    const settings = await this.settingsCollection.getSettings(
       interaction.guildId,
     );
 

@@ -3,7 +3,7 @@ import { ChatInputCommandInteraction, User } from 'discord.js';
 
 import { DeepMocked, createMock } from '../../../../../test/create-mock.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
-import { SettingsService } from '../../../settings/settings.service.js';
+import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { SignupRepository } from '../../../../firebase/repositories/signup.repository.js';
@@ -13,7 +13,7 @@ describe('Remove Signup Command Handler', () => {
   let discordService: DeepMocked<DiscordService>;
   let handler: RemoveSignupCommandHandler;
   let interaction: DeepMocked<ChatInputCommandInteraction<'cached' | 'raw'>>;
-  let settingsService: DeepMocked<SettingsService>;
+  let settingsCollection: DeepMocked<SettingsCollection>;
   let sheetsService: DeepMocked<SheetsService>;
   let signupsRepository: DeepMocked<SignupRepository>;
 
@@ -26,7 +26,7 @@ describe('Remove Signup Command Handler', () => {
 
     discordService = fixture.get(DiscordService);
     handler = fixture.get(RemoveSignupCommandHandler);
-    settingsService = fixture.get(SettingsService);
+    settingsCollection = fixture.get(SettingsCollection);
     sheetsService = fixture.get(SheetsService);
     signupsRepository = fixture.get(SignupRepository);
 
@@ -42,7 +42,7 @@ describe('Remove Signup Command Handler', () => {
   });
 
   it('replies with missing settings if no settings are set', async () => {
-    settingsService.getSettings.mockResolvedValue(undefined);
+    settingsCollection.getSettings.mockResolvedValue(undefined);
 
     await handler.execute({ interaction });
     expect(interaction.editReply).toHaveBeenCalledWith(
@@ -51,7 +51,7 @@ describe('Remove Signup Command Handler', () => {
   });
 
   it('checks if the user role is allowed to remove signups', async () => {
-    settingsService.getSettings.mockResolvedValue({
+    settingsCollection.getSettings.mockResolvedValue({
       reviewerRole: 'reviewer',
       reviewChannel: '1234',
     });
@@ -65,7 +65,7 @@ describe('Remove Signup Command Handler', () => {
   });
 
   it('removes the signup from the spreadsheet', async () => {
-    settingsService.getSettings.mockResolvedValue({
+    settingsCollection.getSettings.mockResolvedValue({
       reviewerRole: 'reviewer',
       reviewChannel: '1234',
     });
@@ -76,7 +76,7 @@ describe('Remove Signup Command Handler', () => {
   });
 
   it('calls removeSignup from SheetService if spreadsheetId is set', async () => {
-    settingsService.getSettings.mockResolvedValue({
+    settingsCollection.getSettings.mockResolvedValue({
       spreadsheetId: '1234',
       reviewerRole: 'reviewer',
       reviewChannel: '1234',
@@ -87,7 +87,7 @@ describe('Remove Signup Command Handler', () => {
   });
 
   it('does not allow removal if the userId does not match the signups discordId', async () => {
-    settingsService.getSettings.mockResolvedValue({
+    settingsCollection.getSettings.mockResolvedValue({
       reviewerRole: 'reviewer',
       reviewChannel: '1234',
     });
@@ -102,7 +102,7 @@ describe('Remove Signup Command Handler', () => {
   });
 
   it('removes the signup if the userId matches the signups discordId', async () => {
-    settingsService.getSettings.mockResolvedValue({
+    settingsCollection.getSettings.mockResolvedValue({
       reviewerRole: 'reviewer',
       reviewChannel: '1234',
     });

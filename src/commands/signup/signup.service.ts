@@ -28,7 +28,7 @@ import {
   PROG_POINT_SELECT_ID,
 } from '../../encounters/encounters.components.js';
 import { Settings } from '../settings/settings.interfaces.js';
-import { SettingsService } from '../settings/settings.service.js';
+import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import {
@@ -46,7 +46,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   constructor(
     private readonly repository: SignupRepository,
     private readonly discordService: DiscordService,
-    private readonly settingsService: SettingsService,
+    private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
   ) {}
 
@@ -66,7 +66,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
           const [reaction, user, settings] = await Promise.all([
             hydrateReaction(event.reaction),
             hydrateUser(event.user),
-            this.settingsService.getSettings(event.reaction.message.guildId),
+            this.settingsCollection.getSettings(event.reaction.message.guildId),
           ]);
           const shouldHandle = await this.shouldHandleReaction(
             reaction,
