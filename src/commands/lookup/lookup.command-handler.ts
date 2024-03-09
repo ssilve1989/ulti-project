@@ -24,7 +24,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
     this.logger.debug(results);
 
     const embed = this.createLookupEmbed(results);
-    await interaction.reply({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed], ephemeral: true });
   }
 
   private createLookupEmbed(signups: SignupDocument[]) {

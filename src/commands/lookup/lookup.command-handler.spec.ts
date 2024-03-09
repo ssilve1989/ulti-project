@@ -56,6 +56,7 @@ describe('LookupCommandHandler', () => {
     await handler.execute(command);
 
     expect(interaction.reply).toHaveBeenCalledWith({
+      ephemeral: true,
       embeds: [
         EmbedBuilder.from({
           title: 'Lookup Results',
