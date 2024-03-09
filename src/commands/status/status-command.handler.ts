@@ -34,7 +34,7 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
 
   private createStatusEmbed(signups: SignupDocument[]) {
     const fields = signups.reduce((acc, { encounter, status, partyType }) => {
-      return acc.concat([
+      const subfields = [
         {
           name: 'Encounter',
           value: EncounterFriendlyDescription[encounter],
@@ -45,8 +45,13 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
           value: `${SIGNUP_REVIEW_REACTIONS[status]} ${SignupStatus[status]}`,
           inline: true,
         },
-        { name: 'Party Type', value: partyType, inline: true },
-      ]);
+      ];
+
+      if (partyType) {
+        subfields.push({ value: partyType, name: 'Party Type', inline: true });
+      }
+
+      return acc.concat();
     }, [] as APIEmbedField[]);
 
     const embed = new EmbedBuilder().setTitle('Signup Summary');
