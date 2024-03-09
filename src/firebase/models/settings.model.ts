@@ -6,7 +6,7 @@ export interface Settings extends DocumentData {
   reviewerRole?: string;
   signupChannel?: string;
   spreadsheetId?: string;
-  progRoles: {
+  progRoles?: {
     [key in keyof typeof Encounter]?: string;
   };
 }

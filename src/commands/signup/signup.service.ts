@@ -329,7 +329,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     settings: Pick<Settings, 'progRoles'>,
     { encounter, discordId }: Pick<SignupDocument, 'encounter' | 'discordId'>,
   ) {
-    const role = settings.progRoles[encounter];
+    const role = settings.progRoles?.[encounter];
     if (!role) return;
 
     try {

@@ -35,7 +35,7 @@ class ViewSettingsCommandHandler
       ? `<#${signupChannel}>`
       : 'No Channel Set';
 
-    const progRoleSettings = Object.entries(progRoles).reduce<string[]>(
+    const progRoleSettings = Object.entries(progRoles || {}).reduce<string[]>(
       (acc, [encounter, role]) => {
         if (role) {
           acc.push(`**${encounter} Prog Role:** <@&${role}>`);
