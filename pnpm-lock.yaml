@@ -72,7 +72,7 @@ devDependencies:
     version: 19.0.3
   '@commitlint/cz-commitlint':
     specifier: ^19.0.3
-    version: 19.0.3(@types/node@20.11.24)(commitizen@4.3.0)(inquirer@8.2.6)(typescript@5.3.3)
+    version: 19.0.3(@types/node@20.11.24)(commitizen@4.3.0)(inquirer@9.2.15)(typescript@5.3.3)
   '@commitlint/prompt-cli':
     specifier: ^19.0.3
     version: 19.0.3(@types/node@20.11.24)(typescript@5.3.3)
@@ -119,8 +119,8 @@ devDependencies:
     specifier: ^6.2.11
     version: 6.2.11
   inquirer:
-    specifier: ^8.2.6
-    version: 8.2.6
+    specifier: ^9.2.15
+    version: 9.2.15
   source-map-support:
     specifier: ^0.5.21
     version: 0.5.21
@@ -547,7 +547,7 @@ packages:
       ajv: 8.12.0
     dev: true
 
-  /@commitlint/cz-commitlint@19.0.3(@types/node@20.11.24)(commitizen@4.3.0)(inquirer@8.2.6)(typescript@5.3.3):
+  /@commitlint/cz-commitlint@19.0.3(@types/node@20.11.24)(commitizen@4.3.0)(inquirer@9.2.15)(typescript@5.3.3):
     resolution: {integrity: sha512-DarzAFzoE5dAiEgVikE7odwSglfvxN1GfCg+R/nwsCZKNS3j7dzEy85NQMmQ6C5y2YmbQAjZ0/nM47W8gRzkzw==}
     engines: {node: '>=v18'}
     peerDependencies:
@@ -559,7 +559,7 @@ packages:
       '@commitlint/types': 19.0.3
       chalk: 5.3.0
       commitizen: 4.3.0(@types/node@20.11.24)(typescript@5.3.3)
-      inquirer: 8.2.6
+      inquirer: 9.2.15
       lodash.isplainobject: 4.0.6
       word-wrap: 1.2.5
     transitivePeerDependencies:
