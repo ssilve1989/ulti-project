@@ -6,6 +6,7 @@ import {
 } from 'discord.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
+import { sentryReport } from '../../../sentry/sentry.consts.js';
 import { EditSettingsCommand } from './edit-settings.command.js';
 
 @CommandHandler(EditSettingsCommand)
@@ -39,6 +40,13 @@ class EditSettingsCommandHandler
   }
 
   private handleError(e: unknown, interaction: ChatInputCommandInteraction) {
+    sentryReport(e, {
+      userId: interaction.user.id,
+      extra: {
+        command: interaction.command?.name,
+      },
+    });
+
     this.logger.error(e);
     return interaction.editReply('Something went wrong!');
   }
