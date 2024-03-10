@@ -10,10 +10,9 @@ import {
 import { Encounter } from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import {
-  PartyType,
   SignupDocument,
+  SignupStatus,
 } from '../../../../firebase/models/signup.model.js';
-import { SignupStatus } from '../../../../firebase/models/signup.model.js';
 import { SendSignupReviewCommandHandler } from './send-signup-review-command.handler.js';
 
 describe('Send Signup Review Command Handler', () => {
@@ -24,7 +23,6 @@ describe('Send Signup Review Command Handler', () => {
     availability: 'baz',
     character: 'foo',
     encounter: Encounter.DSR,
-    partyType: PartyType.CLEAR_PARTY,
     role: 'healer',
     screenshot: 'http://somelinksurely',
     status: SignupStatus.PENDING,

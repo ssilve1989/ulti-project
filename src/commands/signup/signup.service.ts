@@ -28,6 +28,7 @@ import {
   EncounterProgMenus,
   PROG_POINT_SELECT_ID,
 } from '../../encounters/encounters.components.js';
+import { EncounterProgPoints } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupRepository } from '../../firebase/collections/signup.repository.js';
 import { Settings } from '../../firebase/models/settings.model.js';
@@ -165,7 +166,16 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       this.requestProgPointConfirmation(signup, sourceEmbed, user),
     ]);
 
-    const confirmedSignup: SignupDocument = { ...signup, progPoint };
+    const partyType =
+      (progPoint &&
+        EncounterProgPoints[signup.encounter][progPoint]?.partyType) ||
+      undefined;
+
+    this.logger.debug(
+      `querying partyType for progPoint: ${progPoint}, ${partyType}`,
+    );
+
+    const confirmedSignup: SignupDocument = { ...signup, progPoint, partyType };
 
     embed
       .setFooter({
@@ -176,47 +186,36 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       .setColor(Colors.Green)
       .setTimestamp(new Date());
 
-    try {
-      const [publicSignupChannel] = await Promise.all([
-        settings.signupChannel &&
-          this.discordService.getTextChannel(settings.signupChannel),
-        settings.spreadsheetId &&
-          this.sheetsService.upsertSignup(
-            confirmedSignup,
-            settings.spreadsheetId,
-          ),
-      ]);
-
-      await this.repository.updateSignupStatus(
-        SignupStatus.APPROVED,
-        confirmedSignup,
-        user.username,
-      );
-
-      await Promise.all([
-        message.edit({ embeds: [embed] }),
-        // biome-ignore lint/complexity/useOptionalChain: using optional chaining doesn't properly handle asserting the type of the channel
-        publicSignupChannel &&
-          publicSignupChannel.send({
-            content: `<@${confirmedSignup.discordId}> Signup Approved!`,
-            embeds: [embed],
-          }),
-        this.assignProgRole(message.guild.id, settings, signup),
-      ]);
-    } catch (e) {
-      // if there was an error posting to the google sheet, undo the reaction and let the user that reacted know
-      this.logger.error(e);
-
-      await Promise.all([
-        message.reactions.cache
-          .get(SIGNUP_REVIEW_REACTIONS.APPROVED)
-          ?.users.remove(user.id),
-        this.discordService.sendDirectMessage(
-          user.id,
-          `There was an error posting [this signup](${message.url}) to Google Sheets. Your approval has not been recorded`,
-        ),
-      ]);
+    if (partyType) {
+      embed.addFields([{ name: 'Party Type', value: partyType, inline: true }]);
     }
+
+    const [publicSignupChannel] = await Promise.all([
+      settings.signupChannel &&
+        this.discordService.getTextChannel(settings.signupChannel),
+      settings.spreadsheetId &&
+        this.sheetsService.upsertSignup(
+          confirmedSignup,
+          settings.spreadsheetId,
+        ),
+    ]);
+
+    await this.repository.updateSignupStatus(
+      SignupStatus.APPROVED,
+      confirmedSignup,
+      user.username,
+    );
+
+    await Promise.all([
+      message.edit({ embeds: [embed] }),
+      // biome-ignore lint/complexity/useOptionalChain: using optional chaining doesn't properly handle asserting the type of the channel
+      publicSignupChannel &&
+        publicSignupChannel.send({
+          content: `<@${confirmedSignup.discordId}> Signup Approved!`,
+          embeds: [embed],
+        }),
+      this.assignProgRole(message.guild.id, settings, signup),
+    ]);
   }
 
   private async handleDeclinedReaction(
@@ -257,16 +256,22 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     message: Message | PartialMessage,
   ) {
     this.logger.error(error);
+
+    const reply = match(error)
+      .with(
+        P.instanceOf(DiscordjsError),
+        ({ code }) => code === DiscordjsErrorCodes.InteractionCollectorError,
+        () => SIGNUP_MESSAGES.PROG_SELECTION_TIMEOUT,
+      )
+      .otherwise(() => SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR);
+
     // TODO: Improve error reporting to better inform user what happened
     await Promise.all([
       message.reactions.cache
         .get(SIGNUP_REVIEW_REACTIONS.APPROVED)
         ?.users.remove(user.id),
 
-      this.discordService.sendDirectMessage(
-        user.id,
-        `There was an error handling [this signup](${message.url}). Your approval has not been recorded`,
-      ),
+      this.discordService.sendDirectMessage(user.id, reply),
     ]);
   }
 

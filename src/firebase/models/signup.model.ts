@@ -20,7 +20,7 @@ export interface SignupDocument {
   // freeform field representing the characters job/role/class
   role: string;
   progPoint?: string;
-  partyType: PartyType;
+  partyType?: PartyType;
   // discordId of the user that reviewed this signup
   reviewedBy?: string | null;
   // the message id of the review message posted to discord

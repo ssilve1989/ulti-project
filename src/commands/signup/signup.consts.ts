@@ -21,6 +21,10 @@ You can reach out to a coordinator to discuss any issues
 `,
   UNEXPECTED_PROG_SELECTION_ERROR:
     'Sorry an unexpected error has occurred. Please report this problem and manually update the google sheet with the intended prog point',
+  PROG_SELECTION_TIMEOUT:
+    'Your response timed out and could not be recorded. The signup has not been added to the googlesheet, please add it manually',
+  GENERIC_APPROVAL_ERROR:
+    'An error occurred while processing your response. The signup may not have been added to the googlesheet, please verify it or add it manually',
 };
 
 export const SIGNUP_REVIEW_REACTIONS: Record<

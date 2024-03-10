@@ -39,8 +39,8 @@ class SheetsService {
         return this.upsertProgParty(signup, spreadsheetId);
 
       default:
-        this.logger.error(
-          `Unknown party type: ${partyType} for user: ${signup.discordId}`,
+        this.logger.warn(
+          `unknown party type: ${partyType} for user: ${signup.discordId}. Not appending to any Google Sheet`,
         );
     }
   }

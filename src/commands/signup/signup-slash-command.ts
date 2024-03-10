@@ -1,5 +1,4 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { PartyType } from '../../firebase/models/signup.model.js';
 import { ENCOUNTER_CHOICES } from '../slash-commands.consts.js';
 
 export const SignupSlashCommand = new SlashCommandBuilder()
@@ -11,19 +10,6 @@ export const SignupSlashCommand = new SlashCommandBuilder()
       .setDescription('Select an encounter')
       .setName('encounter')
       .addChoices(...ENCOUNTER_CHOICES),
-  )
-  .addStringOption((option) =>
-    option
-      .setRequired(true)
-      .setName('party-type')
-      .setDescription('Signing up for a Prog or Clear party?')
-      .addChoices(
-        {
-          name: 'Prog Party',
-          value: PartyType.PROG_PARTY,
-        },
-        { name: 'Clear Party', value: PartyType.CLEAR_PARTY },
-      ),
   )
   .addStringOption((option) =>
     option
