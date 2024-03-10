@@ -6,7 +6,9 @@ import {
   SignupDocument,
 } from '../../firebase/models/signup.model.js';
 
-class SignupInteractionDto implements Omit<SignupDocument, 'status'> {
+class SignupInteractionDto
+  implements Omit<SignupDocument, 'status' | 'partyType'>
+{
   @IsString()
   availability: string;
 
@@ -38,9 +40,6 @@ class SignupInteractionDto implements Omit<SignupDocument, 'status'> {
   })
   @ValidateIf(({ fflogsLink }) => !fflogsLink)
   screenshot?: string | null;
-
-  @IsEnum(PartyType)
-  partyType: PartyType;
 
   @IsString()
   @ToLowercase()

@@ -156,7 +156,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       fflogsLink: options.getString('fflogs'),
       role: options.getString('job')!,
       screenshot: options.getAttachment('screenshot')?.url,
-      partyType: options.getString('party-type')! as PartyType,
       username: user.username,
       world: options.getString('world')!,
     };
@@ -176,13 +175,12 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     character,
     encounter,
     fflogsLink,
-    partyType,
     role,
     screenshot,
     world,
   }: SignupInteractionDto) {
     let embed = new EmbedBuilder()
-      .setTitle(`${EncounterFriendlyDescription[encounter]} ${partyType}`)
+      .setTitle(EncounterFriendlyDescription[encounter])
       .setDescription("Here's a summary of your request")
       .addFields([
         {

@@ -90,13 +90,18 @@ class SignupRepository {
 
   public updateSignupStatus(
     status: SignupStatus,
-    { progPoint, ...key }: SignupCompositeKey & { progPoint?: string },
+    {
+      partyType,
+      progPoint,
+      ...key
+    }: SignupCompositeKey & Pick<SignupDocument, 'progPoint' | 'partyType'>,
     reviewedBy: string,
   ) {
     return this.collection.doc(this.getKeyForSignup(key)).update({
       status,
       progPoint,
       reviewedBy,
+      partyType,
     });
   }
 

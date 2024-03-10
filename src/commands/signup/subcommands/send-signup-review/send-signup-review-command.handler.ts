@@ -96,12 +96,12 @@ class SendSignupReviewCommandHandler
           value: EncounterFriendlyDescription[encounter],
           inline: true,
         },
-        { name: 'Party Type', value: partyType, inline: true },
         {
           name: 'Character',
           value: capitalCase(character),
           inline: true,
         },
+        { name: '\u200B', value: '\u200B', inline: true },
         { name: 'Home World', value: capitalCase(world), inline: true },
         { name: 'Availability', value: availability, inline: true },
         { name: 'Job', value: role, inline: true },
