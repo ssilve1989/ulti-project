@@ -33,7 +33,7 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
   }
 
   private createStatusEmbed(signups: SignupDocument[]) {
-    const fields = signups.reduce((acc, { encounter, status, partyType }) => {
+    const fields = signups.flatMap(({ encounter, status, partyType }) => {
       const subfields = [
         {
           name: 'Encounter',
@@ -49,10 +49,12 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
 
       if (partyType) {
         subfields.push({ value: partyType, name: 'Party Type', inline: true });
+      } else {
+        subfields.push({ name: '\u200B', value: '\u200B', inline: true });
       }
 
-      return acc.concat();
-    }, [] as APIEmbedField[]);
+      return subfields;
+    });
 
     const embed = new EmbedBuilder().setTitle('Signup Summary');
 
