@@ -4,6 +4,7 @@ import {
   OnApplicationBootstrap,
   OnModuleDestroy,
 } from '@nestjs/common';
+import * as Sentry from '@sentry/node';
 import {
   ActionRowBuilder,
   Colors,
@@ -36,6 +37,7 @@ import {
   SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
+import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 
@@ -255,6 +257,8 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User,
     message: Message | PartialMessage,
   ) {
+    sentryReport(error, { userId: user.username });
+
     this.logger.error(error);
 
     const reply = match(error)
@@ -284,13 +288,13 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
     const row = new ActionRowBuilder().addComponents(menu);
 
-    try {
-      const message = await this.discordService.sendDirectMessage(user.id, {
-        content: 'Please confirm the prog point of the following signup',
-        embeds: [embed],
-        components: [row as any],
-      });
+    const message = await this.discordService.sendDirectMessage(user.id, {
+      content: 'Please confirm the prog point of the following signup',
+      embeds: [embed],
+      components: [row as any],
+    });
 
+    try {
       const reply = await message.awaitMessageComponent({
         time: 60_000,
         filter: isSameUserFilter(user),
@@ -308,6 +312,11 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
       await reply.update(SIGNUP_MESSAGES.UNEXPECTED_PROG_SELECTION_ERROR);
     } catch (error) {
+      sentryReport(error, {
+        userId: user.username,
+        extra: { encounter: signup.encounter },
+      });
+
       this.logger.error(error);
 
       await match(error)
@@ -315,10 +324,10 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
           P.instanceOf(DiscordjsError),
           ({ code }) => code === DiscordjsErrorCodes.InteractionCollectorError,
           () =>
-            this.discordService.sendDirectMessage(
-              user.id,
-              SIGNUP_MESSAGES.PROG_DM_TIMEOUT,
-            ),
+            message.edit({
+              content: `:exclamation: **IMPORTANT**: ${SIGNUP_MESSAGES.PROG_SELECTION_TIMEOUT} :exclamation:`,
+              components: [],
+            }),
         )
         .otherwise(() =>
           this.discordService.sendDirectMessage(
@@ -347,6 +356,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         await member.roles.add(role);
       }
     } catch (e) {
+      sentryReport(e, { extra: { guildId, encounter, discordId } });
       this.logger.error(e);
     }
   }
