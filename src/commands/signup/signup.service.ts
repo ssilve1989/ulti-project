@@ -20,7 +20,15 @@ import {
   PartialUser,
   User,
 } from 'discord.js';
-import { EMPTY, Subscription, concatMap, fromEvent } from 'rxjs';
+import {
+  EMPTY,
+  Subscription,
+  concatMap,
+  debounceTime,
+  fromEvent,
+  groupBy,
+  mergeMap,
+} from 'rxjs';
 import { P, match } from 'ts-pattern';
 import { isSameUserFilter } from '../../common/collection-filters.js';
 import { hydrateReaction, hydrateUser } from '../../discord/discord.helpers.js';
@@ -63,31 +71,37 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       ) => ({ reaction, user }),
     )
       .pipe(
-        concatMap(async (event) => {
-          if (!event.reaction.message.inGuild()) return EMPTY;
-
-          // TODO: dangerous cast to Settings, but know its safe from current usage
-          // attempts to type it correctly just result in weirdness since all the other fields on the object are optional
-          const [reaction, user, settings = {} as Settings] = await Promise.all(
-            [
-              hydrateReaction(event.reaction),
-              hydrateUser(event.user),
-              this.settingsCollection.getSettings(
-                event.reaction.message.guildId,
-              ),
-            ],
-          );
-
-          const shouldHandle = await this.shouldHandleReaction(
-            reaction,
-            user,
-            settings,
-          );
-
-          return shouldHandle
-            ? this.handleReaction(reaction, user, settings)
-            : EMPTY;
+        groupBy(({ reaction }) => reaction.message.id, {
+          duration: (group$) => group$.pipe(debounceTime(30_000)),
         }),
+        mergeMap((group$) =>
+          group$.pipe(
+            concatMap(async (event) => {
+              if (!event.reaction.message.inGuild()) return EMPTY;
+
+              // TODO: dangerous cast to Settings, but know its safe from current usage
+              // attempts to type it correctly just result in weirdness since all the other fields on the object are optional
+              const [reaction, user, settings = {} as Settings] =
+                await Promise.all([
+                  hydrateReaction(event.reaction),
+                  hydrateUser(event.user),
+                  this.settingsCollection.getSettings(
+                    event.reaction.message.guildId,
+                  ),
+                ]);
+
+              const shouldHandle = await this.shouldHandleReaction(
+                reaction,
+                user,
+                settings,
+              );
+
+              return shouldHandle
+                ? this.handleReaction(reaction, user, settings)
+                : EMPTY;
+            }),
+          ),
+        ),
       )
       .subscribe();
   }
