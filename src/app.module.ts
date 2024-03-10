@@ -12,6 +12,7 @@ import { SlashCommandsModule } from './commands/slash-commands.module.js';
 import { StatusModule } from './commands/status/status.module.js';
 import { DiscordModule } from './discord/discord.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
+import { SentryModule } from './sentry/sentry.module.js';
 import { SheetsModule } from './sheets/sheets.module.js';
 
 @Module({
@@ -44,6 +45,7 @@ import { SheetsModule } from './sheets/sheets.module.js';
         },
       }),
     }),
+    SentryModule,
   ],
   providers: [AppService],
   controllers: [AppController],
