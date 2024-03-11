@@ -26,6 +26,7 @@ import {
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupRepository } from '../../firebase/collections/signup.repository.js';
 import { PartyType } from '../../firebase/models/signup.model.js';
+import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SignupInteractionDto } from './signup-request.dto.js';
 import { SignupCommand } from './signup.commands.js';
 import { SIGNUP_MESSAGES } from './signup.consts.js';
@@ -210,6 +211,11 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     error: unknown,
     interaction: ChatInputCommandInteraction,
   ) {
+    sentryReport(error, {
+      userId: interaction.user.id,
+      extra: { command: interaction.command?.name },
+    });
+
     this.logger.error(error);
 
     return match(error)

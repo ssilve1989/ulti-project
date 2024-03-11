@@ -328,7 +328,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     } catch (error) {
       sentryReport(error, {
         userId: user.username,
-        extra: { encounter: signup.encounter },
+        extra: { encounter: signup.encounter, discordId: signup.discordId },
       });
 
       this.logger.error(error);
@@ -370,7 +370,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         await member.roles.add(role);
       }
     } catch (e) {
-      sentryReport(e, { extra: { guildId, encounter, discordId } });
+      sentryReport(e, { extra: { encounter, discordId } });
       this.logger.error(e);
     }
   }
