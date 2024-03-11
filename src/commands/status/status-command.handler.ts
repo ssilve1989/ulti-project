@@ -10,6 +10,7 @@ import {
   SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
+import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../signup/signup.consts.js';
 import { StatusCommand } from './status.command.js';
 import { StatusService } from './status.service.js';
@@ -70,6 +71,11 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
     error: unknown,
     interaction: ChatInputCommandInteraction,
   ) {
+    sentryReport(error, {
+      userId: interaction.user.username,
+      extra: { command: interaction.command?.name },
+    });
+
     this.logger.error(error);
 
     return interaction.editReply({

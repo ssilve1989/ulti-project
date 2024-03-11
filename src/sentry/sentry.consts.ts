@@ -7,7 +7,7 @@ interface ReportOptions {
 
 export const sentryReport = (
   error: unknown,
-  { userId, extra }: ReportOptions,
+  { userId, extra }: ReportOptions = {},
 ) => {
   Sentry.withScope((scope) => {
     userId && scope.setUser({ id: userId });

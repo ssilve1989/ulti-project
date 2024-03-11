@@ -1,7 +1,9 @@
 import { sheets_v4 } from '@googleapis/sheets';
 import { Injectable, Logger } from '@nestjs/common';
+import * as Sentry from '@sentry/node';
 import { PartyType, SignupDocument } from '../firebase/models/signup.model.js';
 import { SignupCompositeKeyProps } from '../firebase/models/signup.model.js';
+import { sentryReport } from '../sentry/sentry.consts.js';
 import { ProgSheetRanges, columnToIndex } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
 
@@ -356,7 +358,9 @@ class SheetsService {
     const sheetId = sheet?.properties?.sheetId;
 
     if (sheetId == null) {
-      this.logger.error(`Sheet not found for encounter: ${name}`);
+      const msg = `Sheet not found for encounter: ${name}`;
+      Sentry.captureMessage(msg, 'warning');
+      this.logger.warn(msg);
     }
 
     return sheetId;

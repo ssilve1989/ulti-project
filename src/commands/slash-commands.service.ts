@@ -6,6 +6,7 @@ import { EMPTY, catchError, defer, forkJoin, lastValueFrom, retry } from 'rxjs';
 import { match } from 'ts-pattern';
 import { AppConfig } from '../app.config.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
+import { sentryReport } from '../sentry/sentry.consts.js';
 import { LookupCommand } from './lookup/lookup.command.js';
 import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
 import { SettingsSlashCommand } from './settings/settings-slash-command.js';
@@ -93,6 +94,7 @@ class SlashCommandsService {
     }).pipe(
       retry({ count: 10, delay: 1000 }),
       catchError((err) => {
+        sentryReport(err);
         this.logger.error(err);
         return EMPTY;
       }),
