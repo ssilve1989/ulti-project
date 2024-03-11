@@ -20,7 +20,11 @@ export interface SignupDocument {
   fflogsLink?: string | null;
   // freeform field representing the characters job/role/class
   role: string;
+  // the prog point specified by the coodinator upon review
   progPoint?: string;
+  // The prog point specified by the signup user
+  progPointRequested: string;
+  // the party type we determined they should be
   partyType?: PartyType;
   // discordId of the user that reviewed this signup
   reviewedBy?: string | null;

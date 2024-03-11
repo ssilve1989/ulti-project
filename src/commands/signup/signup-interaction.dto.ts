@@ -1,10 +1,7 @@
 import { IsEnum, IsString, IsUrl, ValidateIf } from 'class-validator';
 import { ToLowercase } from '../../common/decorators/to-lowercase.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
-import {
-  PartyType,
-  SignupDocument,
-} from '../../firebase/models/signup.model.js';
+import { SignupDocument } from '../../firebase/models/signup.model.js';
 
 class SignupInteractionDto
   implements Omit<SignupDocument, 'status' | 'partyType' | 'timestamp'>
@@ -21,6 +18,9 @@ class SignupInteractionDto
 
   @IsString()
   role: string; // freeform for now but could be restricted via enum
+
+  @IsString()
+  progPointRequested: string;
 
   @IsEnum(Encounter)
   encounter: Encounter;

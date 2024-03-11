@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
+import { PartyType } from '../../firebase/models/signup.model.js';
 import { ENCOUNTER_CHOICES } from '../slash-commands.consts.js';
 
 export const SignupSlashCommand = new SlashCommandBuilder()
@@ -33,6 +34,12 @@ export const SignupSlashCommand = new SlashCommandBuilder()
       .setRequired(true)
       .setDescription('Availability. Ex: M-F 8pm-12am EST')
       .setName('availability'),
+  )
+  .addStringOption((option) =>
+    option
+      .setRequired(true)
+      .setName('prog-point')
+      .setDescription('What prog point are you at?'),
   )
   .addStringOption((option) =>
     option
