@@ -4,7 +4,7 @@ import { App, cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { AppConfig } from '../app.config.js';
 import { SettingsCollection } from './collections/settings-collection.js';
-import { SignupRepository } from './collections/signup.repository.js';
+import { SignupCollection } from './collections/signup.collection.js';
 import { firebaseConfig } from './firebase.config.js';
 import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
 
@@ -38,9 +38,9 @@ import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
         return firestore;
       },
     },
-    SignupRepository,
+    SignupCollection,
     SettingsCollection,
   ],
-  exports: [FIRESTORE, SignupRepository, SettingsCollection],
+  exports: [FIRESTORE, SignupCollection, SettingsCollection],
 })
 export class FirebaseModule {}

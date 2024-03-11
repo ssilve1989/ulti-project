@@ -7,7 +7,7 @@ import {
 } from '../../firebase/models/signup.model.js';
 
 class SignupInteractionDto
-  implements Omit<SignupDocument, 'status' | 'partyType'>
+  implements Omit<SignupDocument, 'status' | 'partyType' | 'timestamp'>
 {
   @IsString()
   availability: string;

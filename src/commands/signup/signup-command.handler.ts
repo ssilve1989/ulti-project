@@ -24,10 +24,9 @@ import {
   EncounterFriendlyDescription,
 } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { SignupRepository } from '../../firebase/collections/signup.repository.js';
-import { PartyType } from '../../firebase/models/signup.model.js';
+import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { sentryReport } from '../../sentry/sentry.consts.js';
-import { SignupInteractionDto } from './signup-request.dto.js';
+import { SignupInteractionDto } from './signup-interaction.dto.js';
 import { SignupCommand } from './signup.commands.js';
 import { SIGNUP_MESSAGES } from './signup.consts.js';
 import { SignupCreatedEvent } from './signup.events.js';
@@ -45,7 +44,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
   constructor(
     private readonly eventBus: EventBus,
-    private readonly repository: SignupRepository,
+    private readonly repository: SignupCollection,
     private readonly settingsService: SettingsCollection,
   ) {}
 

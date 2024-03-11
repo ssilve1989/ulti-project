@@ -9,7 +9,7 @@ import {
 } from '../../../../discord/discord.exceptions.js';
 import { EncounterFriendlyDescription } from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { SignupRepository } from '../../../../firebase/collections/signup.repository.js';
+import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
 import { SignupDocument } from '../../../../firebase/models/signup.model.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../../signup.consts.js';
 import { SendSignupReviewCommand } from './send-signup-review.command.js';
@@ -22,7 +22,7 @@ class SendSignupReviewCommandHandler
 
   constructor(
     @InjectDiscordClient() private readonly client: Client,
-    private readonly repository: SignupRepository,
+    private readonly repository: SignupCollection,
     private readonly settingsCollection: SettingsCollection,
   ) {}
 

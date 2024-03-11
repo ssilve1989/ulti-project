@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { CollectionReference, Firestore } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
-import { Settings } from '../models/settings.model.js';
+import { SettingsDocument } from '../models/settings.model.js';
 
 @Injectable()
 class SettingsCollection {
-  private readonly collection: CollectionReference<Settings>;
+  private readonly collection: CollectionReference<SettingsDocument>;
 
   constructor(@InjectFirestore() firestore: Firestore) {
     this.collection = firestore.collection(
       'settings',
-    ) as CollectionReference<Settings>;
+    ) as CollectionReference<SettingsDocument>;
   }
 
-  public upsertSettings(guildId: string, settings: Partial<Settings>) {
+  public upsertSettings(guildId: string, settings: Partial<SettingsDocument>) {
     return this.collection.doc(guildId).set(settings, { merge: true });
   }
 

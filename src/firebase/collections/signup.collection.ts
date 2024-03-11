@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   CollectionReference,
+  FieldValue,
   Firestore,
   Query,
 } from 'firebase-admin/firestore';
@@ -14,7 +15,7 @@ import {
 import { SignupCompositeKeyProps as SignupCompositeKey } from '../models/signup.model.js';
 
 @Injectable()
-class SignupRepository {
+class SignupCollection {
   private readonly collection: CollectionReference<SignupDocument>;
 
   constructor(@InjectFirestore() private readonly firestore: Firestore) {
@@ -31,8 +32,8 @@ class SignupRepository {
     signup: CreateSignupDocumentProps,
   ): Promise<SignupDocument> {
     const key = this.getKeyForSignup(signup);
-
     const document = this.collection.doc(key);
+    const timestamp = FieldValue.serverTimestamp();
     const snapshot = await document.get();
 
     if (snapshot.exists) {
@@ -41,6 +42,7 @@ class SignupRepository {
           ...signup,
           status: SignupStatus.PENDING,
           reviewedBy: null,
+          timestamp,
         },
         {
           merge: true,
@@ -49,6 +51,7 @@ class SignupRepository {
     } else {
       await document.create({
         ...signup,
+        timestamp,
         status: SignupStatus.PENDING,
       });
     }
@@ -88,6 +91,13 @@ class SignupRepository {
     return snapshot.docs[0].data();
   }
 
+  /**
+   * Updates the approval status of a signup. Does not modify the timestamp of the signup
+   * @param status - new status for the signup
+   * @param key - composite key for the signup
+   * @param reviewedBy - discordId of the user that reviewed the signup
+   * @returns
+   */
   public updateSignupStatus(
     status: SignupStatus,
     {
@@ -105,6 +115,12 @@ class SignupRepository {
     });
   }
 
+  /**
+   * Sets the discord message id of the message posted for review
+   * @param signup
+   * @param messageId
+   * @returns
+   */
   public setReviewMessageId(signup: SignupCompositeKey, messageId: string) {
     const key = this.getKeyForSignup(signup);
 
@@ -115,7 +131,6 @@ class SignupRepository {
 
   public removeSignup(signup: SignupCompositeKey) {
     const key = this.getKeyForSignup(signup);
-
     return this.collection.doc(key).delete();
   }
 
@@ -140,4 +155,4 @@ class SignupRepository {
   }
 }
 
-export { SignupRepository };
+export { SignupCollection };

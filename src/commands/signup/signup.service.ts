@@ -39,8 +39,8 @@ import {
 } from '../../encounters/encounters.components.js';
 import { EncounterProgPoints } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { SignupRepository } from '../../firebase/collections/signup.repository.js';
-import { Settings } from '../../firebase/models/settings.model.js';
+import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import { SettingsDocument } from '../../firebase/models/settings.model.js';
 import {
   SignupDocument,
   SignupStatus,
@@ -55,7 +55,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   private subscription?: Subscription;
 
   constructor(
-    private readonly repository: SignupRepository,
+    private readonly repository: SignupCollection,
     private readonly discordService: DiscordService,
     private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
@@ -81,7 +81,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
               // TODO: dangerous cast to Settings, but know its safe from current usage
               // attempts to type it correctly just result in weirdness since all the other fields on the object are optional
-              const [reaction, user, settings = {} as Settings] =
+              const [reaction, user, settings = {} as SettingsDocument] =
                 await Promise.all([
                   hydrateReaction(event.reaction),
                   hydrateUser(event.user),
@@ -113,7 +113,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   private async handleReaction(
     { message, emoji }: MessageReaction,
     user: User,
-    settings: Settings,
+    settings: SettingsDocument,
   ) {
     try {
       // TODO: If for some reason this throws and there is no signup, we should inform the person performing the interaction
@@ -143,7 +143,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   private async shouldHandleReaction(
     reaction: MessageReaction,
     user: User | PartialUser,
-    settings: Settings,
+    settings: SettingsDocument,
   ) {
     if (!reaction.message.inGuild()) return false;
 
@@ -164,7 +164,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     signup: SignupDocument,
     message: Message | PartialMessage,
     user: User,
-    settings: Settings,
+    settings: SettingsDocument,
   ) {
     if (!message.inGuild()) {
       this.logger.warn(
@@ -354,7 +354,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
   private async assignProgRole(
     guildId: string,
-    settings: Pick<Settings, 'progRoles'>,
+    settings: Pick<SettingsDocument, 'progRoles'>,
     { encounter, discordId }: Pick<SignupDocument, 'encounter' | 'discordId'>,
   ) {
     const role = settings.progRoles?.[encounter];

@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { DeepMocked, createMock } from '../../../test/create-mock.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
-import { SignupRepository } from '../../firebase/collections/signup.repository.js';
+import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SignupDocument } from '../../firebase/models/signup.model.js';
 import { LookupCommandHandler } from './lookup.command-handler.js';
 import { LookupCommand } from './lookup.command.js';
@@ -10,7 +10,7 @@ import { LookupCommand } from './lookup.command.js';
 describe('LookupCommandHandler', () => {
   let handler: LookupCommandHandler;
   let interaction: DeepMocked<ChatInputCommandInteraction<'cached' | 'raw'>>;
-  let signupsCollection: DeepMocked<SignupRepository>;
+  let signupsCollection: DeepMocked<SignupCollection>;
   const getStringMock = vi.fn();
 
   beforeEach(async () => {
@@ -21,7 +21,7 @@ describe('LookupCommandHandler', () => {
       .compile();
 
     handler = fixture.get(LookupCommandHandler);
-    signupsCollection = fixture.get(SignupRepository);
+    signupsCollection = fixture.get(SignupCollection);
 
     interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
       options: {
