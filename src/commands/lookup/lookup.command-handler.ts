@@ -4,7 +4,7 @@ import { capitalCase } from 'change-case';
 import { plainToInstance } from 'class-transformer';
 import { CommandInteractionOptionResolver, EmbedBuilder } from 'discord.js';
 import { EncounterFriendlyDescription } from '../../encounters/encounters.consts.js';
-import { SignupRepository } from '../../firebase/collections/signup.repository.js';
+import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SignupDocument } from '../../firebase/models/signup.model.js';
 import { LookupCommand } from './lookup.command.js';
 import { LookupInteractionDto } from './lookup.dto.js';
@@ -13,7 +13,7 @@ import { LookupInteractionDto } from './lookup.dto.js';
 class LookupCommandHandler implements ICommandHandler<LookupCommand> {
   private readonly logger = new Logger(LookupCommandHandler.name);
 
-  constructor(private readonly signupsCollection: SignupRepository) {}
+  constructor(private readonly signupsCollection: SignupCollection) {}
 
   async execute({ interaction }: LookupCommand): Promise<any> {
     const { options } = interaction;

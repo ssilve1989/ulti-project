@@ -4,7 +4,7 @@ import { ChatInputCommandInteraction, User } from 'discord.js';
 import { DeepMocked, createMock } from '../../../../../test/create-mock.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { SignupRepository } from '../../../../firebase/collections/signup.repository.js';
+import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { RemoveSignupCommandHandler } from './remove-signup-command.handler.js';
@@ -15,7 +15,7 @@ describe('Remove Signup Command Handler', () => {
   let interaction: DeepMocked<ChatInputCommandInteraction<'cached' | 'raw'>>;
   let settingsCollection: DeepMocked<SettingsCollection>;
   let sheetsService: DeepMocked<SheetsService>;
-  let signupsRepository: DeepMocked<SignupRepository>;
+  let signupsRepository: DeepMocked<SignupCollection>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
@@ -28,7 +28,7 @@ describe('Remove Signup Command Handler', () => {
     handler = fixture.get(RemoveSignupCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
     sheetsService = fixture.get(SheetsService);
-    signupsRepository = fixture.get(SignupRepository);
+    signupsRepository = fixture.get(SignupCollection);
 
     interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
       user: createMock<User>({ id: '1', toString: () => '<@1>' }),
