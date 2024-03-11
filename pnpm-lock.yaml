@@ -27,8 +27,8 @@ dependencies:
     specifier: ^7.106.0
     version: 7.106.0
   '@sentry/profiling-node':
-    specifier: ^7.106.0
-    version: 7.106.0
+    specifier: ^7.106.1
+    version: 7.106.1
   change-case:
     specifier: ^5.4.3
     version: 5.4.3
@@ -1786,8 +1786,8 @@ packages:
       '@sentry/utils': 7.106.0
     dev: false
 
-  /@sentry/profiling-node@7.106.0:
-    resolution: {integrity: sha512-Cj5xdhbEjXyYD90X68F8syuPOmjW1++BPPbLJ/HMxVMBbxB7Pg8yIaASlyN1N2gTbhjQWNRx7SUOCjmAI5V3Gg==}
+  /@sentry/profiling-node@7.106.1:
+    resolution: {integrity: sha512-88qgCQOqJG7fcAMRNyQ7b68CBDztL2Gbn4Zatr6UxO9+F12K40NibqVhpX0/P6rAl7xutb6axaTtiw6Xbz42pg==}
     engines: {node: '>=8.0.0'}
     hasBin: true
     requiresBuild: true
