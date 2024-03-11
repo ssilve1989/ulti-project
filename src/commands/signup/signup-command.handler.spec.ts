@@ -55,6 +55,8 @@ describe('Signup Command Handler', () => {
               return 'tank';
             case 'party-type':
               return PartyType.CLEAR_PARTY;
+            case 'prog-point':
+              return 'all the progs';
           }
         },
         getAttachment: () => null,
