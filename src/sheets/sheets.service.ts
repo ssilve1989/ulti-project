@@ -91,6 +91,7 @@ class SheetsService {
     {
       encounter,
       character,
+      world,
     }: SignupCompositeKeyProps & Pick<SignupDocument, 'character' | 'world'>,
     spreadsheetId: string,
   ): Promise<sheets_v4.Schema$Request | undefined> {
@@ -100,9 +101,10 @@ class SheetsService {
       range: `${SheetsService.PROG_SHEET_NAME}!${range.start}:${range.end}`,
     });
 
-    // TODO: need to incorporate world
-    const progRowIndex = this.findCharacterRow(progPartyValues, (values) =>
-      values.has(character.toLowerCase()),
+    const progRowIndex = this.findCharacterRow(
+      progPartyValues,
+      (values) =>
+        values.has(character.toLowerCase()) && values.has(world.toLowerCase()),
     );
 
     if (progRowIndex !== -1) {
