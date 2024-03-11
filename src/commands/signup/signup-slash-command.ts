@@ -18,11 +18,7 @@ export const SignupSlashCommand = new SlashCommandBuilder()
       .setName('character'),
   )
   .addStringOption((option) =>
-    // TODO: Could use FFLogs API to create validated autocomplete list of choices?
-    option
-      .setRequired(true)
-      .setDescription('Home World')
-      .setName('world'),
+    option.setRequired(true).setDescription('Home World').setName('world'),
   )
   .addStringOption((option) =>
     option
