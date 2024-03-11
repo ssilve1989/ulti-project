@@ -154,6 +154,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       discordId: user.id,
       encounter: options.getString('encounter')! as Encounter,
       fflogsLink: options.getString('fflogs'),
+      progPointRequested: options.getString('prog-point')!,
       role: options.getString('job')!,
       screenshot: options.getAttachment('screenshot')?.url,
       username: user.username,
