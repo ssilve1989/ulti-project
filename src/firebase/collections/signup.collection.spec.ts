@@ -10,11 +10,11 @@ import {
   QuerySnapshot,
 } from 'firebase-admin/firestore';
 import { DeepMocked, createMock } from '../../../test/create-mock.js';
-import { SignupInteractionDto } from '../../commands/signup/signup-request.dto.js';
+import { SignupInteractionDto } from '../../commands/signup/signup-interaction.dto.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { SignupDocument, SignupStatus } from '../models/signup.model.js';
-import { SignupRepository } from './signup.repository.js';
+import { SignupCollection } from './signup.collection.js';
 
 const SIGNUP_KEY = {
   discordId: '12345',
@@ -22,7 +22,7 @@ const SIGNUP_KEY = {
 };
 
 describe('Signup Repository', () => {
-  let repository: SignupRepository;
+  let repository: SignupCollection;
   let firestore: DeepMocked<Firestore>;
   let collection: DeepMocked<CollectionReference<DocumentData>>;
   let doc: DeepMocked<DocumentReference<DocumentData>>;
@@ -44,7 +44,7 @@ describe('Signup Repository', () => {
 
     const fixture = await Test.createTestingModule({
       providers: [
-        SignupRepository,
+        SignupCollection,
         {
           provide: FIRESTORE,
           useValue: firestore,
@@ -54,7 +54,7 @@ describe('Signup Repository', () => {
       .useMocker(() => createMock())
       .compile();
 
-    repository = fixture.get(SignupRepository);
+    repository = fixture.get(SignupCollection);
   });
 
   it('should call set if document exists', async () => {
@@ -65,11 +65,11 @@ describe('Signup Repository', () => {
     await repository.createSignup(signupRequest);
 
     expect(doc.set).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         ...signupRequest,
         status: SignupStatus.PENDING,
         reviewedBy: null,
-      },
+      }),
       {
         merge: true,
       },
@@ -85,10 +85,12 @@ describe('Signup Repository', () => {
 
     await repository.createSignup(signupRequest);
 
-    expect(doc.create).toHaveBeenCalledWith({
-      ...signupRequest,
-      status: SignupStatus.PENDING,
-    });
+    expect(doc.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...signupRequest,
+        status: SignupStatus.PENDING,
+      }),
+    );
     expect(doc.set).not.toHaveBeenCalled();
   });
 

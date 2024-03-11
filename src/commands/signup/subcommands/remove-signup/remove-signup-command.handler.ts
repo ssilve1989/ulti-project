@@ -3,7 +3,7 @@ import { APIUser, ChatInputCommandInteraction, User } from 'discord.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { SignupRepository } from '../../../../firebase/collections/signup.repository.js';
+import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
 import { SignupCompositeKeyProps } from '../../../../firebase/models/signup.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
@@ -17,7 +17,7 @@ class RemoveSignupCommandHandler
     private readonly discordService: DiscordService,
     private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
-    private readonly signupsRepository: SignupRepository,
+    private readonly signupsRepository: SignupCollection,
   ) {}
 
   async execute({ interaction }: RemoveSignupCommand): Promise<any> {

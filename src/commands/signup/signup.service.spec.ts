@@ -2,20 +2,20 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
 import { DeepMocked, createMock } from '../../../test/create-mock.js';
 import { DiscordService } from '../../discord/discord.service.js';
-import { Settings } from '../../firebase/models/settings.model.js';
+import { SettingsDocument } from '../../firebase/models/settings.model.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
 
-import { SignupRepository } from '../../firebase/collections/signup.repository.js';
+import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SignupDocument } from '../../firebase/models/signup.model.js';
 
 describe('SignupService', () => {
   let service: SignupService;
   let messageReaction: DeepMocked<MessageReaction>;
   let user: DeepMocked<User>;
-  let settings: DeepMocked<Settings>;
+  let settings: DeepMocked<SettingsDocument>;
   let signup: DeepMocked<SignupDocument>;
-  let repository: DeepMocked<SignupRepository>;
+  let repository: DeepMocked<SignupCollection>;
   let discordService: DeepMocked<DiscordService>;
 
   beforeEach(async () => {
@@ -26,7 +26,7 @@ describe('SignupService', () => {
       .compile();
 
     service = module.get(SignupService);
-    repository = module.get(SignupRepository);
+    repository = module.get(SignupCollection);
     discordService = module.get(DiscordService);
 
     messageReaction = createMock<MessageReaction>({
@@ -47,7 +47,7 @@ describe('SignupService', () => {
       valueOf: () => '',
       toString: () => '<@someuser>',
     });
-    settings = createMock<Settings>();
+    settings = createMock<SettingsDocument>();
     signup = createMock<SignupDocument>({
       reviewMessageId: 'messageId',
       reviewedBy: undefined,

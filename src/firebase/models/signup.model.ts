@@ -1,3 +1,4 @@
+import { Timestamp } from 'firebase-admin/firestore';
 import { Encounter } from '../../encounters/encounters.consts.js';
 
 export enum SignupStatus {
@@ -32,9 +33,14 @@ export interface SignupDocument {
   status: SignupStatus;
   // user characters home world
   world: string;
+  timestamp: Timestamp;
 }
 
-export type CreateSignupDocumentProps = Omit<SignupDocument, 'status'>;
+export type CreateSignupDocumentProps = Omit<
+  SignupDocument,
+  'status' | 'timestamp'
+>;
+
 export type SignupCompositeKeyProps = Pick<
   SignupDocument,
   'discordId' | 'encounter'
