@@ -23,3 +23,6 @@ updates:
       commitlint:
         patterns:
           - '@commitlint*'
+      sentry:
+        patterns:
+          - '@sentry*'
