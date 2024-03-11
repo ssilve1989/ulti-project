@@ -188,14 +188,20 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
           value: capitalCase(character),
           inline: true,
         },
+        { name: '\u200B', value: '\u200B', inline: true },
         { name: 'Home World', value: capitalCase(world), inline: true },
         { name: 'Availability', value: availability, inline: true },
+        { name: '\u200B', value: '\u200B', inline: true },
         { name: 'Role', value: role, inline: true },
       ]);
 
     if (fflogsLink) {
       embed = embed.addFields([
-        { name: 'FF Logs Link', value: `[View Report](${fflogsLink})` },
+        {
+          name: 'FF Logs Link',
+          value: `[View Report](${fflogsLink})`,
+          inline: true,
+        },
       ]);
     }
 
