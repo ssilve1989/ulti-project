@@ -91,6 +91,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
                     ),
                   ]);
 
+                // TODO: We can extract the type of the Message to be `Message<True>` since shouldHandleReaction checks if the message is inGuild()
                 const shouldHandle = await this.shouldHandleReaction(
                   reaction,
                   user,
@@ -119,6 +120,11 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User,
     settings: SettingsDocument,
   ) {
+    if (!message.inGuild()) {
+      this.logger.warn(`message ${message.id} is not in a guild`);
+      return;
+    }
+
     // TODO: If for some reason this throws and there is no signup, we should inform the person performing the interaction
     // that there is no associated signup anymore
     const signup = await this.repository.findByReviewId(message.id);
@@ -148,7 +154,11 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     if (!reaction.message.inGuild()) return false;
 
     const isAllowedUser = settings?.reviewerRole
-      ? await this.discordService.userHasRole(user.id, settings.reviewerRole)
+      ? await this.discordService.userHasRole({
+          userId: user.id,
+          roleId: settings.reviewerRole,
+          guildId: reaction.message.guildId,
+        })
       : true;
 
     const isExpectedReactionType =
@@ -162,23 +172,19 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
   private async handleApprovedReaction(
     signup: SignupDocument,
-    message: Message | PartialMessage,
+    message: Message<true>,
     user: User,
     settings: SettingsDocument,
   ) {
-    if (!message.inGuild()) {
-      this.logger.warn(
-        `received message that was not part of a guild: ${message.content}`,
-      );
-
-      return;
-    }
-
     const [sourceEmbed] = message.embeds;
     const embed = EmbedBuilder.from(sourceEmbed);
+    const { guildId } = message;
 
     const [displayName, progPoint] = await Promise.all([
-      this.discordService.getDisplayName(user.id),
+      this.discordService.getDisplayName({
+        userId: user.id,
+        guildId,
+      }),
       this.requestProgPointConfirmation(signup, sourceEmbed, user),
     ]);
 
@@ -208,7 +214,10 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
     const [publicSignupChannel] = await Promise.all([
       settings.signupChannel &&
-        this.discordService.getTextChannel(settings.signupChannel),
+        this.discordService.getTextChannel({
+          guildId,
+          channelId: settings.signupChannel,
+        }),
       settings.spreadsheetId &&
         this.sheetsService.upsertSignup(
           confirmedSignup,
@@ -236,11 +245,14 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
   private async handleDeclinedReaction(
     signup: SignupDocument,
-    message: Message | PartialMessage,
+    message: Message<true>,
     user: User,
   ) {
     const [displayName] = await Promise.all([
-      this.discordService.getDisplayName(user.id),
+      this.discordService.getDisplayName({
+        userId: user.id,
+        guildId: message.guildId,
+      }),
       this.repository.updateSignupStatus(
         SignupStatus.DECLINED,
         signup,

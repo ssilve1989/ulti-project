@@ -1,23 +1,10 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Client, DMChannel, Guild } from 'discord.js';
-import { AppConfig } from '../app.config.js';
+import { Injectable } from '@nestjs/common';
+import { Client, DMChannel } from 'discord.js';
 import { InjectDiscordClient } from './discord.decorators.js';
 
-// TODO: This should be agnostic to a specfic discord server and work with all servers its part of
 @Injectable()
-class DiscordService implements OnApplicationBootstrap {
-  private server: Guild;
-
-  constructor(
-    @InjectDiscordClient() public readonly client: Client,
-    private readonly configService: ConfigService<AppConfig, true>,
-  ) {}
-
-  async onApplicationBootstrap() {
-    const guildId = this.configService.get<string>('GUILD_ID');
-    this.server = await this.client.guilds.fetch(guildId);
-  }
+class DiscordService {
+  constructor(@InjectDiscordClient() public readonly client: Client) {}
 
   public async getGuildMember(memberId: string, guildId: string) {
     const member = await this.client.guilds.cache
@@ -35,8 +22,12 @@ class DiscordService implements OnApplicationBootstrap {
     return dm.send(message);
   }
 
-  public async getTextChannel(channelId: string) {
-    const channel = await this.server.channels.fetch(channelId);
+  public async getTextChannel({
+    guildId,
+    channelId,
+  }: { guildId: string; channelId: string }) {
+    const guild = await this.client.guilds.fetch(guildId);
+    const channel = await guild.channels.fetch(channelId);
     return channel?.isTextBased() ? channel : null;
   }
 
@@ -45,13 +36,22 @@ class DiscordService implements OnApplicationBootstrap {
    * @param userId
    * @returns
    */
-  public async getDisplayName(userId: string) {
-    const member = await this.server.members.fetch(userId);
+  public async getDisplayName({
+    userId,
+    guildId,
+  }: { guildId: string; userId: string }) {
+    const guild = await this.client.guilds.fetch(guildId);
+    const member = await guild.members.fetch(userId);
     return member.displayName;
   }
 
-  public async userHasRole(userId: string, roleId: string) {
-    const member = await this.server.members.fetch(userId);
+  public async userHasRole({
+    userId,
+    guildId,
+    roleId,
+  }: { guildId: string; userId: string; roleId: string }) {
+    const guild = await this.client.guilds.fetch(guildId);
+    const member = await guild.members.fetch(userId);
     return member.roles.cache.has(roleId);
   }
 }
