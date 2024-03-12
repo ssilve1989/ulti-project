@@ -1,4 +1,9 @@
-import { GatewayIntentBits, Partials } from 'discord.js';
+import {
+  GatewayIntentBits,
+  Message,
+  PartialMessage,
+  Partials,
+} from 'discord.js';
 
 export const INTENTS = [
   GatewayIntentBits.DirectMessages,
@@ -16,3 +21,16 @@ export const INTENTS = [
 ];
 
 export const PARTIALS = [Partials.Message, Partials.Channel, Partials.Reaction];
+
+/**
+ * creates a URL to a given discord message
+ * @param message the message to create a link for
+ * @returns
+ */
+export function getMessageLink({
+  guildId,
+  channelId,
+  id,
+}: Message | PartialMessage) {
+  return `https://discord.com/channels/${guildId}/${channelId}/${id}`;
+}
