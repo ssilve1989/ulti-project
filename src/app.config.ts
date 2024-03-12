@@ -6,7 +6,6 @@ export interface AppConfig {
   GCP_PRIVATE_KEY: string;
   GCP_ACCOUNT_EMAIL: string;
   GCP_PROJECT_ID: string;
-  GUILD_ID: string;
   LOG_LEVEL: string;
   NODE_ENV: string;
   PORT: number;
@@ -19,8 +18,6 @@ export const configSchema = Joi.object({
   GCP_PRIVATE_KEY: Joi.string().required(),
   GCP_ACCOUNT_EMAIL: Joi.string().required(),
   GCP_PROJECT_ID: Joi.string().required(),
-  // TODO: This should be replaced when multi-server support is put into the DiscordService class
-  GUILD_ID: Joi.string().optional(),
   LOG_LEVEL: Joi.string()
     .allow('debug', 'info', 'warn', 'error', 'silent', 'fatal')
     .default('info'),

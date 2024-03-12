@@ -41,6 +41,7 @@ class RemoveSignupCommandHandler
     const canModify = await this.canModifySignup(
       interaction.user,
       options,
+      interaction.guildId,
       reviewerRole,
     );
 
@@ -70,12 +71,14 @@ class RemoveSignupCommandHandler
   private async canModifySignup(
     user: User | APIUser,
     options: SignupCompositeKeyProps,
+    guildId: string,
     reviewerRole = '',
   ) {
-    const hasRole = await this.discordService.userHasRole(
-      user.id,
-      reviewerRole,
-    );
+    const hasRole = await this.discordService.userHasRole({
+      userId: user.id,
+      roleId: reviewerRole,
+      guildId,
+    });
 
     if (hasRole) return true;
 
