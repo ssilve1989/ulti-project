@@ -202,10 +202,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       .setColor(Colors.Green)
       .setTimestamp(new Date());
 
-    if (partyType) {
-      embed.addFields([{ name: 'Party Type', value: partyType, inline: true }]);
-    }
-
     const [publicSignupChannel] = await Promise.all([
       settings.signupChannel &&
         this.discordService.getTextChannel(settings.signupChannel),
