@@ -10,7 +10,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "nest build",
-    "check": "biome check src",
+    "check": "biome check --diagnostic-level=error src",
     "commit": "git-cz",
     "commitlint": "commitlint --edit",
     "format": "biome format . --write",

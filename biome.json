@@ -11,7 +11,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "all": true,
       "style": {
         "noNonNullAssertion": "warn",
         "useImportType": "off"
