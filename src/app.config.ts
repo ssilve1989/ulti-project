@@ -3,6 +3,7 @@ import Joi from 'joi';
 export interface AppConfig {
   CLIENT_ID: string;
   DISCORD_TOKEN: string;
+  DISCORD_REFRESH_COMMANDS: boolean;
   GCP_PRIVATE_KEY: string;
   GCP_ACCOUNT_EMAIL: string;
   GCP_PROJECT_ID: string;
@@ -15,6 +16,7 @@ export interface AppConfig {
 export const configSchema = Joi.object({
   CLIENT_ID: Joi.string().optional(),
   DISCORD_TOKEN: Joi.string().required(),
+  DISCORD_REFRESH_COMMANDS: Joi.bool().default(false),
   GCP_PRIVATE_KEY: Joi.string().required(),
   GCP_ACCOUNT_EMAIL: Joi.string().required(),
   GCP_PROJECT_ID: Joi.string().required(),
