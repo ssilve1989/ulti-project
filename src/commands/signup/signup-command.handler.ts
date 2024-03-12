@@ -51,7 +51,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   async execute({ interaction }: SignupCommand) {
     const { username } = interaction.user;
 
-    this.logger.log(`handling signup command for user: ${username}`);
+    this.logger.debug(`handling signup command for user: ${username}`);
 
     await interaction.deferReply({ ephemeral: true });
 

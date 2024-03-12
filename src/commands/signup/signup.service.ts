@@ -4,7 +4,6 @@ import {
   OnApplicationBootstrap,
   OnModuleDestroy,
 } from '@nestjs/common';
-import * as Sentry from '@sentry/node';
 import {
   ActionRowBuilder,
   Colors,
@@ -31,6 +30,7 @@ import {
 } from 'rxjs';
 import { P, match } from 'ts-pattern';
 import { isSameUserFilter } from '../../common/collection-filters.js';
+import { getMessageLink } from '../../discord/discord.consts.js';
 import { hydrateReaction, hydrateUser } from '../../discord/discord.helpers.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import {
@@ -79,26 +79,30 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
             concatMap(async (event) => {
               if (!event.reaction.message.inGuild()) return EMPTY;
 
-              // TODO: dangerous cast to Settings, but know its safe from current usage
-              // attempts to type it correctly just result in weirdness since all the other fields on the object are optional
-              const [reaction, user, settings = {} as SettingsDocument] =
-                await Promise.all([
-                  hydrateReaction(event.reaction),
-                  hydrateUser(event.user),
-                  this.settingsCollection.getSettings(
-                    event.reaction.message.guildId,
-                  ),
-                ]);
+              try {
+                // TODO: dangerous cast to Settings, but know its safe from current usage
+                // attempts to type it correctly just result in weirdness since all the other fields on the object are optional
+                const [reaction, user, settings = {} as SettingsDocument] =
+                  await Promise.all([
+                    hydrateReaction(event.reaction),
+                    hydrateUser(event.user),
+                    this.settingsCollection.getSettings(
+                      event.reaction.message.guildId,
+                    ),
+                  ]);
 
-              const shouldHandle = await this.shouldHandleReaction(
-                reaction,
-                user,
-                settings,
-              );
+                const shouldHandle = await this.shouldHandleReaction(
+                  reaction,
+                  user,
+                  settings,
+                );
 
-              return shouldHandle
-                ? this.handleReaction(reaction, user, settings)
-                : EMPTY;
+                return shouldHandle
+                  ? this.handleReaction(reaction, user, settings)
+                  : EMPTY;
+              } catch (error) {
+                this.handleError(error, event.user, event.reaction.message);
+              }
             }),
           ),
         ),
@@ -115,29 +119,25 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User,
     settings: SettingsDocument,
   ) {
-    try {
-      // TODO: If for some reason this throws and there is no signup, we should inform the person performing the interaction
-      // that there is no associated signup anymore
-      const signup = await this.repository.findByReviewId(message.id);
+    // TODO: If for some reason this throws and there is no signup, we should inform the person performing the interaction
+    // that there is no associated signup anymore
+    const signup = await this.repository.findByReviewId(message.id);
 
-      if (signup.reviewedBy) {
-        this.logger.log(
-          `signup ${signup.reviewMessageId} already reviewed by ${user.displayName}`,
-        );
-        return;
-      }
-
-      await match(emoji.name)
-        .with(SIGNUP_REVIEW_REACTIONS.APPROVED, () =>
-          this.handleApprovedReaction(signup, message, user, settings),
-        )
-        .with(SIGNUP_REVIEW_REACTIONS.DECLINED, () =>
-          this.handleDeclinedReaction(signup, message, user),
-        )
-        .otherwise(() => {});
-    } catch (error) {
-      this.handleReactionError(error, user, message);
+    if (signup.reviewedBy) {
+      this.logger.log(
+        `signup ${signup.reviewMessageId} already reviewed by ${user.displayName}`,
+      );
+      return;
     }
+
+    await match(emoji.name)
+      .with(SIGNUP_REVIEW_REACTIONS.APPROVED, () =>
+        this.handleApprovedReaction(signup, message, user, settings),
+      )
+      .with(SIGNUP_REVIEW_REACTIONS.DECLINED, () =>
+        this.handleDeclinedReaction(signup, message, user),
+      )
+      .otherwise(() => {});
   }
 
   private async shouldHandleReaction(
@@ -266,12 +266,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     ]);
   }
 
-  private async handleReactionError(
+  private async handleError(
     error: unknown,
-    user: User,
+    user: User | PartialUser,
     message: Message | PartialMessage,
   ) {
-    sentryReport(error, { userId: user.username });
+    sentryReport(error, {
+      userId: user.username || 'unknown',
+      extra: { message: getMessageLink(message) },
+    });
 
     this.logger.error(error);
 
