@@ -83,7 +83,6 @@ class SendSignupReviewCommandHandler
     screenshot,
     world,
     role,
-    partyType,
   }: SignupDocument) {
     let embed = new EmbedBuilder()
       .setDescription(

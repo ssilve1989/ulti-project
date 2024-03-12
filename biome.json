@@ -13,11 +13,11 @@
     "rules": {
       "all": true,
       "style": {
-        "noNonNullAssertion": "warn",
+        "noNonNullAssertion": "off",
         "useImportType": "off"
       },
       "suspicious": {
-        "noExplicitAny": "warn"
+        "noExplicitAny": "off"
       },
       "nursery": {}
     }
@@ -32,7 +32,16 @@
     },
     "formatter": {
       "quoteStyle": "single"
-    }
+    },
+    "globals": [
+      "vi",
+      "beforeEach",
+      "afterEach",
+      "describe",
+      "test",
+      "expect",
+      "it"
+    ]
   },
   "overrides": [
     {
