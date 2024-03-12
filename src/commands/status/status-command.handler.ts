@@ -1,10 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {
-  APIEmbedField,
-  ChatInputCommandInteraction,
-  EmbedBuilder,
-} from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { EncounterFriendlyDescription } from '../../encounters/encounters.consts.js';
 import {
   SignupDocument,

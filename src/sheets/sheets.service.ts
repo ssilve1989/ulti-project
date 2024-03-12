@@ -3,7 +3,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/node';
 import { PartyType, SignupDocument } from '../firebase/models/signup.model.js';
 import { SignupCompositeKeyProps } from '../firebase/models/signup.model.js';
-import { sentryReport } from '../sentry/sentry.consts.js';
 import { ProgSheetRanges, columnToIndex } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
 
