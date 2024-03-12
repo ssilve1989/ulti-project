@@ -13,6 +13,7 @@
     "check": "biome check --diagnostic-level=error src",
     "commit": "git-cz",
     "commitlint": "commitlint --edit",
+    "docker:build": "docker build . -t ulti-project-bot:latest",
     "format": "biome format . --write",
     "lint": "biome lint --diagnostic-level=error src",
     "lint:ci": "biome ci --diagnostic-level=error src",
