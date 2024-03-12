@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import day from 'dayjs';
 import {
   CollectionReference,
-  FieldValue,
   Firestore,
   Query,
+  Timestamp,
 } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
@@ -33,7 +34,7 @@ class SignupCollection {
   ): Promise<SignupDocument> {
     const key = this.getKeyForSignup(signup);
     const document = this.collection.doc(key);
-    const timestamp = FieldValue.serverTimestamp();
+    const expiresAt = Timestamp.fromDate(day().add(28, 'days').toDate());
     const snapshot = await document.get();
 
     if (snapshot.exists) {
@@ -42,7 +43,7 @@ class SignupCollection {
           ...signup,
           status: SignupStatus.PENDING,
           reviewedBy: null,
-          timestamp,
+          expiresAt,
         },
         {
           merge: true,
@@ -51,7 +52,7 @@ class SignupCollection {
     } else {
       await document.create({
         ...signup,
-        timestamp,
+        expiresAt,
         status: SignupStatus.PENDING,
       });
     }

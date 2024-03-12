@@ -37,12 +37,12 @@ export interface SignupDocument {
   status: SignupStatus;
   // user characters home world
   world: string;
-  timestamp: Timestamp;
+  expiresAt: Timestamp;
 }
 
 export type CreateSignupDocumentProps = Omit<
   SignupDocument,
-  'status' | 'timestamp'
+  'status' | 'expiresAt'
 >;
 
 export type SignupCompositeKeyProps = Pick<
