@@ -1,6 +1,7 @@
 import { Module, OnApplicationBootstrap } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
+import { AppConfig } from '../app.config.js';
 import { DiscordModule } from '../discord/discord.module.js';
 import { SlashCommandsService } from './slash-commands.service.js';
 
@@ -9,10 +10,15 @@ import { SlashCommandsService } from './slash-commands.service.js';
   providers: [SlashCommandsService],
 })
 export class SlashCommandsModule implements OnApplicationBootstrap {
-  constructor(private readonly service: SlashCommandsService) {}
+  constructor(
+    private readonly configService: ConfigService<AppConfig, true>,
+    private readonly service: SlashCommandsService,
+  ) {}
 
   async onApplicationBootstrap() {
     this.service.listenToCommands();
-    await this.service.registerCommands();
+    if (this.configService.get('DISCORD_REFRESH_COMMANDS')) {
+      await this.service.registerCommands();
+    }
   }
 }
