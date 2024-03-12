@@ -4,7 +4,7 @@ import { Encounter } from '../../encounters/encounters.consts.js';
 import { SignupDocument } from '../../firebase/models/signup.model.js';
 
 class SignupInteractionDto
-  implements Omit<SignupDocument, 'status' | 'partyType' | 'timestamp'>
+  implements Omit<SignupDocument, 'status' | 'partyType' | 'expiresAt'>
 {
   @IsString()
   availability: string;
