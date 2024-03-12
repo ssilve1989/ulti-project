@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import day from 'dayjs';
 import {
-  CollectionReference,
+  type CollectionReference,
+  type DocumentData,
   Firestore,
-  Query,
+  type Query,
   Timestamp,
 } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
@@ -152,7 +153,7 @@ class SignupCollection {
       query = query.where(key, '==', value);
     }
 
-    return query as Query<SignupDocument, FirebaseFirestore.DocumentData>;
+    return query as Query<SignupDocument, DocumentData>;
   }
 }
 
