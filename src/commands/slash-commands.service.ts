@@ -32,7 +32,7 @@ class SlashCommandsService {
 
   listenToCommands() {
     this.client.on(Events.InteractionCreate, (interaction) => {
-      if (!interaction.isChatInputCommand() || !interaction.inGuild()) return;
+      if (!(interaction.isChatInputCommand() && interaction.inGuild())) return;
 
       // TODO: This could be more generic somehow
       const command = match(interaction.commandName)
