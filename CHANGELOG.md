@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.2.0](https://github.com/ssilve1989/ulti-project/compare/v1.1.0...v1.2.0) (2024-03-13)
+
+
+### Features
+
+* **lookup:** adds /lookup command to find users availability ([#122](https://github.com/ssilve1989/ulti-project/issues/122)) ([1739ef7](https://github.com/ssilve1989/ulti-project/commit/1739ef707c4763bc67967a4802693165972dbf11))
+* **signups:** allow users to remove their own signups ([#73](https://github.com/ssilve1989/ulti-project/issues/73)) ([a6e3455](https://github.com/ssilve1989/ulti-project/commit/a6e3455fed2d3c95bb4ca27b6623456cce27d2eb))
+* **signups:** require prog point confirmation upon review ([d5c7f74](https://github.com/ssilve1989/ulti-project/commit/d5c7f74aea6663ae075d9bee176f5aabdc32512a))
+
+
+### Bug Fixes
+
+* **encounters:** fixes typos and ordering of prog points ([#112](https://github.com/ssilve1989/ulti-project/issues/112)) ([34d6a42](https://github.com/ssilve1989/ulti-project/commit/34d6a4222d8993e19d7e41cd1fd0dd3f19c59218))
+* fix summary display bug ([45ead89](https://github.com/ssilve1989/ulti-project/commit/45ead8935a88a95fb27b37097a95bd5a73d8d164))
+* **lookup:** make reply ephemeral ([#133](https://github.com/ssilve1989/ulti-project/issues/133)) ([61151cb](https://github.com/ssilve1989/ulti-project/commit/61151cb293bb39042adcb6431e905e3ea851e3a6))
+* **settings:** fixes handling undefined progRoles in settings ([#132](https://github.com/ssilve1989/ulti-project/issues/132)) ([3d687a8](https://github.com/ssilve1989/ulti-project/commit/3d687a8e3f7ffca4abbb759852d66ba585ea16d9))
+* **sheets:** fixes error in prog party removal indicies ([0b0137d](https://github.com/ssilve1989/ulti-project/commit/0b0137dc5c82157c880f991cc3b1d99628b9c590))
+* **signups:** message the signup user not the coordinator on decline ([#115](https://github.com/ssilve1989/ulti-project/issues/115)) ([59768ff](https://github.com/ssilve1989/ulti-project/commit/59768ff6a2785b0d9c2dbaf1d177ca8f74a4cb37))
+* **signups:** upgrade prog-party signup to clear party ([f1ceb06](https://github.com/ssilve1989/ulti-project/commit/f1ceb0605318a8809ae6c8a21800ba37338cc31f))
+
 ## [1.1.0](https://github.com/ssilve1989/ulti-project/compare/v1.0.0...v1.1.0) (2024-02-05)
 
 
