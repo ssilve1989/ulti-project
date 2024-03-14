@@ -8,6 +8,7 @@ export enum SignupStatus {
 }
 
 export enum PartyType {
+  EARLY_PROG_PARTY = 'Early Prog Party',
   PROG_PARTY = 'Prog Party',
   CLEAR_PARTY = 'Clear Party',
 }
