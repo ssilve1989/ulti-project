@@ -1,5 +1,6 @@
 import { IsEnum, IsString, IsUrl, ValidateIf } from 'class-validator';
 import { ToLowercase } from '../../common/decorators/to-lowercase.js';
+import { TransformUrl } from '../../common/decorators/transform-url.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { SignupDocument } from '../../firebase/models/signup.model.js';
 
@@ -32,6 +33,7 @@ class SignupInteractionDto
         'A valid fflogs URL must be provided if no screenshot is attached',
     },
   )
+  @TransformUrl()
   @ValidateIf(({ screenshot }) => !screenshot)
   fflogsLink?: string | null;
 
