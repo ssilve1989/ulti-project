@@ -33,11 +33,20 @@ type ProgPointOption = {
   partyType: PartyType;
 };
 
+// The keys of these objects are what get associated as the values for the Google Sheet/Slash Command options
 export const EncounterProgPoints: Record<
   keyof typeof Encounter,
   Record<string, ProgPointOption>
 > = {
   [Encounter.DSR]: {
+    Strength: {
+      label: 'Phase 2: Strength of the Ward',
+      partyType: PartyType.EARLY_PROG_PARTY,
+    },
+    Sanctity: {
+      label: 'Phase 2: Sanctity of the Ward',
+      partyType: PartyType.EARLY_PROG_PARTY,
+    },
     Nidhogg: {
       label: 'Phase 3: Nidhogg',
       partyType: PartyType.PROG_PARTY,
@@ -104,6 +113,10 @@ export const EncounterProgPoints: Record<
     },
   },
   [Encounter.TEA]: {
+    'Limit Cut': {
+      label: 'Phase 1: Limit Cut',
+      partyType: PartyType.EARLY_PROG_PARTY,
+    },
     BJCC: {
       label: 'Phase 2: BJCC',
       partyType: PartyType.PROG_PARTY,
@@ -138,6 +151,30 @@ export const EncounterProgPoints: Record<
     },
   },
   [Encounter.TOP]: {
+    'P2 Party Synergy': {
+      label: 'Phase 2: Party Synergy',
+      partyType: PartyType.EARLY_PROG_PARTY,
+    },
+    'P2 Limitless': {
+      label: 'Phase 2: Limitless Synergy',
+      partyType: PartyType.EARLY_PROG_PARTY,
+    },
+    'P3 Transition': {
+      label: 'Phase 3: Transition',
+      partyType: PartyType.EARLY_PROG_PARTY,
+    },
+    'P3 Hello World': {
+      label: 'Phase 3: Hello World',
+      partyType: PartyType.EARLY_PROG_PARTY,
+    },
+    'P3 Monitors': {
+      label: 'Phase 3: Monitors',
+      partyType: PartyType.EARLY_PROG_PARTY,
+    },
+    'P3 Enrage': {
+      label: 'Phase 3: Enrage',
+      partyType: PartyType.EARLY_PROG_PARTY,
+    },
     P4: {
       label: 'Phase 4: Blue Screen',
       partyType: PartyType.PROG_PARTY,
@@ -184,10 +221,9 @@ export const EncounterProgPoints: Record<
     },
   },
   [Encounter.UCOB]: {
-    Nael: { label: 'Phase 2: Nael', partyType: PartyType.PROG_PARTY },
+    Nael: { label: 'Phase 2: Nael', partyType: PartyType.EARLY_PROG_PARTY },
     QMT: {
       label: 'Phase 3: Quickmarch Trio',
-
       partyType: PartyType.PROG_PARTY,
     },
     BFT: {
@@ -221,6 +257,10 @@ export const EncounterProgPoints: Record<
     },
   },
   [Encounter.UWU]: {
+    Ifrit: {
+      label: 'Phase 2: Ifrit',
+      partyType: PartyType.EARLY_PROG_PARTY,
+    },
     Titan: {
       label: 'Phase 3: Titan',
       partyType: PartyType.PROG_PARTY,
