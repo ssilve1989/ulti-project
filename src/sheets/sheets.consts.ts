@@ -2,6 +2,8 @@ import { Encounter } from '../encounters/encounters.consts.js';
 
 export const SHEETS_CLIENT = '@goolge/sheets-client';
 
+export const PROG_SHEET_STARTING_ROW = 15; // the row where entries start on the prog sheet
+
 // brittle, requires to be in sync with the sheet
 export const ProgSheetRanges = {
   [Encounter.DSR]: {

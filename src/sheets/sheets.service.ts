@@ -1,11 +1,23 @@
 import { sheets_v4 } from '@googleapis/sheets';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigType } from '@nestjs/config';
 import * as Sentry from '@sentry/node';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
 import { PartyType, SignupDocument } from '../firebase/models/signup.model.js';
 import { SignupCompositeKeyProps } from '../firebase/models/signup.model.js';
-import { ProgSheetRanges, columnToIndex } from './sheets.consts.js';
+import { sheetsConfig } from './sheets.config.js';
+import {
+  PROG_SHEET_STARTING_ROW,
+  ProgSheetRanges,
+  columnToIndex,
+} from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
+
+interface SheetOptions {
+  spreadsheetId: string;
+  sheetName: string;
+  removeFrom?: string;
+}
 
 /**
  * This module depends on knowing the structure of the spreadsheet
@@ -16,13 +28,12 @@ import { InjectSheetsClient } from './sheets.decorators.js';
 @Injectable()
 class SheetsService {
   private readonly logger: Logger = new Logger(SheetsService.name);
-  // TODO: hardcoded sheet name, but should be configurable
-  private static readonly PROG_SHEET_NAME = 'Ulti Proj: Prog Parties';
-  private static readonly PROG_SHEET_STARTING_ROW = 15; // the row where entries start on the prog sheet
   private readonly queue = new AsyncQueue();
 
   constructor(
     @InjectSheetsClient() private readonly client: sheets_v4.Sheets,
+    @Inject(sheetsConfig.KEY)
+    private readonly config: ConfigType<typeof sheetsConfig>,
   ) {}
 
   /**
@@ -35,12 +46,14 @@ class SheetsService {
     { partyType, ...signup }: SignupDocument,
     spreadsheetId: string,
   ) {
+    const { SHEET_EARLY_PROG_NAME, SHEET_PROG_NAME } = this.config;
     switch (partyType) {
       // There can be race conditions with multiple concurrent calls out to Google Sheets
       // that can result in indeterminstic writes to the sheet. To work-around this, we use a
       // naive async task queue to wrap the operators, so only one task can run at a time.
       // There is a potential for the queue to build up faster than it can process, but we don't
       // expect to have that kind of scale. A future solution would be to use a robust task queue like BullMQ
+
       case PartyType.CLEAR_PARTY:
         return this.queue.add(() =>
           this.upsertClearParty(signup, spreadsheetId),
@@ -48,13 +61,26 @@ class SheetsService {
 
       case PartyType.PROG_PARTY:
         return this.queue.add(() =>
-          this.upsertProgParty(signup, spreadsheetId),
+          this.upsertProgParty(signup, {
+            spreadsheetId,
+            sheetName: SHEET_PROG_NAME,
+            removeFrom: SHEET_EARLY_PROG_NAME,
+          }),
         );
 
-      default:
-        this.logger.warn(
-          `unknown party type: ${partyType} for user: ${signup.discordId}. Not appending to any Google Sheet`,
+      case PartyType.EARLY_PROG_PARTY:
+        return this.queue.add(() =>
+          this.upsertProgParty(signup, {
+            spreadsheetId,
+            sheetName: this.config.SHEET_EARLY_PROG_NAME,
+          }),
         );
+
+      default: {
+        const msg = `unknown party type: ${partyType} for user: ${signup.discordId}. Not appending to any Google Sheet`;
+        Sentry.captureMessage(msg);
+        this.logger.warn(msg);
+      }
     }
   }
 
@@ -70,11 +96,17 @@ class SheetsService {
   ) {
     const requests = await Promise.all([
       this.createRemoveClearSignupRequest(signup, spreadsheetId),
-      this.createRemoveProgSignupRequest(signup, spreadsheetId),
+      this.createRemoveProgSignupRequest(signup, {
+        spreadsheetId,
+        sheetName: this.config.SHEET_PROG_NAME,
+      }),
+      this.createRemoveProgSignupRequest(signup, {
+        spreadsheetId,
+        sheetName: this.config.SHEET_EARLY_PROG_NAME,
+      }),
     ]);
 
     const filtered = requests.filter(Boolean) as sheets_v4.Schema$Request[];
-
     return filtered.length && this.batchUpdate(spreadsheetId, filtered);
   }
 
@@ -104,12 +136,12 @@ class SheetsService {
       character,
       world,
     }: SignupCompositeKeyProps & Pick<SignupDocument, 'character' | 'world'>,
-    spreadsheetId: string,
+    { spreadsheetId, sheetName }: SheetOptions,
   ): Promise<sheets_v4.Schema$Request | undefined> {
     const range = ProgSheetRanges[encounter];
     const progPartyValues = await this.getSheetValues({
       spreadsheetId,
-      range: `${SheetsService.PROG_SHEET_NAME}!${range.start}:${range.end}`,
+      range: `${sheetName}!${range.start}:${range.end}`,
     });
 
     const progRowIndex = this.findCharacterRow(
@@ -119,10 +151,7 @@ class SheetsService {
     );
 
     if (progRowIndex !== -1) {
-      const sheetId = await this.getSheetIdByName(
-        spreadsheetId,
-        SheetsService.PROG_SHEET_NAME,
-      );
+      const sheetId = await this.getSheetIdByName(spreadsheetId, sheetName);
 
       if (sheetId != null) {
         return {
@@ -178,9 +207,9 @@ class SheetsService {
     }
   }
 
-  private createHyperLinkCell(name: string, url: string): string {
-    return `=HYPERLINK("${url}","${name}")`;
-  }
+  // private createHyperLinkCell(name: string, url: string): string {
+  //   return `=HYPERLINK("${url}","${name}")`;
+  // }
 
   private async upsertClearParty(
     {
@@ -194,16 +223,23 @@ class SheetsService {
     spreadsheetId: string,
   ) {
     const cellValues = [character, world, role, progPoint];
+    const { SHEET_EARLY_PROG_NAME, SHEET_PROG_NAME } = this.config;
+    // need to check if we should remove prior signups from either earlyprog or mid prog sheet
+    const requests = [];
 
-    // remove prog signup if it exists
-    const request = await this.createRemoveProgSignupRequest(
-      { encounter, character, world, discordId },
-      spreadsheetId,
-    );
+    for (const sheetName of [SHEET_EARLY_PROG_NAME, SHEET_PROG_NAME]) {
+      const request = await this.createRemoveProgSignupRequest(
+        { encounter, character, world, discordId },
+        { spreadsheetId, sheetName },
+      );
+      if (request) {
+        requests.push(request);
+      }
+    }
 
-    if (request) {
+    if (requests.length > 0) {
       // has to be a batchUpdate call to do in-line removal?
-      await this.batchUpdate(spreadsheetId, [request]);
+      await this.batchUpdate(spreadsheetId, requests);
     }
 
     const sheetValues = await this.getSheetValues({
@@ -225,6 +261,7 @@ class SheetsService {
         'append',
       );
     }
+
     return this.updateSheet(
       spreadsheetId,
       `${encounter}!C${row + 1}:F${row + 1}`,
@@ -234,21 +271,31 @@ class SheetsService {
   }
 
   private async upsertProgParty(
-    {
-      encounter,
-      character,
-      world,
-      role,
-      progPoint = '',
-    }: Omit<SignupDocument, 'partyType'>,
-    spreadsheetId: string,
+    signup: SignupDocument,
+    { sheetName, spreadsheetId, removeFrom }: SheetOptions,
   ) {
+    // if there is a sheet to check for removal, like going from early prog to prog, check and remove data from that sheet
+    if (removeFrom) {
+      this.logger.debug(`Removing from sheet: ${removeFrom}`);
+      const request = await this.createRemoveProgSignupRequest(signup, {
+        spreadsheetId,
+        sheetName: removeFrom,
+      });
+
+      if (request) {
+        await this.batchUpdate(spreadsheetId, [request]);
+      }
+    }
+
+    const { encounter, character, world, role, progPoint = '' } = signup;
     const range = ProgSheetRanges[encounter];
 
     const values = await this.getSheetValues({
       spreadsheetId,
-      range: `${SheetsService.PROG_SHEET_NAME}!${range.start}:${range.end}`,
+      range: `${sheetName}!${range.start}:${range.end}`,
     });
+
+    this.logger.debug(`updating sheet: ${sheetName} with range ${range}`);
 
     const row = this.findCharacterRow(
       values,
@@ -258,30 +305,26 @@ class SheetsService {
 
     // This is needed to find the right row in the sub-group to update. Append will not work
     // with how the prog sheet is setup visually with multiple column groups spanning different row lengths
-    const rowOffset = values
-      ? values.length + 1
-      : SheetsService.PROG_SHEET_STARTING_ROW;
+    const rowOffset = values ? values.length + 1 : PROG_SHEET_STARTING_ROW;
 
     const cellValues = [character, world, role, progPoint];
 
     const updateRange =
       row === -1
-        ? `${SheetsService.PROG_SHEET_NAME}!${range.start}${rowOffset}:${range.end}`
-        : `${SheetsService.PROG_SHEET_NAME}!${range.start}${row + 1}:${
-            range.end
-          }${row + 1}`;
+        ? `${sheetName}!${range.start}${rowOffset}:${range.end}`
+        : `${sheetName}!${range.start}${row + 1}:${range.end}${row + 1}`;
 
     return this.updateSheet(spreadsheetId, updateRange, cellValues, 'update');
   }
 
-  private getProgProof({
-    fflogsLink,
-    screenshot,
-  }: Pick<SignupDocument, 'fflogsLink' | 'screenshot'>) {
-    return fflogsLink || screenshot
-      ? this.createHyperLinkCell('Proof of Prog', (fflogsLink || screenshot)!)
-      : '';
-  }
+  // private getProgProof({
+  //   fflogsLink,
+  //   screenshot,
+  // }: Pick<SignupDocument, 'fflogsLink' | 'screenshot'>) {
+  //   return fflogsLink || screenshot
+  //     ? this.createHyperLinkCell('Proof of Prog', (fflogsLink || screenshot)!)
+  //     : '';
+  // }
 
   private async getSheetValues({
     spreadsheetId,
