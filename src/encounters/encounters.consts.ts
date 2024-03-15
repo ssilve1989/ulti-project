@@ -74,24 +74,28 @@ export const EncounterProgPoints: Record<
       label: 'Phase 6: Enrage',
       partyType: PartyType.CLEAR_PARTY,
     },
-    AM1: {
+    'Alternate End': {
+      label: 'Phase 6: Alternate End',
+      partyType: PartyType.CLEAR_PARTY,
+    },
+    'Exa #1': {
+      label: 'Phase 7: Exaflare 1',
+      partyType: PartyType.CLEAR_PARTY,
+    },
+    'Akh Morn #1': {
       label: 'Phase 7: Akh Morn 1',
       partyType: PartyType.CLEAR_PARTY,
     },
-    'Gigaflare 1': {
+    'Giga Flare #1': {
       label: 'Phase 7: Gigaflare 1',
       partyType: PartyType.CLEAR_PARTY,
     },
-    AM2: {
+    'Akh Morn #2': {
       label: 'Phase 7: Akh Morn 2',
       partyType: PartyType.CLEAR_PARTY,
     },
-    'Gigaflare 2': {
+    'Giga Flare #2': {
       label: 'Phase 7: Gigaflare 2',
-      partyType: PartyType.CLEAR_PARTY,
-    },
-    AM3: {
-      label: 'Phase 7: Akh Morn 3',
       partyType: PartyType.CLEAR_PARTY,
     },
     'P7 Enrage': {
@@ -120,15 +124,15 @@ export const EncounterProgPoints: Record<
       label: 'Phase 4: Final Word',
       partyType: PartyType.CLEAR_PARTY,
     },
-    'Fate Cal A': {
+    'Fate Cal: A': {
       label: 'Phase 4: Fate Calibration (Alpha)',
       partyType: PartyType.CLEAR_PARTY,
     },
-    'Fate Cal B': {
+    'Fate Cal: B': {
       label: 'Phase 4: Fate Calibration (Beta)',
       partyType: PartyType.CLEAR_PARTY,
     },
-    Trines: {
+    'Trines (Enrage)': {
       label: 'Phase 4: Trines',
       partyType: PartyType.CLEAR_PARTY,
     },
@@ -153,6 +157,30 @@ export const EncounterProgPoints: Record<
     'P5 Enrage': {
       label: 'Phase 5: Enrage',
       partyType: PartyType.PROG_PARTY,
+    },
+    'P6 Exasquares 1': {
+      label: 'Phase 6: Exasquares 1',
+      partyType: PartyType.PROG_PARTY,
+    },
+    'P6 Cosmo Dive 1': {
+      label: 'Phase 6: Cosmo Dive 1',
+      partyType: PartyType.PROG_PARTY,
+    },
+    'P6 Wave Cannon 1': {
+      label: 'Phase 6: Wave Cannon 1',
+      partyType: PartyType.CLEAR_PARTY,
+    },
+    'P6 Wave Cannon 2': {
+      label: 'Phase 6: Wave Cannon 2',
+      partyType: PartyType.CLEAR_PARTY,
+    },
+    'P6 Cosmo Meteor': {
+      label: 'Phase 6: Cosmo Meteor',
+      partyType: PartyType.CLEAR_PARTY,
+    },
+    'P6 Enrage: ': {
+      label: 'Phase 6: Enrage',
+      partyType: PartyType.CLEAR_PARTY,
     },
   },
   [Encounter.UCOB]: {
@@ -183,8 +211,12 @@ export const EncounterProgPoints: Record<
       partyType: PartyType.PROG_PARTY,
     },
     Adds: { label: 'Phase 4: Adds', partyType: PartyType.CLEAR_PARTY },
-    Golden: {
+    'Golden Bahamut': {
       label: 'Phase 5: Golden Bahamut',
+      partyType: PartyType.CLEAR_PARTY,
+    },
+    Enrage: {
+      label: 'Phase 5: Enrage',
       partyType: PartyType.CLEAR_PARTY,
     },
   },
@@ -207,6 +239,10 @@ export const EncounterProgPoints: Record<
     },
     'Primal Roulette': {
       label: 'Phase 4: Primal Roulette',
+      partyType: PartyType.CLEAR_PARTY,
+    },
+    Enrage: {
+      label: 'Phase 4: Enrage',
       partyType: PartyType.CLEAR_PARTY,
     },
   },
