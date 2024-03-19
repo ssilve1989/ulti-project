@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.2.1](https://github.com/ssilve1989/ulti-project/compare/v1.2.0...v1.2.1) (2024-03-19)
+
+
+### Features
+
+* **signups:** support early prog ([#160](https://github.com/ssilve1989/ulti-project/issues/160)) ([22b284b](https://github.com/ssilve1989/ulti-project/commit/22b284b912754f58fb25657d14ff14b4d69b86c0))
+
+
+### Bug Fixes
+
+* **signups:** handle urls missing protocol ([#159](https://github.com/ssilve1989/ulti-project/issues/159)) ([1638b53](https://github.com/ssilve1989/ulti-project/commit/1638b538196f05a0e9a5ec3320280c4b37c99b17))
+
+
+### Miscellaneous Chores
+
+* release 1.2.1 ([fef9134](https://github.com/ssilve1989/ulti-project/commit/fef91345f606ae5b73e9b20cb5c581d664c5decd))
+
 ## [1.2.0](https://github.com/ssilve1989/ulti-project/compare/v1.1.0...v1.2.0) (2024-03-13)
 
 
