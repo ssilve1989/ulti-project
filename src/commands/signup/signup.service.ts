@@ -42,6 +42,7 @@ import { SettingsCollection } from '../../firebase/collections/settings-collecti
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SettingsDocument } from '../../firebase/models/settings.model.js';
 import {
+  PartyType,
   SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
@@ -235,7 +236,12 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
           content: `<@${confirmedSignup.discordId}> Signup Approved!`,
           embeds: [embed],
         }),
-      this.assignProgRole(message.guild.id, settings, signup),
+      this.assignProgRole({
+        guildId: message.guild.id,
+        settings,
+        signup,
+        partyType,
+      }),
     ]);
   }
 
@@ -371,13 +377,23 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     }
   }
 
-  private async assignProgRole(
-    guildId: string,
-    settings: Pick<SettingsDocument, 'progRoles'>,
-    { encounter, discordId }: Pick<SignupDocument, 'encounter' | 'discordId'>,
-  ) {
+  private async assignProgRole({
+    guildId,
+    settings,
+    signup: { encounter, discordId },
+    partyType,
+  }: {
+    signup: Pick<SignupDocument, 'encounter' | 'discordId'>;
+    settings: Pick<SettingsDocument, 'progRoles'>;
+    guildId: string;
+    partyType?: PartyType;
+  }) {
     const role = settings.progRoles?.[encounter];
-    if (!role) return;
+    const isValidPartyType =
+      partyType === PartyType.EARLY_PROG_PARTY ||
+      partyType === PartyType.PROG_PARTY;
+
+    if (!(role && isValidPartyType)) return;
 
     try {
       const member = await this.discordService.getGuildMember(
