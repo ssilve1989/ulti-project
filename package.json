@@ -42,7 +42,7 @@
     "dayjs": "^1.11.10",
     "discord.js": "^14.14.1",
     "firebase-admin": "^12.0.0",
-    "google-auth-library": "^9.6.3",
+    "google-auth-library": "^9.7.0",
     "joi": "^17.12.2",
     "nestjs-pino": "^4.0.0",
     "pino-http": "^9.0.0",
