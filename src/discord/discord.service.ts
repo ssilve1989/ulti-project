@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Client, DMChannel } from 'discord.js';
 import { InjectDiscordClient } from './discord.decorators.js';
+import {
+  DiscordChannelRequestOptions,
+  DiscordUserRequestOptions,
+} from './discord.interfaces.js';
 
 @Injectable()
 class DiscordService {
@@ -25,7 +29,7 @@ class DiscordService {
   public async getTextChannel({
     guildId,
     channelId,
-  }: { guildId: string; channelId: string }) {
+  }: DiscordChannelRequestOptions) {
     const guild = await this.client.guilds.fetch(guildId);
     const channel = await guild.channels.fetch(channelId);
     return channel?.isTextBased() ? channel : null;
@@ -36,10 +40,7 @@ class DiscordService {
    * @param userId
    * @returns
    */
-  public async getDisplayName({
-    userId,
-    guildId,
-  }: { guildId: string; userId: string }) {
+  public async getDisplayName({ userId, guildId }: DiscordUserRequestOptions) {
     const guild = await this.client.guilds.fetch(guildId);
     const member = await guild.members.fetch(userId);
     return member.displayName;
@@ -49,10 +50,20 @@ class DiscordService {
     userId,
     guildId,
     roleId,
-  }: { guildId: string; userId: string; roleId: string }) {
+  }: DiscordUserRequestOptions & { roleId: string }) {
     const guild = await this.client.guilds.fetch(guildId);
     const member = await guild.members.fetch(userId);
     return member.roles.cache.has(roleId);
+  }
+
+  public async removeRole({
+    userId,
+    guildId,
+    roleId,
+  }: DiscordUserRequestOptions & { roleId: string }) {
+    const guild = await this.client.guilds.fetch(guildId);
+    const member = await guild.members.fetch(userId);
+    await member.roles.remove(roleId);
   }
 }
 

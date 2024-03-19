@@ -93,7 +93,7 @@ class SheetsService {
     signup: SignupCompositeKeyProps &
       Pick<SignupDocument, 'character' | 'world'>,
     spreadsheetId: string,
-  ) {
+  ): Promise<void> {
     const requests = await Promise.all([
       this.createRemoveClearSignupRequest(signup, spreadsheetId),
       this.createRemoveProgSignupRequest(signup, {
@@ -107,7 +107,10 @@ class SheetsService {
     ]);
 
     const filtered = requests.filter(Boolean) as sheets_v4.Schema$Request[];
-    return filtered.length && this.batchUpdate(spreadsheetId, filtered);
+
+    if (filtered.length) {
+      await this.queue.add(() => this.batchUpdate(spreadsheetId, filtered));
+    }
   }
 
   /**

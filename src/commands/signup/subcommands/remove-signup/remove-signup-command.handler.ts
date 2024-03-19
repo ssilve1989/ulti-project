@@ -55,7 +55,17 @@ class RemoveSignupCommandHandler
       await this.sheetsService.removeSignup(options, spreadsheetId);
     }
 
-    await this.signupsRepository.removeSignup(options);
+    const { discordId } = await this.signupsRepository.removeSignup(options);
+
+    const roleId = settings.progRoles?.[options.encounter];
+
+    if (roleId) {
+      await this.discordService.removeRole({
+        guildId: interaction.guildId,
+        roleId,
+        userId: discordId,
+      });
+    }
 
     await interaction.editReply('Signup removed');
   }

@@ -131,9 +131,13 @@ class SignupCollection {
     });
   }
 
-  public removeSignup(signup: SignupCompositeKey) {
+  public async removeSignup(
+    signup: SignupCompositeKey,
+  ): Promise<Pick<SignupDocument, 'discordId'>> {
     const key = this.getKeyForSignup(signup);
-    return this.collection.doc(key).delete();
+    const doc = await this.findOne(signup);
+    await this.collection.doc(key).delete();
+    return { discordId: doc.discordId };
   }
 
   private getKeyForSignup({ discordId, encounter }: SignupCompositeKey) {
