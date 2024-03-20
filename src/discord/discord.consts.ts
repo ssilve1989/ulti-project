@@ -6,10 +6,11 @@ import {
 } from 'discord.js';
 
 export const INTENTS = [
-  GatewayIntentBits.DirectMessages,
-  GatewayIntentBits.GuildMembers,
-  GatewayIntentBits.GuildMessages,
-  GatewayIntentBits.GuildPresences,
+  // GatewayIntentBits.DirectMessages,
+  // GatewayIntentBits.GuildMembers,
+  // GatewayIntentBits.GuildMessages,
+  // GatewayIntentBits.GuildPresences,
+  // GatewayIntentBits.MessageContent,
   /**
    * The Guilds intent populates and maintains the guilds, channels and guild.roles caches, plus thread-related events.
    * If this intent is not enabled, data for interactions and messages
@@ -17,7 +18,6 @@ export const INTENTS = [
    */
   GatewayIntentBits.Guilds,
   GatewayIntentBits.GuildMessageReactions,
-  GatewayIntentBits.MessageContent,
 ];
 
 export const PARTIALS = [Partials.Message, Partials.Channel, Partials.Reaction];
@@ -34,3 +34,13 @@ export function getMessageLink({
 }: Message | PartialMessage) {
   return `https://discord.com/channels/${guildId}/${channelId}/${id}`;
 }
+
+/**
+ * the amount of seconds in each unit of time
+ */
+export const CACHE_TIME_VALUES = {
+  SECOND: 1,
+  MINUTE: 60,
+  HOUR: 3600,
+  DAY: 86400,
+};

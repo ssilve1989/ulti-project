@@ -1,6 +1,6 @@
 import { PartialMessageReaction, PartialUser } from 'discord.js';
 import { createMock } from '../../test/create-mock.js';
-import { hydrateReaction, hydrateUser } from './discord.helpers.js';
+import { CacheTime, hydrateReaction, hydrateUser } from './discord.helpers.js';
 
 describe('Discord Helper Methods', () => {
   it('hydrates a partial reaction', async () => {
@@ -45,5 +45,13 @@ describe('Discord Helper Methods', () => {
     });
 
     expect(hydrateUser(user)).resolves.toBe(user);
+  });
+
+  it('returns the right value in seconds for a requested cache time unit', () => {
+    expect(CacheTime(1, 'seconds')).toBe(1);
+    expect(CacheTime(1, 'minutes')).toBe(60);
+    expect(CacheTime(1, 'hours')).toBe(3600);
+    expect(CacheTime(1, 'days')).toBe(86400);
+    expect(CacheTime(2, 'minutes')).toBe(120);
   });
 });
