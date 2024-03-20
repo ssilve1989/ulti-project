@@ -1,12 +1,10 @@
 import { Test } from '@nestjs/testing';
-import { Channel, Client, TextChannel } from 'discord.js';
+import { Client, TextChannel } from 'discord.js';
 import { Mock } from 'vitest';
 import { DeepMocked, createMock } from '../../../../../test/create-mock.js';
 import { DISCORD_CLIENT } from '../../../../discord/discord.decorators.js';
-import {
-  InvalidReviewChannelException,
-  MissingChannelException,
-} from '../../../../discord/discord.exceptions.js';
+import { MissingChannelException } from '../../../../discord/discord.exceptions.js';
+import { DiscordService } from '../../../../discord/discord.service.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import {
@@ -18,6 +16,8 @@ import { SendSignupReviewCommandHandler } from './send-signup-review-command.han
 describe('Send Signup Review Command Handler', () => {
   let handler: SendSignupReviewCommandHandler;
   let settingsCollection: DeepMocked<SettingsCollection>;
+  let discordServiceMock: DeepMocked<DiscordService>;
+
   let get: Mock;
   const signup = createMock<SignupDocument>({
     availability: 'baz',
@@ -59,6 +59,7 @@ describe('Send Signup Review Command Handler', () => {
       .compile();
 
     handler = fixture.get(SendSignupReviewCommandHandler);
+    discordServiceMock = fixture.get(DiscordService);
     settingsCollection = fixture.get(SettingsCollection);
   });
 
@@ -90,6 +91,8 @@ describe('Send Signup Review Command Handler', () => {
 
   it('throws MissingChannelException if the channel does not exist in the guild', () => {
     settingsCollection.getReviewChannel.mockResolvedValueOnce('#foo');
+    discordServiceMock.getTextChannel.mockResolvedValueOnce(null);
+
     get.mockReturnValueOnce(undefined);
 
     expect(() =>
@@ -104,23 +107,5 @@ describe('Send Signup Review Command Handler', () => {
         guildId: '',
       }),
     ).rejects.toThrow(MissingChannelException);
-  });
-
-  it('throws InvalidReviewChannelException if the channel is not a text channel', () => {
-    settingsCollection.getReviewChannel.mockResolvedValueOnce('#foo');
-    get.mockReturnValueOnce(createMock<Channel>({ isTextBased: () => false }));
-
-    expect(() =>
-      handler.execute({
-        signup: createMock<SignupDocument>({
-          encounter: Encounter.DSR,
-          status: SignupStatus.PENDING,
-          character: 'foo',
-          world: 'bar',
-          availability: 'baz',
-        }),
-        guildId: '',
-      }),
-    ).rejects.toThrow(InvalidReviewChannelException);
   });
 });
