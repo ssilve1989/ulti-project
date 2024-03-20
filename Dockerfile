@@ -26,12 +26,8 @@ FROM base
 
 ENV FORCE_COLOR=1
 
-# needed to upload sourcemaps to sentry
-RUN apt-get update
-RUN apt-get install ca-certificates -y
-
 COPY --from=prod-deps /app/node_modules /app/node_modules
 COPY --from=build /app/dist /app/dist
 
 EXPOSE 3000
-CMD [ "pnpm", "start:prod" ]
+CMD [ "node", "dist/main" ]
