@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/ssilve1989/ulti-project/compare/v1.2.1...v1.2.2) (2024-03-20)
+
+
+### Performance Improvements
+
+* adjust internal discord cache parameters ([#170](https://github.com/ssilve1989/ulti-project/issues/170)) ([ec36c25](https://github.com/ssilve1989/ulti-project/commit/ec36c25c9ec875d2d65096defd9ba2ca1a41d334))
+
 ## [1.2.1](https://github.com/ssilve1989/ulti-project/compare/v1.2.0...v1.2.1) (2024-03-19)
 
 
