@@ -5,11 +5,13 @@ import {
   OnApplicationShutdown,
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ActivityType, Client, Events } from 'discord.js';
+import { ActivityType, Client, Events, Options } from 'discord.js';
 import { first, firstValueFrom, fromEvent } from 'rxjs';
 import { AppConfig } from '../app.config.js';
+import { sentryReport } from '../sentry/sentry.consts.js';
 import { INTENTS, PARTIALS } from './discord.consts.js';
 import { DISCORD_CLIENT, InjectDiscordClient } from './discord.decorators.js';
+import { CacheTime } from './discord.helpers.js';
 import { DiscordService } from './discord.service.js';
 
 @Module({
@@ -24,10 +26,40 @@ import { DiscordService } from './discord.service.js';
         const client = new Client({
           intents: INTENTS,
           partials: PARTIALS,
+          makeCache: Options.cacheWithLimits({
+            ...Options.DefaultMakeCacheSettings,
+            PresenceManager: 0,
+            DMMessageManager: 0,
+            GuildTextThreadManager: 0,
+          }),
+          sweepers: {
+            ...Options.DefaultSweeperSettings,
+            guildMembers: {
+              interval: CacheTime(2, 'hours'),
+              filter: () => (member) => member.id !== member.client.user.id,
+            },
+            messages: {
+              // check for messages to sweep every 1 hours
+              interval: CacheTime(2, 'hours'),
+              // remove messages than are older than 12 hours
+              lifetime: CacheTime(12, 'hours'),
+            },
+            reactions: {
+              interval: CacheTime(2, 'hours'),
+              // remove all reactions on sweep
+              filter: () => () => true,
+            },
+            users: {
+              interval: CacheTime(2, 'hours'),
+              // remove all users that are not our own bot.
+              filter: () => (user) => user.id !== user.client.user.id,
+            },
+          },
         });
         const started$ = fromEvent(client, Events.ClientReady).pipe(first());
 
-        client.once('error' as any, (error) => {
+        client.once('error', (error) => {
+          sentryReport(error);
           logger.error(error);
         });
 
@@ -41,12 +73,22 @@ import { DiscordService } from './discord.service.js';
   exports: [DISCORD_CLIENT, DiscordService],
 })
 class DiscordModule implements OnApplicationBootstrap, OnApplicationShutdown {
+  private readonly logger = new Logger(DiscordModule.name);
+
   constructor(@InjectDiscordClient() private client: Client) {}
 
   onApplicationBootstrap() {
     this.client.user?.setActivity({
       type: ActivityType.Listening,
       name: 'Slashcommands!',
+    });
+
+    fromEvent(this.client, Events.CacheSweep).subscribe({
+      next: (msg) => this.logger.log(msg),
+      error: (err) => {
+        sentryReport(err);
+        this.logger.error(err);
+      },
     });
   }
 

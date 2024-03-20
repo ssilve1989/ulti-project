@@ -1,12 +1,9 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { capitalCase } from 'change-case';
-import { Client, EmbedBuilder } from 'discord.js';
-import { InjectDiscordClient } from '../../../../discord/discord.decorators.js';
-import {
-  InvalidReviewChannelException,
-  MissingChannelException,
-} from '../../../../discord/discord.exceptions.js';
+import { EmbedBuilder } from 'discord.js';
+import { MissingChannelException } from '../../../../discord/discord.exceptions.js';
+import { DiscordService } from '../../../../discord/discord.service.js';
 import { EncounterFriendlyDescription } from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
@@ -21,7 +18,7 @@ class SendSignupReviewCommandHandler
   private readonly logger = new Logger(SendSignupReviewCommandHandler.name);
 
   constructor(
-    @InjectDiscordClient() private readonly client: Client,
+    private readonly discordService: DiscordService,
     private readonly repository: SignupCollection,
     private readonly settingsCollection: SettingsCollection,
   ) {}
@@ -48,16 +45,13 @@ class SendSignupReviewCommandHandler
     channelId: string,
     guildId: string,
   ) {
-    const channel = this.client.guilds.cache
-      .get(guildId)
-      ?.channels.cache.get(channelId);
+    const channel = await this.discordService.getTextChannel({
+      guildId,
+      channelId,
+    });
 
     if (!channel) {
       throw new MissingChannelException(channelId, guildId);
-    }
-
-    if (!channel.isTextBased()) {
-      throw new InvalidReviewChannelException(channel.name, guildId);
     }
 
     const embed = this.createSignupApprovalEmbed(signup);
