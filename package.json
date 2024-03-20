@@ -1,6 +1,6 @@
 {
   "name": "ulti-project",
-  "packageManager": "pnpm@8.11.0",
+  "packageManager": "pnpm@8.15.5+sha256.4b4efa12490e5055d59b9b9fc9438b7d581a6b7af3b5675eb5c5f447cee1a589",
   "version": "1.2.2",
   "description": "Ulti-Project Discord Bot",
   "author": "",
@@ -21,7 +21,6 @@
     "start:debug": "nest start --debug --watch",
     "start:dev": "nest start --watch",
     "start": "node dist/main",
-    "start:prod": "pnpm sentry:sourcemaps && pnpm start",
     "test:ci": "CI=true vitest run --coverage",
     "test:cov": "vitest run --coverage",
     "test": "vitest",
