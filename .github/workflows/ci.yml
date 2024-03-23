@@ -3,31 +3,31 @@ on: [push, pull_request]
 
 jobs:
   test:
-        runs-on: ubuntu-latest
-        # runs-on: ${{ matrix.os }}
-        # strategy:
-        #   matrix:
-        #     os: [macos-latest, ubuntu-latest, windows-latest]
-        steps:
-        - uses: actions/checkout@v4
-        - uses: pnpm/action-setup@v2
-        - uses: actions/setup-node@v4
-          with:
-            # File containing the version Spec of the version to use.  Examples: .nvmrc, .node-version, .tool-versions.
-            # If node-version and node-version-file are both provided the action will use version from node-version. 
-            node-version-file: '.nvmrc'
+    runs-on: ubuntu-latest
+    # runs-on: ${{ matrix.os }}
+    # strategy:
+    #   matrix:
+    #     os: [macos-latest, ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3.0.0
+      - uses: actions/setup-node@v4
+        with:
+          # File containing the version Spec of the version to use.  Examples: .nvmrc, .node-version, .tool-versions.
+          # If node-version and node-version-file are both provided the action will use version from node-version.
+          node-version-file: '.nvmrc'
 
-            # Used to specify a package manager for caching in the default directory. Supported values: npm, yarn, pnpm.
-            # Package manager should be pre-installed
-            # Default: ''
-            cache: 'pnpm'
-        - run: pnpm install
-        - run: pnpm build
-        - run: pnpm lint:ci
-        - run: pnpm test:ci
-        - name: Upload coverage reports to Codecov
-          uses: codecov/codecov-action@v3
-          with: 
-            files: ./coverage/coverage-final.json
-          env:
-            CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          # Used to specify a package manager for caching in the default directory. Supported values: npm, yarn, pnpm.
+          # Package manager should be pre-installed
+          # Default: ''
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm build
+      - run: pnpm lint:ci
+      - run: pnpm test:ci
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/coverage-final.json
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
