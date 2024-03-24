@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.6](https://github.com/ssilve1989/ulti-project/compare/v1.2.5...v1.2.6) (2024-03-23)
+
+
+### Bug Fixes
+
+* **signups:** assert casing of character is Capital Case ([#179](https://github.com/ssilve1989/ulti-project/issues/179)) ([d058438](https://github.com/ssilve1989/ulti-project/commit/d058438cc72f0b9df72d996b88c13f81503c0608))
+
 ## [1.2.5](https://github.com/ssilve1989/ulti-project/compare/v1.2.4...v1.2.5) (2024-03-23)
 
 
