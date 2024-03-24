@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.6](https://github.com/ssilve1989/ulti-project/compare/v1.2.6...v1.2.6) (2024-03-24)
+
+
+### Miscellaneous Chores
+
+* release 1.2.6 ([779d939](https://github.com/ssilve1989/ulti-project/commit/779d9398055df52185aab1b62cef54c8cf0959a3))
+
 ## [1.2.6](https://github.com/ssilve1989/ulti-project/compare/v1.2.5...v1.2.6) (2024-03-23)
 
 
