@@ -50,7 +50,7 @@ class SignupInteractionDto
   username: string;
 
   @IsString()
-  @ToCasing(capitalCase)
+  @ToLowercase()
   world: string;
 }
 
