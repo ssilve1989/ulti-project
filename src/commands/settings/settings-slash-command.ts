@@ -12,7 +12,6 @@ const EditSettingsSubcommand = new SlashCommandSubcommandBuilder()
   .addChannelOption((option) =>
     option
       .setName('signup-review-channel')
-      .setRequired(true)
       .setDescription(
         'The channel in which reviews will be posted. This must be set to a text channel',
       )
@@ -39,6 +38,11 @@ const EditSettingsSubcommand = new SlashCommandSubcommandBuilder()
       .setDescription(
         'The id of the spreadsheet to use for persistence modifications',
       ),
+  )
+  .addBooleanOption((option) =>
+    option
+      .setName('season-open')
+      .setDescription('Whether the season is open or closed for signups'),
   );
 
 // add all encounters to have a role option

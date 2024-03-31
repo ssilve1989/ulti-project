@@ -9,6 +9,8 @@ export const SIGNUP_MESSAGES = {
     'No settings have been configured for this bot. Commands may not function until properly configured',
   PROG_DM_TIMEOUT:
     "You didn't respond in time. Please manually update the google sheet with the intended prog point",
+  SEASON_CLOSED:
+    'Signups are currently closed. Please keep an eye out for announcements on when the next season will open!',
   SIGNUP_SUBMISSION_CANCELLED:
     'Signup canceled. Please use /signup if you wish to try again.',
   SIGNUP_SUBMISSION_CONFIRMED:

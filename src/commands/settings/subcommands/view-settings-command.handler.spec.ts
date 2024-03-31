@@ -3,6 +3,7 @@ import { ChatInputCommandInteraction } from 'discord.js';
 
 import { DeepMocked, createMock } from '../../../../test/create-mock.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
+import { SeasonStatus } from '../../../firebase/models/settings.model.js';
 import { ViewSettingsCommandHandler } from './view-settings-command.handler.js';
 
 describe('View Settings Command Handler', () => {
@@ -33,6 +34,7 @@ describe('View Settings Command Handler', () => {
       reviewerRole: '67890',
       signupChannel: '09876',
       progRoles: {},
+      seasonStatus: SeasonStatus.Open,
     });
 
     await handler.execute({ interaction });

@@ -25,6 +25,7 @@ import {
 } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import { SeasonStatus } from '../../firebase/models/settings.model.js';
 import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SignupInteractionDto } from './signup-interaction.dto.js';
 import { SignupCommand } from './signup.commands.js';
@@ -55,10 +56,16 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
     await interaction.deferReply({ ephemeral: true });
 
-    const hasReviewChannelConfigured =
-      !!(await this.settingsService.getReviewChannel(interaction.guildId));
+    const settings = await this.settingsService.getSettings(
+      interaction.guildId,
+    );
 
-    if (!hasReviewChannelConfigured) {
+    if (settings?.seasonStatus === SeasonStatus.Closed) {
+      await interaction.editReply(SIGNUP_MESSAGES.SEASON_CLOSED);
+      return;
+    }
+
+    if (!settings?.reviewChannel) {
       await interaction.editReply(
         SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL,
       );
@@ -86,6 +93,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       components: [ConfirmationRow as any], // the typings are wrong here? annoying af
       embeds: [embed],
     });
+
     try {
       const response =
         await confirmationInteraction.awaitMessageComponent<ComponentType.Button>(

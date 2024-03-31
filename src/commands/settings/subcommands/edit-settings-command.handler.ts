@@ -6,6 +6,7 @@ import {
 } from 'discord.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
+import { SeasonStatus } from '../../../firebase/models/settings.model.js';
 import { sentryReport } from '../../../sentry/sentry.consts.js';
 import { EditSettingsCommand } from './edit-settings.command.js';
 
@@ -61,6 +62,9 @@ class EditSettingsCommandHandler
     const reviewChannel = options.getChannel('signup-review-channel');
     const signupChannel = options.getChannel('signup-public-channel');
     const spreadsheetId = options.getString('spreadsheet-id') ?? undefined;
+    const seasonStatus = options.getBoolean('season-open')
+      ? SeasonStatus.Open
+      : SeasonStatus.Closed;
 
     const progRoles: Record<string, string | undefined> = {};
 
@@ -72,11 +76,12 @@ class EditSettingsCommandHandler
     }
 
     return {
-      reviewerRole,
+      progRoles,
       reviewChannel,
+      reviewerRole,
+      seasonStatus,
       signupChannel,
       spreadsheetId,
-      progRoles,
     };
   }
 }

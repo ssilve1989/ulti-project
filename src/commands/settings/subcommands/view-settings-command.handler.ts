@@ -29,6 +29,7 @@ class ViewSettingsCommandHandler
       spreadsheetId,
       signupChannel,
       progRoles,
+      seasonStatus,
     } = settings;
     const role = reviewerRole ? `<@&${reviewerRole}>` : 'No Role Set';
     const publicSignupChannel = signupChannel
@@ -46,6 +47,7 @@ class ViewSettingsCommandHandler
     );
 
     const messages = [
+      `**The current season is:** ${seasonStatus || 'Not Configured'}`,
       `**Review Channel:** <#${reviewChannel}>`,
       `**Reviewer Role:** ${role}`,
       `**Signup Channel:** ${publicSignupChannel}`,

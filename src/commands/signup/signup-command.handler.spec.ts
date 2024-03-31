@@ -11,6 +11,10 @@ import { DeepMocked, createMock } from '../../../test/create-mock.js';
 import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
+import {
+  SeasonStatus,
+  SettingsDocument,
+} from '../../firebase/models/settings.model.js';
 import { PartyType } from '../../firebase/models/signup.model.js';
 import { SignupCommandHandler } from './signup-command.handler.js';
 import { SignupCommand } from './signup.commands.js';
@@ -163,7 +167,7 @@ describe('Signup Command Handler', () => {
   });
 
   it('should not handle a signup if there is no review channel set', async () => {
-    settingsCollection.getReviewChannel.mockResolvedValueOnce(undefined);
+    settingsCollection.getSettings.mockResolvedValueOnce();
 
     const command = new SignupCommand(interaction);
     await handler.execute(command);
@@ -173,6 +177,18 @@ describe('Signup Command Handler', () => {
     });
     expect(interaction.editReply).toHaveBeenCalledWith(
       SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL,
+    );
+  });
+
+  it('does not process a signup if the season is closed', async () => {
+    settingsCollection.getSettings.mockResolvedValueOnce({
+      seasonStatus: SeasonStatus.Closed,
+    } as SettingsDocument);
+
+    await handler.execute(createMock<SignupCommand>({ interaction }));
+
+    expect(interaction.editReply).toHaveBeenCalledWith(
+      SIGNUP_MESSAGES.SEASON_CLOSED,
     );
   });
 });
