@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.8](https://github.com/ssilve1989/ulti-project/compare/v1.2.7...v1.2.8) (2024-03-31)
+
+
+### Bug Fixes
+
+* make casing consistent ([#190](https://github.com/ssilve1989/ulti-project/issues/190)) ([7815565](https://github.com/ssilve1989/ulti-project/commit/7815565b91027e94b52908b1b069950cf181824d))
+
 ## [1.2.7](https://github.com/ssilve1989/ulti-project/compare/v1.2.6...v1.2.7) (2024-03-24)
 
 
