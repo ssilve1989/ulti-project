@@ -2,6 +2,7 @@ import { sheets_v4 } from '@googleapis/sheets';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import * as Sentry from '@sentry/node';
+import { capitalCase } from 'change-case';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
 import { PartyType, SignupDocument } from '../firebase/models/signup.model.js';
 import { SignupCompositeKeyProps } from '../firebase/models/signup.model.js';
@@ -212,17 +213,12 @@ class SheetsService {
   // }
 
   private async upsertClearParty(
-    {
-      encounter,
-      character,
-      role,
-      world,
-      discordId,
-      progPoint = '',
-    }: Omit<SignupDocument, 'partyType'>,
+    signup: Omit<SignupDocument, 'partyType'>,
     spreadsheetId: string,
   ) {
-    const cellValues = [character, world, role, progPoint];
+    const { encounter, character, world, discordId } = signup;
+    const cellValues = this.getCellValues(signup);
+
     const { SHEET_EARLY_PROG_NAME, SHEET_PROG_NAME } = this.config;
     // need to check if we should remove prior signups from either earlyprog or mid prog sheet
     const requests = [];
@@ -307,7 +303,7 @@ class SheetsService {
     // with how the prog sheet is setup visually with multiple column groups spanning different row lengths
     const rowOffset = values ? values.length + 1 : PROG_SHEET_STARTING_ROW;
 
-    const cellValues = [character, world, role, progPoint];
+    const cellValues = this.getCellValues(signup);
 
     const updateRange =
       row === -1
@@ -420,6 +416,15 @@ class SheetsService {
     }
 
     return sheetId;
+  }
+
+  private getCellValues({
+    character,
+    world,
+    role,
+    progPoint = '',
+  }: SignupDocument) {
+    return [capitalCase(character), capitalCase(world), role, progPoint];
   }
 }
 
