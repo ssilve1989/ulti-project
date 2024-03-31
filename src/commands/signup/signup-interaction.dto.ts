@@ -1,6 +1,4 @@
-import { capitalCase } from 'change-case';
 import { IsEnum, IsString, IsUrl, ValidateIf } from 'class-validator';
-import { ToCasing } from '../../common/decorators/to-casing.js';
 import { ToLowercase } from '../../common/decorators/to-lowercase.js';
 import { TransformUrl } from '../../common/decorators/transform-url.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
@@ -13,7 +11,7 @@ class SignupInteractionDto
   availability: string;
 
   @IsString()
-  @ToCasing(capitalCase)
+  @ToLowercase()
   character: string;
 
   @IsString()
