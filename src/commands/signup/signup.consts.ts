@@ -24,7 +24,7 @@ You can reach out to a coordinator to discuss any issues
   PROG_SELECTION_TIMEOUT:
     'Your response timed out and could not be recorded to set the prog point for this signup. The signup has not been added to the googlesheet since we could not determine what kind party it should be, please add it manually.',
   GENERIC_APPROVAL_ERROR:
-    'An error occurred while processing your response. The signup may not have been added to the googlesheet, please verify it or add it manually',
+    'An error occurred while processing your response. The signup may not have been added to the Google Sheet, please verify it or add it manually',
 };
 
 export const SIGNUP_REVIEW_REACTIONS: Record<

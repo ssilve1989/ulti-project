@@ -100,7 +100,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
                 );
 
                 return shouldHandle
-                  ? this.handleReaction(reaction, user, settings)
+                  ? await this.handleReaction(reaction, user, settings)
                   : EMPTY;
               } catch (error) {
                 this.handleError(error, event.user, event.reaction.message);

@@ -283,15 +283,13 @@ class SheetsService {
       }
     }
 
-    const { encounter, character, world, role, progPoint = '' } = signup;
+    const { encounter, character, world } = signup;
     const range = ProgSheetRanges[encounter];
 
     const values = await this.getSheetValues({
       spreadsheetId,
       range: `${sheetName}!${range.start}:${range.end}`,
     });
-
-    this.logger.debug(`updating sheet: ${sheetName} with range ${range}`);
 
     const row = this.findCharacterRow(
       values,
