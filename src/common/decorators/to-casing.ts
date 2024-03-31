@@ -9,4 +9,4 @@ type CaseTransformer = (value: string) => string;
  * @returns
  */
 export const ToCasing = (fn: CaseTransformer) =>
-  Transform(({ value }) => fn(value));
+  Transform(({ value }) => value && fn(value));
