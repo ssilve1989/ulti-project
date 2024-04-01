@@ -1,7 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CommandBus } from '@nestjs/cqrs';
-import { Client, Events, REST, Routes } from 'discord.js';
+import {
+  ChatInputCommandInteraction,
+  Client,
+  Events,
+  REST,
+  Routes,
+} from 'discord.js';
 import { EMPTY, catchError, defer, forkJoin, lastValueFrom, retry } from 'rxjs';
 import { match } from 'ts-pattern';
 import { AppConfig } from '../app.config.js';
@@ -31,7 +37,7 @@ class SlashCommandsService {
   ) {}
 
   listenToCommands() {
-    this.client.on(Events.InteractionCreate, (interaction) => {
+    this.client.on(Events.InteractionCreate, async (interaction) => {
       if (!(interaction.isChatInputCommand() && interaction.inGuild())) return;
 
       // TODO: This could be more generic somehow
@@ -53,7 +59,11 @@ class SlashCommandsService {
         .otherwise(() => undefined);
 
       if (command) {
-        this.commandBus.execute(command);
+        try {
+          await this.commandBus.execute(command);
+        } catch (err) {
+          await this.handleCommandError(err, interaction);
+        }
       }
     });
   }
@@ -99,6 +109,23 @@ class SlashCommandsService {
         return EMPTY;
       }),
     );
+  }
+
+  private async handleCommandError(
+    err: unknown,
+    interaction: ChatInputCommandInteraction,
+  ) {
+    sentryReport(err);
+    this.logger.error(err);
+
+    try {
+      await interaction.followUp(
+        'An unexpected error occurred while processing your command. Please try again later',
+      );
+    } catch (e) {
+      sentryReport(e);
+      this.logger.error(e);
+    }
   }
 }
 

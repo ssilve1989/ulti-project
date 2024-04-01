@@ -12,7 +12,7 @@ class ViewSettingsCommandHandler
     private readonly sheetsService: SheetsService,
   ) {}
 
-  async execute({ interaction }: ViewSettingsCommand) {
+  async execute({ interaction }: ViewSettingsCommand): Promise<void> {
     await interaction.deferReply({ ephemeral: true });
 
     const settings = await this.settingsCollection.getSettings(
@@ -20,7 +20,8 @@ class ViewSettingsCommandHandler
     );
 
     if (!settings) {
-      return interaction.editReply('No settings found!');
+      await interaction.editReply('No settings found!');
+      return;
     }
 
     const {
