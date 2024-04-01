@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.9](https://github.com/ssilve1989/ulti-project/compare/v1.2.8...v1.2.9) (2024-04-01)
+
+
+### Bug Fixes
+
+* disable googleapis http2 by default ([6072332](https://github.com/ssilve1989/ulti-project/commit/6072332856ffbe655122f0e0efc76009b9e23251))
+* reaction error handling ([#196](https://github.com/ssilve1989/ulti-project/issues/196)) ([a7572b4](https://github.com/ssilve1989/ulti-project/commit/a7572b4dfcb7782412541e377f6e743b0678f897))
+
 ## [1.2.8](https://github.com/ssilve1989/ulti-project/compare/v1.2.7...v1.2.8) (2024-03-31)
 
 
