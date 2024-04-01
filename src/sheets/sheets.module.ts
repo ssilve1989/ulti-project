@@ -35,7 +35,12 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
         });
 
         const auth = (await client.getClient()) as Compute;
-        return sheets({ version: 'v4', auth, http2: GOOGLE_APIS_HTTP2 });
+        return sheets({
+          version: 'v4',
+          auth,
+          http2: GOOGLE_APIS_HTTP2,
+          timeout: 10_000,
+        });
       },
     },
   ],
