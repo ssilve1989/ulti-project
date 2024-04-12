@@ -87,7 +87,7 @@ devDependencies:
     version: 19.1.0
   '@commitlint/cz-commitlint':
     specifier: ^19.2.0
-    version: 19.2.0(@types/node@20.11.25)(commitizen@4.3.0)(inquirer@9.2.16)(typescript@5.4.5)
+    version: 19.2.0(@types/node@20.11.25)(commitizen@4.3.0)(inquirer@9.2.17)(typescript@5.4.5)
   '@commitlint/prompt-cli':
     specifier: ^19.2.0
     version: 19.2.0(@types/node@20.11.25)(typescript@5.4.5)
@@ -131,8 +131,8 @@ devDependencies:
     specifier: ^6.2.11
     version: 6.2.11
   inquirer:
-    specifier: ^9.2.16
-    version: 9.2.16
+    specifier: ^9.2.17
+    version: 9.2.17
   jest-extended:
     specifier: ^4.0.2
     version: 4.0.2
@@ -532,7 +532,7 @@ packages:
       ajv: 8.12.0
     dev: true
 
-  /@commitlint/cz-commitlint@19.2.0(@types/node@20.11.25)(commitizen@4.3.0)(inquirer@9.2.16)(typescript@5.4.5):
+  /@commitlint/cz-commitlint@19.2.0(@types/node@20.11.25)(commitizen@4.3.0)(inquirer@9.2.17)(typescript@5.4.5):
     resolution: {integrity: sha512-kudzHMY9/GxflGyAWMiisiBq2UkyQL1D1eWjGKoC66qQ+5jxRYeDaiVwTdPxYMnmehftNcpksZATDYKqdPP0Wg==}
     engines: {node: '>=v18'}
     peerDependencies:
@@ -544,7 +544,7 @@ packages:
       '@commitlint/types': 19.0.3
       chalk: 5.3.0
       commitizen: 4.3.0(@types/node@20.11.25)(typescript@5.4.5)
-      inquirer: 9.2.16
+      inquirer: 9.2.17
       lodash.isplainobject: 4.0.6
       word-wrap: 1.2.5
     transitivePeerDependencies:
@@ -636,7 +636,7 @@ packages:
     dependencies:
       '@commitlint/prompt': 19.2.0(@types/node@20.11.25)(typescript@5.4.5)
       execa: 8.0.1
-      inquirer: 9.2.16
+      inquirer: 9.2.17
     transitivePeerDependencies:
       - '@types/node'
       - typescript
@@ -650,7 +650,7 @@ packages:
       '@commitlint/load': 19.2.0(@types/node@20.11.25)(typescript@5.4.5)
       '@commitlint/types': 19.0.3
       chalk: 5.3.0
-      inquirer: 9.2.16
+      inquirer: 9.2.17
     transitivePeerDependencies:
       - '@types/node'
       - typescript
@@ -1254,13 +1254,6 @@ packages:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.1
       '@jridgewell/sourcemap-codec': 1.4.15
-    dev: true
-
-  /@ljharb/through@2.3.12:
-    resolution: {integrity: sha512-ajo/heTlG3QgC8EGP6APIejksVAYt4ayz4tqoP3MolFELzcH1x1fzwEYRJTPO0IELutZ5HQ0c26/GqAYy79u3g==}
-    engines: {node: '>= 0.4'}
-    dependencies:
-      call-bind: 1.0.7
     dev: true
 
   /@ljharb/through@2.3.13:
@@ -4164,7 +4157,7 @@ packages:
     resolution: {integrity: sha512-mg3Fh9g2zfuVWJn6lhST0O7x4n03k7G8Tx5nvikJkbq8/CK47WDVm+UznF0G6s5Zi0KcyUisr6DU8T67N5U+1Q==}
     engines: {node: '>=14.18.0'}
     dependencies:
-      '@ljharb/through': 2.3.12
+      '@ljharb/through': 2.3.13
       ansi-escapes: 4.3.2
       chalk: 5.3.0
       cli-cursor: 3.1.0
@@ -4181,8 +4174,8 @@ packages:
       wrap-ansi: 6.2.0
     dev: true
 
-  /inquirer@9.2.16:
-    resolution: {integrity: sha512-qzgbB+yNjgSzk2omeqMDtO9IgJet/UL67luT1MaaggRpGK73DBQct5Q4pipwFQcIKK1GbMODYd4UfsRCkSP1DA==}
+  /inquirer@9.2.17:
+    resolution: {integrity: sha512-Vr3Ia2ud5sGnioURkE69endl4SkeJcMzTF6SosKcX5GALJfId7C+JvO5ZZb6y1LOXnEofCPbwzoQ1q0e8Gaduw==}
     engines: {node: '>=18'}
     dependencies:
       '@ljharb/through': 2.3.13
