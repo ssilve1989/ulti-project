@@ -13,11 +13,13 @@ export const SIGNUP_MESSAGES = {
     'Signup canceled. Please use /signup if you wish to try again.',
   SIGNUP_SUBMISSION_CONFIRMED:
     'Confirmed! A coordinator will review your submission and reach out to you soon. You can use `/status` to review the state of your signups.',
+  // TODO: Find a CMS-esque type of way of managing this rather than hardcoding these reasons
   SIGNUP_SUBMISSION_DENIED: `
-Your signup has been denied by a coordinator. Please ensure you have met the following requirements for signing up for your encounter
-- You submitted proof of the correct prog point for the encounter
-- You have not cleared this encounter before
-You can reach out to a coordinator to discuss any issues
+Your signup has been denied. Possible reasons:
+- Signup doesn't meet new qualifications. Check <#1128721088017346622> for the latest information
+- Signup lacks valid proof of progpoint
+- You already cleared the encounter you signed-up for
+You can reach out to a coordinator to discuss any issues.
 `,
   UNEXPECTED_PROG_SELECTION_ERROR:
     'Sorry an unexpected error has occurred. Please report this problem and manually update the google sheet with the intended prog point',
