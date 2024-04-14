@@ -77,13 +77,13 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
     const embed = this.createSignupConfirmationEmbed(signupRequest);
 
-    const ConfirmationRow = new ActionRowBuilder().addComponents(
+    const confirmationRow = new ActionRowBuilder().addComponents(
       ConfirmButton,
       CancelButton,
     );
 
     const confirmationInteraction = await interaction.editReply({
-      components: [ConfirmationRow as any], // the typings are wrong here? annoying af
+      components: [confirmationRow as any], // the typings are wrong here? annoying af
       embeds: [embed],
     });
     try {
@@ -153,7 +153,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       character: options.getString('character')!,
       discordId: user.id,
       encounter: options.getString('encounter')! as Encounter,
-      fflogsLink: options.getString('fflogs'),
+      proofOfProgLink: options.getString('prog-proof-link'),
       progPointRequested: options.getString('prog-point')!,
       role: options.getString('job')!,
       screenshot: options.getAttachment('screenshot')?.url,
@@ -175,7 +175,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     availability,
     character,
     encounter,
-    fflogsLink,
+    proofOfProgLink,
     role,
     screenshot,
     world,
@@ -196,11 +196,11 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
         { name: 'Role', value: role, inline: true },
       ]);
 
-    if (fflogsLink) {
+    if (proofOfProgLink) {
       embed = embed.addFields([
         {
-          name: 'FF Logs Link',
-          value: `[View Report](${fflogsLink})`,
+          name: 'Prog Proof Link',
+          value: `[View](${proofOfProgLink})`,
           inline: true,
         },
       ]);

@@ -18,7 +18,7 @@ export interface SignupDocument {
   character: string;
   discordId: string;
   encounter: Encounter;
-  fflogsLink?: string | null;
+  proofOfProgLink?: string | null;
   // freeform field representing the characters job/role/class
   role: string;
   // the prog point specified by the coodinator upon review

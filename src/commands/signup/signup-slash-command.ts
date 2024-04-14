@@ -42,8 +42,10 @@ export const SignupSlashCommand = new SlashCommandBuilder()
   )
   .addStringOption((option) =>
     option
-      .setDescription('FF Logs Link for selected encounter showing prog point')
-      .setName('fflogs'),
+      .setDescription(
+        'Link your proof of prog-point here (fflogs/youtube/twitch etc)',
+      )
+      .setName('prog-proof-link'),
   )
   .addAttachmentOption((option) =>
     option

@@ -45,7 +45,7 @@ describe('Signup Command Handler', () => {
               return Encounter.DSR;
             case 'character':
               return 'Test Character';
-            case 'fflogs':
+            case 'prog-proof-link':
               return 'https://www.fflogs.com/reports/foo';
             case 'availability':
               return 'Monday, Wednesday, Friday';
