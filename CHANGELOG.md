@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/ssilve1989/ulti-project/compare/v1.2.9...v1.3.0) (2024-04-14)
+
+
+### Miscellaneous Chores
+
+* release 1.3.0 ([ce6ba64](https://github.com/ssilve1989/ulti-project/commit/ce6ba647f3397d0f85b7caf939b056ec0538c4cd))
+
 ## [1.2.9](https://github.com/ssilve1989/ulti-project/compare/v1.2.8...v1.2.9) (2024-04-01)
 
 
