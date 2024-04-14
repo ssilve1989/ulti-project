@@ -3,6 +3,10 @@ import { ToLowercase } from '../../common/decorators/to-lowercase.js';
 import { TransformUrl } from '../../common/decorators/transform-url.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { SignupDocument } from '../../firebase/models/signup.model.js';
+import {
+  PROG_PROOF_HOSTS_WHITELIST,
+  WHITELIST_VALIDATION_ERROR,
+} from './signup.consts.js';
 
 class SignupInteractionDto
   implements Omit<SignupDocument, 'status' | 'partyType' | 'expiresAt'>
@@ -27,20 +31,20 @@ class SignupInteractionDto
   encounter: Encounter;
 
   @IsUrl(
-    { host_whitelist: [/fflogs\.com/] },
+    // biome-ignore lint/style/useNamingConvention: <we don't controls this property>
+    { host_whitelist: PROG_PROOF_HOSTS_WHITELIST },
     {
-      message:
-        'A valid fflogs URL must be provided if no screenshot is attached',
+      message: WHITELIST_VALIDATION_ERROR,
     },
   )
   @TransformUrl()
   @ValidateIf(({ screenshot }) => !screenshot)
-  fflogsLink?: string | null;
+  proofOfProgLink?: string | null;
 
   @IsString({
-    message: 'A screenshot must be attached if no fflogs link is provided',
+    message: 'A screenshot must be attached if no link is provided',
   })
-  @ValidateIf(({ fflogsLink }) => !fflogsLink)
+  @ValidateIf(({ proofOfProgLink }) => !proofOfProgLink)
   screenshot?: string | null;
 
   @IsString()

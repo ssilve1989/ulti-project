@@ -73,7 +73,7 @@ class SendSignupReviewCommandHandler
     availability,
     character,
     encounter,
-    fflogsLink,
+    proofOfProgLink,
     screenshot,
     world,
     role,
@@ -100,9 +100,9 @@ class SendSignupReviewCommandHandler
         { name: 'Job', value: role, inline: true },
       ]);
 
-    if (fflogsLink) {
+    if (proofOfProgLink) {
       embed = embed.addFields([
-        { name: 'FFLogs Link', value: `[View Report](${fflogsLink})` },
+        { name: 'Prog Proof Link', value: `[View](${proofOfProgLink})` },
       ]);
     }
 

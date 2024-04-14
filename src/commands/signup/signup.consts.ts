@@ -37,3 +37,19 @@ export const SIGNUP_REVIEW_REACTIONS: Record<
   DECLINED: '❌',
   PENDING: ':question:',
 };
+
+// string validation via IsUrl does not work the same as regex. It does like
+// this weird strict equality wheras regex just looks at the hostname portion?
+// In any case, we just use regexes for now
+export const PROG_PROOF_HOSTS_WHITELIST = [
+  /fflogs.com/,
+  /streamable.com/,
+  /tomestone.gg/,
+  /twitch.tv/,
+  /youtube.com/,
+];
+
+// which makes us need to do this mapping for presentation
+export const WHITELIST_VALIDATION_ERROR = `A link from one of these sources must be provided if no screenshot is attached: ${PROG_PROOF_HOSTS_WHITELIST.map(
+  (v) => v.source.replaceAll('/', ''),
+).join('\n')}`;
