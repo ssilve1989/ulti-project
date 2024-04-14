@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/ssilve1989/ulti-project/compare/v1.3.0...v1.4.0) (2024-04-14)
+
+
+### Features
+
+* **signups:** add more allowed hosts than fflogs ([#223](https://github.com/ssilve1989/ulti-project/issues/223)) ([477cb72](https://github.com/ssilve1989/ulti-project/commit/477cb720206e3eb57d35aa6ee600e891cc9390d7))
+
 ## [1.3.0](https://github.com/ssilve1989/ulti-project/compare/v1.2.9...v1.3.0) (2024-04-14)
 
 
