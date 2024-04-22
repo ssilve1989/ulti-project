@@ -57,7 +57,7 @@
     "@commitlint/config-conventional": "^19.2.2",
     "@commitlint/cz-commitlint": "^19.2.0",
     "@commitlint/prompt-cli": "^19.2.2",
-    "@flydotio/dockerfile": "^0.5.4",
+    "@flydotio/dockerfile": "^0.5.5",
     "@nestjs/cli": "^10.3.2",
     "@nestjs/schematics": "^10.1.1",
     "@nestjs/testing": "^10.3.7",
