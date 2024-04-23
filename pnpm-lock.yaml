@@ -92,8 +92,8 @@ devDependencies:
     specifier: ^19.2.2
     version: 19.2.2(@types/node@20.12.7)(typescript@5.4.5)
   '@flydotio/dockerfile':
-    specifier: ^0.5.4
-    version: 0.5.4
+    specifier: ^0.5.5
+    version: 0.5.5
   '@nestjs/cli':
     specifier: ^10.3.2
     version: 10.3.2(@swc/core@1.4.14)
@@ -1066,8 +1066,8 @@ packages:
       tslib: 2.6.2
     dev: false
 
-  /@flydotio/dockerfile@0.5.4:
-    resolution: {integrity: sha512-pglzQeVXVjCk/UCoY+g/jtr4i0zN+1BRTR35rFB4mNWZx/4cxBVa70zH1+N80TvOQ9y3ydB1M8258flr0bM/CQ==}
+  /@flydotio/dockerfile@0.5.5:
+    resolution: {integrity: sha512-nIabdrDHHZbLD7GkPkEyByE2/qQlXcLhBuq9YGy300uNdGyZhpHrUaMRaarrGauOhNq0kEMEXuSK+smZt8bBYw==}
     engines: {node: '>=16.0.0'}
     hasBin: true
     dependencies:
