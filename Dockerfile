@@ -7,6 +7,9 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
+# Print the pnpm version
+RUN pnpm --version
+
 COPY package.json pnpm-lock.yaml tsconfig.json tsconfig.build.json /app/
 COPY src /app/src
 COPY scripts /app/scripts
