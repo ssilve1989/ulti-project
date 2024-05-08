@@ -44,7 +44,6 @@ export const SIGNUP_REVIEW_REACTIONS: Record<
 export const PROG_PROOF_HOSTS_WHITELIST = [
   /fflogs.com/,
   /streamable.com/,
-  /tomestone.gg/,
   /twitch.tv/,
   /youtube.com/,
 ];
