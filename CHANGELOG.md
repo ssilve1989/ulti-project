@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/ssilve1989/ulti-project/compare/v1.4.0...v1.4.1) (2024-05-08)
+
+
+### Miscellaneous Chores
+
+* release 1.4.1 ([6901c52](https://github.com/ssilve1989/ulti-project/commit/6901c522efde2d10f0912fa4a19bca83f0040a78))
+
 ## [1.4.0](https://github.com/ssilve1989/ulti-project/compare/v1.3.0...v1.4.0) (2024-04-14)
 
 
