@@ -215,7 +215,7 @@ export const EncounterProgPoints: Record<
       label: 'Phase 6: Cosmo Meteor',
       partyType: PartyType.CLEAR_PARTY,
     },
-    'P6 Enrage: ': {
+    'P6 Enrage': {
       label: 'Phase 6: Enrage',
       partyType: PartyType.CLEAR_PARTY,
     },
