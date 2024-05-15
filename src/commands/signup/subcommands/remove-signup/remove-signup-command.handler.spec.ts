@@ -31,8 +31,14 @@ describe('Remove Signup Command Handler', () => {
     signupsRepository = fixture.get(SignupCollection);
 
     interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
-      user: createMock<User>({ id: '1', toString: () => '<@1>' }),
-      options: createMock({}),
+      user: createMock<User>({
+        id: '1',
+        toString: () => '<@1>',
+        valueOf: () => '',
+      }),
+      options: {
+        getString: () => '',
+      },
       valueOf: () => '',
     });
   });

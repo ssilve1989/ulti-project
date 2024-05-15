@@ -1,4 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { plainToClass } from 'class-transformer';
 import { APIUser, ChatInputCommandInteraction, User } from 'discord.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
@@ -8,6 +9,7 @@ import { SignupCompositeKeyProps } from '../../../../firebase/models/signup.mode
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { RemoveSignupCommand } from './remove-signup.command.js';
+import { RemoveSignupDto } from './remove-signup.dto.js';
 
 @CommandHandler(RemoveSignupCommand)
 class RemoveSignupCommandHandler
@@ -61,11 +63,11 @@ class RemoveSignupCommandHandler
   }
 
   private getOptions({ options }: ChatInputCommandInteraction) {
-    return {
+    return plainToClass(RemoveSignupDto, {
       character: options.getString('character')!,
       world: options.getString('world')!,
       encounter: options.getString('encounter')! as Encounter,
-    };
+    });
   }
 
   private async canModifySignup(
@@ -80,7 +82,9 @@ class RemoveSignupCommandHandler
       guildId,
     });
 
-    if (hasRole) return true;
+    if (hasRole) {
+      return true;
+    }
 
     const signup = await this.signupsRepository.findOne(options);
 
