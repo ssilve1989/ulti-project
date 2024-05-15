@@ -8,8 +8,7 @@ export default defineConfig({
     coverage: {
       include: ['src/**/*.ts'],
       exclude: ['src/slash-commands/**/*-command.ts'],
-      // istanbul seems more accurate atm than v8 for things like ignoring TS interfaces, etc
-      provider: 'istanbul',
+      provider: 'v8',
     },
   },
   plugins: [
