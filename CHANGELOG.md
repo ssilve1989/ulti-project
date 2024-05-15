@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.0](https://github.com/ssilve1989/ulti-project/compare/v1.4.1...v1.5.0) (2024-05-15)
+
+
+### Features
+
+* **signups:** add prog point to embed ([#261](https://github.com/ssilve1989/ulti-project/issues/261)) ([9fc2aae](https://github.com/ssilve1989/ulti-project/commit/9fc2aaea8dc6274dd981915c526f16cb33b93e38))
+
+
+### Bug Fixes
+
+* fix typo in label ([6ad7193](https://github.com/ssilve1989/ulti-project/commit/6ad71932f16a3ce833ad5acd97e3032626076889))
+* **signups:** fixes an issue with casing on remove signups ([#262](https://github.com/ssilve1989/ulti-project/issues/262)) ([bd6bbfb](https://github.com/ssilve1989/ulti-project/commit/bd6bbfbf2945c1c1d65774416bbfd29b04b5606c))
+
 ## [1.4.1](https://github.com/ssilve1989/ulti-project/compare/v1.4.0...v1.4.1) (2024-05-08)
 
 
