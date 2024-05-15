@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.2](https://github.com/ssilve1989/ulti-project/compare/v1.4.1...v1.4.2) (2024-05-15)
+
+
+### Bug Fixes
+
+* fix typo in label ([6ad7193](https://github.com/ssilve1989/ulti-project/commit/6ad71932f16a3ce833ad5acd97e3032626076889))
+
 ## [1.4.1](https://github.com/ssilve1989/ulti-project/compare/v1.4.0...v1.4.1) (2024-05-08)
 
 
