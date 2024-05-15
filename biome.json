@@ -14,7 +14,8 @@
       "all": true,
       "style": {
         "noNonNullAssertion": "off",
-        "useImportType": "off"
+        "useImportType": "off",
+        "noParameterProperties": "off"
       },
       "suspicious": {
         "noExplicitAny": "off"
