@@ -27,6 +27,7 @@ describe('Send Signup Review Command Handler', () => {
     screenshot: 'http://somelinksurely',
     status: SignupStatus.PENDING,
     world: 'bar',
+    progPointRequested: 'baz',
   });
 
   beforeEach(async () => {
