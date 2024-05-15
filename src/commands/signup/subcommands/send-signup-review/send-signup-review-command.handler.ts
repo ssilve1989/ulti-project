@@ -77,6 +77,7 @@ class SendSignupReviewCommandHandler
     screenshot,
     world,
     role,
+    progPointRequested,
   }: SignupDocument) {
     let embed = new EmbedBuilder()
       .setDescription(
@@ -98,11 +99,16 @@ class SendSignupReviewCommandHandler
         { name: 'Home World', value: capitalCase(world), inline: true },
         { name: 'Availability', value: availability, inline: true },
         { name: 'Job', value: role, inline: true },
+        { name: 'Prog Point', value: progPointRequested, inline: true },
       ]);
 
     if (proofOfProgLink) {
       embed = embed.addFields([
-        { name: 'Prog Proof Link', value: `[View](${proofOfProgLink})` },
+        {
+          name: 'Prog Proof Link',
+          value: `[View](${proofOfProgLink})`,
+          inline: true,
+        },
       ]);
     }
 
