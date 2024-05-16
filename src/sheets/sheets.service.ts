@@ -2,7 +2,7 @@ import { sheets_v4 } from '@googleapis/sheets';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import * as Sentry from '@sentry/node';
-import { capitalCase } from 'change-case';
+import { titleCase } from 'title-case';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
 import { PartyType, SignupDocument } from '../firebase/models/signup.model.js';
 import { SignupCompositeKeyProps } from '../firebase/models/signup.model.js';
@@ -422,7 +422,7 @@ class SheetsService {
     role,
     progPoint = '',
   }: SignupDocument) {
-    return [capitalCase(character), capitalCase(world), role, progPoint];
+    return [titleCase(character), titleCase(world), role, progPoint];
   }
 }
 

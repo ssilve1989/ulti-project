@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { capitalCase } from 'change-case';
 import { EmbedBuilder } from 'discord.js';
+import { titleCase } from 'title-case';
 import { MissingChannelException } from '../../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { EncounterFriendlyDescription } from '../../../../encounters/encounters.consts.js';
@@ -92,11 +92,11 @@ class SendSignupReviewCommandHandler
         },
         {
           name: 'Character',
-          value: capitalCase(character),
+          value: titleCase(character),
           inline: true,
         },
         { name: '\u200B', value: '\u200B', inline: true },
-        { name: 'Home World', value: capitalCase(world), inline: true },
+        { name: 'Home World', value: titleCase(world), inline: true },
         { name: 'Availability', value: availability, inline: true },
         { name: 'Job', value: role, inline: true },
         { name: 'Prog Point', value: progPointRequested, inline: true },

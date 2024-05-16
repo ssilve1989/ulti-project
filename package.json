@@ -35,7 +35,6 @@
     "@sentry/cli": "^2.31.2",
     "@sentry/node": "^7.113.0",
     "@sentry/profiling-node": "^7.113.0",
-    "change-case": "^5.4.4",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "dayjs": "^1.11.11",
@@ -48,6 +47,7 @@
     "pino-pretty": "^11.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "title-case": "^4.3.1",
     "ts-pattern": "^5.1.1",
     "tslib": "^2.6.2"
   },
