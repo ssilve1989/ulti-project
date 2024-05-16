@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.6.0](https://github.com/ssilve1989/ulti-project/compare/v1.5.0...v1.6.0) (2024-05-16)
+
+
+### Features
+
+* **signups:** embed now displays coordinator selected prog point ([#273](https://github.com/ssilve1989/ulti-project/issues/273)) ([9bbd5b7](https://github.com/ssilve1989/ulti-project/commit/9bbd5b7013fdd5441d12a4ec159d163cef192793))
+
+
+### Bug Fixes
+
+* adjusts labels for certain encounters ([#274](https://github.com/ssilve1989/ulti-project/issues/274)) ([af49fc3](https://github.com/ssilve1989/ulti-project/commit/af49fc356e541007a815e45e9e84c086b8212e2d))
+* assign correct sentry scoping ([#272](https://github.com/ssilve1989/ulti-project/issues/272)) ([f38d1e1](https://github.com/ssilve1989/ulti-project/commit/f38d1e18cdbf334c5bcf807829186d6e55a9bf04))
+* fixes lost punctiation in display formatting ([#270](https://github.com/ssilve1989/ulti-project/issues/270)) ([9eb9ac7](https://github.com/ssilve1989/ulti-project/commit/9eb9ac7a5d73e58e1776b5faabdbd979cf624f77)), closes [#266](https://github.com/ssilve1989/ulti-project/issues/266)
+* revert typo for time duration ([8ce8ef9](https://github.com/ssilve1989/ulti-project/commit/8ce8ef98903384d0895105e6636ca2b46de6ad96))
+* **signups:** ensure prog links are validated when screenshots are provided ([#275](https://github.com/ssilve1989/ulti-project/issues/275)) ([c365021](https://github.com/ssilve1989/ulti-project/commit/c36502118622a4a182c656b838769f17ba1ebc73))
+
 ## [1.5.0](https://github.com/ssilve1989/ulti-project/compare/v1.4.1...v1.5.0) (2024-05-15)
 
 
