@@ -1,8 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { capitalCase } from 'change-case';
 import { plainToInstance } from 'class-transformer';
 import { CommandInteractionOptionResolver, EmbedBuilder } from 'discord.js';
+import { titleCase } from 'title-case';
 import { EncounterFriendlyDescription } from '../../encounters/encounters.consts.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SignupDocument } from '../../firebase/models/signup.model.js';
@@ -32,7 +32,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
       ({ world, character, encounter, availability }) => [
         {
           name: 'Character',
-          value: `${capitalCase(character)} @ ${capitalCase(world)}`,
+          value: `${titleCase(character)} @ ${titleCase(world)}`,
           inline: true,
         },
         {
