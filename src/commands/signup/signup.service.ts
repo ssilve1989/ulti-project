@@ -4,6 +4,7 @@ import {
   OnApplicationBootstrap,
   OnModuleDestroy,
 } from '@nestjs/common';
+import * as Sentry from '@sentry/node';
 import {
   ActionRowBuilder,
   Colors,
@@ -78,33 +79,47 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         mergeMap((group$) =>
           group$.pipe(
             concatMap(async (event) => {
-              if (!event.reaction.message.inGuild()) return EMPTY;
+              // TODO: cleanup this anon function
+              await Sentry.withScope(async (scope) => {
+                if (!event.reaction.message.inGuild()) {
+                  return EMPTY;
+                }
 
-              try {
-                // TODO: dangerous cast to Settings, but know its safe from current usage
-                // attempts to type it correctly just result in weirdness since all the other fields on the object are optional
-                const [reaction, user, settings = {} as SettingsDocument] =
-                  await Promise.all([
-                    hydrateReaction(event.reaction),
-                    hydrateUser(event.user),
-                    this.settingsCollection.getSettings(
-                      event.reaction.message.guildId,
-                    ),
-                  ]);
+                scope.setUser({
+                  id: event.user.id,
+                  username: event.user.username ?? 'unknown',
+                });
 
-                // TODO: We can extract the type of the Message to be `Message<True>` since shouldHandleReaction checks if the message is inGuild()
-                const shouldHandle = await this.shouldHandleReaction(
-                  reaction,
-                  user,
-                  settings,
-                );
+                scope.setExtras({
+                  message: getMessageLink(event.reaction.message),
+                });
 
-                return shouldHandle
-                  ? await this.handleReaction(reaction, user, settings)
-                  : EMPTY;
-              } catch (error) {
-                this.handleError(error, event.user, event.reaction.message);
-              }
+                try {
+                  // TODO: dangerous cast to Settings, but know its safe from current usage
+                  // attempts to type it correctly just result in weirdness since all the other fields on the object are optional
+                  const [reaction, user, settings = {} as SettingsDocument] =
+                    await Promise.all([
+                      hydrateReaction(event.reaction),
+                      hydrateUser(event.user),
+                      this.settingsCollection.getSettings(
+                        event.reaction.message.guildId,
+                      ),
+                    ]);
+
+                  // TODO: We can extract the type of the Message to be `Message<True>` since shouldHandleReaction checks if the message is inGuild()
+                  const shouldHandle = await this.shouldHandleReaction(
+                    reaction,
+                    user,
+                    settings,
+                  );
+
+                  return shouldHandle
+                    ? await this.handleReaction(reaction, user, settings)
+                    : EMPTY;
+                } catch (error) {
+                  this.handleError(error, event.user, event.reaction.message);
+                }
+              });
             }),
           ),
         ),
@@ -285,20 +300,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User | PartialUser,
     message: Message | PartialMessage,
   ) {
-    sentryReport(error, {
-      userId: user.username || 'unknown',
-      extra: { message: getMessageLink(message) },
-    });
+    const scope = Sentry.getCurrentScope();
+    scope.setUser({ id: user.username ?? 'unknown' });
+    scope.setExtras({ message: getMessageLink(message) });
 
     this.logger.error(error);
 
-    const reply = match(error)
-      .with(
-        P.instanceOf(DiscordjsError),
-        ({ code }) => code === DiscordjsErrorCodes.InteractionCollectorError,
-        () => SIGNUP_MESSAGES.PROG_SELECTION_TIMEOUT,
-      )
-      .otherwise(() => SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR);
+    const reply = SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR;
+
+    scope.captureMessage(reply, 'info');
 
     // TODO: Improve error reporting to better inform user what happened
     await Promise.all([
@@ -335,7 +345,8 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
     try {
       const reply = await message.awaitMessageComponent({
-        time: 60_000,
+        // time: 60_000 * 2, // 2 minutes
+        time: 5_000,
         filter: isSameUserFilter(user),
       });
 
@@ -351,10 +362,11 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
       await reply.update(SIGNUP_MESSAGES.UNEXPECTED_PROG_SELECTION_ERROR);
     } catch (error) {
-      sentryReport(error, {
-        userId: user.username,
-        extra: { encounter: signup.encounter, discordId: signup.discordId },
-      });
+      sentryReport(error, (scope) =>
+        scope.setExtras({
+          extra: { encounter: signup.encounter, discordId: signup.discordId },
+        }),
+      );
 
       this.logger.error(error);
 
@@ -393,7 +405,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       partyType === PartyType.EARLY_PROG_PARTY ||
       partyType === PartyType.PROG_PARTY;
 
-    if (!(role && isValidPartyType)) return;
+    if (!(role && isValidPartyType)) {
+      return;
+    }
 
     try {
       const member = await this.discordService.getGuildMember(
@@ -405,7 +419,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         await member.roles.add(role);
       }
     } catch (e) {
-      sentryReport(e, { extra: { encounter, discordId } });
+      sentryReport(e, (scope) => scope.setExtras({ encounter, discordId }));
       this.logger.error(e);
     }
   }

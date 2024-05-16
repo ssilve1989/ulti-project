@@ -1,16 +1,13 @@
 import * as Sentry from '@sentry/node';
 
-interface ReportOptions {
-  userId?: string;
-  extra?: Record<string, any>;
-}
+type ScopeFn = (scope: Sentry.Scope) => void;
 
-export const sentryReport = (
-  error: unknown,
-  { userId, extra }: ReportOptions = {},
-) => {
-  Sentry.withScope((scope) => {
-    userId && scope.setUser({ id: userId });
-    Sentry.captureException(error, { extra });
-  });
+/**
+ * @param error The error to report
+ * @param scopeFn Optional function to modify the scope before sending the report
+ */
+export const sentryReport = (error: unknown, scopeFn?: ScopeFn) => {
+  const scope = Sentry.getCurrentScope();
+  scope.captureException(error);
+  scopeFn?.(scope);
 };

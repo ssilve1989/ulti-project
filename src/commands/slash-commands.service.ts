@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CommandBus } from '@nestjs/cqrs';
+import * as Sentry from '@sentry/node';
 import {
   ChatInputCommandInteraction,
   Client,
@@ -38,33 +39,43 @@ class SlashCommandsService {
 
   listenToCommands() {
     this.client.on(Events.InteractionCreate, async (interaction) => {
-      if (!(interaction.isChatInputCommand() && interaction.inGuild())) return;
-
-      // TODO: This could be more generic somehow
-      const command = match(interaction.commandName)
-        .with(LookupSlashCommand.name, () => new LookupCommand(interaction))
-        .with(SignupSlashCommand.name, () => new SignupCommand(interaction))
-        .with(StatusSlashCommand.name, () => new StatusCommand(interaction))
-        .with(SettingsSlashCommand.name, () => {
-          const subcommand = interaction.options.getSubcommand();
-          return match(subcommand)
-            .with('edit', () => new EditSettingsCommand(interaction))
-            .with('view', () => new ViewSettingsCommand(interaction))
-            .run();
-        })
-        .with(
-          RemoveSignupSlashCommand.name,
-          () => new RemoveSignupCommand(interaction),
-        )
-        .otherwise(() => undefined);
-
-      if (command) {
-        try {
-          await this.commandBus.execute(command);
-        } catch (err) {
-          await this.handleCommandError(err, interaction);
+      await Sentry.withScope(async (scope) => {
+        if (!(interaction.isChatInputCommand() && interaction.inGuild())) {
+          return;
         }
-      }
+
+        scope.setUser({ userId: interaction.user.id });
+        scope.setExtras({
+          username: interaction.user.username,
+          command: interaction.commandName,
+        });
+
+        // TODO: This could be more generic somehow
+        const command = match(interaction.commandName)
+          .with(LookupSlashCommand.name, () => new LookupCommand(interaction))
+          .with(SignupSlashCommand.name, () => new SignupCommand(interaction))
+          .with(StatusSlashCommand.name, () => new StatusCommand(interaction))
+          .with(SettingsSlashCommand.name, () => {
+            const subcommand = interaction.options.getSubcommand();
+            return match(subcommand)
+              .with('edit', () => new EditSettingsCommand(interaction))
+              .with('view', () => new ViewSettingsCommand(interaction))
+              .run();
+          })
+          .with(
+            RemoveSignupSlashCommand.name,
+            () => new RemoveSignupCommand(interaction),
+          )
+          .otherwise(() => undefined);
+
+        if (command) {
+          try {
+            await this.commandBus.execute(command);
+          } catch (err) {
+            await this.handleCommandError(err, interaction);
+          }
+        }
+      });
     });
   }
 

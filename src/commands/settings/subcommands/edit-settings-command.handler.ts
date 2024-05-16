@@ -40,13 +40,7 @@ class EditSettingsCommandHandler
   }
 
   private handleError(e: unknown, interaction: ChatInputCommandInteraction) {
-    sentryReport(e, {
-      userId: interaction.user.id,
-      extra: {
-        command: interaction.command?.name,
-      },
-    });
-
+    sentryReport(e);
     this.logger.error(e);
     return interaction.editReply('Something went wrong!');
   }
