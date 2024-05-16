@@ -38,7 +38,9 @@ class SignupInteractionDto
     },
   )
   @TransformUrl()
-  @ValidateIf(({ screenshot }) => !screenshot)
+  @ValidateIf(
+    ({ screenshot, proofOfProgLink }) => proofOfProgLink || !screenshot,
+  )
   proofOfProgLink?: string | null;
 
   @IsString({

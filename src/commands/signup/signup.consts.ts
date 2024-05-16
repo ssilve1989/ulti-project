@@ -49,6 +49,7 @@ export const PROG_PROOF_HOSTS_WHITELIST = [
 ];
 
 // which makes us need to do this mapping for presentation
-export const WHITELIST_VALIDATION_ERROR = `A link from one of these sources must be provided if no screenshot is attached: ${PROG_PROOF_HOSTS_WHITELIST.map(
-  (v) => v.source.replaceAll('/', ''),
-).join('\n')}`;
+export const WHITELIST_VALIDATION_ERROR = `A link must be from one of these domains:
+${PROG_PROOF_HOSTS_WHITELIST.map((v) => v.source.replaceAll('/', '')).join(
+  '\n',
+)}`;
