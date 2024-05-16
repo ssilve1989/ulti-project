@@ -193,7 +193,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     settings: SettingsDocument,
   ) {
     const [sourceEmbed] = message.embeds;
-    const embed = EmbedBuilder.from(sourceEmbed);
+    let embed = EmbedBuilder.from(sourceEmbed);
     const { guildId } = message;
 
     const [displayName, progPoint] = await Promise.all([
@@ -203,6 +203,19 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       }),
       this.requestProgPointConfirmation(signup, sourceEmbed, user),
     ]);
+
+    // TODO: Don't use magic strings for field names
+    const progPointFieldIndex =
+      embed.data.fields?.findIndex((field) => field.name === 'Prog Point') ??
+      -1;
+
+    if (progPointFieldIndex !== -1 && progPoint) {
+      embed = embed.spliceFields(progPointFieldIndex, 1, {
+        name: 'Prog Point',
+        value: progPoint,
+        inline: true,
+      });
+    }
 
     const partyType =
       (progPoint &&
