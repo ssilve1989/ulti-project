@@ -5,10 +5,10 @@ import {
   OnApplicationShutdown,
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import * as Sentry from '@sentry/node';
 import { ActivityType, Client, Events, Options } from 'discord.js';
 import { first, firstValueFrom, fromEvent } from 'rxjs';
 import { AppConfig } from '../app.config.js';
-import { sentryReport } from '../sentry/sentry.consts.js';
 import { INTENTS, PARTIALS } from './discord.consts.js';
 import { DISCORD_CLIENT, InjectDiscordClient } from './discord.decorators.js';
 import { CacheTime } from './discord.helpers.js';
@@ -59,7 +59,7 @@ import { DiscordService } from './discord.service.js';
         const started$ = fromEvent(client, Events.ClientReady).pipe(first());
 
         client.once('error', (error) => {
-          sentryReport(error);
+          Sentry.captureException(error);
           logger.error(error);
         });
 
@@ -86,7 +86,7 @@ class DiscordModule implements OnApplicationBootstrap, OnApplicationShutdown {
     fromEvent(this.client, Events.CacheSweep).subscribe({
       next: (msg) => this.logger.log(msg),
       error: (err) => {
-        sentryReport(err);
+        Sentry;
         this.logger.error(err);
       },
     });

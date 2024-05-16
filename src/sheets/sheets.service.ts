@@ -78,8 +78,7 @@ class SheetsService {
         );
 
       default: {
-        const msg = `unknown party type: ${partyType} for user: ${signup.discordId}. Not appending to any Google Sheet`;
-        Sentry.captureMessage(msg);
+        const msg = `unknown party type: ${partyType} for character: ${signup.character}`;
         this.logger.warn(msg);
       }
     }

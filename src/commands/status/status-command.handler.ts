@@ -67,10 +67,7 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
     error: unknown,
     interaction: ChatInputCommandInteraction,
   ) {
-    sentryReport(error, {
-      userId: interaction.user.username,
-      extra: { command: interaction.command?.name },
-    });
+    sentryReport(error);
 
     this.logger.error(error);
 
