@@ -362,12 +362,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
       await reply.update(SIGNUP_MESSAGES.UNEXPECTED_PROG_SELECTION_ERROR);
     } catch (error) {
-      sentryReport(error, (scope) =>
-        scope.setExtras({
-          extra: { encounter: signup.encounter, discordId: signup.discordId },
-        }),
-      );
-
       this.logger.error(error);
 
       await match(error)
@@ -380,12 +374,23 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
               components: [],
             }),
         )
-        .otherwise(() =>
+        .otherwise(() => {
+          // we don't care to report if the timeout error happened, thats normal
+          // but anything else is unexpected and should be reported
+          sentryReport(error, (scope) =>
+            scope.setExtras({
+              extra: {
+                encounter: signup.encounter,
+                discordId: signup.discordId,
+              },
+            }),
+          );
+
           this.discordService.sendDirectMessage(
             user.id,
             SIGNUP_MESSAGES.UNEXPECTED_PROG_SELECTION_ERROR,
-          ),
-        );
+          );
+        });
     }
   }
 
