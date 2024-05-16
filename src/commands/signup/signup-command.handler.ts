@@ -1,6 +1,5 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
-import { capitalCase } from 'change-case';
 import { plainToInstance } from 'class-transformer';
 import { ValidationError, validate } from 'class-validator';
 import {
@@ -12,6 +11,7 @@ import {
   DiscordjsErrorCodes,
   EmbedBuilder,
 } from 'discord.js';
+import { titleCase } from 'title-case';
 import { P, match } from 'ts-pattern';
 import { isSameUserFilter } from '../../common/collection-filters.js';
 import {
@@ -186,11 +186,11 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       .addFields([
         {
           name: 'Character',
-          value: capitalCase(character),
+          value: titleCase(character),
           inline: true,
         },
         { name: '\u200B', value: '\u200B', inline: true },
-        { name: 'Home World', value: capitalCase(world), inline: true },
+        { name: 'Home World', value: titleCase(world), inline: true },
         { name: 'Availability', value: availability, inline: true },
         { name: '\u200B', value: '\u200B', inline: true },
         { name: 'Role', value: role, inline: true },
