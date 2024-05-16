@@ -345,8 +345,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
     try {
       const reply = await message.awaitMessageComponent({
-        // time: 60_000 * 2, // 2 minutes
-        time: 5_000,
+        time: 60_000 * 2, // 2 minutes
         filter: isSameUserFilter(user),
       });
 
