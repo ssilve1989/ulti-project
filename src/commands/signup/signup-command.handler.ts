@@ -217,10 +217,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     error: unknown,
     interaction: ChatInputCommandInteraction,
   ) {
-    sentryReport(error, {
-      userId: interaction.user.id,
-      extra: { command: interaction.command?.name },
-    });
+    sentryReport(error);
 
     this.logger.error(error);
 
