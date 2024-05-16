@@ -71,7 +71,7 @@ export const EncounterProgPoints: Record<
       label: 'Phase 6: Wyrmsbreath 1',
       partyType: PartyType.PROG_PARTY,
     },
-    WROTH: {
+    'Wroth Flames': {
       label: 'Phase 6: Wroth Flames',
       partyType: PartyType.PROG_PARTY,
     },
@@ -81,10 +81,6 @@ export const EncounterProgPoints: Record<
     },
     'P6 Enrage': {
       label: 'Phase 6: Enrage',
-      partyType: PartyType.CLEAR_PARTY,
-    },
-    'Alternate End': {
-      label: 'Phase 6: Alternate End',
       partyType: PartyType.CLEAR_PARTY,
     },
     'Exa #1': {
@@ -209,6 +205,10 @@ export const EncounterProgPoints: Record<
     },
     'P6 Wave Cannon 2': {
       label: 'Phase 6: Wave Cannon 2',
+      partyType: PartyType.CLEAR_PARTY,
+    },
+    'P6 Cosmo Dive 2': {
+      label: 'Phase 6: Cosmo Dive 2',
       partyType: PartyType.CLEAR_PARTY,
     },
     'P6 Cosmo Meteor': {
