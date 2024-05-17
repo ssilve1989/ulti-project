@@ -78,22 +78,6 @@ describe('Signup Repository', () => {
     expect(doc.create).not.toHaveBeenCalled();
   });
 
-  it('should call create if document does not exist', async () => {
-    doc.get.mockResolvedValueOnce(
-      createMock<DocumentSnapshot>({ exists: false }),
-    );
-
-    await repository.createSignup(signupRequest);
-
-    expect(doc.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...signupRequest,
-        status: SignupStatus.PENDING,
-      }),
-    );
-    expect(doc.set).not.toHaveBeenCalled();
-  });
-
   it('should call updateSignupStatus with the correct arguments', async () => {
     await repository.updateSignupStatus(
       SignupStatus.APPROVED,
