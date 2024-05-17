@@ -1,5 +1,5 @@
+import { createMock } from '@golevelup/ts-vitest';
 import { PartialMessageReaction, PartialUser } from 'discord.js';
-import { createMock } from '../../test/create-mock.js';
 import { CacheTime, hydrateReaction, hydrateUser } from './discord.helpers.js';
 
 describe('Discord Helper Methods', () => {

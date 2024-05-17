@@ -1,6 +1,6 @@
+import { DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { Firestore } from 'firebase-admin/firestore';
-import { DeepMocked, createMock } from '../../../test/create-mock.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { SettingsCollection } from './settings-collection.js';
 
@@ -10,32 +10,16 @@ describe('SettingsCollection', () => {
   const guildId = 'guildId';
 
   beforeEach(async () => {
-    const docMock = {
-      set: vi.fn(),
-      get: vi.fn<any>().mockResolvedValue({
-        data: () => ({
-          reviewChannel: 'channel',
-          reviewerRole: 'role',
-        }),
-      }),
-    };
-
-    const collectionMock = {
-      doc: vi.fn().mockReturnValue(docMock),
-    };
-
-    firestore = createMock<Firestore>({
-      collection: vi.fn().mockReturnValue(collectionMock),
-    });
+    firestore = createMock<Firestore>();
 
     const module = await Test.createTestingModule({
-      providers: [
-        SettingsCollection,
-        { provide: FIRESTORE, useValue: firestore },
-      ],
-    }).compile();
+      providers: [SettingsCollection],
+    })
+      .useMocker(() => createMock())
+      .compile();
 
     service = module.get<SettingsCollection>(SettingsCollection);
+    firestore = module.get(FIRESTORE);
   });
 
   it('should call upsertSettings with correct arguments', async () => {

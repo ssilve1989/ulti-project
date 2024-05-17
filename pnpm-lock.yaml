@@ -96,6 +96,9 @@ importers:
       '@flydotio/dockerfile':
         specifier: ^0.5.7
         version: 0.5.7
+      '@golevelup/ts-vitest':
+        specifier: ^0.5.0
+        version: 0.5.0
       '@nestjs/cli':
         specifier: ^10.3.2
         version: 10.3.2(@swc/core@1.5.7)
@@ -560,6 +563,9 @@ packages:
     resolution: {integrity: sha512-BVkXM2K/jLLYBFos1gT/bYv0YPJue8L4j0dkIsskJI4JRn6rPA9bZjT4sJzkzhdubZuwRGG9cgxj4Cfgt4lHlw==}
     engines: {node: '>=16.0.0'}
     hasBin: true
+
+  '@golevelup/ts-vitest@0.5.0':
+    resolution: {integrity: sha512-NACuIUg9l0kudI0E04pohy5oL5q0sxXSMlQxrZDHP/fabXpwIPVY/At51FRufPT+JvIU/fnGqlGreD+ywk02Rw==}
 
   '@google-cloud/firestore@7.6.0':
     resolution: {integrity: sha512-WUDbaLY8UnPxgwsyIaxj6uxCtSDAaUyvzWJykNH5rZ9i92/SZCsPNNMN0ajrVpAR81hPIL4amXTaMJ40y5L+Yg==}
@@ -4328,6 +4334,8 @@ snapshots:
       ejs: 3.1.9
       shell-quote: 1.8.1
       yargs: 17.7.2
+
+  '@golevelup/ts-vitest@0.5.0': {}
 
   '@google-cloud/firestore@7.6.0':
     dependencies:

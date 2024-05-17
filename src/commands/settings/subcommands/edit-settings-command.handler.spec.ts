@@ -1,6 +1,6 @@
+import { DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, Role } from 'discord.js';
-import { DeepMocked, createMock } from '../../../../test/create-mock.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { EditSettingsCommandHandler } from './edit-settings-command.handler.js';

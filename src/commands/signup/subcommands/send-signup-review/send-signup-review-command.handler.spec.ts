@@ -1,8 +1,7 @@
+import { DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { Client, TextChannel } from 'discord.js';
+import { TextChannel } from 'discord.js';
 import { Mock } from 'vitest';
-import { DeepMocked, createMock } from '../../../../../test/create-mock.js';
-import { DISCORD_CLIENT } from '../../../../discord/discord.decorators.js';
 import { MissingChannelException } from '../../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
@@ -34,26 +33,7 @@ describe('Send Signup Review Command Handler', () => {
     get = vi.fn(() => undefined);
 
     const fixture = await Test.createTestingModule({
-      providers: [
-        SendSignupReviewCommandHandler,
-        {
-          provide: DISCORD_CLIENT,
-          useValue: createMock<Client<true>>({
-            guilds: {
-              cache: {
-                get: () => ({
-                  valueOf: () => '',
-                  channels: {
-                    cache: {
-                      get,
-                    },
-                  },
-                }),
-              },
-            },
-          }),
-        },
-      ],
+      providers: [SendSignupReviewCommandHandler],
     })
       .useMocker(() => createMock())
       .setLogger(createMock())
