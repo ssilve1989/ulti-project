@@ -342,17 +342,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
     const row = new ActionRowBuilder().addComponents(menu);
 
-    const embed = EmbedBuilder.from(sourceEmbed).addFields([
-      {
-        name: 'Prog Point',
-        value: signup.progPointRequested,
-        inline: true,
-      },
-    ]);
-
     const message = await this.discordService.sendDirectMessage(user.id, {
       content: 'Please confirm the prog point of the following signup',
-      embeds: [embed],
+      embeds: [sourceEmbed],
       components: [row as any],
     });
 
