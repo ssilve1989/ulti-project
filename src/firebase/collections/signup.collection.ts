@@ -36,30 +36,21 @@ class SignupCollection {
     const key = this.getKeyForSignup(signup);
     const document = this.collection.doc(key);
     const expiresAt = Timestamp.fromDate(day().add(28, 'days').toDate());
-    const snapshot = await document.get();
 
-    if (snapshot.exists) {
-      await document.set(
-        {
-          ...signup,
-          status: SignupStatus.PENDING,
-          reviewedBy: null,
-          expiresAt,
-        },
-        {
-          merge: true,
-        },
-      );
-    } else {
-      await document.create({
+    await document.set(
+      {
         ...signup,
-        expiresAt,
         status: SignupStatus.PENDING,
-      });
-    }
+        reviewedBy: null,
+        expiresAt,
+      },
+      {
+        merge: true,
+      },
+    );
 
-    const updatedSnapshot = await this.collection.doc(key).get();
-    return updatedSnapshot.data()!;
+    const snapshot = await this.collection.doc(key).get();
+    return snapshot.data()!;
   }
 
   public async findOne(
