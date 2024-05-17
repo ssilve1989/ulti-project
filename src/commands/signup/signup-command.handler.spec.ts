@@ -1,3 +1,4 @@
+import { DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import {
   ChannelSelectMenuInteraction,
@@ -6,8 +7,6 @@ import {
   DiscordjsErrorCodes,
   Message,
 } from 'discord.js';
-
-import { DeepMocked, createMock } from '../../../test/create-mock.js';
 import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
