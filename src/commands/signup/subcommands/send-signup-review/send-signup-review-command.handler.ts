@@ -4,7 +4,10 @@ import { EmbedBuilder } from 'discord.js';
 import { titleCase } from 'title-case';
 import { MissingChannelException } from '../../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
-import { EncounterFriendlyDescription } from '../../../../encounters/encounters.consts.js';
+import {
+  EncounterEmoji,
+  EncounterFriendlyDescription,
+} from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
 import { SignupDocument } from '../../../../firebase/models/signup.model.js';
@@ -79,25 +82,22 @@ class SendSignupReviewCommandHandler
     role,
     progPointRequested,
   }: SignupDocument) {
+    const emoji = this.discordService.getEmojiString(EncounterEmoji[encounter]);
+
     let embed = new EmbedBuilder()
       .setDescription(
         `Please react to approve ${SIGNUP_REVIEW_REACTIONS.APPROVED} or deny ${SIGNUP_REVIEW_REACTIONS.DECLINED} the following applicants request`,
       )
-      .setTitle('Signup Approval')
+      .setTitle(
+        `Signup Approval - ${EncounterFriendlyDescription[encounter]} ${emoji}`.trim(),
+      )
       .addFields([
-        {
-          name: 'Encounter',
-          value: EncounterFriendlyDescription[encounter],
-          inline: true,
-        },
         {
           name: 'Character',
           value: titleCase(character),
           inline: true,
         },
-        { name: '\u200B', value: '\u200B', inline: true },
         { name: 'Home World', value: titleCase(world), inline: true },
-        { name: 'Availability', value: availability, inline: true },
         { name: 'Job', value: role, inline: true },
         { name: 'Prog Point', value: progPointRequested, inline: true },
       ]);
@@ -111,6 +111,10 @@ class SendSignupReviewCommandHandler
         },
       ]);
     }
+
+    embed = embed.addFields([
+      { name: 'Availability', value: availability, inline: true },
+    ]);
 
     if (screenshot) {
       embed = embed.setImage(screenshot);

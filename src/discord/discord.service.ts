@@ -54,6 +54,11 @@ class DiscordService {
     const member = await guild.members.fetch(userId);
     return member.roles.cache.has(roleId);
   }
+
+  public getEmojiString(emojiId: string) {
+    const hasEmoji = this.client.emojis.cache.has(emojiId);
+    return hasEmoji ? `<:_:${emojiId}>` : '';
+  }
 }
 
 export { DiscordService };
