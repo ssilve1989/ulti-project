@@ -42,6 +42,7 @@ describe('Send Signup Review Command Handler', () => {
     handler = fixture.get(SendSignupReviewCommandHandler);
     discordServiceMock = fixture.get(DiscordService);
     settingsCollection = fixture.get(SettingsCollection);
+    discordServiceMock.getEmojiString.mockReturnValueOnce('');
   });
 
   it('does not send a review if no review channel has been configured', async () => {
