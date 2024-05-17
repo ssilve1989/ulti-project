@@ -179,6 +179,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     role,
     screenshot,
     world,
+    progPointRequested,
   }: SignupInteractionDto) {
     let embed = new EmbedBuilder()
       .setTitle(EncounterFriendlyDescription[encounter])
@@ -189,11 +190,10 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
           value: titleCase(character),
           inline: true,
         },
-        { name: '\u200B', value: '\u200B', inline: true },
         { name: 'Home World', value: titleCase(world), inline: true },
+        { name: 'Job', value: role, inline: true },
+        { name: 'Prog Point', value: progPointRequested, inline: true },
         { name: 'Availability', value: availability, inline: true },
-        { name: '\u200B', value: '\u200B', inline: true },
-        { name: 'Role', value: role, inline: true },
       ]);
 
     if (proofOfProgLink) {

@@ -68,7 +68,7 @@ describe('LookupCommandHandler', () => {
             },
             {
               name: 'Encounter',
-              value: 'Dragonsong Reprise (Ultimate)',
+              value: '[DSR] Dragonsong Reprise',
               inline: true,
             },
             {
