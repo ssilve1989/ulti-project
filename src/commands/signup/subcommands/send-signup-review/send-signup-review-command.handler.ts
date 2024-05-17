@@ -83,21 +83,14 @@ class SendSignupReviewCommandHandler
       .setDescription(
         `Please react to approve ${SIGNUP_REVIEW_REACTIONS.APPROVED} or deny ${SIGNUP_REVIEW_REACTIONS.DECLINED} the following applicants request`,
       )
-      .setTitle('Signup Approval')
+      .setTitle(`Signup Approval - ${EncounterFriendlyDescription[encounter]}`)
       .addFields([
-        {
-          name: 'Encounter',
-          value: EncounterFriendlyDescription[encounter],
-          inline: true,
-        },
         {
           name: 'Character',
           value: titleCase(character),
           inline: true,
         },
-        { name: '\u200B', value: '\u200B', inline: true },
         { name: 'Home World', value: titleCase(world), inline: true },
-        { name: 'Availability', value: availability, inline: true },
         { name: 'Job', value: role, inline: true },
         { name: 'Prog Point', value: progPointRequested, inline: true },
       ]);
@@ -111,6 +104,10 @@ class SendSignupReviewCommandHandler
         },
       ]);
     }
+
+    embed = embed.addFields([
+      { name: 'Availability', value: availability, inline: true },
+    ]);
 
     if (screenshot) {
       embed = embed.setImage(screenshot);
