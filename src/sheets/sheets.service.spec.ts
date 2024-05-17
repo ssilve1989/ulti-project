@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 
-import { createMock } from '../../test/create-mock.js';
+import { createMock } from '@golevelup/ts-vitest';
 import { SheetsService } from './sheets.service.js';
 
 describe('Sheets Service', () => {

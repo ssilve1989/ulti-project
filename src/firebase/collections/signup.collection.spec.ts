@@ -1,3 +1,4 @@
+import { DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import {
   CollectionReference,
@@ -9,7 +10,6 @@ import {
   QueryDocumentSnapshot,
   QuerySnapshot,
 } from 'firebase-admin/firestore';
-import { DeepMocked, createMock } from '../../../test/create-mock.js';
 import { SignupInteractionDto } from '../../commands/signup/signup-interaction.dto.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { FIRESTORE } from '../firebase.consts.js';
