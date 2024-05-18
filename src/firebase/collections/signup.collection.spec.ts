@@ -13,6 +13,7 @@ import {
 import { SignupInteractionDto } from '../../commands/signup/signup-interaction.dto.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { FIRESTORE } from '../firebase.consts.js';
+import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import { SignupDocument, SignupStatus } from '../models/signup.model.js';
 import { SignupCollection } from './signup.collection.js';
 
@@ -57,25 +58,39 @@ describe('Signup Repository', () => {
     repository = fixture.get(SignupCollection);
   });
 
-  it('should call set if document exists', async () => {
+  it('should call update if document exists', async () => {
     doc.get.mockResolvedValueOnce(
       createMock<DocumentSnapshot>({ exists: true }),
     );
 
-    await repository.createSignup(signupRequest);
+    await repository.upsert(signupRequest);
 
-    expect(doc.set).toHaveBeenCalledWith(
+    expect(doc.update).toHaveBeenCalledWith(
       expect.objectContaining({
         ...signupRequest,
-        status: SignupStatus.PENDING,
+        status: SignupStatus.UPDATE_PENDING,
         reviewedBy: null,
       }),
-      {
-        merge: true,
-      },
     );
 
     expect(doc.create).not.toHaveBeenCalled();
+  });
+
+  it('should call create if the document does not exist', async () => {
+    doc.get.mockResolvedValueOnce(
+      createMock<DocumentSnapshot>({ exists: false }),
+    );
+
+    await repository.upsert(signupRequest);
+
+    expect(doc.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...signupRequest,
+        status: SignupStatus.PENDING,
+      }),
+    );
+
+    expect(doc.update).not.toHaveBeenCalled();
   });
 
   it('should call updateSignupStatus with the correct arguments', async () => {
@@ -100,7 +115,7 @@ describe('Signup Repository', () => {
   });
 
   describe('#findByReviewId', () => {
-    const mockFetch = (empty, signup: SignupDocument) => {
+    const mockFetch = (empty: any, signup: SignupDocument) => {
       collection.where.mockReturnValueOnce(
         createMock<Query>({
           limit: () =>
@@ -123,11 +138,11 @@ describe('Signup Repository', () => {
 
     it('should return a signup by review if exists', async () => {
       const reviewMessageId = 'reviewMessageId';
-      const signup = {
+      const signup = createMock<SignupDocument>({
         ...signupRequest,
         reviewMessageId,
         status: SignupStatus.PENDING,
-      };
+      });
 
       mockFetch(false, signup);
 
@@ -140,7 +155,7 @@ describe('Signup Repository', () => {
       mockFetch(true, {} as SignupDocument);
 
       expect(repository.findByReviewId('reviewMessageId')).rejects.toThrow(
-        `No signup found for review message id: ${'reviewMessageId'}`,
+        DocumentNotFoundException,
       );
     });
   });
