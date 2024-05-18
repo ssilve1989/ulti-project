@@ -1,7 +1,13 @@
 import { StringSelectMenuBuilder } from 'discord.js';
+import { PartyStatus } from '../firebase/models/signup.model.js';
 import { Encounter, EncounterProgPoints } from './encounters.consts.js';
 
 export const PROG_POINT_SELECT_ID = 'progPointSelect';
+
+const clearedOption = {
+  label: 'Cleared',
+  value: PartyStatus.Cleared,
+};
 
 const ucobProgOptions = Object.entries(EncounterProgPoints[Encounter.UCOB]).map(
   ([key, { label }]) => ({
@@ -39,23 +45,23 @@ const topProgOptions = Object.entries(EncounterProgPoints[Encounter.TOP]).map(
 );
 
 const UCOB_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(ucobProgOptions)
+  .addOptions(...ucobProgOptions, clearedOption)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 const UWU_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(uwuProgOptions)
+  .addOptions(...uwuProgOptions, clearedOption)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 const TEA_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(teaProgOptions)
+  .addOptions(...teaProgOptions, clearedOption)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 const DSR_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(dsrProgOptions)
+  .addOptions(...dsrProgOptions, clearedOption)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 const TOP_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(topProgOptions)
+  .addOptions(...topProgOptions, clearedOption)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 /**

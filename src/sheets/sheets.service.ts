@@ -4,7 +4,10 @@ import { ConfigType } from '@nestjs/config';
 import * as Sentry from '@sentry/node';
 import { titleCase } from 'title-case';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
-import { PartyType, SignupDocument } from '../firebase/models/signup.model.js';
+import {
+  PartyStatus,
+  SignupDocument,
+} from '../firebase/models/signup.model.js';
 import { SignupCompositeKeyProps } from '../firebase/models/signup.model.js';
 import { sheetsConfig } from './sheets.config.js';
 import {
@@ -44,23 +47,23 @@ class SheetsService {
    * @returns
    */
   public async upsertSignup(
-    { partyType, ...signup }: SignupDocument,
+    { partyStatus, ...signup }: SignupDocument,
     spreadsheetId: string,
   ) {
     const { SHEET_EARLY_PROG_NAME, SHEET_PROG_NAME } = this.config;
-    switch (partyType) {
+    switch (partyStatus) {
       // There can be race conditions with multiple concurrent calls out to Google Sheets
       // that can result in indeterminstic writes to the sheet. To work-around this, we use a
       // naive async task queue to wrap the operators, so only one task can run at a time.
       // There is a potential for the queue to build up faster than it can process, but we don't
       // expect to have that kind of scale. A future solution would be to use a robust task queue like BullMQ
 
-      case PartyType.CLEAR_PARTY:
+      case PartyStatus.ClearParty:
         return this.queue.add(() =>
           this.upsertClearParty(signup, spreadsheetId),
         );
 
-      case PartyType.PROG_PARTY:
+      case PartyStatus.ProgParty:
         return this.queue.add(() =>
           this.upsertProgParty(signup, {
             spreadsheetId,
@@ -69,7 +72,7 @@ class SheetsService {
           }),
         );
 
-      case PartyType.EARLY_PROG_PARTY:
+      case PartyStatus.EarlyProgParty:
         return this.queue.add(() =>
           this.upsertProgParty(signup, {
             spreadsheetId,
@@ -77,8 +80,11 @@ class SheetsService {
           }),
         );
 
+      case PartyStatus.Cleared:
+        return this.queue.add(() => this.removeSignup(signup, spreadsheetId));
+
       default: {
-        const msg = `unknown party type: ${partyType} for character: ${signup.character}`;
+        const msg = `unknown party type: ${partyStatus} for character: ${signup.character}`;
         this.logger.warn(msg);
       }
     }
@@ -212,7 +218,7 @@ class SheetsService {
   // }
 
   private async upsertClearParty(
-    signup: Omit<SignupDocument, 'partyType'>,
+    signup: Omit<SignupDocument, 'partyStatus'>,
     spreadsheetId: string,
   ) {
     const { encounter, character, world, discordId } = signup;

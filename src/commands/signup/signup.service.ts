@@ -43,7 +43,7 @@ import { SettingsCollection } from '../../firebase/collections/settings-collecti
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SettingsDocument } from '../../firebase/models/settings.model.js';
 import {
-  PartyType,
+  PartyStatus,
   SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
@@ -217,16 +217,21 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       });
     }
 
-    const partyType =
-      (progPoint &&
-        EncounterProgPoints[signup.encounter][progPoint]?.partyType) ||
-      undefined;
+    const partyStatus = progPoint
+      ? progPoint === PartyStatus.Cleared
+        ? PartyStatus.Cleared
+        : EncounterProgPoints[signup.encounter][progPoint]?.partyStatus
+      : undefined;
 
     this.logger.debug(
-      `querying partyType for progPoint: ${progPoint}, ${partyType}`,
+      `querying partyStatus for progPoint: ${progPoint}, ${partyStatus}`,
     );
 
-    const confirmedSignup: SignupDocument = { ...signup, progPoint, partyType };
+    const confirmedSignup: SignupDocument = {
+      ...signup,
+      progPoint,
+      partyStatus,
+    };
 
     embed
       .setFooter({
@@ -250,11 +255,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         ),
     ]);
 
-    await this.repository.updateSignupStatus(
-      SignupStatus.APPROVED,
-      confirmedSignup,
-      user.username,
-    );
+    if (progPoint === PartyStatus.Cleared) {
+      await this.repository.removeSignup(signup);
+    } else {
+      await this.repository.updateSignupStatus(
+        SignupStatus.APPROVED,
+        confirmedSignup,
+        user.username,
+      );
+    }
 
     await Promise.all([
       message.edit({ embeds: [embed] }),
@@ -268,7 +277,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         guildId: message.guild.id,
         settings,
         signup,
-        partyType,
+        partyStatus,
       }),
     ]);
   }
@@ -402,19 +411,19 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     guildId,
     settings,
     signup: { encounter, discordId },
-    partyType,
+    partyStatus,
   }: {
     signup: Pick<SignupDocument, 'encounter' | 'discordId'>;
     settings: Pick<SettingsDocument, 'progRoles'>;
     guildId: string;
-    partyType?: PartyType;
+    partyStatus?: PartyStatus;
   }) {
     const role = settings.progRoles?.[encounter];
-    const isValidPartyType =
-      partyType === PartyType.EARLY_PROG_PARTY ||
-      partyType === PartyType.PROG_PARTY;
+    const isValidpartyStatus =
+      partyStatus === PartyStatus.EarlyProgParty ||
+      partyStatus === PartyStatus.ProgParty;
 
-    if (!(role && isValidPartyType)) {
+    if (!(role && isValidpartyStatus)) {
       return;
     }
 
