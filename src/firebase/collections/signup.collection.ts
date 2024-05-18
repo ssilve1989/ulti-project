@@ -114,17 +114,17 @@ class SignupCollection {
   public updateSignupStatus(
     status: SignupStatus,
     {
-      partyType,
+      partyStatus,
       progPoint,
       ...key
-    }: SignupCompositeKey & Pick<SignupDocument, 'progPoint' | 'partyType'>,
+    }: SignupCompositeKey & Pick<SignupDocument, 'progPoint' | 'partyStatus'>,
     reviewedBy: string,
   ) {
     return this.collection.doc(SignupCollection.getKeyForSignup(key)).update({
       status,
       progPoint,
       reviewedBy,
-      partyType,
+      partyStatus,
     });
   }
 

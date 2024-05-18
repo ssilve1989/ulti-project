@@ -10,10 +10,11 @@ export enum SignupStatus {
 
 export type SignupStatusValues = keyof { [K in SignupStatus]: any };
 
-export enum PartyType {
-  EARLY_PROG_PARTY = 'Early Prog Party',
-  PROG_PARTY = 'Prog Party',
-  CLEAR_PARTY = 'Clear Party',
+export enum PartyStatus {
+  EarlyProgParty = 'Early Prog Party',
+  ProgParty = 'Prog Party',
+  ClearParty = 'Clear Party',
+  Cleared = 'Cleared',
 }
 
 export interface SignupDocument {
@@ -29,7 +30,7 @@ export interface SignupDocument {
   // The prog point specified by the signup user
   progPointRequested: string;
   // the party type we determined they should be
-  partyType?: PartyType;
+  partyStatus?: PartyStatus;
   // discordId of the user that reviewed this signup
   reviewedBy?: string | null;
   // the message id of the review message posted to discord

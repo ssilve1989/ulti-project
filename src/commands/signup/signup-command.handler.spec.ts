@@ -13,7 +13,7 @@ import { Encounter } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import {
-  PartyType,
+  PartyStatus,
   SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
@@ -64,7 +64,7 @@ describe('Signup Command Handler', () => {
             case 'job':
               return 'tank';
             case 'party-type':
-              return PartyType.CLEAR_PARTY;
+              return PartyStatus.ClearParty;
             case 'prog-point':
               return 'all the progs';
           }
