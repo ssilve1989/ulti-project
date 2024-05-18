@@ -77,7 +77,7 @@ describe('Remove Signup Command Handler', () => {
 
     await handler.execute({ interaction });
     expect(signupsRepository.removeSignup).toHaveBeenCalled();
-    expect(interaction.editReply).toHaveBeenCalledWith('Signup removed');
+    expect(interaction.editReply).toHaveBeenCalledWith('Success!');
   });
 
   it('calls removeSignup from SheetService if spreadsheetId is set', async () => {
@@ -119,6 +119,6 @@ describe('Remove Signup Command Handler', () => {
 
     await handler.execute({ interaction });
     expect(signupsRepository.removeSignup).toHaveBeenCalled();
-    expect(interaction.editReply).toHaveBeenCalledWith('Signup removed');
+    expect(interaction.editReply).toHaveBeenCalledWith('Success!');
   });
 });
