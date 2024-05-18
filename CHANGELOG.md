@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.7.0](https://github.com/ssilve1989/ulti-project/compare/v1.6.1...v1.7.0) (2024-05-18)
+
+
+### Features
+
+* **signups:** now removes prior message  when a new one is submitted ([#280](https://github.com/ssilve1989/ulti-project/issues/280)) ([47c0837](https://github.com/ssilve1989/ulti-project/commit/47c0837debc7cbb7a9a1f440754feb244c094684))
+* **signups:** remove-signup  now removes unhandled approval messages ([#282](https://github.com/ssilve1989/ulti-project/issues/282)) ([fd145ea](https://github.com/ssilve1989/ulti-project/commit/fd145ea97df6b78d33cf154f1c3986a3f7232247))
+* **signups:** support cleared signups ([#283](https://github.com/ssilve1989/ulti-project/issues/283)) ([417294d](https://github.com/ssilve1989/ulti-project/commit/417294d833b156a285b6acc661a80c89d329b1ce))
+
 ## [1.6.1](https://github.com/ssilve1989/ulti-project/compare/v1.6.0...v1.6.1) (2024-05-17)
 
 
