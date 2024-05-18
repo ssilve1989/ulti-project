@@ -9,7 +9,7 @@ import {
 } from './signup.consts.js';
 
 class SignupInteractionDto
-  implements Omit<SignupDocument, 'status' | 'partyType' | 'expiresAt'>
+  implements Omit<SignupDocument, 'status' | 'partyStatus' | 'expiresAt'>
 {
   @IsString()
   availability: string;

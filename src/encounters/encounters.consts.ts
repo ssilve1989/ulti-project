@@ -1,4 +1,4 @@
-import { PartyType } from '../firebase/models/signup.model.js';
+import { PartyStatus } from '../firebase/models/signup.model.js';
 
 export enum Encounter {
   TOP = 'TOP',
@@ -32,7 +32,7 @@ export const EncounterEmoji = Object.freeze({
 // along with their label for the slash command options
 type ProgPointOption = {
   label: string;
-  partyType: PartyType;
+  partyStatus: PartyStatus;
 };
 
 // The keys of these objects are what get associated as the values for the Google Sheet/Slash Command options
@@ -43,249 +43,249 @@ export const EncounterProgPoints: Record<
   [Encounter.DSR]: {
     Strength: {
       label: 'Phase 2: Strength of the Ward',
-      partyType: PartyType.EARLY_PROG_PARTY,
+      partyStatus: PartyStatus.EarlyProgParty,
     },
     Sanctity: {
       label: 'Phase 2: Sanctity of the Ward',
-      partyType: PartyType.EARLY_PROG_PARTY,
+      partyStatus: PartyStatus.EarlyProgParty,
     },
     Nidhogg: {
       label: 'Phase 3: Nidhogg',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     Eyes: {
       label: 'Phase 4: Eyes',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     Rewind: {
       label: 'Phase 4: Rewind',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     WOTH: {
       label: 'Phase 5: Wrath of the Heavens',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     DOTH: {
       label: 'Phase 5: Death of the Heavens',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     WB1: {
       label: 'Phase 6: Wyrmsbreath 1',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     'Wroth Flames': {
       label: 'Phase 6: Wroth Flames',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     WB2: {
       label: 'Phase 6: Wyrmsbreath 2',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     'P6 Enrage': {
       label: 'Phase 6: Enrage',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'Exa #1': {
       label: 'Phase 7: Exaflare 1',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'Akh Morn #1': {
       label: 'Phase 7: Akh Morn 1',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'Giga Flare #1': {
       label: 'Phase 7: Gigaflare 1',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'Akh Morn #2': {
       label: 'Phase 7: Akh Morn 2',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'Giga Flare #2': {
       label: 'Phase 7: Gigaflare 2',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'P7 Enrage': {
       label: 'Phase 7: Enrage',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
   },
   [Encounter.TEA]: {
     'Limit Cut': {
       label: 'Phase 1: Limit Cut',
-      partyType: PartyType.EARLY_PROG_PARTY,
+      partyStatus: PartyStatus.EarlyProgParty,
     },
     BJCC: {
       label: 'Phase 2: BJCC',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     'Time Stop': {
       label: 'Phase 3: Time Stop',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     Inception: {
       label: 'Phase 3: Inception',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     Wormhole: {
       label: 'Phase 3: Wormhole',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     'Final Word': {
       label: 'Phase 4: Final Word',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'Fate Cal: A': {
       label: 'Phase 4: Fate Calibration (Alpha)',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'Fate Cal: B': {
       label: 'Phase 4: Fate Calibration (Beta)',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'Trines (Enrage)': {
       label: 'Phase 4: Trines',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
   },
   [Encounter.TOP]: {
     'P2 Party Synergy': {
       label: 'Phase 2: Party Synergy',
-      partyType: PartyType.EARLY_PROG_PARTY,
+      partyStatus: PartyStatus.EarlyProgParty,
     },
     'P2 Limitless': {
       label: 'Phase 2: Limitless Synergy',
-      partyType: PartyType.EARLY_PROG_PARTY,
+      partyStatus: PartyStatus.EarlyProgParty,
     },
     'P3 Transition': {
       label: 'Phase 3: Transition',
-      partyType: PartyType.EARLY_PROG_PARTY,
+      partyStatus: PartyStatus.EarlyProgParty,
     },
     'P3 Hello World': {
       label: 'Phase 3: Hello World',
-      partyType: PartyType.EARLY_PROG_PARTY,
+      partyStatus: PartyStatus.EarlyProgParty,
     },
     'P3 Monitors': {
       label: 'Phase 3: Monitors',
-      partyType: PartyType.EARLY_PROG_PARTY,
+      partyStatus: PartyStatus.EarlyProgParty,
     },
     'P3 Enrage': {
       label: 'Phase 3: Enrage',
-      partyType: PartyType.EARLY_PROG_PARTY,
+      partyStatus: PartyStatus.EarlyProgParty,
     },
     P4: {
       label: 'Phase 4: Blue Screen',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     'P5 Delta': {
       label: 'Phase 5: Delta',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     'P5 Sigma': {
       label: 'Phase 5: Sigma',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     'P5 Omega': {
       label: 'Phase 5: Omega',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     'P5 Enrage': {
       label: 'Phase 5: Enrage',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     'P6 Exasquares 1': {
       label: 'Phase 6: Exasquares 1',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     'P6 Cosmo Dive 1': {
       label: 'Phase 6: Cosmo Dive 1',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     'P6 Wave Cannon 1': {
       label: 'Phase 6: Wave Cannon 1',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'P6 Wave Cannon 2': {
       label: 'Phase 6: Wave Cannon 2',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'P6 Cosmo Dive 2': {
       label: 'Phase 6: Cosmo Dive 2',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'P6 Cosmo Meteor': {
       label: 'Phase 6: Cosmo Meteor',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'P6 Enrage': {
       label: 'Phase 6: Enrage',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
   },
   [Encounter.UCOB]: {
-    Nael: { label: 'Phase 2: Nael', partyType: PartyType.EARLY_PROG_PARTY },
+    Nael: { label: 'Phase 2: Nael', partyStatus: PartyStatus.EarlyProgParty },
     QMT: {
       label: 'Phase 3: Quickmarch Trio',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     BFT: {
       label: 'Phase 3: Blackfire Trio',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     Fellruin: {
       label: 'Phase 3: Fellruin Trio',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     Heavensfall: {
       label: 'Phase 3: Heavensfall Trio',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     Tenstrike: {
       label: 'Phase 3: Tenstrike Trio',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     'Grand Octet': {
       label: 'Phase 3: Grand Octet',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
-    Adds: { label: 'Phase 4: Adds', partyType: PartyType.CLEAR_PARTY },
+    Adds: { label: 'Phase 4: Adds', partyStatus: PartyStatus.ClearParty },
     'Golden Bahamut': {
       label: 'Phase 5: Golden Bahamut',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     Enrage: {
       label: 'Phase 5: Enrage',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
   },
   [Encounter.UWU]: {
     Ifrit: {
       label: 'Phase 2: Ifrit',
-      partyType: PartyType.EARLY_PROG_PARTY,
+      partyStatus: PartyStatus.EarlyProgParty,
     },
     Titan: {
       label: 'Phase 3: Titan',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     Predation: {
       label: 'Phase 4: Predation',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     Annihilation: {
       label: 'Phase 4: Annihilation',
-      partyType: PartyType.PROG_PARTY,
+      partyStatus: PartyStatus.ProgParty,
     },
     Suppression: {
       label: 'Phase 4: Suppression',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     'Primal Roulette': {
       label: 'Phase 4: Primal Roulette',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
     Enrage: {
       label: 'Phase 4: Enrage',
-      partyType: PartyType.CLEAR_PARTY,
+      partyStatus: PartyStatus.ClearParty,
     },
   },
 };
