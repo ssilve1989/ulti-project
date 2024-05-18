@@ -8,6 +8,7 @@ import { SignupCollection } from '../../../../firebase/collections/signup.collec
 import { SignupCompositeKeyProps } from '../../../../firebase/models/signup.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
+import { shouldDeleteReviewMessageForSignup } from '../../signup.utils.js';
 import { RemoveSignupCommand } from './remove-signup.command.js';
 import { RemoveSignupDto } from './remove-signup.dto.js';
 
@@ -57,9 +58,35 @@ class RemoveSignupCommandHandler
       await this.sheetsService.removeSignup(options, spreadsheetId);
     }
 
-    await this.signupsRepository.removeSignup(options);
+    await this.removeSignup(options, interaction.guildId);
+    await interaction.editReply('Success!');
+  }
 
-    await interaction.editReply('Signup removed');
+  private async removeSignup(
+    dto: RemoveSignupDto & { discordId: string },
+    guildId: string,
+  ) {
+    const signup = await this.signupsRepository.findOne(dto);
+
+    if (!signup) {
+      return;
+    }
+
+    // if there is an existing signup check if the approval was already handled
+    // if it has not been, remove it.
+    if (shouldDeleteReviewMessageForSignup(signup)) {
+      const reviewChannelId =
+        await this.settingsCollection.getReviewChannel(guildId);
+      if (reviewChannelId && signup.reviewMessageId) {
+        await this.discordService.deleteMessage(
+          guildId,
+          reviewChannelId,
+          signup.reviewMessageId,
+        );
+      }
+    }
+
+    await this.signupsRepository.removeSignup(dto);
   }
 
   private getOptions({ options }: ChatInputCommandInteraction) {
