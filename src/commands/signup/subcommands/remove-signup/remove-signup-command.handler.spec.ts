@@ -113,7 +113,9 @@ describe('Remove Signup Command Handler', () => {
     });
 
     discordService.userHasRole.mockResolvedValue(false);
-    signupsRepository.findOne.mockResolvedValue({ discordId: '1' } as any);
+    signupsRepository.findOneOrFail.mockResolvedValue({
+      discordId: '1',
+    } as any);
 
     await handler.execute({ interaction });
     expect(signupsRepository.removeSignup).toHaveBeenCalled();

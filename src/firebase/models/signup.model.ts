@@ -5,7 +5,10 @@ export enum SignupStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   DECLINED = 'DECLINED',
+  UPDATE_PENDING = 'UPDATE_PENDING',
 }
+
+export type SignupStatusValues = keyof { [K in SignupStatus]: any };
 
 export enum PartyType {
   EARLY_PROG_PARTY = 'Early Prog Party',

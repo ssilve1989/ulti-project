@@ -59,6 +59,16 @@ class DiscordService {
     const hasEmoji = this.client.emojis.cache.has(emojiId);
     return hasEmoji ? `<:_:${emojiId}>` : '';
   }
+
+  public async deleteMessage(
+    guildId: string,
+    channelId: string,
+    messageId: string,
+  ) {
+    const channel = await this.getTextChannel({ guildId, channelId });
+    const message = await channel?.messages.fetch(messageId);
+    return message?.delete();
+  }
 }
 
 export { DiscordService };
