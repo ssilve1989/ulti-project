@@ -26,15 +26,12 @@ import {
 } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import {
-  SignupDocument,
-  SignupStatus,
-} from '../../firebase/models/signup.model.js';
 import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SignupInteractionDto } from './signup-interaction.dto.js';
 import { SignupCommand } from './signup.commands.js';
 import { SIGNUP_MESSAGES } from './signup.consts.js';
 import { SignupCreatedEvent } from './signup.events.js';
+import { shouldDeleteReviewMessageForSignup } from './signup.utils.js';
 
 // reusable object to clear a messages emebed + button interaction
 const CLEAR_EMBED = {
@@ -132,7 +129,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     // quick and dirty way to delete the prior signup approval they might have had stored
     if (existing?.reviewMessageId && reviewChannelId) {
       try {
-        this.shouldDeleteOldReviewMessage(existing) &&
+        shouldDeleteReviewMessageForSignup(existing) &&
           (await this.discordService.deleteMessage(
             interaction.guildId,
             reviewChannelId,
@@ -151,14 +148,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     });
 
     return signup;
-  }
-
-  private shouldDeleteOldReviewMessage({ status }: SignupDocument) {
-    // we don't want to remove approvals that were already handled since they
-    // may want to be kept as a reference for why a decision was made earlier
-    return (
-      status === SignupStatus.PENDING || status === SignupStatus.UPDATE_PENDING
-    );
   }
 
   private async handleCancel(interaction: ChatInputCommandInteraction) {
