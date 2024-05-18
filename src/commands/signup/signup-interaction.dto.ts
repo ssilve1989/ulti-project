@@ -41,13 +41,13 @@ class SignupInteractionDto
   @ValidateIf(
     ({ screenshot, proofOfProgLink }) => proofOfProgLink || !screenshot,
   )
-  proofOfProgLink?: string | null;
+  proofOfProgLink: string | null = null;
 
   @IsString({
     message: 'A screenshot must be attached if no link is provided',
   })
   @ValidateIf(({ proofOfProgLink }) => !proofOfProgLink)
-  screenshot?: string | null;
+  screenshot: string | null = null;
 
   @IsString()
   @ToLowercase()

@@ -26,43 +26,65 @@ class SignupCollection {
     ) as CollectionReference<SignupDocument>;
   }
 
+  public static getKeyForSignup({ discordId, encounter }: SignupCompositeKey) {
+    return `${discordId.toLowerCase()}-${encounter}`;
+  }
+
   /**
    * Upserts a signup request into the database
    * @param signup
    */
-  public async createSignup(
+  public async upsert(
     signup: CreateSignupDocumentProps,
   ): Promise<SignupDocument> {
-    const key = this.getKeyForSignup(signup);
+    const key = SignupCollection.getKeyForSignup(signup);
     const document = this.collection.doc(key);
     const expiresAt = Timestamp.fromDate(day().add(28, 'days').toDate());
+    const snapshot = await document.get();
 
-    await document.set(
-      {
+    if (snapshot.exists) {
+      // if there is already a signup, we move the status to be UPDATE_PENDING
+      // to differentiate it from a new signup PENDING
+      await document.update({
         ...signup,
-        status: SignupStatus.PENDING,
+        status: SignupStatus.UPDATE_PENDING,
         reviewedBy: null,
         expiresAt,
-      },
-      {
-        merge: true,
-      },
-    );
+      });
+    } else {
+      await document.create({
+        ...signup,
+        expiresAt,
+        status: SignupStatus.PENDING,
+      });
+    }
 
-    const snapshot = await this.collection.doc(key).get();
-    return snapshot.data()!;
+    const update = await this.collection.doc(key).get();
+    return update.data()!;
+  }
+
+  public async findById(id: string): Promise<SignupDocument | undefined> {
+    const snapshot = await this.collection.doc(id).get();
+    return snapshot.data();
   }
 
   public async findOne(
     query: Partial<SignupDocument>,
-  ): Promise<SignupDocument> {
+  ): Promise<SignupDocument | undefined> {
     const snapshot = await this.where(query).limit(1).get();
+    return snapshot.docs.at(0)?.data();
+  }
 
-    if (snapshot.empty) {
-      throw new DocumentNotFoundException('SignupDocument not found');
+  public async findOneOrFail(
+    query: Partial<SignupDocument>,
+  ): Promise<SignupDocument> {
+    const signup = await this.findOne(query);
+
+    if (!signup) {
+      throw new DocumentNotFoundException(query);
     }
 
-    return snapshot.docs[0].data();
+    return signup;
   }
 
   public async findAll(
@@ -76,9 +98,7 @@ class SignupCollection {
     const snapshot = await this.where({ reviewMessageId }).limit(1).get();
 
     if (snapshot.empty) {
-      throw new DocumentNotFoundException(
-        `No signup found for review message id: ${reviewMessageId}`,
-      );
+      throw new DocumentNotFoundException({ reviewMessageId });
     }
 
     return snapshot.docs[0].data();
@@ -100,7 +120,7 @@ class SignupCollection {
     }: SignupCompositeKey & Pick<SignupDocument, 'progPoint' | 'partyType'>,
     reviewedBy: string,
   ) {
-    return this.collection.doc(this.getKeyForSignup(key)).update({
+    return this.collection.doc(SignupCollection.getKeyForSignup(key)).update({
       status,
       progPoint,
       reviewedBy,
@@ -115,7 +135,7 @@ class SignupCollection {
    * @returns
    */
   public setReviewMessageId(signup: SignupCompositeKey, messageId: string) {
-    const key = this.getKeyForSignup(signup);
+    const key = SignupCollection.getKeyForSignup(signup);
 
     return this.collection.doc(key).update({
       reviewMessageId: messageId,
@@ -123,12 +143,8 @@ class SignupCollection {
   }
 
   public removeSignup(signup: SignupCompositeKey) {
-    const key = this.getKeyForSignup(signup);
+    const key = SignupCollection.getKeyForSignup(signup);
     return this.collection.doc(key).delete();
-  }
-
-  private getKeyForSignup({ discordId, encounter }: SignupCompositeKey) {
-    return `${discordId.toLowerCase()}-${encounter}`;
   }
 
   /**

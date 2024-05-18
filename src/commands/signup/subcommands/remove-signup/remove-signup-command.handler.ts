@@ -86,8 +86,7 @@ class RemoveSignupCommandHandler
       return true;
     }
 
-    const signup = await this.signupsRepository.findOne(options);
-
+    const signup = await this.signupsRepository.findOneOrFail(options);
     return signup.discordId === user.id;
   }
 }

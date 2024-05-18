@@ -8,9 +8,15 @@ import {
   Message,
 } from 'discord.js';
 import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
+import { DiscordService } from '../../discord/discord.service.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { PartyType } from '../../firebase/models/signup.model.js';
+import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import {
+  PartyType,
+  SignupDocument,
+  SignupStatus,
+} from '../../firebase/models/signup.model.js';
 import { SignupCommandHandler } from './signup-command.handler.js';
 import { SignupCommand } from './signup.commands.js';
 import { SIGNUP_MESSAGES } from './signup.consts.js';
@@ -20,6 +26,8 @@ describe('Signup Command Handler', () => {
   let interaction: DeepMocked<ChatInputCommandInteraction<'cached' | 'raw'>>;
   let confirmationInteraction: DeepMocked<Message<boolean>>;
   let settingsCollection: DeepMocked<SettingsCollection>;
+  let discordServiceMock: DeepMocked<DiscordService>;
+  let signupCollectionMock: DeepMocked<SignupCollection>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
@@ -29,8 +37,11 @@ describe('Signup Command Handler', () => {
       .setLogger(createMock())
       .compile();
 
-    handler = fixture.get(SignupCommandHandler);
     confirmationInteraction = createMock<Message<boolean>>({});
+    discordServiceMock = fixture.get(DiscordService);
+    handler = fixture.get(SignupCommandHandler);
+    settingsCollection = fixture.get(SettingsCollection);
+    signupCollectionMock = fixture.get(SignupCollection);
 
     interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
       user: {
@@ -62,8 +73,6 @@ describe('Signup Command Handler', () => {
       },
       valueOf: () => '',
     });
-
-    settingsCollection = fixture.get(SettingsCollection);
   });
 
   test('is defined', () => {
@@ -94,6 +103,61 @@ describe('Signup Command Handler', () => {
       }),
     );
   });
+
+  it.each([SignupStatus.PENDING, SignupStatus.UPDATE_PENDING])(
+    'deletes a prior review message on confirm if it exists and has status %s',
+    async (status) => {
+      confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
+        createMock<ChannelSelectMenuInteraction>({
+          customId: 'confirm',
+          valueOf: () => '',
+          guildId: 'g123',
+        }),
+      );
+
+      interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
+      signupCollectionMock.findById.mockResolvedValueOnce(
+        createMock<SignupDocument>({
+          status,
+        }),
+      );
+
+      const command = new SignupCommand(interaction);
+      await handler.execute(command);
+
+      expect(discordServiceMock.deleteMessage).toHaveBeenCalled();
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED,
+        }),
+      );
+    },
+  );
+
+  it.each([SignupStatus.APPROVED, SignupStatus.DECLINED])(
+    'does not call delete if the prior approval has status %s',
+    (status) => {
+      confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
+        createMock<ChannelSelectMenuInteraction>({
+          customId: 'confirm',
+          valueOf: () => '',
+        }),
+      );
+
+      interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
+      signupCollectionMock.findById.mockResolvedValueOnce(
+        createMock<SignupDocument>({
+          status,
+        }),
+      );
+
+      const command = new SignupCommand(interaction);
+      handler.execute(command);
+
+      expect(discordServiceMock.deleteMessage).not.toHaveBeenCalled();
+    },
+  );
 
   it('throws UnhandledButtonInteractionException if the interaction is unknown', async () => {
     const spy = vi.spyOn(handler, 'handleError' as any);

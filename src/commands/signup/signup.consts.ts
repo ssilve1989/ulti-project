@@ -1,4 +1,4 @@
-import { SignupStatus } from '../../firebase/models/signup.model.js';
+import { SignupStatusValues } from '../../firebase/models/signup.model.js';
 
 export const SIGNUP_MESSAGES = {
   CONFIRMATION_TIMEOUT:
@@ -29,13 +29,15 @@ You can reach out to a coordinator to discuss any issues.
     'An error occurred while processing your response. The signup may not have been added to the Google Sheet, please verify it or add it manually',
 };
 
-export const SIGNUP_REVIEW_REACTIONS: Record<
-  keyof typeof SignupStatus,
-  string
-> = {
+export const SIGNUP_REVIEW_REACTIONS: Record<SignupStatusValues, string> = {
+  // biome-ignore lint/style/useNamingConvention: using literal enum values as keys
   APPROVED: '✅',
+  // biome-ignore lint/style/useNamingConvention: using literal enum values as keys
   DECLINED: '❌',
+  // biome-ignore lint/style/useNamingConvention: using literal enum values as keys
   PENDING: ':question:',
+  // biome-ignore lint/style/useNamingConvention: using literal enum values as keys
+  UPDATE_PENDING: ':question:',
 };
 
 // string validation via IsUrl does not work the same as regex. It does like

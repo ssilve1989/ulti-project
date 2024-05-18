@@ -19,12 +19,17 @@ import {
   ConfirmButton,
 } from '../../common/components/buttons.js';
 import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
+import { DiscordService } from '../../discord/discord.service.js';
 import {
   Encounter,
   EncounterFriendlyDescription,
 } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import {
+  SignupDocument,
+  SignupStatus,
+} from '../../firebase/models/signup.model.js';
 import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SignupInteractionDto } from './signup-interaction.dto.js';
 import { SignupCommand } from './signup.commands.js';
@@ -46,6 +51,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     private readonly eventBus: EventBus,
     private readonly repository: SignupCollection,
     private readonly settingsService: SettingsCollection,
+    private readonly discordService: DiscordService,
   ) {}
 
   async execute({ interaction }: SignupCommand) {
@@ -104,11 +110,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
           throw new UnhandledButtonInteractionException(response);
         });
 
-      this.logger.debug({
-        message: `signup ${response.customId}`,
-        ...signupRequest,
-      });
-
       if (signup) {
         this.eventBus.publish(
           new SignupCreatedEvent(signup, interaction.guildId),
@@ -121,9 +122,28 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
   private async handleConfirm(
     request: SignupInteractionDto,
-    interaction: ChatInputCommandInteraction,
+    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
   ) {
-    const signup = this.repository.createSignup(request);
+    const [existing, reviewChannelId] = await Promise.all([
+      this.repository.findById(SignupCollection.getKeyForSignup(request)),
+      this.settingsService.getReviewChannel(interaction.guildId),
+    ]);
+
+    // quick and dirty way to delete the prior signup approval they might have had stored
+    if (existing?.reviewMessageId && reviewChannelId) {
+      try {
+        this.shouldDeleteOldReviewMessage(existing) &&
+          (await this.discordService.deleteMessage(
+            interaction.guildId,
+            reviewChannelId,
+            existing.reviewMessageId,
+          ));
+      } catch (e) {
+        this.logger.error(e);
+      }
+    }
+
+    const signup = await this.repository.upsert(request);
 
     await interaction.editReply({
       content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED,
@@ -131,6 +151,14 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     });
 
     return signup;
+  }
+
+  private shouldDeleteOldReviewMessage({ status }: SignupDocument) {
+    // we don't want to remove approvals that were already handled since they
+    // may want to be kept as a reference for why a decision was made earlier
+    return (
+      status === SignupStatus.PENDING || status === SignupStatus.UPDATE_PENDING
+    );
   }
 
   private async handleCancel(interaction: ChatInputCommandInteraction) {
@@ -156,7 +184,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       proofOfProgLink: options.getString('prog-proof-link'),
       progPointRequested: options.getString('prog-point')!,
       role: options.getString('job')!,
-      screenshot: options.getAttachment('screenshot')?.url,
+      screenshot: options.getAttachment('screenshot')?.url ?? null,
       username: user.username,
       world: options.getString('world')!,
     };
@@ -218,7 +246,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     interaction: ChatInputCommandInteraction,
   ) {
     sentryReport(error);
-
     this.logger.error(error);
 
     return match(error)
