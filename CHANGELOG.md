@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/ssilve1989/ulti-project/compare/v1.7.1...v1.8.0) (2024-05-19)
+
+
+### Features
+
+* **turbo-prog:** add turbo prog command ([#286](https://github.com/ssilve1989/ulti-project/issues/286)) ([908f854](https://github.com/ssilve1989/ulti-project/commit/908f85488f2919db863d4978794d417753f47ab9))
+
 ## [1.7.1](https://github.com/ssilve1989/ulti-project/compare/v1.7.0...v1.7.1) (2024-05-19)
 
 
