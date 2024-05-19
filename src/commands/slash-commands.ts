@@ -3,6 +3,7 @@ import { SettingsSlashCommand } from './settings/settings-slash-command.js';
 import { SignupSlashCommand } from './signup/signup-slash-command.js';
 import { RemoveSignupSlashCommand } from './signup/subcommands/remove-signup/remove-signup-slash-command.js';
 import { StatusSlashCommand } from './status/status-slash-command.js';
+import { TurboProgSlashCommand } from './turboprog/turbo-prog.slash-command.js';
 
 export const SLASH_COMMANDS = [
   LookupSlashCommand,
@@ -10,4 +11,5 @@ export const SLASH_COMMANDS = [
   SettingsSlashCommand,
   SignupSlashCommand,
   StatusSlashCommand,
+  TurboProgSlashCommand,
 ];
