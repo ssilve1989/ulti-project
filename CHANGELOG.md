@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/ssilve1989/ulti-project/compare/v1.7.0...v1.7.1) (2024-05-19)
+
+
+### Bug Fixes
+
+* fixes an issue with remove-signup where multiple rows were modified ([#284](https://github.com/ssilve1989/ulti-project/issues/284)) ([cd9af41](https://github.com/ssilve1989/ulti-project/commit/cd9af411e76a6e7a726907890752e779ecc6e758))
+
 ## [1.7.0](https://github.com/ssilve1989/ulti-project/compare/v1.6.1...v1.7.0) (2024-05-18)
 
 
