@@ -39,6 +39,18 @@ const EditSettingsSubcommand = new SlashCommandSubcommandBuilder()
       .setDescription(
         'The id of the spreadsheet to use for persistence modifications',
       ),
+  )
+  .addBooleanOption((option) =>
+    option
+      .setName('turbo-prog-active')
+      .setDescription('Whether or not turbo prog is currently active')
+      .setRequired(false),
+  )
+  .addStringOption((option) =>
+    option
+      .setName('turbo-prog-spreadsheet-id')
+      .setDescription('The id of the spreadsheet to use for turbo prog')
+      .setRequired(false),
   );
 
 // add all encounters to have a role option

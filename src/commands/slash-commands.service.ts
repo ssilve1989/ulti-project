@@ -26,6 +26,8 @@ import { RemoveSignupCommand } from './signup/subcommands/remove-signup/remove-s
 import { SLASH_COMMANDS } from './slash-commands.js';
 import { StatusSlashCommand } from './status/status-slash-command.js';
 import { StatusCommand } from './status/status.command.js';
+import { TurboProgCommand } from './turboprog/turbo-prog.command.js';
+import { TurboProgSlashCommand } from './turboprog/turbo-prog.slash-command.js';
 
 @Injectable()
 class SlashCommandsService {
@@ -44,6 +46,7 @@ class SlashCommandsService {
           return;
         }
 
+        // TODO: move user name to setUser, not extras
         scope.setUser({ userId: interaction.user.id });
         scope.setExtras({
           username: interaction.user.username,
@@ -65,6 +68,10 @@ class SlashCommandsService {
           .with(
             RemoveSignupSlashCommand.name,
             () => new RemoveSignupCommand(interaction),
+          )
+          .with(
+            TurboProgSlashCommand.name,
+            () => new TurboProgCommand(interaction),
           )
           .otherwise(() => undefined);
 

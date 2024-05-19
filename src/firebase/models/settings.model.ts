@@ -6,7 +6,11 @@ export interface SettingsDocument extends DocumentData {
   reviewerRole?: string;
   signupChannel?: string;
   spreadsheetId?: string;
+  turboProgActive?: boolean;
+  turboProgSpreadsheetId?: string;
+
   progRoles?: {
+    // biome-ignore lint/style/useNamingConvention: <explanation>
     [key in keyof typeof Encounter]?: string;
   };
 }
