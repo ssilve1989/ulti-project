@@ -90,6 +90,44 @@ class SheetsService {
     }
   }
 
+  public async findCharacterRowValues(
+    {
+      encounter,
+      ...signup
+    }: Pick<SignupDocument, 'character' | 'world' | 'encounter'>,
+    spreadsheetId: string,
+  ) {
+    // temporary function to support turbo-prog sorry for the mess
+    // will try to find the character on the clear sheet or late prog sheet
+    // and return the values along with what sheet it found them on
+
+    let sheetValues = await this.getSheetValues({
+      spreadsheetId,
+      range: encounter,
+    });
+
+    let rowIndex = this.findCharacterRowIndex(sheetValues, (values) =>
+      values.has(signup.character.toLowerCase()),
+    );
+
+    if (rowIndex === -1) {
+      const range = ProgSheetRanges[encounter];
+      sheetValues = await this.getSheetValues({
+        spreadsheetId,
+        range: `${this.config.SHEET_PROG_NAME}!${range.start}:${range.end}`,
+      });
+      rowIndex = this.findCharacterRowIndex(sheetValues, (values) =>
+        values.has(signup.character.toLowerCase()),
+      );
+    }
+
+    const values =
+      sheetValues && rowIndex !== -1
+        ? sheetValues[rowIndex].filter(Boolean)
+        : undefined;
+    return values;
+  }
+
   /**
    * Remove a signup from the spreadsheet
    * @param signup
@@ -150,7 +188,7 @@ class SheetsService {
       range: `${sheetName}!${range.start}:${range.end}`,
     });
 
-    const progRowIndex = this.findCharacterRow(
+    const progRowIndex = this.findCharacterRowIndex(
       progPartyValues,
       (values) =>
         values.has(character.toLowerCase()) && values.has(world.toLowerCase()),
@@ -189,7 +227,7 @@ class SheetsService {
       range: encounter,
     });
 
-    const clearRowIndex = this.findCharacterRow(
+    const clearRowIndex = this.findCharacterRowIndex(
       clearPartyValues,
       (values) =>
         values.has(character.toLowerCase()) && values.has(world.toLowerCase()),
@@ -248,7 +286,7 @@ class SheetsService {
       range: encounter,
     });
 
-    const row = this.findCharacterRow(
+    const row = this.findCharacterRowIndex(
       sheetValues,
       (values) =>
         values.has(character.toLowerCase()) && values.has(world.toLowerCase()),
@@ -296,7 +334,7 @@ class SheetsService {
       range: `${sheetName}!${range.start}:${range.end}`,
     });
 
-    const row = this.findCharacterRow(
+    const row = this.findCharacterRowIndex(
       values,
       (values) =>
         values.has(character.toLowerCase()) && values.has(world.toLowerCase()),
@@ -325,6 +363,9 @@ class SheetsService {
   //     : '';
   // }
 
+  /**
+   * @deprecated - use getSheetValues utility function
+   */
   private async getSheetValues({
     spreadsheetId,
     range,
@@ -342,6 +383,9 @@ class SheetsService {
     return values;
   }
 
+  /**
+   * @deprecated - use updateSheet utility function
+   */
   private updateSheet(
     spreadsheetId: string,
     range: string,
@@ -366,6 +410,7 @@ class SheetsService {
    * Batch update the spreadsheet with the given requests
    * @param spreadsheetId
    * @param requests
+   * @deprecated - use batchUpdate utility function
    * @returns
    */
   private batchUpdate(
@@ -387,7 +432,7 @@ class SheetsService {
    * @param values
    * @returns the row index or -1 if not found
    */
-  private findCharacterRow(
+  private findCharacterRowIndex(
     values: any[][] | undefined | null,
     predicate: (values: Set<any>) => boolean,
   ): number {

@@ -52,6 +52,7 @@ describe('Edit Settings Command Handler', () => {
                 return null;
             }
           },
+          getBoolean: () => true,
           getChannel: () => createMock({ id: reviewChannel }),
           getString: () => 'spreadsheetId',
         },
@@ -59,18 +60,21 @@ describe('Edit Settings Command Handler', () => {
       }),
     });
 
-    expect(settingsCollection.upsertSettings).toHaveBeenCalledWith(guildId, {
-      reviewerRole,
-      reviewChannel,
-      spreadsheetId,
-      signupChannel: reviewChannel,
-      progRoles: {
-        [Encounter.DSR]: 'dsr-prog-role',
-        [Encounter.UCOB]: 'ucob-prog-role',
-        [Encounter.TEA]: 'tea-prog-role',
-        [Encounter.TOP]: 'top-prog-role',
-        [Encounter.UWU]: 'uwu-prog-role',
-      },
-    });
+    expect(settingsCollection.upsertSettings).toHaveBeenCalledWith(
+      guildId,
+      expect.objectContaining({
+        reviewerRole,
+        reviewChannel,
+        spreadsheetId,
+        signupChannel: reviewChannel,
+        progRoles: {
+          [Encounter.DSR]: 'dsr-prog-role',
+          [Encounter.UCOB]: 'ucob-prog-role',
+          [Encounter.TEA]: 'tea-prog-role',
+          [Encounter.TOP]: 'top-prog-role',
+          [Encounter.UWU]: 'uwu-prog-role',
+        },
+      }),
+    );
   });
 });

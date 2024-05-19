@@ -30,6 +30,8 @@ class ViewSettingsCommandHandler
       spreadsheetId,
       signupChannel,
       progRoles,
+      turboProgActive,
+      turboProgSpreadsheetId,
     } = settings;
     const role = reviewerRole ? `<@&${reviewerRole}>` : 'No Role Set';
     const publicSignupChannel = signupChannel
@@ -50,8 +52,16 @@ class ViewSettingsCommandHandler
       `**Review Channel:** <#${reviewChannel}>`,
       `**Reviewer Role:** ${role}`,
       `**Signup Channel:** ${publicSignupChannel}`,
-      ...progRoleSettings,
+      `**Turbo Prog Active:** ${turboProgActive ? 'Yes' : 'No'}`,
     ];
+
+    if (turboProgSpreadsheetId) {
+      const { title, url } = await this.sheetsService.getSheetMetadata(
+        turboProgSpreadsheetId,
+      );
+
+      messages.push(`**Turbo Prog Spreadsheet:** [${title}](${url})`);
+    }
 
     if (spreadsheetId) {
       const { title, url } =
@@ -59,6 +69,8 @@ class ViewSettingsCommandHandler
 
       messages.push(`**Managed Spreadsheet:** [${title}](${url})`);
     }
+
+    messages.push(...progRoleSettings);
 
     await interaction.editReply(messages.join('\n'));
   }

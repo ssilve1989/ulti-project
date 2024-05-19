@@ -10,6 +10,7 @@ import { SettingsModule } from './commands/settings/settings.module.js';
 import { SignupModule } from './commands/signup/signup.module.js';
 import { SlashCommandsModule } from './commands/slash-commands.module.js';
 import { StatusModule } from './commands/status/status.module.js';
+import { TurboProgModule } from './commands/turboprog/turbo-prog.module.js';
 import { DiscordModule } from './discord/discord.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
 import { SentryModule } from './sentry/sentry.module.js';
@@ -26,6 +27,7 @@ import { SheetsModule } from './sheets/sheets.module.js';
     SignupModule,
     SlashCommandsModule,
     StatusModule,
+    TurboProgModule,
     ConfigModule.forRoot({
       cache: true,
       envFilePath: ['.env', '.env.development'],

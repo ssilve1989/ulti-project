@@ -55,6 +55,10 @@ class EditSettingsCommandHandler
     const reviewChannel = options.getChannel('signup-review-channel');
     const signupChannel = options.getChannel('signup-public-channel');
     const spreadsheetId = options.getString('spreadsheet-id') ?? undefined;
+    const turboProgActive =
+      options.getBoolean('turbo-prog-active') ?? undefined;
+    const turboProgSpreadsheetId =
+      options.getString('turbo-prog-spreadsheet-id') ?? undefined;
 
     const progRoles: Record<string, string | undefined> = {};
 
@@ -71,6 +75,8 @@ class EditSettingsCommandHandler
       signupChannel,
       spreadsheetId,
       progRoles,
+      turboProgActive,
+      turboProgSpreadsheetId,
     };
   }
 }
