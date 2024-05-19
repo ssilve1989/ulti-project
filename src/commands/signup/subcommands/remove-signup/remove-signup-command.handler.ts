@@ -1,15 +1,26 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { plainToClass } from 'class-transformer';
 import { APIUser, ChatInputCommandInteraction, User } from 'discord.js';
+import { P, match } from 'ts-pattern';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
-import { SignupCompositeKeyProps } from '../../../../firebase/models/signup.model.js';
+import { DocumentNotFoundException } from '../../../../firebase/firebase.exceptions.js';
+import {
+  SignupCompositeKeyProps,
+  SignupStatus,
+} from '../../../../firebase/models/signup.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { shouldDeleteReviewMessageForSignup } from '../../signup.utils.js';
 import { RemoveSignupCommand } from './remove-signup.command.js';
+import {
+  REMOVAL_MISSING_PERMISSIONS,
+  REMOVAL_NO_DB_ENTRY,
+  REMOVAL_NO_SHEET_ENTRY,
+  REMOVAL_SUCCESS,
+} from './remove-signup.consts.js';
 import { RemoveSignupDto } from './remove-signup.dto.js';
 
 @CommandHandler(RemoveSignupCommand)
@@ -41,25 +52,45 @@ class RemoveSignupCommandHandler
 
     const { spreadsheetId, reviewerRole } = settings;
 
-    const canModify = await this.canModifySignup(
-      interaction.user,
-      options,
-      interaction.guildId,
-      reviewerRole,
-    );
-
-    if (!canModify) {
-      return interaction.editReply(
-        'You do not have permission to remove this signup',
+    try {
+      const { canModify, signup } = await this.canModifySignup(
+        interaction.user,
+        options,
+        interaction.guildId,
+        reviewerRole,
       );
-    }
 
-    if (spreadsheetId) {
-      await this.sheetsService.removeSignup(options, spreadsheetId);
-    }
+      if (!canModify) {
+        return interaction.editReply(REMOVAL_MISSING_PERMISSIONS);
+      }
 
-    await this.removeSignup(options, interaction.guildId);
-    await interaction.editReply('Success!');
+      let reply = REMOVAL_SUCCESS;
+
+      // If the signup exists and has been approved, we expect to find it on the sheet
+      // so try to remove it
+      if (spreadsheetId && signup.status === SignupStatus.APPROVED) {
+        const response = await this.sheetsService.removeSignup(
+          options,
+          spreadsheetId,
+        );
+
+        // but if nothing was found on the sheet just let them know nothing was found
+        if (response === 0) {
+          reply = REMOVAL_NO_SHEET_ENTRY(options);
+        }
+      }
+
+      await this.removeSignup(options, interaction.guildId);
+      await interaction.editReply(reply);
+    } catch (error) {
+      match(error)
+        .with(P.instanceOf(DocumentNotFoundException), () =>
+          this.handleDocumentNotFoundException(interaction, options),
+        )
+        .otherwise(() => {
+          throw error;
+        });
+    }
   }
 
   private async removeSignup(
@@ -109,12 +140,15 @@ class RemoveSignupCommandHandler
       guildId,
     });
 
-    if (hasRole) {
-      return true;
-    }
-
     const signup = await this.signupsRepository.findOneOrFail(options);
-    return signup.discordId === user.id;
+    return { canModify: hasRole || signup.discordId === user.id, signup };
+  }
+
+  private async handleDocumentNotFoundException(
+    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+    options: RemoveSignupDto,
+  ) {
+    await interaction.editReply(REMOVAL_NO_DB_ENTRY(options));
   }
 }
 

@@ -204,7 +204,7 @@ class SheetsService {
             range: {
               sheetId,
               startRowIndex: clearRowIndex,
-              endRowIndex: clearRowIndex + 3,
+              endRowIndex: clearRowIndex + 1,
             },
             fields: 'userEnteredValue',
           },
