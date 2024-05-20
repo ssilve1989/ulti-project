@@ -41,6 +41,7 @@ import {
 } from '../../encounters/encounters.components.js';
 import {
   Encounter,
+  EncounterFriendlyDescription,
   EncounterProgPoints,
 } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
@@ -211,15 +212,13 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       sourceEmbed,
     );
 
-    embed = this.updateProgPointField(embed, progPoint);
-
     const partyStatus = progPoint
       ? this.getPartyStatus(signup.encounter, progPoint)
       : undefined;
 
     const hasCleared = partyStatus === PartyStatus.Cleared;
 
-    embed = embed
+    embed = this.updateProgPointField(embed, progPoint)
       .setFooter({
         text: `Approved by ${displayName}`,
         iconURL: user.displayAvatarURL(),
@@ -249,7 +248,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     ]);
 
     const messageContent = hasCleared
-      ? 'Congratulations on your clear!'
+      ? `Congratulations on clearing **${
+          EncounterFriendlyDescription[signup.encounter]
+        }**!`
       : 'Signup Approved!';
 
     if (hasCleared) {
