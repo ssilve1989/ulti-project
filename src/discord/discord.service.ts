@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Client, DMChannel } from 'discord.js';
+import { Client, DMChannel, GuildEmoji } from 'discord.js';
 import { InjectDiscordClient } from './discord.decorators.js';
 
 @Injectable()
@@ -58,6 +58,16 @@ class DiscordService {
   public getEmojiString(emojiId: string) {
     const hasEmoji = this.client.emojis.cache.has(emojiId);
     return hasEmoji ? `<:_:${emojiId}>` : '';
+  }
+
+  public async getEmojis(emojiNames: string[]) {
+    return emojiNames.reduce((emojis, name) => {
+      const emoji = this.client.emojis.cache.find((e) => e.name === name);
+      if (emoji) {
+        emojis.push(emoji);
+      }
+      return emojis;
+    }, [] as GuildEmoji[]);
   }
 
   public async deleteMessage(
