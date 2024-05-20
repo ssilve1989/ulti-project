@@ -1,6 +1,6 @@
 import { DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { TextChannel } from 'discord.js';
+import { GuildMember, TextChannel } from 'discord.js';
 import { Mock } from 'vitest';
 import { MissingChannelException } from '../../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
@@ -61,6 +61,13 @@ describe('Send Signup Review Command Handler', () => {
 
     settingsCollection.getReviewChannel.mockResolvedValueOnce('#foo');
     get.mockReturnValueOnce(createMock<TextChannel>({}));
+    discordServiceMock.getGuildMember.mockResolvedValueOnce(
+      createMock<GuildMember>({
+        displayAvatarURL: () => 'http://foo',
+        toString: () => '<@ay>',
+        valueOf: () => '',
+      }),
+    );
 
     await handler.execute({
       signup,
