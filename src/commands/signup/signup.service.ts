@@ -31,6 +31,7 @@ import {
 } from 'rxjs';
 import { P, match } from 'ts-pattern';
 import { isSameUserFilter } from '../../common/collection-filters.js';
+import { ClearReactions } from '../../common/emojis/emojis.js';
 import { getMessageLink } from '../../discord/discord.consts.js';
 import { hydrateReaction, hydrateUser } from '../../discord/discord.helpers.js';
 import { DiscordService } from '../../discord/discord.service.js';
@@ -38,7 +39,10 @@ import {
   EncounterProgMenus,
   PROG_POINT_SELECT_ID,
 } from '../../encounters/encounters.components.js';
-import { EncounterProgPoints } from '../../encounters/encounters.consts.js';
+import {
+  Encounter,
+  EncounterProgPoints,
+} from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SettingsDocument } from '../../firebase/models/settings.model.js';
@@ -186,54 +190,36 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     return !isBotReacting && isAllowedUser && isExpectedReactionType;
   }
 
+  // TODO: Refactor complexity
   private async handleApprovedReaction(
     signup: SignupDocument,
-    message: Message<true>,
+    sourceMessage: Message<true>,
     user: User,
     settings: SettingsDocument,
   ) {
-    const [sourceEmbed] = message.embeds;
+    const {
+      embeds: [sourceEmbed],
+      guildId,
+    } = sourceMessage;
+
     let embed = EmbedBuilder.from(sourceEmbed);
-    const { guildId } = message;
 
-    const [displayName, progPoint] = await Promise.all([
-      this.discordService.getDisplayName({
-        userId: user.id,
-        guildId,
-      }),
-      this.requestProgPointConfirmation(signup, sourceEmbed, user),
-    ]);
-
-    // TODO: Don't use magic strings for field names
-    const progPointFieldIndex =
-      embed.data.fields?.findIndex((field) => field.name === 'Prog Point') ??
-      -1;
-
-    if (progPointFieldIndex !== -1 && progPoint) {
-      embed = embed.spliceFields(progPointFieldIndex, 1, {
-        name: 'Prog Point',
-        value: progPoint,
-        inline: true,
-      });
-    }
-
-    const partyStatus = progPoint
-      ? progPoint === PartyStatus.Cleared
-        ? PartyStatus.Cleared
-        : EncounterProgPoints[signup.encounter][progPoint]?.partyStatus
-      : undefined;
-
-    this.logger.debug(
-      `querying partyStatus for progPoint: ${progPoint}, ${partyStatus}`,
+    const [displayName, progPoint] = await this.getDisplayNameAndProgPoint(
+      user,
+      guildId,
+      signup,
+      sourceEmbed,
     );
 
-    const confirmedSignup: SignupDocument = {
-      ...signup,
-      progPoint,
-      partyStatus,
-    };
+    embed = this.updateProgPointField(embed, progPoint);
 
-    embed
+    const partyStatus = progPoint
+      ? this.getPartyStatus(signup.encounter, progPoint)
+      : undefined;
+
+    const hasCleared = partyStatus === PartyStatus.Cleared;
+
+    embed = embed
       .setFooter({
         text: `Approved by ${displayName}`,
         iconURL: user.displayAvatarURL(),
@@ -242,12 +228,19 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       .setColor(Colors.Green)
       .setTimestamp(new Date());
 
+    const confirmedSignup: SignupDocument = {
+      ...signup,
+      progPoint,
+      partyStatus,
+    };
+
     const [publicSignupChannel] = await Promise.all([
-      settings.signupChannel &&
-        this.discordService.getTextChannel({
-          guildId,
-          channelId: settings.signupChannel,
-        }),
+      settings.signupChannel
+        ? this.discordService.getTextChannel({
+            guildId,
+            channelId: settings.signupChannel,
+          })
+        : undefined,
       settings.spreadsheetId &&
         this.sheetsService.upsertSignup(
           confirmedSignup,
@@ -255,7 +248,12 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         ),
     ]);
 
-    if (progPoint === PartyStatus.Cleared) {
+    const messageContent = hasCleared
+      ? 'Congratulations on your clear!'
+      : 'Signup Approved!';
+
+    if (hasCleared) {
+      embed = embed.setTitle('Congratulations!');
       await this.repository.removeSignup(signup);
     } else {
       await this.repository.updateSignupStatus(
@@ -265,21 +263,26 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       );
     }
 
-    await Promise.all([
-      message.edit({ embeds: [embed] }),
-      // biome-ignore lint/complexity/useOptionalChain: using optional chaining doesn't properly handle asserting the type of the channel
-      publicSignupChannel &&
-        publicSignupChannel.send({
-          content: `<@${confirmedSignup.discordId}> Signup Approved!`,
-          embeds: [embed],
-        }),
+    const [, message] = await Promise.all([
+      sourceMessage.edit({
+        // preserve the original title on the message we are editing
+        embeds: [EmbedBuilder.from(embed).setTitle(sourceEmbed.title)],
+      }),
+      publicSignupChannel?.send({
+        content: `<@${confirmedSignup.discordId}> ${messageContent}`,
+        embeds: [embed],
+      }),
       this.assignProgRole({
-        guildId: message.guild.id,
+        guildId: sourceMessage.guild.id,
         settings,
         signup,
         partyStatus,
       }),
     ]);
+
+    if (hasCleared && message) {
+      this.addReactions(message);
+    }
   }
 
   private async handleDeclinedReaction(
@@ -440,6 +443,65 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       sentryReport(e, (scope) => scope.setExtras({ encounter, discordId }));
       this.logger.error(e);
     }
+  }
+
+  private async addReactions(message: Message) {
+    const scope = Sentry.getCurrentScope();
+    // fetch clear reactions and attach em to the embed
+    try {
+      const emojis = await this.discordService.getEmojis(ClearReactions);
+      // add the emojis to the source embed
+      for (const emoji of emojis) {
+        // we don't need to block this scope for these reaction additions so just make sure to handle
+        // any exceptions for a given emoji
+        message.react(emoji).catch((err) => {
+          scope.setExtras({ emoji, messageId: message.id });
+          scope.captureException(err);
+        });
+      }
+    } catch (err) {
+      scope.captureException(err);
+    }
+  }
+
+  private updateProgPointField(embed: EmbedBuilder, progPoint?: string) {
+    if (!progPoint) {
+      return embed;
+    }
+
+    const progPointFieldName = 'Prog Point';
+    const progPointFieldIndex =
+      embed.data.fields?.findIndex(
+        (field) => field.name === progPointFieldName,
+      ) ?? -1;
+
+    if (progPointFieldIndex !== -1 && progPoint) {
+      return embed.spliceFields(progPointFieldIndex, 1, {
+        name: progPointFieldName,
+        value: progPoint,
+        inline: true,
+      });
+    }
+
+    return embed;
+  }
+
+  private getPartyStatus(encounter: Encounter, progPoint: string) {
+    return progPoint === PartyStatus.Cleared
+      ? PartyStatus.Cleared
+      : EncounterProgPoints[encounter][progPoint]?.partyStatus;
+  }
+
+  private getDisplayNameAndProgPoint(
+    user: User,
+    guildId: string,
+    signup: SignupDocument,
+    embed: Embed,
+  ) {
+    return Promise.all([
+      this.discordService.getDisplayName({ userId: user.id, guildId }),
+      this.requestProgPointConfirmation(signup, embed, user),
+    ]);
   }
 }
 
