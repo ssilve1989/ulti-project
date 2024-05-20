@@ -103,9 +103,11 @@ class TurboProgCommandHandler {
           {
             status: SignupStatus.APPROVED,
           },
-          ({ partyStatus }) =>
+          ({ partyStatus, partyType }) =>
             partyStatus === PartyStatus.ClearParty ||
-            partyStatus === PartyStatus.ProgParty,
+            partyStatus === PartyStatus.ProgParty ||
+            partyType === PartyStatus.ClearParty ||
+            partyType === PartyStatus.ProgParty,
           () => ({
             allowed: true as true, // TODO: dafuq typescript
             data: this.mapSignupToRowData(signup, options),
