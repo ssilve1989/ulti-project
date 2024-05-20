@@ -23,6 +23,16 @@ import {
   TURBO_PROG_SUBMISSION_APPROVED,
 } from './turboprog.consts.js';
 
+type ProggerAllowedResponse =
+  | {
+      error: string;
+      allowed: undefined;
+    }
+  | {
+      allowed: true;
+      data: TurboProgEntry;
+    };
+
 @CommandHandler(TurboProgCommand)
 class TurboProgCommandHandler {
   constructor(
@@ -80,19 +90,9 @@ class TurboProgCommandHandler {
   private async isProggerAllowed(
     options: TurboProgSignupInteractionDto,
     spreadsheetId: string,
-  ): Promise<
-    | {
-        error: string;
-        allowed: undefined;
-      }
-    | {
-        allowed: true;
-        data: TurboProgEntry;
-      }
-  > {
+  ): Promise<ProggerAllowedResponse> {
     const signup = await this.signupCollection.findOne({
       character: options.character,
-      world: options.world,
       encounter: options.encounter,
     });
 
@@ -113,6 +113,23 @@ class TurboProgCommandHandler {
             data: this.mapSignupToRowData(signup, options),
           }),
         )
+        .with(
+          { status: SignupStatus.UPDATE_PENDING },
+          { status: SignupStatus.PENDING },
+          async () => {
+            const data = await this.findCharacterRowValues(
+              options,
+              spreadsheetId,
+            );
+            if (data.allowed) {
+              return data;
+            }
+            return {
+              error: TURBO_PROG_SIGNUP_INVALID,
+              allowed: undefined,
+            };
+          },
+        )
         .otherwise(() => ({
           allowed: undefined,
           error: TURBO_PROG_SIGNUP_INVALID,
@@ -120,6 +137,13 @@ class TurboProgCommandHandler {
     }
 
     // if they're not in the database as approved we need to check the google sheet
+    return await this.findCharacterRowValues(options, spreadsheetId);
+  }
+
+  private async findCharacterRowValues(
+    options: TurboProgSignupInteractionDto,
+    spreadsheetId: string,
+  ): Promise<ProggerAllowedResponse> {
     const rowData = await this.sheetsService.findCharacterRowValues(
       options,
       spreadsheetId,
