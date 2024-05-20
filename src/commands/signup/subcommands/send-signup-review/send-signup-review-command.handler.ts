@@ -87,7 +87,6 @@ class SendSignupReviewCommandHandler
       world,
       role,
       progPointRequested,
-      discordId,
     }: SignupDocument,
     member?: GuildMember,
   ) {
@@ -96,7 +95,7 @@ class SendSignupReviewCommandHandler
 
     let embed = new EmbedBuilder()
       .setDescription(
-        `Please react to approve ${SIGNUP_REVIEW_REACTIONS.APPROVED} or deny ${SIGNUP_REVIEW_REACTIONS.DECLINED} the request for <@${discordId}>`,
+        `Please react to approve ${SIGNUP_REVIEW_REACTIONS.APPROVED} or deny ${SIGNUP_REVIEW_REACTIONS.DECLINED} the following applicants request`,
       )
       .setTitle(
         `Signup Approval - ${EncounterFriendlyDescription[encounter]} ${emoji}`.trim(),
