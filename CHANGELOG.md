@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/ssilve1989/ulti-project/compare/v1.9.0...v1.9.1) (2024-05-20)
+
+
+### Bug Fixes
+
+* fix member id in string ([bb75677](https://github.com/ssilve1989/ulti-project/commit/bb75677e1b30c4354fb0da1c572484a71b52cd8c))
+
 ## [1.9.0](https://github.com/ssilve1989/ulti-project/compare/v1.8.0...v1.9.0) (2024-05-20)
 
 
