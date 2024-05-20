@@ -26,7 +26,7 @@ class EditSettingsCommandHandler
       const { signupChannel, reviewChannel, reviewerRole, ...rest } =
         this.getInteractionOptions(interaction.options);
 
-      await this.settingsCollection.upsertSettings(guildId, {
+      await this.settingsCollection.upsert(guildId, {
         signupChannel: signupChannel?.id,
         reviewChannel: reviewChannel?.id,
         reviewerRole: reviewerRole?.id,
@@ -64,6 +64,7 @@ class EditSettingsCommandHandler
 
     for (const encounter in Encounter) {
       const role = options.getRole(`${encounter.toLowerCase()}-prog-role`);
+
       if (role) {
         progRoles[encounter] = role.id;
       }

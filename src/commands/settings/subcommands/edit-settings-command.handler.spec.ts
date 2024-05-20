@@ -60,7 +60,7 @@ describe('Edit Settings Command Handler', () => {
       }),
     });
 
-    expect(settingsCollection.upsertSettings).toHaveBeenCalledWith(
+    expect(settingsCollection.upsert).toHaveBeenCalledWith(
       guildId,
       expect.objectContaining({
         reviewerRole,

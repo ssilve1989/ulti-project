@@ -22,10 +22,10 @@ describe('SettingsCollection', () => {
     firestore = module.get(FIRESTORE);
   });
 
-  it('should call upsertSettings with correct arguments', async () => {
+  it('should call upsert with correct arguments', async () => {
     const settings = { reviewChannel: 'channel', reviewerRole: 'role' };
 
-    await service.upsertSettings(guildId, settings);
+    await service.upsert(guildId, settings);
 
     expect(firestore.collection).toHaveBeenCalledWith('settings');
     expect(firestore.collection('').doc).toHaveBeenCalledWith(guildId);

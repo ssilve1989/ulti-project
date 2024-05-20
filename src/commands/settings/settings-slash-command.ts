@@ -12,7 +12,6 @@ const EditSettingsSubcommand = new SlashCommandSubcommandBuilder()
   .addChannelOption((option) =>
     option
       .setName('signup-review-channel')
-      .setRequired(true)
       .setDescription(
         'The channel in which reviews will be posted. This must be set to a text channel',
       )
