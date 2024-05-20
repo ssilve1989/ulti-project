@@ -6,7 +6,10 @@ import { InjectDiscordClient } from './discord.decorators.js';
 class DiscordService {
   constructor(@InjectDiscordClient() public readonly client: Client) {}
 
-  public async getGuildMember(memberId: string, guildId: string) {
+  public async getGuildMember({
+    memberId,
+    guildId,
+  }: { memberId: string; guildId: string }) {
     const member = await this.client.guilds.cache
       .get(guildId)
       ?.members.fetch(memberId);
