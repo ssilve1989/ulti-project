@@ -13,8 +13,18 @@ class SettingsCollection {
     ) as CollectionReference<SettingsDocument>;
   }
 
-  public upsertSettings(guildId: string, settings: Partial<SettingsDocument>) {
-    return this.collection.doc(guildId).set(settings, { merge: true });
+  public async upsert(
+    guildId: string,
+    { progRoles, ...settings }: Partial<SettingsDocument>,
+  ) {
+    // prevent empty object from overriding all existing prog roles
+    // quick n dirty fix for now
+    const progRolesUpdate =
+      progRoles && Object.keys(progRoles).length === 0 ? undefined : progRoles;
+
+    return await this.collection
+      .doc(guildId)
+      .set({ ...settings, progRoles: progRolesUpdate }, { merge: true });
   }
 
   public async getSettings(guildId: string) {
