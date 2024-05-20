@@ -431,10 +431,10 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     }
 
     try {
-      const member = await this.discordService.getGuildMember(
-        discordId,
+      const member = await this.discordService.getGuildMember({
+        memberId: discordId,
         guildId,
-      );
+      });
 
       if (member) {
         await member.roles.add(role);

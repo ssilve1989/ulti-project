@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, GuildMember } from 'discord.js';
 import { titleCase } from 'title-case';
 import { MissingChannelException } from '../../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
@@ -57,7 +57,12 @@ class SendSignupReviewCommandHandler
       throw new MissingChannelException(channelId, guildId);
     }
 
-    const embed = this.createSignupApprovalEmbed(signup);
+    const member = await this.discordService.getGuildMember({
+      guildId,
+      memberId: signup.discordId,
+    });
+
+    const embed = this.createSignupApprovalEmbed(signup, member);
 
     const message = await channel.send({
       embeds: [embed],
@@ -72,21 +77,26 @@ class SendSignupReviewCommandHandler
     await this.repository.setReviewMessageId(signup, message.id);
   }
 
-  private createSignupApprovalEmbed({
-    availability,
-    character,
-    encounter,
-    proofOfProgLink,
-    screenshot,
-    world,
-    role,
-    progPointRequested,
-  }: SignupDocument) {
+  private createSignupApprovalEmbed(
+    {
+      availability,
+      character,
+      encounter,
+      proofOfProgLink,
+      screenshot,
+      world,
+      role,
+      progPointRequested,
+      discordId,
+    }: SignupDocument,
+    member?: GuildMember,
+  ) {
     const emoji = this.discordService.getEmojiString(EncounterEmoji[encounter]);
+    const avatarUrl = member?.displayAvatarURL();
 
     let embed = new EmbedBuilder()
       .setDescription(
-        `Please react to approve ${SIGNUP_REVIEW_REACTIONS.APPROVED} or deny ${SIGNUP_REVIEW_REACTIONS.DECLINED} the following applicants request`,
+        `Please react to approve ${SIGNUP_REVIEW_REACTIONS.APPROVED} or deny ${SIGNUP_REVIEW_REACTIONS.DECLINED} the request for <@${discordId}>`,
       )
       .setTitle(
         `Signup Approval - ${EncounterFriendlyDescription[encounter]} ${emoji}`.trim(),
@@ -101,6 +111,10 @@ class SendSignupReviewCommandHandler
         { name: 'Job', value: role, inline: true },
         { name: 'Prog Point', value: progPointRequested, inline: true },
       ]);
+
+    if (avatarUrl) {
+      embed = embed.setThumbnail(avatarUrl);
+    }
 
     if (proofOfProgLink) {
       embed = embed.addFields([
