@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.3](https://github.com/ssilve1989/ulti-project/compare/v1.9.2...v1.9.3) (2024-05-20)
+
+
+### Bug Fixes
+
+* account for pending signups that may be on the sheet ([240e760](https://github.com/ssilve1989/ulti-project/commit/240e760462e30fb9b21d901a0f664eb0b322a428))
+
 ## [1.9.2](https://github.com/ssilve1989/ulti-project/compare/v1.9.1...v1.9.2) (2024-05-20)
 
 
