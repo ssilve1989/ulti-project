@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.2](https://github.com/ssilve1989/ulti-project/compare/v1.9.1...v1.9.2) (2024-05-20)
+
+
+### Bug Fixes
+
+* include legacy partyType in check for turbo prog ([a70e840](https://github.com/ssilve1989/ulti-project/commit/a70e8401895c38e376cb48ec6b53d8beaa081ed7))
+
 ## [1.9.1](https://github.com/ssilve1989/ulti-project/compare/v1.9.0...v1.9.1) (2024-05-20)
 
 
