@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.9.0](https://github.com/ssilve1989/ulti-project/compare/v1.8.0...v1.9.0) (2024-05-20)
+
+
+### Features
+
+* **signups:** adding tag and avatar to embed ([#294](https://github.com/ssilve1989/ulti-project/issues/294)) ([0851b83](https://github.com/ssilve1989/ulti-project/commit/0851b834cc9608a4f63fb5cab2d6b04fd46fe8ae))
+
+
+### Bug Fixes
+
+* **settings:** prevent prog roles from being overridden ([#288](https://github.com/ssilve1989/ulti-project/issues/288)) ([b0fb768](https://github.com/ssilve1989/ulti-project/commit/b0fb768101df4ce1860b8473e8fd52a1b0a825f1))
+
 ## [1.8.0](https://github.com/ssilve1989/ulti-project/compare/v1.7.1...v1.8.0) (2024-05-19)
 
 
