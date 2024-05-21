@@ -2,7 +2,7 @@ import { CommandHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
 import { plainToClass } from 'class-transformer';
 import { ChatInputCommandInteraction } from 'discord.js';
-import { match } from 'ts-pattern';
+import { P, match } from 'ts-pattern';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import {
@@ -87,7 +87,7 @@ class TurboProgCommandHandler {
     return await interaction.editReply(TURBO_PROG_MISSING_SIGNUPS_SHEETS);
   }
 
-  private async isProggerAllowed(
+  public async isProggerAllowed(
     options: TurboProgSignupInteractionDto,
     spreadsheetId: string,
   ): Promise<ProggerAllowedResponse> {
@@ -96,44 +96,44 @@ class TurboProgCommandHandler {
       encounter: options.encounter,
     });
 
+    const scope = Sentry.getCurrentScope();
     // if the progger has an entry already in the database we can check its status
     if (signup) {
-      return match(signup)
-        .with(
-          {
-            status: SignupStatus.APPROVED,
-          },
-          ({ partyStatus, partyType }) =>
-            partyStatus === PartyStatus.ClearParty ||
-            partyStatus === PartyStatus.ProgParty ||
-            partyType === PartyStatus.ClearParty ||
-            partyType === PartyStatus.ProgParty,
-          () => ({
-            allowed: true as true, // TODO: dafuq typescript
-            data: this.mapSignupToRowData(signup, options),
-          }),
-        )
-        .with(
-          { status: SignupStatus.UPDATE_PENDING },
-          { status: SignupStatus.PENDING },
-          async () => {
-            const data = await this.findCharacterRowValues(
-              options,
-              spreadsheetId,
-            );
-            if (data.allowed) {
-              return data;
-            }
-            return {
-              error: TURBO_PROG_SIGNUP_INVALID,
-              allowed: undefined,
-            };
-          },
-        )
-        .otherwise(() => ({
-          allowed: undefined,
-          error: TURBO_PROG_SIGNUP_INVALID,
-        }));
+      const partyStatus = signup.partyStatus || signup.partyType;
+      return (
+        match([signup.status, partyStatus])
+          .with(
+            // has a bot signup that was approved with a party status
+            [SignupStatus.APPROVED, PartyStatus.ClearParty],
+            [SignupStatus.APPROVED, PartyStatus.ProgParty],
+            () => ({
+              allowed: true as true,
+              data: this.mapSignupToRowData(signup, options),
+            }),
+          )
+          .with(
+            // has a bot signup that was approved but not an eligible party status
+            [SignupStatus.APPROVED, PartyStatus.EarlyProgParty],
+            [P.any, PartyStatus.Cleared],
+            () => {
+              scope.setExtra('options', options);
+              scope.captureMessage('Turbo Prog Signup Invalid', 'debug');
+              return {
+                error: TURBO_PROG_SIGNUP_INVALID,
+                allowed: undefined,
+              };
+            },
+          )
+          // they have a bot signup thats not been approved, but may have a prior signup on the sheet
+          .with(
+            [SignupStatus.APPROVED, P.nullish],
+            [SignupStatus.DECLINED, P.any],
+            [SignupStatus.PENDING, P.any],
+            [SignupStatus.UPDATE_PENDING, P.any],
+            () => this.findCharacterRowValues(options, spreadsheetId),
+          )
+          .exhaustive()
+      );
     }
 
     // if they're not in the database as approved we need to check the google sheet
@@ -144,6 +144,7 @@ class TurboProgCommandHandler {
     options: TurboProgSignupInteractionDto,
     spreadsheetId: string,
   ): Promise<ProggerAllowedResponse> {
+    const scope = Sentry.getCurrentScope();
     const rowData = await this.sheetsService.findCharacterRowValues(
       options,
       spreadsheetId,
@@ -155,6 +156,9 @@ class TurboProgCommandHandler {
         data: this.mapSheetData(rowData, options),
       };
     }
+
+    scope.setExtra('options', options);
+    scope.captureMessage('No Signup Found for Turbo Prog', 'debug');
 
     return {
       allowed: undefined,
