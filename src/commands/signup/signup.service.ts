@@ -456,14 +456,14 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     try {
       const emojis = await this.discordService.getEmojis(ClearReactions);
       // add the emojis to the source embed
-      for (const emoji of emojis) {
-        // we don't need to block this scope for these reaction additions so just make sure to handle
-        // any exceptions for a given emoji
-        message.react(emoji).catch((err) => {
-          this.logger.warn(err);
-          scope.captureException(err);
-        });
-      }
+      await Promise.allSettled(
+        emojis.map((emoji) =>
+          message.react(emoji).catch((err) => {
+            this.logger.warn(err);
+            scope.captureException(err);
+          }),
+        ),
+      );
     } catch (err) {
       this.logger.error(err);
       scope.captureException(err);

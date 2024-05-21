@@ -1,1 +1,6 @@
-export const ClearReactions = ['sausCheer', 'chadge', 'sausLetsGo', 'sausHype'];
+export const ClearReactions = [
+  'sausCheer',
+  'chadge',
+  'sausLetsgo',
+  'sausHype1',
+];
