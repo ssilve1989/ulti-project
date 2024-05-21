@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.4](https://github.com/ssilve1989/ulti-project/compare/v1.9.3...v1.9.4) (2024-05-21)
+
+
+### Bug Fixes
+
+* exhaust all possible cases for turbo prog signups ([#300](https://github.com/ssilve1989/ulti-project/issues/300)) ([0696d48](https://github.com/ssilve1989/ulti-project/commit/0696d48ccf1fe371c31b7f4356fbd6a612f04b3c))
+* **signups:** handle doc not found for reactions ([#304](https://github.com/ssilve1989/ulti-project/issues/304)) ([4797efc](https://github.com/ssilve1989/ulti-project/commit/4797efcf5c1d158b8c521ae42cabc948b907eb67))
+
 ## [1.9.3](https://github.com/ssilve1989/ulti-project/compare/v1.9.2...v1.9.3) (2024-05-20)
 
 
