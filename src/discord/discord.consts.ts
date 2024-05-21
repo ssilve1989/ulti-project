@@ -16,7 +16,7 @@ export const INTENTS = [
    *  will include only the guild and channel id, and will not resolve to the full class.
    */
   GatewayIntentBits.Guilds,
-  GatewayIntentBits.GuildMessages,
+  // GatewayIntentBits.GuildMessages,
   GatewayIntentBits.GuildMessageReactions,
 ];
 
