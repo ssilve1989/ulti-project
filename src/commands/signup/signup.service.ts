@@ -327,7 +327,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     message: Message | PartialMessage,
   ) {
     const scope = Sentry.getCurrentScope();
-    scope.setUser({ id: user.username ?? 'unknown' });
     scope.setExtras({ message: getMessageLink(message) });
 
     this.logger.error(error);
@@ -341,7 +340,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       message.reactions.cache
         .get(SIGNUP_REVIEW_REACTIONS.APPROVED)
         ?.users.remove(user.id),
-
       this.discordService.sendDirectMessage(user.id, reply),
     ]);
   }
@@ -456,11 +454,12 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         // we don't need to block this scope for these reaction additions so just make sure to handle
         // any exceptions for a given emoji
         message.react(emoji).catch((err) => {
-          scope.setExtras({ emoji, messageId: message.id });
+          this.logger.warn(err);
           scope.captureException(err);
         });
       }
     } catch (err) {
+      this.logger.error(err);
       scope.captureException(err);
     }
   }
