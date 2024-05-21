@@ -89,7 +89,7 @@ importers:
         version: 19.2.2
       '@commitlint/cz-commitlint':
         specifier: ^19.2.0
-        version: 19.2.0(@types/node@20.12.12)(commitizen@4.3.0(@types/node@20.12.12)(typescript@5.4.5))(inquirer@9.2.21)(typescript@5.4.5)
+        version: 19.2.0(@types/node@20.12.12)(commitizen@4.3.0(@types/node@20.12.12)(typescript@5.4.5))(inquirer@9.2.22)(typescript@5.4.5)
       '@commitlint/prompt-cli':
         specifier: ^19.3.1
         version: 19.3.1(@types/node@20.12.12)(typescript@5.4.5)
@@ -136,8 +136,8 @@ importers:
         specifier: ^6.2.11
         version: 6.2.11
       inquirer:
-        specifier: ^9.2.21
-        version: 9.2.21
+        specifier: ^9.2.22
+        version: 9.2.22
       jest-extended:
         specifier: ^4.0.2
         version: 4.0.2
@@ -606,8 +606,8 @@ packages:
   '@hapi/topo@5.1.0':
     resolution: {integrity: sha512-foQZKJig7Ob0BMAYBfcJk8d77QtOe7Wo4ox7ff1lQYoNNAb6jwcY1ncdoy2e9wQZzvNy7ODZCYJkK8kzmcAnAg==}
 
-  '@inquirer/figures@1.0.1':
-    resolution: {integrity: sha512-mtup3wVKia3ZwULPHcbs4Mor8Voi+iIXEWD7wCNbIO6lYR62oPCTQyrddi5OMYVXHzeCSoneZwJuS8sBvlEwDw==}
+  '@inquirer/figures@1.0.2':
+    resolution: {integrity: sha512-4F1MBwVr3c/m4bAUef6LgkvBfSjzwH+OfldgHqcuacWwSUetFebM2wi58WfG9uk1rR98U6GwLed4asLJbwdV5w==}
     engines: {node: '>=18'}
 
   '@isaacs/cliui@8.0.2':
@@ -2352,10 +2352,6 @@ packages:
     resolution: {integrity: sha512-l3LCuF6MgDNwTDKkdYGEihYjt5pRPbEg46rtlmnSPlUbgmB8LOIrKJbYYFBSbnPaJexMKtiPO8hmeRjRz2Td+A==}
     engines: {node: '>= 0.4'}
 
-  hasown@2.0.1:
-    resolution: {integrity: sha512-1/th4MHjnwncwXsIW6QMzlvYL9kG5e/CpVvLRZe4XPa8TOUNbCELqmvhDmnkNsAjwaG4+I8gJJL0JBvTTLO9qA==}
-    engines: {node: '>= 0.4'}
-
   hasown@2.0.2:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
@@ -2465,8 +2461,8 @@ packages:
     resolution: {integrity: sha512-mg3Fh9g2zfuVWJn6lhST0O7x4n03k7G8Tx5nvikJkbq8/CK47WDVm+UznF0G6s5Zi0KcyUisr6DU8T67N5U+1Q==}
     engines: {node: '>=14.18.0'}
 
-  inquirer@9.2.21:
-    resolution: {integrity: sha512-c/dwDruM1FtzeISV+xMHm+JZTmhpmgWPEZI2bU3+Fwu5MhbAX0zMHHxj5warNfttE5NUID3aijrFUpDc2yBvcA==}
+  inquirer@9.2.22:
+    resolution: {integrity: sha512-SqLLa/Oe5rZUagTR9z+Zd6izyatHglbmbvVofo1KzuVB54YHleWzeHNLoR7FOICGOeQSqeLh1cordb3MzhGcEw==}
     engines: {node: '>=18'}
 
   interpret@1.4.0:
@@ -4040,14 +4036,14 @@ snapshots:
       '@commitlint/types': 19.0.3
       ajv: 8.13.0
 
-  '@commitlint/cz-commitlint@19.2.0(@types/node@20.12.12)(commitizen@4.3.0(@types/node@20.12.12)(typescript@5.4.5))(inquirer@9.2.21)(typescript@5.4.5)':
+  '@commitlint/cz-commitlint@19.2.0(@types/node@20.12.12)(commitizen@4.3.0(@types/node@20.12.12)(typescript@5.4.5))(inquirer@9.2.22)(typescript@5.4.5)':
     dependencies:
       '@commitlint/ensure': 19.0.3
       '@commitlint/load': 19.2.0(@types/node@20.12.12)(typescript@5.4.5)
       '@commitlint/types': 19.0.3
       chalk: 5.3.0
       commitizen: 4.3.0(@types/node@20.12.12)(typescript@5.4.5)
-      inquirer: 9.2.21
+      inquirer: 9.2.22
       lodash.isplainobject: 4.0.6
       word-wrap: 1.2.5
     transitivePeerDependencies:
@@ -4110,7 +4106,7 @@ snapshots:
     dependencies:
       '@commitlint/prompt': 19.3.1(@types/node@20.12.12)(typescript@5.4.5)
       execa: 8.0.1
-      inquirer: 9.2.21
+      inquirer: 9.2.22
     transitivePeerDependencies:
       - '@types/node'
       - typescript
@@ -4121,7 +4117,7 @@ snapshots:
       '@commitlint/load': 19.2.0(@types/node@20.12.12)(typescript@5.4.5)
       '@commitlint/types': 19.0.3
       chalk: 5.3.0
-      inquirer: 9.2.21
+      inquirer: 9.2.22
     transitivePeerDependencies:
       - '@types/node'
       - typescript
@@ -4409,7 +4405,7 @@ snapshots:
     dependencies:
       '@hapi/hoek': 9.3.0
 
-  '@inquirer/figures@1.0.1': {}
+  '@inquirer/figures@1.0.2': {}
 
   '@isaacs/cliui@8.0.2':
     dependencies:
@@ -6305,7 +6301,7 @@ snapshots:
       function-bind: 1.1.2
       has-proto: 1.0.3
       has-symbols: 1.0.3
-      hasown: 2.0.1
+      hasown: 2.0.2
 
   get-stream@6.0.1: {}
 
@@ -6445,10 +6441,6 @@ snapshots:
   has-proto@1.0.3: {}
 
   has-symbols@1.0.3: {}
-
-  hasown@2.0.1:
-    dependencies:
-      function-bind: 1.1.2
 
   hasown@2.0.2:
     dependencies:
@@ -6625,9 +6617,9 @@ snapshots:
       strip-ansi: 6.0.1
       wrap-ansi: 6.2.0
 
-  inquirer@9.2.21:
+  inquirer@9.2.22:
     dependencies:
-      '@inquirer/figures': 1.0.1
+      '@inquirer/figures': 1.0.2
       '@ljharb/through': 2.3.13
       ansi-escapes: 4.3.2
       chalk: 5.3.0
