@@ -328,7 +328,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     message: Message | PartialMessage,
   ) {
     const scope = Sentry.getCurrentScope();
-    scope.setExtras({ message: getMessageLink(message) });
+    scope.setExtras({ messageUrl: getMessageLink(message), message });
 
     this.logger.error(error);
 
