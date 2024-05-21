@@ -46,6 +46,7 @@ import {
 } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import { DocumentNotFoundException } from '../../firebase/firebase.exceptions.js';
 import { SettingsDocument } from '../../firebase/models/settings.model.js';
 import {
   PartyStatus,
@@ -331,9 +332,14 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
     this.logger.error(error);
 
-    const reply = SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR;
+    const reply = match(error)
+      .with(
+        P.instanceOf(DocumentNotFoundException),
+        () => SIGNUP_MESSAGES.SIGNUP_NOT_FOUND_FOR_REACTION,
+      )
+      .otherwise(() => SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR);
 
-    scope.captureMessage(reply, 'info');
+    scope.captureMessage(reply, 'debug');
 
     // TODO: Improve error reporting to better inform user what happened
     await Promise.all([
