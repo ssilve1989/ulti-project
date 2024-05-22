@@ -91,11 +91,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
                   return EMPTY;
                 }
 
-                scope.setUser({
-                  id: event.user.id,
-                  username: event.user.username ?? 'unknown',
-                });
-
                 scope.setExtras({
                   message: getMessageLink(event.reaction.message),
                 });
@@ -111,6 +106,11 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
                         event.reaction.message.guildId,
                       ),
                     ]);
+
+                  scope.setUser({
+                    id: user.id,
+                    username: user.username,
+                  });
 
                   // TODO: We can extract the type of the Message to be `Message<True>` since shouldHandleReaction checks if the message is inGuild()
                   const shouldHandle = await this.shouldHandleReaction(

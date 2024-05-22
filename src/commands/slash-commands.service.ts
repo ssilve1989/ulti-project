@@ -46,10 +46,11 @@ class SlashCommandsService {
           return;
         }
 
-        // TODO: move user name to setUser, not extras
-        scope.setUser({ userId: interaction.user.id });
-        scope.setExtras({
+        scope.setUser({
+          userId: interaction.user.id,
           username: interaction.user.username,
+        });
+        scope.setExtras({
           command: interaction.commandName,
         });
 
