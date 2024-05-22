@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.5](https://github.com/ssilve1989/ulti-project/compare/v1.9.4...v1.9.5) (2024-05-22)
+
+
+### Reverts
+
+* undo gateway intent addition ([47ffdb8](https://github.com/ssilve1989/ulti-project/commit/47ffdb8a063d54d6d1f22969b12100a904385b77))
+
 ## [1.9.4](https://github.com/ssilve1989/ulti-project/compare/v1.9.3...v1.9.4) (2024-05-21)
 
 
