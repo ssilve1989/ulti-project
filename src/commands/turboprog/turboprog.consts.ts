@@ -1,7 +1,7 @@
 export const TURBO_PROG_SUBMISSION_APPROVED = 'Turbo Prog submission approved!';
 
 export const TURBO_PROG_INACTIVE =
-  'Turbo Prog is not currently active. Please keep an eye out for any announcements.';
+  'Turbo Prog signups are **closed**!. Please keep an eye out for any announcements.';
 
 export const TURBO_PROG_SIGNUP_INVALID =
   'Only currently approved signups that are Clear Ready/Late Prog are eligible for Turbo Prog';
