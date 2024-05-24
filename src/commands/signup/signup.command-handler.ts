@@ -7,12 +7,11 @@ import {
   ChatInputCommandInteraction,
   Colors,
   ComponentType,
-  DiscordjsError,
   DiscordjsErrorCodes,
   EmbedBuilder,
 } from 'discord.js';
 import { titleCase } from 'title-case';
-import { P, match } from 'ts-pattern';
+import { match } from 'ts-pattern';
 import { isSameUserFilter } from '../../common/collection-filters.js';
 import {
   CancelButton,
@@ -236,14 +235,11 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     this.logger.error(error);
 
     return match(error)
-      .with(
-        P.instanceOf(DiscordjsError),
-        ({ code }) => code === DiscordjsErrorCodes.InteractionCollectorError,
-        () =>
-          interaction.editReply({
-            content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
-            ...CLEAR_EMBED,
-          }),
+      .with({ code: DiscordjsErrorCodes.InteractionCollectorError }, () =>
+        interaction.editReply({
+          content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
+          ...CLEAR_EMBED,
+        }),
       )
       .otherwise(() =>
         interaction.editReply({
