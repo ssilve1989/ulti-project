@@ -1,7 +1,10 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { EmbedBuilder, GuildMember } from 'discord.js';
-import { titleCase } from 'title-case';
+import {
+  characterField,
+  worldField,
+} from '../../../../common/components/fields.js';
 import { MissingChannelException } from '../../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import {
@@ -101,12 +104,8 @@ class SendSignupReviewCommandHandler
         `Signup Approval - ${EncounterFriendlyDescription[encounter]} ${emoji}`.trim(),
       )
       .addFields([
-        {
-          name: 'Character',
-          value: titleCase(character),
-          inline: true,
-        },
-        { name: 'Home World', value: titleCase(world), inline: true },
+        characterField(character),
+        worldField(world, 'Home World'),
         { name: 'Job', value: role, inline: true },
         { name: 'Prog Point', value: progPointRequested, inline: true },
       ]);
