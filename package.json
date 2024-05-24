@@ -38,7 +38,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "dayjs": "^1.11.11",
-    "discord.js": "^14.14.1",
+    "discord.js": "^14.15.2",
     "firebase-admin": "^12.1.0",
     "google-auth-library": "^9.10.0",
     "joi": "^17.13.1",

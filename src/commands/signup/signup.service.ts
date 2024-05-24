@@ -8,7 +8,6 @@ import * as Sentry from '@sentry/node';
 import {
   ActionRowBuilder,
   Colors,
-  DiscordjsError,
   DiscordjsErrorCodes,
   Embed,
   EmbedBuilder,
@@ -386,14 +385,11 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       this.logger.error(error);
 
       await match(error)
-        .with(
-          P.instanceOf(DiscordjsError),
-          ({ code }) => code === DiscordjsErrorCodes.InteractionCollectorError,
-          () =>
-            message.edit({
-              content: `:exclamation: **IMPORTANT**: ${SIGNUP_MESSAGES.PROG_SELECTION_TIMEOUT} :exclamation:`,
-              components: [],
-            }),
+        .with({ code: DiscordjsErrorCodes.InteractionCollectorError }, () =>
+          message.edit({
+            content: `:exclamation: **IMPORTANT**: ${SIGNUP_MESSAGES.PROG_SELECTION_TIMEOUT} :exclamation:`,
+            components: [],
+          }),
         )
         .otherwise(() => {
           // we don't care to report if the timeout error happened, thats normal
