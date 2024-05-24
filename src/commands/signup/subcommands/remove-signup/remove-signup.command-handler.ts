@@ -1,7 +1,19 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import * as Sentry from '@sentry/node';
 import { plainToClass } from 'class-transformer';
-import { APIUser, ChatInputCommandInteraction, User } from 'discord.js';
+import {
+  APIUser,
+  ChatInputCommandInteraction,
+  Colors,
+  EmbedBuilder,
+  User,
+} from 'discord.js';
 import { P, match } from 'ts-pattern';
+import {
+  characterField,
+  encounterField,
+  worldField,
+} from '../../../../common/components/fields.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
@@ -9,6 +21,7 @@ import { SignupCollection } from '../../../../firebase/collections/signup.collec
 import { DocumentNotFoundException } from '../../../../firebase/firebase.exceptions.js';
 import {
   SignupCompositeKeyProps,
+  SignupDocument,
   SignupStatus,
 } from '../../../../firebase/models/signup.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
@@ -22,6 +35,13 @@ import {
   REMOVAL_SUCCESS,
 } from './remove-signup.consts.js';
 import { RemoveSignupDto } from './remove-signup.dto.js';
+
+type RemoveSignupProps = {
+  dto: RemoveSignupDto & { discordId: string };
+  signup: SignupDocument;
+  guildId: string;
+  spreadsheetId?: string;
+};
 
 @CommandHandler(RemoveSignupCommand)
 class RemoveSignupCommandHandler
@@ -37,17 +57,35 @@ class RemoveSignupCommandHandler
   async execute({ interaction }: RemoveSignupCommand): Promise<any> {
     await interaction.deferReply({ ephemeral: true });
 
+    const scope = Sentry.getCurrentScope();
     const options = {
       ...this.getOptions(interaction),
       discordId: interaction.user.id,
     };
+
+    scope.setExtra('options', options);
+
+    const embed = new EmbedBuilder()
+      .setTitle('Remove Signup')
+      .setColor(Colors.Green)
+      .addFields([
+        encounterField(options.encounter),
+        characterField(options.character),
+        worldField(options.world),
+      ]);
 
     const settings = await this.settingsCollection.getSettings(
       interaction.guildId,
     );
 
     if (!settings) {
-      return interaction.editReply(SIGNUP_MESSAGES.MISSING_SETTINGS);
+      return interaction.editReply({
+        embeds: [
+          embed
+            .setColor(Colors.Red)
+            .setDescription(SIGNUP_MESSAGES.MISSING_SETTINGS),
+        ],
+      });
     }
 
     const { spreadsheetId, reviewerRole } = settings;
@@ -61,31 +99,29 @@ class RemoveSignupCommandHandler
       );
 
       if (!canModify) {
-        return interaction.editReply(REMOVAL_MISSING_PERMISSIONS);
+        return interaction.editReply({
+          embeds: [
+            embed
+              .setDescription(REMOVAL_MISSING_PERMISSIONS)
+              .setColor(Colors.Red),
+          ],
+        });
       }
 
-      let reply = REMOVAL_SUCCESS;
+      const description = await this.removeSignup({
+        dto: options,
+        signup,
+        guildId: interaction.guildId,
+        spreadsheetId,
+      });
 
-      // If the signup exists and has been approved, we expect to find it on the sheet
-      // so try to remove it
-      if (spreadsheetId && signup.status === SignupStatus.APPROVED) {
-        const response = await this.sheetsService.removeSignup(
-          options,
-          spreadsheetId,
-        );
-
-        // but if nothing was found on the sheet just let them know nothing was found
-        if (response === 0) {
-          reply = REMOVAL_NO_SHEET_ENTRY(options);
-        }
-      }
-
-      await this.removeSignup(options, interaction.guildId);
-      await interaction.editReply(reply);
+      await interaction.editReply({
+        embeds: [embed.setDescription(description)],
+      });
     } catch (error) {
       match(error)
         .with(P.instanceOf(DocumentNotFoundException), () =>
-          this.handleDocumentNotFoundException(interaction, options),
+          this.handleDocumentNotFoundException(interaction, embed),
         )
         .otherwise(() => {
           throw error;
@@ -93,31 +129,49 @@ class RemoveSignupCommandHandler
     }
   }
 
-  private async removeSignup(
-    dto: RemoveSignupDto & { discordId: string },
-    guildId: string,
-  ) {
-    const signup = await this.signupsRepository.findOne(dto);
+  private async removeSignup({
+    dto,
+    guildId,
+    spreadsheetId,
+    signup,
+  }: RemoveSignupProps): Promise<string> {
+    const scope = Sentry.getCurrentScope();
+    let description = REMOVAL_SUCCESS;
+    // If the signup exists and has been approved, we expect to find it on the sheet
+    if (spreadsheetId && signup.status === SignupStatus.APPROVED) {
+      const response = await this.sheetsService.removeSignup(
+        dto,
+        spreadsheetId,
+      );
 
-    if (!signup) {
-      return;
+      // but if nothing was found on the sheet just let them know nothing was found
+      if (response === 0) {
+        description = REMOVAL_NO_SHEET_ENTRY;
+      }
     }
 
     // if there is an existing signup check if the approval was already handled
     // if it has not been, remove it.
     if (shouldDeleteReviewMessageForSignup(signup)) {
-      const reviewChannelId =
-        await this.settingsCollection.getReviewChannel(guildId);
-      if (reviewChannelId && signup.reviewMessageId) {
-        await this.discordService.deleteMessage(
-          guildId,
-          reviewChannelId,
-          signup.reviewMessageId,
-        );
+      try {
+        const reviewChannelId =
+          await this.settingsCollection.getReviewChannel(guildId);
+
+        if (reviewChannelId && signup.reviewMessageId) {
+          await this.discordService.deleteMessage(
+            guildId,
+            reviewChannelId,
+            signup.reviewMessageId,
+          );
+        }
+      } catch (e) {
+        scope.setExtra('signup', signup);
+        scope.captureException(e);
       }
     }
 
     await this.signupsRepository.removeSignup(dto);
+    return description;
   }
 
   private getOptions({ options }: ChatInputCommandInteraction) {
@@ -146,9 +200,11 @@ class RemoveSignupCommandHandler
 
   private async handleDocumentNotFoundException(
     interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
-    options: RemoveSignupDto,
+    embed: EmbedBuilder,
   ) {
-    await interaction.editReply(REMOVAL_NO_DB_ENTRY(options));
+    await interaction.editReply({
+      embeds: [embed.setColor(Colors.Red).setDescription(REMOVAL_NO_DB_ENTRY)],
+    });
   }
 }
 
