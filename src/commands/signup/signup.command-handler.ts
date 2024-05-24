@@ -10,13 +10,13 @@ import {
   DiscordjsErrorCodes,
   EmbedBuilder,
 } from 'discord.js';
-import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
 import { isSameUserFilter } from '../../common/collection-filters.js';
 import {
   CancelButton,
   ConfirmButton,
 } from '../../common/components/buttons.js';
+import { characterField, worldField } from '../../common/components/fields.js';
 import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import {
@@ -199,12 +199,8 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       .setTitle(EncounterFriendlyDescription[encounter])
       .setDescription("Here's a summary of your request")
       .addFields([
-        {
-          name: 'Character',
-          value: titleCase(character),
-          inline: true,
-        },
-        { name: 'Home World', value: titleCase(world), inline: true },
+        characterField(character),
+        worldField(world, 'Home World'),
         { name: 'Job', value: role, inline: true },
         { name: 'Prog Point', value: progPointRequested, inline: true },
         { name: 'Availability', value: availability, inline: true },

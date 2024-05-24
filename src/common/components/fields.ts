@@ -5,20 +5,26 @@ import {
   EncounterFriendlyDescription,
 } from '../../encounters/encounters.consts.js';
 
-export const characterField = (value: string): APIEmbedField => ({
-  name: 'Character',
+export const characterField = (
+  value: string,
+  name = 'Character',
+): APIEmbedField => ({
+  name,
   value: titleCase(value),
   inline: true,
 });
 
-export const worldField = (value: string): APIEmbedField => ({
-  name: 'World',
+export const worldField = (value: string, name = 'World'): APIEmbedField => ({
+  name,
   value: titleCase(value),
   inline: true,
 });
 
-export const encounterField = (value: Encounter): APIEmbedField => ({
-  name: 'Encounter',
+export const encounterField = (
+  value: Encounter,
+  name = 'Encounter',
+): APIEmbedField => ({
+  name,
   value: EncounterFriendlyDescription[value],
   inline: true,
 });
