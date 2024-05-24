@@ -10,7 +10,7 @@ import {
 } from '../../../../firebase/models/signup.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
-import { RemoveSignupCommandHandler } from './remove-signup-command.handler.js';
+import { RemoveSignupCommandHandler } from './remove-signup.command-handler.js';
 import {
   REMOVAL_MISSING_PERMISSIONS,
   REMOVAL_SUCCESS,
