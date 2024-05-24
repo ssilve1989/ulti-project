@@ -206,7 +206,9 @@ describe('Signup Command Handler', () => {
 
   it('handles a timeout', async () => {
     confirmationInteraction.awaitMessageComponent.mockRejectedValueOnce(
-      new DiscordjsError(DiscordjsErrorCodes.InteractionCollectorError),
+      createMock<DiscordjsError>({
+        code: DiscordjsErrorCodes.InteractionCollectorError,
+      }),
     );
 
     interaction.editReply.mockResolvedValue(confirmationInteraction);
