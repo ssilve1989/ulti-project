@@ -2,8 +2,10 @@ import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { plainToInstance } from 'class-transformer';
 import { CommandInteractionOptionResolver, EmbedBuilder } from 'discord.js';
-import { titleCase } from 'title-case';
-import { EncounterFriendlyDescription } from '../../encounters/encounters.consts.js';
+import {
+  characterField,
+  encounterField,
+} from '../../common/components/fields.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SignupDocument } from '../../firebase/models/signup.model.js';
 import { LookupCommand } from './lookup.command.js';
@@ -30,16 +32,8 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
   private createLookupEmbed(signups: SignupDocument[]) {
     const fields = signups.flatMap(
       ({ world, character, encounter, availability }) => [
-        {
-          name: 'Character',
-          value: `${titleCase(character)} @ ${titleCase(world)}`,
-          inline: true,
-        },
-        {
-          name: 'Encounter',
-          value: EncounterFriendlyDescription[encounter],
-          inline: true,
-        },
+        characterField(`${character} @ ${world}`),
+        encounterField(encounter),
         {
           name: 'Availability',
           value: availability,
