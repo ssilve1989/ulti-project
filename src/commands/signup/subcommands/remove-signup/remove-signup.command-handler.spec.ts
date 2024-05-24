@@ -1,9 +1,14 @@
 import { DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { ChatInputCommandInteraction, User } from 'discord.js';
+import { ChatInputCommandInteraction, Colors, User } from 'discord.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
+import {
+  Encounter,
+  EncounterFriendlyDescription,
+} from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
+import { DocumentNotFoundException } from '../../../../firebase/firebase.exceptions.js';
 import {
   SignupDocument,
   SignupStatus,
@@ -13,8 +18,25 @@ import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { RemoveSignupCommandHandler } from './remove-signup.command-handler.js';
 import {
   REMOVAL_MISSING_PERMISSIONS,
+  REMOVAL_NO_DB_ENTRY,
   REMOVAL_SUCCESS,
 } from './remove-signup.consts.js';
+
+const fieldExpectations = [
+  {
+    name: 'Encounter',
+    value: EncounterFriendlyDescription[Encounter.DSR],
+    inline: true,
+  },
+  { name: 'Character', value: 'Test Character', inline: true },
+  { name: 'World', value: 'Test World', inline: true },
+];
+
+const DEFAULT_SETTINGS = {
+  spreadsheetId: '1234',
+  reviewerRole: 'reviewer',
+  reviewChannel: '1234',
+};
 
 describe('Remove Signup Command Handler', () => {
   let discordService: DeepMocked<DiscordService>;
@@ -44,7 +66,18 @@ describe('Remove Signup Command Handler', () => {
         valueOf: () => '',
       }),
       options: {
-        getString: () => '',
+        getString: (key: string) => {
+          switch (key) {
+            case 'character':
+              return 'Test Character';
+            case 'encounter':
+              return Encounter.DSR;
+            case 'world':
+              return 'Test World';
+            default:
+              return '';
+          }
+        },
       },
       valueOf: () => '',
     });
@@ -54,46 +87,85 @@ describe('Remove Signup Command Handler', () => {
     expect(handler).toBeDefined();
   });
 
-  it('replies with missing settings if no settings are set', async () => {
-    settingsCollection.getSettings.mockResolvedValue(undefined);
+  it.each([
+    {
+      case: 'No Settings Configured',
+      color: Colors.Red,
+      description: SIGNUP_MESSAGES.MISSING_SETTINGS,
+    },
+    {
+      case: 'Role Not Allowed',
+      color: Colors.Red,
+      description: REMOVAL_MISSING_PERMISSIONS,
+      hasRole: false,
+      settings: DEFAULT_SETTINGS,
+    },
+    {
+      case: 'User Not Allowed',
+      color: Colors.Red,
+      description: REMOVAL_MISSING_PERMISSIONS,
+      hasRole: false,
+      settings: DEFAULT_SETTINGS,
+      signup: { discordId: '2' },
+    },
+    {
+      case: 'Role Removes Successfully',
+      color: Colors.Green,
+      hasRole: true,
+      description: REMOVAL_SUCCESS,
+      settings: DEFAULT_SETTINGS,
+    },
+    {
+      case: 'User Removes Successfully',
+      color: Colors.Green,
+      description: REMOVAL_SUCCESS,
+      settings: DEFAULT_SETTINGS,
+      hasRole: false,
+      signup: { discordId: '1' },
+    },
+    {
+      case: 'Handles DocumentNotFoundException',
+      color: Colors.Red,
+      description: REMOVAL_NO_DB_ENTRY,
+      settings: DEFAULT_SETTINGS,
+      signup: new DocumentNotFoundException(),
+    },
+  ])(
+    '$case',
+    async ({ settings, hasRole = true, color, description, signup = {} }) => {
+      settingsCollection.getSettings.mockResolvedValueOnce(settings);
+      discordService.userHasRole.mockResolvedValue(hasRole);
 
-    await handler.execute({ interaction });
-    expect(interaction.editReply).toHaveBeenCalledWith(
-      SIGNUP_MESSAGES.MISSING_SETTINGS,
-    );
-  });
+      if (signup instanceof DocumentNotFoundException) {
+        signupsCollection.findOneOrFail.mockRejectedValue(signup);
+      } else {
+        signupsCollection.findOne.mockResolvedValue(
+          createMock<SignupDocument>(signup),
+        );
+        signupsCollection.findOneOrFail.mockResolvedValueOnce(
+          createMock<SignupDocument>(signup),
+        );
+      }
 
-  it('checks if the user role is allowed to remove signups', async () => {
-    settingsCollection.getSettings.mockResolvedValue({
-      reviewerRole: 'reviewer',
-      reviewChannel: '1234',
-    });
+      await handler.execute({ interaction });
 
-    discordService.userHasRole.mockResolvedValue(false);
-
-    await handler.execute({ interaction });
-    expect(interaction.editReply).toHaveBeenCalledWith(
-      'You do not have permission to remove this signup',
-    );
-  });
-
-  it('removes the signup from the spreadsheet', async () => {
-    settingsCollection.getSettings.mockResolvedValue({
-      reviewerRole: 'reviewer',
-      reviewChannel: '1234',
-    });
-
-    await handler.execute({ interaction });
-    expect(signupsCollection.removeSignup).toHaveBeenCalled();
-    expect(interaction.editReply).toHaveBeenCalledWith(REMOVAL_SUCCESS);
-  });
+      expect(interaction.editReply).toHaveBeenCalledWith({
+        embeds: [
+          {
+            data: {
+              title: 'Remove Signup',
+              color,
+              description,
+              fields: fieldExpectations,
+            },
+          },
+        ],
+      });
+    },
+  );
 
   it('calls removeSignup from SheetService if spreadsheetId is set and signup has been approved', async () => {
-    settingsCollection.getSettings.mockResolvedValue({
-      spreadsheetId: '1234',
-      reviewerRole: 'reviewer',
-      reviewChannel: '1234',
-    });
+    settingsCollection.getSettings.mockResolvedValue(DEFAULT_SETTINGS);
 
     signupsCollection.findOneOrFail.mockResolvedValueOnce(
       createMock<SignupDocument>({
@@ -106,11 +178,7 @@ describe('Remove Signup Command Handler', () => {
   });
 
   it('does not call removeSignup from SheetService if the signup has not been approved', async () => {
-    settingsCollection.getSettings.mockResolvedValue({
-      spreadsheetId: '1234',
-      reviewerRole: 'reviewer',
-      reviewChannel: '1234',
-    });
+    settingsCollection.getSettings.mockResolvedValue(DEFAULT_SETTINGS);
 
     signupsCollection.findOneOrFail.mockResolvedValueOnce(
       createMock<SignupDocument>({
@@ -120,36 +188,5 @@ describe('Remove Signup Command Handler', () => {
 
     await handler.execute({ interaction });
     expect(sheetsService.removeSignup).not.toHaveBeenCalled();
-  });
-
-  it('does not allow removal if the userId does not match the signups discordId', async () => {
-    settingsCollection.getSettings.mockResolvedValue({
-      reviewerRole: 'reviewer',
-      reviewChannel: '1234',
-    });
-
-    discordService.userHasRole.mockResolvedValue(false);
-    signupsCollection.findOne.mockResolvedValue({ discordId: '2' } as any);
-
-    await handler.execute({ interaction });
-    expect(interaction.editReply).toHaveBeenCalledWith(
-      REMOVAL_MISSING_PERMISSIONS,
-    );
-  });
-
-  it('removes the signup if the userId matches the signups discordId', async () => {
-    settingsCollection.getSettings.mockResolvedValue({
-      reviewerRole: 'reviewer',
-      reviewChannel: '1234',
-    });
-
-    discordService.userHasRole.mockResolvedValue(false);
-    signupsCollection.findOneOrFail.mockResolvedValue({
-      discordId: '1',
-    } as any);
-
-    await handler.execute({ interaction });
-    expect(signupsCollection.removeSignup).toHaveBeenCalled();
-    expect(interaction.editReply).toHaveBeenCalledWith(REMOVAL_SUCCESS);
   });
 });

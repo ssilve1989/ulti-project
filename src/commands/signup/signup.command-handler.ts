@@ -176,8 +176,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       world: options.getString('world', true),
     };
 
-    console.log(request);
-
     const transformed = plainToInstance(SignupInteractionDto, request);
     const errors = await validate(transformed);
 

@@ -19,7 +19,8 @@
         "noNamespaceImport": "off"
       },
       "suspicious": {
-        "noExplicitAny": "off"
+        "noExplicitAny": "off",
+        "noConsoleLog": "error"
       },
       "nursery": {}
     }
