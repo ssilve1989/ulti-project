@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, Role } from 'discord.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
-import { EditSettingsCommandHandler } from './edit-settings-command.handler.js';
+import { EditSettingsCommandHandler } from './edit-settings.command-handler.js';
 
 describe('Edit Settings Command Handler', () => {
   let handler: EditSettingsCommandHandler;

@@ -10,7 +10,7 @@ import {
   SignupDocument,
   SignupStatus,
 } from '../../../../firebase/models/signup.model.js';
-import { SendSignupReviewCommandHandler } from './send-signup-review-command.handler.js';
+import { SendSignupReviewCommandHandler } from './send-signup-review.command-handler.js';
 
 describe('Send Signup Review Command Handler', () => {
   let handler: SendSignupReviewCommandHandler;
