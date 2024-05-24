@@ -3,7 +3,7 @@ import { ChatInputCommandInteraction } from 'discord.js';
 
 import { DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
-import { ViewSettingsCommandHandler } from './view-settings-command.handler.js';
+import { ViewSettingsCommandHandler } from './view-settings.command-handler.js';
 
 describe('View Settings Command Handler', () => {
   let handler: ViewSettingsCommandHandler;

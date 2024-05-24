@@ -17,7 +17,7 @@ import {
   SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
-import { SignupCommandHandler } from './signup-command.handler.js';
+import { SignupCommandHandler } from './signup.command-handler.js';
 import { SignupCommand } from './signup.commands.js';
 import { SIGNUP_MESSAGES } from './signup.consts.js';
 
