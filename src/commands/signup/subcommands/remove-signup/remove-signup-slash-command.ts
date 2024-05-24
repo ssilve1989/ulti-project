@@ -8,10 +8,15 @@ export const RemoveSignupSlashCommand = new SlashCommandBuilder()
     option
       .setName('character')
       .setDescription('Character Name')
+      .setMaxLength(64)
       .setRequired(true),
   )
   .addStringOption((option) =>
-    option.setRequired(true).setDescription('Home World').setName('world'),
+    option
+      .setRequired(true)
+      .setDescription('Home World')
+      .setName('world')
+      .setMaxLength(32),
   )
   .addStringOption((option) =>
     option

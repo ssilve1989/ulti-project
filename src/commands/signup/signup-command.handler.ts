@@ -163,20 +163,20 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   }: ChatInputCommandInteraction): Promise<
     [SignupInteractionDto, ValidationError[] | undefined]
   > {
-    // the fields that are marked required should come in with values. empty strings are not allowed
-    /* eslint-disable @typescript-eslint/no-non-null-assertion */
     const request: SignupInteractionDto = {
-      availability: options.getString('availability')!,
-      character: options.getString('character')!,
+      availability: options.getString('availability', true),
+      character: options.getString('character', true),
       discordId: user.id,
-      encounter: options.getString('encounter')! as Encounter,
+      encounter: options.getString('encounter', true) as Encounter,
       proofOfProgLink: options.getString('prog-proof-link'),
-      progPointRequested: options.getString('prog-point')!,
-      role: options.getString('job')!,
+      progPointRequested: options.getString('prog-point', true),
+      role: options.getString('job', true),
       screenshot: options.getAttachment('screenshot')?.url ?? null,
       username: user.username,
-      world: options.getString('world')!,
+      world: options.getString('world', true),
     };
+
+    console.log(request);
 
     const transformed = plainToInstance(SignupInteractionDto, request);
     const errors = await validate(transformed);
