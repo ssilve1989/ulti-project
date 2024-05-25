@@ -8,7 +8,7 @@ export const SIGNUP_MESSAGES = {
   MISSING_SETTINGS:
     'No settings have been configured for this bot. Commands may not function until properly configured',
   PROG_DM_TIMEOUT:
-    "You didn't respond in time. Please manually update the google sheet with the intended prog point",
+    'You did not respond in time. The signup has not been approved. Please react to the message again to approve this signup',
   SIGNUP_SUBMISSION_CANCELLED:
     'Signup canceled. Please use /signup if you wish to try again.',
   SIGNUP_SUBMISSION_CONFIRMED:
