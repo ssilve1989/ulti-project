@@ -273,12 +273,13 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         content: `<@${confirmedSignup.discordId}> ${messageContent}`,
         embeds: [embed],
       }),
-      this.assignProgRole({
-        guildId: sourceMessage.guild.id,
-        settings,
-        signup,
-        partyStatus,
-      }),
+      !hasCleared &&
+        this.assignProgRole({
+          guildId: sourceMessage.guild.id,
+          settings,
+          signup,
+          partyStatus,
+        }),
     ]);
 
     if (hasCleared && message) {
@@ -326,9 +327,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User | PartialUser,
     message: Message | PartialMessage,
   ) {
-    const scope = Sentry.getCurrentScope();
-    scope.setExtras({ messageUrl: getMessageLink(message), message });
-
     this.logger.error(error);
 
     const reply = match(error)
@@ -336,9 +334,13 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         P.instanceOf(DocumentNotFoundException),
         () => SIGNUP_MESSAGES.SIGNUP_NOT_FOUND_FOR_REACTION,
       )
+      .with(
+        { code: DiscordjsErrorCodes.InteractionCollectorError },
+        () => SIGNUP_MESSAGES.PROG_DM_TIMEOUT,
+      )
       .otherwise(() => SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR);
 
-    scope.captureMessage(reply, 'debug');
+    Sentry.getCurrentScope().captureMessage(reply, 'debug');
 
     // TODO: Improve error reporting to better inform user what happened
     await Promise.all([
@@ -355,7 +357,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User,
   ): Promise<string | undefined> {
     const menu = EncounterProgMenus[signup.encounter];
-
     const row = new ActionRowBuilder().addComponents(menu);
 
     const message = await this.discordService.sendDirectMessage(user.id, {
@@ -379,35 +380,11 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         await reply.followUp('Confirmation Received!');
         return reply.values.at(0) as string;
       }
-
-      await reply.update(SIGNUP_MESSAGES.UNEXPECTED_PROG_SELECTION_ERROR);
     } catch (error) {
-      this.logger.error(error);
-
-      await match(error)
-        .with({ code: DiscordjsErrorCodes.InteractionCollectorError }, () =>
-          message.edit({
-            content: `:exclamation: **IMPORTANT**: ${SIGNUP_MESSAGES.PROG_SELECTION_TIMEOUT} :exclamation:`,
-            components: [],
-          }),
-        )
-        .otherwise(() => {
-          // we don't care to report if the timeout error happened, thats normal
-          // but anything else is unexpected and should be reported
-          sentryReport(error, (scope) =>
-            scope.setExtras({
-              extra: {
-                encounter: signup.encounter,
-                discordId: signup.discordId,
-              },
-            }),
-          );
-
-          this.discordService.sendDirectMessage(
-            user.id,
-            SIGNUP_MESSAGES.UNEXPECTED_PROG_SELECTION_ERROR,
-          );
-        });
+      // if we encounter any error with the DM just remove the select component so they don't get further errors upon
+      // trying to select again
+      await message.edit({ components: [] });
+      throw error;
     }
   }
 
