@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.7](https://github.com/ssilve1989/ulti-project/compare/v1.9.6...v1.9.7) (2024-05-25)
+
+
+### Miscellaneous Chores
+
+* release 1.9.7 ([e760af5](https://github.com/ssilve1989/ulti-project/commit/e760af5894e59fd7643cb6f5d8891e6b023004d1))
+
 ## [1.9.6](https://github.com/ssilve1989/ulti-project/compare/v1.9.5...v1.9.6) (2024-05-24)
 
 
