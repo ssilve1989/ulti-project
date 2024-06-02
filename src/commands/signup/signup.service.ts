@@ -8,10 +8,8 @@ import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
 import {
   ActionRowBuilder,
-  Colors,
   DiscordjsErrorCodes,
   Embed,
-  EmbedBuilder,
   Events,
   Message,
   MessageReaction,
@@ -53,7 +51,7 @@ import {
 } from '../../firebase/models/signup.model.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
-import { SignupApprovedEvent } from './signup.events.js';
+import { SignupApprovedEvent, SignupDeclinedEvent } from './signup.events.js';
 
 @Injectable()
 class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -157,7 +155,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       return;
     }
 
-    await match(emoji.name)
+    const event = await match(emoji.name)
       .with(SIGNUP_REVIEW_REACTIONS.APPROVED, () =>
         this.handleApprovedReaction(signup, message, user, settings),
       )
@@ -165,6 +163,8 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         this.handleDeclinedReaction(signup, message, user),
       )
       .otherwise(() => undefined);
+
+    event && this.eventBus.publish(event);
   }
 
   private async shouldHandleReaction(
@@ -195,14 +195,13 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
   private async handleApprovedReaction(
     signup: SignupDocument,
-    sourceMessage: Message<true>,
+    message: Message<true>,
     user: User,
     settings: SettingsDocument,
-  ) {
+  ): Promise<SignupApprovedEvent> {
     const {
       embeds: [sourceEmbed],
-      guildId,
-    } = sourceMessage;
+    } = message;
 
     const progPoint = await this.requestProgPointConfirmation(
       signup,
@@ -239,51 +238,21 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       );
     }
 
-    this.eventBus.publish(
-      new SignupApprovedEvent(
-        confirmedSignup,
-        guildId,
-        settings,
-        user,
-        sourceMessage,
-      ),
-    );
+    return new SignupApprovedEvent(confirmedSignup, settings, user, message);
   }
 
   private async handleDeclinedReaction(
     signup: SignupDocument,
     message: Message<true>,
     user: User,
-  ) {
-    const [displayName] = await Promise.all([
-      this.discordService.getDisplayName({
-        userId: user.id,
-        guildId: message.guildId,
-      }),
-      this.repository.updateSignupStatus(
-        SignupStatus.DECLINED,
-        signup,
-        user.username,
-      ),
-    ]);
+  ): Promise<SignupDeclinedEvent> {
+    await this.repository.updateSignupStatus(
+      SignupStatus.DECLINED,
+      signup,
+      user.username,
+    );
 
-    // TODO: Move Direct Message logic to EventHandler
-    const embed = EmbedBuilder.from(message.embeds[0])
-      .setDescription(null)
-      .setFooter({
-        text: `Declined by ${displayName}`,
-        iconURL: user.displayAvatarURL(),
-      })
-      .setColor(Colors.Red)
-      .setTimestamp(new Date());
-
-    await Promise.all([
-      message.edit({ embeds: [embed] }),
-      this.discordService.sendDirectMessage(signup.discordId, {
-        content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_DENIED,
-        embeds: [embed.setTitle('Signup Declined')],
-      }),
-    ]);
+    return new SignupDeclinedEvent(signup, user, message);
   }
 
   private async handleError(

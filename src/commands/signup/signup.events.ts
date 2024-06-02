@@ -19,9 +19,16 @@ export class SignupReviewCreatedEvent {
 export class SignupApprovedEvent {
   constructor(
     public readonly signup: SignupDocument,
-    public guildId: string,
     public readonly settings: SettingsDocument,
-    public readonly approvedBy: User,
-    public readonly sourceMessage: Message<true>,
+    public readonly reviewedBy: User,
+    public readonly message: Message<true>,
+  ) {}
+}
+
+export class SignupDeclinedEvent {
+  constructor(
+    public readonly signup: SignupDocument,
+    public readonly reviewedBy: User,
+    public readonly message: Message<true>,
   ) {}
 }

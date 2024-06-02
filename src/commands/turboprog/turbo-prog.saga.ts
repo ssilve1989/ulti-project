@@ -19,7 +19,6 @@ class TurboProgSagas {
       filter(({ signup }) => signup.partyStatus === PartyStatus.Cleared),
       map(
         ({
-          guildId,
           signup: {
             progPoint,
             progPointRequested,
@@ -29,6 +28,7 @@ class TurboProgSagas {
             encounter,
           },
           settings,
+          message,
         }) =>
           new TurboProgRemoveSignupCommand(
             {
@@ -38,7 +38,7 @@ class TurboProgSagas {
               job: role,
               progPoint: progPoint ?? progPointRequested,
             },
-            guildId,
+            message.guildId,
             settings,
           ),
       ),
