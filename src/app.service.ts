@@ -1,15 +1,15 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationShutdown } from '@nestjs/common';
 import { UnhandledExceptionBus } from '@nestjs/cqrs';
-import { Subject, takeUntil } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { sentryReport } from './sentry/sentry.consts.js';
 
 @Injectable()
-class AppService implements OnModuleDestroy {
-  private readonly destroy$ = new Subject<void>();
+class AppService implements OnApplicationShutdown {
+  private readonly subscription: Subscription;
   private readonly logger = new Logger(AppService.name);
 
   constructor(private readonly unhandledExceptionBus: UnhandledExceptionBus) {
-    this.unhandledExceptionBus.pipe(takeUntil(this.destroy$)).subscribe({
+    this.subscription = this.unhandledExceptionBus.subscribe({
       // TODO: The logger doesn't log unhandledExceptionInfo correctly if given the entire object
       next: ({ exception }) => {
         sentryReport(exception);
@@ -18,9 +18,8 @@ class AppService implements OnModuleDestroy {
     });
   }
 
-  onModuleDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
+  onApplicationShutdown() {
+    this.subscription.unsubscribe();
   }
 }
 

@@ -10,6 +10,9 @@ export default defineConfig({
       exclude: ['src/slash-commands/**/*-command.ts'],
       provider: 'v8',
     },
+    chaiConfig: {
+      truncateThreshold: 80,
+    },
   },
   plugins: [
     // This is required to build the test files with SWC
