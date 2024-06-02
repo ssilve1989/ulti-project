@@ -61,21 +61,30 @@ class EditSettingsCommandHandler
       options.getString('turbo-prog-spreadsheet-id') ?? undefined;
 
     const progRoles: Record<string, string | undefined> = {};
+    const clearRoles: Record<string, string | undefined> = {};
 
     for (const encounter in Encounter) {
       const role = options.getRole(`${encounter.toLowerCase()}-prog-role`);
+      const clearRole = options.getRole(
+        `${encounter.toLowerCase()}-clear-role`,
+      );
 
       if (role) {
         progRoles[encounter] = role.id;
       }
+
+      if (clearRole) {
+        clearRoles[encounter] = clearRole.id;
+      }
     }
 
     return {
-      reviewerRole,
+      clearRoles,
+      progRoles,
       reviewChannel,
+      reviewerRole,
       signupChannel,
       spreadsheetId,
-      progRoles,
       turboProgActive,
       turboProgSpreadsheetId,
     };
