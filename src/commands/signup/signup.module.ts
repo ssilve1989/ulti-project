@@ -7,6 +7,7 @@ import { SettingsModule } from '../settings/settings.module.js';
 import { AssignRolesEventHandler } from './handlers/assign-roles.event-handler.js';
 import { SendApprovedMessageEventHandler } from './handlers/send-approved-message.event-handler.js';
 import { SignupCommandHandler } from './handlers/signup.command-handler.js';
+import { UpdateApprovalEmbedEventHandler } from './handlers/update-approval-embed.event-handler.js';
 import { SignupSagas } from './signup.saga.js';
 import { SignupService } from './signup.service.js';
 import { RemoveSignupCommandHandler } from './subcommands/remove-signup/remove-signup.command-handler.js';
@@ -21,13 +22,14 @@ import { SendSignupReviewCommandHandler } from './subcommands/send-signup-review
     SheetsModule,
   ],
   providers: [
+    AssignRolesEventHandler,
     RemoveSignupCommandHandler,
+    SendApprovedMessageEventHandler,
     SendSignupReviewCommandHandler,
     SignupCommandHandler,
-    SignupService,
     SignupSagas,
-    AssignRolesEventHandler,
-    SendApprovedMessageEventHandler,
+    SignupService,
+    UpdateApprovalEmbedEventHandler,
   ],
 })
 class SignupModule {}
