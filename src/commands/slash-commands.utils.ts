@@ -12,7 +12,7 @@ import { RemoveSignupSlashCommand } from './signup/subcommands/remove-signup/rem
 import { DiscordCommand } from './slash-commands.interfaces.js';
 import { StatusCommand } from './status/status.command.js';
 import { StatusSlashCommand } from './status/status.slash-command.js';
-import { TurboProgCommand } from './turboprog/turbo-prog.command.js';
+import { TurboProgCommand } from './turboprog/turbo-prog.commands.js';
 import { TurboProgSlashCommand } from './turboprog/turbo-prog.slash-command.js';
 
 /**

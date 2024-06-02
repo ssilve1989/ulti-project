@@ -4,6 +4,7 @@ import {
   OnApplicationBootstrap,
   OnModuleDestroy,
 } from '@nestjs/common';
+import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
 import {
   ActionRowBuilder,
@@ -55,6 +56,7 @@ import {
 import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
+import { SignupApprovedEvent } from './signup.events.js';
 
 @Injectable()
 class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -66,6 +68,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     private readonly discordService: DiscordService,
     private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
+    private readonly eventBus: EventBus,
   ) {}
 
   onApplicationBootstrap() {
@@ -269,11 +272,13 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         // preserve the original title on the message we are editing
         embeds: [EmbedBuilder.from(embed).setTitle(sourceEmbed.title)],
       }),
+      // TODO: Move into Event/Saga Effect
       publicSignupChannel?.send({
         content: `<@${confirmedSignup.discordId}> ${messageContent}`,
         embeds: [embed],
       }),
       !hasCleared &&
+        // TODO: Move into Event/Saga Effect
         this.assignProgRole({
           guildId: sourceMessage.guild.id,
           settings,
@@ -283,8 +288,11 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     ]);
 
     if (hasCleared && message) {
+      // TODO: Move into Event/Saga Effect
       this.addReactions(message);
     }
+
+    this.eventBus.publish(new SignupApprovedEvent(confirmedSignup, guildId));
   }
 
   private async handleDeclinedReaction(

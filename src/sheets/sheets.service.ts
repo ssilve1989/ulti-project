@@ -444,6 +444,12 @@ class SheetsService {
     });
   }
 
+  /**
+   * @deprecated - use getSheetIdByName utility function
+   * @param spreadsheetId
+   * @param name
+   * @returns
+   */
   private async getSheetIdByName(spreadsheetId: string, name: string) {
     const response = await this.client.spreadsheets.get({
       spreadsheetId,

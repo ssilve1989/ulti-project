@@ -3,25 +3,25 @@ import * as Sentry from '@sentry/node';
 import { plainToClass } from 'class-transformer';
 import { ChatInputCommandInteraction } from 'discord.js';
 import { P, match } from 'ts-pattern';
-import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
+import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import {
   PartyStatus,
   SignupDocument,
   SignupStatus,
-} from '../../firebase/models/signup.model.js';
-import { SheetsService } from '../../sheets/sheets.service.js';
-import { TurboProgSheetsService } from '../../sheets/turbo-prog-sheets/turbo-prog-sheets.service.js';
-import { TurboProgSignupInteractionDto } from './turbo-prog-signup-interaction.dto.js';
-import { TurboProgCommand } from './turbo-prog.command.js';
-import { TurboProgEntry } from './turbo-prog.interfaces.js';
+} from '../../../firebase/models/signup.model.js';
+import { SheetsService } from '../../../sheets/sheets.service.js';
+import { TurboProgSheetsService } from '../../../sheets/turbo-prog-sheets/turbo-prog-sheets.service.js';
+import { TurboProgSignupInteractionDto } from '../turbo-prog-signup-interaction.dto.js';
+import { TurboProgCommand } from '../turbo-prog.commands.js';
+import { TurboProgEntry } from '../turbo-prog.interfaces.js';
 import {
   TURBO_PROG_INACTIVE,
   TURBO_PROG_MISSING_SIGNUPS_SHEETS,
   TURBO_PROG_NO_SIGNUP_FOUND,
   TURBO_PROG_SIGNUP_INVALID,
   TURBO_PROG_SUBMISSION_APPROVED,
-} from './turboprog.consts.js';
+} from '../turboprog.consts.js';
 
 type ProggerAllowedResponse =
   | {

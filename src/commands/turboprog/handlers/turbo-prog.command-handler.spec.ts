@@ -1,13 +1,13 @@
 import { DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import {
   PartyStatus,
   SignupDocument,
   SignupStatus,
-} from '../../firebase/models/signup.model.js';
+} from '../../../firebase/models/signup.model.js';
+import { TURBO_PROG_SIGNUP_INVALID } from '../turboprog.consts.js';
 import { TurboProgCommandHandler } from './turbo-prog.command-handler.js';
-import { TURBO_PROG_SIGNUP_INVALID } from './turboprog.consts.js';
 
 const approvedCases: Pick<SignupDocument, 'status' | 'partyStatus'>[] = [
   { status: SignupStatus.APPROVED, partyStatus: PartyStatus.ClearParty },

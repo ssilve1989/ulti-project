@@ -13,3 +13,10 @@ export class SignupReviewCreatedEvent {
     public readonly messageId: string,
   ) {}
 }
+
+export class SignupApprovedEvent {
+  constructor(
+    public readonly signup: SignupDocument,
+    public guildId: string,
+  ) {}
+}
