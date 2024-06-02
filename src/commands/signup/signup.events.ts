@@ -1,4 +1,4 @@
-import { User } from 'discord.js';
+import { Message, User } from 'discord.js';
 import { SettingsDocument } from '../../firebase/models/settings.model.js';
 import { SignupDocument } from '../../firebase/models/signup.model.js';
 
@@ -22,5 +22,6 @@ export class SignupApprovedEvent {
     public guildId: string,
     public readonly settings: SettingsDocument,
     public readonly approvedBy: User,
+    public readonly sourceMessage: Message<true>,
   ) {}
 }

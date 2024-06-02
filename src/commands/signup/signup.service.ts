@@ -240,7 +240,13 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     }
 
     this.eventBus.publish(
-      new SignupApprovedEvent(confirmedSignup, guildId, settings, user),
+      new SignupApprovedEvent(
+        confirmedSignup,
+        guildId,
+        settings,
+        user,
+        sourceMessage,
+      ),
     );
   }
 
@@ -261,6 +267,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       ),
     ]);
 
+    // TODO: Move Direct Message logic to EventHandler
     const embed = EmbedBuilder.from(message.embeds[0])
       .setDescription(null)
       .setFooter({
