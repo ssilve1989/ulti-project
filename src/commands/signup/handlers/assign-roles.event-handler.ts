@@ -43,9 +43,11 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
         memberId: discordId,
         guildId,
       });
-      await member?.roles.add(role);
 
-      this.logger.log(`Assigned role ${role} to ${member?.user.username}`);
+      if (member) {
+        await member.roles.add(role);
+        this.logger.log(`Assigned role ${role} to ${member?.user.username}`);
+      }
     }
   }
 }
