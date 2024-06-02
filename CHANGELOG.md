@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/ssilve1989/ulti-project/compare/v1.10.0...v1.11.0) (2024-06-02)
+
+
+### Features
+
+* removes given roles on signup being marked cleared ([#330](https://github.com/ssilve1989/ulti-project/issues/330)) ([0248726](https://github.com/ssilve1989/ulti-project/commit/0248726f68c1556bfc1a76abe7a570f2d0d7b7f0))
+
 ## [1.10.0](https://github.com/ssilve1989/ulti-project/compare/v1.9.7...v1.10.0) (2024-06-02)
 
 
