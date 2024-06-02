@@ -48,6 +48,15 @@ class ViewSettingsCommandHandler
       [],
     );
 
+    const clearRoleSettings = Object.entries(settings.clearRoles || {}).reduce<
+      string[]
+    >((acc, [encounter, role]) => {
+      if (role) {
+        acc.push(`**${encounter} Clear Role:** <@&${role}>`);
+      }
+      return acc;
+    }, []);
+
     const messages = [
       `**Review Channel:** <#${reviewChannel}>`,
       `**Reviewer Role:** ${role}`,
@@ -70,7 +79,7 @@ class ViewSettingsCommandHandler
       messages.push(`**Managed Spreadsheet:** [${title}](${url})`);
     }
 
-    messages.push(...progRoleSettings);
+    messages.push(...progRoleSettings, ...clearRoleSettings);
 
     await interaction.editReply(messages.join('\n'));
   }
