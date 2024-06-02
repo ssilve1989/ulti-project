@@ -5,6 +5,7 @@ import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
 import { AssignRolesEventHandler } from './handlers/assign-roles.event-handler.js';
+import { RemoveRolesCommandHandler } from './handlers/remove-roles.command-handler.js';
 import { SendApprovedMessageEventHandler } from './handlers/send-approved-message.event-handler.js';
 import { SignupCommandHandler } from './handlers/signup.command-handler.js';
 import { UpdateApprovalEmbedEventHandler } from './handlers/update-approval-embed.event-handler.js';
@@ -23,6 +24,7 @@ import { SendSignupReviewCommandHandler } from './subcommands/send-signup-review
   ],
   providers: [
     AssignRolesEventHandler,
+    RemoveRolesCommandHandler,
     RemoveSignupCommandHandler,
     SendApprovedMessageEventHandler,
     SendSignupReviewCommandHandler,
