@@ -3,8 +3,8 @@ import { ENCOUNTER_CHOICES } from '../slash-commands.consts.js';
 
 // TODO: abstract common options between this and /signup
 export const TurboProgSlashCommand = new SlashCommandBuilder()
-  .setName('turbo-signup')
-  .setDescription('signup for the current turbo prog session!')
+  .setName('final-push')
+  .setDescription('signup for the final push event!')
   .addStringOption((option) =>
     option
       .setRequired(true)
