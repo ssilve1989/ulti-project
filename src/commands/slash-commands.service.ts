@@ -10,24 +10,11 @@ import {
   Routes,
 } from 'discord.js';
 import { EMPTY, catchError, defer, forkJoin, lastValueFrom, retry } from 'rxjs';
-import { match } from 'ts-pattern';
 import { AppConfig } from '../app.config.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
-import { LookupCommand } from './lookup/lookup.command.js';
-import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
-import { SettingsSlashCommand } from './settings/settings.slash-command.js';
-import { EditSettingsCommand } from './settings/subcommands/edit-settings.command.js';
-import { ViewSettingsCommand } from './settings/subcommands/view-settings.command.js';
-import { SignupCommand } from './signup/signup.commands.js';
-import { SignupSlashCommand } from './signup/signup.slash-command.js';
-import { RemoveSignupCommand } from './signup/subcommands/remove-signup/remove-signup.command.js';
-import { RemoveSignupSlashCommand } from './signup/subcommands/remove-signup/remove-signup.slash-command.js';
 import { SLASH_COMMANDS } from './slash-commands.js';
-import { StatusCommand } from './status/status.command.js';
-import { StatusSlashCommand } from './status/status.slash-command.js';
-import { TurboProgCommand } from './turboprog/turbo-prog.command.js';
-import { TurboProgSlashCommand } from './turboprog/turbo-prog.slash-command.js';
+import { getCommandForInteraction } from './slash-commands.utils.js';
 
 @Injectable()
 class SlashCommandsService {
@@ -54,27 +41,7 @@ class SlashCommandsService {
           command: interaction.commandName,
         });
 
-        // TODO: This could be more generic somehow
-        const command = match(interaction.commandName)
-          .with(LookupSlashCommand.name, () => new LookupCommand(interaction))
-          .with(SignupSlashCommand.name, () => new SignupCommand(interaction))
-          .with(StatusSlashCommand.name, () => new StatusCommand(interaction))
-          .with(SettingsSlashCommand.name, () => {
-            const subcommand = interaction.options.getSubcommand();
-            return match(subcommand)
-              .with('edit', () => new EditSettingsCommand(interaction))
-              .with('view', () => new ViewSettingsCommand(interaction))
-              .run();
-          })
-          .with(
-            RemoveSignupSlashCommand.name,
-            () => new RemoveSignupCommand(interaction),
-          )
-          .with(
-            TurboProgSlashCommand.name,
-            () => new TurboProgCommand(interaction),
-          )
-          .otherwise(() => undefined);
+        const command = getCommandForInteraction(interaction);
 
         if (command) {
           try {
