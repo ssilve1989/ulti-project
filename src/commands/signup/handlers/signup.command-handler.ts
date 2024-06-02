@@ -11,26 +11,29 @@ import {
   EmbedBuilder,
 } from 'discord.js';
 import { match } from 'ts-pattern';
-import { isSameUserFilter } from '../../common/collection-filters.js';
+import { isSameUserFilter } from '../../../common/collection-filters.js';
 import {
   CancelButton,
   ConfirmButton,
-} from '../../common/components/buttons.js';
-import { characterField, worldField } from '../../common/components/fields.js';
-import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
-import { DiscordService } from '../../discord/discord.service.js';
+} from '../../../common/components/buttons.js';
+import {
+  characterField,
+  worldField,
+} from '../../../common/components/fields.js';
+import { UnhandledButtonInteractionException } from '../../../discord/discord.exceptions.js';
+import { DiscordService } from '../../../discord/discord.service.js';
 import {
   Encounter,
   EncounterFriendlyDescription,
-} from '../../encounters/encounters.consts.js';
-import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import { sentryReport } from '../../sentry/sentry.consts.js';
-import { SignupInteractionDto } from './signup-interaction.dto.js';
-import { SignupCommand } from './signup.commands.js';
-import { SIGNUP_MESSAGES } from './signup.consts.js';
-import { SignupCreatedEvent } from './signup.events.js';
-import { shouldDeleteReviewMessageForSignup } from './signup.utils.js';
+} from '../../../encounters/encounters.consts.js';
+import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
+import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
+import { sentryReport } from '../../../sentry/sentry.consts.js';
+import { SignupInteractionDto } from '../signup-interaction.dto.js';
+import { SignupCommand } from '../signup.commands.js';
+import { SIGNUP_MESSAGES } from '../signup.consts.js';
+import { SignupCreatedEvent } from '../signup.events.js';
+import { shouldDeleteReviewMessageForSignup } from '../signup.utils.js';
 
 // reusable object to clear a messages emebed + button interaction
 const CLEAR_EMBED = {

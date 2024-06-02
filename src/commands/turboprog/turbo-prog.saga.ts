@@ -28,6 +28,7 @@ class TurboProgSagas {
             character,
             encounter,
           },
+          settings,
         }) =>
           new TurboProgRemoveSignupCommand(
             {
@@ -38,6 +39,7 @@ class TurboProgSagas {
               progPoint: progPoint ?? progPointRequested,
             },
             guildId,
+            settings,
           ),
       ),
     );
