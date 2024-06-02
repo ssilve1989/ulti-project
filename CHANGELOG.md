@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/ssilve1989/ulti-project/compare/v1.9.7...v1.10.0) (2024-06-02)
+
+
+### Features
+
+* support clear-ready roles ([#325](https://github.com/ssilve1989/ulti-project/issues/325)) ([1da163c](https://github.com/ssilve1989/ulti-project/commit/1da163c92051e7afbbce84bef9da79695bc4d310))
+
 ## [1.9.7](https://github.com/ssilve1989/ulti-project/compare/v1.9.6...v1.9.7) (2024-05-25)
 
 
