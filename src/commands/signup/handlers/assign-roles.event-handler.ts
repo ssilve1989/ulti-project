@@ -16,7 +16,7 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
     const {
       signup: { discordId, encounter, partyType, partyStatus },
       settings,
-      guildId,
+      message: { guildId },
     } = event;
     const scope = Sentry.getCurrentScope();
     const status = partyType ?? partyStatus;
