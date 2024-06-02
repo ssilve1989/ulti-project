@@ -39,9 +39,9 @@ class SendApprovedMessageEventHandler
 
   private async sendApprovedMessage({
     settings: { signupChannel },
-    guildId,
+    message: { guildId },
     signup,
-    approvedBy,
+    reviewedBy: approvedBy,
   }: SignupApprovedEvent) {
     const scope = Sentry.getCurrentScope();
 

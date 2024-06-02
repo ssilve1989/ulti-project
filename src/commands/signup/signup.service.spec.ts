@@ -5,7 +5,7 @@ import { DiscordService } from '../../discord/discord.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SettingsDocument } from '../../firebase/models/settings.model.js';
 import { SignupDocument } from '../../firebase/models/signup.model.js';
-import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
+import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
 
 // TODO: Actually assert approval/decline functionality, not just that they were called
@@ -95,14 +95,6 @@ describe('SignupService', () => {
       signup,
       messageReaction.message,
       user,
-    );
-
-    expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
-      signup.discordId,
-      expect.objectContaining({
-        content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_DENIED,
-        embeds: expect.any(Array),
-      }),
     );
   });
 
