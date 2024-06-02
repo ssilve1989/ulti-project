@@ -58,7 +58,13 @@ for (const encounter in Encounter) {
     option
       .setName(`${encounter.toLowerCase()}-prog-role`)
       .setDescription(
-        `The role to be assigned to users who have signed up for this encounter ${encounter}`,
+        'The role to be assigned to users who have signed up for this encounter and quality for prog parties',
+      ),
+  ).addRoleOption((option) =>
+    option
+      .setName(`${encounter.toLowerCase()}-clear-role`)
+      .setDescription(
+        'The role to be assigned to users who have signed up for this encounter and quality for clear parties',
       ),
   );
 }

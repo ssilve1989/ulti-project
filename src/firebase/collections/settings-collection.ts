@@ -15,16 +15,26 @@ class SettingsCollection {
 
   public async upsert(
     guildId: string,
-    { progRoles, ...settings }: Partial<SettingsDocument>,
+    { progRoles, clearRoles, ...settings }: Partial<SettingsDocument>,
   ) {
     // prevent empty object from overriding all existing prog roles
     // quick n dirty fix for now
     const progRolesUpdate =
       progRoles && Object.keys(progRoles).length === 0 ? undefined : progRoles;
 
-    return await this.collection
-      .doc(guildId)
-      .set({ ...settings, progRoles: progRolesUpdate }, { merge: true });
+    const clearRolesUpdate =
+      clearRoles && Object.keys(clearRoles).length === 0
+        ? undefined
+        : clearRoles;
+
+    return await this.collection.doc(guildId).set(
+      {
+        ...settings,
+        progRoles: progRolesUpdate,
+        clearRoles: clearRolesUpdate,
+      },
+      { merge: true },
+    );
   }
 
   public async getSettings(guildId: string) {

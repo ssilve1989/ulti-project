@@ -13,4 +13,9 @@ export interface SettingsDocument extends DocumentData {
     // biome-ignore lint/style/useNamingConvention: <explanation>
     [key in keyof typeof Encounter]?: string;
   };
+
+  clearRoles?: {
+    // biome-ignore lint/style/useNamingConvention: <explanation>
+    [key in keyof typeof Encounter]?: string;
+  };
 }

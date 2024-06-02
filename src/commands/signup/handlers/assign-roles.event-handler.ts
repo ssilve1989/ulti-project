@@ -23,9 +23,8 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
 
     try {
       await match(status)
-        // TODO: Support clear roles
         .with(PartyStatus.ClearParty, () =>
-          this.assignRole(discordId, guildId, undefined),
+          this.assignRole(discordId, guildId, settings.clearRoles?.[encounter]),
         )
         .with(PartyStatus.ProgParty, PartyStatus.EarlyProgParty, () =>
           this.assignRole(discordId, guildId, settings.progRoles?.[encounter]),
