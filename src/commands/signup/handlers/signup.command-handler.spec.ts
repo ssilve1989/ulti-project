@@ -7,19 +7,19 @@ import {
   DiscordjsErrorCodes,
   Message,
 } from 'discord.js';
-import { UnhandledButtonInteractionException } from '../../discord/discord.exceptions.js';
-import { DiscordService } from '../../discord/discord.service.js';
-import { Encounter } from '../../encounters/encounters.consts.js';
-import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import { UnhandledButtonInteractionException } from '../../../discord/discord.exceptions.js';
+import { DiscordService } from '../../../discord/discord.service.js';
+import { Encounter } from '../../../encounters/encounters.consts.js';
+import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
+import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import {
   PartyStatus,
   SignupDocument,
   SignupStatus,
-} from '../../firebase/models/signup.model.js';
+} from '../../../firebase/models/signup.model.js';
+import { SignupCommand } from '../signup.commands.js';
+import { SIGNUP_MESSAGES } from '../signup.consts.js';
 import { SignupCommandHandler } from './signup.command-handler.js';
-import { SignupCommand } from './signup.commands.js';
-import { SIGNUP_MESSAGES } from './signup.consts.js';
 
 describe('Signup Command Handler', () => {
   let handler: SignupCommandHandler;

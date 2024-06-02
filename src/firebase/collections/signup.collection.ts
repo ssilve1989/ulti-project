@@ -11,10 +11,10 @@ import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import {
   CreateSignupDocumentProps,
+  SignupCompositeKeyProps as SignupCompositeKey,
   SignupDocument,
   SignupStatus,
 } from '../models/signup.model.js';
-import { SignupCompositeKeyProps as SignupCompositeKey } from '../models/signup.model.js';
 
 @Injectable()
 class SignupCollection {

@@ -31,7 +31,6 @@ import {
 } from 'rxjs';
 import { P, match } from 'ts-pattern';
 import { isSameUserFilter } from '../../common/collection-filters.js';
-import { ClearReactions } from '../../common/emojis/emojis.js';
 import { getMessageLink } from '../../discord/discord.consts.js';
 import { hydrateReaction, hydrateUser } from '../../discord/discord.helpers.js';
 import { DiscordService } from '../../discord/discord.service.js';
@@ -41,7 +40,6 @@ import {
 } from '../../encounters/encounters.components.js';
 import {
   Encounter,
-  EncounterFriendlyDescription,
   EncounterProgPoints,
 } from '../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
@@ -53,7 +51,6 @@ import {
   SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
-import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupApprovedEvent } from './signup.events.js';
@@ -167,7 +164,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       .with(SIGNUP_REVIEW_REACTIONS.DECLINED, () =>
         this.handleDeclinedReaction(signup, message, user),
       )
-      .otherwise(() => {});
+      .otherwise(() => undefined);
   }
 
   private async shouldHandleReaction(
@@ -175,7 +172,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User | PartialUser,
     settings: SettingsDocument,
   ) {
-    if (!reaction.message.inGuild()) return false;
+    if (!reaction.message.inGuild()) {
+      return false;
+    }
 
     const isAllowedUser = settings?.reviewerRole
       ? await this.discordService.userHasRole({
@@ -194,7 +193,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     return !isBotReacting && isAllowedUser && isExpectedReactionType;
   }
 
-  // TODO: Refactor complexity
   private async handleApprovedReaction(
     signup: SignupDocument,
     sourceMessage: Message<true>,
@@ -206,29 +204,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       guildId,
     } = sourceMessage;
 
-    let embed = EmbedBuilder.from(sourceEmbed);
-
-    const [displayName, progPoint] = await this.getDisplayNameAndProgPoint(
-      user,
-      guildId,
+    const progPoint = await this.requestProgPointConfirmation(
       signup,
       sourceEmbed,
+      user,
     );
 
     const partyStatus = progPoint
       ? this.getPartyStatus(signup.encounter, progPoint)
       : undefined;
-
-    const hasCleared = partyStatus === PartyStatus.Cleared;
-
-    embed = this.updateProgPointField(embed, progPoint)
-      .setFooter({
-        text: `Approved by ${displayName}`,
-        iconURL: user.displayAvatarURL(),
-      })
-      .setDescription(null)
-      .setColor(Colors.Green)
-      .setTimestamp(new Date());
 
     const confirmedSignup: SignupDocument = {
       ...signup,
@@ -236,28 +220,16 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       partyStatus,
     };
 
-    const [publicSignupChannel] = await Promise.all([
-      settings.signupChannel
-        ? this.discordService.getTextChannel({
-            guildId,
-            channelId: settings.signupChannel,
-          })
-        : undefined,
-      settings.spreadsheetId &&
-        this.sheetsService.upsertSignup(
-          confirmedSignup,
-          settings.spreadsheetId,
-        ),
-    ]);
+    const hasCleared = partyStatus === PartyStatus.Cleared;
 
-    const messageContent = hasCleared
-      ? `Congratulations on clearing **${
-          EncounterFriendlyDescription[signup.encounter]
-        }**!`
-      : 'Signup Approved!';
+    if (settings.spreadsheetId) {
+      await this.sheetsService.upsertSignup(
+        confirmedSignup,
+        settings.spreadsheetId,
+      );
+    }
 
     if (hasCleared) {
-      embed = embed.setTitle('Congratulations!');
       await this.repository.removeSignup(signup);
     } else {
       await this.repository.updateSignupStatus(
@@ -267,32 +239,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       );
     }
 
-    const [, message] = await Promise.all([
-      sourceMessage.edit({
-        // preserve the original title on the message we are editing
-        embeds: [EmbedBuilder.from(embed).setTitle(sourceEmbed.title)],
-      }),
-      // TODO: Move into Event/Saga Effect
-      publicSignupChannel?.send({
-        content: `<@${confirmedSignup.discordId}> ${messageContent}`,
-        embeds: [embed],
-      }),
-      !hasCleared &&
-        // TODO: Move into Event/Saga Effect
-        this.assignProgRole({
-          guildId: sourceMessage.guild.id,
-          settings,
-          signup,
-          partyStatus,
-        }),
-    ]);
-
-    if (hasCleared && message) {
-      // TODO: Move into Event/Saga Effect
-      this.addReactions(message);
-    }
-
-    this.eventBus.publish(new SignupApprovedEvent(confirmedSignup, guildId));
+    this.eventBus.publish(
+      new SignupApprovedEvent(confirmedSignup, guildId, settings, user),
+    );
   }
 
   private async handleDeclinedReaction(
@@ -396,99 +345,10 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     }
   }
 
-  private async assignProgRole({
-    guildId,
-    settings,
-    signup: { encounter, discordId },
-    partyStatus,
-  }: {
-    signup: Pick<SignupDocument, 'encounter' | 'discordId'>;
-    settings: Pick<SettingsDocument, 'progRoles'>;
-    guildId: string;
-    partyStatus?: PartyStatus;
-  }) {
-    const role = settings.progRoles?.[encounter];
-    const isValidpartyStatus =
-      partyStatus === PartyStatus.EarlyProgParty ||
-      partyStatus === PartyStatus.ProgParty;
-
-    if (!(role && isValidpartyStatus)) {
-      return;
-    }
-
-    try {
-      const member = await this.discordService.getGuildMember({
-        memberId: discordId,
-        guildId,
-      });
-
-      if (member) {
-        await member.roles.add(role);
-      }
-    } catch (e) {
-      sentryReport(e, (scope) => scope.setExtras({ encounter, discordId }));
-      this.logger.error(e);
-    }
-  }
-
-  private async addReactions(message: Message) {
-    const scope = Sentry.getCurrentScope();
-    // fetch clear reactions and attach em to the embed
-    try {
-      const emojis = await this.discordService.getEmojis(ClearReactions);
-      // add the emojis to the source embed
-      await Promise.allSettled(
-        emojis.map((emoji) =>
-          message.react(emoji).catch((err) => {
-            this.logger.warn(err);
-            scope.captureException(err);
-          }),
-        ),
-      );
-    } catch (err) {
-      this.logger.error(err);
-      scope.captureException(err);
-    }
-  }
-
-  private updateProgPointField(embed: EmbedBuilder, progPoint?: string) {
-    if (!progPoint) {
-      return embed;
-    }
-
-    const progPointFieldName = 'Prog Point';
-    const progPointFieldIndex =
-      embed.data.fields?.findIndex(
-        (field) => field.name === progPointFieldName,
-      ) ?? -1;
-
-    if (progPointFieldIndex !== -1 && progPoint) {
-      return embed.spliceFields(progPointFieldIndex, 1, {
-        name: progPointFieldName,
-        value: progPoint,
-        inline: true,
-      });
-    }
-
-    return embed;
-  }
-
   private getPartyStatus(encounter: Encounter, progPoint: string) {
     return progPoint === PartyStatus.Cleared
       ? PartyStatus.Cleared
       : EncounterProgPoints[encounter][progPoint]?.partyStatus;
-  }
-
-  private getDisplayNameAndProgPoint(
-    user: User,
-    guildId: string,
-    signup: SignupDocument,
-    embed: Embed,
-  ) {
-    return Promise.all([
-      this.discordService.getDisplayName({ userId: user.id, guildId }),
-      this.requestProgPointConfirmation(signup, embed, user),
-    ]);
   }
 }
 
