@@ -2,13 +2,13 @@ import { DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
 import { DiscordService } from '../../discord/discord.service.js';
+import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SettingsDocument } from '../../firebase/models/settings.model.js';
+import { SignupDocument } from '../../firebase/models/signup.model.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
 
-import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import { SignupDocument } from '../../firebase/models/signup.model.js';
-
+// TODO: Actually assert approval/decline functionality, not just that they were called
 describe('SignupService', () => {
   let service: SignupService;
   let messageReaction: DeepMocked<MessageReaction>;
@@ -19,15 +19,15 @@ describe('SignupService', () => {
   let discordService: DeepMocked<DiscordService>;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    const fixture: TestingModule = await Test.createTestingModule({
       providers: [SignupService],
     })
       .useMocker(() => createMock())
       .compile();
 
-    service = module.get(SignupService);
-    repository = module.get(SignupCollection);
-    discordService = module.get(DiscordService);
+    service = fixture.get(SignupService);
+    repository = fixture.get(SignupCollection);
+    discordService = fixture.get(DiscordService);
 
     messageReaction = createMock<MessageReaction>({
       message: createMock<Message>({
