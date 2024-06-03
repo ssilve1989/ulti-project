@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.0](https://github.com/ssilve1989/ulti-project/compare/v1.11.0...v1.12.0) (2024-06-03)
+
+
+### Features
+
+* check turbo-prog sheet when using remove-signup command ([#332](https://github.com/ssilve1989/ulti-project/issues/332)) ([a682308](https://github.com/ssilve1989/ulti-project/commit/a6823089e3db4497fdca3efbd4fb054dd80f3763))
+
 ## [1.11.0](https://github.com/ssilve1989/ulti-project/compare/v1.10.0...v1.11.0) (2024-06-02)
 
 
