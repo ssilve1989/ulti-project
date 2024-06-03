@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
 import { plainToClass } from 'class-transformer';
 import {
@@ -35,6 +35,7 @@ import {
   REMOVAL_SUCCESS,
 } from './remove-signup.consts.js';
 import { RemoveSignupDto } from './remove-signup.dto.js';
+import { RemoveSignupEvent } from './remove-signup.events.js';
 
 type RemoveSignupProps = {
   dto: RemoveSignupDto & { discordId: string };
@@ -52,6 +53,7 @@ class RemoveSignupCommandHandler
     private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
     private readonly signupsRepository: SignupCollection,
+    private readonly eventBus: EventBus,
   ) {}
 
   async execute({ interaction }: RemoveSignupCommand): Promise<any> {
@@ -126,6 +128,8 @@ class RemoveSignupCommandHandler
         .otherwise(() => {
           throw error;
         });
+    } finally {
+      this.eventBus.publish(new RemoveSignupEvent(options, settings));
     }
   }
 
