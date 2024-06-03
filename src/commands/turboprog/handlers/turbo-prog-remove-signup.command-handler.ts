@@ -9,7 +9,7 @@ class TurboProgRemoveSignupHandler
 {
   constructor(private readonly sheetsService: TurboProgSheetsService) {}
 
-  async execute({ entry, guildId, settings }: TurboProgRemoveSignupCommand) {
+  async execute({ entry, settings }: TurboProgRemoveSignupCommand) {
     const scope = Sentry.getCurrentScope();
     const spreadsheetId = settings?.turboProgSpreadsheetId;
 
@@ -18,7 +18,7 @@ class TurboProgRemoveSignupHandler
         await this.sheetsService.removeSignup(entry, spreadsheetId);
       }
     } catch (error) {
-      scope.setExtra('args', { entry, guildId });
+      scope.setExtra('entry', entry);
       scope.captureException(error);
     }
   }

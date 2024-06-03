@@ -1,4 +1,5 @@
 import { DeepMocked, createMock } from '@golevelup/ts-vitest';
+import { EventBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, Colors, User } from 'discord.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
@@ -40,6 +41,7 @@ const DEFAULT_SETTINGS = {
 
 describe('Remove Signup Command Handler', () => {
   let discordService: DeepMocked<DiscordService>;
+  let eventBus: DeepMocked<EventBus>;
   let handler: RemoveSignupCommandHandler;
   let interaction: DeepMocked<ChatInputCommandInteraction<'cached' | 'raw'>>;
   let settingsCollection: DeepMocked<SettingsCollection>;
@@ -58,6 +60,7 @@ describe('Remove Signup Command Handler', () => {
     settingsCollection = fixture.get(SettingsCollection);
     sheetsService = fixture.get(SheetsService);
     signupsCollection = fixture.get(SignupCollection);
+    eventBus = fixture.get(EventBus);
 
     interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
       user: createMock<User>({
@@ -92,6 +95,7 @@ describe('Remove Signup Command Handler', () => {
       case: 'No Settings Configured',
       color: Colors.Red,
       description: SIGNUP_MESSAGES.MISSING_SETTINGS,
+      publish: false,
     },
     {
       case: 'Role Not Allowed',
@@ -132,7 +136,14 @@ describe('Remove Signup Command Handler', () => {
     },
   ])(
     '$case',
-    async ({ settings, hasRole = true, color, description, signup = {} }) => {
+    async ({
+      settings,
+      hasRole = true,
+      color,
+      description,
+      signup = {},
+      publish,
+    }) => {
       settingsCollection.getSettings.mockResolvedValueOnce(settings);
       discordService.userHasRole.mockResolvedValue(hasRole);
 
@@ -161,6 +172,10 @@ describe('Remove Signup Command Handler', () => {
           },
         ],
       });
+
+      if (publish !== false) {
+        expect(eventBus.publish).toHaveBeenCalled();
+      }
     },
   );
 
