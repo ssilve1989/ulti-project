@@ -12,8 +12,7 @@ export class TurboProgCommand implements DiscordCommand {
 
 export class TurboProgRemoveSignupCommand implements ICommand {
   constructor(
-    public readonly entry: TurboProgEntry,
-    public readonly guildId: string,
+    public readonly entry: Pick<TurboProgEntry, 'encounter' | 'character'>,
     public readonly settings: SettingsDocument,
   ) {}
 }

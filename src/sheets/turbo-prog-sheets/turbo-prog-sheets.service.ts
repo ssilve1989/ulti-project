@@ -33,7 +33,7 @@ class TurboProgSheetsService {
   }
 
   public async removeSignup(
-    { encounter, character }: TurboProgEntry,
+    { encounter, character }: Pick<TurboProgEntry, 'encounter' | 'character'>,
     spreadsheetId: string,
   ) {
     const range = TurboProgSheetRanges[encounter];
