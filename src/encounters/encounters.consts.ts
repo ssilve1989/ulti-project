@@ -73,8 +73,16 @@ export const EncounterProgPoints: Record<
       label: 'Phase 6: Wyrmsbreath 1',
       partyStatus: PartyStatus.ProgParty,
     },
+    HW1: {
+      label: 'Phase 6: Hallowed Wings 1',
+      partyStatus: PartyStatus.ProgParty,
+    },
     'Wroth Flames': {
       label: 'Phase 6: Wroth Flames',
+      partyStatus: PartyStatus.ProgParty,
+    },
+    HW2: {
+      label: 'Phase 6: Hallowed Wings 2',
       partyStatus: PartyStatus.ProgParty,
     },
     WB2: {
@@ -103,6 +111,10 @@ export const EncounterProgPoints: Record<
     },
     'Giga Flare #2': {
       label: 'Phase 7: Gigaflare 2',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    'Akh Morn #3': {
+      label: 'Phase 7: Akh Morn 3',
       partyStatus: PartyStatus.ClearParty,
     },
     'P7 Enrage': {
