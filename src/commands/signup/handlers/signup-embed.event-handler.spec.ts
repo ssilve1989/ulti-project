@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { Colors, Message, User } from 'discord.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SignupApprovedEvent, SignupDeclinedEvent } from '../signup.events.js';
-import { UpdateApprovalEmbedEventHandler } from './update-approval-embed.event-handler.js';
+import { UpdateApprovalEmbedEventHandler } from './signup-embed.event-handler.js';
 
 describe('UpdateApprovalEmbedEventHandler', () => {
   let handler: UpdateApprovalEmbedEventHandler;
