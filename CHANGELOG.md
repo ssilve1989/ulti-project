@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.1](https://github.com/ssilve1989/ulti-project/compare/v1.12.0...v1.12.1) (2024-06-08)
+
+
+### Bug Fixes
+
+* **remove-signups:** fix query on finding existing signup ([#341](https://github.com/ssilve1989/ulti-project/issues/341)) ([a52e05f](https://github.com/ssilve1989/ulti-project/commit/a52e05f5ee0091361811541f2fdf550fe5380307))
+
 ## [1.12.0](https://github.com/ssilve1989/ulti-project/compare/v1.11.0...v1.12.0) (2024-06-03)
 
 
