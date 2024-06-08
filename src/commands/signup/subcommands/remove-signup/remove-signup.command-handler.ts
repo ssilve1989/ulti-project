@@ -20,7 +20,6 @@ import { SettingsCollection } from '../../../../firebase/collections/settings-co
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
 import { DocumentNotFoundException } from '../../../../firebase/firebase.exceptions.js';
 import {
-  SignupCompositeKeyProps,
   SignupDocument,
   SignupStatus,
 } from '../../../../firebase/models/signup.model.js';
@@ -188,7 +187,7 @@ class RemoveSignupCommandHandler
 
   private async canModifySignup(
     user: User | APIUser,
-    options: SignupCompositeKeyProps,
+    { character, encounter, world }: RemoveSignupDto,
     guildId: string,
     reviewerRole = '',
   ) {
@@ -198,7 +197,11 @@ class RemoveSignupCommandHandler
       guildId,
     });
 
-    const signup = await this.signupsRepository.findOneOrFail(options);
+    const signup = await this.signupsRepository.findOneOrFail({
+      character,
+      encounter,
+      world,
+    });
     return { canModify: hasRole || signup.discordId === user.id, signup };
   }
 
