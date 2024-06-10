@@ -51,7 +51,7 @@
     "ts-pattern": "^5.1.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.7.3",
+    "@biomejs/biome": "1.8.1",
     "@commitlint/cli": "^19.3.0",
     "@commitlint/config-conventional": "^19.2.2",
     "@commitlint/cz-commitlint": "^19.2.0",
