@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { ICommand, Saga, ofType } from '@nestjs/cqrs';
 import { Observable, filter, map, mergeMap } from 'rxjs';
-import { RemoveRolesCommand } from './commands/signup/signup.commands.js';
+import { RemoveRolesCommand } from './signup/commands/signup.commands.js';
 import {
   SignupApprovedEvent,
   SignupCreatedEvent,
-} from './commands/signup/signup.events.js';
-import { hasClearedStatus } from './commands/signup/signup.utils.js';
-import { RemoveSignupEvent } from './commands/signup/subcommands/remove-signup/remove-signup.events.js';
-import { SendSignupReviewCommand } from './commands/signup/subcommands/send-signup-review/send-signup-review.command.js';
-import { TurboProgRemoveSignupCommand } from './commands/turboprog/turbo-prog.commands.js';
+} from './signup/events/signup.events.js';
+import { hasClearedStatus } from './signup/signup.utils.js';
+import { RemoveSignupEvent } from './signup/subcommands/remove-signup/remove-signup.events.js';
+import { SendSignupReviewCommand } from './signup/subcommands/send-signup-review/send-signup-review.command.js';
+import { TurboProgRemoveSignupCommand } from './turboprog/commands/turbo-prog.commands.js';
 
 @Injectable()
 class AppSagas {
