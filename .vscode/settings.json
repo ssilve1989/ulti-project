@@ -2,8 +2,8 @@
   "biome.enabled": true,
   "eslint.enable": false,
   "editor.codeActionsOnSave": {
-    "source.fixAll.biome": "explicit",
-    "source.organizeImports.biome": "explicit"
+    "source.organizeImports.biome": "explicit",
+    "quickfix.biome": "explicit"
   },
   "typescript.tsdk": "node_modules/typescript/lib",
   "[json]": {
