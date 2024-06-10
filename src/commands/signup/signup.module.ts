@@ -9,7 +9,6 @@ import { RemoveRolesCommandHandler } from './handlers/remove-roles.command-handl
 import { SendApprovedMessageEventHandler } from './handlers/send-approved-message.event-handler.js';
 import { UpdateApprovalEmbedEventHandler } from './handlers/signup-embed.event-handler.js';
 import { SignupCommandHandler } from './handlers/signup.command-handler.js';
-import { SignupSagas } from './signup.saga.js';
 import { SignupService } from './signup.service.js';
 import { RemoveSignupCommandHandler } from './subcommands/remove-signup/remove-signup.command-handler.js';
 import { SendSignupReviewCommandHandler } from './subcommands/send-signup-review/send-signup-review.command-handler.js';
@@ -29,7 +28,6 @@ import { SendSignupReviewCommandHandler } from './subcommands/send-signup-review
     SendApprovedMessageEventHandler,
     SendSignupReviewCommandHandler,
     SignupCommandHandler,
-    SignupSagas,
     SignupService,
     UpdateApprovalEmbedEventHandler,
   ],

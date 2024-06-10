@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { LoggerModule } from 'nestjs-pino';
 import { AppConfig, configSchema } from './app.config.js';
 import { AppController } from './app.controller.js';
+import { AppSagas } from './app.sagas.js';
 import { AppService } from './app.service.js';
 import { LookupModule } from './commands/lookup/lookup.module.js';
 import { SettingsModule } from './commands/settings/settings.module.js';
@@ -49,7 +50,7 @@ import { SheetsModule } from './sheets/sheets.module.js';
     }),
     SentryModule,
   ],
-  providers: [AppService],
+  providers: [AppService, AppSagas],
   controllers: [AppController],
 })
 export class AppModule {}
