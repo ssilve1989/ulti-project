@@ -5,14 +5,9 @@ import { SheetsModule } from '../../sheets/sheets.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
 import { TurboProgRemoveSignupHandler } from './handlers/turbo-prog-remove-signup.command-handler.js';
 import { TurboProgCommandHandler } from './handlers/turbo-prog.command-handler.js';
-import { TurboProgSagas } from './turbo-prog.saga.js';
 
 @Module({
   imports: [SettingsModule, SheetsModule, FirebaseModule, CqrsModule],
-  providers: [
-    TurboProgCommandHandler,
-    TurboProgSagas,
-    TurboProgRemoveSignupHandler,
-  ],
+  providers: [TurboProgCommandHandler, TurboProgRemoveSignupHandler],
 })
 export class TurboProgModule {}
