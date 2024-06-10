@@ -7,8 +7,11 @@ async function bootstrap() {
     bufferLogs: true,
   });
 
-  app.useLogger(app.get(Logger));
+  const logger = app.get(Logger);
+  app.useLogger(logger);
   app.enableShutdownHooks();
+
+  logger.log(`NodeJS Version: ${process.version}`);
 }
 
 bootstrap();
