@@ -60,8 +60,8 @@ importers:
         specifier: ^10.1.0
         version: 10.1.0
       pino-pretty:
-        specifier: ^11.2.0
-        version: 11.2.0
+        specifier: ^11.2.1
+        version: 11.2.1
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -3102,8 +3102,8 @@ packages:
   pino-http@10.1.0:
     resolution: {integrity: sha512-rQgRaVfmZnDcOZXvZUUkiG3wDYVTSyYWAhxkGUgw3py3Y1nFXucRSLYPB5HKgG64oy9gLiDARiQxxWXnI1u3zA==}
 
-  pino-pretty@11.2.0:
-    resolution: {integrity: sha512-k6VHtZBcfLDB1mB8TWPE19OyLygfNdqOgX/uACqBbVMaUK2JeXHBUTINvJ/QPs5Vazwfq4gWIDpTYDnhkfy7Jw==}
+  pino-pretty@11.2.1:
+    resolution: {integrity: sha512-O05NuD9tkRasFRWVaF/uHLOvoRDFD7tb5VMertr78rbsYFjYp48Vg3477EshVAF5eZaEw+OpDl/tu+B0R5o+7g==}
     hasBin: true
 
   pino-std-serializers@6.2.2:
@@ -7217,7 +7217,7 @@ snapshots:
       pino-std-serializers: 7.0.0
       process-warning: 3.0.0
 
-  pino-pretty@11.2.0:
+  pino-pretty@11.2.1:
     dependencies:
       colorette: 2.0.20
       dateformat: 4.6.3
