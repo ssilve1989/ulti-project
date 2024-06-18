@@ -27,7 +27,7 @@
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org ulti-project --project ulti-project-bot ./dist && sentry-cli sourcemaps upload --org ulti-project --project ulti-project-bot ./dist"
   },
   "dependencies": {
-    "@googleapis/sheets": "^7.0.0",
+    "@googleapis/sheets": "^8.0.0",
     "@nestjs/common": "^10.3.9",
     "@nestjs/config": "^3.2.2",
     "@nestjs/core": "^10.3.9",
