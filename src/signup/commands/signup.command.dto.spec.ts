@@ -14,7 +14,7 @@ function createBaseObject(proofOfProgLink: string) {
     encounter: Encounter.TOP,
     proofOfProgLink,
     username: 'test',
-    world: 'test',
+    world: 'jenova',
   };
 }
 
