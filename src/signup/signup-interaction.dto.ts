@@ -1,10 +1,9 @@
 import { IsEnum, IsString, IsUrl, ValidateIf } from 'class-validator';
 import { ToLowercase } from '../common/decorators/to-lowercase.js';
 import { TransformUrl } from '../common/decorators/transform-url.js';
-import { IsInSet } from '../common/validators/is_valid_world.js';
+import { IsValidWorld } from '../common/validators/is-valid-world.js';
 import { Encounter } from '../encounters/encounters.consts.js';
 import { SignupDocument } from '../firebase/models/signup.model.js';
-import { NorthAmericanWorlds } from '../worlds/consts.js';
 import {
   PROG_PROOF_HOSTS_WHITELIST,
   WHITELIST_VALIDATION_ERROR,
@@ -57,10 +56,7 @@ class SignupInteractionDto
 
   @IsString()
   @ToLowercase()
-  @IsInSet(NorthAmericanWorlds, {
-    message:
-      'Invalid World. Please check the spelling and make sure it is a valid world in the NA Region',
-  })
+  @IsValidWorld()
   world: string;
 }
 
