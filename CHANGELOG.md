@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.0](https://github.com/ssilve1989/ulti-project/compare/v1.12.1...v1.13.0) (2024-06-21)
+
+
+### Features
+
+* add NA world validation ([#360](https://github.com/ssilve1989/ulti-project/issues/360)) ([55c46b3](https://github.com/ssilve1989/ulti-project/commit/55c46b3437623fd64253ca4851365e2d450c56c8))
+* **signups:** include member tag when declining signups ([#358](https://github.com/ssilve1989/ulti-project/issues/358)) ([92ef646](https://github.com/ssilve1989/ulti-project/commit/92ef646efb8b95604520e9c2fc68026cd96ea4cc))
+
 ## [1.12.1](https://github.com/ssilve1989/ulti-project/compare/v1.12.0...v1.12.1) (2024-06-08)
 
 
