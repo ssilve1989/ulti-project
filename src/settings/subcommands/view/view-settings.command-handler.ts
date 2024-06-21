@@ -1,4 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { roleMention } from 'discord.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
 import { ViewSettingsCommand } from './view-settings.command.js';
@@ -33,7 +34,7 @@ class ViewSettingsCommandHandler
       turboProgActive,
       turboProgSpreadsheetId,
     } = settings;
-    const role = reviewerRole ? `<@&${reviewerRole}>` : 'No Role Set';
+    const role = reviewerRole ? roleMention(reviewerRole) : 'No Role Set';
     const publicSignupChannel = signupChannel
       ? `<#${signupChannel}>`
       : 'No Channel Set';

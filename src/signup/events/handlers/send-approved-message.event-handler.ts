@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
-import { Colors, EmbedBuilder, Message, User } from 'discord.js';
+import { Colors, EmbedBuilder, Message, User, userMention } from 'discord.js';
 import {
   characterField,
   worldField,
@@ -74,7 +74,7 @@ class SendApprovedMessageEventHandler
     );
 
     const message = await channel.send({
-      content: `<@${signup.discordId}> ${content}`,
+      content: `${userMention(signup.discordId)} ${content}`,
       embeds: [embed],
     });
 

@@ -1,6 +1,6 @@
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
-import { Colors, EmbedBuilder } from 'discord.js';
+import { Colors, EmbedBuilder, userMention } from 'discord.js';
 import { P, match } from 'ts-pattern';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
@@ -55,6 +55,8 @@ class SignupEmbedEventHandler
       userId: reviewedBy.id,
     });
 
+    const content = `Declined ${userMention(signup.discordId)}`;
+
     const embed = EmbedBuilder.from(message.embeds[0])
       .setDescription(null)
       .setFooter({
@@ -66,7 +68,7 @@ class SignupEmbedEventHandler
       .setTimestamp(new Date());
 
     await Promise.all([
-      message.edit({ embeds: [embed] }),
+      message.edit({ content, embeds: [embed] }),
       this.discordService.sendDirectMessage(signup.discordId, {
         content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_DENIED,
         embeds: [EmbedBuilder.from(embed).setTitle('Signup Declined')],

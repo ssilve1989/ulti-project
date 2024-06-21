@@ -2,10 +2,11 @@ import { DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { Colors, Message, User } from 'discord.js';
 import { DiscordService } from '../../../discord/discord.service.js';
+import { SignupDocument } from '../../../firebase/models/signup.model.js';
 import { SignupApprovedEvent, SignupDeclinedEvent } from '../signup.events.js';
 import { UpdateApprovalEmbedEventHandler } from './signup-embed.event-handler.js';
 
-describe('UpdateApprovalEmbedEventHandler', () => {
+describe('SignupEmbedEventHandler', () => {
   let handler: UpdateApprovalEmbedEventHandler;
 
   const message = createMock<Message<true>>({
@@ -23,7 +24,7 @@ describe('UpdateApprovalEmbedEventHandler', () => {
   const cases = [
     {
       color: Colors.Green,
-      description: 'handles an approval event',
+      case: 'handles an approval event',
       event: new SignupApprovedEvent(
         createMock(),
         createMock(),
@@ -34,9 +35,14 @@ describe('UpdateApprovalEmbedEventHandler', () => {
     },
     {
       color: Colors.Red,
-      description: 'handles a declined event',
-      event: new SignupDeclinedEvent(createMock(), reviewedBy, message),
+      case: 'handles a declined event',
+      event: new SignupDeclinedEvent(
+        createMock<SignupDocument>({ discordId: '12345' }),
+        reviewedBy,
+        message,
+      ),
       footer: 'Declined by Test User',
+      content: 'Declined <@12345>',
     },
   ];
 
@@ -59,10 +65,11 @@ describe('UpdateApprovalEmbedEventHandler', () => {
     expect(handler).toBeDefined();
   });
 
-  it.each(cases)('$description', async ({ event, footer, color }) => {
+  it.each(cases)('$case', async ({ event, footer, color, content }) => {
     await handler.handle(event);
 
     expect(message.edit).toHaveBeenCalledWith({
+      content,
       embeds: [
         expect.objectContaining({
           data: {
