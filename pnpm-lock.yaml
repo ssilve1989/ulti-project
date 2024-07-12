@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@googleapis/sheets':
-        specifier: ^8.0.0
-        version: 8.0.0
+        specifier: ^9.0.0
+        version: 9.0.0
       '@nestjs/common':
         specifier: ^10.3.9
         version: 10.3.9(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1)
@@ -583,8 +583,8 @@ packages:
     resolution: {integrity: sha512-sZW14pfxEQZSIbBPs6doFYtcbK31Bs3E4jH5Ly3jJnBkYfkMPX8sXG3ZQXCJa88MKtUNPlgBdMN2OJUzmFe5/g==}
     engines: {node: '>=14'}
 
-  '@googleapis/sheets@8.0.0':
-    resolution: {integrity: sha512-EwLC+bMLTz3n2EDJMhMdrNR+aTxDBPpcq3k6Ibc4eKrp8UbytNAEB0VgfQFOGJN7+BTCcjiojt08O/cwn+YnHg==}
+  '@googleapis/sheets@9.0.0':
+    resolution: {integrity: sha512-CKoczlGSjWlPyous7nX626b/Bj9BK9DiVxaMwzWK8bkm1qk7VrSg/074y+XFQ+QPyyNyOIWB9tOFm99/PbEhXw==}
     engines: {node: '>=12.0.0'}
 
   '@grpc/grpc-js@1.10.6':
@@ -4225,7 +4225,7 @@ snapshots:
       - supports-color
     optional: true
 
-  '@googleapis/sheets@8.0.0':
+  '@googleapis/sheets@9.0.0':
     dependencies:
       googleapis-common: 7.0.1
     transitivePeerDependencies:
