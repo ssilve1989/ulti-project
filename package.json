@@ -38,7 +38,7 @@
     "@sentry/profiling-node": "^8.19.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-    "dayjs": "^1.11.11",
+    "dayjs": "^1.11.12",
     "discord.js": "^14.15.3",
     "firebase-admin": "^12.2.0",
     "google-auth-library": "^9.11.0",
