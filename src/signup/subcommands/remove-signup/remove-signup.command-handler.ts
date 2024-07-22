@@ -23,6 +23,7 @@ import {
   SignupDocument,
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
+import { SentryTraced } from '../../../observability/span.decorator.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { shouldDeleteReviewMessageForSignup } from '../../signup.utils.js';
@@ -55,6 +56,7 @@ class RemoveSignupCommandHandler
     private readonly eventBus: EventBus,
   ) {}
 
+  @SentryTraced()
   async execute({ interaction }: RemoveSignupCommand): Promise<any> {
     await interaction.deferReply({ ephemeral: true });
 

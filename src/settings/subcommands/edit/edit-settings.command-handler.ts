@@ -6,6 +6,7 @@ import {
 } from 'discord.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
+import { SentryTraced } from '../../../observability/span.decorator.js';
 import { sentryReport } from '../../../sentry/sentry.consts.js';
 import { EditSettingsCommand } from './edit-settings.command.js';
 
@@ -17,6 +18,7 @@ class EditSettingsCommandHandler
 
   constructor(private readonly settingsCollection: SettingsCollection) {}
 
+  @SentryTraced()
   async execute({ interaction }: EditSettingsCommand) {
     await interaction.deferReply({ ephemeral: true });
 

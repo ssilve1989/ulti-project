@@ -1,6 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { roleMention } from 'discord.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
+import { SentryTraced } from '../../../observability/span.decorator.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
 import { ViewSettingsCommand } from './view-settings.command.js';
 
@@ -13,6 +14,7 @@ class ViewSettingsCommandHandler
     private readonly sheetsService: SheetsService,
   ) {}
 
+  @SentryTraced()
   async execute({ interaction }: ViewSettingsCommand): Promise<void> {
     await interaction.deferReply({ ephemeral: true });
 

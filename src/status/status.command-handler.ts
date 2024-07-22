@@ -6,6 +6,7 @@ import {
   SignupDocument,
   SignupStatus,
 } from '../firebase/models/signup.model.js';
+import { SentryTraced } from '../observability/span.decorator.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../signup/signup.consts.js';
 import { StatusCommand } from './status.command.js';
@@ -17,6 +18,7 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
 
   constructor(private readonly service: StatusService) {}
 
+  @SentryTraced()
   async execute({ interaction }: StatusCommand) {
     await interaction.deferReply({ ephemeral: true });
     try {

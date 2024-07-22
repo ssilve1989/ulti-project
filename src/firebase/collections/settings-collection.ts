@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CollectionReference, Firestore } from 'firebase-admin/firestore';
+import { SentryTraced } from '../../observability/span.decorator.js';
 import { InjectFirestore } from '../firebase.decorators.js';
 import { SettingsDocument } from '../models/settings.model.js';
 
@@ -13,6 +14,7 @@ class SettingsCollection {
     ) as CollectionReference<SettingsDocument>;
   }
 
+  @SentryTraced()
   public async upsert(
     guildId: string,
     { progRoles, clearRoles, ...settings }: Partial<SettingsDocument>,
@@ -37,11 +39,13 @@ class SettingsCollection {
     );
   }
 
+  @SentryTraced()
   public async getSettings(guildId: string) {
     const doc = await this.collection.doc(guildId).get();
     return doc.data();
   }
 
+  @SentryTraced()
   public async getReviewChannel(guildId: string) {
     const doc = await this.collection.doc(guildId).get();
     return doc.data()?.reviewChannel;
