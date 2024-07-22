@@ -1,4 +1,4 @@
-ARG NODE_VERSION=20.14.0
+ARG NODE_VERSION=20.15.1
 FROM node:${NODE_VERSION}-slim as base
 
 LABEL fly_launch_runtime="NestJS"
