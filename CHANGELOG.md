@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.14.0](https://github.com/ssilve1989/ulti-project/compare/v1.13.0...v1.14.0) (2024-07-22)
+
+
+### Features
+
+* add command metrics ([#396](https://github.com/ssilve1989/ulti-project/issues/396)) ([514cc7b](https://github.com/ssilve1989/ulti-project/commit/514cc7b6a8b2d5deb39f8c3885688dc51b50bca3))
+* **clean-roles:** remove all prog/clear roles from members and settings ([#388](https://github.com/ssilve1989/ulti-project/issues/388)) ([c7a7f3b](https://github.com/ssilve1989/ulti-project/commit/c7a7f3b6ef4a4736a48db2d1d938339f420cf05a))
+* introduce Sentry tracing observability ([#395](https://github.com/ssilve1989/ulti-project/issues/395)) ([b11a007](https://github.com/ssilve1989/ulti-project/commit/b11a007a92adc6aed665d46862b9c618f683ed60))
+
 ## [1.13.0](https://github.com/ssilve1989/ulti-project/compare/v1.12.1...v1.13.0) (2024-06-21)
 
 
