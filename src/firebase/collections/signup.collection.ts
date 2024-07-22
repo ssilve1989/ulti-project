@@ -7,6 +7,7 @@ import {
   type Query,
   Timestamp,
 } from 'firebase-admin/firestore';
+import { SentryTraced } from '../../observability/span.decorator.js';
 import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import {
@@ -26,6 +27,7 @@ class SignupCollection {
     ) as CollectionReference<SignupDocument>;
   }
 
+  @SentryTraced()
   public static getKeyForSignup({ discordId, encounter }: SignupCompositeKey) {
     return `${discordId.toLowerCase()}-${encounter}`;
   }
@@ -34,6 +36,7 @@ class SignupCollection {
    * Upserts a signup request into the database
    * @param signup
    */
+  @SentryTraced()
   public async upsert(
     signup: CreateSignupDocumentProps,
   ): Promise<SignupDocument> {
@@ -63,11 +66,13 @@ class SignupCollection {
     return update.data()!;
   }
 
+  @SentryTraced()
   public async findById(id: string): Promise<SignupDocument | undefined> {
     const snapshot = await this.collection.doc(id).get();
     return snapshot.data();
   }
 
+  @SentryTraced()
   public async findOne(
     query: Partial<SignupDocument>,
   ): Promise<SignupDocument | undefined> {
@@ -75,6 +80,7 @@ class SignupCollection {
     return snapshot.docs.at(0)?.data();
   }
 
+  @SentryTraced()
   public async findOneOrFail(
     query: Partial<SignupDocument>,
   ): Promise<SignupDocument> {
@@ -87,6 +93,7 @@ class SignupCollection {
     return signup;
   }
 
+  @SentryTraced()
   public async findAll(
     query: Partial<SignupDocument>,
   ): Promise<SignupDocument[]> {
@@ -94,6 +101,7 @@ class SignupCollection {
     return snapshot.docs.map((doc) => doc.data() as SignupDocument);
   }
 
+  @SentryTraced()
   public async findByReviewId(reviewMessageId: string) {
     const snapshot = await this.where({ reviewMessageId }).limit(1).get();
 
@@ -111,6 +119,7 @@ class SignupCollection {
    * @param reviewedBy - discordId of the user that reviewed the signup
    * @returns
    */
+  @SentryTraced()
   public updateSignupStatus(
     status: SignupStatus,
     {
@@ -134,6 +143,7 @@ class SignupCollection {
    * @param messageId
    * @returns
    */
+  @SentryTraced()
   public setReviewMessageId(signup: SignupCompositeKey, messageId: string) {
     const key = SignupCollection.getKeyForSignup(signup);
 
@@ -142,6 +152,7 @@ class SignupCollection {
     });
   }
 
+  @SentryTraced()
   public removeSignup(signup: SignupCompositeKey) {
     const key = SignupCollection.getKeyForSignup(signup);
     return this.collection.doc(key).delete();

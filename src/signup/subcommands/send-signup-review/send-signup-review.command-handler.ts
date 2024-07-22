@@ -14,6 +14,7 @@ import {
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { SignupDocument } from '../../../firebase/models/signup.model.js';
+import { SentryTraced } from '../../../observability/span.decorator.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../../signup.consts.js';
 import { SendSignupReviewCommand } from './send-signup-review.command.js';
 
@@ -29,6 +30,7 @@ class SendSignupReviewCommandHandler
     private readonly settingsCollection: SettingsCollection,
   ) {}
 
+  @SentryTraced()
   async execute({ signup, guildId }: SendSignupReviewCommand) {
     const reviewChannel =
       await this.settingsCollection.getReviewChannel(guildId);

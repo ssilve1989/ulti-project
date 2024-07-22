@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
+import * as Sentry from '@sentry/node';
 import { plainToInstance } from 'class-transformer';
 import { ValidationError, validate } from 'class-validator';
 import {
@@ -29,6 +30,7 @@ import {
 } from '../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
+import { SentryTraced } from '../../../observability/span.decorator.js';
 import { sentryReport } from '../../../sentry/sentry.consts.js';
 import { SignupCreatedEvent } from '../../events/signup.events.js';
 import { SignupInteractionDto } from '../../signup-interaction.dto.js';
@@ -54,6 +56,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     private readonly discordService: DiscordService,
   ) {}
 
+  @SentryTraced()
   async execute({ interaction }: SignupCommand) {
     const { username } = interaction.user;
 
@@ -92,14 +95,19 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       components: [confirmationRow as any], // the typings are wrong here? annoying af
       embeds: [embed],
     });
+
     try {
-      const response =
-        await confirmationInteraction.awaitMessageComponent<ComponentType.Button>(
-          {
-            filter: isSameUserFilter(interaction.user),
-            time: SignupCommandHandler.SIGNUP_TIMEOUT,
-          },
-        );
+      const response = await Sentry.startSpan(
+        { name: 'awaitConfirmationInteraction' },
+        () => {
+          return confirmationInteraction.awaitMessageComponent<ComponentType.Button>(
+            {
+              filter: isSameUserFilter(interaction.user),
+              time: SignupCommandHandler.SIGNUP_TIMEOUT,
+            },
+          );
+        },
+      );
 
       const signup = await match(response)
         .with({ customId: 'confirm' }, () =>
