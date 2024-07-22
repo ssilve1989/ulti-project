@@ -41,8 +41,13 @@ class SlashCommandsService {
                 userId: interaction.user.id,
                 username: interaction.user.username,
               });
+
               scope.setExtras({
                 command: interaction.commandName,
+              });
+
+              Sentry.metrics.increment('command', 1, {
+                tags: { commandName: interaction.commandName },
               });
 
               const command = getCommandForInteraction(interaction);
