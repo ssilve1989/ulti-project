@@ -15,6 +15,7 @@
     "commitlint": "commitlint --edit",
     "docker:build": "docker build . -t ulti-project-bot:latest",
     "format": "biome format . --write",
+    "g:slash-command": "hygen slash-command new",
     "lint": "biome lint --diagnostic-level=error src",
     "lint:ci": "biome ci src",
     "prepare": "node scripts/prepare.js",
