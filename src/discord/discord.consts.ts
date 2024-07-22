@@ -7,17 +7,19 @@ import {
 
 export const INTENTS = [
   // GatewayIntentBits.DirectMessages,
-  // GatewayIntentBits.GuildMembers,
+  // GatewayIntentBits.GuildMessages,
   // GatewayIntentBits.GuildPresences,
   // GatewayIntentBits.MessageContent,
   /**
    * The Guilds intent populates and maintains the guilds, channels and guild.roles caches, plus thread-related events.
    * If this intent is not enabled, data for interactions and messages
-   *  will include only the guild and channel id, and will not resolve to the full class.
+   * will include only the guild and channel id, and will not resolve to the full class.
    */
   GatewayIntentBits.Guilds,
-  // GatewayIntentBits.GuildMessages,
   GatewayIntentBits.GuildMessageReactions,
+  // This intent is needed to request the entire list of members for a guild
+  // which is now needed for the remove-role feature
+  GatewayIntentBits.GuildMembers,
 ];
 
 export const PARTIALS = [Partials.Message, Partials.Channel, Partials.Reaction];

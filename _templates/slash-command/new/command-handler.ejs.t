@@ -1,10 +1,14 @@
 ---
-to: src/commands/<%=name%>/<%=name%>.command-handler.ts
+to: src/<%=name%>/<%=name%>.command-handler.ts
 ---
-import { CommandHandler } from '@nestjs/cqrs';
-import { <%= Name %>Command } from './<%=name%>.command.js';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { <%= h.changeCase.pascal(name) %>Command } from './<%=name%>.command.js';
 
-@CommandHandler(<%= Name %>Command)
-class <%= Name %>CommandHandler implements ICommandHandler<<%= Name %>Command> {}
+@CommandHandler(<%= h.changeCase.pascal(name) %>Command)
+class <%= h.changeCase.pascal(name) %>CommandHandler implements ICommandHandler<<%= h.changeCase.pascal(name) %>Command> {
+  execute(command: <%= h.changeCase.pascal(name) %>Command): Promise<any> {
+    throw new Error('Method not implemented.');
+  }
+}
 
-export { <%= Name %>CommandHandler };
+export { <%= h.changeCase.pascal(name) %>CommandHandler };

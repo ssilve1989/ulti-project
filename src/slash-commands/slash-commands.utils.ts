@@ -1,6 +1,7 @@
 import { ChatInputCommandInteraction } from 'discord.js';
 import { match } from 'ts-pattern';
 import { LookupCommand } from '../lookup/lookup.command.js';
+import { RemoveRoleCommand } from '../remove-role/remove-role.command.js';
 import { EditSettingsCommand } from '../settings/subcommands/edit/edit-settings.command.js';
 import { ViewSettingsCommand } from '../settings/subcommands/view/view-settings.command.js';
 import { SignupCommand } from '../signup/commands/signup.commands.js';
@@ -8,6 +9,7 @@ import { RemoveSignupCommand } from '../signup/subcommands/remove-signup/remove-
 import { StatusCommand } from '../status/status.command.js';
 import { TurboProgCommand } from '../turboprog/commands/turbo-prog.commands.js';
 import { LookupSlashCommand } from './commands/lookup.js';
+import { RemoveRoleSlashCommand } from './commands/remove-role.js';
 import { RemoveSignupSlashCommand } from './commands/remove-signup.js';
 import { SettingsSlashCommand } from './commands/settings.js';
 import { SignupSlashCommand } from './commands/signup.js';
@@ -40,5 +42,6 @@ export function getCommandForInteraction(
       () => new RemoveSignupCommand(interaction),
     )
     .with(TurboProgSlashCommand.name, () => new TurboProgCommand(interaction))
+    .with(RemoveRoleSlashCommand.name, () => new RemoveRoleCommand(interaction))
     .otherwise(() => undefined);
 }

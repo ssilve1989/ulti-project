@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Client, DMChannel, GuildEmoji } from 'discord.js';
 import { InjectDiscordClient } from './discord.decorators.js';
 
 @Injectable()
 class DiscordService {
+  private readonly logger = new Logger(DiscordService.name);
+
   constructor(@InjectDiscordClient() public readonly client: Client) {}
 
   public async getGuildMember({
@@ -81,6 +83,40 @@ class DiscordService {
     const channel = await this.getTextChannel({ guildId, channelId });
     const message = await channel?.messages.fetch(messageId);
     return message?.delete();
+  }
+
+  /**
+   * Removes the role from all members in the guild
+   * @param roleId
+   */
+  public async removeRole(guildId: string, roleId: string) {
+    const guild = await this.client.guilds.fetch(guildId);
+    // we need to update the cache of guild members because `roles.members` only returns currently cached members
+    await guild.members.fetch();
+
+    const role = await guild.roles.fetch(roleId);
+
+    if (!role) {
+      this.logger.warn(`role ${roleId} not found in guild ${guildId}`);
+      return 0;
+    }
+
+    const { members } = role;
+
+    this.logger.log(`found ${members.size} members with role ${role.name}`);
+
+    await Promise.allSettled(
+      members.map((member) =>
+        member.roles.remove(roleId).catch((err) => {
+          this.logger.error(
+            `failed to remove role ${role.name} from member ${member.user.tag}`,
+            err,
+          );
+        }),
+      ),
+    );
+
+    return members.size;
   }
 }
 
