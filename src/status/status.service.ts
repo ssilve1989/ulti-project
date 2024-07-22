@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Firestore } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase/firebase.decorators.js';
 import { SignupDocument } from '../firebase/models/signup.model.js';
+import { SentryTraced } from '../observability/span.decorator.js';
 
 @Injectable()
 class StatusService {
@@ -12,6 +13,7 @@ class StatusService {
    * @param discordId
    * @returns
    */
+  @SentryTraced()
   public getSignups(discordId: string): Promise<SignupDocument[]> {
     return this.firestore
       .collection('signups')

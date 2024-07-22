@@ -9,6 +9,7 @@ import {
   SignupDocument,
 } from '../firebase/models/signup.model.js';
 import { SignupCompositeKeyProps } from '../firebase/models/signup.model.js';
+import { SentryTraced } from '../observability/span.decorator.js';
 import { sheetsConfig } from './sheets.config.js';
 import {
   PROG_SHEET_STARTING_ROW,
@@ -46,6 +47,7 @@ class SheetsService {
    * @param spreadsheetId
    * @returns
    */
+  @SentryTraced()
   public async upsertSignup(
     { partyStatus, ...signup }: SignupDocument,
     spreadsheetId: string,
@@ -90,6 +92,7 @@ class SheetsService {
     }
   }
 
+  @SentryTraced()
   public async findCharacterRowValues(
     {
       encounter,
@@ -133,6 +136,7 @@ class SheetsService {
    * @param signup
    * @param spreadsheetId
    */
+  @SentryTraced()
   public async removeSignup(
     signup: SignupCompositeKeyProps &
       Pick<SignupDocument, 'character' | 'world'>,
@@ -159,6 +163,7 @@ class SheetsService {
    * @param spreadsheetId
    * @returns
    */
+  @SentryTraced()
   public async getSheetMetadata(spreadsheetId: string) {
     const response = await this.client.spreadsheets.get({
       spreadsheetId,
@@ -174,6 +179,7 @@ class SheetsService {
     return { title, url };
   }
 
+  @SentryTraced()
   private async createRemoveProgSignupRequest(
     {
       encounter,
@@ -214,6 +220,7 @@ class SheetsService {
     }
   }
 
+  @SentryTraced()
   private async createRemoveClearSignupRequest(
     {
       encounter,
@@ -255,6 +262,7 @@ class SheetsService {
   //   return `=HYPERLINK("${url}","${name}")`;
   // }
 
+  @SentryTraced()
   private async upsertClearParty(
     signup: Omit<SignupDocument, 'partyStatus'>,
     spreadsheetId: string,
@@ -309,6 +317,7 @@ class SheetsService {
     );
   }
 
+  @SentryTraced()
   private async upsertProgParty(
     signup: SignupDocument,
     { sheetName, spreadsheetId, removeFrom }: SheetOptions,
@@ -413,6 +422,7 @@ class SheetsService {
    * @deprecated - use batchUpdate utility function
    * @returns
    */
+  @SentryTraced()
   private batchUpdate(
     spreadsheetId: string,
     requests: sheets_v4.Schema$Request[],
@@ -432,11 +442,14 @@ class SheetsService {
    * @param values
    * @returns the row index or -1 if not found
    */
+  @SentryTraced()
   private findCharacterRowIndex(
     values: any[][] | undefined | null,
     predicate: (values: Set<any>) => boolean,
   ): number {
-    if (!values) return -1;
+    if (!values) {
+      return -1;
+    }
 
     return values.findIndex((row: string[]) => {
       const set = new Set(row.map((values) => values.toLowerCase()));

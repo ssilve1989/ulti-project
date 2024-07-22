@@ -28,28 +28,39 @@ class SlashCommandsService {
 
   listenToCommands() {
     this.client.on(Events.InteractionCreate, async (interaction) => {
-      await Sentry.withScope(async (scope) => {
-        if (!(interaction.isChatInputCommand() && interaction.inGuild())) {
-          return;
-        }
+      if (!(interaction.isChatInputCommand() && interaction.inGuild())) {
+        return;
+      }
 
-        scope.setUser({
-          userId: interaction.user.id,
-          username: interaction.user.username,
-        });
-        scope.setExtras({
-          command: interaction.commandName,
-        });
+      return Sentry.startNewTrace(() => {
+        return Sentry.startSpanManual(
+          { name: interaction.commandName, op: 'command' },
+          (span) => {
+            return Sentry.withScope(async (scope) => {
+              scope.setUser({
+                userId: interaction.user.id,
+                username: interaction.user.username,
+              });
+              scope.setExtras({
+                command: interaction.commandName,
+              });
 
-        const command = getCommandForInteraction(interaction);
+              const command = getCommandForInteraction(interaction);
 
-        if (command) {
-          try {
-            await this.commandBus.execute(command);
-          } catch (err) {
-            await this.handleCommandError(err, interaction);
-          }
-        }
+              if (command) {
+                try {
+                  await this.commandBus.execute(command);
+                  span.setStatus({ code: 1 });
+                } catch (err) {
+                  await this.handleCommandError(err, interaction);
+                  span.setStatus({ code: 2 });
+                } finally {
+                  span.end();
+                }
+              }
+            });
+          },
+        );
       });
     });
   }

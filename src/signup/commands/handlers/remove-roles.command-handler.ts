@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
 import { DiscordService } from '../../../discord/discord.service.js';
+import { SentryTraced } from '../../../observability/span.decorator.js';
 import { RemoveRolesCommand } from '../signup.commands.js';
 
 @CommandHandler(RemoveRolesCommand)
@@ -12,6 +13,7 @@ export class RemoveRolesCommandHandler
 
   constructor(public readonly discordService: DiscordService) {}
 
+  @SentryTraced()
   async execute({ encounter, userId, guildId, settings }: RemoveRolesCommand) {
     const scope = Sentry.getCurrentScope();
 

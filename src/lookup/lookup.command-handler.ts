@@ -5,6 +5,7 @@ import { CommandInteractionOptionResolver, EmbedBuilder } from 'discord.js';
 import { characterField, encounterField } from '../common/components/fields.js';
 import { SignupCollection } from '../firebase/collections/signup.collection.js';
 import { SignupDocument } from '../firebase/models/signup.model.js';
+import { SentryTraced } from '../observability/span.decorator.js';
 import { LookupCommand } from './lookup.command.js';
 import { LookupInteractionDto } from './lookup.dto.js';
 
@@ -14,6 +15,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
 
   constructor(private readonly signupsCollection: SignupCollection) {}
 
+  @SentryTraced()
   async execute({ interaction }: LookupCommand): Promise<any> {
     const { options } = interaction;
 

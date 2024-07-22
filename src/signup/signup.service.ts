@@ -49,6 +49,7 @@ import {
   SignupDocument,
   SignupStatus,
 } from '../firebase/models/signup.model.js';
+import { SentryTraced } from '../observability/span.decorator.js';
 import { SheetsService } from '../sheets/sheets.service.js';
 import {
   SignupApprovedEvent,
@@ -85,46 +86,60 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         mergeMap((group$) =>
           group$.pipe(
             concatMap(async (event) => {
-              // TODO: cleanup this anon function
-              await Sentry.withScope(async (scope) => {
-                if (!event.reaction.message.inGuild()) {
-                  return EMPTY;
-                }
+              return Sentry.startNewTrace(() => {
+                return Sentry.withScope((scope) => {
+                  return Sentry.startSpan(
+                    { name: Events.MessageReactionAdd },
+                    // TODO: Abstract anon functions to reduce complexity warning
+                    async () => {
+                      if (!event.reaction.message.inGuild()) {
+                        return EMPTY;
+                      }
 
-                scope.setExtras({
-                  message: getMessageLink(event.reaction.message),
-                });
+                      scope.setExtras({
+                        message: getMessageLink(event.reaction.message),
+                      });
 
-                try {
-                  // TODO: dangerous cast to Settings, but know its safe from current usage
-                  // attempts to type it correctly just result in weirdness since all the other fields on the object are optional
-                  const [reaction, user, settings = {} as SettingsDocument] =
-                    await Promise.all([
-                      hydrateReaction(event.reaction),
-                      hydrateUser(event.user),
-                      this.settingsCollection.getSettings(
-                        event.reaction.message.guildId,
-                      ),
-                    ]);
+                      try {
+                        // TODO: dangerous cast to Settings, but know its safe from current usage
+                        // attempts to type it correctly just result in weirdness since all the other fields on the object are optional
+                        const [
+                          reaction,
+                          user,
+                          settings = {} as SettingsDocument,
+                        ] = await Promise.all([
+                          hydrateReaction(event.reaction),
+                          hydrateUser(event.user),
+                          this.settingsCollection.getSettings(
+                            event.reaction.message.guildId,
+                          ),
+                        ]);
 
-                  scope.setUser({
-                    id: user.id,
-                    username: user.username,
-                  });
+                        scope.setUser({
+                          id: user.id,
+                          username: user.username,
+                        });
 
-                  // TODO: We can extract the type of the Message to be `Message<True>` since shouldHandleReaction checks if the message is inGuild()
-                  const shouldHandle = await this.shouldHandleReaction(
-                    reaction,
-                    user,
-                    settings,
+                        // TODO: We can extract the type of the Message to be `Message<True>` since shouldHandleReaction checks if the message is inGuild()
+                        const shouldHandle = await this.shouldHandleReaction(
+                          reaction,
+                          user,
+                          settings,
+                        );
+
+                        return shouldHandle
+                          ? await this.handleReaction(reaction, user, settings)
+                          : EMPTY;
+                      } catch (error) {
+                        this.handleError(
+                          error,
+                          event.user,
+                          event.reaction.message,
+                        );
+                      }
+                    },
                   );
-
-                  return shouldHandle
-                    ? await this.handleReaction(reaction, user, settings)
-                    : EMPTY;
-                } catch (error) {
-                  this.handleError(error, event.user, event.reaction.message);
-                }
+                });
               });
             }),
           ),
@@ -137,6 +152,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     this.subscription?.unsubscribe();
   }
 
+  @SentryTraced()
   private async handleReaction(
     { message, emoji }: MessageReaction,
     user: User,
@@ -287,6 +303,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     ]);
   }
 
+  @SentryTraced()
   private async requestProgPointConfirmation(
     signup: SignupDocument,
     sourceEmbed: Embed,
