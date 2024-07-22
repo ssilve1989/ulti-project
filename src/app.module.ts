@@ -9,6 +9,7 @@ import { AppService } from './app.service.js';
 import { DiscordModule } from './discord/discord.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
 import { LookupModule } from './lookup/lookup.module.js';
+import { RemoveRoleModule } from './remove-role/remove-role.module.js';
 import { SentryModule } from './sentry/sentry.module.js';
 import { SettingsModule } from './settings/settings.module.js';
 import { SheetsModule } from './sheets/sheets.module.js';
@@ -19,6 +20,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
 
 @Module({
   imports: [
+    RemoveRoleModule,
     CqrsModule,
     DiscordModule,
     SheetsModule,

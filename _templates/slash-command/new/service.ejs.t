@@ -1,9 +1,9 @@
 ---
-to: src/commands/<%=name%>/<%=name%>.service.ts
+to: src/<%=name%>/<%=name%>.service.ts
 ---
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
-class <%= Name %>Service {}
+class <%= h.changeCase.pascal(name) %>Service {}
 
-export { <%= Name %>Service };
+export { <%= h.changeCase.pascal(name) %>Service };

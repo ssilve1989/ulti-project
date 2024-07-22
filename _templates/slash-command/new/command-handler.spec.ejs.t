@@ -1,21 +1,21 @@
 ---
-to: src/commands/<%=name%>/<%=name%>.command-handler.spec.ts
+to: src/<%=name%>/<%=name%>.command-handler.spec.ts
 ---
 import { Test } from '@nestjs/testing';
-import { <%= Name %>CommandHandler } from './<%=name%>.command-handler.js';
-import { createMock } from '../../test/create-mock.js';
+import { createMock } from '@golevelup/ts-vitest';
+import { <%= h.changeCase.pascal(name) %>CommandHandler } from './<%=name%>.command-handler.js';
 
-describe("<%=Name%>CommandHandler", () => {
-  let handler: <%= Name %>CommandHandler;
+describe("<%=h.changeCase.pascal(name)%>CommandHandler", () => {
+  let handler: <%= h.changeCase.pascal(name) %>CommandHandler;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
-      providers: [<%= Name %>CommandHandler],
+      providers: [<%= h.changeCase.pascal(name) %>CommandHandler],
     })
       .useMocker(() => createMock())
       .compile();
 
-    handler = fixture.get(<%= Name %>CommandHandler);  
+    handler = fixture.get(<%= h.changeCase.pascal(name) %>CommandHandler);  
   })
 
   it('should be defined', () => {
