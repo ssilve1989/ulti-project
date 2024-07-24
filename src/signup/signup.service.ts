@@ -11,11 +11,13 @@ import {
   DiscordjsErrorCodes,
   Embed,
   Events,
+  GuildEmoji,
   Message,
   MessageReaction,
   PartialMessage,
   PartialMessageReaction,
   PartialUser,
+  ReactionEmoji,
   User,
 } from 'discord.js';
 import {
@@ -88,17 +90,25 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
             concatMap(async (event) => {
               return Sentry.startNewTrace(() => {
                 return Sentry.withScope((scope) => {
+                  // Prevent Sentry from capturing the event if we've determined we aren't going to handle it anyway
+                  scope.addEventProcessor((sentryEvent) =>
+                    sentryEvent.extra?.shouldHandleReaction
+                      ? sentryEvent
+                      : null,
+                  );
+
                   return Sentry.startSpan(
                     { name: Events.MessageReactionAdd },
-                    // TODO: Abstract anon functions to reduce complexity warning
+                    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Abstract this function to reduce complexity warning
                     async () => {
                       if (!event.reaction.message.inGuild()) {
                         return EMPTY;
                       }
 
-                      scope.setExtras({
-                        message: getMessageLink(event.reaction.message),
-                      });
+                      scope.setExtra(
+                        'message',
+                        getMessageLink(event.reaction.message),
+                      );
 
                       try {
                         // TODO: dangerous cast to Settings, but know its safe from current usage
@@ -122,10 +132,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
                         // TODO: We can extract the type of the Message to be `Message<True>` since shouldHandleReaction checks if the message is inGuild()
                         const shouldHandle = await this.shouldHandleReaction(
-                          reaction,
+                          {
+                            message: event.reaction.message,
+                            emoji: reaction.emoji,
+                          },
                           user,
                           settings,
                         );
+
+                        scope.setExtra('shouldHandleReaction', shouldHandle);
 
                         return shouldHandle
                           ? await this.handleReaction(reaction, user, settings)
@@ -187,11 +202,17 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async shouldHandleReaction(
-    reaction: MessageReaction,
-    user: User | PartialUser,
+    {
+      message,
+      emoji,
+    }: { message: Message<true>; emoji: ReactionEmoji | GuildEmoji },
+    user: User,
     settings: SettingsDocument,
   ) {
-    if (!reaction.message.inGuild()) {
+    const reviewChannelId = settings.reviewChannel;
+
+    // Check that this event was the in the configured channel
+    if (message.channelId !== reviewChannelId) {
       return false;
     }
 
@@ -199,15 +220,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       ? await this.discordService.userHasRole({
           userId: user.id,
           roleId: settings.reviewerRole,
-          guildId: reaction.message.guildId,
+          guildId: message.guildId,
         })
       : true;
 
     const isExpectedReactionType =
-      reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.APPROVED ||
-      reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.DECLINED;
+      emoji.name === SIGNUP_REVIEW_REACTIONS.APPROVED ||
+      emoji.name === SIGNUP_REVIEW_REACTIONS.DECLINED;
 
-    const isBotReacting = reaction.message.author?.id === user.id;
+    const isBotReacting = message.author?.id === user.id;
 
     return !isBotReacting && isAllowedUser && isExpectedReactionType;
   }
