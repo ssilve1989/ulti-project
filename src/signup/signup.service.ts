@@ -187,11 +187,14 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async shouldHandleReaction(
-    reaction: MessageReaction,
-    user: User | PartialUser,
+    { message, emoji }: MessageReaction,
+    user: User,
     settings: SettingsDocument,
   ) {
-    if (!reaction.message.inGuild()) {
+    const reviewChannelId = settings.reviewChannel;
+
+    // Check that this event originated from a server and was the in the configured channel
+    if (!message.inGuild() || message.channelId !== reviewChannelId) {
       return false;
     }
 
@@ -199,15 +202,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       ? await this.discordService.userHasRole({
           userId: user.id,
           roleId: settings.reviewerRole,
-          guildId: reaction.message.guildId,
+          guildId: message.guildId,
         })
       : true;
 
     const isExpectedReactionType =
-      reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.APPROVED ||
-      reaction.emoji.name === SIGNUP_REVIEW_REACTIONS.DECLINED;
+      emoji.name === SIGNUP_REVIEW_REACTIONS.APPROVED ||
+      emoji.name === SIGNUP_REVIEW_REACTIONS.DECLINED;
 
-    const isBotReacting = reaction.message.author?.id === user.id;
+    const isBotReacting = message.author?.id === user.id;
 
     return !isBotReacting && isAllowedUser && isExpectedReactionType;
   }
