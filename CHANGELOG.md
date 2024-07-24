@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.1](https://github.com/ssilve1989/ulti-project/compare/v1.14.0...v1.14.1) (2024-07-24)
+
+
+### Performance Improvements
+
+* **discord:** cap concurrency for remove-role command ([#397](https://github.com/ssilve1989/ulti-project/issues/397)) ([0b3ae56](https://github.com/ssilve1989/ulti-project/commit/0b3ae56c0cbdc95bda29e33bb3d9d291ec90c6c2))
+
 ## [1.14.0](https://github.com/ssilve1989/ulti-project/compare/v1.13.0...v1.14.0) (2024-07-22)
 
 
