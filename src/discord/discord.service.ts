@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as Sentry from '@sentry/node';
 import { Client, DMChannel, GuildEmoji } from 'discord.js';
+import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { InjectDiscordClient } from './discord.decorators.js';
 
 @Injectable()
@@ -105,17 +107,20 @@ class DiscordService {
 
     this.logger.log(`found ${members.size} members with role ${role.name}`);
 
-    await Promise.allSettled(
-      members.map((member) =>
-        member.roles.remove(roleId).catch((err) => {
-          this.logger.error(
-            `failed to remove role ${role.name} from member ${member.user.tag}`,
-            err,
-          );
-        }),
+    const task$ = from(members.values()).pipe(
+      mergeMap(
+        (member) =>
+          member.roles.remove(roleId).catch((err) => {
+            Sentry.captureException(err);
+            this.logger.error(
+              `failed to remove role ${role.name} from member ${member.displayName}`,
+            );
+          }),
+        50,
       ),
     );
 
+    await lastValueFrom(task$, { defaultValue: undefined });
     return members.size;
   }
 }
