@@ -117,7 +117,6 @@ class SendApprovedMessageEventHandler
       ? 'Congratulations!'
       : `Signup Approved - ${EncounterFriendlyDescription[encounter]} ${emoji}`.trim();
 
-    // TODO: Abstract common field builders that appear in SignupReviewCommandHandler
     let embed = new EmbedBuilder()
       .setTitle(title)
       .setFields([
