@@ -21,7 +21,6 @@ import {
   User,
 } from 'discord.js';
 import {
-  EMPTY,
   Subscription,
   concatMap,
   debounceTime,
@@ -59,6 +58,11 @@ import {
 } from './events/signup.events.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 
+type ReactionEvent = {
+  reaction: MessageReaction | PartialMessageReaction;
+  user: User | PartialUser;
+};
+
 @Injectable()
 class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(SignupService.name);
@@ -87,76 +91,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         }),
         mergeMap((group$) =>
           group$.pipe(
-            concatMap(async (event) => {
-              return Sentry.startNewTrace(() => {
-                return Sentry.withScope((scope) => {
-                  // Prevent Sentry from capturing the event if we've determined we aren't going to handle it anyway
-                  scope.addEventProcessor((sentryEvent) =>
-                    sentryEvent.extra?.shouldHandleReaction
-                      ? sentryEvent
-                      : null,
-                  );
-
-                  return Sentry.startSpan(
-                    { name: Events.MessageReactionAdd },
-                    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Abstract this function to reduce complexity warning
-                    async () => {
-                      if (!event.reaction.message.inGuild()) {
-                        return EMPTY;
-                      }
-
-                      scope.setExtra(
-                        'message',
-                        getMessageLink(event.reaction.message),
-                      );
-
-                      try {
-                        // TODO: dangerous cast to Settings, but know its safe from current usage
-                        // attempts to type it correctly just result in weirdness since all the other fields on the object are optional
-                        const [
-                          reaction,
-                          user,
-                          settings = {} as SettingsDocument,
-                        ] = await Promise.all([
-                          hydrateReaction(event.reaction),
-                          hydrateUser(event.user),
-                          this.settingsCollection.getSettings(
-                            event.reaction.message.guildId,
-                          ),
-                        ]);
-
-                        scope.setUser({
-                          id: user.id,
-                          username: user.username,
-                        });
-
-                        // TODO: We can extract the type of the Message to be `Message<True>` since shouldHandleReaction checks if the message is inGuild()
-                        const shouldHandle = await this.shouldHandleReaction(
-                          {
-                            message: event.reaction.message,
-                            emoji: reaction.emoji,
-                          },
-                          user,
-                          settings,
-                        );
-
-                        scope.setExtra('shouldHandleReaction', shouldHandle);
-
-                        return shouldHandle
-                          ? await this.handleReaction(reaction, user, settings)
-                          : EMPTY;
-                      } catch (error) {
-                        this.handleError(
-                          error,
-                          event.user,
-                          event.reaction.message,
-                        );
-                      }
-                    },
-                  );
-                });
-              });
-            }),
+            concatMap((event) =>
+              Sentry.startNewTrace(() =>
+                Sentry.withScope(() =>
+                  Sentry.startSpan({ name: Events.MessageReactionAdd }, () =>
+                    this.processEvent(event),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       )
@@ -165,6 +108,54 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
   onModuleDestroy() {
     this.subscription?.unsubscribe();
+  }
+
+  async processEvent(event: ReactionEvent) {
+    const scope = Sentry.getCurrentScope();
+    // Prevent Sentry from capturing the event if we've determined we aren't going to handle it anyway
+    scope.addEventProcessor((sentryEvent) =>
+      sentryEvent.extra?.shouldHandleReaction ? sentryEvent : null,
+    );
+
+    if (!event.reaction.message.inGuild()) {
+      return;
+    }
+
+    scope.setExtra('message', getMessageLink(event.reaction.message));
+
+    try {
+      // TODO: dangerous cast to Settings, but know its safe from current usage
+      // attempts to type it correctly just result in weirdness since all the other fields on the object are optional
+      const [reaction, user, settings = {} as SettingsDocument] =
+        await Promise.all([
+          hydrateReaction(event.reaction),
+          hydrateUser(event.user),
+          this.settingsCollection.getSettings(event.reaction.message.guildId),
+        ]);
+
+      scope.setUser({
+        id: user.id,
+        username: user.username,
+      });
+
+      // TODO: We can extract the type of the Message to be `Message<True>` since shouldHandleReaction checks if the message is inGuild()
+      const shouldHandle = await this.shouldHandleReaction(
+        {
+          message: event.reaction.message,
+          emoji: reaction.emoji,
+        },
+        user,
+        settings,
+      );
+
+      scope.setExtra('shouldHandleReaction', shouldHandle);
+
+      return shouldHandle
+        ? await this.handleReaction(reaction, user, settings)
+        : undefined;
+    } catch (error) {
+      this.handleError(error, event.user, event.reaction.message);
+    }
   }
 
   @SentryTraced()
