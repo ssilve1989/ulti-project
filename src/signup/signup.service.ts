@@ -124,29 +124,27 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     scope.setExtra('message', getMessageLink(event.reaction.message));
 
     try {
-      // TODO: dangerous cast to Settings, but know its safe from current usage
-      // attempts to type it correctly just result in weirdness since all the other fields on the object are optional
-      const [reaction, user, settings = {} as SettingsDocument] =
-        await Promise.all([
-          hydrateReaction(event.reaction),
-          hydrateUser(event.user),
-          this.settingsCollection.getSettings(event.reaction.message.guildId),
-        ]);
+      const [reaction, user, settings] = await Promise.all([
+        hydrateReaction(event.reaction),
+        hydrateUser(event.user),
+        this.settingsCollection.getSettings(event.reaction.message.guildId),
+      ]);
 
       scope.setUser({
         id: user.id,
         username: user.username,
       });
 
-      // TODO: We can extract the type of the Message to be `Message<True>` since shouldHandleReaction checks if the message is inGuild()
-      const shouldHandle = await this.shouldHandleReaction(
-        {
-          message: event.reaction.message,
-          emoji: reaction.emoji,
-        },
-        user,
-        settings,
-      );
+      const shouldHandle =
+        !!settings &&
+        (await this.shouldHandleReaction(
+          {
+            message: event.reaction.message,
+            emoji: reaction.emoji,
+          },
+          user,
+          settings,
+        ));
 
       scope.setExtra('shouldHandleReaction', shouldHandle);
 
