@@ -26,8 +26,6 @@ interface SheetOptions {
 
 /**
  * This module depends on knowing the structure of the spreadsheet
- * Current non-automated iterations of the spreadsheet have a progpoint dropdown. We don't currently
- * capture this as part of the signup so we'll replace that value with the proof of prog link.
  * Ranges are very brittle and will need to be updated if the spreadsheet changes.
  */
 @Injectable()
