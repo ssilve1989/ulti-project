@@ -4,17 +4,11 @@ import { startSpan } from '@sentry/node';
  * A decorator usable to wrap arbitrary functions with spans.
  */
 export function SentryTraced(op = 'function') {
-  return (
-    target: unknown,
-    propertyKey: string,
-    descriptor: PropertyDescriptor,
-  ) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (_: unknown, propertyKey: string, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value as (
       ...args: any[]
     ) => Promise<any> | any; // function can be sync or async
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     descriptor.value = function (...args: any[]) {
       return startSpan(
         {
