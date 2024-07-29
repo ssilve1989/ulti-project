@@ -45,8 +45,8 @@ importers:
         specifier: ^14.15.3
         version: 14.15.3
       firebase-admin:
-        specifier: ^12.2.0
-        version: 12.2.0
+        specifier: ^12.3.0
+        version: 12.3.0
       google-auth-library:
         specifier: ^9.11.0
         version: 9.11.0
@@ -531,9 +531,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@fastify/busboy@2.1.0':
-    resolution: {integrity: sha512-+KpH+QxZU7O4675t3mnkQKcZZg56u+K/Ct2K+N2AZYNVK8kyeo/bI18tI8aPm3tvNNRyTWfj6s5tnGNlcbQRsA==}
-    engines: {node: '>=14'}
+  '@fastify/busboy@3.0.0':
+    resolution: {integrity: sha512-83rnH2nCvclWaPQQKvkJ2pdOjG4TZyEVuFDnlOF6KP08lDaaceVyw/W63mDuafQT+MKHCvXIPpE5uYWeM0rT4w==}
 
   '@firebase/app-check-interop-types@0.3.0':
     resolution: {integrity: sha512-xAxHPZPIgFXnI+vb4sbBjZcde7ZluzPPaSK7Lx3/nmuVk4TjZvnL8ONnkd4ERQKL8WePQySU+pRcWkh8rDf5Sg==}
@@ -2108,8 +2107,8 @@ packages:
     resolution: {integrity: sha512-6jvvn/12IC4quLBL1KNokxC7wWTvYncaVUYSoxWw7YykPLuRrnv4qdHcSOywOI5RpkOVGeQRtWM8/q+G6W6qfQ==}
     engines: {node: '>= 8'}
 
-  firebase-admin@12.2.0:
-    resolution: {integrity: sha512-R9xxENvPA/19XJ3mv0Kxfbz9kPXd9/HrM4083LZWOO0qAQGheRzcCQamYRe+JSrV2cdKXP3ZsfFGTYMrFM0pJg==}
+  firebase-admin@12.3.0:
+    resolution: {integrity: sha512-AKJcFbOZ7W8Fwcqh6Ba7FThXVoXwPdsf+E9vyjk5Z1vN1Z9mnTw88EQWfIsR91YglQ0KvWu1rvMhW65bcB4sog==}
     engines: {node: '>=14'}
 
   flatted@3.3.1:
@@ -3923,7 +3922,7 @@ snapshots:
   '@commitlint/is-ignored@19.2.2':
     dependencies:
       '@commitlint/types': 19.0.3
-      semver: 7.6.2
+      semver: 7.6.3
 
   '@commitlint/lint@19.2.2':
     dependencies:
@@ -4132,7 +4131,7 @@ snapshots:
   '@esbuild/win32-x64@0.21.5':
     optional: true
 
-  '@fastify/busboy@2.1.0': {}
+  '@fastify/busboy@3.0.0': {}
 
   '@firebase/app-check-interop-types@0.3.0': {}
 
@@ -5936,16 +5935,15 @@ snapshots:
       micromatch: 4.0.5
       resolve-dir: 1.0.1
 
-  firebase-admin@12.2.0:
+  firebase-admin@12.3.0:
     dependencies:
-      '@fastify/busboy': 2.1.0
+      '@fastify/busboy': 3.0.0
       '@firebase/database-compat': 1.0.2
       '@firebase/database-types': 1.0.0
       '@types/node': 20.14.11
       farmhash-modern: 1.1.0
       jsonwebtoken: 9.0.2
       jwks-rsa: 3.1.0
-      long: 5.2.3
       node-forge: 1.3.1
       uuid: 10.0.0
     optionalDependencies:
@@ -6558,7 +6556,7 @@ snapshots:
       lodash.isstring: 4.0.1
       lodash.once: 4.1.1
       ms: 2.1.3
-      semver: 7.6.2
+      semver: 7.6.3
 
   jwa@1.4.1:
     dependencies:
@@ -6648,7 +6646,8 @@ snapshots:
       chalk: 4.1.2
       is-unicode-supported: 0.1.0
 
-  long@5.2.3: {}
+  long@5.2.3:
+    optional: true
 
   longest@2.0.1: {}
 
