@@ -8,6 +8,7 @@ import { AppSagas } from './app.sagas.js';
 import { AppService } from './app.service.js';
 import { BlacklistModule } from './blacklist/blacklist.module.js';
 import { DiscordModule } from './discord/discord.module.js';
+import { FfLogsModule } from './fflogs/fflogs.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
 import { LookupModule } from './lookup/lookup.module.js';
 import { RemoveRoleModule } from './remove-role/remove-role.module.js';
@@ -17,6 +18,7 @@ import { SheetsModule } from './sheets/sheets.module.js';
 import { SignupModule } from './signup/signup.module.js';
 import { SlashCommandsModule } from './slash-commands/slash-commands.module.js';
 import { StatusModule } from './status/status.module.js';
+import { TasksModule } from './tasks/tasks.module.js';
 import { TurboProgModule } from './turboprog/turbo-prog.module.js';
 
 @Module({
@@ -25,6 +27,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     RemoveRoleModule,
     CqrsModule,
     DiscordModule,
+    FfLogsModule,
     FirebaseModule,
     LookupModule,
     RemoveRoleModule,
@@ -33,6 +36,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     SignupModule,
     SlashCommandsModule,
     StatusModule,
+    TasksModule,
     TurboProgModule,
     ConfigModule.forRoot({
       cache: true,
