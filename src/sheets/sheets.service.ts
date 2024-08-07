@@ -187,6 +187,12 @@ class SheetsService {
     { spreadsheetId, sheetName }: SheetOptions,
   ): Promise<sheets_v4.Schema$Request | undefined> {
     const range = ProgSheetRanges[encounter];
+
+    // TODO: Cleanup how some encounters may not support prog and therefore not need to be here
+    if (!range) {
+      return;
+    }
+
     const progPartyValues = await this.getSheetValues({
       spreadsheetId,
       range: `${sheetName}!${range.start}:${range.end}`,

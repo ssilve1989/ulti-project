@@ -2,7 +2,10 @@ import { Encounter } from '../../encounters/encounters.consts.js';
 
 export const TURBP_PROG_SHEET_STARTING_ROW = 4;
 
-export const TurboProgSheetRanges = {
+export const TurboProgSheetRanges: Record<
+  string,
+  { start: string; end: string }
+> = {
   [Encounter.DSR]: {
     start: 'Q',
     end: 'T',

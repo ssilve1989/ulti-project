@@ -6,6 +6,10 @@ export enum Encounter {
   UCOB = 'UCOB',
   TEA = 'TEA',
   DSR = 'DSR',
+  M1S = 'M1S',
+  M2S = 'M2S',
+  M3S = 'M3S',
+  M4S = 'M4S',
 }
 
 export const EncounterFriendlyDescription = Object.freeze({
@@ -14,13 +18,17 @@ export const EncounterFriendlyDescription = Object.freeze({
   [Encounter.UCOB]: '[UCoB] The Unending Coil of Bahamut',
   [Encounter.TEA]: '[TEA] The Epic of Alexander',
   [Encounter.DSR]: '[DSR] Dragonsong Reprise',
+  [Encounter.M1S]: '[M1S] AAC Light-Heavyweight M1',
+  [Encounter.M2S]: '[M2S] AAC Light-Heavyweight M2',
+  [Encounter.M3S]: '[M3S] AAC Light-Heavyweight M3',
+  [Encounter.M4S]: '[M4S] AAC Light-Heavyweight M4',
 });
 
 // these identifiers are specific to the ulti-project sausfest discord
 // the bot would need to be part of that discord for these to render correctly
 // this is brittle because if the emojis change in the server these references will fail
 // alternatively we could always lookup the emojis and cache their names at startup but forgoing that for now
-export const EncounterEmoji = Object.freeze({
+export const EncounterEmoji: Record<string, string> = Object.freeze({
   [Encounter.DSR]: '1128006062780448768',
   [Encounter.TEA]: '1128006067419369612',
   [Encounter.TOP]: '1128023323796852877',
@@ -30,7 +38,7 @@ export const EncounterEmoji = Object.freeze({
 
 // prog point lookup hash for each encounter and what party type the prog point belongs to
 // along with their label for the slash command options
-type ProgPointOption = {
+export type ProgPointOption = {
   label: string;
   partyStatus: PartyStatus;
 };
@@ -300,16 +308,75 @@ export const EncounterProgPoints: Record<
       partyStatus: PartyStatus.ClearParty,
     },
   },
+  // TODO: Remove these when the tier is over
+  // Note: Ad-hoc additions for Arcadion Savage tier
+  // Will leverage ClearParty status to insert all prog points into the same google sheet
+  [Encounter.M1S]: {
+    Nailchipper: {
+      label: 'Nailchipper',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    Enrage: {
+      label: 'Enrage',
+      partyStatus: PartyStatus.ClearParty,
+    },
+  },
+  [Encounter.M2S]: {
+    'Alarm Pheremones #2': {
+      label: 'Alarm Pheremones #2',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    'Honey B. Live: 3rd Beat': {
+      label: 'Honey B. Live: 3rd Beat',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    Enrage: {
+      label: 'Enrage',
+      partyStatus: PartyStatus.ClearParty,
+    },
+  },
+  [Encounter.M3S]: {
+    'Chain Deathmatch #2': {
+      label: 'Chain Deathmatch #2',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    'Infernal Spin': {
+      label: 'Infernal Spin',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    Enrage: {
+      label: 'Enrage',
+      partyStatus: PartyStatus.ClearParty,
+    },
+  },
+  [Encounter.M4S]: {
+    'Midnight Sabbath': {
+      label: 'Midnight Sabbath',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    'Sunrise Sabbath': {
+      label: 'Sunrise Sabbath',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    Enrage: {
+      label: 'Enrage',
+      partyStatus: PartyStatus.ClearParty,
+    },
+  },
 };
 
 // The list of choices to be used in slash commands
 export const ENCOUNTER_CHOICES = [
-  { name: 'The Omega Protocol (Ultimate)', value: Encounter.TOP },
-  { name: 'Dragonsong Reprise (Ultimate)', value: Encounter.DSR },
-  { name: 'The Epic of Alexander (Ultimate)', value: Encounter.TEA },
-  { name: 'The Weapons Refrain (Ultimate)', value: Encounter.UWU },
-  {
-    name: 'The Unending Coil of Bahamut (Ultimate)',
-    value: Encounter.UCOB,
-  },
+  // { name: 'The Omega Protocol (Ultimate)', value: Encounter.TOP },
+  // { name: 'Dragonsong Reprise (Ultimate)', value: Encounter.DSR },
+  // { name: 'The Epic of Alexander (Ultimate)', value: Encounter.TEA },
+  // { name: 'The Weapons Refrain (Ultimate)', value: Encounter.UWU },
+  // {
+  //   name: 'The Unending Coil of Bahamut (Ultimate)',
+  //   value: Encounter.UCOB,
+  // },
+  { name: 'AAC Light-Heavyweight M1 (Savage)', value: Encounter.M1S },
+  { name: 'AAC Light-Heavyweight M2 (Savage)', value: Encounter.M2S },
+  { name: 'AAC Light-Heavyweight M3 (Savage)', value: Encounter.M3S },
+  { name: 'AAC Light-Heavyweight M4 (Savage)', value: Encounter.M4S },
 ];
