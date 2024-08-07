@@ -9,6 +9,7 @@ export const configSchema = z.object({
   CLIENT_ID: z.string(),
   DISCORD_TOKEN: z.string(),
   DISCORD_REFRESH_COMMANDS: z.coerce.boolean().default(false),
+  FFLOGS_API_ACCESS_TOKEN: z.string().optional(),
   GCP_PRIVATE_KEY: z.string(),
   GCP_ACCOUNT_EMAIL: z.string(),
   GCP_PROJECT_ID: z.string(),

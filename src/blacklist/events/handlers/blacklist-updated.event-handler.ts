@@ -1,5 +1,5 @@
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
-import { type APIEmbedField, EmbedBuilder } from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 import { titleCase } from 'title-case';
 import { createFields } from '../../../common/embed-helpers.js';
 import { DiscordService } from '../../../discord/discord.service.js';
