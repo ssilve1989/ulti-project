@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.0](https://github.com/ssilve1989/ulti-project/compare/v1.14.1...v1.15.0) (2024-08-08)
+
+
+### Features
+
+* **signups:** support Arcadion savage ([#415](https://github.com/ssilve1989/ulti-project/issues/415)) ([b1b3fd7](https://github.com/ssilve1989/ulti-project/commit/b1b3fd734aeaf97313a4ee5c64b12661a38c27a6))
+
 ## [1.14.1](https://github.com/ssilve1989/ulti-project/compare/v1.14.0...v1.14.1) (2024-07-24)
 
 
