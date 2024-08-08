@@ -18,6 +18,7 @@ import {
   TurboProgSheetRanges,
 } from './turbo-prog-sheets.consts.js';
 
+// TODO: Merge with SheetsService or deprecate Google Sheets entirely please.
 @Injectable()
 class TurboProgSheetsService {
   private readonly queue = new AsyncQueue();
@@ -37,6 +38,11 @@ class TurboProgSheetsService {
     spreadsheetId: string,
   ) {
     const range = TurboProgSheetRanges[encounter];
+
+    // TODO: Cleanup how some encounters may not support prog and therefore not need to be here
+    if (!range) {
+      return;
+    }
 
     const sheetName = this.config.TURBO_PROG_SHEET_NAME;
     const { rowIndex } = await findCharacterRowIndex(this.client, {
