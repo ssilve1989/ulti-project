@@ -17,7 +17,7 @@ const clearedOption = {
   value: PartyStatus.Cleared,
 };
 
-// TODO: consolidate these t progPointOptions assignments to a single reduce over EncounterProgPoints
+// TODO: consolidate these progPointOptions assignments to a single reduce over EncounterProgPoints
 const ucobProgOptions = Object.entries(EncounterProgPoints[Encounter.UCOB]).map(
   progPointMapperFn,
 );
