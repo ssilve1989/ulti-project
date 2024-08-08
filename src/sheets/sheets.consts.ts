@@ -4,8 +4,9 @@ export const SHEETS_CLIENT = '@goolge/sheets-client';
 
 export const PROG_SHEET_STARTING_ROW = 15; // the row where entries start on the prog sheet
 
+// TODO: Should not allow arbitrary index access to return not undefined
 // brittle, requires to be in sync with the sheet
-export const ProgSheetRanges = {
+export const ProgSheetRanges: Record<string, { start: string; end: string }> = {
   [Encounter.DSR]: {
     start: 'Q',
     end: 'T',
