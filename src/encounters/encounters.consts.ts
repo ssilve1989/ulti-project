@@ -316,18 +316,30 @@ export const EncounterProgPoints: Record<
       label: 'Nailchipper',
       partyStatus: PartyStatus.ClearParty,
     },
+    'Mouser #2': {
+      label: 'Mouser #2',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    'Raining Cats': {
+      label: 'Raining Cats',
+      partyStatus: PartyStatus.ClearParty,
+    },
     Enrage: {
       label: 'Enrage',
       partyStatus: PartyStatus.ClearParty,
     },
   },
   [Encounter.M2S]: {
-    'Alarm Pheremones #2': {
-      label: 'Alarm Pheremones #2',
+    'Alarm Pheromones #2': {
+      label: 'Alarm Pheromones #2',
       partyStatus: PartyStatus.ClearParty,
     },
     'Honey B. Live: 3rd Beat': {
       label: 'Honey B. Live: 3rd Beat',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    'Rotten Heart': {
+      label: 'Rotten Heart',
       partyStatus: PartyStatus.ClearParty,
     },
     Enrage: {
@@ -344,18 +356,26 @@ export const EncounterProgPoints: Record<
       label: 'Infernal Spin',
       partyStatus: PartyStatus.ClearParty,
     },
+    'Barbarous Barrage #2': {
+      label: 'Barbarous Barrage',
+      partyStatus: PartyStatus.ClearParty,
+    },
     Enrage: {
       label: 'Enrage',
       partyStatus: PartyStatus.ClearParty,
     },
   },
   [Encounter.M4S]: {
-    'Midnight Sabbath': {
-      label: 'Midnight Sabbath',
+    'Chain Lightning': {
+      label: 'Chain Lightning',
       partyStatus: PartyStatus.ClearParty,
     },
     'Sunrise Sabbath': {
       label: 'Sunrise Sabbath',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    'Sword Quiver': {
+      label: 'Sword Quiver',
       partyStatus: PartyStatus.ClearParty,
     },
     Enrage: {
