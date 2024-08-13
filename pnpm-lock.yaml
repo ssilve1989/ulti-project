@@ -27,11 +27,11 @@ importers:
         specifier: ^2.33.1
         version: 2.33.1
       '@sentry/node':
-        specifier: ^8.23.0
-        version: 8.23.0
+        specifier: ^8.25.0
+        version: 8.25.0
       '@sentry/profiling-node':
-        specifier: ^8.23.0
-        version: 8.23.0
+        specifier: ^8.25.0
+        version: 8.25.0
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
@@ -1187,16 +1187,16 @@ packages:
     engines: {node: '>= 10'}
     hasBin: true
 
-  '@sentry/core@8.23.0':
-    resolution: {integrity: sha512-o0tHpxwi5WxjaQPtY+BPkG8FliM4QB91QKoi2QclWvR9t9jUgMWZ4ikziybNiKICZRXtN9B6wSBWlPVWfsiN6A==}
+  '@sentry/core@8.25.0':
+    resolution: {integrity: sha512-7KtglbrW1eX4DOHkf6i4rRIExEf2CgtQ99qZ8gn5FUaAmNMg0rK7bb1yZMx0RZtp5G1TSz/S0jQQgxHWebaEig==}
     engines: {node: '>=14.18'}
 
-  '@sentry/node@8.23.0':
-    resolution: {integrity: sha512-Ys1A5XII74TWG07q/Y2K+fQoatX2sEiTPHLzLyKjsr1nOL6ANnyz+xnWAuYpF5RNa5R39vgJSwvJTR3S0+DnKw==}
+  '@sentry/node@8.25.0':
+    resolution: {integrity: sha512-KFeJpYU/7CKi/v8D72ztniA+QqH0yBv2wzEP0PUe3DWZ/Fwl0OQSVWNNuDfJBQUvk3NrytCH5A6klZjU0/rwlw==}
     engines: {node: '>=14.18'}
 
-  '@sentry/opentelemetry@8.23.0':
-    resolution: {integrity: sha512-qBDCVHpFAhyV7iZDz4cLpx7U1SBb/MynCwEuLWfK4yojpIihPcxhbJENxjJvsoc/I9img4wx8nJ34G9xpBlOag==}
+  '@sentry/opentelemetry@8.25.0':
+    resolution: {integrity: sha512-6g4TXwQMHtvmlu2i1OKqvFD2W2RTrGBxDtJ1tBQmqCfHKyiqQ37gy6AozuwrQ3po1KKbawaQGIFNEzb4wnSrfA==}
     engines: {node: '>=14.18'}
     peerDependencies:
       '@opentelemetry/api': ^1.9.0
@@ -1205,17 +1205,17 @@ packages:
       '@opentelemetry/sdk-trace-base': ^1.25.1
       '@opentelemetry/semantic-conventions': ^1.25.1
 
-  '@sentry/profiling-node@8.23.0':
-    resolution: {integrity: sha512-rBAngeZ/ZsGBqFpU5OEVDSYzOL52g7HqTZHAvDWGX2FOpfW93gaw7uXrG8EnwwALYjiZFQVV1HFE/ew/ckybSw==}
+  '@sentry/profiling-node@8.25.0':
+    resolution: {integrity: sha512-bFe5FYjk0ShxIp1ZVSSdBpDKWR17vTuDL06Fh9QbIy7Ni6Wudipxu3a5RlLrgQ1mf3w+tIZf1m8cNuplnXNC4g==}
     engines: {node: '>=14.18'}
     hasBin: true
 
-  '@sentry/types@8.23.0':
-    resolution: {integrity: sha512-oJbZ04chsz3Gqro3GJuAAcEsJ7RVjk3k4TvAMxmhN5tQUqwvKFtvWjfskcF75ECzY+8Qge6PI7eXoibkhjx8sg==}
+  '@sentry/types@8.25.0':
+    resolution: {integrity: sha512-ojim0gDcRhGJPguYrtms4FsprX4xZz3LGNk9Z0hwTbSVEdlhQIInsQ7CYcdM3sjUs+qT7kfpxTRZGUeZNRRJcA==}
     engines: {node: '>=14.18'}
 
-  '@sentry/utils@8.23.0':
-    resolution: {integrity: sha512-g+rkk+vFQnAz7xHGUTHXybA9qFdp1mtv3JGXtFKlLxPm8bKpzbBlJA3FiX4E7ai/Ksbv0N+K7c5fDth3LX3wAA==}
+  '@sentry/utils@8.25.0':
+    resolution: {integrity: sha512-mVlkV7S62ZZ2jM38/kOwWx2xoW8fUv2cjw2IwFKoAIPyLBh3mo1WJtvfdtN/rXGjQWZJBKW53EWaWnD00rkjyA==}
     engines: {node: '>=14.18'}
 
   '@sideway/address@4.1.5':
@@ -4956,12 +4956,12 @@ snapshots:
       - encoding
       - supports-color
 
-  '@sentry/core@8.23.0':
+  '@sentry/core@8.25.0':
     dependencies:
-      '@sentry/types': 8.23.0
-      '@sentry/utils': 8.23.0
+      '@sentry/types': 8.25.0
+      '@sentry/utils': 8.25.0
 
-  '@sentry/node@8.23.0':
+  '@sentry/node@8.25.0':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/context-async-hooks': 1.25.1(@opentelemetry/api@1.9.0)
@@ -4986,43 +4986,43 @@ snapshots:
       '@opentelemetry/sdk-trace-base': 1.25.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.25.1
       '@prisma/instrumentation': 5.17.0
-      '@sentry/core': 8.23.0
-      '@sentry/opentelemetry': 8.23.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@1.25.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.25.1(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.25.1)
-      '@sentry/types': 8.23.0
-      '@sentry/utils': 8.23.0
+      '@sentry/core': 8.25.0
+      '@sentry/opentelemetry': 8.25.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@1.25.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.25.1(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.25.1)
+      '@sentry/types': 8.25.0
+      '@sentry/utils': 8.25.0
       import-in-the-middle: 1.11.0
     optionalDependencies:
       opentelemetry-instrumentation-fetch-node: 1.2.3(@opentelemetry/api@1.9.0)
     transitivePeerDependencies:
       - supports-color
 
-  '@sentry/opentelemetry@8.23.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@1.25.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.25.1(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.25.1)':
+  '@sentry/opentelemetry@8.25.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@1.25.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.25.1(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.25.1)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/core': 1.25.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/instrumentation': 0.52.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.25.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.25.1
-      '@sentry/core': 8.23.0
-      '@sentry/types': 8.23.0
-      '@sentry/utils': 8.23.0
+      '@sentry/core': 8.25.0
+      '@sentry/types': 8.25.0
+      '@sentry/utils': 8.25.0
 
-  '@sentry/profiling-node@8.23.0':
+  '@sentry/profiling-node@8.25.0':
     dependencies:
-      '@sentry/core': 8.23.0
-      '@sentry/node': 8.23.0
-      '@sentry/types': 8.23.0
-      '@sentry/utils': 8.23.0
+      '@sentry/core': 8.25.0
+      '@sentry/node': 8.25.0
+      '@sentry/types': 8.25.0
+      '@sentry/utils': 8.25.0
       detect-libc: 2.0.3
       node-abi: 3.65.0
     transitivePeerDependencies:
       - supports-color
 
-  '@sentry/types@8.23.0': {}
+  '@sentry/types@8.25.0': {}
 
-  '@sentry/utils@8.23.0':
+  '@sentry/utils@8.25.0':
     dependencies:
-      '@sentry/types': 8.23.0
+      '@sentry/types': 8.25.0
 
   '@sideway/address@4.1.5':
     dependencies:
