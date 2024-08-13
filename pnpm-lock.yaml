@@ -45,8 +45,8 @@ importers:
         specifier: ^14.15.3
         version: 14.15.3
       firebase-admin:
-        specifier: ^12.3.0
-        version: 12.3.0
+        specifier: ^12.3.1
+        version: 12.3.1
       google-auth-library:
         specifier: ^9.13.0
         version: 9.13.0
@@ -1375,9 +1375,6 @@ packages:
   '@types/node@17.0.45':
     resolution: {integrity: sha512-w+tIMs3rq2afQdsPJlODhoUEKzFP1ayaoyl1CcnwtIlsVe7K7bA1NGm4s3PraqTLlXnbIN84zuBlxBWo1u9BLw==}
 
-  '@types/node@20.14.13':
-    resolution: {integrity: sha512-+bHoGiZb8UiQ0+WEtmph2IWQCjIqg8MDZMAV+ppRRhUZnquF5mQkP/9vpSwJClEiSM/C7fZZExPzfU0vJTyp8w==}
-
   '@types/node@22.1.0':
     resolution: {integrity: sha512-AOmuRF0R2/5j1knA3c6G3HOk523Ga+l+ZXltX8SF1+5oqcXijjfTd8fY3XRZqSihEu9XhtQnKYLmkFaoxgsJHw==}
 
@@ -2207,8 +2204,8 @@ packages:
     resolution: {integrity: sha512-6jvvn/12IC4quLBL1KNokxC7wWTvYncaVUYSoxWw7YykPLuRrnv4qdHcSOywOI5RpkOVGeQRtWM8/q+G6W6qfQ==}
     engines: {node: '>= 8'}
 
-  firebase-admin@12.3.0:
-    resolution: {integrity: sha512-AKJcFbOZ7W8Fwcqh6Ba7FThXVoXwPdsf+E9vyjk5Z1vN1Z9mnTw88EQWfIsR91YglQ0KvWu1rvMhW65bcB4sog==}
+  firebase-admin@12.3.1:
+    resolution: {integrity: sha512-vEr3s3esl8nPIA9r/feDT4nzIXCfov1CyyCSpMQWp6x63Q104qke0MEGZlrHUZVROtl8FLus6niP/M9I1s4VBA==}
     engines: {node: '>=14'}
 
   flatted@3.3.1:
@@ -3620,9 +3617,6 @@ packages:
   uid@2.0.2:
     resolution: {integrity: sha512-u3xV3X7uzvi5b1MncmZo3i2Aw222Zk1keqLA1YkHldREkAhAqi65wuPfe7lHx8H/Wzy+8CE7S7uS3jekIM5s8g==}
     engines: {node: '>=8'}
-
-  undici-types@5.26.5:
-    resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
 
   undici-types@6.13.0:
     resolution: {integrity: sha512-xtFJHudx8S2DSoujjMd1WeWvn7KKWFRESZTMeL1RptAYERu29D6jphMjjY+vn96jvN3kVPDNxU/E13VTaXj6jg==}
@@ -5164,10 +5158,6 @@ snapshots:
 
   '@types/node@17.0.45': {}
 
-  '@types/node@20.14.13':
-    dependencies:
-      undici-types: 5.26.5
-
   '@types/node@22.1.0':
     dependencies:
       undici-types: 6.13.0
@@ -6112,12 +6102,12 @@ snapshots:
       micromatch: 4.0.5
       resolve-dir: 1.0.1
 
-  firebase-admin@12.3.0:
+  firebase-admin@12.3.1:
     dependencies:
       '@fastify/busboy': 3.0.0
       '@firebase/database-compat': 1.0.6
       '@firebase/database-types': 1.0.4
-      '@types/node': 20.14.13
+      '@types/node': 22.1.0
       farmhash-modern: 1.1.0
       jsonwebtoken: 9.0.2
       jwks-rsa: 3.1.0
@@ -7667,8 +7657,6 @@ snapshots:
   uid@2.0.2:
     dependencies:
       '@lukeed/csprng': 1.1.0
-
-  undici-types@5.26.5: {}
 
   undici-types@6.13.0: {}
 
