@@ -16,6 +16,7 @@ updates:
           - '@nestjs/common'
           - '@nestjs/core'
           - '@nestjs/cqrs'
+          - '@nestjs/schematics'
           - '@nestjs/testing'
       pino:
         patterns:
@@ -27,3 +28,8 @@ updates:
       sentry:
         patterns:
           - '@sentry*'
+      vite:
+        patterns:
+          - '@vitest/ui'
+          - '@vitest/coverage-v8'
+          - 'vitest'
