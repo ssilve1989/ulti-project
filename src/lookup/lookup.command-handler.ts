@@ -1,10 +1,10 @@
 import { Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { plainToInstance } from 'class-transformer';
 import { CommandInteractionOptionResolver, EmbedBuilder } from 'discord.js';
 import { characterField, encounterField } from '../common/components/fields.js';
 import { SignupCollection } from '../firebase/collections/signup.collection.js';
-import { SignupDocument } from '../firebase/models/signup.model.js';
+import type { SignupDocument } from '../firebase/models/signup.model.js';
 import { SentryTraced } from '../observability/span.decorator.js';
 import { LookupCommand } from './lookup.command.js';
 import { LookupInteractionDto } from './lookup.dto.js';

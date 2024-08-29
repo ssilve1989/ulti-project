@@ -1,8 +1,8 @@
-import { ICommand } from '@nestjs/cqrs';
+import type { ICommand } from '@nestjs/cqrs';
 import { ChatInputCommandInteraction } from 'discord.js';
-import { SettingsDocument } from '../../firebase/models/settings.model.js';
-import { DiscordCommand } from '../../slash-commands/slash-commands.interfaces.js';
-import { TurboProgEntry } from '../turbo-prog.interfaces.js';
+import type { SettingsDocument } from '../../firebase/models/settings.model.js';
+import type { DiscordCommand } from '../../slash-commands/slash-commands.interfaces.js';
+import type { TurboProgEntry } from '../turbo-prog.interfaces.js';
 
 export class TurboProgCommand implements DiscordCommand {
   constructor(

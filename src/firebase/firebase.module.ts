@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService, ConfigType } from '@nestjs/config';
-import { App, cert, initializeApp } from 'firebase-admin/app';
+import { ConfigModule, ConfigService, type ConfigType } from '@nestjs/config';
+import { type App, cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { AppConfig } from '../app.config.js';
+import type { AppConfig } from '../app.config.js';
 import { SettingsCollection } from './collections/settings-collection.js';
 import { SignupCollection } from './collections/signup.collection.js';
 import { firebaseConfig } from './firebase.config.js';

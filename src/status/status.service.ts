@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Firestore } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase/firebase.decorators.js';
-import { SignupDocument } from '../firebase/models/signup.model.js';
+import type { SignupDocument } from '../firebase/models/signup.model.js';
 import { SentryTraced } from '../observability/span.decorator.js';
 
 @Injectable()

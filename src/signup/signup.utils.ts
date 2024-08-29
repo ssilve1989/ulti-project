@@ -1,6 +1,6 @@
 import {
   PartyStatus,
-  SignupDocument,
+  type SignupDocument,
   SignupStatus,
 } from '../firebase/models/signup.model.js';
 
