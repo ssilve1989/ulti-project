@@ -1,9 +1,9 @@
 import { Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { EncounterFriendlyDescription } from '../encounters/encounters.consts.js';
 import {
-  SignupDocument,
+  type SignupDocument,
   SignupStatus,
 } from '../firebase/models/signup.model.js';
 import { SentryTraced } from '../observability/span.decorator.js';

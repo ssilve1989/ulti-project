@@ -1,4 +1,4 @@
-import { Interaction, User } from 'discord.js';
+import { type Interaction, User } from 'discord.js';
 
 /**
  * Matches if the message component this is attached to is from the same user as the source interaction

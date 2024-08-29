@@ -3,7 +3,7 @@ import { ToLowercase } from '../common/decorators/to-lowercase.js';
 import { TransformUrl } from '../common/decorators/transform-url.js';
 import { IsValidWorld } from '../common/validators/is-valid-world.js';
 import { Encounter } from '../encounters/encounters.consts.js';
-import { SignupDocument } from '../firebase/models/signup.model.js';
+import type { SignupDocument } from '../firebase/models/signup.model.js';
 import {
   PROG_PROOF_HOSTS_WHITELIST,
   WHITELIST_VALIDATION_ERROR,

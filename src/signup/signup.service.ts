@@ -1,8 +1,8 @@
 import {
   Injectable,
   Logger,
-  OnApplicationBootstrap,
-  OnModuleDestroy,
+  type OnApplicationBootstrap,
+  type OnModuleDestroy,
 } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
@@ -14,9 +14,9 @@ import {
   GuildEmoji,
   Message,
   MessageReaction,
-  PartialMessage,
-  PartialMessageReaction,
-  PartialUser,
+  type PartialMessage,
+  type PartialMessageReaction,
+  type PartialUser,
   ReactionEmoji,
   User,
 } from 'discord.js';
@@ -44,10 +44,10 @@ import {
 import { SettingsCollection } from '../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../firebase/collections/signup.collection.js';
 import { DocumentNotFoundException } from '../firebase/firebase.exceptions.js';
-import { SettingsDocument } from '../firebase/models/settings.model.js';
+import type { SettingsDocument } from '../firebase/models/settings.model.js';
 import {
   PartyStatus,
-  SignupDocument,
+  type SignupDocument,
   SignupStatus,
 } from '../firebase/models/signup.model.js';
 import { SentryTraced } from '../observability/span.decorator.js';

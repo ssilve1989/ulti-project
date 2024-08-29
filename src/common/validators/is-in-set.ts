@@ -1,4 +1,8 @@
-import { ValidateBy, ValidationOptions, buildMessage } from 'class-validator';
+import {
+  ValidateBy,
+  type ValidationOptions,
+  buildMessage,
+} from 'class-validator';
 
 export const IS_IN = 'isIn';
 

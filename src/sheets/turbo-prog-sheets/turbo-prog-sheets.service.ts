@@ -1,10 +1,10 @@
 import { sheets_v4 } from '@googleapis/sheets';
 import { Inject, Injectable } from '@nestjs/common';
-import { ConfigType } from '@nestjs/config';
+import type { ConfigType } from '@nestjs/config';
 import { titleCase } from 'title-case';
 import { AsyncQueue } from '../../common/async-queue/async-queue.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
-import { TurboProgEntry } from '../../turboprog/turbo-prog.interfaces.js';
+import type { TurboProgEntry } from '../../turboprog/turbo-prog.interfaces.js';
 import { sheetsConfig } from '../sheets.config.js';
 import { columnToIndex } from '../sheets.consts.js';
 import { InjectSheetsClient } from '../sheets.decorators.js';

@@ -3,7 +3,7 @@ import { PartyStatus } from '../firebase/models/signup.model.js';
 import {
   Encounter,
   EncounterProgPoints,
-  ProgPointOption,
+  type ProgPointOption,
 } from './encounters.consts.js';
 
 export const PROG_POINT_SELECT_ID = 'progPointSelect';

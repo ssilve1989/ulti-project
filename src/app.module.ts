@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { LoggerModule } from 'nestjs-pino';
-import { AppConfig, configSchema } from './app.config.js';
+import { type AppConfig, configSchema } from './app.config.js';
 import { AppController } from './app.controller.js';
 import { AppSagas } from './app.sagas.js';
 import { AppService } from './app.service.js';

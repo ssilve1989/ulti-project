@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SentryTraced } from '../../../observability/span.decorator.js';
