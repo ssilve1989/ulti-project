@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
 import { plainToInstance } from 'class-transformer';
 import { ValidationError, validate } from 'class-validator';

@@ -1,7 +1,7 @@
-import { Module, OnApplicationBootstrap } from '@nestjs/common';
+import { Module, type OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
-import { AppConfig } from '../app.config.js';
+import type { AppConfig } from '../app.config.js';
 import { DiscordModule } from '../discord/discord.module.js';
 import { SlashCommandsService } from './slash-commands.service.js';
 

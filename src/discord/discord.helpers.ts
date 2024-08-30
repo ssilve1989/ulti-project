@@ -1,7 +1,7 @@
 import {
   MessageReaction,
-  PartialMessageReaction,
-  PartialUser,
+  type PartialMessageReaction,
+  type PartialUser,
   User,
 } from 'discord.js';
 import { match } from 'ts-pattern';
@@ -17,7 +17,7 @@ export function hydrateUser(user: User | PartialUser): Promise<User> {
   return user.partial ? user.fetch() : Promise.resolve(user);
 }
 
-type CACHE_TIME_UNIT = 'days' | 'hours' | 'minutes' | 'seconds';
+type CacheTimeUnit = 'days' | 'hours' | 'minutes' | 'seconds';
 
 /**
  *  converts a value to seconds based on the given unit
@@ -25,7 +25,7 @@ type CACHE_TIME_UNIT = 'days' | 'hours' | 'minutes' | 'seconds';
  * @param unit
  * @returns
  */
-export function CacheTime(value: number, unit: CACHE_TIME_UNIT) {
+export function CacheTime(value: number, unit: CacheTimeUnit) {
   return match(unit)
     .with('seconds', () => value * CACHE_TIME_VALUES.SECOND)
     .with('minutes', () => value * CACHE_TIME_VALUES.MINUTE)

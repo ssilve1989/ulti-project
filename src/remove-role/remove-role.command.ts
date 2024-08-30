@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ChatInputCommandInteraction } from 'discord.js';
-import { DiscordCommand } from '../slash-commands/slash-commands.interfaces.js';
+import type { DiscordCommand } from '../slash-commands/slash-commands.interfaces.js';
 
 @Injectable()
 class RemoveRoleCommand implements DiscordCommand {

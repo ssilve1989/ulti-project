@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
 import { SentryTraced } from '../../../observability/span.decorator.js';
 import { TurboProgSheetsService } from '../../../sheets/turbo-prog-sheets/turbo-prog-sheets.service.js';

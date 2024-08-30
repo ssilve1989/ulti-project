@@ -1,14 +1,14 @@
 import { sheets_v4 } from '@googleapis/sheets';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ConfigType } from '@nestjs/config';
+import type { ConfigType } from '@nestjs/config';
 import * as Sentry from '@sentry/node';
 import { titleCase } from 'title-case';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
 import {
   PartyStatus,
-  SignupDocument,
+  type SignupDocument,
 } from '../firebase/models/signup.model.js';
-import { SignupCompositeKeyProps } from '../firebase/models/signup.model.js';
+import type { SignupCompositeKeyProps } from '../firebase/models/signup.model.js';
 import { SentryTraced } from '../observability/span.decorator.js';
 import { sheetsConfig } from './sheets.config.js';
 import {

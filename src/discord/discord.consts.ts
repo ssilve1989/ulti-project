@@ -1,7 +1,7 @@
 import {
   GatewayIntentBits,
   Message,
-  PartialMessage,
+  type PartialMessage,
   Partials,
 } from 'discord.js';
 

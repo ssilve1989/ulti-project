@@ -1,14 +1,14 @@
 import {
   Logger,
   Module,
-  OnApplicationBootstrap,
-  OnApplicationShutdown,
+  type OnApplicationBootstrap,
+  type OnApplicationShutdown,
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as Sentry from '@sentry/node';
 import { ActivityType, Client, Events, Options } from 'discord.js';
 import { first, firstValueFrom, fromEvent } from 'rxjs';
-import { AppConfig } from '../app.config.js';
+import type { AppConfig } from '../app.config.js';
 import { INTENTS, PARTIALS } from './discord.consts.js';
 import { DISCORD_CLIENT, InjectDiscordClient } from './discord.decorators.js';
 import { CacheTime } from './discord.helpers.js';

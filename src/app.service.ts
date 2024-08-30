@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationShutdown } from '@nestjs/common';
+import { Injectable, Logger, type OnApplicationShutdown } from '@nestjs/common';
 import { UnhandledExceptionBus } from '@nestjs/cqrs';
 import { Subscription } from 'rxjs';
 import { sentryReport } from './sentry/sentry.consts.js';

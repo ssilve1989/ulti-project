@@ -11,9 +11,9 @@ import { SentryTraced } from '../../observability/span.decorator.js';
 import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import {
-  CreateSignupDocumentProps,
-  SignupCompositeKeyProps as SignupCompositeKey,
-  SignupDocument,
+  type CreateSignupDocumentProps,
+  type SignupCompositeKeyProps as SignupCompositeKey,
+  type SignupDocument,
   SignupStatus,
 } from '../models/signup.model.js';
 

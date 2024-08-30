@@ -1,4 +1,4 @@
-import { APIEmbedField } from 'discord.js';
+import type { APIEmbedField } from 'discord.js';
 import { titleCase } from 'title-case';
 import {
   Encounter,

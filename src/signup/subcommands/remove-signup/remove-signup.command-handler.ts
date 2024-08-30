@@ -1,8 +1,8 @@
-import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
 import { plainToClass } from 'class-transformer';
 import {
-  APIUser,
+  type APIUser,
   ChatInputCommandInteraction,
   Colors,
   EmbedBuilder,
@@ -20,7 +20,7 @@ import { SettingsCollection } from '../../../firebase/collections/settings-colle
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { DocumentNotFoundException } from '../../../firebase/firebase.exceptions.js';
 import {
-  SignupDocument,
+  type SignupDocument,
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
 import { SentryTraced } from '../../../observability/span.decorator.js';

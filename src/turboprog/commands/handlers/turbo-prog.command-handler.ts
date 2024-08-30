@@ -7,14 +7,14 @@ import { SettingsCollection } from '../../../firebase/collections/settings-colle
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import {
   PartyStatus,
-  SignupDocument,
+  type SignupDocument,
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
 import { SentryTraced } from '../../../observability/span.decorator.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
 import { TurboProgSheetsService } from '../../../sheets/turbo-prog-sheets/turbo-prog-sheets.service.js';
 import { TurboProgSignupInteractionDto } from '../../turbo-prog-signup-interaction.dto.js';
-import { TurboProgEntry } from '../../turbo-prog.interfaces.js';
+import type { TurboProgEntry } from '../../turbo-prog.interfaces.js';
 import {
   TURBO_PROG_INACTIVE,
   TURBO_PROG_MISSING_SIGNUPS_SHEETS,

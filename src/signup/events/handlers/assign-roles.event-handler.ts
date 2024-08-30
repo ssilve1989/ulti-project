@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
+import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
 import { P, match } from 'ts-pattern';
 import { DiscordService } from '../../../discord/discord.service.js';

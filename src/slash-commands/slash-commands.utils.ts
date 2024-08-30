@@ -15,7 +15,7 @@ import { SettingsSlashCommand } from './commands/settings.js';
 import { SignupSlashCommand } from './commands/signup.js';
 import { StatusSlashCommand } from './commands/status.js';
 import { TurboProgSlashCommand } from './commands/turbo-prog-signup.js';
-import { DiscordCommand } from './slash-commands.interfaces.js';
+import type { DiscordCommand } from './slash-commands.interfaces.js';
 
 /**
  * Get the CQRS command from the given interaction

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ICommand, Saga, ofType } from '@nestjs/cqrs';
+import { type ICommand, Saga, ofType } from '@nestjs/cqrs';
 import { Observable, filter, map, mergeMap } from 'rxjs';
 import { RemoveRolesCommand } from './signup/commands/signup.commands.js';
 import {

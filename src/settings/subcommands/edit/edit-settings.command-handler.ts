@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import {
   ChatInputCommandInteraction,
   CommandInteractionOptionResolver,

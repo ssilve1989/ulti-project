@@ -1,8 +1,12 @@
-import { Module, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
+import {
+  Module,
+  type OnApplicationShutdown,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
-import { AppConfig } from '../app.config.js';
+import type { AppConfig } from '../app.config.js';
 
 @Module({
   imports: [ConfigModule],

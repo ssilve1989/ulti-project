@@ -1,6 +1,6 @@
 import { Message, User } from 'discord.js';
-import { SettingsDocument } from '../../firebase/models/settings.model.js';
-import { SignupDocument } from '../../firebase/models/signup.model.js';
+import type { SettingsDocument } from '../../firebase/models/settings.model.js';
+import type { SignupDocument } from '../../firebase/models/signup.model.js';
 
 export class SignupCreatedEvent {
   constructor(
