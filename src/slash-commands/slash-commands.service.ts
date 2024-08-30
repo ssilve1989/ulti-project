@@ -10,7 +10,7 @@ import {
   Routes,
 } from 'discord.js';
 import { EMPTY, catchError, defer, forkJoin, lastValueFrom, retry } from 'rxjs';
-import { AppConfig } from '../app.config.js';
+import type { AppConfig } from '../app.config.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
 import { SLASH_COMMANDS } from './slash-commands.js';

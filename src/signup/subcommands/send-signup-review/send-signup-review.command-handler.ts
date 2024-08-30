@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { EmbedBuilder, GuildMember } from 'discord.js';
 import {
   characterField,
@@ -13,7 +13,7 @@ import {
 } from '../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import { SignupDocument } from '../../../firebase/models/signup.model.js';
+import type { SignupDocument } from '../../../firebase/models/signup.model.js';
 import { SentryTraced } from '../../../observability/span.decorator.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../../signup.consts.js';
 import { SendSignupReviewCommand } from './send-signup-review.command.js';

@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction } from 'discord.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
-import { SettingsDocument } from '../../firebase/models/settings.model.js';
-import { DiscordCommand } from '../../slash-commands/slash-commands.interfaces.js';
+import type { SettingsDocument } from '../../firebase/models/settings.model.js';
+import type { DiscordCommand } from '../../slash-commands/slash-commands.interfaces.js';
 
 export class SignupCommand implements DiscordCommand {
   constructor(

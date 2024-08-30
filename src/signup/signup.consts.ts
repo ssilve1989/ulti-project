@@ -1,4 +1,4 @@
-import { SignupStatusValues } from '../firebase/models/signup.model.js';
+import type { SignupStatusValues } from '../firebase/models/signup.model.js';
 
 export const SIGNUP_MESSAGES = {
   CONFIRMATION_TIMEOUT:

@@ -1,4 +1,4 @@
-import { SignupDocument } from '../../../firebase/models/signup.model.js';
+import type { SignupDocument } from '../../../firebase/models/signup.model.js';
 
 export class SendSignupReviewCommand {
   constructor(

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CollectionReference, Firestore } from 'firebase-admin/firestore';
 import { SentryTraced } from '../../observability/span.decorator.js';
 import { InjectFirestore } from '../firebase.decorators.js';
-import { SettingsDocument } from '../models/settings.model.js';
+import type { SettingsDocument } from '../models/settings.model.js';
 
 @Injectable()
 class SettingsCollection {
