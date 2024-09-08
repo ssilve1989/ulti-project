@@ -11,6 +11,7 @@ import { RemoveSignupEvent } from './signup/subcommands/remove-signup/remove-sig
 import { SendSignupReviewCommand } from './signup/subcommands/send-signup-review/send-signup-review.command.js';
 import { TurboProgRemoveSignupCommand } from './turboprog/commands/turbo-prog.commands.js';
 
+// TODO: Why are these at the app level? They should be in the signup module
 @Injectable()
 class AppSagas {
   /**
