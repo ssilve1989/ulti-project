@@ -25,13 +25,19 @@ class EditSettingsCommandHandler
     const guildId = interaction.guildId;
 
     try {
-      const { signupChannel, reviewChannel, reviewerRole, ...rest } =
-        this.getInteractionOptions(interaction.options);
+      const {
+        modChannelId,
+        reviewChannel,
+        reviewerRole,
+        signupChannel,
+        ...rest
+      } = this.getInteractionOptions(interaction.options);
 
       await this.settingsCollection.upsert(guildId, {
-        signupChannel: signupChannel?.id,
+        modChannelId: modChannelId?.id,
         reviewChannel: reviewChannel?.id,
         reviewerRole: reviewerRole?.id,
+        signupChannel: signupChannel?.id,
         ...rest,
       });
 
@@ -57,6 +63,8 @@ class EditSettingsCommandHandler
     const reviewChannel = options.getChannel('signup-review-channel');
     const signupChannel = options.getChannel('signup-public-channel');
     const spreadsheetId = options.getString('spreadsheet-id') ?? undefined;
+    const modChannelId = options.getChannel('moderation-channel');
+
     const turboProgActive =
       options.getBoolean('turbo-prog-active') ?? undefined;
     const turboProgSpreadsheetId =
@@ -82,6 +90,7 @@ class EditSettingsCommandHandler
 
     return {
       clearRoles,
+      modChannelId,
       progRoles,
       reviewChannel,
       reviewerRole,

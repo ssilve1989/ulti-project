@@ -47,6 +47,13 @@ export const EditSettingsSubcommand = new SlashCommandSubcommandBuilder()
       .setName('turbo-prog-spreadsheet-id')
       .setDescription('The id of the spreadsheet to use for turbo prog')
       .setRequired(false),
+  )
+  .addChannelOption((option) =>
+    option
+      .setName('moderation-channel')
+      .setDescription('The channel to send moderation messages to')
+      .addChannelTypes(ChannelType.GuildText)
+      .setRequired(false),
   );
 
 export const ViewSettingsSubcommand = new SlashCommandSubcommandBuilder()
