@@ -16,7 +16,7 @@ export const SIGNUP_MESSAGES = {
   // TODO: Find a CMS-esque type of way of managing this rather than hardcoding these reasons
   SIGNUP_SUBMISSION_DENIED: `
 Your signup has been denied. Possible reasons:
-- Signup doesn't meet new qualifications. Check <#1128721088017346622> for the latest information
+- Signup doesn't meet new qualifications. Check <#1074471023178686514> for the latest information
 - Signup lacks valid proof of progpoint
 - You already cleared the encounter you signed-up for
 You can reach out to a coordinator to discuss any issues.
