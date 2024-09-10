@@ -15,10 +15,11 @@ export class SlashCommandsModule implements OnApplicationBootstrap {
     private readonly service: SlashCommandsService,
   ) {}
 
-  async onApplicationBootstrap() {
+  onApplicationBootstrap() {
     this.service.listenToCommands();
     if (this.configService.get('DISCORD_REFRESH_COMMANDS')) {
-      await this.service.registerCommands();
+      // If we await here, the logs will be buffered since it's blocking application bootstrap
+      this.service.registerCommands();
     }
   }
 }

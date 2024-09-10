@@ -1,5 +1,10 @@
 import { ChatInputCommandInteraction } from 'discord.js';
 import { match } from 'ts-pattern';
+import {
+  BlacklistAddCommand,
+  BlacklistDisplayCommand,
+  BlacklistRemoveCommand,
+} from '../blacklist/blacklist.commands.js';
 import { LookupCommand } from '../lookup/lookup.command.js';
 import { RemoveRoleCommand } from '../remove-role/remove-role.command.js';
 import { EditSettingsCommand } from '../settings/subcommands/edit/edit-settings.command.js';
@@ -8,6 +13,7 @@ import { SignupCommand } from '../signup/commands/signup.commands.js';
 import { RemoveSignupCommand } from '../signup/subcommands/remove-signup/remove-signup.command.js';
 import { StatusCommand } from '../status/status.command.js';
 import { TurboProgCommand } from '../turboprog/commands/turbo-prog.commands.js';
+import { BlacklistSlashCommand } from './commands/blacklist.js';
 import { LookupSlashCommand } from './commands/lookup.js';
 import { RemoveRoleSlashCommand } from './commands/remove-role.js';
 import { RemoveSignupSlashCommand } from './commands/remove-signup.js';
@@ -27,6 +33,14 @@ export function getCommandForInteraction(
   interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
 ): DiscordCommand | undefined {
   return match(interaction.commandName)
+    .with(BlacklistSlashCommand.name, () => {
+      const subcommand = interaction.options.getSubcommand();
+      return match(subcommand)
+        .with('add', () => new BlacklistAddCommand(interaction))
+        .with('remove', () => new BlacklistRemoveCommand(interaction))
+        .with('display', () => new BlacklistDisplayCommand(interaction))
+        .run();
+    })
     .with(LookupSlashCommand.name, () => new LookupCommand(interaction))
     .with(SignupSlashCommand.name, () => new SignupCommand(interaction))
     .with(StatusSlashCommand.name, () => new StatusCommand(interaction))
