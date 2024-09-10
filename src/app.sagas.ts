@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { type ICommand, Saga, ofType } from '@nestjs/cqrs';
 import { Observable, filter, map, mergeMap } from 'rxjs';
+import { BlacklistSearchCommand } from './blacklist/blacklist.commands.js';
 import { RemoveRolesCommand } from './signup/commands/signup.commands.js';
 import {
   SignupApprovedEvent,
@@ -23,9 +24,10 @@ class AppSagas {
   handleSignupCreated = (event$: Observable<any>): Observable<ICommand> =>
     event$.pipe(
       ofType(SignupCreatedEvent),
-      map(
-        ({ signup, guildId }) => new SendSignupReviewCommand(signup, guildId),
-      ),
+      mergeMap(({ signup, guildId }) => [
+        new SendSignupReviewCommand(signup, guildId),
+        new BlacklistSearchCommand(signup, guildId),
+      ]),
     );
 
   /**
