@@ -1,4 +1,8 @@
-import type { CacheType, ChatInputCommandInteraction } from 'discord.js';
+import type {
+  APIEmbedField,
+  CacheType,
+  ChatInputCommandInteraction,
+} from 'discord.js';
 import type { BlacklistDocument } from '../firebase/models/blacklist.model.js';
 
 export function getDiscordId(
@@ -23,4 +27,17 @@ export function getDisplayName({
   }
 
   return characterName!;
+}
+
+export function createBlacklistEmbedFields({
+  characterName,
+  discordId,
+  reason,
+}: BlacklistDocument): APIEmbedField[] {
+  const displayName = getDisplayName({ characterName, discordId });
+  return [
+    { name: 'Player', value: displayName, inline: true },
+    { name: 'Reason', value: reason, inline: true },
+    { name: '\u200b', value: '\u200b', inline: true },
+  ];
 }

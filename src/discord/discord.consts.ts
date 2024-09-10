@@ -1,9 +1,4 @@
-import {
-  GatewayIntentBits,
-  Message,
-  type PartialMessage,
-  Partials,
-} from 'discord.js';
+import { GatewayIntentBits, Message, Partials } from 'discord.js';
 
 export const INTENTS = [
   // GatewayIntentBits.DirectMessages,
@@ -33,7 +28,7 @@ export function getMessageLink({
   guildId,
   channelId,
   id,
-}: Message | PartialMessage) {
+}: Pick<Message, 'guildId' | 'channelId' | 'id'>) {
   return `https://discord.com/channels/${guildId}/${channelId}/${id}`;
 }
 
