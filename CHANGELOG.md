@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.16.0](https://github.com/ssilve1989/ulti-project/compare/v1.15.1...v1.16.0) (2024-09-10)
+
+
+### Features
+
+* **blacklist:** adds the ability to maintain a list of suspicious players ([#459](https://github.com/ssilve1989/ulti-project/issues/459)) ([800396f](https://github.com/ssilve1989/ulti-project/commit/800396fca07250499d422da0d049687775eced64))
+* **settings:** moderation channel setting ([#458](https://github.com/ssilve1989/ulti-project/issues/458)) ([14cc49f](https://github.com/ssilve1989/ulti-project/commit/14cc49f8863d4b13b188304904af487927a191e7))
+* **signups:** publishes alerts on blacklisted signups ([#460](https://github.com/ssilve1989/ulti-project/issues/460)) ([14366de](https://github.com/ssilve1989/ulti-project/commit/14366dee430e98f5b6036efa3ccef8a27cd795a9))
+
+
+### Bug Fixes
+
+* **settings:** fix cache value setting ([#457](https://github.com/ssilve1989/ulti-project/issues/457)) ([418b47e](https://github.com/ssilve1989/ulti-project/commit/418b47eb3e3aae00b69020bc183250f92bac481a))
+
+
+### Performance Improvements
+
+* **settings:** cache settings document ([#455](https://github.com/ssilve1989/ulti-project/issues/455)) ([4bedda1](https://github.com/ssilve1989/ulti-project/commit/4bedda13553e75f802071027a2808e060fae122f))
+
 ## [1.15.1](https://github.com/ssilve1989/ulti-project/compare/v1.15.0...v1.15.1) (2024-09-10)
 
 
