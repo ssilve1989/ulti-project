@@ -9,7 +9,15 @@ import {
   REST,
   Routes,
 } from 'discord.js';
-import { EMPTY, catchError, defer, forkJoin, lastValueFrom, retry } from 'rxjs';
+import {
+  EMPTY,
+  catchError,
+  defer,
+  forkJoin,
+  lastValueFrom,
+  retry,
+  timer,
+} from 'rxjs';
 import type { AppConfig } from '../app.config.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
@@ -104,7 +112,13 @@ class SlashCommandsService {
         `Successfully registered ${SLASH_COMMANDS.length} application commands for guild: ${guildId}`,
       );
     }).pipe(
-      retry({ count: 10, delay: 1000 }),
+      retry({
+        count: 5,
+        delay: (err) => {
+          this.logger.error(err);
+          return timer(1000);
+        },
+      }),
       catchError((err) => {
         sentryReport(err);
         this.logger.error(err);

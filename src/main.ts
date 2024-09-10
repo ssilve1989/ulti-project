@@ -8,7 +8,9 @@ async function bootstrap() {
   });
 
   const logger = app.get(Logger);
+  // biome-ignore lint/correctness/useHookAtTopLevel: this isn't a hook you dumb linter
   app.useLogger(logger);
+  app.flushLogs();
   app.enableShutdownHooks();
 
   logger.log(`NodeJS Version: ${process.version}`);

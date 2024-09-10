@@ -6,6 +6,7 @@ import { type AppConfig, configSchema } from './app.config.js';
 import { AppController } from './app.controller.js';
 import { AppSagas } from './app.sagas.js';
 import { AppService } from './app.service.js';
+import { BlacklistModule } from './blacklist/blacklist.module.js';
 import { DiscordModule } from './discord/discord.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
 import { LookupModule } from './lookup/lookup.module.js';
@@ -20,6 +21,8 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
 
 @Module({
   imports: [
+    BlacklistModule,
+    RemoveRoleModule,
     CqrsModule,
     DiscordModule,
     FirebaseModule,
