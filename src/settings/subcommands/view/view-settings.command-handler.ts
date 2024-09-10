@@ -1,5 +1,5 @@
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
-import { roleMention } from 'discord.js';
+import { EmbedBuilder, roleMention } from 'discord.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SentryTraced } from '../../../observability/span.decorator.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
@@ -31,6 +31,7 @@ class ViewSettingsCommandHandler
       reviewChannel,
       reviewerRole,
       spreadsheetId,
+      modChannelId,
       signupChannel,
       progRoles,
       turboProgActive,
@@ -41,10 +42,14 @@ class ViewSettingsCommandHandler
       ? `<#${signupChannel}>`
       : 'No Channel Set';
 
+    const moderationChannel = modChannelId
+      ? `<#${modChannelId}>`
+      : 'No Channel Set';
+
     const progRoleSettings = Object.entries(progRoles || {}).reduce<string[]>(
       (acc, [encounter, role]) => {
         if (role) {
-          acc.push(`**${encounter} Prog Role:** <@&${role}>`);
+          acc.push(`**${encounter}** - <@&${role}>`);
         }
         return acc;
       },
@@ -55,36 +60,64 @@ class ViewSettingsCommandHandler
       string[]
     >((acc, [encounter, role]) => {
       if (role) {
-        acc.push(`**${encounter} Clear Role:** <@&${role}>`);
+        acc.push(`**${encounter}:** - <@&${role}>`);
       }
       return acc;
     }, []);
 
-    const messages = [
-      `**Review Channel:** <#${reviewChannel}>`,
-      `**Reviewer Role:** ${role}`,
-      `**Signup Channel:** ${publicSignupChannel}`,
-      `**Turbo Prog Active:** ${turboProgActive ? 'Yes' : 'No'}`,
+    const fields = [
+      { name: 'Moderation Channel', value: moderationChannel, inline: true },
+      { name: 'Review Channel', value: `<#${reviewChannel}>`, inline: true },
+      { name: 'Signup Channel', value: publicSignupChannel, inline: true },
+      { name: 'Reviewer Role', value: role, inline: true },
+      {
+        name: 'Clear Roles',
+        value: clearRoleSettings.length
+          ? clearRoleSettings.join('\n')
+          : 'No roles set',
+        inline: true,
+      },
+      {
+        name: 'Prog Roles',
+        value: progRoleSettings.length
+          ? progRoleSettings.join('\n')
+          : 'No roles set',
+        inline: true,
+      },
+      {
+        name: 'Turbo Prog Active',
+        value: turboProgActive ? 'Yes' : 'No',
+        inline: true,
+      },
     ];
 
     if (turboProgSpreadsheetId) {
       const { title, url } = await this.sheetsService.getSheetMetadata(
         turboProgSpreadsheetId,
       );
-
-      messages.push(`**Turbo Prog Spreadsheet:** [${title}](${url})`);
+      fields.push({
+        name: 'Turbo Prog Spreadsheet',
+        value: `[${title}](${url})`,
+        inline: true,
+      });
     }
 
     if (spreadsheetId) {
       const { title, url } =
         await this.sheetsService.getSheetMetadata(spreadsheetId);
-
-      messages.push(`**Managed Spreadsheet:** [${title}](${url})`);
+      fields.push({
+        name: 'Managed Spreadsheet',
+        value: `[${title}](${url})`,
+        inline: true,
+      });
     }
 
-    messages.push(...progRoleSettings, ...clearRoleSettings);
+    const embed = new EmbedBuilder()
+      .setTitle('Settings')
+      .setDescription('Ulti-Project Bot Settings')
+      .addFields(fields);
 
-    await interaction.editReply(messages.join('\n'));
+    await interaction.editReply({ embeds: [embed] });
   }
 }
 
