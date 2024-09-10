@@ -8,6 +8,7 @@ import {
   first,
   from,
   lastValueFrom,
+  map,
   mergeMap,
 } from 'rxjs';
 import { InjectFirestore } from '../firebase.decorators.js';
@@ -84,6 +85,19 @@ class BlacklistCollection {
     );
 
     return lastValueFrom(pipeline$, { defaultValue: undefined });
+  }
+
+  public search({
+    guildId,
+    discordId,
+    characterName,
+  }: { guildId: string } & Pick<
+    BlacklistDocument,
+    'discordId' | 'characterName'
+  >) {
+    return this.query$(guildId, { discordId, characterName }).pipe(
+      map((result) => result.docs[0]!.data()),
+    );
   }
 
   /**
