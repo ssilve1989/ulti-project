@@ -34,7 +34,7 @@ class SettingsCollection {
         ? undefined
         : clearRoles;
 
-    const result = await this.collection.doc(guildId).set(
+    await this.collection.doc(guildId).set(
       {
         ...settings,
         progRoles: progRolesUpdate,
@@ -43,8 +43,7 @@ class SettingsCollection {
       { merge: true },
     );
 
-    await this.cacheManager.set(this.cacheKey(guildId), result);
-    return result;
+    await this.updateCache(guildId);
   }
 
   @SentryTraced()
@@ -67,6 +66,18 @@ class SettingsCollection {
   public async getReviewChannel(guildId: string) {
     const settings = await this.getSettings(guildId);
     return settings?.reviewChannel;
+  }
+
+  private async updateCache(guildId: string) {
+    const key = this.cacheKey(guildId);
+    try {
+      const settings = await this.collection.doc(guildId).get();
+      await this.cacheManager.set(key, settings.data());
+    } catch (e: unknown) {
+      this.logger.warn(`failed to update cache: invalidating key ${key}`);
+      this.logger.error(e);
+      await this.cacheManager.del(this.cacheKey(guildId));
+    }
   }
 
   private cacheKey = (guildId: string) => `settings:${guildId}`;
