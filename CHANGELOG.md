@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.1](https://github.com/ssilve1989/ulti-project/compare/v1.15.0...v1.15.1) (2024-09-10)
+
+
+### Bug Fixes
+
+* **signups:** fix info channel ref for declined signups ([#452](https://github.com/ssilve1989/ulti-project/issues/452)) ([d928d4a](https://github.com/ssilve1989/ulti-project/commit/d928d4a7fc2771e679402ae2434920842d99ca22))
+
 ## [1.15.0](https://github.com/ssilve1989/ulti-project/compare/v1.14.1...v1.15.0) (2024-08-08)
 
 
