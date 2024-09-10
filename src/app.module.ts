@@ -20,13 +20,13 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
 
 @Module({
   imports: [
-    RemoveRoleModule,
     CqrsModule,
     DiscordModule,
-    SheetsModule,
     FirebaseModule,
     LookupModule,
+    RemoveRoleModule,
     SettingsModule,
+    SheetsModule,
     SignupModule,
     SlashCommandsModule,
     StatusModule,

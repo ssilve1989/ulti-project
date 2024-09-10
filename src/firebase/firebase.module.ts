@@ -1,3 +1,4 @@
+import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService, type ConfigType } from '@nestjs/config';
 import { type App, cert, initializeApp } from 'firebase-admin/app';
@@ -9,7 +10,10 @@ import { firebaseConfig } from './firebase.config.js';
 import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
 
 @Module({
-  imports: [ConfigModule.forFeature(firebaseConfig)],
+  imports: [
+    CacheModule.register({ ttl: 0 }),
+    ConfigModule.forFeature(firebaseConfig),
+  ],
   providers: [
     {
       provide: FIREBASE_APP,
