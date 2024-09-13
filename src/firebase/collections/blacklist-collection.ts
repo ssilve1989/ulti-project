@@ -5,6 +5,7 @@ import {
   EmptyError,
   catchError,
   concatMap,
+  filter,
   first,
   from,
   lastValueFrom,
@@ -36,20 +37,21 @@ class BlacklistCollection {
    */
   public async upsert(
     guildId: string,
-    props: BlacklistDocument,
+    source: BlacklistDocument,
   ): Promise<BlacklistDocument> {
+    const { reason, ...props } = source;
     const collection = this.getCollection(guildId);
     const pipeline$ = this.query$(guildId, props).pipe(
       mergeMap(async (result) => {
         const doc = result.docs[0];
-        await doc.ref.update(props as Record<string, any>, {
+        await doc.ref.update(source as Record<string, any>, {
           exists: true,
         });
         return await doc.ref.get();
       }),
       catchError(async (err) => {
         if (err instanceof EmptyError) {
-          const doc = await collection.add(props);
+          const doc = await collection.add(source);
           return await doc.get();
         }
         throw err;
@@ -108,6 +110,7 @@ class BlacklistCollection {
   private query$(guildId: string, data: BlacklistDocumentKeys) {
     const collection = this.getCollection(guildId);
     return from(Object.entries(data)).pipe(
+      filter(([_, value]) => !!value),
       // use concatMap to potentially save on query costs if one query returns successfully early
       concatMap(([key, value]) =>
         collection.where(key, '==', value).limit(1).get(),
