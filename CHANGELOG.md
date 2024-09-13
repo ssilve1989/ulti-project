@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.1](https://github.com/ssilve1989/ulti-project/compare/v1.16.0...v1.16.1) (2024-09-13)
+
+
+### Bug Fixes
+
+* **blacklist:** fixes an issue where incorrect entries were being updated ([#462](https://github.com/ssilve1989/ulti-project/issues/462)) ([13243a3](https://github.com/ssilve1989/ulti-project/commit/13243a31d863eb2fb81e649da91d1bff997e3f75))
+
 ## [1.16.0](https://github.com/ssilve1989/ulti-project/compare/v1.15.1...v1.16.0) (2024-09-10)
 
 
