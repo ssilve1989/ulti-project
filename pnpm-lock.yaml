@@ -51,8 +51,8 @@ importers:
         specifier: ^14.16.2
         version: 14.16.2
       firebase-admin:
-        specifier: ^12.4.0
-        version: 12.4.0
+        specifier: ^12.5.0
+        version: 12.5.0
       google-auth-library:
         specifier: ^9.14.1
         version: 9.14.1
@@ -2161,8 +2161,8 @@ packages:
     resolution: {integrity: sha512-6jvvn/12IC4quLBL1KNokxC7wWTvYncaVUYSoxWw7YykPLuRrnv4qdHcSOywOI5RpkOVGeQRtWM8/q+G6W6qfQ==}
     engines: {node: '>= 8'}
 
-  firebase-admin@12.4.0:
-    resolution: {integrity: sha512-3HOHqJxNmFv0JgK3voyMQgmcibhJN4LQfZfhnZGb6pcONnZxejki4nQ1twsoJlGaIvgQWBtO7rc5mh/cqlOJNA==}
+  firebase-admin@12.5.0:
+    resolution: {integrity: sha512-ad8vnlPcuuZN9scSgY8UnAxPI4mzP2/Q+dsrVLTf+j3h7bIq0FOelDCDGz4StgKJdk244v2kpOxqJjPG3grBHg==}
     engines: {node: '>=14'}
 
   flatted@3.3.1:
@@ -5992,7 +5992,7 @@ snapshots:
       micromatch: 4.0.7
       resolve-dir: 1.0.1
 
-  firebase-admin@12.4.0:
+  firebase-admin@12.5.0:
     dependencies:
       '@fastify/busboy': 3.0.0
       '@firebase/database-compat': 1.0.6
