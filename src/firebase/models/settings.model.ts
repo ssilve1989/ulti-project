@@ -11,12 +11,10 @@ export interface SettingsDocument extends DocumentData {
   turboProgSpreadsheetId?: string;
 
   progRoles?: {
-    // biome-ignore lint/style/useNamingConvention: <explanation>
     [key in keyof typeof Encounter]?: string;
   };
 
   clearRoles?: {
-    // biome-ignore lint/style/useNamingConvention: <explanation>
     [key in keyof typeof Encounter]?: string;
   };
 }
