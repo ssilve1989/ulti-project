@@ -28,11 +28,8 @@ import { DiscordService } from './discord.service.js';
           partials: PARTIALS,
           makeCache: Options.cacheWithLimits({
             ...Options.DefaultMakeCacheSettings,
-            // biome-ignore lint/style/useNamingConvention: uncontrolled key
             PresenceManager: 0,
-            // biome-ignore lint/style/useNamingConvention: uncontrolled key
             DMMessageManager: 0,
-            // biome-ignore lint/style/useNamingConvention: uncontrolled key
             GuildTextThreadManager: 0,
           }),
           sweepers: {

@@ -127,7 +127,6 @@ class SendApprovedMessageEventHandler
       ])
       .setFooter({
         text: `Approved by ${approvedUsersDisplayName}`,
-        // biome-ignore lint/style/useNamingConvention: uncontrolled property name
         iconURL: approvedBy.displayAvatarURL(),
       })
       .setColor(Colors.Green)

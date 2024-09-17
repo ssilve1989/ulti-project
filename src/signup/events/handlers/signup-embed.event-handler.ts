@@ -37,7 +37,6 @@ class SignupEmbedEventHandler
       .setColor(Colors.Green)
       .setFooter({
         text: `Approved by ${displayName}`,
-        // biome-ignore lint/style/useNamingConvention: uncontrolled property name
         iconURL: reviewedBy.displayAvatarURL(),
       })
       .setTimestamp(new Date());
@@ -61,7 +60,6 @@ class SignupEmbedEventHandler
       .setDescription(null)
       .setFooter({
         text: `Declined by ${displayName}`,
-        // biome-ignore lint/style/useNamingConvention: uncontrolled property name
         iconURL: reviewedBy.displayAvatarURL(),
       })
       .setColor(Colors.Red)

@@ -32,13 +32,9 @@ You can reach out to a coordinator to discuss any issues.
 } as const;
 
 export const SIGNUP_REVIEW_REACTIONS: Record<SignupStatusValues, string> = {
-  // biome-ignore lint/style/useNamingConvention: using literal enum values as keys
   APPROVED: '✅',
-  // biome-ignore lint/style/useNamingConvention: using literal enum values as keys
   DECLINED: '❌',
-  // biome-ignore lint/style/useNamingConvention: using literal enum values as keys
   PENDING: ':question:',
-  // biome-ignore lint/style/useNamingConvention: using literal enum values as keys
   UPDATE_PENDING: ':question:',
 };
 
