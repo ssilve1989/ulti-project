@@ -11,19 +11,15 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "all": true,
-      "correctness": {
-        "noNodejsModules": "off"
+      "performance": {
+        "all": true
       },
       "style": {
         "noNonNullAssertion": "off",
-        "useImportType": "off",
-        "noParameterProperties": "off",
-        "noNamespaceImport": "off"
+        "useImportType": "off"
       },
       "suspicious": {
-        "noExplicitAny": "off",
-        "noConsoleLog": "error"
+        "noExplicitAny": "off"
       },
       "nursery": {}
     }

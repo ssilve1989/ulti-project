@@ -32,7 +32,6 @@ class SignupInteractionDto
   encounter: Encounter;
 
   @IsUrl(
-    // biome-ignore lint/style/useNamingConvention: <we don't controls this property>
     { host_whitelist: PROG_PROOF_HOSTS_WHITELIST },
     {
       message: WHITELIST_VALIDATION_ERROR,
