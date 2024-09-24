@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.0](https://github.com/ssilve1989/ulti-project/compare/v1.16.1...v1.17.0) (2024-09-24)
+
+
+### Features
+
+* support application mode configuration for encounters ([#479](https://github.com/ssilve1989/ulti-project/issues/479)) ([af8cc34](https://github.com/ssilve1989/ulti-project/commit/af8cc34046dbef2a32eef3119b22f24b2eb7e9dc))
+
 ## [1.16.1](https://github.com/ssilve1989/ulti-project/compare/v1.16.0...v1.16.1) (2024-09-13)
 
 
