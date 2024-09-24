@@ -16,11 +16,11 @@ import { TurboProgCommand } from '../turboprog/commands/turbo-prog.commands.js';
 import { BlacklistSlashCommand } from './commands/blacklist.js';
 import { LookupSlashCommand } from './commands/lookup.js';
 import { RemoveRoleSlashCommand } from './commands/remove-role.js';
-import { RemoveSignupSlashCommand } from './commands/remove-signup.js';
+import { REMOVE_SIGNUP_SLASH_COMMAND_NAME } from './commands/remove-signup.js';
 import { SettingsSlashCommand } from './commands/settings.js';
-import { SignupSlashCommand } from './commands/signup.js';
+import { SIGNUP_SLASH_COMMAND_NAME } from './commands/signup.js';
 import { StatusSlashCommand } from './commands/status.js';
-import { TurboProgSlashCommand } from './commands/turbo-prog-signup.js';
+import { TURBO_PROG_SLASH_COMMAND_NAME } from './commands/turbo-prog-signup.js';
 import type { DiscordCommand } from './slash-commands.interfaces.js';
 
 /**
@@ -42,7 +42,7 @@ export function getCommandForInteraction(
         .run();
     })
     .with(LookupSlashCommand.name, () => new LookupCommand(interaction))
-    .with(SignupSlashCommand.name, () => new SignupCommand(interaction))
+    .with(SIGNUP_SLASH_COMMAND_NAME, () => new SignupCommand(interaction))
     .with(StatusSlashCommand.name, () => new StatusCommand(interaction))
     .with(SettingsSlashCommand.name, () => {
       const subcommand = interaction.options.getSubcommand();
@@ -52,10 +52,13 @@ export function getCommandForInteraction(
         .run();
     })
     .with(
-      RemoveSignupSlashCommand.name,
+      REMOVE_SIGNUP_SLASH_COMMAND_NAME,
       () => new RemoveSignupCommand(interaction),
     )
-    .with(TurboProgSlashCommand.name, () => new TurboProgCommand(interaction))
+    .with(
+      TURBO_PROG_SLASH_COMMAND_NAME,
+      () => new TurboProgCommand(interaction),
+    )
     .with(RemoveRoleSlashCommand.name, () => new RemoveRoleCommand(interaction))
     .otherwise(() => undefined);
 }
