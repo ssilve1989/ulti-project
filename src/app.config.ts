@@ -1,6 +1,9 @@
 import Joi from 'joi';
 
+export type ApplicationMode = 'savage' | 'ultimate' | 'savage+ultimate';
+
 export interface AppConfig {
+  APPLICATION_MODE: ApplicationMode;
   CLIENT_ID: string;
   DISCORD_TOKEN: string;
   DISCORD_REFRESH_COMMANDS: boolean;
@@ -14,6 +17,10 @@ export interface AppConfig {
 }
 
 export const configSchema = Joi.object({
+  APPLICATION_MODE: Joi.string()
+    .valid('savage', 'ultimate', 'savage+ultimate')
+    .trim()
+    .default('ultimate'),
   CLIENT_ID: Joi.string().optional(),
   DISCORD_TOKEN: Joi.string().required(),
   DISCORD_REFRESH_COMMANDS: Joi.bool().default(false),

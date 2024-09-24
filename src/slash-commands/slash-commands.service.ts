@@ -18,10 +18,17 @@ import {
   retry,
   timer,
 } from 'rxjs';
-import type { AppConfig } from '../app.config.js';
+import type { AppConfig, ApplicationMode } from '../app.config.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
-import { SLASH_COMMANDS } from './slash-commands.js';
+import { BlacklistSlashCommand } from './commands/blacklist.js';
+import { LookupSlashCommand } from './commands/lookup.js';
+import { RemoveRoleSlashCommand } from './commands/remove-role.js';
+import { createRemoveSignupSlashCommand } from './commands/remove-signup.js';
+import { SettingsSlashCommand } from './commands/settings.js';
+import { createSignupSlashCommand } from './commands/signup.js';
+import { StatusSlashCommand } from './commands/status.js';
+import { createTurboProgSlashCommand } from './commands/turbo-prog-signup.js';
 import { getCommandForInteraction } from './slash-commands.utils.js';
 
 @Injectable()
@@ -103,13 +110,27 @@ class SlashCommandsService {
     guildId: string,
     rest: REST,
   ) {
+    const applicationMode =
+      this.configService.get<ApplicationMode>('APPLICATION_MODE');
+
+    const slashCommands = [
+      BlacklistSlashCommand,
+      createRemoveSignupSlashCommand(applicationMode),
+      createSignupSlashCommand(applicationMode),
+      createTurboProgSlashCommand(applicationMode),
+      LookupSlashCommand,
+      RemoveRoleSlashCommand,
+      SettingsSlashCommand,
+      StatusSlashCommand,
+    ];
+
     return defer(async () => {
       await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
-        body: SLASH_COMMANDS,
+        body: slashCommands,
       });
 
       this.logger.log(
-        `Successfully registered ${SLASH_COMMANDS.length} application commands for guild: ${guildId}`,
+        `Successfully registered ${slashCommands.length} application commands for guild: ${guildId}`,
       );
     }).pipe(
       retry({

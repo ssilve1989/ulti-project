@@ -1,3 +1,4 @@
+import type { ApplicationMode } from '../app.config.js';
 import { PartyStatus } from '../firebase/models/signup.model.js';
 
 export enum Encounter {
@@ -385,18 +386,60 @@ export const EncounterProgPoints: Record<
   },
 };
 
+export interface EncounterChoice {
+  name: string;
+  value: Encounter;
+  modes: ApplicationMode[];
+}
+
 // The list of choices to be used in slash commands
-export const ENCOUNTER_CHOICES = [
-  // { name: 'The Omega Protocol (Ultimate)', value: Encounter.TOP },
-  // { name: 'Dragonsong Reprise (Ultimate)', value: Encounter.DSR },
-  // { name: 'The Epic of Alexander (Ultimate)', value: Encounter.TEA },
-  // { name: 'The Weapons Refrain (Ultimate)', value: Encounter.UWU },
-  // {
-  //   name: 'The Unending Coil of Bahamut (Ultimate)',
-  //   value: Encounter.UCOB,
-  // },
-  { name: 'AAC Light-Heavyweight M1 (Savage)', value: Encounter.M1S },
-  { name: 'AAC Light-Heavyweight M2 (Savage)', value: Encounter.M2S },
-  { name: 'AAC Light-Heavyweight M3 (Savage)', value: Encounter.M3S },
-  { name: 'AAC Light-Heavyweight M4 (Savage)', value: Encounter.M4S },
+export const ENCOUNTER_CHOICES: Readonly<EncounterChoice>[] = [
+  {
+    name: 'The Omega Protocol (Ultimate)',
+    value: Encounter.TOP,
+    modes: ['ultimate', 'savage+ultimate'],
+  },
+  {
+    name: 'Dragonsong Reprise (Ultimate)',
+    value: Encounter.DSR,
+    modes: ['ultimate', 'savage+ultimate'],
+  },
+  {
+    name: 'The Epic of Alexander (Ultimate)',
+    value: Encounter.TEA,
+    modes: ['ultimate', 'savage+ultimate'],
+  },
+  {
+    name: 'The Weapons Refrain (Ultimate)',
+    value: Encounter.UWU,
+    modes: ['ultimate', 'savage+ultimate'],
+  },
+  {
+    name: 'The Unending Coil of Bahamut (Ultimate)',
+    value: Encounter.UCOB,
+    modes: ['ultimate', 'savage+ultimate'],
+  },
+  {
+    name: 'AAC Light-Heavyweight M1 (Savage)',
+    value: Encounter.M1S,
+    modes: ['savage', 'savage+ultimate'],
+  },
+  {
+    name: 'AAC Light-Heavyweight M2 (Savage)',
+    value: Encounter.M2S,
+    modes: ['savage', 'savage+ultimate'],
+  },
+  {
+    name: 'AAC Light-Heavyweight M3 (Savage)',
+    value: Encounter.M3S,
+    modes: ['savage', 'savage+ultimate'],
+  },
+  {
+    name: 'AAC Light-Heavyweight M4 (Savage)',
+    value: Encounter.M4S,
+    modes: ['savage', 'savage+ultimate'],
+  },
 ];
+
+export const getEncounterChoicesForMode = (mode: ApplicationMode) =>
+  ENCOUNTER_CHOICES.filter((encounter) => encounter.modes.includes(mode));
