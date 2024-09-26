@@ -22,6 +22,7 @@ jobs:
           # Default: ''
           cache: "pnpm"
       - run: pnpm install
+      - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm lint:ci
       - run: pnpm test:ci
