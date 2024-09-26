@@ -1,10 +1,10 @@
-import { DeepMocked, createMock } from '@golevelup/ts-vitest';
+import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
 import { DiscordService } from '../discord/discord.service.js';
 import { SignupCollection } from '../firebase/collections/signup.collection.js';
-import { SettingsDocument } from '../firebase/models/settings.model.js';
-import { SignupDocument } from '../firebase/models/signup.model.js';
+import type { SettingsDocument } from '../firebase/models/settings.model.js';
+import type { SignupDocument } from '../firebase/models/signup.model.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
 

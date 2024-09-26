@@ -1,13 +1,13 @@
-import { DeepMocked, createMock } from '@golevelup/ts-vitest';
+import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { GuildMember, TextChannel } from 'discord.js';
-import { Mock } from 'vitest';
+import type { Mock } from 'vitest';
 import { MissingChannelException } from '../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import {
-  SignupDocument,
+  type SignupDocument,
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
 import { SendSignupReviewCommandHandler } from './send-signup-review.command-handler.js';

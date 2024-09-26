@@ -1,4 +1,4 @@
-import { DeepMocked, createMock } from '@golevelup/ts-vitest';
+import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import {
   ChannelSelectMenuInteraction,
@@ -14,7 +14,7 @@ import { SettingsCollection } from '../../../firebase/collections/settings-colle
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import {
   PartyStatus,
-  SignupDocument,
+  type SignupDocument,
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';

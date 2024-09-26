@@ -1,4 +1,4 @@
-import { DeepMocked, createMock } from '@golevelup/ts-vitest';
+import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, Role } from 'discord.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';

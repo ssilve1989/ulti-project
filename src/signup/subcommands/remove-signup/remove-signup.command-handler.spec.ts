@@ -1,4 +1,4 @@
-import { DeepMocked, createMock } from '@golevelup/ts-vitest';
+import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { EventBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, Colors, User } from 'discord.js';
@@ -11,7 +11,7 @@ import { SettingsCollection } from '../../../firebase/collections/settings-colle
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { DocumentNotFoundException } from '../../../firebase/firebase.exceptions.js';
 import {
-  SignupDocument,
+  type SignupDocument,
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
