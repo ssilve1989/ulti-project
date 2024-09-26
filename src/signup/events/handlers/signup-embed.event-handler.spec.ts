@@ -1,8 +1,8 @@
-import { DeepMocked, createMock } from '@golevelup/ts-vitest';
+import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { Colors, Message, User } from 'discord.js';
 import { DiscordService } from '../../../discord/discord.service.js';
-import { SignupDocument } from '../../../firebase/models/signup.model.js';
+import type { SignupDocument } from '../../../firebase/models/signup.model.js';
 import { SignupApprovedEvent, SignupDeclinedEvent } from '../signup.events.js';
 import { UpdateApprovalEmbedEventHandler } from './signup-embed.event-handler.js';
 
