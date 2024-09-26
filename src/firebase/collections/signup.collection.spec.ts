@@ -1,8 +1,8 @@
-import { DeepMocked, createMock } from '@golevelup/ts-vitest';
+import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import {
   CollectionReference,
-  DocumentData,
+  type DocumentData,
   DocumentReference,
   DocumentSnapshot,
   Firestore,
@@ -11,10 +11,10 @@ import {
   QuerySnapshot,
 } from 'firebase-admin/firestore';
 import { Encounter } from '../../encounters/encounters.consts.js';
-import { SignupInteractionDto } from '../../slash-commands/signup/signup-interaction.dto.js';
+import type { SignupInteractionDto } from '../../signup/signup-interaction.dto.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
-import { SignupDocument, SignupStatus } from '../models/signup.model.js';
+import { type SignupDocument, SignupStatus } from '../models/signup.model.js';
 import { SignupCollection } from './signup.collection.js';
 
 const SIGNUP_KEY = {
