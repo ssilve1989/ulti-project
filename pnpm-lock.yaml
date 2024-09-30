@@ -78,8 +78,8 @@ importers:
         specifier: ^4.3.2
         version: 4.3.2
       ts-pattern:
-        specifier: ^5.3.1
-        version: 5.3.1
+        specifier: ^5.4.0
+        version: 5.4.0
     devDependencies:
       '@biomejs/biome':
         specifier: 1.9.2
@@ -3510,8 +3510,8 @@ packages:
       '@swc/wasm':
         optional: true
 
-  ts-pattern@5.3.1:
-    resolution: {integrity: sha512-1RUMKa8jYQdNfmnK4jyzBK3/PS/tnjcZ1CW0v1vWDeYe5RBklc/nquw03MEoB66hVBm4BnlCfmOqDVxHyT1DpA==}
+  ts-pattern@5.4.0:
+    resolution: {integrity: sha512-hgfOMfjlrARCnYtGD/xEAkFHDXuSyuqjzFSltyQCbN689uNvoQL20TVN2XFcLMjfNuwSsQGU+xtH6MrjIwhwUg==}
 
   tsconfig-paths-webpack-plugin@4.1.0:
     resolution: {integrity: sha512-xWFISjviPydmtmgeUAuXp4N1fky+VCtfhOkDUFIv5ea7p4wuTomI4QTrXvFBX2S4jZsmyTSrStQl+E+4w+RzxA==}
@@ -7477,7 +7477,7 @@ snapshots:
     optionalDependencies:
       '@swc/core': 1.7.3
 
-  ts-pattern@5.3.1: {}
+  ts-pattern@5.4.0: {}
 
   tsconfig-paths-webpack-plugin@4.1.0:
     dependencies:
