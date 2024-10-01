@@ -1,38 +1,31 @@
-import { Encounter } from '../encounters/encounters.consts.js';
+import { PartyStatus } from '../firebase/models/signup.model.js';
 
 export const SHEETS_CLIENT = '@goolge/sheets-client';
 
-export const PROG_SHEET_STARTING_ROW = 15; // the row where entries start on the prog sheet
+export interface SheetRangeConfig {
+  columnStart: string;
+  columnEnd: string;
+  rowStart: number;
+}
 
-// TODO: Should not allow arbitrary index access to return not undefined
-// brittle, requires to be in sync with the sheet
-export const ProgSheetRanges: Record<string, { start: string; end: string }> = {
-  [Encounter.DSR]: {
-    start: 'Q',
-    end: 'T',
+export const SheetRanges: {
+  [PartyStatus.ClearParty]: SheetRangeConfig;
+  [PartyStatus.ProgParty]: SheetRangeConfig;
+  [PartyStatus.EarlyProgParty]: SheetRangeConfig;
+} = {
+  [PartyStatus.ClearParty]: {
+    columnStart: 'C',
+    columnEnd: 'F',
+    rowStart: 9,
   },
-  [Encounter.TEA]: {
-    start: 'L',
-    end: 'O',
+  [PartyStatus.ProgParty]: {
+    columnStart: 'I',
+    columnEnd: 'L',
+    rowStart: 9,
   },
-  [Encounter.TOP]: {
-    start: 'V',
-    end: 'Y',
-  },
-  [Encounter.UCOB]: {
-    start: 'B',
-    end: 'E',
-  },
-  [Encounter.UWU]: {
-    start: 'G',
-    end: 'J',
+  [PartyStatus.EarlyProgParty]: {
+    columnStart: 'I',
+    columnEnd: 'L',
+    rowStart: 9,
   },
 };
-
-export function columnToIndex(column: string) {
-  let index = 0;
-  for (let i = 0; i < column.length; i++) {
-    index = index * 26 + column.charCodeAt(i) - 'A'.charCodeAt(0) + 1;
-  }
-  return index - 1; // Convert to zero-based index
-}
