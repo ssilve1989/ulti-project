@@ -1,4 +1,4 @@
-import { columnToIndex } from './sheets.consts.js';
+import { columnToIndex } from './sheets.utils.js';
 
 describe('#columnToIndex', () => {
   it('should convert an alphabetic column to an index', () => {
