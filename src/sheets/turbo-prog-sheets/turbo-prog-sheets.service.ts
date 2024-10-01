@@ -6,9 +6,9 @@ import { AsyncQueue } from '../../common/async-queue/async-queue.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import type { TurboProgEntry } from '../../turboprog/turbo-prog.interfaces.js';
 import { sheetsConfig } from '../sheets.config.js';
-import { columnToIndex } from '../sheets.consts.js';
 import { InjectSheetsClient } from '../sheets.decorators.js';
 import {
+  columnToIndex,
   findCharacterRowIndex,
   getSheetIdByName,
   updateSheet,
