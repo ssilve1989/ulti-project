@@ -15,10 +15,11 @@ export const SIGNUP_MESSAGES = {
     'Confirmed! A coordinator will review your submission and reach out to you soon. You can use `/status` to review the state of your signups.',
   // TODO: Find a CMS-esque type of way of managing this rather than hardcoding these reasons
   SIGNUP_SUBMISSION_DENIED: `
-Your signup has been denied. Possible reasons:
+We're sorry but your signup could not currently be approved. Possible reasons include:
 - Signup doesn't meet new qualifications. Check <#1074471023178686514> for the latest information
-- Signup lacks valid proof of progpoint
+- Signup lacks valid proof of requested prog point.
 - You already cleared the encounter you signed-up for
+- Mechanics prior to the requested prog point not performed cleanly
 You can reach out to a coordinator to discuss any issues.
 `,
   UNEXPECTED_PROG_SELECTION_ERROR:
