@@ -1,5 +1,5 @@
 ARG NODE_VERSION=20.16.0
-FROM node:${NODE_VERSION}-slim as base
+FROM node:${NODE_VERSION}-slim AS base
 
 LABEL fly_launch_runtime="NestJS"
 
@@ -16,7 +16,7 @@ COPY scripts /app/scripts
 
 WORKDIR /app
 
-FROM base as prod-deps
+FROM base AS prod-deps
 
 ENV NODE_ENV="production"
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
