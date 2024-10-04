@@ -3,6 +3,14 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        // disables Node's DeprecationWarnings
+        // specifically about punycode in Node 21+ being deprecated
+        execArgv: ['--disable-warning=DeprecationWarning'],
+      },
+    },
     setupFiles: ['./test/test-setup.ts'],
     globals: true,
     coverage: {
