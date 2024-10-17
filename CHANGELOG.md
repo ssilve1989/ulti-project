@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.2](https://github.com/ssilve1989/ulti-project/compare/v1.17.1...v1.17.2) (2024-10-17)
+
+
+### Bug Fixes
+
+* **remove-signup:** find document by props instead of discordId ([#512](https://github.com/ssilve1989/ulti-project/issues/512)) ([4a19268](https://github.com/ssilve1989/ulti-project/commit/4a19268c3a827a71a8a01d2f8c6c838a5f3f41bb)), closes [#509](https://github.com/ssilve1989/ulti-project/issues/509)
+* **remove-signup:** handle UPDATE_PENDING as valid status for sheet removal ([#510](https://github.com/ssilve1989/ulti-project/issues/510)) ([93ad9d4](https://github.com/ssilve1989/ulti-project/commit/93ad9d4b354640d661f5425754a4e96de47021a5)), closes [#508](https://github.com/ssilve1989/ulti-project/issues/508)
+
 ## [1.17.1](https://github.com/ssilve1989/ulti-project/compare/v1.17.0...v1.17.1) (2024-10-01)
 
 
