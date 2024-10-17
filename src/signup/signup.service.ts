@@ -258,7 +258,11 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     }
 
     if (hasCleared) {
-      await this.repository.removeSignup(signup);
+      await this.repository.removeSignup({
+        character: signup.character,
+        world: signup.world,
+        encounter: signup.encounter,
+      });
     } else {
       await this.repository.updateSignupStatus(
         SignupStatus.APPROVED,

@@ -153,9 +153,13 @@ class SignupCollection {
   }
 
   @SentryTraced()
-  public removeSignup(signup: SignupCompositeKey) {
-    const key = SignupCollection.getKeyForSignup(signup);
-    return this.collection.doc(key).delete();
+  public async removeSignup({
+    character,
+    world,
+    encounter,
+  }: ExactType<SignupDocument, 'character' | 'encounter' | 'world'>) {
+    const doc = await this.where({ character, encounter, world }).get();
+    return Promise.all(doc.docs.map((doc) => doc.ref.delete()));
   }
 
   /**
