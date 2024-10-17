@@ -143,7 +143,11 @@ class RemoveSignupCommandHandler
     const scope = Sentry.getCurrentScope();
     let description = REMOVAL_SUCCESS;
     // If the signup exists and has been approved, we expect to find it on the sheet
-    if (spreadsheetId && signup.status === SignupStatus.APPROVED) {
+    const validStatus =
+      signup.status === SignupStatus.APPROVED ||
+      signup.status === SignupStatus.UPDATE_PENDING;
+
+    if (spreadsheetId && validStatus) {
       const response = await this.sheetsService.removeSignup(
         dto,
         spreadsheetId,
