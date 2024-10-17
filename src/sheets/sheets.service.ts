@@ -79,7 +79,7 @@ class SheetsService {
       encounter,
       character,
       world,
-    }: SignupCompositeKeyProps & Pick<SignupDocument, 'character' | 'world'>,
+    }: Pick<SignupDocument, 'encounter' | 'character' | 'world'>,
     spreadsheetId: string,
     partyTypes?: (
       | PartyStatus.ClearParty

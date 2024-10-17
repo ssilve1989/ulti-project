@@ -38,7 +38,7 @@ import { RemoveSignupDto } from './remove-signup.dto.js';
 import { RemoveSignupEvent } from './remove-signup.events.js';
 
 type RemoveSignupProps = {
-  dto: RemoveSignupDto & { discordId: string };
+  dto: RemoveSignupDto;
   signup: SignupDocument;
   guildId: string;
   spreadsheetId?: string;
@@ -63,7 +63,6 @@ class RemoveSignupCommandHandler
     const scope = Sentry.getCurrentScope();
     const options = {
       ...this.getOptions(interaction),
-      discordId: interaction.user.id,
     };
 
     scope.setExtra('options', options);
