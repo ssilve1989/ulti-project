@@ -1,14 +1,16 @@
 import { sheets_v4 } from '@googleapis/sheets';
 import { Injectable, Logger } from '@nestjs/common';
+import * as Sentry from '@sentry/node';
 import { titleCase } from 'title-case';
+import { match } from 'ts-pattern';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
 import { Encounter } from '../encounters/encounters.consts.js';
-import type { SignupCompositeKeyProps } from '../firebase/models/signup.model.js';
 import {
   PartyStatus,
   type SignupDocument,
 } from '../firebase/models/signup.model.js';
 import { SentryTraced } from '../observability/span.decorator.js';
+import { sentryReport } from '../sentry/sentry.consts.js';
 import { type SheetRangeConfig, SheetRanges } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
 import {
@@ -180,18 +182,32 @@ class SheetsService {
    */
   @SentryTraced()
   public async getSheetMetadata(spreadsheetId: string) {
-    const response = await this.client.spreadsheets.get({
-      spreadsheetId,
-      includeGridData: false,
-    });
-
-    // Assuming you want the name of the first sheet
-    const title = response.data.properties?.title ?? 'Untitled Spreadsheet';
-
     // Generate a link to the sheet
     const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=0`;
 
-    return { title, url };
+    try {
+      const response = await this.client.spreadsheets.get({
+        spreadsheetId,
+        includeGridData: false,
+      });
+
+      // Assuming you want the name of the first sheet
+      const title = response.data.properties?.title ?? 'Untitled Spreadsheet';
+
+      return { title, url };
+    } catch (e) {
+      Sentry.getCurrentScope().setExtra('spreadsheetId', spreadsheetId);
+      sentryReport(e);
+
+      return match(e)
+        .with({ code: 404 }, () => ({
+          title: 'Deleted Spreadsheet',
+          url,
+        }))
+        .otherwise(() => {
+          throw e;
+        });
+    }
   }
 
   @SentryTraced()
