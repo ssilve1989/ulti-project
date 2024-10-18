@@ -7,6 +7,7 @@ export interface AppConfig {
   CLIENT_ID: string;
   DISCORD_TOKEN: string;
   DISCORD_REFRESH_COMMANDS: boolean;
+  FFLOGS_API_ACCESS_TOKEN: string;
   GCP_PRIVATE_KEY: string;
   GCP_ACCOUNT_EMAIL: string;
   GCP_PROJECT_ID: string;
@@ -16,7 +17,7 @@ export interface AppConfig {
   PUBLIC_KEY: string;
 }
 
-export const configSchema = Joi.object({
+export const configSchema = Joi.object<AppConfig>({
   APPLICATION_MODE: Joi.string()
     .valid('savage', 'ultimate', 'savage+ultimate')
     .trim()
@@ -24,6 +25,7 @@ export const configSchema = Joi.object({
   CLIENT_ID: Joi.string().optional(),
   DISCORD_TOKEN: Joi.string().required(),
   DISCORD_REFRESH_COMMANDS: Joi.bool().default(false),
+  FFLOGS_API_ACCESS_TOKEN: Joi.string().required(),
   GCP_PRIVATE_KEY: Joi.string().required(),
   GCP_ACCOUNT_EMAIL: Joi.string().required(),
   GCP_PROJECT_ID: Joi.string().required(),
