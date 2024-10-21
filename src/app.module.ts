@@ -38,7 +38,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
       cache: true,
       envFilePath: ['.env', '.env.development'],
       ignoreEnvFile: process.env.NODE_ENV === 'production',
-      validationSchema: configSchema,
+      validate: (config) => configSchema.parse(config),
     }),
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
