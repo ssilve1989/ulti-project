@@ -38,7 +38,10 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
       cache: true,
       envFilePath: ['.env', '.env.development'],
       ignoreEnvFile: process.env.NODE_ENV === 'production',
-      validate: (config) => configSchema.parse(config),
+      // Note: `passthrough` is required or the values parsed by the env files will not
+      // be assigned to `process.env`. This means all ConfigModule.forFeature invocations will fail
+      // since nothing will be on process.env that is sourced from .env files
+      validate: (config) => configSchema.passthrough().parse(config),
     }),
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
