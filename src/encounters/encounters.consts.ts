@@ -152,6 +152,10 @@ export const EncounterProgPoints: Record<
       label: 'Phase 3: Wormhole',
       partyStatus: PartyStatus.ProgParty,
     },
+    'J Waves': {
+      label: 'Phase 3: J Waves',
+      partyStatus: PartyStatus.ProgParty,
+    },
     'Final Word': {
       label: 'Phase 4: Final Word',
       partyStatus: PartyStatus.ClearParty,
