@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.3](https://github.com/ssilve1989/ulti-project/compare/v1.17.2...v1.17.3) (2024-10-26)
+
+
+### Bug Fixes
+
+* fixes env var injection ([977e037](https://github.com/ssilve1989/ulti-project/commit/977e037abd34839366c8e2fda5a4327c5a055354))
+* **sheets:** fix handling of deleted spreadsheets when requesting metadata ([#513](https://github.com/ssilve1989/ulti-project/issues/513)) ([333e2b3](https://github.com/ssilve1989/ulti-project/commit/333e2b376996b4a2c3347d161c9f4ebe074aa664))
+
 ## [1.17.2](https://github.com/ssilve1989/ulti-project/compare/v1.17.1...v1.17.2) (2024-10-17)
 
 
