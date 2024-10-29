@@ -43,7 +43,7 @@
     "class-validator": "^0.14.1",
     "dayjs": "^1.11.13",
     "discord.js": "^14.16.3",
-    "firebase-admin": "^12.6.0",
+    "firebase-admin": "^12.7.0",
     "google-auth-library": "^9.14.2",
     "nestjs-pino": "^4.1.0",
     "pino-http": "^10.3.0",
