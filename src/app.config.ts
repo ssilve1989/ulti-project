@@ -8,7 +8,7 @@ export const configSchema = z.object({
     .default('ultimate'),
   CLIENT_ID: z.string(),
   DISCORD_TOKEN: z.string(),
-  DISCORD_REFRESH_COMMANDS: z.boolean().default(false),
+  DISCORD_REFRESH_COMMANDS: z.coerce.boolean().default(false),
   GCP_PRIVATE_KEY: z.string(),
   GCP_ACCOUNT_EMAIL: z.string(),
   GCP_PROJECT_ID: z.string(),
