@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.4](https://github.com/ssilve1989/ulti-project/compare/v1.17.3...v1.17.4) (2024-10-30)
+
+
+### Miscellaneous Chores
+
+* release v1.17.4 ([e042168](https://github.com/ssilve1989/ulti-project/commit/e0421682d2f65d228ecc887437cab4d9ae70767c))
+
 ## [1.17.3](https://github.com/ssilve1989/ulti-project/compare/v1.17.2...v1.17.3) (2024-10-26)
 
 
