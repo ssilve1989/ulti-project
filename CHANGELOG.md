@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.5](https://github.com/ssilve1989/ulti-project/compare/v1.17.4...v1.17.5) (2024-10-30)
+
+
+### Bug Fixes
+
+* fix coercion of env values ([686ec29](https://github.com/ssilve1989/ulti-project/commit/686ec29dfbb965386079262e309256bd3c15f330))
+
 ## [1.17.4](https://github.com/ssilve1989/ulti-project/compare/v1.17.3...v1.17.4) (2024-10-30)
 
 
