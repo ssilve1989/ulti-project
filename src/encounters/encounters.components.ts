@@ -1,4 +1,7 @@
-import { StringSelectMenuBuilder } from 'discord.js';
+import {
+  type SelectMenuComponentOptionData,
+  StringSelectMenuBuilder,
+} from 'discord.js';
 import { PartyStatus } from '../firebase/models/signup.model.js';
 import {
   Encounter,
@@ -12,82 +15,57 @@ const progPointMapperFn = ([key, { label }]: [string, ProgPointOption]) => ({
   value: key,
 });
 
-const clearedOption = {
+export const CLEARED_OPTION = {
   label: 'Cleared',
   value: PartyStatus.Cleared,
-};
+} as Readonly<SelectMenuComponentOptionData>;
 
-// TODO: consolidate these progPointOptions assignments to a single reduce over EncounterProgPoints
-const ucobProgOptions = Object.entries(EncounterProgPoints[Encounter.UCOB]).map(
-  progPointMapperFn,
-);
-
-const uwuProgOptions = Object.entries(EncounterProgPoints[Encounter.UWU]).map(
-  progPointMapperFn,
-);
-
-const teaProgOptions = Object.entries(EncounterProgPoints[Encounter.TEA]).map(
-  progPointMapperFn,
-);
-
-const dsrProgOptions = Object.entries(EncounterProgPoints[Encounter.DSR]).map(
-  progPointMapperFn,
-);
-
-const topProgOptions = Object.entries(EncounterProgPoints[Encounter.TOP]).map(
-  progPointMapperFn,
-);
-
-const m1sProgOptions = Object.entries(EncounterProgPoints[Encounter.M1S]).map(
-  progPointMapperFn,
-);
-
-const m2sProgOptions = Object.entries(EncounterProgPoints[Encounter.M2S]).map(
-  progPointMapperFn,
-);
-
-const m3sProgOptions = Object.entries(EncounterProgPoints[Encounter.M3S]).map(
-  progPointMapperFn,
-);
-
-const m4sProgOptions = Object.entries(EncounterProgPoints[Encounter.M4S]).map(
-  progPointMapperFn,
+export const progPointOptions: Readonly<
+  Record<Encounter, SelectMenuComponentOptionData[]>
+> = Object.entries(EncounterProgPoints).reduce(
+  (acc, [encounter, progPoints]) => {
+    acc[encounter as Encounter] = Object.entries(progPoints)
+      .map(progPointMapperFn)
+      .concat(CLEARED_OPTION);
+    return acc;
+  },
+  {} as Record<Encounter, SelectMenuComponentOptionData[]>,
 );
 
 const UCOB_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(...ucobProgOptions, clearedOption)
+  .addOptions(progPointOptions.UCOB)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 const UWU_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(...uwuProgOptions, clearedOption)
+  .addOptions(progPointOptions.UWU)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 const TEA_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(...teaProgOptions, clearedOption)
+  .addOptions(progPointOptions.TEA)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 const DSR_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(...dsrProgOptions, clearedOption)
+  .addOptions(progPointOptions.DSR)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 const TOP_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(...topProgOptions, clearedOption)
+  .addOptions(progPointOptions.TOP)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 const M1S_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(...m1sProgOptions, clearedOption)
+  .addOptions(progPointOptions.M1S)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 const M2S_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(...m2sProgOptions, clearedOption)
+  .addOptions(progPointOptions.M2S)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 const M3S_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(...m3sProgOptions, clearedOption)
+  .addOptions(progPointOptions.M3S)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 const M4S_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(...m4sProgOptions, clearedOption)
+  .addOptions(progPointOptions.M4S)
   .setCustomId(PROG_POINT_SELECT_ID);
 
 /**
