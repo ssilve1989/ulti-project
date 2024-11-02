@@ -11,8 +11,14 @@ export const SIGNUP_MESSAGES = {
     'You did not respond in time. The signup has not been approved. Please react to the message again to approve this signup',
   SIGNUP_SUBMISSION_CANCELLED:
     'Signup canceled. Please use /signup if you wish to try again.',
-  SIGNUP_SUBMISSION_CONFIRMED:
-    'Confirmed! A coordinator will review your submission and reach out to you soon. You can use `/status` to review the state of your signups.',
+  SIGNUP_SUBMISSION_CONFIRMED: `Your signup has been successfully submitted! 🎉. You can use 
+    \`status\` to review the state of your signups.
+
+    **Common Questions:**
+    • How can I update my signup? You can submit a new one anytime.
+    • What do I do if I cleared? You can submit again with your prog point as "Cleared" or use the \'/remove-signup\' command.
+    • What do I do if I don't want to be signed up anymore? You can use the \'/remove-signup\' command.
+    `,
   // TODO: Find a CMS-esque type of way of managing this rather than hardcoding these reasons
   SIGNUP_SUBMISSION_DENIED: `
 We're sorry but your signup could not currently be approved. Possible reasons include:
