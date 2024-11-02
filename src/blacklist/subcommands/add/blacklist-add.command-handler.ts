@@ -20,12 +20,14 @@ class BlacklistAddCommandHandler
 
     const discordId = getDiscordId(interaction);
     const characterName = interaction.options.getString('character');
+    const lodestoneId = interaction.options.getInteger('lodestone-id');
     const reason = interaction.options.getString('reason', true);
 
     const props: BlacklistDocument = {
       discordId,
       characterName: characterName?.toLowerCase() ?? null,
       reason,
+      lodestoneId,
     };
 
     const entry = await this.blacklistCollection.upsert(guildId, props);

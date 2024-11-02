@@ -69,7 +69,10 @@ class BlacklistCollection {
    */
   public remove(
     guildId: string,
-    props: BlacklistDocumentKeys,
+    props: ExactType<
+      BlacklistDocument,
+      'discordId' | 'characterName' | 'lodestoneId'
+    >,
   ): Promise<BlacklistDocument | undefined> {
     const pipeline$ = this.query$(guildId, props).pipe(
       mergeMap(async (result) => {

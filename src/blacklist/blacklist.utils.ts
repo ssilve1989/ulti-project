@@ -33,11 +33,15 @@ export function createBlacklistEmbedFields({
   characterName,
   discordId,
   reason,
+  lodestoneId,
 }: BlacklistDocument): APIEmbedField[] {
   const displayName = getDisplayName({ characterName, discordId });
+
   return [
     { name: 'Player', value: displayName, inline: true },
     { name: 'Reason', value: reason, inline: true },
-    { name: '\u200b', value: '\u200b', inline: true },
+    lodestoneId
+      ? { name: 'Lodestone ID', value: String(lodestoneId), inline: true }
+      : { name: '\u200b', value: '\u200b', inline: true },
   ];
 }

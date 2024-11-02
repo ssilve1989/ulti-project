@@ -19,10 +19,12 @@ class BlacklistRemoveCommandHandler
 
     const discordId = getDiscordId(interaction);
     const characterName = interaction.options.getString('character');
+    const lodestoneId = interaction.options.getInteger('lodestone-id');
 
     const entry = await this.blacklistCollection.remove(guildId, {
       discordId,
       characterName: characterName?.toLowerCase() ?? null,
+      lodestoneId,
     });
 
     await interaction.editReply('Success!');
