@@ -1,6 +1,7 @@
 import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { GuildMember, TextChannel } from 'discord.js';
+import { Timestamp } from 'firebase-admin/firestore';
 import type { Mock } from 'vitest';
 import { MissingChannelException } from '../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../discord/discord.service.js';
@@ -18,16 +19,21 @@ describe('Send Signup Review Command Handler', () => {
   let discordServiceMock: DeepMocked<DiscordService>;
 
   let get: Mock;
-  const signup = createMock<SignupDocument>({
+  const signup: SignupDocument = {
     availability: 'baz',
     character: 'foo',
+    discordId: '12345',
     encounter: Encounter.DSR,
+    expiresAt: Timestamp.now(),
+    notes: 'im a note',
+    progPointRequested: 'baz',
+    proofOfProgLink: 'www.fflogs.com/reports/foo',
     role: 'healer',
     screenshot: 'http://somelinksurely',
     status: SignupStatus.PENDING,
+    username: 'username',
     world: 'bar',
-    progPointRequested: 'baz',
-  });
+  };
 
   beforeEach(async () => {
     get = vi.fn(() => undefined);
@@ -65,7 +71,7 @@ describe('Send Signup Review Command Handler', () => {
       createMock<GuildMember>({
         displayAvatarURL: () => 'http://foo',
         toString: () => '<@ay>',
-        valueOf: () => '',
+        valueOf: () => 'some value',
       }),
     );
 

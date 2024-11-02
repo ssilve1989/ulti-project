@@ -1,8 +1,8 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { Encounter } from '../../encounters/encounters.consts.js';
-import { SignupInteractionDto } from '../signup-interaction.dto.js';
-import { PROG_PROOF_HOSTS_WHITELIST } from '../signup.consts.js';
+import { Encounter } from '../encounters/encounters.consts.js';
+import { SignupInteractionDto } from './signup-interaction.dto.js';
+import { PROG_PROOF_HOSTS_WHITELIST } from './signup.consts.js';
 
 function createBaseObject(proofOfProgLink: string) {
   return {

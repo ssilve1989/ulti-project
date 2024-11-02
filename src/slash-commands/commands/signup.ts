@@ -65,5 +65,11 @@ export function createSignupSlashCommand(mode: ApplicationMode) {
       option
         .setName('screenshot')
         .setDescription('Screenshot proof of prog point'),
+    )
+    .addStringOption((option) =>
+      option
+        .setDescription('Additional notes about your signup (optional)')
+        .setName('notes')
+        .setMaxLength(256),
     );
 }

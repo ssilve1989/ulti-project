@@ -1,4 +1,10 @@
-import { IsEnum, IsString, IsUrl, ValidateIf } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUrl,
+  ValidateIf,
+} from 'class-validator';
 import { ToLowercase } from '../common/decorators/to-lowercase.js';
 import { TransformUrl } from '../common/decorators/transform-url.js';
 import { IsValidWorld } from '../common/validators/is-valid-world.js';
@@ -30,6 +36,10 @@ class SignupInteractionDto
 
   @IsEnum(Encounter)
   encounter: Encounter;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
 
   @IsUrl(
     { host_whitelist: PROG_PROOF_HOSTS_WHITELIST },
