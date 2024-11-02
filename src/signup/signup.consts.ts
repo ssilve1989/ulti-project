@@ -16,8 +16,8 @@ export const SIGNUP_MESSAGES = {
 
     **Common Questions:**
     • How can I update my signup? You can submit a new one anytime.
-    • What do I do if I cleared? You can submit again with your prog point as "Cleared" or use the \'/remove-signup\' command.
-    • What do I do if I don't want to be signed up anymore? You can use the \'/remove-signup\' command.
+    • What do I do if I cleared? You can submit again with your prog point as "Cleared" or use the \`/remove-signup\` command.
+    • What do I do if I don't want to be signed up anymore? You can use the \`/remove-signup\` command.
     `,
   // TODO: Find a CMS-esque type of way of managing this rather than hardcoding these reasons
   SIGNUP_SUBMISSION_DENIED: `
