@@ -1,6 +1,7 @@
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import { type APIEmbedField, EmbedBuilder } from 'discord.js';
 import { titleCase } from 'title-case';
+import { createFields } from '../../../common/embed-helpers.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { getDisplayName } from '../../blacklist.utils.js';
@@ -28,13 +29,18 @@ class BlacklistUpdatedEventHandler
 
     const toFrom = type === 'added' ? 'to' : 'from';
 
-    const fields: APIEmbedField[] = [
+    const fields = createFields([
       {
         name: 'User',
         value: titleCase(getDisplayName(entry)),
         inline: true,
       },
-    ];
+      {
+        name: 'Lodestone ID',
+        value: entry.lodestoneId?.toString(),
+        inline: true,
+      },
+    ]);
 
     if (type === 'added') {
       fields.push({ name: 'Reason', value: entry.reason, inline: true });
