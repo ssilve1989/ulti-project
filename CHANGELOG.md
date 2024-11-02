@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.18.0](https://github.com/ssilve1989/ulti-project/compare/v1.17.5...v1.18.0) (2024-11-02)
+
+
+### Features
+
+* **blacklist:** add lodestone-id field ([#533](https://github.com/ssilve1989/ulti-project/issues/533)) ([895167a](https://github.com/ssilve1989/ulti-project/commit/895167a6a80fb565bde454331e0a6350bf59fa1a))
+* **signups:** adds a Notes field for additional signup information ([#531](https://github.com/ssilve1989/ulti-project/issues/531)) ([40f2e91](https://github.com/ssilve1989/ulti-project/commit/40f2e910685b12f396d28d6da48c9d148aae255a))
+
 ## [1.17.5](https://github.com/ssilve1989/ulti-project/compare/v1.17.4...v1.17.5) (2024-10-30)
 
 
