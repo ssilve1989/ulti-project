@@ -5,6 +5,7 @@ import {
   characterField,
   worldField,
 } from '../../../common/components/fields.js';
+import { createFields } from '../../../common/embed-helpers.js';
 import { MissingChannelException } from '../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import {
@@ -87,6 +88,7 @@ class SendSignupReviewCommandHandler
       availability,
       character,
       encounter,
+      notes,
       proofOfProgLink,
       screenshot,
       world,
@@ -98,40 +100,31 @@ class SendSignupReviewCommandHandler
     const emoji = this.discordService.getEmojiString(EncounterEmoji[encounter]);
     const avatarUrl = member?.displayAvatarURL();
 
-    let embed = new EmbedBuilder()
+    const fields = createFields([
+      characterField(character),
+      worldField(world, 'Home World'),
+      { name: 'Job', value: role, inline: true },
+      { name: 'Prog Point', value: progPointRequested, inline: true },
+      { name: 'Prog Proof Link', value: proofOfProgLink, inline: true },
+      { name: 'Availability', value: availability, inline: true },
+      { name: 'Notes', value: notes, inline: false },
+    ]);
+
+    const embed = new EmbedBuilder()
       .setDescription(
         `Please react to approve ${SIGNUP_REVIEW_REACTIONS.APPROVED} or deny ${SIGNUP_REVIEW_REACTIONS.DECLINED} the following applicants request`,
       )
       .setTitle(
         `Signup Approval - ${EncounterFriendlyDescription[encounter]} ${emoji}`.trim(),
       )
-      .addFields([
-        characterField(character),
-        worldField(world, 'Home World'),
-        { name: 'Job', value: role, inline: true },
-        { name: 'Prog Point', value: progPointRequested, inline: true },
-      ]);
+      .addFields(fields);
 
     if (avatarUrl) {
-      embed = embed.setThumbnail(avatarUrl);
+      embed.setThumbnail(avatarUrl);
     }
-
-    if (proofOfProgLink) {
-      embed = embed.addFields([
-        {
-          name: 'Prog Proof Link',
-          value: `[View](${proofOfProgLink})`,
-          inline: true,
-        },
-      ]);
-    }
-
-    embed = embed.addFields([
-      { name: 'Availability', value: availability, inline: true },
-    ]);
 
     if (screenshot) {
-      embed = embed.setImage(screenshot);
+      embed.setImage(screenshot);
     }
 
     return embed;

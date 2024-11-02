@@ -111,13 +111,11 @@ class SendApprovedMessageEventHandler
       this.discordService.getGuildMember({ memberId: discordId, guildId }),
     ]);
 
-    const avatarUrl = progger?.displayAvatarURL();
-
     const title = hasCleared
       ? 'Congratulations!'
       : `Signup Approved - ${EncounterFriendlyDescription[encounter]} ${emoji}`.trim();
 
-    let embed = new EmbedBuilder()
+    const embed = new EmbedBuilder()
       .setTitle(title)
       .setFields([
         characterField(character),
@@ -133,7 +131,7 @@ class SendApprovedMessageEventHandler
       .setTimestamp(new Date());
 
     if (proofOfProgLink) {
-      embed = embed.addFields([
+      embed.addFields([
         {
           name: 'Prog Proof Link',
           value: `[View](${proofOfProgLink})`,
@@ -142,14 +140,15 @@ class SendApprovedMessageEventHandler
       ]);
     }
 
-    embed = embed.addFields([
+    embed.addFields([
       { name: 'Availability', value: availability, inline: true },
     ]);
 
     if (screenshot) {
-      embed = embed.setImage(screenshot);
+      embed.setImage(screenshot);
     }
 
+    const avatarUrl = progger?.displayAvatarURL();
     return avatarUrl ? embed.setThumbnail(avatarUrl) : embed;
   }
 

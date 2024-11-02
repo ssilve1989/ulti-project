@@ -22,6 +22,7 @@ import {
   characterField,
   worldField,
 } from '../../../common/components/fields.js';
+import { createFields } from '../../../common/embed-helpers.js';
 import { UnhandledButtonInteractionException } from '../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import {
@@ -179,6 +180,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       character: options.getString('character', true),
       discordId: user.id,
       encounter: options.getString('encounter', true) as Encounter,
+      notes: options.getString('notes') ?? undefined,
       proofOfProgLink: options.getString('prog-proof-link'),
       progPointRequested: options.getString('prog-point', true),
       role: options.getString('job', true),
@@ -201,38 +203,29 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     availability,
     character,
     encounter,
+    notes,
     proofOfProgLink,
     role,
     screenshot,
     world,
     progPointRequested,
   }: SignupInteractionDto) {
-    let embed = new EmbedBuilder()
+    const fields = createFields([
+      characterField(character),
+      worldField(world, 'Home World'),
+      { name: 'Job', value: role, inline: true },
+      { name: 'Prog Point', value: progPointRequested, inline: true },
+      { name: 'Availability', value: availability, inline: true },
+      { name: 'Prof Proof Link', value: proofOfProgLink, inline: true },
+      { name: 'Notes', value: notes, inline: false },
+    ]);
+
+    const embed = new EmbedBuilder()
       .setTitle(EncounterFriendlyDescription[encounter])
       .setDescription("Here's a summary of your request")
-      .addFields([
-        characterField(character),
-        worldField(world, 'Home World'),
-        { name: 'Job', value: role, inline: true },
-        { name: 'Prog Point', value: progPointRequested, inline: true },
-        { name: 'Availability', value: availability, inline: true },
-      ]);
+      .addFields(fields);
 
-    if (proofOfProgLink) {
-      embed = embed.addFields([
-        {
-          name: 'Prog Proof Link',
-          value: `[View](${proofOfProgLink})`,
-          inline: true,
-        },
-      ]);
-    }
-
-    if (screenshot) {
-      embed = embed.setImage(screenshot);
-    }
-
-    return embed;
+    return screenshot ? embed.setImage(screenshot) : embed;
   }
 
   private handleError(
