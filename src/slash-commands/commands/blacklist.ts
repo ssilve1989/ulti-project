@@ -1,6 +1,7 @@
 import {
   PermissionFlagsBits,
   SlashCommandBuilder,
+  type SlashCommandIntegerOption,
   type SlashCommandStringOption,
   SlashCommandSubcommandBuilder,
   type SlashCommandUserOption,
@@ -26,6 +27,11 @@ const characterOption = (option: SlashCommandStringOption) =>
     .setName('character')
     .setDescription('The character name incase no discord id is known');
 
+const lodestoneIdOption = (option: SlashCommandIntegerOption) =>
+  option
+    .setName('lodestone-id')
+    .setDescription('The Lodestone ID of the character');
+
 const BlacklistAddSubCommand = new SlashCommandSubcommandBuilder()
   .setName('add')
   .setDescription('A list of players to keep an eye on')
@@ -37,14 +43,16 @@ const BlacklistAddSubCommand = new SlashCommandSubcommandBuilder()
   )
   .addUserOption(userOption)
   .addStringOption(discordIdOption)
-  .addStringOption(characterOption);
+  .addStringOption(characterOption)
+  .addIntegerOption(lodestoneIdOption);
 
 const BlacklistRemoveSubCommand = new SlashCommandSubcommandBuilder()
   .setName('remove')
   .setDescription('Remove a user from the blacklist')
   .addUserOption(userOption)
   .addStringOption(discordIdOption)
-  .addStringOption(characterOption);
+  .addStringOption(characterOption)
+  .addIntegerOption(lodestoneIdOption);
 
 const BlacklistDisplayCommand = new SlashCommandSubcommandBuilder()
   .setName('display')
