@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.1](https://github.com/ssilve1989/ulti-project/compare/v1.18.0...v1.18.1) (2024-11-03)
+
+
+### Bug Fixes
+
+* **signups:** fixes prog proof link markdown ([40df444](https://github.com/ssilve1989/ulti-project/commit/40df4447b844ab81b7cb61717878d5a1f242a835))
+
 ## [1.18.0](https://github.com/ssilve1989/ulti-project/compare/v1.17.5...v1.18.0) (2024-11-02)
 
 
