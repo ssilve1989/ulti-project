@@ -105,7 +105,11 @@ class SendSignupReviewCommandHandler
       worldField(world, 'Home World'),
       { name: 'Job', value: role, inline: true },
       { name: 'Prog Point', value: progPointRequested, inline: true },
-      { name: 'Prog Proof Link', value: proofOfProgLink, inline: true },
+      {
+        name: 'Prog Proof Link',
+        value: `[View](${proofOfProgLink})`,
+        inline: true,
+      },
       { name: 'Availability', value: availability, inline: true },
       { name: 'Notes', value: notes, inline: false },
     ]);
