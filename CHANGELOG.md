@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.2](https://github.com/ssilve1989/ulti-project/compare/v1.18.1...v1.18.2) (2024-11-04)
+
+
+### Bug Fixes
+
+* adds transform helper to createFields to assist wit null transformations ([07e222c](https://github.com/ssilve1989/ulti-project/commit/07e222c7b729e38fbab37c651fc0ff17c4c45ed5))
+
 ## [1.18.1](https://github.com/ssilve1989/ulti-project/compare/v1.18.0...v1.18.1) (2024-11-03)
 
 
