@@ -18,3 +18,23 @@ describe('createFields', () => {
     ]);
   });
 });
+
+it('should apply transform function when provided', () => {
+  const fields = [
+    { name: 'Regular', value: 'hello', inline: true },
+    {
+      name: 'Transformed',
+      value: 'world',
+      inline: false,
+      transform: (value: string) => value.toUpperCase(),
+    },
+    { name: 'Null', value: null, inline: true },
+  ];
+
+  const result = createFields(fields);
+
+  expect(result).toEqual([
+    { name: 'Regular', value: 'hello', inline: true },
+    { name: 'Transformed', value: 'WORLD', inline: false },
+  ]);
+});
