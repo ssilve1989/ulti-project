@@ -1,6 +1,6 @@
 import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, Colors, EmbedBuilder } from 'discord.js';
 import { Encounter } from '../encounters/encounters.consts.js';
 import { SignupCollection } from '../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../firebase/models/signup.model.js';
@@ -46,6 +46,7 @@ describe('LookupCommandHandler', () => {
         world: 'jenova',
         encounter: Encounter.DSR,
         availability: 'Monday, Wednesday, Friday',
+        notes: 'Test notes',
       } as SignupDocument,
     ];
 
@@ -60,6 +61,7 @@ describe('LookupCommandHandler', () => {
       embeds: [
         EmbedBuilder.from({
           title: 'Lookup Results',
+          color: Colors.Green, // Green color
           fields: [
             {
               name: 'Character',
@@ -76,7 +78,32 @@ describe('LookupCommandHandler', () => {
               value: signups[0].availability,
               inline: true,
             },
+            {
+              name: 'Notes',
+              value: signups[0].notes!,
+              inline: false,
+            },
           ],
+        }),
+      ],
+    });
+  });
+
+  it('should show no results found message when no signups are found', async () => {
+    const signups: SignupDocument[] = [];
+    signupsCollection.findAll.mockResolvedValue(signups);
+
+    const command = new LookupCommand(interaction);
+    await handler.execute(command);
+
+    expect(interaction.reply).toHaveBeenCalledWith({
+      ephemeral: true,
+      embeds: [
+        EmbedBuilder.from({
+          title: 'Lookup Results',
+          description: 'No results found!',
+          color: Colors.Red, // Red color
+          fields: [],
         }),
       ],
     });
