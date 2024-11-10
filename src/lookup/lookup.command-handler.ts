@@ -1,8 +1,13 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { plainToInstance } from 'class-transformer';
-import { CommandInteractionOptionResolver, EmbedBuilder } from 'discord.js';
+import {
+  Colors,
+  CommandInteractionOptionResolver,
+  EmbedBuilder,
+} from 'discord.js';
 import { characterField, encounterField } from '../common/components/fields.js';
+import { createFields } from '../common/embed-helpers.js';
 import { SignupCollection } from '../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../firebase/models/signup.model.js';
 import { SentryTraced } from '../observability/span.decorator.js';
@@ -30,7 +35,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
 
   private createLookupEmbed(signups: SignupDocument[]) {
     const fields = signups.flatMap(
-      ({ world, character, encounter, availability }) => [
+      ({ notes, world, character, encounter, availability }) => [
         characterField(`${character} @ ${world}`),
         encounterField(encounter),
         {
@@ -38,10 +43,22 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
           value: availability,
           inline: true,
         },
+        {
+          name: 'Notes',
+          value: notes,
+          inline: false,
+        },
       ],
     );
 
-    return new EmbedBuilder().setTitle('Lookup Results').addFields(fields);
+    const description = signups.length === 0 ? 'No results found!' : null;
+    const color = description ? Colors.Red : Colors.Green;
+
+    return new EmbedBuilder()
+      .setTitle('Lookup Results')
+      .setDescription(description)
+      .setColor(color)
+      .addFields(createFields(fields));
   }
 
   private getLookupRequest(
