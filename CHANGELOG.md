@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.0](https://github.com/ssilve1989/ulti-project/compare/v1.18.2...v1.19.0) (2024-11-10)
+
+
+### Features
+
+* **lookup:** add notes field to lookup results ([#542](https://github.com/ssilve1989/ulti-project/issues/542)) ([34ee1a9](https://github.com/ssilve1989/ulti-project/commit/34ee1a908714594e4d8bcbaf43acd6b331bfcc9d))
+
 ## [1.18.2](https://github.com/ssilve1989/ulti-project/compare/v1.18.1...v1.18.2) (2024-11-04)
 
 
