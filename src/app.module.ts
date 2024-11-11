@@ -17,13 +17,12 @@ import { SheetsModule } from './sheets/sheets.module.js';
 import { SignupModule } from './signup/signup.module.js';
 import { SlashCommandsModule } from './slash-commands/slash-commands.module.js';
 import { StatusModule } from './status/status.module.js';
-import { ClearCheckerModule } from './tasks/clear-checker/clear-checker.module.js';
 import { TurboProgModule } from './turboprog/turbo-prog.module.js';
 
 @Module({
   imports: [
     BlacklistModule,
-    ClearCheckerModule,
+    // ClearCheckerModule, disabled for now
     RemoveRoleModule,
     CqrsModule,
     DiscordModule,
