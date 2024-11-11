@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.0](https://github.com/ssilve1989/ulti-project/compare/v1.19.0...v1.20.0) (2024-11-11)
+
+
+### Features
+
+* **signups:** clear-checker cron ([#497](https://github.com/ssilve1989/ulti-project/issues/497)) ([4814608](https://github.com/ssilve1989/ulti-project/commit/4814608d598008e651e9b22de6b4341af8833af9))
+
 ## [1.19.0](https://github.com/ssilve1989/ulti-project/compare/v1.18.2...v1.19.0) (2024-11-10)
 
 
