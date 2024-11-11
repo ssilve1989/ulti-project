@@ -75,6 +75,8 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
   checkClears() {
     this.logger.log('starting clear checker job...');
 
+    if (this.config.CLEAR_CHECKER_MODE === 'off') return;
+
     const task$ = defer(() => this.signupsCollection.findAll({})).pipe(
       mergeMap((signups) => {
         this.logger.log(`Checking ${signups.length} signups`);
