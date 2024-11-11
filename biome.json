@@ -9,8 +9,12 @@
     "useIgnoreFile": true
   },
   "linter": {
+    "ignore": ["src/fflogs/graphql/*.ts"],
     "enabled": true,
     "rules": {
+      "correctness": {
+        "noUnusedImports": "error"
+      },
       "performance": {
         "all": true
       },
@@ -26,7 +30,8 @@
   },
   "formatter": {
     "indentStyle": "space",
-    "indentWidth": 2
+    "indentWidth": 2,
+    "ignore": ["src/fflogs/graphql/*.ts", "src/fflogs/graphql/*.graphql"]
   },
   "javascript": {
     "parser": {

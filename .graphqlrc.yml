@@ -1,0 +1,3 @@
+# Config file for GraphQL VSCode Extension Plugin
+schema: "src/fflogs/graphql/schema.graphql"
+documents: "src/fflogs/*.{graphql,ts}"
