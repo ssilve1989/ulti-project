@@ -100,8 +100,8 @@ importers:
         specifier: ^0.5.9
         version: 0.5.9
       '@golevelup/ts-vitest':
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.5.1
+        version: 0.5.1
       '@nestjs/cli':
         specifier: ^10.4.7
         version: 10.4.7(@swc/core@1.7.3)
@@ -546,8 +546,8 @@ packages:
     engines: {node: '>=16.0.0'}
     hasBin: true
 
-  '@golevelup/ts-vitest@0.5.0':
-    resolution: {integrity: sha512-NACuIUg9l0kudI0E04pohy5oL5q0sxXSMlQxrZDHP/fabXpwIPVY/At51FRufPT+JvIU/fnGqlGreD+ywk02Rw==}
+  '@golevelup/ts-vitest@0.5.1':
+    resolution: {integrity: sha512-giztTZZhkyIBCVodPHxkBThBsBY0Gjw9UPvVw3jsuEfLiW4eAMiB9beNpv5fcX1WP0WOyWy/eSKaenU3z7lOug==}
 
   '@google-cloud/firestore@7.9.0':
     resolution: {integrity: sha512-c4ALHT3G08rV7Zwv8Z2KG63gZh66iKdhCBeDfCpIkLrjX6EAjTD/szMdj14M+FnQuClZLFfW5bAgoOjfNmLtJg==}
@@ -4064,7 +4064,7 @@ snapshots:
       shell-quote: 1.8.1
       yargs: 17.7.2
 
-  '@golevelup/ts-vitest@0.5.0': {}
+  '@golevelup/ts-vitest@0.5.1': {}
 
   '@google-cloud/firestore@7.9.0':
     dependencies:
