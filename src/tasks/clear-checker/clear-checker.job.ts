@@ -59,7 +59,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     @Inject(clearCheckerConfig.KEY)
     private readonly config: ConfigType<typeof clearCheckerConfig>,
   ) {
-    this.job = createJob('clear-checker-cron', '1 * * * * *', () => {
+    this.job = createJob('clear-checker-cron', '0 0 14 * * *', () => {
       this.checkClears();
     });
   }
