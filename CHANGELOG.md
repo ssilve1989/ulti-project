@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.20.0](https://github.com/ssilve1989/ulti-project/compare/v1.19.0...v1.20.0) (2024-11-11)
+
+
+### Features
+
+* **signups:** clear-checker cron ([#497](https://github.com/ssilve1989/ulti-project/issues/497)) ([4814608](https://github.com/ssilve1989/ulti-project/commit/4814608d598008e651e9b22de6b4341af8833af9))
+
+
+### Bug Fixes
+
+* **signups:** fix guildId for clear-checker ([5531c2f](https://github.com/ssilve1989/ulti-project/commit/5531c2ffe49fc29b4994ca2d7e300b43219367e7))
+
 ## [1.19.0](https://github.com/ssilve1989/ulti-project/compare/v1.18.2...v1.19.0) (2024-11-10)
 
 
