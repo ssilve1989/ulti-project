@@ -40,8 +40,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
   // We don't want this job to run in every guild because thats not really necessary
   // so we need some way of identifying which guild the bots in that we want this to run
   // for now we'll just hardcode the guildId
-  // private static readonly guildId = '808585230759755817';
-  private static readonly guildId = '913492538516717578';
+  private static readonly guildId = '808585230759755817';
   private readonly checkableEncounters = new Set([
     Encounter.DSR,
     Encounter.TOP,
