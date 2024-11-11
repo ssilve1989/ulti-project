@@ -33,8 +33,6 @@ import { SheetsService } from '../../sheets/sheets.service.js';
 import { createJob } from '../tasks.consts.js';
 import { clearCheckerConfig } from './clear-checker.config.js';
 
-const concurrencyLimit = 5;
-
 @Injectable()
 class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
   // We don't want this job to run in every guild because thats not really necessary
@@ -61,7 +59,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     @Inject(clearCheckerConfig.KEY)
     private readonly config: ConfigType<typeof clearCheckerConfig>,
   ) {
-    this.job = createJob('clear-checker-cron', '0 0 14 * * *', () => {
+    this.job = createJob('clear-checker-cron', '1 * * * * *', () => {
       this.checkClears();
     });
   }
@@ -75,7 +73,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
   }
 
   checkClears() {
-    this.logger.log('Starting Clear Checker job...');
+    this.logger.log('starting clear checker job...');
 
     const task$ = defer(() => this.signupsCollection.findAll({})).pipe(
       mergeMap((signups) => {
@@ -87,7 +85,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
           this.checkableEncounters.has(signup.encounter)
             ? this.processSignup(signup)
             : EMPTY,
-        concurrencyLimit,
+        this.config.CLEAR_CHECKER_CONCURRENCY,
       ),
       filter((signup) => !!signup),
       toArray(),
