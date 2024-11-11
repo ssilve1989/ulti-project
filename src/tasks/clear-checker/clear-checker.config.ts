@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 const schema = z.object({
   CLEAR_CHECKER_MODE: z.enum(['report', 'execute']).default('report'),
+  CLEAR_CHECKER_CONCURRENCY: z.number().default(5),
 });
 
 export type ClearCheckerConfig = z.infer<typeof schema>;
