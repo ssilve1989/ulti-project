@@ -8,7 +8,7 @@ export const TURBO_PROG_SLASH_COMMAND_NAME = 'turbo-prog';
 export function createTurboProgSlashCommand(mode: ApplicationMode) {
   return new SlashCommandBuilder()
     .setName(TURBO_PROG_SLASH_COMMAND_NAME)
-    .setDescription('signup for the final push event!')
+    .setDescription('signup for the current turbo prog event!')
     .addStringOption((option) =>
       option
         .setRequired(true)
