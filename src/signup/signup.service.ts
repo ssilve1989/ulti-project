@@ -347,11 +347,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         await reply.followUp('Confirmation Received!');
         return reply.values.at(0) as string;
       }
-    } catch (error) {
-      // if we encounter any error with the DM just remove the select component so they don't get further errors upon
-      // trying to select again
+    } finally {
+      // remove the select component regardless of success or error
       await message.edit({ components: [] });
-      throw error;
     }
   }
 
