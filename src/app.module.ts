@@ -22,7 +22,6 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
 @Module({
   imports: [
     BlacklistModule,
-    // ClearCheckerModule, disabled for now
     RemoveRoleModule,
     CqrsModule,
     DiscordModule,
