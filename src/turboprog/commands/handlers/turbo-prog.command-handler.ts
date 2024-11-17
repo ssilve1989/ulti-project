@@ -107,6 +107,7 @@ class TurboProgCommandHandler {
           .with(
             // has a bot signup that was approved with a party status
             [SignupStatus.APPROVED, PartyStatus.ClearParty],
+            [SignupStatus.APPROVED, PartyStatus.ProgParty],
             () => ({
               allowed: true as true,
               data: this.mapSignupToRowData(signup, options),
@@ -114,7 +115,6 @@ class TurboProgCommandHandler {
           )
           .with(
             // has a bot signup that was approved but not an eligible party status
-            [SignupStatus.APPROVED, PartyStatus.ProgParty],
             [SignupStatus.APPROVED, PartyStatus.EarlyProgParty],
             [P.any, PartyStatus.Cleared],
             () => {
