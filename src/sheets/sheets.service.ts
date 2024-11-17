@@ -16,6 +16,7 @@ import { InjectSheetsClient } from './sheets.decorators.js';
 import {
   batchUpdate,
   columnToIndex,
+  findCharacterRowIndex,
   getSheetIdByName,
   getSheetValues,
   updateSheet,
@@ -158,21 +159,25 @@ class SheetsService {
     }: Pick<SignupDocument, 'character' | 'world' | 'encounter'>,
     spreadsheetId: string,
   ) {
-    const sheetValues = await getSheetValues(this.client, {
+    const { rowIndex, sheetValues } = await findCharacterRowIndex(this.client, {
+      predicate: (values) => values.has(signup.character.toLowerCase()),
       spreadsheetId,
       range: encounter,
     });
 
-    const rowIndex = this.findCharacterRowIndex(sheetValues, (values) =>
-      values.has(signup.character.toLowerCase()),
+    // TODO: Hack to extract values once we found the row. Slice from where we find the name of the character
+    // to include that cell and the next 3
+
+    if (!sheetValues || rowIndex === -1) return;
+
+    const values = sheetValues[rowIndex];
+    const startIndex = values.findIndex(
+      (value) => value.toLowerCase() === signup.character.toLowerCase(),
     );
 
-    const values =
-      sheetValues && rowIndex !== -1
-        ? sheetValues[rowIndex].filter(Boolean)
-        : undefined;
+    if (startIndex === -1) return;
 
-    return values;
+    return values.slice(startIndex, startIndex + 4);
   }
 
   /**
