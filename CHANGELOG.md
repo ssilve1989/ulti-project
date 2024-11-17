@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.20.1](https://github.com/ssilve1989/ulti-project/compare/v1.20.0...v1.20.1) (2024-11-17)
+
+
+### Bug Fixes
+
+* **tasks:** fix clear check cron timer ([94406bb](https://github.com/ssilve1989/ulti-project/commit/94406bb4f4461d257c1b5bb77538bc5d20279520))
+* **turboprog:** implement hack to find offset of sheet values when searching spreadsheet ([0c7b3a6](https://github.com/ssilve1989/ulti-project/commit/0c7b3a624072f56bb268709f13a59a985adb888e))
+
 ## [1.20.0](https://github.com/ssilve1989/ulti-project/compare/v1.19.0...v1.20.0) (2024-11-11)
 
 
