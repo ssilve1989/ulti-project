@@ -11,13 +11,13 @@ import { TurboProgCommandHandler } from './turbo-prog.command-handler.js';
 
 const approvedCases: Pick<SignupDocument, 'status' | 'partyStatus'>[] = [
   { status: SignupStatus.APPROVED, partyStatus: PartyStatus.ClearParty },
+  { status: SignupStatus.APPROVED, partyStatus: PartyStatus.ProgParty },
 ];
 
 const declinedCases: Pick<SignupDocument, 'status' | 'partyStatus'>[] = [
   { status: SignupStatus.APPROVED, partyStatus: PartyStatus.EarlyProgParty },
   // any where status is cleared
   { status: SignupStatus.APPROVED, partyStatus: PartyStatus.Cleared },
-  { status: SignupStatus.APPROVED, partyStatus: PartyStatus.ProgParty },
   { status: SignupStatus.PENDING, partyStatus: PartyStatus.Cleared },
   { status: SignupStatus.UPDATE_PENDING, partyStatus: PartyStatus.Cleared },
   { status: SignupStatus.DECLINED, partyStatus: PartyStatus.Cleared },
