@@ -9,6 +9,7 @@ export default defineConfig({
         // disables Node's DeprecationWarnings
         // specifically about punycode in Node 21+ being deprecated
         execArgv: ['--disable-warning=DeprecationWarning'],
+        singleThread: true,
       },
     },
     setupFiles: ['./test/test-setup.ts'],
