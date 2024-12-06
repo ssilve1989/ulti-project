@@ -1,12 +1,12 @@
 import { SlashCommandBuilder } from 'discord.js';
-import type { ApplicationMode } from '../../app.config.js';
+import type { ApplicationModeConfig } from '../../app.config.js';
 import { getEncounterChoicesForMode } from '../../encounters/encounters.consts.js';
 
 // Extracted as its own variable since the command itself is dynamically created
 // but we need to reference the name when handling the interaction
 export const SIGNUP_SLASH_COMMAND_NAME = 'signup';
 
-export function createSignupSlashCommand(mode: ApplicationMode) {
+export function createSignupSlashCommand(mode: ApplicationModeConfig) {
   return new SlashCommandBuilder()
     .setName(SIGNUP_SLASH_COMMAND_NAME)
     .setDescription('Signup for an ultimate prog/clear party!')

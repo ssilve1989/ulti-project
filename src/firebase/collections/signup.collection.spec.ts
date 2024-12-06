@@ -154,9 +154,9 @@ describe('Signup Repository', () => {
     it('should throw an error if no signup exists', () => {
       mockFetch(true, {} as SignupDocument);
 
-      expect(repository.findByReviewId('reviewMessageId')).rejects.toThrow(
-        DocumentNotFoundException,
-      );
+      return expect(
+        repository.findByReviewId('reviewMessageId'),
+      ).rejects.toThrow(DocumentNotFoundException);
     });
   });
 });

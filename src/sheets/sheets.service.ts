@@ -36,6 +36,7 @@ class SheetsService {
     Encounter.TOP,
     Encounter.UCOB,
     Encounter.UWU,
+    Encounter.FRU,
   ]);
 
   constructor(
