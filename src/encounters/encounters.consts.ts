@@ -1,4 +1,4 @@
-import type { ApplicationMode } from '../app.config.js';
+import type { ApplicationMode, ApplicationModeConfig } from '../app.config.js';
 import { PartyStatus } from '../firebase/models/signup.model.js';
 
 export enum Encounter {
@@ -7,6 +7,7 @@ export enum Encounter {
   UCOB = 'UCOB',
   TEA = 'TEA',
   DSR = 'DSR',
+  FRU = 'FRU',
 }
 
 export const EncounterFriendlyDescription = Object.freeze({
@@ -15,6 +16,7 @@ export const EncounterFriendlyDescription = Object.freeze({
   [Encounter.UCOB]: '[UCoB] The Unending Coil of Bahamut',
   [Encounter.TEA]: '[TEA] The Epic of Alexander',
   [Encounter.DSR]: '[DSR] Dragonsong Reprise',
+  [Encounter.FRU]: '[FRU] Futures Rewritten',
 });
 
 // these identifiers are specific to the ulti-project sausfest discord
@@ -27,6 +29,7 @@ export const EncounterEmoji: Record<string, string> = Object.freeze({
   [Encounter.TOP]: '1128023323796852877',
   [Encounter.UCOB]: '1128006065930375333',
   [Encounter.UWU]: '1128006064701444188',
+  [Encounter.FRU]: '1314628063782506506',
 });
 
 // prog point lookup hash for each encounter and what party type the prog point belongs to
@@ -305,12 +308,70 @@ export const EncounterProgPoints: Record<
       partyStatus: PartyStatus.ClearParty,
     },
   },
+  [Encounter.FRU]: {
+    'Light Rampant': {
+      label: 'Phase 2: Light Rampant',
+      partyStatus: PartyStatus.ProgParty,
+    },
+    Adds: {
+      label: 'Phase 2: Adds',
+      partyStatus: PartyStatus.ProgParty,
+    },
+    'Ultimate Relativity': {
+      label: 'Phase 3: Ultimate Relativity',
+      partyStatus: PartyStatus.ProgParty,
+    },
+    Apocalypse: {
+      label: 'Phase 3: Apocalypse',
+      partyStatus: PartyStatus.ProgParty,
+    },
+    Darklit: {
+      label: 'Phase 4: Darklit Dragonsong',
+      partyStatus: PartyStatus.ProgParty,
+    },
+    'Crystalize Time': {
+      label: 'Phase 4: Crystalize Time',
+      partyStatus: PartyStatus.ProgParty,
+    },
+    'Fulgent 1': {
+      label: 'Phase 5: Fulgent Blade 1',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    'Wings 1': {
+      label: 'Phase 5: Wings Dark and Light 1',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    'Lines 1': {
+      label: 'Phase 5: Polarizing Strikes 1',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    'Fulgent 2': {
+      label: 'Phase 5: Fulgent Blade 2',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    'Wings 2': {
+      label: 'Phase 5: Wings Dark and Light 2',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    'Lines 2': {
+      label: 'Phase 5: Polarizing Strikes 2',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    'Fulgent 3': {
+      label: 'Phase 5: Fulgent Blade 3',
+      partyStatus: PartyStatus.ClearParty,
+    },
+    Enrage: {
+      label: 'Phase 5: Enrage',
+      partyStatus: PartyStatus.ClearParty,
+    },
+  },
 };
 
 export interface EncounterChoice {
   name: string;
   value: Encounter;
-  modes: ApplicationMode[];
+  mode: ApplicationMode;
 }
 
 // The list of choices to be used in slash commands
@@ -318,29 +379,34 @@ export const ENCOUNTER_CHOICES: Readonly<EncounterChoice>[] = [
   {
     name: 'The Omega Protocol (Ultimate)',
     value: Encounter.TOP,
-    modes: ['ultimate', 'savage+ultimate'],
+    mode: 'legacy',
   },
   {
     name: 'Dragonsong Reprise (Ultimate)',
     value: Encounter.DSR,
-    modes: ['ultimate', 'savage+ultimate'],
+    mode: 'legacy',
   },
   {
     name: 'The Epic of Alexander (Ultimate)',
     value: Encounter.TEA,
-    modes: ['ultimate', 'savage+ultimate'],
+    mode: 'legacy',
   },
   {
     name: 'The Weapons Refrain (Ultimate)',
     value: Encounter.UWU,
-    modes: ['ultimate', 'savage+ultimate'],
+    mode: 'legacy',
   },
   {
     name: 'The Unending Coil of Bahamut (Ultimate)',
     value: Encounter.UCOB,
-    modes: ['ultimate', 'savage+ultimate'],
+    mode: 'legacy',
+  },
+  {
+    name: 'Futures Rewritten (Ultimate)',
+    value: Encounter.FRU,
+    mode: 'ultimate',
   },
 ];
 
-export const getEncounterChoicesForMode = (mode: ApplicationMode) =>
-  ENCOUNTER_CHOICES.filter((encounter) => encounter.modes.includes(mode));
+export const getEncounterChoicesForMode = (mode: ApplicationModeConfig) =>
+  ENCOUNTER_CHOICES.filter((encounter) => mode.includes(encounter.mode));

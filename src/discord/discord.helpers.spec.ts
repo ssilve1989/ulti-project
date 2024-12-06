@@ -21,7 +21,7 @@ describe('Discord Helper Methods', () => {
       valueOf: () => '',
     });
 
-    expect(hydrateReaction(reaction)).resolves.toBe(reaction);
+    return expect(hydrateReaction(reaction)).resolves.toBe(reaction);
   });
 
   it('hydrates a partial user', async () => {
@@ -44,7 +44,7 @@ describe('Discord Helper Methods', () => {
       toString: () => '<@foo>',
     });
 
-    expect(hydrateUser(user)).resolves.toBe(user);
+    return expect(hydrateUser(user)).resolves.toBe(user);
   });
 
   it('returns the right value in seconds for a requested cache time unit', () => {

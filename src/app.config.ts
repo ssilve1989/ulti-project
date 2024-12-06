@@ -1,10 +1,21 @@
 import { z } from 'zod';
 
-export type ApplicationMode = 'savage' | 'ultimate' | 'savage+ultimate';
+const APPLICATION_MODES = ['savage', 'ultimate', 'legacy'] as const;
+export type ApplicationMode = (typeof APPLICATION_MODES)[number];
 
 export const configSchema = z.object({
   APPLICATION_MODE: z
-    .enum(['savage', 'ultimate', 'savage+ultimate'])
+    .string()
+    .transform((str) => str.split('+').map((s) => s.trim()))
+    .pipe(
+      z
+        .array(z.enum(APPLICATION_MODES))
+        .min(1)
+        .refine(
+          (modes) => new Set(modes).size === modes.length,
+          'Duplicate modes are not allowed',
+        ),
+    )
     .default('ultimate'),
   CLIENT_ID: z.string(),
   DISCORD_TOKEN: z.string(),
@@ -22,3 +33,6 @@ export const configSchema = z.object({
 });
 
 export type AppConfig = z.infer<typeof configSchema>;
+export type ApplicationModeConfig = z.infer<
+  typeof configSchema
+>['APPLICATION_MODE'];
