@@ -52,22 +52,6 @@ const TOP_PROG_POINT_MENU = new StringSelectMenuBuilder()
   .addOptions(progPointOptions.TOP)
   .setCustomId(PROG_POINT_SELECT_ID);
 
-const M1S_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(progPointOptions.M1S)
-  .setCustomId(PROG_POINT_SELECT_ID);
-
-const M2S_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(progPointOptions.M2S)
-  .setCustomId(PROG_POINT_SELECT_ID);
-
-const M3S_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(progPointOptions.M3S)
-  .setCustomId(PROG_POINT_SELECT_ID);
-
-const M4S_PROG_POINT_MENU = new StringSelectMenuBuilder()
-  .addOptions(progPointOptions.M4S)
-  .setCustomId(PROG_POINT_SELECT_ID);
-
 /**
  * A map of encounters to their respective progression point select menus
  * Only one menu should be used at once for a select menu interaction as they all share
@@ -79,8 +63,4 @@ export const EncounterProgMenus: Record<Encounter, StringSelectMenuBuilder> = {
   TEA: TEA_PROG_POINT_MENU,
   DSR: DSR_PROG_POINT_MENU,
   TOP: TOP_PROG_POINT_MENU,
-  M1S: M1S_PROG_POINT_MENU,
-  M2S: M2S_PROG_POINT_MENU,
-  M3S: M3S_PROG_POINT_MENU,
-  M4S: M4S_PROG_POINT_MENU,
 };

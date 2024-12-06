@@ -7,10 +7,6 @@ export enum Encounter {
   UCOB = 'UCOB',
   TEA = 'TEA',
   DSR = 'DSR',
-  M1S = 'M1S',
-  M2S = 'M2S',
-  M3S = 'M3S',
-  M4S = 'M4S',
 }
 
 export const EncounterFriendlyDescription = Object.freeze({
@@ -19,10 +15,6 @@ export const EncounterFriendlyDescription = Object.freeze({
   [Encounter.UCOB]: '[UCoB] The Unending Coil of Bahamut',
   [Encounter.TEA]: '[TEA] The Epic of Alexander',
   [Encounter.DSR]: '[DSR] Dragonsong Reprise',
-  [Encounter.M1S]: '[M1S] AAC Light-Heavyweight M1',
-  [Encounter.M2S]: '[M2S] AAC Light-Heavyweight M2',
-  [Encounter.M3S]: '[M3S] AAC Light-Heavyweight M3',
-  [Encounter.M4S]: '[M4S] AAC Light-Heavyweight M4',
 });
 
 // these identifiers are specific to the ulti-project sausfest discord
@@ -313,81 +305,6 @@ export const EncounterProgPoints: Record<
       partyStatus: PartyStatus.ClearParty,
     },
   },
-  // TODO: Remove these when the tier is over
-  // Note: Ad-hoc additions for Arcadion Savage tier
-  // Will leverage ClearParty status to insert all prog points into the same google sheet
-  [Encounter.M1S]: {
-    Nailchipper: {
-      label: 'Nailchipper',
-      partyStatus: PartyStatus.ClearParty,
-    },
-    'Mouser #2': {
-      label: 'Mouser #2',
-      partyStatus: PartyStatus.ClearParty,
-    },
-    'Raining Cats': {
-      label: 'Raining Cats',
-      partyStatus: PartyStatus.ClearParty,
-    },
-    Enrage: {
-      label: 'Enrage',
-      partyStatus: PartyStatus.ClearParty,
-    },
-  },
-  [Encounter.M2S]: {
-    'Alarm Pheromones #2': {
-      label: 'Alarm Pheromones #2',
-      partyStatus: PartyStatus.ClearParty,
-    },
-    'Honey B. Live: 3rd Beat': {
-      label: 'Honey B. Live: 3rd Beat',
-      partyStatus: PartyStatus.ClearParty,
-    },
-    'Rotten Heart': {
-      label: 'Rotten Heart',
-      partyStatus: PartyStatus.ClearParty,
-    },
-    Enrage: {
-      label: 'Enrage',
-      partyStatus: PartyStatus.ClearParty,
-    },
-  },
-  [Encounter.M3S]: {
-    'Chain Deathmatch #2': {
-      label: 'Chain Deathmatch #2',
-      partyStatus: PartyStatus.ClearParty,
-    },
-    'Infernal Spin': {
-      label: 'Infernal Spin',
-      partyStatus: PartyStatus.ClearParty,
-    },
-    'Barbarous Barrage #2': {
-      label: 'Barbarous Barrage',
-      partyStatus: PartyStatus.ClearParty,
-    },
-    Enrage: {
-      label: 'Enrage',
-      partyStatus: PartyStatus.ClearParty,
-    },
-  },
-  [Encounter.M4S]: {
-    'Chain Lightning': {
-      label: 'Chain Lightning',
-      partyStatus: PartyStatus.ClearParty,
-    },
-    'Sunrise Sabbath': {
-      label: 'Sunrise Sabbath',
-      partyStatus: PartyStatus.ClearParty,
-    },
-    'Sword Quiver': {
-      label: 'Sword Quiver',
-      partyStatus: PartyStatus.ClearParty,
-    },
-    Enrage: {
-      label: 'Enrage',
-      partyStatus: PartyStatus.ClearParty,
-    },
-  },
 };
 
 export interface EncounterChoice {
@@ -422,26 +339,6 @@ export const ENCOUNTER_CHOICES: Readonly<EncounterChoice>[] = [
     name: 'The Unending Coil of Bahamut (Ultimate)',
     value: Encounter.UCOB,
     modes: ['ultimate', 'savage+ultimate'],
-  },
-  {
-    name: 'AAC Light-Heavyweight M1 (Savage)',
-    value: Encounter.M1S,
-    modes: ['savage', 'savage+ultimate'],
-  },
-  {
-    name: 'AAC Light-Heavyweight M2 (Savage)',
-    value: Encounter.M2S,
-    modes: ['savage', 'savage+ultimate'],
-  },
-  {
-    name: 'AAC Light-Heavyweight M3 (Savage)',
-    value: Encounter.M3S,
-    modes: ['savage', 'savage+ultimate'],
-  },
-  {
-    name: 'AAC Light-Heavyweight M4 (Savage)',
-    value: Encounter.M4S,
-    modes: ['savage', 'savage+ultimate'],
   },
 ];
 
