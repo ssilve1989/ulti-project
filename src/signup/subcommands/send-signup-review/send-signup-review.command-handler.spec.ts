@@ -90,7 +90,7 @@ describe('Send Signup Review Command Handler', () => {
 
     get.mockReturnValueOnce(undefined);
 
-    expect(() =>
+    return expect(() =>
       handler.execute({
         signup: createMock<SignupDocument>({
           encounter: Encounter.DSR,

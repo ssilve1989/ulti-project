@@ -27,7 +27,7 @@ describe('Async Queue', () => {
     expect(task2).toHaveBeenCalledBefore(task3);
   });
 
-  test('AsyncQueue should handle errors', () => {
+  test('AsyncQueue should handle errors', async () => {
     expect.assertions(3);
 
     const queue = new AsyncQueue();
@@ -49,8 +49,8 @@ describe('Async Queue', () => {
 
     vi.runAllTimers();
 
-    expect(result1).resolves.toBe('task1');
-    expect(result2).rejects.toThrow('task2 error');
-    expect(result3).resolves.toBe('task3');
+    await expect(result1).resolves.toBe('task1');
+    await expect(result2).rejects.toThrow('task2 error');
+    await expect(result3).resolves.toBe('task3');
   });
 });

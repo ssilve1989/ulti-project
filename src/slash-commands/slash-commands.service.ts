@@ -18,7 +18,7 @@ import {
   retry,
   timer,
 } from 'rxjs';
-import type { AppConfig, ApplicationMode } from '../app.config.js';
+import type { AppConfig, ApplicationModeConfig } from '../app.config.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
 import { BlacklistSlashCommand } from './commands/blacklist.js';
@@ -110,14 +110,14 @@ class SlashCommandsService {
     guildId: string,
     rest: REST,
   ) {
-    const applicationMode =
-      this.configService.get<ApplicationMode>('APPLICATION_MODE');
+    const applicationModeConfig =
+      this.configService.get<ApplicationModeConfig>('APPLICATION_MODE');
 
     const slashCommands = [
       BlacklistSlashCommand,
-      createRemoveSignupSlashCommand(applicationMode),
-      createSignupSlashCommand(applicationMode),
-      createTurboProgSlashCommand(applicationMode),
+      createRemoveSignupSlashCommand(applicationModeConfig),
+      createSignupSlashCommand(applicationModeConfig),
+      createTurboProgSlashCommand(applicationModeConfig),
       LookupSlashCommand,
       RemoveRoleSlashCommand,
       SettingsSlashCommand,

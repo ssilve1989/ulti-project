@@ -52,6 +52,10 @@ const TOP_PROG_POINT_MENU = new StringSelectMenuBuilder()
   .addOptions(progPointOptions.TOP)
   .setCustomId(PROG_POINT_SELECT_ID);
 
+const FRU_PROG_POINT_MENU = new StringSelectMenuBuilder()
+  .addOptions(progPointOptions.FRU)
+  .setCustomId(PROG_POINT_SELECT_ID);
+
 /**
  * A map of encounters to their respective progression point select menus
  * Only one menu should be used at once for a select menu interaction as they all share
@@ -63,4 +67,5 @@ export const EncounterProgMenus: Record<Encounter, StringSelectMenuBuilder> = {
   TEA: TEA_PROG_POINT_MENU,
   DSR: DSR_PROG_POINT_MENU,
   TOP: TOP_PROG_POINT_MENU,
+  FRU: FRU_PROG_POINT_MENU,
 };

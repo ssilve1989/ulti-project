@@ -36,7 +36,9 @@ describe('Sheets Service', () => {
 
       spy.mockRejectedValueOnce({ code: 404 });
 
-      expect(service.getSheetMetadata('rando banana')).resolves.toMatchObject({
+      return expect(
+        service.getSheetMetadata('rando banana'),
+      ).resolves.toMatchObject({
         title: 'Deleted Spreadsheet',
       });
     });
