@@ -341,7 +341,7 @@ export const EncounterProgPoints: Record<
       label: 'Phase 5: Wings Dark and Light 1',
       partyStatus: PartyStatus.ClearParty,
     },
-    'Lines 1': {
+    'Polar 1': {
       label: 'Phase 5: Polarizing Strikes 1',
       partyStatus: PartyStatus.ClearParty,
     },
@@ -353,7 +353,7 @@ export const EncounterProgPoints: Record<
       label: 'Phase 5: Wings Dark and Light 2',
       partyStatus: PartyStatus.ClearParty,
     },
-    'Lines 2': {
+    'Polar 2': {
       label: 'Phase 5: Polarizing Strikes 2',
       partyStatus: PartyStatus.ClearParty,
     },
