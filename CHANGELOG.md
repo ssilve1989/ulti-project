@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.21.0](https://github.com/ssilve1989/ulti-project/compare/v1.20.0...v1.21.0) (2024-12-10)
+
+
+### Features
+
+* **signups:** support Futures Rewritten ([#576](https://github.com/ssilve1989/ulti-project/issues/576)) ([f057b52](https://github.com/ssilve1989/ulti-project/commit/f057b5290870f9adace2b264f837fb35d37eca73))
+
+
+### Bug Fixes
+
+* **tasks:** fix clear check cron timer ([94406bb](https://github.com/ssilve1989/ulti-project/commit/94406bb4f4461d257c1b5bb77538bc5d20279520))
+* **turboprog:** implement hack to find offset of sheet values when searching spreadsheet ([0c7b3a6](https://github.com/ssilve1989/ulti-project/commit/0c7b3a624072f56bb268709f13a59a985adb888e))
+
 ## [1.20.0](https://github.com/ssilve1989/ulti-project/compare/v1.19.0...v1.20.0) (2024-11-11)
 
 
