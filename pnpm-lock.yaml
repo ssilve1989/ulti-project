@@ -81,8 +81,8 @@ importers:
         specifier: ^4.3.2
         version: 4.3.2
       ts-pattern:
-        specifier: ^5.5.0
-        version: 5.5.0
+        specifier: ^5.6.0
+        version: 5.6.0
       zod:
         specifier: ^3.23.8
         version: 3.23.8
@@ -4402,8 +4402,8 @@ packages:
   ts-mixer@6.0.4:
     resolution: {integrity: sha512-ufKpbmrugz5Aou4wcr5Wc1UUFWOLhq+Fm6qa6P0w0K5Qw2yhaUoiWszhCVuNQyNwrlGiscHOmqYoAox1PtvgjA==}
 
-  ts-pattern@5.5.0:
-    resolution: {integrity: sha512-jqbIpTsa/KKTJYWgPNsFNbLVpwCgzXfFJ1ukNn4I8hMwyQzHMJnk/BqWzggB0xpkILuKzaO/aMYhS0SkaJyKXg==}
+  ts-pattern@5.6.0:
+    resolution: {integrity: sha512-SL8u60X5+LoEy9tmQHWCdPc2hhb2pKI6I1tU5Jue3v8+iRqZdcT3mWPwKKJy1fMfky6uha82c8ByHAE8PMhKHw==}
 
   tsconfig-paths-webpack-plugin@4.2.0:
     resolution: {integrity: sha512-zbem3rfRS8BgeNK50Zz5SIQgXzLafiHjOwUAvk/38/o1jHn/V5QAgVUcz884or7WYcPaH3N2CIfUc2u0ul7UcA==}
@@ -9718,7 +9718,7 @@ snapshots:
 
   ts-mixer@6.0.4: {}
 
-  ts-pattern@5.5.0: {}
+  ts-pattern@5.6.0: {}
 
   tsconfig-paths-webpack-plugin@4.2.0:
     dependencies:
