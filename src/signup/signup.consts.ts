@@ -23,7 +23,7 @@ export const SIGNUP_MESSAGES = {
   SIGNUP_SUBMISSION_DENIED: `
 We're sorry but your signup could not currently be approved. Possible reasons include:
 - Signup doesn't meet new qualifications. Check <#1074471023178686514> for the latest information
-- Signup lacks valid proof of requested prog point.
+- Signup lacks valid proof of requested prog point. Tomestone pictures alone do not count!
 - You already cleared the encounter you signed-up for
 - Mechanics prior to the requested prog point not performed cleanly
 You can reach out to a coordinator to discuss any issues.
