@@ -59,10 +59,10 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@commitlint/cli": "^19.6.0",
+    "@commitlint/cli": "^19.6.1",
     "@commitlint/config-conventional": "^19.6.0",
-    "@commitlint/cz-commitlint": "^19.5.0",
-    "@commitlint/prompt-cli": "^19.6.0",
+    "@commitlint/cz-commitlint": "^19.6.1",
+    "@commitlint/prompt-cli": "^19.6.1",
     "@flydotio/dockerfile": "^0.5.9",
     "@golevelup/ts-vitest": "^0.5.1",
     "@graphql-codegen/cli": "5.0.3",
