@@ -309,59 +309,75 @@ export const EncounterProgPoints: Record<
     },
   },
   [Encounter.FRU]: {
-    'Light Rampant': {
+    'P2: Light Rampant': {
       label: 'Phase 2: Light Rampant',
       partyStatus: PartyStatus.ProgParty,
     },
-    Adds: {
+    'P2: Adds': {
       label: 'Phase 2: Adds',
       partyStatus: PartyStatus.ProgParty,
     },
-    'Ultimate Relativity': {
+    'P3: Ultimate Relativity': {
       label: 'Phase 3: Ultimate Relativity',
       partyStatus: PartyStatus.ProgParty,
     },
-    Apocalypse: {
+    'P3: Apocalypse': {
       label: 'Phase 3: Apocalypse',
       partyStatus: PartyStatus.ProgParty,
     },
-    Darklit: {
+    'P3: Enrage': {
+      label: 'Phase 3: Enrage',
+      partyStatus: PartyStatus.ProgParty,
+    },
+    'P4: Darklit': {
       label: 'Phase 4: Darklit Dragonsong',
       partyStatus: PartyStatus.ProgParty,
     },
-    'Crystalize Time': {
+    'P4: AM 1': {
+      label: 'Phase 4: Akh Morn 1',
+      partyStatus: PartyStatus.ProgParty,
+    },
+    'P4: Crystalize Time': {
       label: 'Phase 4: Crystalize Time',
       partyStatus: PartyStatus.ProgParty,
     },
-    'Fulgent 1': {
+    'P4: AM 2': {
+      label: 'Phase 4: Akh Morn 2',
+      partyStatus: PartyStatus.ProgParty,
+    },
+    'P4: Enrage': {
+      label: 'Phase 4: Enrage',
+      partyStatus: PartyStatus.ProgParty,
+    },
+    'P5: Fulgent 1': {
       label: 'Phase 5: Fulgent Blade 1',
       partyStatus: PartyStatus.ClearParty,
     },
-    'Wings 1': {
+    'P5: Wings 1': {
       label: 'Phase 5: Wings Dark and Light 1',
       partyStatus: PartyStatus.ClearParty,
     },
-    'Polar 1': {
+    'P5: Polar 1': {
       label: 'Phase 5: Polarizing Strikes 1',
       partyStatus: PartyStatus.ClearParty,
     },
-    'Fulgent 2': {
+    'P5: Fulgent 2': {
       label: 'Phase 5: Fulgent Blade 2',
       partyStatus: PartyStatus.ClearParty,
     },
-    'Wings 2': {
+    'P5: Wings 2': {
       label: 'Phase 5: Wings Dark and Light 2',
       partyStatus: PartyStatus.ClearParty,
     },
-    'Polar 2': {
+    'P5: Polar 2': {
       label: 'Phase 5: Polarizing Strikes 2',
       partyStatus: PartyStatus.ClearParty,
     },
-    'Fulgent 3': {
+    'P5: Fulgent 3': {
       label: 'Phase 5: Fulgent Blade 3',
       partyStatus: PartyStatus.ClearParty,
     },
-    Enrage: {
+    'P5: Enrage': {
       label: 'Phase 5: Enrage',
       partyStatus: PartyStatus.ClearParty,
     },
