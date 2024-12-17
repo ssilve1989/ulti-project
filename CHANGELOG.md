@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.22.0](https://github.com/ssilve1989/ulti-project/compare/v1.21.0...v1.22.0) (2024-12-17)
+
+
+### Features
+
+* add more encounter prog choices for FRU ([527d9b2](https://github.com/ssilve1989/ulti-project/commit/527d9b2c7d0fcf172d7292b6a9d3bb24924d23f6))
+
 ## [1.21.0](https://github.com/ssilve1989/ulti-project/compare/v1.20.0...v1.21.0) (2024-12-10)
 
 
