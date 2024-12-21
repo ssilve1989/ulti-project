@@ -30,6 +30,7 @@ class EditSettingsCommandHandler
         reviewChannel,
         reviewerRole,
         signupChannel,
+        helperRole,
         ...rest
       } = this.getInteractionOptions(interaction.options);
 
@@ -38,6 +39,7 @@ class EditSettingsCommandHandler
         reviewChannel: reviewChannel?.id,
         reviewerRole: reviewerRole?.id,
         signupChannel: signupChannel?.id,
+        helperRole: helperRole?.id,
         ...rest,
       });
 
@@ -64,6 +66,7 @@ class EditSettingsCommandHandler
     const signupChannel = options.getChannel('signup-public-channel');
     const spreadsheetId = options.getString('spreadsheet-id') ?? undefined;
     const modChannelId = options.getChannel('moderation-channel');
+    const helperRole = options.getRole('helper-role');
 
     const turboProgActive =
       options.getBoolean('turbo-prog-active') ?? undefined;
@@ -90,6 +93,7 @@ class EditSettingsCommandHandler
 
     return {
       clearRoles,
+      helperRole,
       modChannelId,
       progRoles,
       reviewChannel,

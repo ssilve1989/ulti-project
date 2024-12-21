@@ -2,9 +2,10 @@ import type { DocumentData } from 'firebase-admin/firestore';
 import { Encounter } from '../../encounters/encounters.consts.js';
 
 export interface SettingsDocument extends DocumentData {
+  helperRole?: string;
+  modChannelId?: string;
   reviewChannel?: string;
   reviewerRole?: string;
-  modChannelId?: string;
   signupChannel?: string;
   spreadsheetId?: string;
   turboProgActive?: boolean;

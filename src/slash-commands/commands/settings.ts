@@ -54,6 +54,12 @@ export const EditSettingsSubcommand = new SlashCommandSubcommandBuilder()
       .setDescription('The channel to send moderation messages to')
       .addChannelTypes(ChannelType.GuildText)
       .setRequired(false),
+  )
+  .addRoleOption((option) =>
+    option
+      .setName('helper-role')
+      .setDescription('The role to be assigned to users who are helpers')
+      .setRequired(false),
   );
 
 export const ViewSettingsSubcommand = new SlashCommandSubcommandBuilder()

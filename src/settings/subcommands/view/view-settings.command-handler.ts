@@ -29,15 +29,22 @@ class ViewSettingsCommandHandler
 
     const {
       reviewChannel,
-      reviewerRole,
       spreadsheetId,
       modChannelId,
       signupChannel,
       progRoles,
       turboProgActive,
       turboProgSpreadsheetId,
+      ...rest
     } = settings;
-    const role = reviewerRole ? roleMention(reviewerRole) : 'No Role Set';
+
+    const reviewerRole = rest.reviewerRole
+      ? roleMention(rest.reviewerRole)
+      : 'No Role Set';
+    const helperRole = rest.helperRole
+      ? roleMention(rest.helperRole)
+      : 'No Role Set';
+
     const publicSignupChannel = signupChannel
       ? `<#${signupChannel}>`
       : 'No Channel Set';
@@ -69,7 +76,8 @@ class ViewSettingsCommandHandler
       { name: 'Moderation Channel', value: moderationChannel, inline: true },
       { name: 'Review Channel', value: `<#${reviewChannel}>`, inline: true },
       { name: 'Signup Channel', value: publicSignupChannel, inline: true },
-      { name: 'Reviewer Role', value: role, inline: true },
+      { name: 'Helper Role', value: helperRole, inline: true },
+      { name: 'Reviewer Role', value: reviewerRole, inline: true },
       {
         name: 'Clear Roles',
         value: clearRoleSettings.length
@@ -87,7 +95,7 @@ class ViewSettingsCommandHandler
       {
         name: 'Turbo Prog Active',
         value: turboProgActive ? 'Yes' : 'No',
-        inline: true,
+        inline: false,
       },
     ];
 
