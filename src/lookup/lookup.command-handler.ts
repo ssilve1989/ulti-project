@@ -6,7 +6,8 @@ import {
   CommandInteractionOptionResolver,
   EmbedBuilder,
 } from 'discord.js';
-import { characterField, encounterField } from '../common/components/fields.js';
+import { titleCase } from 'title-case';
+import { encounterField } from '../common/components/fields.js';
 import { createFields } from '../common/embed-helpers.js';
 import { SignupCollection } from '../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../firebase/models/signup.model.js';
@@ -24,41 +25,73 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
   async execute({ interaction }: LookupCommand): Promise<any> {
     const { options } = interaction;
 
-    const request = this.getLookupRequest(options);
-    const results = await this.signupsCollection.findAll(request);
+    const dto = this.getLookupRequest(options);
+    const results = await this.signupsCollection.findAll(dto);
 
     this.logger.debug(results);
 
-    const embed = this.createLookupEmbed(results);
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    const embeds = this.createLookupEmbeds(results, dto);
+    await interaction.reply({ embeds, ephemeral: true });
   }
 
-  private createLookupEmbed(signups: SignupDocument[]) {
-    const fields = signups.flatMap(
-      ({ notes, world, character, encounter, availability }) => [
-        characterField(`${character} @ ${world}`),
-        encounterField(encounter),
-        {
-          name: 'Availability',
-          value: availability,
-          inline: true,
-        },
-        {
-          name: 'Notes',
-          value: notes,
-          inline: false,
-        },
-      ],
+  private createLookupEmbeds(
+    signups: SignupDocument[],
+    dto: LookupInteractionDto,
+  ) {
+    if (signups.length === 0) {
+      return [
+        new EmbedBuilder()
+          .setTitle('Lookup Results')
+          .setDescription('No results found!')
+          .setColor(Colors.Red),
+      ];
+    }
+
+    const groupedByWorld = signups.reduce(
+      (acc, signup) => {
+        if (acc[signup.world]) {
+          acc[signup.world].push(signup);
+        } else {
+          acc[signup.world] = [signup];
+        }
+        return acc;
+      },
+      {} as Record<string, SignupDocument[]>,
     );
 
-    const description = signups.length === 0 ? 'No results found!' : null;
-    const color = description ? Colors.Red : Colors.Green;
+    const embeds = Object.entries(groupedByWorld).map(([world, signups]) => {
+      const fields = signups.flatMap(
+        ({ progPoint, notes, encounter, availability }) => [
+          encounterField(encounter),
+          {
+            name: 'Prog Point',
+            value: progPoint,
+            inline: true,
+          },
+          {
+            name: 'Availability',
+            value: availability,
+            inline: true,
+          },
+          {
+            name: 'Notes',
+            value: notes,
+            inline: false,
+          },
+        ],
+      );
 
-    return new EmbedBuilder()
-      .setTitle('Lookup Results')
-      .setDescription(description)
-      .setColor(color)
-      .addFields(createFields(fields));
+      const color = Colors.Green;
+
+      const titleCharacter = titleCase(`${dto.character} @ ${world}`);
+
+      return new EmbedBuilder()
+        .setTitle(`Lookup Results for ${titleCharacter}`)
+        .setColor(color)
+        .addFields(createFields(fields));
+    });
+
+    return embeds;
   }
 
   private getLookupRequest(
