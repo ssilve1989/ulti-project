@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23.0](https://github.com/ssilve1989/ulti-project/compare/v1.22.0...v1.23.0) (2024-12-22)
+
+
+### Features
+
+* **lookup:** lookups are now separated into embeds by world ([#587](https://github.com/ssilve1989/ulti-project/issues/587)) ([eacaced](https://github.com/ssilve1989/ulti-project/commit/eacaced37752375db17ade7dd2f0b25ccfa70031))
+
 ## [1.22.0](https://github.com/ssilve1989/ulti-project/compare/v1.21.0...v1.22.0) (2024-12-17)
 
 
