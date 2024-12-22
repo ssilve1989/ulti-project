@@ -50,6 +50,12 @@ describe('LookupCommandHandler', () => {
       } as SignupDocument,
     ];
 
+    getStringMock.mockImplementation((key) => {
+      if (key === 'character') return 'Aeo Arcanist';
+      if (key === 'world') return 'Jenova';
+      return null;
+    });
+
     signupsCollection.findAll.mockResolvedValue(signups);
 
     const command = new LookupCommand(interaction);
@@ -60,14 +66,9 @@ describe('LookupCommandHandler', () => {
       ephemeral: true,
       embeds: [
         EmbedBuilder.from({
-          title: 'Lookup Results',
+          title: 'Lookup Results for Aeo Arcanist @ Jenova',
           color: Colors.Green, // Green color
           fields: [
-            {
-              name: 'Character',
-              value: 'Aeo Arcanist @ Jenova',
-              inline: true,
-            },
             {
               name: 'Encounter',
               value: '[DSR] Dragonsong Reprise',
@@ -103,7 +104,6 @@ describe('LookupCommandHandler', () => {
           title: 'Lookup Results',
           description: 'No results found!',
           color: Colors.Red, // Red color
-          fields: [],
         }),
       ],
     });
