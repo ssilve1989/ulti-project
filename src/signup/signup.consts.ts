@@ -12,10 +12,10 @@ export const SIGNUP_MESSAGES = {
   SIGNUP_SUBMISSION_CANCELLED:
     'Signup canceled. Please use /signup if you wish to try again.',
   SIGNUP_SUBMISSION_CONFIRMED: `Your signup has been successfully submitted! 🎉. You can use 
-    \`status\` to review the state of your signups.
+    \`/status\` to review the state of your signups.
 
     **Common Questions:**
-    • How can I update my signup? You can submit a new one anytime.
+    • How can I update my signup? \`/signup\` again with the updated information.
     • What do I do if I cleared? You can submit again with your prog point as "Cleared" or use the \`/remove-signup\` command.
     • What do I do if I don't want to be signed up anymore? You can use the \`/remove-signup\` command.
     `,
