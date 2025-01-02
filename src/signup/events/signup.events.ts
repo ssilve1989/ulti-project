@@ -2,10 +2,15 @@ import { Message, User } from 'discord.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import type { SignupDocument } from '../../firebase/models/signup.model.js';
 
+export interface SignupCreatedEventOptions {
+  includeNotes?: boolean;
+}
+
 export class SignupCreatedEvent {
   constructor(
     public readonly signup: SignupDocument,
     public guildId: string,
+    public options: SignupCreatedEventOptions,
   ) {}
 }
 

@@ -121,7 +121,9 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
       if (signup) {
         this.eventBus.publish(
-          new SignupCreatedEvent(signup, interaction.guildId),
+          new SignupCreatedEvent(signup, interaction.guildId, {
+            includeNotes: !!signupRequest.notes,
+          }),
         );
       }
     } catch (e: unknown) {

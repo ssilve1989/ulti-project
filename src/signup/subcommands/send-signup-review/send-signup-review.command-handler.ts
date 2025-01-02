@@ -16,6 +16,7 @@ import { SettingsCollection } from '../../../firebase/collections/settings-colle
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../../firebase/models/signup.model.js';
 import { SentryTraced } from '../../../observability/span.decorator.js';
+import type { SignupCreatedEventOptions } from '../../events/signup.events.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../../signup.consts.js';
 import { SendSignupReviewCommand } from './send-signup-review.command.js';
 
@@ -32,7 +33,7 @@ class SendSignupReviewCommandHandler
   ) {}
 
   @SentryTraced()
-  async execute({ signup, guildId }: SendSignupReviewCommand) {
+  async execute({ signup, guildId, options }: SendSignupReviewCommand) {
     const reviewChannel =
       await this.settingsCollection.getReviewChannel(guildId);
 
@@ -41,7 +42,7 @@ class SendSignupReviewCommandHandler
       return;
     }
 
-    await this.sendSignupForApproval(signup, reviewChannel, guildId);
+    await this.sendSignupForApproval(signup, reviewChannel, guildId, options);
   }
 
   /**
@@ -53,6 +54,7 @@ class SendSignupReviewCommandHandler
     signup: SignupDocument,
     channelId: string,
     guildId: string,
+    options: SignupCreatedEventOptions,
   ) {
     const channel = await this.discordService.getTextChannel({
       guildId,
@@ -68,7 +70,7 @@ class SendSignupReviewCommandHandler
       memberId: signup.discordId,
     });
 
-    const embed = this.createSignupApprovalEmbed(signup, member);
+    const embed = this.createSignupApprovalEmbed(signup, member, options);
 
     const message = await channel.send({
       embeds: [embed],
@@ -96,6 +98,7 @@ class SendSignupReviewCommandHandler
       progPointRequested,
     }: SignupDocument,
     member?: GuildMember,
+    options?: SignupCreatedEventOptions,
   ) {
     const emoji = this.discordService.getEmojiString(EncounterEmoji[encounter]);
     const avatarUrl = member?.displayAvatarURL();
@@ -112,7 +115,11 @@ class SendSignupReviewCommandHandler
         inline: true,
       },
       { name: 'Availability', value: availability, inline: true },
-      { name: 'Notes', value: notes, inline: false },
+      {
+        name: 'Notes',
+        value: options?.includeNotes ? notes : null,
+        inline: false,
+      },
     ]);
 
     const embed = new EmbedBuilder()

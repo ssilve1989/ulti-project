@@ -24,8 +24,8 @@ class AppSagas {
   handleSignupCreated = (event$: Observable<any>): Observable<ICommand> =>
     event$.pipe(
       ofType(SignupCreatedEvent),
-      mergeMap(({ signup, guildId }) => [
-        new SendSignupReviewCommand(signup, guildId),
+      mergeMap(({ signup, guildId, options }) => [
+        new SendSignupReviewCommand(signup, guildId, options),
         new BlacklistSearchCommand(signup, guildId),
       ]),
     );
