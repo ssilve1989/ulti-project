@@ -36,7 +36,7 @@
     "@nestjs/config": "^3.3.0",
     "@nestjs/core": "^10.4.15",
     "@nestjs/cqrs": "^10.2.8",
-    "@sentry/cli": "^2.39.1",
+    "@sentry/cli": "^2.40.0",
     "@sentry/node": "^8.47.0",
     "@sentry/profiling-node": "^8.47.0",
     "cache-manager": "^5.7.6",
