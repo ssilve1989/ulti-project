@@ -44,7 +44,7 @@
     "class-validator": "^0.14.1",
     "cron": "^3.2.1",
     "dayjs": "^1.11.13",
-    "discord.js": "^14.16.3",
+    "discord.js": "^14.17.2",
     "firebase-admin": "^13.0.2",
     "google-auth-library": "^9.15.0",
     "graphql-request": "^7.1.0",
