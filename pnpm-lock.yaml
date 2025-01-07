@@ -100,8 +100,8 @@ importers:
         specifier: ^19.6.1
         version: 19.6.1(@types/node@22.10.5)(commitizen@4.3.1(@types/node@22.10.5)(typescript@5.7.2))(inquirer@9.3.7)(typescript@5.7.2)
       '@commitlint/prompt-cli':
-        specifier: ^19.6.1
-        version: 19.6.1(@types/node@22.10.5)(typescript@5.7.2)
+        specifier: ^19.7.0
+        version: 19.7.0(@types/node@22.10.5)(typescript@5.7.2)
       '@flydotio/dockerfile':
         specifier: ^0.6.0
         version: 0.6.0(@sveltejs/kit@2.15.1(@sveltejs/vite-plugin-svelte@5.0.3(svelte@5.16.2)(vite@5.4.11(@types/node@22.10.5)(terser@5.31.3)))(svelte@5.16.2)(vite@5.4.11(@types/node@22.10.5)(terser@5.31.3)))
@@ -585,13 +585,13 @@ packages:
     resolution: {integrity: sha512-cZ/IxfAlfWYhAQV0TwcbdR1Oc0/r0Ik1GEessDJ3Lbuma/MRO8FRQX76eurcXtmhJC//rj52ZSZuXUg0oIX0Fw==}
     engines: {node: '>=v18'}
 
-  '@commitlint/prompt-cli@19.6.1':
-    resolution: {integrity: sha512-CctENTw2sHGBbpLVKk9LpJ3WFwSzVBHxNN6hw7Mw8yDtfibS2mbx0HT0gDw1Ip3WGVq+msw+A9bdvsS5F4fk+w==}
+  '@commitlint/prompt-cli@19.7.0':
+    resolution: {integrity: sha512-90HgFdMrjFXKa2QXgRjJ8SClD/oTvtEx9FXsIQDG/tjr6NbFagsj4nKjRGCGz7zl7wI1MskGKRj1kyxQvyry/A==}
     engines: {node: '>=v18'}
     hasBin: true
 
-  '@commitlint/prompt@19.6.1':
-    resolution: {integrity: sha512-Sj6ZTC6lNAHTASak3xvpHwiP2hwqhmKUEI36vGmaN90NUOpFRU2J0NBFLjdFQzkIkPq/dOIXmAfTAFzCzmsJGA==}
+  '@commitlint/prompt@19.7.0':
+    resolution: {integrity: sha512-C2t/lTcfQRH6RKyBx9cyCwMK7X8Ke/vP2+IHe2xLM8rFZfR+UhsBNcFtlfYWIPo6gnA3MMQcxpOsmOU4k+FSkg==}
     engines: {node: '>=v18'}
 
   '@commitlint/read@19.5.0':
@@ -2339,6 +2339,10 @@ packages:
 
   chalk@5.3.0:
     resolution: {integrity: sha512-dLitG79d+GV1Nb/VYcCDFivJeK1hiukt9QjRNVOsUtTy1rR1YJsmpGGTZ3qJos+uw7WmWF4wUwBd9jxjocFC2w==}
+    engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
+
+  chalk@5.4.1:
+    resolution: {integrity: sha512-zgVZuo2WcZgfUEmsn6eO3kINexW8RAE4maiQ8QNs8CtpPCSyMiYsULR3HQYkm3w8FIA3SberyMJMSldGsW+U3w==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
 
   change-case-all@1.0.14:
@@ -4497,6 +4501,9 @@ packages:
   tinyexec@0.3.1:
     resolution: {integrity: sha512-WiCJLEECkO18gwqIp6+hJg0//p23HXp4S+gGtAKu3mI2F2/sXC4FvHvXvB0zJVVaTPhx1/tOwdbRsa1sOBIKqQ==}
 
+  tinyexec@0.3.2:
+    resolution: {integrity: sha512-KQQR9yN7R5+OSwaK0XQoj22pwHoTlgYqmUscPYoknOoWCWfj/5/ABTMRi69FrKU5ffPVh5QcFikpWJI/P1ocHA==}
+
   tinyglobby@0.2.10:
     resolution: {integrity: sha512-Zc+8eJlFMvgatPZTl6A9L/yht8QqdmUNtURHaKZLmKBE12hNPSrqNkUp2cs3M/UKmNVVAMFQYSjYIVHDjW5zew==}
     engines: {node: '>=12.0.0'}
@@ -5422,21 +5429,21 @@ snapshots:
       conventional-changelog-angular: 7.0.0
       conventional-commits-parser: 5.0.0
 
-  '@commitlint/prompt-cli@19.6.1(@types/node@22.10.5)(typescript@5.7.2)':
+  '@commitlint/prompt-cli@19.7.0(@types/node@22.10.5)(typescript@5.7.2)':
     dependencies:
-      '@commitlint/prompt': 19.6.1(@types/node@22.10.5)(typescript@5.7.2)
+      '@commitlint/prompt': 19.7.0(@types/node@22.10.5)(typescript@5.7.2)
       inquirer: 9.3.7
-      tinyexec: 0.3.1
+      tinyexec: 0.3.2
     transitivePeerDependencies:
       - '@types/node'
       - typescript
 
-  '@commitlint/prompt@19.6.1(@types/node@22.10.5)(typescript@5.7.2)':
+  '@commitlint/prompt@19.7.0(@types/node@22.10.5)(typescript@5.7.2)':
     dependencies:
       '@commitlint/ensure': 19.5.0
       '@commitlint/load': 19.6.1(@types/node@22.10.5)(typescript@5.7.2)
       '@commitlint/types': 19.5.0
-      chalk: 5.3.0
+      chalk: 5.4.1
       inquirer: 9.3.7
     transitivePeerDependencies:
       - '@types/node'
@@ -7619,6 +7626,8 @@ snapshots:
 
   chalk@5.3.0: {}
 
+  chalk@5.4.1: {}
+
   change-case-all@1.0.14:
     dependencies:
       change-case: 4.1.2
@@ -8729,7 +8738,7 @@ snapshots:
     dependencies:
       '@ljharb/through': 2.3.13
       ansi-escapes: 4.3.2
-      chalk: 5.3.0
+      chalk: 5.4.1
       cli-cursor: 3.1.0
       cli-width: 4.1.0
       external-editor: 3.1.0
@@ -9980,6 +9989,8 @@ snapshots:
   tinybench@2.9.0: {}
 
   tinyexec@0.3.1: {}
+
+  tinyexec@0.3.2: {}
 
   tinyglobby@0.2.10:
     dependencies:
