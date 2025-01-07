@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.24.0](https://github.com/ssilve1989/ulti-project/compare/v1.23.0...v1.24.0) (2025-01-07)
+
+
+### Features
+
+* **signups:** warn user on mismatched names when confirming signup ([#598](https://github.com/ssilve1989/ulti-project/issues/598)) ([67c79db](https://github.com/ssilve1989/ulti-project/commit/67c79db29178b08a26d1f32038239599924920f4))
+
 ## [1.23.0](https://github.com/ssilve1989/ulti-project/compare/v1.22.0...v1.23.0) (2024-12-22)
 
 
