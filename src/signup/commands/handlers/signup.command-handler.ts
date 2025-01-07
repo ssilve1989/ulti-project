@@ -237,7 +237,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       .setDescription("Here's a summary of your signup request")
       .addFields(fields);
 
-    if (displayName !== character) {
+    if (displayName.toLowerCase().trim() !== character.trim()) {
       // display a warning that their name does not match. it could be a spelling mistake
       embed.addFields({
         name: '⚠️ Name Mismatch Warning',
