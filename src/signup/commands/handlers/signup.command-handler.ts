@@ -13,6 +13,7 @@ import {
 } from 'discord.js';
 import { match } from 'ts-pattern';
 
+import { titleCase } from 'title-case';
 import { isSameUserFilter } from '../../../common/collection-filters.js';
 import {
   CancelButton,
@@ -85,7 +86,15 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       return;
     }
 
-    const embed = this.createSignupConfirmationEmbed(signupRequest);
+    const displayName = await this.discordService.getDisplayName({
+      userId: interaction.user.id,
+      guildId: interaction.guildId,
+    });
+
+    const embed = this.createSignupConfirmationEmbed(
+      signupRequest,
+      displayName,
+    );
 
     const confirmationRow = new ActionRowBuilder().addComponents(
       ConfirmButton,
@@ -199,17 +208,20 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     return [transformed, undefined];
   }
 
-  private createSignupConfirmationEmbed({
-    availability,
-    character,
-    encounter,
-    notes,
-    proofOfProgLink,
-    role,
-    screenshot,
-    world,
-    progPointRequested,
-  }: SignupInteractionDto) {
+  private createSignupConfirmationEmbed(
+    {
+      availability,
+      character,
+      encounter,
+      notes,
+      proofOfProgLink,
+      role,
+      screenshot,
+      world,
+      progPointRequested,
+    }: SignupInteractionDto,
+    displayName: string,
+  ) {
     const fields = createFields([
       characterField(character),
       worldField(world, 'Home World'),
@@ -222,8 +234,17 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
     const embed = new EmbedBuilder()
       .setTitle(EncounterFriendlyDescription[encounter])
-      .setDescription("Here's a summary of your request")
+      .setDescription("Here's a summary of your signup request")
       .addFields(fields);
+
+    if (displayName !== character) {
+      // display a warning that their name does not match. it could be a spelling mistake
+      embed.addFields({
+        name: '⚠️ Name Mismatch Warning',
+        value: `Your Discord display name \`${displayName}\` doesn't match your submitted character name \`${titleCase(character)}\`. Please be sure this is correct before confirming.`,
+        inline: false,
+      });
+    }
 
     return screenshot ? embed.setImage(screenshot) : embed;
   }

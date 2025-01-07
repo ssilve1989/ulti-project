@@ -73,6 +73,8 @@ describe('Signup Command Handler', () => {
       },
       valueOf: () => '',
     });
+
+    discordServiceMock.getDisplayName.mockResolvedValue('Test Character');
   });
 
   test('is defined', () => {
