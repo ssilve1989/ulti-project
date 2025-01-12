@@ -12,10 +12,11 @@ import { EmbedBuilder } from 'discord.js';
 import {
   EMPTY,
   catchError,
-  defer,
   filter,
+  from,
   lastValueFrom,
   mergeMap,
+  of,
   toArray,
 } from 'rxjs';
 import { titleCase } from 'title-case';
@@ -25,6 +26,7 @@ import {
   EncounterFriendlyDescription,
 } from '../../encounters/encounters.consts.js';
 import { FFLogsService } from '../../fflogs/fflogs.service.js';
+import { JobCollection } from '../../firebase/collections/job/job.collection.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { type SignupDocument } from '../../firebase/models/signup.model.js';
@@ -35,18 +37,7 @@ import { clearCheckerConfig } from './clear-checker.config.js';
 
 @Injectable()
 class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
-  // We don't want this job to run in every guild because thats not really necessary
-  // so we need some way of identifying which guild the bots in that we want this to run
-  // for now we'll just hardcode the guildId
-  private static readonly guildId = '808585230759755817';
-  private readonly checkableEncounters = new Set([
-    Encounter.DSR,
-    Encounter.TOP,
-    Encounter.TEA,
-    Encounter.UCOB,
-    Encounter.UWU,
-  ]);
-
+  private readonly checkableEncounters = new Set([Encounter.FRU]);
   private readonly logger = new Logger(ClearCheckerJob.name);
   private readonly job: CronJob;
 
@@ -56,10 +47,13 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     private readonly settingsCollection: SettingsCollection,
     private readonly signupsCollection: SignupCollection,
     private readonly sheetsService: SheetsService,
+    private readonly jobCollection: JobCollection,
     @Inject(clearCheckerConfig.KEY)
     private readonly config: ConfigType<typeof clearCheckerConfig>,
   ) {
-    this.job = createJob('clear-checker-cron', '0 0 14 * * *', () => {
+    const everyMinute = '0 * * * * *';
+    const cronString = '0 0 14 * * *';
+    this.job = createJob('clear-checker-cron', everyMinute, () => {
       this.checkClears();
     });
   }
@@ -75,9 +69,28 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
   checkClears() {
     this.logger.log('starting clear checker job...');
 
-    if (this.config.CLEAR_CHECKER_MODE === 'off') return;
+    const guilds = this.discordService.getGuilds();
 
-    const task$ = defer(() => this.signupsCollection.findAll({})).pipe(
+    const task$ = from(guilds).pipe(
+      mergeMap((guild) => {
+        this.logger.log(`checking ${guild} for clear checker job...`);
+        return from(this.jobCollection.getJob(guild, 'clear-checker')).pipe(
+          mergeMap((job) => {
+            this.logger.log(
+              `Job enabled for guild ${guild}: ${!!job?.enabled}`,
+            );
+            return job?.enabled ? of(guild) : EMPTY;
+          }),
+        );
+      }),
+      mergeMap((guildId) => this.processGuild(guildId)),
+    );
+
+    return lastValueFrom(task$, { defaultValue: undefined });
+  }
+
+  private processGuild(guildId: string) {
+    return from(this.signupsCollection.findAll({})).pipe(
       mergeMap((signups) => {
         this.logger.log(`Checking ${signups.length} signups`);
         return signups;
@@ -85,16 +98,14 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
       mergeMap(
         (signup) =>
           this.checkableEncounters.has(signup.encounter)
-            ? this.processSignup(signup)
+            ? this.processSignup(signup, guildId)
             : EMPTY,
         this.config.CLEAR_CHECKER_CONCURRENCY,
       ),
       filter((signup) => !!signup),
       toArray(),
-      mergeMap((results) => this.publishResults(results)),
+      mergeMap((results) => this.publishResults(results, guildId)),
     );
-
-    return lastValueFrom(task$, { defaultValue: undefined });
   }
 
   /**
@@ -102,7 +113,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
    * @param signup
    * @returns the signup if the character has cleared the encounter so it can be used for further processing
    */
-  private processSignup(signup: SignupDocument) {
+  private processSignup(signup: SignupDocument, guildId: string) {
     this.logger.log(`Checking signup for ${signup.character}`);
     Sentry.getCurrentScope().setExtra('signup', signup);
 
@@ -118,7 +129,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
           if (hasKilled) {
             this.logger.log(`Character ${character} has cleared ${encounter}.`);
 
-            await this.removeSignup(signup);
+            await this.removeSignup(signup, guildId);
             return signup;
           }
         }),
@@ -130,12 +141,10 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
       );
   }
 
-  private async removeSignup(signup: SignupDocument) {
+  private async removeSignup(signup: SignupDocument, guildId: string) {
     if (this.config.CLEAR_CHECKER_MODE === 'report') return;
 
-    const settings = await this.settingsCollection.getSettings(
-      ClearCheckerJob.guildId,
-    );
+    const settings = await this.settingsCollection.getSettings(guildId);
 
     this.logger.log('checking spreadsheet...');
     if (settings?.spreadsheetId) {
@@ -147,11 +156,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
 
     if (settings?.reviewChannel && signup.reviewMessageId) {
       await this.discordService
-        .deleteMessage(
-          ClearCheckerJob.guildId,
-          settings.reviewChannel,
-          signup.reviewMessageId,
-        )
+        .deleteMessage(guildId, settings.reviewChannel, signup.reviewMessageId)
         .catch((err) => {
           sentryReport(err);
         });
@@ -169,7 +174,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     this.logger.log('removal complete');
   }
 
-  private async publishResults(results: SignupDocument[]) {
+  private async publishResults(results: SignupDocument[], guildId: string) {
     if (results.length === 0) return;
 
     const fields = Object.entries(
@@ -192,16 +197,14 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
       .addFields(fields)
       .setTimestamp();
 
-    const settings = await this.settingsCollection.getSettings(
-      ClearCheckerJob.guildId,
-    );
+    const settings = await this.settingsCollection.getSettings(guildId);
 
     if (!settings?.modChannelId) {
       return;
     }
 
     const channel = await this.discordService.getTextChannel({
-      guildId: ClearCheckerJob.guildId,
+      guildId,
       channelId: settings.modChannelId,
     });
 

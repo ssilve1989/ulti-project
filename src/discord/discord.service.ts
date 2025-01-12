@@ -10,6 +10,10 @@ class DiscordService {
 
   constructor(@InjectDiscordClient() public readonly client: Client) {}
 
+  public getGuilds(): string[] {
+    return this.client.guilds.cache.map((guild) => guild.id);
+  }
+
   public async getGuildMember({
     memberId,
     guildId,

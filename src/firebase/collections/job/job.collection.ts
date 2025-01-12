@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { CollectionReference, Firestore } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../../firebase.decorators.js';
 import type { JobDocument } from './job.model.js';
 
@@ -12,12 +12,22 @@ class JobCollection {
     return res.empty ? [] : res.docs.map((doc) => doc.data() as JobDocument);
   }
 
+  async getJob(
+    guildId: string,
+    jobName: string,
+  ): Promise<JobDocument | undefined> {
+    const doc = await this.getCollection(guildId).doc(jobName).get();
+    return doc.data();
+  }
+
   public async upsertJob(guildId: string, job: JobDocument): Promise<void> {
     await this.getCollection(guildId).doc(job.name).set(job, { merge: true });
   }
 
   private getCollection(guildId: string) {
-    return this.firestore.collection(`guilds/${guildId}/jobs`);
+    return this.firestore.collection(
+      `guilds/${guildId}/jobs`,
+    ) as CollectionReference<JobDocument>;
   }
 }
 
