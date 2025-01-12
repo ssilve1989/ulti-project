@@ -17,9 +17,4 @@ export interface SettingsDocument extends DocumentData {
   clearRoles?: {
     [key in keyof typeof Encounter]?: string;
   };
-
-  // Contains configuration for whether jobs should be running
-  jobs: {
-    clearChecker?: boolean;
-  };
 }
