@@ -40,7 +40,7 @@ class FFLogsService {
         const hasKills =
           result.characterData?.character?.encounterRankings?.totalKills > 0;
         return hasKills;
-      }),
+      }, 5),
       first((hasKilled) => hasKilled),
       catchError((err) => {
         if (err instanceof EmptyError) {
