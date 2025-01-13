@@ -11,7 +11,7 @@ import {
   QuerySnapshot,
 } from 'firebase-admin/firestore';
 import { Encounter } from '../../encounters/encounters.consts.js';
-import type { SignupInteractionDto } from '../../signup/signup-interaction.dto.js';
+import type { SignupInteractionDto } from '../../slash-commands/signup/signup-interaction.dto.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import { type SignupDocument, SignupStatus } from '../models/signup.model.js';

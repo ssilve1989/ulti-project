@@ -21,15 +21,15 @@ import {
 import type { AppConfig, ApplicationModeConfig } from '../app.config.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
-import { BlacklistSlashCommand } from './commands/blacklist.js';
-import { LookupSlashCommand } from './commands/lookup.js';
-import { RemoveRoleSlashCommand } from './commands/remove-role.js';
-import { createRemoveSignupSlashCommand } from './commands/remove-signup.js';
-import { SettingsSlashCommand } from './commands/settings.js';
-import { createSignupSlashCommand } from './commands/signup.js';
-import { StatusSlashCommand } from './commands/status.js';
-import { createTurboProgSlashCommand } from './commands/turbo-prog-signup.js';
+import { BlacklistSlashCommand } from './blacklist/blacklist.slash-command.js';
+import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
+import { RemoveRoleSlashCommand } from './remove-role/remove-role.slash-command.js';
+import { SettingsSlashCommand } from './settings/settings.slash-command.js';
+import { createSignupSlashCommand } from './signup/signup.slash-command.js';
+import { createRemoveSignupSlashCommand } from './signup/subcommands/remove-signup/remove-signup.slash-command.js';
 import { getCommandForInteraction } from './slash-commands.utils.js';
+import { StatusSlashCommand } from './status/status.slash-command.js';
+import { createTurboProgSlashCommand } from './turboprog/turbo-prog-signup.slash-command.js';
 
 @Injectable()
 class SlashCommandsService {

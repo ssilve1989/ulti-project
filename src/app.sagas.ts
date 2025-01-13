@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { type ICommand, Saga, ofType } from '@nestjs/cqrs';
 import { Observable, filter, map, mergeMap } from 'rxjs';
-import { BlacklistSearchCommand } from './blacklist/blacklist.commands.js';
-import { RemoveRolesCommand } from './signup/commands/signup.commands.js';
+import { BlacklistSearchCommand } from './slash-commands/blacklist/blacklist.commands.js';
+import { RemoveRolesCommand } from './slash-commands/signup/commands/signup.commands.js';
 import {
   SignupApprovedEvent,
   SignupCreatedEvent,
-} from './signup/events/signup.events.js';
-import { hasClearedStatus } from './signup/signup.utils.js';
-import { RemoveSignupEvent } from './signup/subcommands/remove-signup/remove-signup.events.js';
-import { SendSignupReviewCommand } from './signup/subcommands/send-signup-review/send-signup-review.command.js';
-import { TurboProgRemoveSignupCommand } from './turboprog/commands/turbo-prog.commands.js';
+} from './slash-commands/signup/events/signup.events.js';
+import { hasClearedStatus } from './slash-commands/signup/signup.utils.js';
+import { RemoveSignupEvent } from './slash-commands/signup/subcommands/remove-signup/remove-signup.events.js';
+import { SendSignupReviewCommand } from './slash-commands/signup/subcommands/send-signup-review/send-signup-review.command.js';
+import { TurboProgRemoveSignupCommand } from './slash-commands/turboprog/commands/turbo-prog.commands.js';
 
 // TODO: Why are these at the app level? They should be in the signup module
 @Injectable()

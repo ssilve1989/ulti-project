@@ -4,24 +4,24 @@ import {
   BlacklistAddCommand,
   BlacklistDisplayCommand,
   BlacklistRemoveCommand,
-} from '../blacklist/blacklist.commands.js';
-import { LookupCommand } from '../lookup/lookup.command.js';
-import { RemoveRoleCommand } from '../remove-role/remove-role.command.js';
-import { EditSettingsCommand } from '../settings/subcommands/edit/edit-settings.command.js';
-import { ViewSettingsCommand } from '../settings/subcommands/view/view-settings.command.js';
-import { SignupCommand } from '../signup/commands/signup.commands.js';
-import { RemoveSignupCommand } from '../signup/subcommands/remove-signup/remove-signup.command.js';
-import { StatusCommand } from '../status/status.command.js';
-import { TurboProgCommand } from '../turboprog/commands/turbo-prog.commands.js';
-import { BlacklistSlashCommand } from './commands/blacklist.js';
-import { LookupSlashCommand } from './commands/lookup.js';
-import { RemoveRoleSlashCommand } from './commands/remove-role.js';
-import { REMOVE_SIGNUP_SLASH_COMMAND_NAME } from './commands/remove-signup.js';
-import { SettingsSlashCommand } from './commands/settings.js';
-import { SIGNUP_SLASH_COMMAND_NAME } from './commands/signup.js';
-import { StatusSlashCommand } from './commands/status.js';
-import { TURBO_PROG_SLASH_COMMAND_NAME } from './commands/turbo-prog-signup.js';
+} from './blacklist/blacklist.commands.js';
+import { BlacklistSlashCommand } from './blacklist/blacklist.slash-command.js';
+import { LookupCommand } from './lookup/lookup.command.js';
+import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
+import { RemoveRoleCommand } from './remove-role/remove-role.command.js';
+import { RemoveRoleSlashCommand } from './remove-role/remove-role.slash-command.js';
+import { SettingsSlashCommand } from './settings/settings.slash-command.js';
+import { EditSettingsCommand } from './settings/subcommands/edit/edit-settings.command.js';
+import { ViewSettingsCommand } from './settings/subcommands/view/view-settings.command.js';
+import { SignupCommand } from './signup/commands/signup.commands.js';
+import { SIGNUP_SLASH_COMMAND_NAME } from './signup/signup.slash-command.js';
+import { RemoveSignupCommand } from './signup/subcommands/remove-signup/remove-signup.command.js';
+import { REMOVE_SIGNUP_SLASH_COMMAND_NAME } from './signup/subcommands/remove-signup/remove-signup.slash-command.js';
 import type { DiscordCommand } from './slash-commands.interfaces.js';
+import { StatusCommand } from './status/status.command.js';
+import { StatusSlashCommand } from './status/status.slash-command.js';
+import { TurboProgCommand } from './turboprog/commands/turbo-prog.commands.js';
+import { TURBO_PROG_SLASH_COMMAND_NAME } from './turboprog/turbo-prog-signup.slash-command.js';
 
 /**
  * Get the CQRS command from the given interaction
