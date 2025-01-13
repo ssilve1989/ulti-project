@@ -103,8 +103,8 @@ importers:
         specifier: ^19.7.0
         version: 19.7.0(@types/node@22.10.5)(typescript@5.7.2)
       '@flydotio/dockerfile':
-        specifier: ^0.6.0
-        version: 0.6.0(@sveltejs/kit@2.15.1(@sveltejs/vite-plugin-svelte@5.0.3(svelte@5.16.2)(vite@5.4.11(@types/node@22.10.5)(terser@5.31.3)))(svelte@5.16.2)(vite@5.4.11(@types/node@22.10.5)(terser@5.31.3)))
+        specifier: ^0.7.0
+        version: 0.7.0(@sveltejs/kit@2.15.1(@sveltejs/vite-plugin-svelte@5.0.3(svelte@5.16.2)(vite@5.4.11(@types/node@22.10.5)(terser@5.31.3)))(svelte@5.16.2)(vite@5.4.11(@types/node@22.10.5)(terser@5.31.3)))
       '@golevelup/ts-vitest':
         specifier: ^0.5.1
         version: 0.5.1
@@ -819,9 +819,38 @@ packages:
     resolution: {integrity: sha512-qnSHIoE9FK+HYnNhTI8q14evyqbc/vHRivfB4TgCIUOl4tosmKSQlp7ltymOlMP4xVIJTg5wrkfcZ60X4nUf7Q==}
     engines: {node: '>=18.0.0'}
 
-  '@flydotio/dockerfile@0.6.0':
-    resolution: {integrity: sha512-PZloC9TYN918QmD9BbZsPaBFb7LBPpNS51jaYQkaB211P6V+eP9FlM518GGDtVNl4eSTmKl/dZgE4JQue1cYtQ==}
+  '@flydotio/dockerfile@0.7.0':
+    resolution: {integrity: sha512-Rg+v+kX3hrPGLITwk+H9HDa65YYkD8fNjNl8LzpZDA7mII+D8/s45/ZukHblwWqb1F3r2URPenIIkPEyJj51Ag==}
     engines: {node: '>=16.0.0'}
+    hasBin: true
+
+  '@flydotio/litestream-darwin-arm64@1.0.1':
+    resolution: {integrity: sha512-LI663pEbO1RZzzkqDbXen6UIDeOBkGJqfyl8FGm4Y+zbcKiLQhopuQLMs4BHlWelGMb2ZnwpcpM+OcimoDhqHA==}
+    engines: {node: '>=18'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@flydotio/litestream-darwin-x64@1.0.1':
+    resolution: {integrity: sha512-AecPpC1mu5QJ12+UWEaeCZbtNbde+t7qqgxrIYEZ+ZmrfgvCmsuZIqz67/IuRtaXTzr0COKD/uv9KRHIx+xHsQ==}
+    engines: {node: '>=18'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@flydotio/litestream-linux-arm64@1.0.1':
+    resolution: {integrity: sha512-/kukXjY+8xnAVUY3ywZIHIrW2gmKg5dXFVmSR/IQtdEwWZrKqdJ77fbK4u9bkacZqf94xn9jej8Cr4sToy6gNg==}
+    engines: {node: '>=18'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@flydotio/litestream-linux-x64@1.0.1':
+    resolution: {integrity: sha512-zmcAR8q2TNiAsWRSWscrN+r4NNQ+FwfatKhcE3G/YticNSkNyIhtCTlvXxIyOG+E+UWa+j441cjbmb7p83JPEw==}
+    engines: {node: '>=18'}
+    cpu: [x64]
+    os: [linux]
+
+  '@flydotio/litestream@1.0.1':
+    resolution: {integrity: sha512-hGIR37D1o8+AKcHa0PmdOG7dPm1RQsFQE3cqgt2udQVo3Q0NI5ruarLeaFWTFB6l+hjs97Xdlt0TgEufxLTzaQ==}
+    engines: {node: '>=18'}
     hasBin: true
 
   '@golevelup/ts-vitest@0.5.1':
@@ -5631,16 +5660,36 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@flydotio/dockerfile@0.6.0(@sveltejs/kit@2.15.1(@sveltejs/vite-plugin-svelte@5.0.3(svelte@5.16.2)(vite@5.4.11(@types/node@22.10.5)(terser@5.31.3)))(svelte@5.16.2)(vite@5.4.11(@types/node@22.10.5)(terser@5.31.3)))':
+  '@flydotio/dockerfile@0.7.0(@sveltejs/kit@2.15.1(@sveltejs/vite-plugin-svelte@5.0.3(svelte@5.16.2)(vite@5.4.11(@types/node@22.10.5)(terser@5.31.3)))(svelte@5.16.2)(vite@5.4.11(@types/node@22.10.5)(terser@5.31.3)))':
     dependencies:
+      '@flydotio/litestream': 1.0.1
       '@sveltejs/adapter-node': 5.2.11(@sveltejs/kit@2.15.1(@sveltejs/vite-plugin-svelte@5.0.3(svelte@5.16.2)(vite@5.4.11(@types/node@22.10.5)(terser@5.31.3)))(svelte@5.16.2)(vite@5.4.11(@types/node@22.10.5)(terser@5.31.3)))
-      chalk: 5.3.0
+      chalk: 5.4.1
       diff: 5.2.0
       ejs: 3.1.10
       shell-quote: 1.8.1
       yargs: 17.7.2
     transitivePeerDependencies:
       - '@sveltejs/kit'
+
+  '@flydotio/litestream-darwin-arm64@1.0.1':
+    optional: true
+
+  '@flydotio/litestream-darwin-x64@1.0.1':
+    optional: true
+
+  '@flydotio/litestream-linux-arm64@1.0.1':
+    optional: true
+
+  '@flydotio/litestream-linux-x64@1.0.1':
+    optional: true
+
+  '@flydotio/litestream@1.0.1':
+    optionalDependencies:
+      '@flydotio/litestream-darwin-arm64': 1.0.1
+      '@flydotio/litestream-darwin-x64': 1.0.1
+      '@flydotio/litestream-linux-arm64': 1.0.1
+      '@flydotio/litestream-linux-x64': 1.0.1
 
   '@golevelup/ts-vitest@0.5.1': {}
 
@@ -6729,7 +6778,7 @@ snapshots:
       estree-walker: 2.0.2
       fdir: 6.4.2(picomatch@4.0.2)
       is-reference: 1.2.1
-      magic-string: 0.30.14
+      magic-string: 0.30.17
       picomatch: 4.0.2
     optionalDependencies:
       rollup: 4.28.0
