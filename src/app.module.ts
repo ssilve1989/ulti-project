@@ -9,6 +9,7 @@ import { AppService } from './app.service.js';
 import { BlacklistModule } from './blacklist/blacklist.module.js';
 import { DiscordModule } from './discord/discord.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
+import { JobsModule } from './jobs/jobs.module.js';
 import { LookupModule } from './lookup/lookup.module.js';
 import { RemoveRoleModule } from './remove-role/remove-role.module.js';
 import { SentryModule } from './sentry/sentry.module.js';
@@ -33,6 +34,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     SignupModule,
     SlashCommandsModule,
     StatusModule,
+    JobsModule,
     TurboProgModule,
     ConfigModule.forRoot({
       cache: true,
@@ -51,7 +53,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
           transport:
             configService.get('NODE_ENV') === 'production'
               ? undefined
-              : { target: 'pino-pretty' },
+              : { target: 'pino-pretty', options: { singleLine: true } },
           level: configService.get('LOG_LEVEL'),
         },
       }),
