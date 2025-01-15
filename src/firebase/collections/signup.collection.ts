@@ -7,7 +7,7 @@ import {
   type Query,
   Timestamp,
 } from 'firebase-admin/firestore';
-import { SentryTraced } from '../../observability/span.decorator.js';
+import { SentryTraced } from '../../sentry/sentry-traced.decorator.js';
 import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import {

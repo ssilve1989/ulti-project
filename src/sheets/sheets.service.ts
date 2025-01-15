@@ -9,7 +9,7 @@ import {
   PartyStatus,
   type SignupDocument,
 } from '../firebase/models/signup.model.js';
-import { SentryTraced } from '../observability/span.decorator.js';
+import { SentryTraced } from '../sentry/sentry-traced.decorator.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
 import { type SheetRangeConfig, SheetRanges } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';

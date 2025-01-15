@@ -1,18 +1,18 @@
 import { createMock } from '@golevelup/ts-vitest';
 import { ChatInputCommandInteraction } from 'discord.js';
-import { LookupCommand } from '../lookup/lookup.command.js';
-import { RemoveRoleCommand } from '../remove-role/remove-role.command.js';
-import { SignupCommand } from '../signup/commands/signup.commands.js';
-import { RemoveSignupCommand } from '../signup/subcommands/remove-signup/remove-signup.command.js';
-import { StatusCommand } from '../status/status.command.js';
-import { TurboProgCommand } from '../turboprog/commands/turbo-prog.commands.js';
-import { LookupSlashCommand } from './commands/lookup.js';
-import { RemoveRoleSlashCommand } from './commands/remove-role.js';
-import { REMOVE_SIGNUP_SLASH_COMMAND_NAME } from './commands/remove-signup.js';
-import { SIGNUP_SLASH_COMMAND_NAME } from './commands/signup.js';
-import { StatusSlashCommand } from './commands/status.js';
-import { TURBO_PROG_SLASH_COMMAND_NAME } from './commands/turbo-prog-signup.js';
+import { LookupCommand } from './lookup/lookup.command.js';
+import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
+import { RemoveRoleCommand } from './remove-role/remove-role.command.js';
+import { RemoveRoleSlashCommand } from './remove-role/remove-role.slash-command.js';
+import { SignupCommand } from './signup/commands/signup.commands.js';
+import { SIGNUP_SLASH_COMMAND_NAME } from './signup/signup.slash-command.js';
+import { RemoveSignupCommand } from './signup/subcommands/remove-signup/remove-signup.command.js';
+import { REMOVE_SIGNUP_SLASH_COMMAND_NAME } from './signup/subcommands/remove-signup/remove-signup.slash-command.js';
 import { getCommandForInteraction } from './slash-commands.utils.js';
+import { StatusCommand } from './status/status.command.js';
+import { StatusSlashCommand } from './status/status.slash-command.js';
+import { TurboProgCommand } from './turboprog/commands/turbo-prog.commands.js';
+import { TURBO_PROG_SLASH_COMMAND_NAME } from './turboprog/turbo-prog-signup.slash-command.js';
 
 // TODO: add subcommand functionality
 const cases = [

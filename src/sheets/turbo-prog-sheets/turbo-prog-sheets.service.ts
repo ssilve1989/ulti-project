@@ -4,7 +4,7 @@ import type { ConfigType } from '@nestjs/config';
 import { titleCase } from 'title-case';
 import { AsyncQueue } from '../../common/async-queue/async-queue.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
-import type { TurboProgEntry } from '../../turboprog/turbo-prog.interfaces.js';
+import type { TurboProgEntry } from '../../slash-commands/turboprog/turbo-prog.interfaces.js';
 import { sheetsConfig } from '../sheets.config.js';
 import { InjectSheetsClient } from '../sheets.decorators.js';
 import {
