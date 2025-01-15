@@ -110,7 +110,7 @@ class TurboProgSheetsService {
     await updateSheet(this.client, {
       spreadsheetId,
       range: updateRange,
-      values,
+      values: [values],
       type: 'update',
     });
   }

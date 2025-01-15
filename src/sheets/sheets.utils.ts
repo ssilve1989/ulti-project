@@ -13,7 +13,7 @@ type FindCharacterRowProps = GetSheetValuesProps & {
 type SheetValues = string[][] | null | undefined;
 
 type UpdateSheetProps = {
-  values: string[];
+  values: string[][];
   type: 'update' | 'append';
 } & GetSheetValuesProps;
 
@@ -50,7 +50,7 @@ export function updateSheet(
     range,
     valueInputOption: 'USER_ENTERED',
     requestBody: {
-      values: [values],
+      values: values,
     },
   };
 
