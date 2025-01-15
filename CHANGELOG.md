@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.25.0](https://github.com/ssilve1989/ulti-project/compare/v1.24.0...v1.25.0) (2025-01-15)
+
+
+### Features
+
+* a daily job will check FFLogs for clears and remove appropriate signups ([#608](https://github.com/ssilve1989/ulti-project/issues/608)) ([ad7731d](https://github.com/ssilve1989/ulti-project/commit/ad7731df9056429d8282d92af7b94f9585133915))
+
 ## [1.24.0](https://github.com/ssilve1989/ulti-project/compare/v1.23.0...v1.24.0) (2025-01-07)
 
 
