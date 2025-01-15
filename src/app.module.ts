@@ -6,19 +6,19 @@ import { type AppConfig, configSchema } from './app.config.js';
 import { AppController } from './app.controller.js';
 import { AppSagas } from './app.sagas.js';
 import { AppService } from './app.service.js';
-import { BlacklistModule } from './blacklist/blacklist.module.js';
 import { DiscordModule } from './discord/discord.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
-import { LookupModule } from './lookup/lookup.module.js';
-import { RemoveRoleModule } from './remove-role/remove-role.module.js';
 import { SentryModule } from './sentry/sentry.module.js';
-import { SettingsModule } from './settings/settings.module.js';
 import { SheetsModule } from './sheets/sheets.module.js';
-import { SignupModule } from './signup/signup.module.js';
+import { BlacklistModule } from './slash-commands/blacklist/blacklist.module.js';
+import { LookupModule } from './slash-commands/lookup/lookup.module.js';
+import { RemoveRoleModule } from './slash-commands/remove-role/remove-role.module.js';
+import { SettingsModule } from './slash-commands/settings/settings.module.js';
+import { SignupModule } from './slash-commands/signup/signup.module.js';
 import { SlashCommandsModule } from './slash-commands/slash-commands.module.js';
-import { StatusModule } from './status/status.module.js';
-import { TurboProgModule } from './turboprog/turbo-prog.module.js';
+import { StatusModule } from './slash-commands/status/status.module.js';
+import { TurboProgModule } from './slash-commands/turboprog/turbo-prog.module.js';
 
 @Module({
   imports: [
@@ -28,7 +28,6 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     DiscordModule,
     FirebaseModule,
     LookupModule,
-    RemoveRoleModule,
     SettingsModule,
     SheetsModule,
     SignupModule,
