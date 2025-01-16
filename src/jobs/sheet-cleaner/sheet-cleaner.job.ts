@@ -28,7 +28,7 @@ class SheetCleanerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     private readonly settingsCollection: SettingsCollection,
   ) {
     this.job = createJob('sheet-cleaner', {
-      cronTime: CronTime.everyDay().at(3),
+      cronTime: CronTime.everyDay().at(4),
       runOnInit: true,
       onTick: () => {
         this.cleanSheet();
