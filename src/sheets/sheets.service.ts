@@ -4,7 +4,10 @@ import * as Sentry from '@sentry/node';
 import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
-import { Encounter } from '../encounters/encounters.consts.js';
+import {
+  Encounter,
+  EncounterProgPoints,
+} from '../encounters/encounters.consts.js';
 import {
   PartyStatus,
   type SignupDocument,
@@ -92,7 +95,7 @@ class SheetsService {
     )[],
   ) {
     const types = partyTypes || this.getDefaultPartyTypes(encounter);
-    const ranges = types.map((type) => SheetRanges[type]);
+    const ranges = types.map((range) => SheetRanges[range]);
 
     const requests = await Promise.all(
       ranges.map((range) =>
@@ -259,7 +262,7 @@ class SheetsService {
     return updateSheet(this.client, {
       spreadsheetId,
       range: updateRange,
-      values: cellValues,
+      values: [cellValues],
       type: 'update',
     });
   }
@@ -305,6 +308,146 @@ class SheetsService {
     return this.progEncounters.has(encounter)
       ? [PartyStatus.ProgParty, PartyStatus.ClearParty]
       : [PartyStatus.ClearParty];
+  }
+
+  @SentryTraced()
+  public async cleanSheet({
+    spreadsheetId,
+    encounter,
+  }: { spreadsheetId: string; encounter: Encounter }): Promise<void> {
+    const ranges = [
+      SheetRanges[PartyStatus.ClearParty],
+      SheetRanges[PartyStatus.ProgParty],
+    ];
+
+    for (const { format, columnEnd, columnStart, rowStart } of ranges) {
+      const response = await this.client.spreadsheets.get({
+        spreadsheetId,
+        ranges: [`${encounter}!${columnStart}${rowStart}:${columnEnd}`],
+        // Get values WITH formatting
+        includeGridData: true,
+      });
+
+      const gridData = response.data.sheets?.[0].data?.[0];
+
+      if (!gridData?.rowData?.length) continue;
+
+      // Extract values and their formatting
+      const rowsWithFormatting = gridData.rowData.map((row) => ({
+        values:
+          row.values?.map((cell) => cell.userEnteredValue?.stringValue || '') ||
+          [],
+        format: row.values?.map((cell) => cell.userEnteredFormat) || [],
+      }));
+
+      // Filter out empty rows but keep their formatting
+      const nonEmptyRows = rowsWithFormatting.filter((row) =>
+        row.values.some((cell) => cell),
+      );
+
+      const progPoints = Object.keys(EncounterProgPoints[encounter]);
+      const progPointIndex = (value: string) =>
+        progPoints.indexOf(value) !== -1
+          ? progPoints.indexOf(value)
+          : Number.NEGATIVE_INFINITY;
+
+      // Sort the rows while keeping their formatting
+      nonEmptyRows.sort((a, b) => {
+        const aPoint = a.values[3] || '';
+        const bPoint = b.values[3] || '';
+        return progPointIndex(bPoint) - progPointIndex(aPoint);
+      });
+
+      if (nonEmptyRows.length) {
+        const sheetId = await getSheetIdByName(
+          this.client,
+          spreadsheetId,
+          encounter,
+        );
+
+        if (!sheetId) continue;
+
+        const baseFormat = {
+          horizontalAlignment: format.horizontalAlignment,
+          textFormat: {
+            fontSize: format.fontSize,
+            fontFamily: format.fontFamily,
+          },
+          borders: format.borders,
+        };
+
+        // Create update requests that preserve background colors but apply base formatting
+        const requests = nonEmptyRows.map((row, index) => ({
+          updateCells: {
+            range: {
+              sheetId,
+              startRowIndex: rowStart - 1 + index,
+              endRowIndex: rowStart + index,
+              startColumnIndex: columnToIndex(columnStart),
+              endColumnIndex: columnToIndex(columnEnd) + 1,
+            },
+            rows: [
+              {
+                values: row.values.map((value, cellIndex) => ({
+                  userEnteredValue: { stringValue: value },
+                  userEnteredFormat: {
+                    ...baseFormat,
+                    backgroundColor: row.format[cellIndex]?.backgroundColor,
+                  },
+                })),
+              },
+            ],
+            fields:
+              'userEnteredFormat(backgroundColor,horizontalAlignment,textFormat(fontSize,fontFamily),borders),userEnteredValue',
+          },
+        }));
+
+        // Clear remaining rows if any
+        const emptyRowsCount = gridData.rowData.length - nonEmptyRows.length;
+        if (emptyRowsCount > 0) {
+          requests.push({
+            updateCells: {
+              range: {
+                sheetId,
+                startRowIndex: rowStart - 1 + nonEmptyRows.length,
+                endRowIndex: rowStart - 1 + gridData.rowData.length,
+                startColumnIndex: columnToIndex(columnStart),
+                endColumnIndex: columnToIndex(columnEnd) + 1,
+              },
+              rows: Array(emptyRowsCount).fill({
+                values: Array(4).fill({
+                  userEnteredValue: { stringValue: '' },
+                  userEnteredFormat: {
+                    ...baseFormat,
+                    backgroundColor: format.defaultBackgroundColor,
+                  },
+                }),
+              }),
+              fields:
+                'userEnteredFormat(backgroundColor,horizontalAlignment,textFormat(fontSize,fontFamily),borders),userEnteredValue',
+            },
+          });
+        }
+
+        await batchUpdate(this.client, spreadsheetId, requests);
+      }
+    }
+
+    // Add cleanup date after all ranges are processed
+    const today = new Date();
+    const dateFormatter = new Intl.DateTimeFormat('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+    });
+
+    const dateString = `Last Cleanup ${dateFormatter.format(today)}`;
+
+    await updateSheet(this.client, {
+      spreadsheetId,
+      range: `${encounter}!L6`,
+      values: [[dateString]],
+      type: 'update',
+    });
   }
 }
 

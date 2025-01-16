@@ -20,6 +20,7 @@ import {
   toArray,
 } from 'rxjs';
 import { titleCase } from 'title-case';
+import { CronTime } from '../../common/cron.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import {
   Encounter,
@@ -32,7 +33,7 @@ import { SignupCollection } from '../../firebase/collections/signup.collection.j
 import { type SignupDocument } from '../../firebase/models/signup.model.js';
 import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
-import { createJob } from '../jobs.consts.js';
+import { createJob, jobDateFormatter } from '../jobs.consts.js';
 import { clearCheckerConfig } from './clear-checker.config.js';
 
 @Injectable()
@@ -52,14 +53,19 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     @Inject(clearCheckerConfig.KEY)
     private readonly config: ConfigType<typeof clearCheckerConfig>,
   ) {
-    // run the job every day at 2pm server time (midnight EST)
-    this.job = createJob('clear-checker-cron', '0 0 14 * * *', () => {
-      this.checkClears();
+    this.job = createJob('clear-checker', {
+      cronTime: CronTime.everyDay().at(4),
+      onTick: () => {
+        this.checkClears();
+      },
     });
   }
 
   onApplicationBootstrap() {
     this.job.start();
+    this.logger.log(
+      `daily run scheduled for: ${jobDateFormatter.format(this.job.nextDate().toJSDate())}`,
+    );
   }
 
   onApplicationShutdown() {
