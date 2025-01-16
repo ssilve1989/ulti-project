@@ -54,7 +54,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     private readonly config: ConfigType<typeof clearCheckerConfig>,
   ) {
     this.job = createJob('clear-checker', {
-      cronTime: CronTime.everyDay().at(4),
+      cronTime: CronTime.everyDay().at(3),
       onTick: () => {
         this.checkClears();
       },
