@@ -30,7 +30,10 @@ import { FFLogsService } from '../../fflogs/fflogs.service.js';
 import { JobCollection } from '../../firebase/collections/job/job.collection.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import { type SignupDocument } from '../../firebase/models/signup.model.js';
+import {
+  PartyStatus,
+  type SignupDocument,
+} from '../../firebase/models/signup.model.js';
 import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import { createJob, jobDateFormatter } from '../jobs.consts.js';
@@ -55,6 +58,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
   ) {
     this.job = createJob('clear-checker', {
       cronTime: CronTime.everyDay().at(3),
+      runOnInit: true,
       onTick: () => {
         this.checkClears();
       },
@@ -95,12 +99,15 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     return from(this.signupsCollection.findAll({})).pipe(
       mergeMap((signups) => signups),
       mergeMap(
-        (signup) => this.processSignup(signup, guildId),
+        (signup, index) => this.processSignup(signup, index),
         this.config.CLEAR_CHECKER_CONCURRENCY,
       ),
       filter((signup) => !!signup),
       toArray(),
-      mergeMap((results) => this.publishResults(results, guildId)),
+      mergeMap(async (results) => {
+        await this.removeSignups(results, guildId);
+        return this.publishResults(results, guildId);
+      }),
     );
   }
 
@@ -111,12 +118,12 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
    */
   private async processSignup(
     signup: SignupDocument,
-    guildId: string,
+    index: number,
   ): Promise<SignupDocument | undefined> {
     if (!this.checkableEncounters.has(signup.encounter)) return;
 
-    Sentry.getCurrentScope().setExtra('signup', signup);
-    this.logger.debug(`Checking signup for ${signup.character}`);
+    Sentry.getCurrentScope().setExtras({ signup, index });
+    this.logger.debug(`[${index}] checking signup for ${signup.character}`);
 
     const { encounter, character, world } = signup;
 
@@ -129,45 +136,55 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
         }),
       );
 
-      if (!hasCleared) return;
-
-      await this.removeSignup(signup, guildId);
-      return signup;
+      return hasCleared ? signup : undefined;
     } catch (e) {
       sentryReport(e);
-      this.logger.warn(`Error checking signup for ${signup.character}`);
+      this.logger.warn(`error checking signup for ${signup.character}`);
     }
+
+    return undefined;
   }
 
-  private async removeSignup(signup: SignupDocument, guildId: string) {
+  private async removeSignups(signups: SignupDocument[], guildId: string) {
+    this.logger.log(`removing ${signups.length} signups`);
+
     const settings = await this.settingsCollection.getSettings(guildId);
 
-    this.logger.debug('checking spreadsheet...');
     if (settings?.spreadsheetId) {
-      await this.sheetsService.removeSignup(signup, settings.spreadsheetId);
+      await this.sheetsService.batchRemoveClearedSignups(signups, {
+        // TODO: need to provide encounter, hard-assigning here it doesn't scale well
+        encounter: Encounter.FRU,
+        spreadsheetId: settings.spreadsheetId,
+        partyTypes: [PartyStatus.ClearParty, PartyStatus.ProgParty],
+      });
     }
 
-    this.logger.debug('spreadsheet check complete');
-    this.logger.debug('checking for existing review message...');
+    for (const signup of signups) {
+      if (settings?.reviewChannel && signup.reviewMessageId) {
+        await this.discordService
+          .deleteMessage(
+            guildId,
+            settings.reviewChannel,
+            signup.reviewMessageId,
+          )
+          .catch((err) => {
+            sentryReport(err);
+          });
+      }
 
-    if (settings?.reviewChannel && signup.reviewMessageId) {
-      await this.discordService
-        .deleteMessage(guildId, settings.reviewChannel, signup.reviewMessageId)
+      await this.signupsCollection
+        .removeSignup({
+          character: signup.character,
+          world: signup.world,
+          encounter: signup.encounter,
+        })
         .catch((err) => {
+          this.logger.warn(`error removing signup for ${signup.character}`);
           sentryReport(err);
         });
+
+      this.logger.log(`signup removal complete for ${signup.character}`);
     }
-
-    this.logger.debug('review message check complete');
-    this.logger.debug('checking document collection...');
-
-    await this.signupsCollection.removeSignup({
-      character: signup.character,
-      world: signup.world,
-      encounter: signup.encounter,
-    });
-
-    this.logger.log(`signup removal complete for ${signup.character}`);
   }
 
   private async publishResults(results: SignupDocument[], guildId: string) {
