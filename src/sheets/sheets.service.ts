@@ -25,6 +25,11 @@ import {
   updateSheet,
 } from './sheets.utils.js';
 
+type PartyTypes = (
+  | PartyStatus.ClearParty
+  | PartyStatus.ProgParty
+  | PartyStatus.EarlyProgParty
+)[];
 /**
  * This module depends on knowing the structure of the spreadsheet
  * Ranges are very brittle and will need to be updated if the spreadsheet changes.
@@ -88,11 +93,7 @@ class SheetsService {
       world,
     }: Pick<SignupDocument, 'encounter' | 'character' | 'world'>,
     spreadsheetId: string,
-    partyTypes?: (
-      | PartyStatus.ClearParty
-      | PartyStatus.ProgParty
-      | PartyStatus.EarlyProgParty
-    )[],
+    partyTypes?: PartyTypes,
   ) {
     const types = partyTypes || this.getDefaultPartyTypes(encounter);
     const ranges = types.map((range) => SheetRanges[range]);
@@ -109,6 +110,103 @@ class SheetsService {
 
     const filtered = requests.filter(Boolean) as sheets_v4.Schema$Request[];
     return filtered.length && batchUpdate(this.client, spreadsheetId, filtered);
+  }
+
+  // TODO: overlaps a bit of functionality with `createRemoveSignup`
+  /**
+   * Creates a batch of requests to remove multiple signups found on the spreadsheet
+   * @param signups
+   * @param param1
+   */
+  public async batchRemoveClearedSignups(
+    signups: Pick<SignupDocument, 'character' | 'world'>[],
+    {
+      encounter,
+      spreadsheetId,
+      partyTypes,
+    }: {
+      encounter: Encounter;
+      spreadsheetId: string;
+      partyTypes: PartyTypes;
+    },
+  ) {
+    // This function was created to assist in the the jobs that operate on multiple signups at once and to help prevent running into
+    // rate limiting issues on the Sheets API, which at the time of writing is 60/min per user per project. 300/min per project total.
+    // The unbatched version was invoking `removeSignup` for each signup which would result in redundant read calls to fetch things like the sheetValues
+    // and sheetId. This function will make one request for each subtable range, and one for the sheetId.
+    const ranges = partyTypes.map((type) => SheetRanges[type]);
+
+    const sheetId = await getSheetIdByName(
+      this.client,
+      spreadsheetId,
+      encounter,
+    );
+
+    if (!sheetId) {
+      throw new Error(`Invalid SheetID for encounter ${encounter}`);
+    }
+
+    const requests = await Promise.all(
+      ranges.map((range) =>
+        this.getRemoveRequestsForRange(signups, {
+          spreadsheetId,
+          encounter,
+          range,
+          sheetId,
+        }),
+      ),
+    );
+
+    await batchUpdate(this.client, spreadsheetId, requests.flat());
+  }
+
+  private async getRemoveRequestsForRange(
+    signups: Pick<SignupDocument, 'character' | 'world'>[],
+    {
+      spreadsheetId,
+      encounter,
+      range,
+      sheetId,
+    }: {
+      spreadsheetId: string;
+      encounter: Encounter;
+      range: SheetRangeConfig;
+      sheetId: number;
+    },
+  ) {
+    const sheetValues = await getSheetValues(this.client, {
+      spreadsheetId,
+      range: `${encounter}!${range.columnStart}:${range.columnEnd}`,
+    });
+
+    const requests = signups.reduce<sheets_v4.Schema$Request[]>(
+      (acc, signup) => {
+        const rowIndex = this.findCharacterRowIndex(
+          sheetValues,
+          (values) =>
+            values.has(signup.character.toLowerCase()) &&
+            values.has(signup.world.toLowerCase()),
+        );
+
+        if (rowIndex !== -1) {
+          acc.push({
+            updateCells: {
+              range: {
+                sheetId,
+                startRowIndex: rowIndex,
+                endRowIndex: rowIndex + 1,
+                startColumnIndex: columnToIndex(range.columnStart),
+                endColumnIndex: columnToIndex(range.columnEnd) + 1,
+              },
+              fields: 'userEnteredValue',
+            },
+          });
+        }
+        return acc;
+      },
+      [],
+    );
+    return requests;
   }
 
   private async createRemoveRequest(
