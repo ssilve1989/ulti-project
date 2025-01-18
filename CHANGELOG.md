@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.25.1](https://github.com/ssilve1989/ulti-project/compare/v1.25.0...v1.25.1) (2025-01-17)
+
+
+### Performance Improvements
+
+* **jobs:** batch remove requests for GSheets in ClearChecker ([#613](https://github.com/ssilve1989/ulti-project/issues/613)) ([e1a5863](https://github.com/ssilve1989/ulti-project/commit/e1a5863e765fe237ff90719e561fa4adeabcd4c0))
+
 ## [1.25.0](https://github.com/ssilve1989/ulti-project/compare/v1.24.0...v1.25.0) (2025-01-16)
 
 
