@@ -19,13 +19,9 @@ import {
   of,
   toArray,
 } from 'rxjs';
-import { titleCase } from 'title-case';
 import { CronTime } from '../../common/cron.js';
 import { DiscordService } from '../../discord/discord.service.js';
-import {
-  Encounter,
-  EncounterFriendlyDescription,
-} from '../../encounters/encounters.consts.js';
+import { Encounter } from '../../encounters/encounters.consts.js';
 import { FFLogsService } from '../../fflogs/fflogs.service.js';
 import { JobCollection } from '../../firebase/collections/job/job.collection.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
@@ -195,22 +191,9 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
       return;
     }
 
-    const fields = Object.entries(
-      Object.groupBy(results, (item) => item.encounter),
-    ).map(([encounter, signups]) => {
-      const value = signups
-        .map((signup) => `${signup.character} <@${signup.discordId}>`)
-        .join('\n');
-      return {
-        name: EncounterFriendlyDescription[encounter as Encounter],
-        value: `${titleCase(value)}`,
-      };
-    });
-
     const embed = new EmbedBuilder()
       .setTitle(':broom: Clear Checker :broom:')
-      .setDescription('The following signups have been removed')
-      .addFields(fields)
+      .setDescription(`${results.length} players have been removed!`)
       .setTimestamp();
 
     const channel = await this.discordService.getTextChannel({
