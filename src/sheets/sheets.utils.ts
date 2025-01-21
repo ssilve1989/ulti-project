@@ -64,12 +64,15 @@ export function batchUpdate(
   spreadsheetId: string,
   requests: any[],
 ) {
-  return client.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      requests,
+  return client.spreadsheets.batchUpdate(
+    {
+      spreadsheetId,
+      requestBody: {
+        requests,
+      },
     },
-  });
+    { timeout: 30_000 },
+  );
 }
 
 /**
