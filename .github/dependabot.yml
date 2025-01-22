@@ -18,6 +18,7 @@ updates:
           - '@nestjs/cqrs'
           - '@nestjs/schematics'
           - '@nestjs/testing'
+          - '@nestjs/cli'
       pino:
         patterns:
           - pino-http
@@ -33,3 +34,4 @@ updates:
           - '@vitest/ui'
           - '@vitest/coverage-v8'
           - 'vitest'
+          - 'vite'
