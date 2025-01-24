@@ -12,7 +12,7 @@ async function bootstrap() {
   app.flushLogs();
   app.enableShutdownHooks();
 
-  logger.log(`NodeJS Version: ${process.version}`);
+  logger.log(`Bun Version: ${Bun.version}`);
 }
 
 bootstrap();

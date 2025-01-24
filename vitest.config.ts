@@ -12,7 +12,7 @@ export default defineConfig({
         'src/slash-commands/**/*{-command.ts,.command.ts}',
         '**/*.module.ts',
       ],
-      provider: 'v8',
+      // provider: 'istanbul',
     },
     pool: 'threads',
     poolOptions: {

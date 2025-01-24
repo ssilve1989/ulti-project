@@ -1,42 +1,19 @@
-ARG NODE_VERSION=24.11.0
-# Switch to alpine instead of slim
-FROM node:${NODE_VERSION}-alpine AS base  
+ARG BUN_VERSION=1.3.2
+FROM oven/bun:${BUN_VERSION}-alpine
 
 LABEL fly_launch_runtime="NestJS"
 
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-# Used to workaround issues where corepack doesn't know about the pnpm
-# version we are using
-ENV COREPACK_INTEGRITY_KEYS=0
-RUN corepack enable
+WORKDIR /app
 
-# Print the pnpm version
-RUN pnpm --version
-
-COPY package.json pnpm-lock.yaml tsconfig.json tsconfig.build.json instrumentation.mjs /app/
+# Copy package files and source code
+COPY package.json bun.lock tsconfig.json /app/
 COPY src /app/src
 COPY scripts /app/scripts
+COPY instrumentation.ts /app/
 
-WORKDIR /app
-
-FROM base AS prod-deps
-
+# Install dependencies
 ENV NODE_ENV="production"
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
-
-FROM base AS build
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm run build
-
-FROM node:${NODE_VERSION}-alpine
-
-WORKDIR /app
-
-# Copy only the files needed for runtime
-COPY package.json instrumentation.mjs /app/
-COPY --from=prod-deps /app/node_modules /app/node_modules
-COPY --from=build /app/dist /app/dist
+RUN --mount=type=cache,id=bun,target=/root/.bun bun install --frozen-lockfile --production --ignore-scripts
 
 EXPOSE 3000
-CMD [ "node", "--import", "./instrumentation.mjs", "dist/main" ]
+CMD [ "bun", "-r", "./instrumentation.ts", "src/main.ts" ]
