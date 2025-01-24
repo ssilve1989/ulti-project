@@ -4,8 +4,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import * as Sentry from '@sentry/node';
-import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import * as Sentry from '@sentry/bun';
 import type { AppConfig } from '../app.config.js';
 
 import pkg from '../../package.json' with { type: 'json' };
@@ -18,11 +17,11 @@ export class SentryModule implements OnModuleInit, OnApplicationShutdown {
 
   onModuleInit() {
     Sentry.init({
-      integrations: [nodeProfilingIntegration()],
+      // integrations: [nodeProfilingIntegration()],
       // Performance Monitoring
       tracesSampleRate: 1.0, //  Capture 100% of the transactions
       // Set sampling rate for profiling - this is relative to tracesSampleRate
-      profilesSampleRate: 1.0,
+      // profilesSampleRate: 1.0,
       environment: this.configService.get('NODE_ENV'),
       release: `ulti-project-bot@${pkg.version}`,
     });
