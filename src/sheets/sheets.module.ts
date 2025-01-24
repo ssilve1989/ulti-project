@@ -1,6 +1,6 @@
 import { sheets } from '@googleapis/sheets';
 import { Module } from '@nestjs/common';
-import { Compute, GoogleAuth } from 'google-auth-library';
+import { GoogleAuth } from 'google-auth-library';
 import { appConfig } from '../config/app.js';
 import { sheetsConfig } from '../config/sheets.js';
 import { EncountersModule } from '../encounters/encounters.module.js';
@@ -26,10 +26,12 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
           },
         });
 
-        const auth = (await client.getClient()) as Compute;
+        const auth = await client.getClient();
+
         return sheets({
           version: 'v4',
-          auth,
+          // TODO: figure out the correct typing here
+          auth: auth as any,
           http2: sheetsConfig.GOOGLE_APIS_HTTP2,
           timeout: 20_000,
           retry: true,
