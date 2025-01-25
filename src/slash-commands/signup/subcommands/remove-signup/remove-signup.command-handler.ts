@@ -61,9 +61,7 @@ class RemoveSignupCommandHandler
     await interaction.deferReply({ ephemeral: true });
 
     const scope = Sentry.getCurrentScope();
-    const options = {
-      ...this.getOptions(interaction),
-    };
+    const options = this.getOptions(interaction);
 
     scope.setExtra('options', options);
 
@@ -129,7 +127,12 @@ class RemoveSignupCommandHandler
           throw error;
         });
     } finally {
-      this.eventBus.publish(new RemoveSignupEvent(options, settings));
+      this.eventBus.publish(
+        new RemoveSignupEvent(options, {
+          guildId: interaction.guildId,
+          discordId: interaction.user.id,
+        }),
+      );
     }
   }
 

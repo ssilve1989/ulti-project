@@ -1,6 +1,5 @@
 import { ChatInputCommandInteraction } from 'discord.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
-import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
 import type { DiscordCommand } from '../../../slash-commands/slash-commands.interfaces.js';
 
 export class SignupCommand implements DiscordCommand {
@@ -15,6 +14,5 @@ export class RemoveRolesCommand {
     public readonly guildId: string,
     public readonly userId: string,
     public readonly encounter: Encounter,
-    public readonly settings: SettingsDocument,
   ) {}
 }
