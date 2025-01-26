@@ -1,7 +1,7 @@
 import { CommandHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
 import { plainToClass } from 'class-transformer';
-import { ChatInputCommandInteraction } from 'discord.js';
+import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { P, match } from 'ts-pattern';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
@@ -45,7 +45,7 @@ class TurboProgCommandHandler {
 
   @SentryTraced()
   async execute({ interaction }: TurboProgCommand) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const settings = await this.settingsCollection.getSettings(
       interaction.guildId,

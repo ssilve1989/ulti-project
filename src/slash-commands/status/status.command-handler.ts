@@ -1,6 +1,10 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
-import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import {
+  ChatInputCommandInteraction,
+  EmbedBuilder,
+  MessageFlags,
+} from 'discord.js';
 import { EncounterFriendlyDescription } from '../../encounters/encounters.consts.js';
 import {
   type SignupDocument,
@@ -20,7 +24,7 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
 
   @SentryTraced()
   async execute({ interaction }: StatusCommand) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     try {
       const signups = await this.service.getSignups(interaction.user.id);
       const embed = this.createStatusEmbed(signups);

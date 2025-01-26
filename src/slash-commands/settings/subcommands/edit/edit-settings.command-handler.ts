@@ -3,6 +3,7 @@ import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import {
   ChatInputCommandInteraction,
   CommandInteractionOptionResolver,
+  MessageFlags,
 } from 'discord.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
@@ -20,7 +21,7 @@ class EditSettingsCommandHandler
 
   @SentryTraced()
   async execute({ interaction }: EditSettingsCommand) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const guildId = interaction.guildId;
 

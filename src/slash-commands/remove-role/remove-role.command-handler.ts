@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { MessageFlags } from 'discord.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SentryTraced } from '../../sentry/sentry-traced.decorator.js';
 import { RemoveRoleCommand } from './remove-role.command.js';
@@ -12,7 +13,7 @@ class RemoveRoleCommandHandler implements ICommandHandler<RemoveRoleCommand> {
 
   @SentryTraced()
   async execute({ interaction }: RemoveRoleCommand) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const { guildId, options } = interaction;
     const role = options.getRole('role', true);

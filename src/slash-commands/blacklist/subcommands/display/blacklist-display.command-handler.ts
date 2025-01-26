@@ -1,5 +1,5 @@
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { BlacklistCollection } from '../../../../firebase/collections/blacklist-collection.js';
 import { BlacklistDisplayCommand } from '../../blacklist.commands.js';
 import { createBlacklistEmbedFields } from '../../blacklist.utils.js';
@@ -11,7 +11,7 @@ class BlacklistDisplayCommandHandler
   constructor(private readonly blacklistCollection: BlacklistCollection) {}
 
   async execute({ interaction }: BlacklistDisplayCommand) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const results = await this.blacklistCollection.getBlacklist(
       interaction.guildId,
