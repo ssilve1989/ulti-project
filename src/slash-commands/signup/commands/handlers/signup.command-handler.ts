@@ -10,6 +10,7 @@ import {
   ComponentType,
   DiscordjsErrorCodes,
   EmbedBuilder,
+  MessageFlags,
 } from 'discord.js';
 import { match } from 'ts-pattern';
 
@@ -64,7 +65,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
     this.logger.debug(`handling signup command for user: ${username}`);
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const hasReviewChannelConfigured =
       !!(await this.settingsService.getReviewChannel(interaction.guildId));

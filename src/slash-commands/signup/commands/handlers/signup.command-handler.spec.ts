@@ -6,6 +6,7 @@ import {
   DiscordjsError,
   DiscordjsErrorCodes,
   Message,
+  MessageFlags,
 } from 'discord.js';
 import { UnhandledButtonInteractionException } from '../../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
@@ -95,7 +96,7 @@ describe('Signup Command Handler', () => {
     await handler.execute(command);
 
     expect(interaction.deferReply).toHaveBeenCalledWith({
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     expect(interaction.editReply).toHaveBeenCalledTimes(2);
     expect(interaction.editReply).toHaveBeenNthCalledWith(
@@ -195,7 +196,7 @@ describe('Signup Command Handler', () => {
     await handler.execute(command);
 
     expect(interaction.deferReply).toHaveBeenCalledWith({
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     expect(interaction.editReply).toHaveBeenCalledTimes(2);
     expect(interaction.editReply).toHaveBeenNthCalledWith(
@@ -219,7 +220,7 @@ describe('Signup Command Handler', () => {
     await handler.execute(command);
 
     expect(interaction.deferReply).toHaveBeenCalledWith({
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     expect(interaction.editReply).toHaveBeenCalledTimes(2);
     expect(interaction.editReply).toHaveBeenCalledWith(
@@ -236,7 +237,7 @@ describe('Signup Command Handler', () => {
     await handler.execute(command);
 
     expect(interaction.deferReply).toHaveBeenCalledWith({
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     expect(interaction.editReply).toHaveBeenCalledWith(
       SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL,

@@ -1,6 +1,11 @@
 import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { ChatInputCommandInteraction, Colors, EmbedBuilder } from 'discord.js';
+import {
+  ChatInputCommandInteraction,
+  Colors,
+  EmbedBuilder,
+  MessageFlags,
+} from 'discord.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../firebase/models/signup.model.js';
@@ -63,7 +68,7 @@ describe('LookupCommandHandler', () => {
     await handler.execute(command);
 
     expect(interaction.reply).toHaveBeenCalledWith({
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
       embeds: [
         EmbedBuilder.from({
           title: 'Lookup Results for Aeo Arcanist @ Jenova',
@@ -98,7 +103,7 @@ describe('LookupCommandHandler', () => {
     await handler.execute(command);
 
     expect(interaction.reply).toHaveBeenCalledWith({
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
       embeds: [
         EmbedBuilder.from({
           title: 'Lookup Results',
