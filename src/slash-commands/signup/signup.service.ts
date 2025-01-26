@@ -10,14 +10,13 @@ import {
   ActionRowBuilder,
   DiscordjsErrorCodes,
   Embed,
+  type Emoji,
   Events,
-  GuildEmoji,
   Message,
   MessageReaction,
   type PartialMessage,
   type PartialMessageReaction,
   type PartialUser,
-  ReactionEmoji,
   User,
 } from 'discord.js';
 import {
@@ -191,10 +190,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async shouldHandleReaction(
-    {
-      message,
-      emoji,
-    }: { message: Message<true>; emoji: ReactionEmoji | GuildEmoji },
+    { message, emoji }: { message: Message<true>; emoji: Emoji },
     user: User,
     settings: SettingsDocument,
   ) {
