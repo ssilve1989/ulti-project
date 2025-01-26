@@ -1,4 +1,5 @@
 import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
+import { MessageFlags } from 'discord.js';
 import { BlacklistCollection } from '../../../../firebase/collections/blacklist-collection.js';
 import type { BlacklistDocument } from '../../../../firebase/models/blacklist.model.js';
 import { BlacklistAddCommand } from '../../blacklist.commands.js';
@@ -16,7 +17,7 @@ class BlacklistAddCommandHandler
 
   async execute({ interaction }: BlacklistAddCommand) {
     const { guildId, user } = interaction;
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const discordId = getDiscordId(interaction);
     const characterName = interaction.options.getString('character');

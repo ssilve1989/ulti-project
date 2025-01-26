@@ -6,6 +6,7 @@ import {
   ChatInputCommandInteraction,
   Colors,
   EmbedBuilder,
+  MessageFlags,
   User,
 } from 'discord.js';
 import { P, match } from 'ts-pattern';
@@ -58,7 +59,7 @@ class RemoveSignupCommandHandler
 
   @SentryTraced()
   async execute({ interaction }: RemoveSignupCommand): Promise<any> {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const scope = Sentry.getCurrentScope();
     const options = this.getOptions(interaction);

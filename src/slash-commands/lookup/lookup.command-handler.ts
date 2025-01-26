@@ -5,6 +5,7 @@ import {
   Colors,
   CommandInteractionOptionResolver,
   EmbedBuilder,
+  MessageFlags,
 } from 'discord.js';
 import { titleCase } from 'title-case';
 import { encounterField } from '../../common/components/fields.js';
@@ -31,7 +32,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
     this.logger.debug(results);
 
     const embeds = this.createLookupEmbeds(results, dto);
-    await interaction.reply({ embeds, ephemeral: true });
+    await interaction.reply({ embeds, flags: MessageFlags.Ephemeral });
   }
 
   private createLookupEmbeds(

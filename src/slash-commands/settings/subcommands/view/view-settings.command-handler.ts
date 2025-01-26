@@ -1,5 +1,5 @@
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
-import { EmbedBuilder, roleMention } from 'discord.js';
+import { EmbedBuilder, MessageFlags, roleMention } from 'discord.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
@@ -16,7 +16,7 @@ class ViewSettingsCommandHandler
 
   @SentryTraced()
   async execute({ interaction }: ViewSettingsCommand): Promise<void> {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const settings = await this.settingsCollection.getSettings(
       interaction.guildId,
