@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { type ICommand, Saga, ofType } from '@nestjs/cqrs';
-import { Observable, filter, map, mergeMap } from 'rxjs';
+import { Observable, filter, mergeMap } from 'rxjs';
 import { BlacklistSearchCommand } from './slash-commands/blacklist/blacklist.commands.js';
 import { RemoveRolesCommand } from './slash-commands/signup/commands/signup.commands.js';
 import {
@@ -41,19 +41,18 @@ class AppSagas {
     event$.pipe(
       ofType(SignupApprovedEvent),
       filter(({ signup }) => hasClearedStatus(signup)),
-      mergeMap(({ signup, message, settings }) => [
+      mergeMap(({ signup, message }) => [
         new RemoveRolesCommand(
           message.guildId,
           signup.discordId,
           signup.encounter,
-          settings,
         ),
         new TurboProgRemoveSignupCommand(
           {
             character: signup.character,
             encounter: signup.encounter,
           },
-          settings,
+          message.guildId,
         ),
       ]),
     );
@@ -67,10 +66,12 @@ class AppSagas {
   handleSignupRemoved = (event$: Observable<any>): Observable<ICommand> =>
     event$.pipe(
       ofType(RemoveSignupEvent),
-      map(
-        // TODO: Should also remove roles probably
-        ({ dto: { character, encounter }, settings }) =>
-          new TurboProgRemoveSignupCommand({ character, encounter }, settings),
+      mergeMap(
+        ({ dto: { character, encounter }, ids: { discordId, guildId } }) => [
+          new RemoveRolesCommand(guildId, discordId, encounter),
+          new TurboProgRemoveSignupCommand({ character, encounter }, guildId),
+        ],
+        10,
       ),
     );
 }
