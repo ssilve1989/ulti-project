@@ -6,7 +6,7 @@ import { TurboProgRemoveSignupHandler } from './commands/handlers/turbo-prog-rem
 import { TurboProgCommandHandler } from './commands/handlers/turbo-prog.command-handler.js';
 
 @Module({
-  imports: [SheetsModule, FirebaseModule, CqrsModule],
+  imports: [SheetsModule, FirebaseModule, CqrsModule, FirebaseModule],
   providers: [TurboProgCommandHandler, TurboProgRemoveSignupHandler],
 })
 export class TurboProgModule {}

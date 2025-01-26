@@ -6,6 +6,7 @@ import {
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
+import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
 import { CronJob } from 'cron';
 import { EmbedBuilder } from 'discord.js';
@@ -17,6 +18,7 @@ import {
   lastValueFrom,
   mergeMap,
   of,
+  tap,
   toArray,
 } from 'rxjs';
 import { CronTime } from '../../common/cron.js';
@@ -32,6 +34,7 @@ import {
 } from '../../firebase/models/signup.model.js';
 import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
+import { RemoveSignupEvent } from '../../slash-commands/signup/subcommands/remove-signup/remove-signup.events.js';
 import { createJob, jobDateFormatter } from '../jobs.consts.js';
 import { clearCheckerConfig } from './clear-checker.config.js';
 
@@ -51,6 +54,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     private readonly signupsCollection: SignupCollection,
     @Inject(clearCheckerConfig.KEY)
     private readonly config: ConfigType<typeof clearCheckerConfig>,
+    private readonly eventBus: EventBus,
   ) {
     this.job = createJob('clear-checker', {
       cronTime: CronTime.everyDay().at(3),
@@ -101,8 +105,10 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
       toArray(),
       mergeMap(async (results) => {
         await this.removeSignups(results, guildId);
-        return this.publishResults(results, guildId);
+        await this.publishResults(results, guildId);
+        return results;
       }),
+      tap((results) => this.publishEvents(results, guildId)),
     );
   }
 
@@ -201,7 +207,22 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
       channelId: settings.modChannelId,
     });
 
-    return channel?.send({ embeds: [embed] });
+    return await channel?.send({ embeds: [embed] });
+  }
+
+  // emits events for each signup that was remove to remove their roles
+  private publishEvents(results: SignupDocument[], guildId: string) {
+    for (const { discordId, character, world, encounter } of results) {
+      this.eventBus.publish(
+        new RemoveSignupEvent(
+          { character, world, encounter },
+          {
+            guildId,
+            discordId,
+          },
+        ),
+      );
+    }
   }
 }
 

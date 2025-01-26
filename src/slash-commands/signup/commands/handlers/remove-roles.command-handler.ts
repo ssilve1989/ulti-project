@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
 import { DiscordService } from '../../../../discord/discord.service.js';
+import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
 import { RemoveRolesCommand } from '../signup.commands.js';
 
@@ -11,27 +12,33 @@ export class RemoveRolesCommandHandler
 {
   private readonly logger = new Logger(RemoveRolesCommandHandler.name);
 
-  constructor(public readonly discordService: DiscordService) {}
+  constructor(
+    public readonly discordService: DiscordService,
+    private readonly settingsCollection: SettingsCollection,
+  ) {}
 
   @SentryTraced()
-  async execute({ encounter, userId, guildId, settings }: RemoveRolesCommand) {
+  async execute({ encounter, userId, guildId }: RemoveRolesCommand) {
     const scope = Sentry.getCurrentScope();
 
     try {
-      const member = await this.discordService.getGuildMember({
-        guildId,
-        memberId: userId,
-      });
+      const [member, settings] = await Promise.all([
+        this.discordService.getGuildMember({
+          guildId,
+          memberId: userId,
+        }),
+        this.settingsCollection.getSettings(guildId),
+      ]);
 
       const roles = [
-        settings.clearRoles?.[encounter],
-        settings.progRoles?.[encounter],
+        settings?.clearRoles?.[encounter],
+        settings?.progRoles?.[encounter],
       ].filter(Boolean) as string[];
 
       if (member && roles.length > 0) {
         await member.roles.remove(roles);
         this.logger.log(
-          `Removed roles ${roles.join(', ')} from ${member.user.username}`,
+          `removed roles ${roles.join(', ')} from ${member.user.username}`,
         );
       }
     } catch (error) {
