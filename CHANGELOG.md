@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.25.2](https://github.com/ssilve1989/ulti-project/compare/v1.25.1...v1.25.2) (2025-01-28)
+
+
+### Bug Fixes
+
+* **sheets:** only send batchUpdate if requests.length &gt; 0 ([#644](https://github.com/ssilve1989/ulti-project/issues/644)) ([9a94e78](https://github.com/ssilve1989/ulti-project/commit/9a94e78980f0514c6d7c42efe18c27a5f94d4537))
+
 ## [1.25.1](https://github.com/ssilve1989/ulti-project/compare/v1.25.0...v1.25.1) (2025-01-17)
 
 
