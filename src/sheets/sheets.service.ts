@@ -157,7 +157,9 @@ class SheetsService {
       ),
     );
 
-    await batchUpdate(this.client, spreadsheetId, requests.flat());
+    if (requests.length > 0) {
+      await batchUpdate(this.client, spreadsheetId, requests.flat());
+    }
   }
 
   private async getRemoveRequestsForRange(
