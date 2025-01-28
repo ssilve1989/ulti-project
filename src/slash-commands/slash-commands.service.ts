@@ -61,10 +61,6 @@ class SlashCommandsService {
                 command: interaction.commandName,
               });
 
-              Sentry.metrics.increment('command', 1, {
-                tags: { commandName: interaction.commandName },
-              });
-
               const command = getCommandForInteraction(interaction);
 
               if (command) {
