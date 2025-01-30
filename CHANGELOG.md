@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.26.0](https://github.com/ssilve1989/ulti-project/compare/v1.25.2...v1.26.0) (2025-01-30)
+
+
+### Features
+
+* update turbo prog config for current FRU session ([e0787db](https://github.com/ssilve1989/ulti-project/commit/e0787dbb883f292b5b72cbfa4293e5871dbf1f7f))
+
 ## [1.25.2](https://github.com/ssilve1989/ulti-project/compare/v1.25.1...v1.25.2) (2025-01-28)
 
 
