@@ -207,7 +207,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
           roleId: settings.reviewerRole,
           guildId: message.guildId,
         })
-      : true;
+      : // TODO: Why is this true? If the reviewerRole is not set we don't know if they have
+        // permission to do this, we shouldn't let it happen
+        true;
 
     const isExpectedReactionType =
       emoji.name === SIGNUP_REVIEW_REACTIONS.APPROVED ||
