@@ -6,6 +6,7 @@ import { SettingsCollection } from '../../../../firebase/collections/settings-co
 import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
 import { RemoveRolesCommand } from '../signup.commands.js';
 
+// TODO: Re-locate under `roles-manager` module
 @CommandHandler(RemoveRolesCommand)
 export class RemoveRolesCommandHandler
   implements ICommandHandler<RemoveRolesCommand>
