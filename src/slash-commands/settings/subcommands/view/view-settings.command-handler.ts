@@ -1,9 +1,22 @@
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
-import { EmbedBuilder, MessageFlags, roleMention } from 'discord.js';
+import {
+  EmbedBuilder,
+  MessageFlags,
+  channelMention,
+  roleMention,
+} from 'discord.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { ViewSettingsCommand } from './view-settings.command.js';
+
+function formatRole(roleId?: string) {
+  return roleId ? roleMention(roleId) : 'No Role Set';
+}
+
+function formatChannel(channelId?: string) {
+  return channelId ? channelMention(channelId) : 'No Channel Set';
+}
 
 @CommandHandler(ViewSettingsCommand)
 class ViewSettingsCommandHandler
@@ -28,28 +41,20 @@ class ViewSettingsCommandHandler
     }
 
     const {
+      modChannelId,
+      progRoles,
       reviewChannel,
       reviewerRole,
-      spreadsheetId,
-      modChannelId,
       signupChannel,
-      progRoles,
+      spreadsheetId,
       turboProgActive,
       turboProgSpreadsheetId,
     } = settings;
-    const role = reviewerRole ? roleMention(reviewerRole) : 'No Role Set';
-    const publicSignupChannel = signupChannel
-      ? `<#${signupChannel}>`
-      : 'No Channel Set';
-
-    const moderationChannel = modChannelId
-      ? `<#${modChannelId}>`
-      : 'No Channel Set';
 
     const progRoleSettings = Object.entries(progRoles || {}).reduce<string[]>(
       (acc, [encounter, role]) => {
         if (role) {
-          acc.push(`**${encounter}** - <@&${role}>`);
+          acc.push(`**${encounter}** - ${roleMention(role)}`);
         }
         return acc;
       },
@@ -60,16 +65,32 @@ class ViewSettingsCommandHandler
       string[]
     >((acc, [encounter, role]) => {
       if (role) {
-        acc.push(`**${encounter}:** - <@&${role}>`);
+        acc.push(`**${encounter}:** - ${roleMention(role)}`);
       }
       return acc;
     }, []);
 
     const fields = [
-      { name: 'Moderation Channel', value: moderationChannel, inline: true },
-      { name: 'Review Channel', value: `<#${reviewChannel}>`, inline: true },
-      { name: 'Signup Channel', value: publicSignupChannel, inline: true },
-      { name: 'Reviewer Role', value: role, inline: true },
+      {
+        name: 'Moderation Channel',
+        value: formatChannel(modChannelId),
+        inline: true,
+      },
+      {
+        name: 'Review Channel',
+        value: formatChannel(reviewChannel),
+        inline: true,
+      },
+      {
+        name: 'Signup Channel',
+        value: formatChannel(signupChannel),
+        inline: true,
+      },
+      {
+        name: 'Reviewer Role',
+        value: formatRole(reviewerRole),
+        inline: true,
+      },
       {
         name: 'Clear Roles',
         value: clearRoleSettings.length
