@@ -27,10 +27,13 @@ export async function getSheetValues(
   client: sheets_v4.Sheets,
   { range, spreadsheetId }: GetSheetValuesProps,
 ): Promise<SheetValues> {
-  const response = await client.spreadsheets.values.get({
-    spreadsheetId,
-    range,
-  });
+  const response = await client.spreadsheets.values.get(
+    {
+      spreadsheetId,
+      range,
+    },
+    { timeout: 15_000 },
+  );
 
   return response.data.values;
 }
