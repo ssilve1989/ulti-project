@@ -22,6 +22,7 @@ export class SentryModule implements OnModuleInit, OnApplicationShutdown {
       // Set sampling rate for profiling - this is relative to tracesSampleRate
       profilesSampleRate: 1.0,
       environment: this.configService.get('NODE_ENV'),
+      release: `ulti-project-bot@${process.env.npm_package_version}`,
     });
   }
 
