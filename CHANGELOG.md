@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.0](https://github.com/ssilve1989/ulti-project/compare/v1.26.0...v1.27.0) (2025-02-01)
+
+
+### Features
+
+* **lookup:** enhance information displayed on lookup embed ([03549cc](https://github.com/ssilve1989/ulti-project/commit/03549cc396b9b4b3e66670d4ec9617a56e98333e))
+
 ## [1.26.0](https://github.com/ssilve1989/ulti-project/compare/v1.25.2...v1.26.0) (2025-01-30)
 
 
