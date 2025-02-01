@@ -10,33 +10,68 @@ import {
 import { titleCase } from 'title-case';
 import { encounterField } from '../../common/components/fields.js';
 import { createFields } from '../../common/embed-helpers.js';
+import { BlacklistCollection } from '../../firebase/collections/blacklist-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../firebase/models/signup.model.js';
 import { SentryTraced } from '../../sentry/sentry-traced.decorator.js';
+import { sentryReport } from '../../sentry/sentry.consts.js';
 import { LookupCommand } from './lookup.command.js';
 import { LookupInteractionDto } from './lookup.dto.js';
+
+type BlacklistStatus = 'No' | 'Yes' | 'Unknown';
+type SignupWithBlacklistStatus = SignupDocument & {
+  blacklistStatus: BlacklistStatus;
+};
 
 @CommandHandler(LookupCommand)
 class LookupCommandHandler implements ICommandHandler<LookupCommand> {
   private readonly logger = new Logger(LookupCommandHandler.name);
 
-  constructor(private readonly signupsCollection: SignupCollection) {}
+  constructor(
+    private readonly signupsCollection: SignupCollection,
+    private readonly blacklistCollection: BlacklistCollection,
+  ) {}
 
   @SentryTraced()
   async execute({ interaction }: LookupCommand): Promise<any> {
-    const { options } = interaction;
+    const { options, guildId } = interaction;
 
     const dto = this.getLookupRequest(options);
     const results = await this.signupsCollection.findAll(dto);
 
+    const withBlacklistInfo = await Promise.all(
+      results.map((r) => this.mapBlacklistInfo(guildId, r)),
+    );
+
     this.logger.debug(results);
 
-    const embeds = this.createLookupEmbeds(results, dto);
+    const embeds = this.createLookupEmbeds(withBlacklistInfo, dto);
     await interaction.reply({ embeds, flags: MessageFlags.Ephemeral });
   }
 
+  private async mapBlacklistInfo(
+    guildId: string,
+    signup: SignupDocument,
+  ): Promise<SignupWithBlacklistStatus> {
+    const match = await this.blacklistCollection
+      .search({
+        characterName: signup.character,
+        discordId: signup.discordId,
+        guildId,
+      })
+      .catch((err) => {
+        sentryReport(err);
+        return { ...signup, blacklistStatus: 'Unknown' };
+      });
+
+    return {
+      ...signup,
+      blacklistStatus: match ? 'Yes' : 'No',
+    };
+  }
+
   private createLookupEmbeds(
-    signups: SignupDocument[],
+    signups: SignupWithBlacklistStatus[],
     dto: LookupInteractionDto,
   ) {
     if (signups.length === 0) {
@@ -48,21 +83,20 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
       ];
     }
 
-    const groupedByWorld = signups.reduce(
-      (acc, signup) => {
-        if (acc[signup.world]) {
-          acc[signup.world].push(signup);
-        } else {
-          acc[signup.world] = [signup];
-        }
-        return acc;
-      },
-      {} as Record<string, SignupDocument[]>,
-    );
+    const groupedByWorld = signups.reduce<
+      Record<string, SignupWithBlacklistStatus[]>
+    >((acc, signup) => {
+      if (acc[signup.world]) {
+        acc[signup.world].push(signup);
+      } else {
+        acc[signup.world] = [signup];
+      }
+      return acc;
+    }, {});
 
     const embeds = Object.entries(groupedByWorld).map(([world, signups]) => {
       const fields = signups.flatMap(
-        ({ progPoint, notes, encounter, availability }) => [
+        ({ progPoint, notes, encounter, availability, blacklistStatus }) => [
           encounterField(encounter),
           {
             name: 'Prog Point',
@@ -74,6 +108,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
             value: availability,
             inline: true,
           },
+          { name: 'Blacklisted', value: blacklistStatus, inline: true },
           {
             name: 'Notes',
             value: notes,

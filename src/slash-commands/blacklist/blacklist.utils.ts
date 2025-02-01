@@ -37,6 +37,7 @@ export function createBlacklistEmbedFields({
 }: BlacklistDocument): APIEmbedField[] {
   const displayName = getDisplayName({ characterName, discordId });
 
+  // TODO: Better organize these fields, if theres no lodestone ID the signup link could be moved up
   return [
     { name: 'Player', value: displayName, inline: true },
     { name: 'Reason', value: reason, inline: true },
