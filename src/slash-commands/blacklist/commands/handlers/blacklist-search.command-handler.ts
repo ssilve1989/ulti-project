@@ -1,7 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { EmbedBuilder } from 'discord.js';
-import { EMPTY, EmptyError, catchError, lastValueFrom, mergeMap } from 'rxjs';
 import { getMessageLink } from '../../../../discord/discord.consts.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { BlacklistCollection } from '../../../../firebase/collections/blacklist-collection.js';
@@ -32,35 +31,25 @@ class BlacklistSearchCommandHandler
     const { modChannelId } = settings;
 
     // search to see if the signup is in the blacklist
-    const matches$ = this.blacklistCollection.search({
+    const match = await this.blacklistCollection.search({
       guildId,
       discordId: signup.discordId,
       characterName: signup.character,
     });
 
-    const pipeline$ = matches$.pipe(
-      mergeMap(async (entry) => {
-        const channel = await this.discordService.getTextChannel({
-          guildId,
-          channelId: modChannelId,
-        });
+    if (!match) return;
 
-        const embed = this.createBlacklistEmbed(entry, signup, {
-          guildId,
-          modChannelId,
-        });
+    const channel = await this.discordService.getTextChannel({
+      guildId,
+      channelId: modChannelId,
+    });
 
-        return channel?.send({ embeds: [embed] });
-      }),
-      catchError((err) => {
-        if (err instanceof EmptyError) {
-          return EMPTY;
-        }
-        throw err;
-      }),
-    );
+    const embed = this.createBlacklistEmbed(match, signup, {
+      guildId,
+      modChannelId,
+    });
 
-    await lastValueFrom(pipeline$, { defaultValue: undefined });
+    return await channel?.send({ embeds: [embed] });
   }
 
   private createBlacklistEmbed(
