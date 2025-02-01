@@ -8,6 +8,8 @@ import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import type { AppConfig } from '../app.config.js';
 
+import pkg from '../../package.json' with { type: 'json' };
+
 @Module({
   imports: [ConfigModule],
 })
@@ -22,7 +24,7 @@ export class SentryModule implements OnModuleInit, OnApplicationShutdown {
       // Set sampling rate for profiling - this is relative to tracesSampleRate
       profilesSampleRate: 1.0,
       environment: this.configService.get('NODE_ENV'),
-      release: `ulti-project-bot@${process.env.npm_package_version}`,
+      release: `ulti-project-bot@${pkg.version}`,
     });
   }
 
