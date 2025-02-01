@@ -106,8 +106,8 @@ importers:
         specifier: ^0.7.4
         version: 0.7.4
       '@golevelup/ts-vitest':
-        specifier: ^0.5.1
-        version: 0.5.1
+        specifier: ^0.5.2
+        version: 0.5.2
       '@graphql-codegen/cli':
         specifier: 5.0.3
         version: 5.0.3(@types/node@22.10.10)(enquirer@2.4.1)(graphql@16.9.0)(typescript@5.7.3)
@@ -859,8 +859,8 @@ packages:
     engines: {node: '>=16.0.0'}
     hasBin: true
 
-  '@golevelup/ts-vitest@0.5.1':
-    resolution: {integrity: sha512-giztTZZhkyIBCVodPHxkBThBsBY0Gjw9UPvVw3jsuEfLiW4eAMiB9beNpv5fcX1WP0WOyWy/eSKaenU3z7lOug==}
+  '@golevelup/ts-vitest@0.5.2':
+    resolution: {integrity: sha512-kxL12/4lBeYcdpfabvqWGgIagt8ycD6vUNlVyNUjGjxuqo8wPRB1Ohfnn4LNWQG8X8/xf74S2qYnOGqJ7IvWFA==}
 
   '@google-cloud/firestore@7.11.0':
     resolution: {integrity: sha512-88uZ+jLsp1aVMj7gh3EKYH1aulTAMFAp8sH/v5a9w8q8iqSG27RiWLoxSAFr/XocZ9hGiWH1kEnBw+zl3xAgNA==}
@@ -5684,7 +5684,7 @@ snapshots:
       shell-quote: 1.8.2
       yargs: 17.7.2
 
-  '@golevelup/ts-vitest@0.5.1': {}
+  '@golevelup/ts-vitest@0.5.2': {}
 
   '@google-cloud/firestore@7.11.0':
     dependencies:

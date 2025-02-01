@@ -64,7 +64,7 @@
     "@commitlint/cz-commitlint": "^19.6.1",
     "@commitlint/prompt-cli": "^19.7.0",
     "@flydotio/dockerfile": "^0.7.4",
-    "@golevelup/ts-vitest": "^0.5.1",
+    "@golevelup/ts-vitest": "^0.5.2",
     "@graphql-codegen/cli": "5.0.3",
     "@graphql-codegen/schema-ast": "^4.1.0",
     "@graphql-codegen/typescript": "4.1.2",
