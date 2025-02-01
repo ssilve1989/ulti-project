@@ -1,7 +1,8 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 
 export const LookupSlashCommand = new SlashCommandBuilder()
   .setName('lookup')
+  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .setDescription(
     'lookup a players signup information, including availability, encounters, etc.',
   )
