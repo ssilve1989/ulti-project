@@ -52,6 +52,7 @@ class BlacklistCollection {
     // otherwise we create the document and return it
     const doc = await collection.add(source);
     const snapshot = await doc.get();
+
     return snapshot.data() as BlacklistDocument;
   }
 
@@ -98,9 +99,9 @@ class BlacklistCollection {
   ): Promise<QueryDocumentSnapshot<BlacklistDocument, DocumentData> | null> {
     const collection = this.getCollection(guildId);
 
-    const conditions = Object.entries(data).map(([key, value]) =>
-      Filter.where(key, '==', value),
-    );
+    const conditions = Object.entries(data)
+      .filter(([_, value]) => !!value)
+      .map(([key, value]) => Filter.where(key, '==', value));
 
     const res = await collection
       .where(Filter.or(...conditions))
