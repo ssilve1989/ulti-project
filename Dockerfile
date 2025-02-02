@@ -5,6 +5,9 @@ LABEL fly_launch_runtime="NestJS"
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+# Used to workaround issues where corepack doesn't know about the pnpm
+# version we are using
+ENV COREPACK_INTEGRITY_KEYS=0
 RUN corepack enable
 
 # Print the pnpm version
