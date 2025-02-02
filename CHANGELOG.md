@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.27.1](https://github.com/ssilve1989/ulti-project/compare/v1.27.0...v1.27.1) (2025-02-02)
+
+
+### Bug Fixes
+
+* **blacklist:** fix count of users shown in display embed ([8d3901d](https://github.com/ssilve1989/ulti-project/commit/8d3901d60c4838b114267a8c745ba0d696402675))
+* **blacklist:** fixes nullish fields causing wrong results to be resolved in queries ([6eeca76](https://github.com/ssilve1989/ulti-project/commit/6eeca76e3bd24479ccd34a53e476e89189a6c833))
+
 ## [1.27.0](https://github.com/ssilve1989/ulti-project/compare/v1.26.0...v1.27.0) (2025-02-01)
 
 
