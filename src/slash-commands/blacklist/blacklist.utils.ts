@@ -1,8 +1,12 @@
-import type {
-  APIEmbedField,
-  CacheType,
-  ChatInputCommandInteraction,
+import {
+  type APIEmbedField,
+  type CacheType,
+  type ChatInputCommandInteraction,
+  userMention,
 } from 'discord.js';
+import { titleCase } from 'title-case';
+import {} from 'ts-pattern';
+import type { DiscordService } from '../../discord/discord.service.js';
 import type { BlacklistDocument } from '../../firebase/models/blacklist.model.js';
 
 export function getDiscordId(
@@ -18,26 +22,44 @@ export function getDiscordId(
   return discordUserIdString;
 }
 
-export function getDisplayName({
-  characterName,
-  discordId,
-}: Pick<BlacklistDocument, 'characterName' | 'discordId'>): string {
-  if (discordId) {
-    return `<@${discordId}>`;
-  }
+export async function getDisplayName(
+  discordService: DiscordService,
+  {
+    guildId,
+    characterName,
+    discordId,
+  }: Pick<BlacklistDocument, 'characterName' | 'discordId'> & {
+    guildId: string;
+  },
+): Promise<string> {
+  const serverName =
+    characterName ||
+    (await discordService
+      .getDisplayName({
+        guildId,
+        userId: discordId,
+      })
+      .catch(() => ''));
 
-  return characterName!;
+  return titleCase(`${serverName ?? ''} (${userMention(discordId)})`);
 }
 
-export function createBlacklistEmbedFields({
-  characterName,
-  discordId,
-  reason,
-  lodestoneId,
-}: BlacklistDocument): APIEmbedField[] {
-  const displayName = getDisplayName({ characterName, discordId });
+/**
+ * deprecated
+ * @param param0
+ * @returns
+ */
+export async function createBlacklistEmbedFields(
+  discordService: DiscordService,
+  { reason, discordId, lodestoneId, characterName }: BlacklistDocument,
+  guildId: string,
+): Promise<APIEmbedField[]> {
+  const displayName = await getDisplayName(discordService, {
+    guildId,
+    characterName,
+    discordId,
+  });
 
-  // TODO: Better organize these fields, if theres no lodestone ID the signup link could be moved up
   return [
     { name: 'Player', value: displayName, inline: true },
     { name: 'Reason', value: reason, inline: true },

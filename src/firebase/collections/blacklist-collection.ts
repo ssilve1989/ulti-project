@@ -36,22 +36,11 @@ class BlacklistCollection {
     // The reason we are not using `.set()` here with merge to perform an upsert
     // is because we cannot rely on knowing the unique key of the document
     // It is possible to add an entry without a discordId or lodestoneId
-    const { reason, ...props } = source;
     const collection = this.getCollection(guildId);
+    const document = collection.doc(source.discordId);
 
-    // so we search by fields with an OR condition to find if a record exists
-    const res = await this.query(guildId, props);
-    // and if it does we call set to update it
-    if (res) {
-      await res.ref.set(source, {
-        merge: true,
-      });
-      return res.data();
-    }
-
-    // otherwise we create the document and return it
-    const doc = await collection.add(source);
-    const snapshot = await doc.get();
+    await document.set(source, { merge: true });
+    const snapshot = await document.get();
 
     return snapshot.data() as BlacklistDocument;
   }
@@ -63,17 +52,14 @@ class BlacklistCollection {
    */
   public async remove(
     guildId: string,
-    props: ExactType<
-      BlacklistDocument,
-      'discordId' | 'characterName' | 'lodestoneId'
-    >,
+    discordId: string,
   ): Promise<BlacklistDocument | undefined> {
-    const res = await this.query(guildId, props);
+    const snapshot = await this.getCollection(guildId).doc(discordId).get();
+    if (!snapshot.exists) return undefined;
 
-    if (!res) return undefined;
-
-    await res.ref.delete();
-    return res.data();
+    const doc = snapshot.data();
+    await snapshot.ref.delete();
+    return doc;
   }
 
   public async search({
@@ -95,7 +81,7 @@ class BlacklistCollection {
    */
   private async query(
     guildId: string,
-    data: BlacklistDocumentKeys,
+    data: Partial<BlacklistDocumentKeys>,
   ): Promise<QueryDocumentSnapshot<BlacklistDocument, DocumentData> | null> {
     const collection = this.getCollection(guildId);
 
