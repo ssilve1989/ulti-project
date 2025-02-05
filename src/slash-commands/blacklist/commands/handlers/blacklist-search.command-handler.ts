@@ -44,7 +44,7 @@ class BlacklistSearchCommandHandler
       channelId: modChannelId,
     });
 
-    const embed = this.createBlacklistEmbed(match, signup, {
+    const embed = await this.createBlacklistEmbed(match, signup, {
       guildId,
       modChannelId,
     });
@@ -52,12 +52,16 @@ class BlacklistSearchCommandHandler
     return await channel?.send({ embeds: [embed] });
   }
 
-  private createBlacklistEmbed(
+  private async createBlacklistEmbed(
     entry: BlacklistDocument,
     { reviewMessageId }: SignupDocument,
     { guildId, modChannelId }: { guildId: string; modChannelId: string },
   ) {
-    const fields = createBlacklistEmbedFields(entry);
+    const fields = await createBlacklistEmbedFields(
+      this.discordService,
+      entry,
+      guildId,
+    );
 
     if (reviewMessageId) {
       fields.push({

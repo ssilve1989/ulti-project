@@ -9,23 +9,16 @@ import {
 
 const userOption = (option: SlashCommandUserOption) =>
   option
-    .setRequired(false)
+    .setRequired(true)
     .setName('user')
     .setDescription('The discord user to shadowban');
 
-const discordIdOption = (option: SlashCommandStringOption) =>
-  option
-    .setRequired(false)
-    .setName('discord-id')
-    .setDescription(
-      'The discord userId to shadowban. Use this if they are not part of the server yet',
-    );
-
 const characterOption = (option: SlashCommandStringOption) =>
   option
-    .setRequired(false)
     .setName('character')
-    .setDescription('The character name incase no discord id is known');
+    .setDescription(
+      'Overrides the character name inferred by the Discord User',
+    );
 
 const lodestoneIdOption = (option: SlashCommandIntegerOption) =>
   option
@@ -42,17 +35,13 @@ const BlacklistAddSubCommand = new SlashCommandSubcommandBuilder()
       .setRequired(true),
   )
   .addUserOption(userOption)
-  .addStringOption(discordIdOption)
   .addStringOption(characterOption)
   .addIntegerOption(lodestoneIdOption);
 
 const BlacklistRemoveSubCommand = new SlashCommandSubcommandBuilder()
   .setName('remove')
   .setDescription('Remove a user from the blacklist')
-  .addUserOption(userOption)
-  .addStringOption(discordIdOption)
-  .addStringOption(characterOption)
-  .addIntegerOption(lodestoneIdOption);
+  .addUserOption(userOption);
 
 const BlacklistDisplayCommand = new SlashCommandSubcommandBuilder()
   .setName('display')

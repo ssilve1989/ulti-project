@@ -1,6 +1,5 @@
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import { EmbedBuilder } from 'discord.js';
-import { titleCase } from 'title-case';
 import { createFields } from '../../../../common/embed-helpers.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
@@ -28,11 +27,16 @@ class BlacklistUpdatedEventHandler
     const { modChannelId } = settings;
 
     const toFrom = type === 'added' ? 'to' : 'from';
+    const displayName = await getDisplayName(this.discordService, {
+      guildId,
+      characterName: entry.characterName,
+      discordId: entry.discordId,
+    });
 
     const fields = createFields([
       {
         name: 'User',
-        value: titleCase(getDisplayName(entry)),
+        value: displayName,
         inline: true,
       },
       {
