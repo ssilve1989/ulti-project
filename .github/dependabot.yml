@@ -5,33 +5,36 @@
 
 version: 2
 updates:
-  - package-ecosystem: 'npm' # See documentation for possible values
+  - package-ecosystem: "npm" # See documentation for possible values
     open-pull-requests-limit: 10
-    directory: '/' # Location of package manifests
+    directory: "/" # Location of package manifests
     schedule:
-      interval: 'weekly'
+      interval: "weekly"
     groups:
       nest:
         patterns:
-          - '@nestjs/common'
-          - '@nestjs/core'
-          - '@nestjs/cqrs'
-          - '@nestjs/schematics'
-          - '@nestjs/testing'
-          - '@nestjs/cli'
+          - "@nestjs/common"
+          - "@nestjs/core"
+          - "@nestjs/cqrs"
+          - "@nestjs/schematics"
+          - "@nestjs/testing"
+          - "@nestjs/cli"
       pino:
         patterns:
           - pino-http
           - pino-pretty
       commitlint:
         patterns:
-          - '@commitlint*'
+          - "@commitlint*"
       sentry:
         patterns:
-          - '@sentry*'
+          - "@sentry*"
       vite:
         patterns:
-          - '@vitest/ui'
-          - '@vitest/coverage-v8'
-          - 'vitest'
-          - 'vite'
+          - "@vitest/ui"
+          - "@vitest/coverage-v8"
+          - "vitest"
+          - "vite"
+      graphql:
+        patterns:
+          - "@graphql-codegen*"
