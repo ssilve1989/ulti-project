@@ -28,7 +28,7 @@ class BlacklistSearchCommandHandler
       return;
     }
 
-    const { modChannelId } = settings;
+    const { modChannelId, reviewChannel } = settings;
 
     // search to see if the signup is in the blacklist
     const match = await this.blacklistCollection.search({
@@ -46,7 +46,7 @@ class BlacklistSearchCommandHandler
 
     const embed = await this.createBlacklistEmbed(match, signup, {
       guildId,
-      modChannelId,
+      reviewChannelId: reviewChannel,
     });
 
     return await channel?.send({ embeds: [embed] });
@@ -55,7 +55,7 @@ class BlacklistSearchCommandHandler
   private async createBlacklistEmbed(
     entry: BlacklistDocument,
     { reviewMessageId }: SignupDocument,
-    { guildId, modChannelId }: { guildId: string; modChannelId: string },
+    { guildId, reviewChannelId }: { guildId: string; reviewChannelId?: string },
   ) {
     const fields = await createBlacklistEmbedFields(
       this.discordService,
@@ -63,12 +63,12 @@ class BlacklistSearchCommandHandler
       guildId,
     );
 
-    if (reviewMessageId) {
+    if (reviewMessageId && reviewChannelId) {
       fields.push({
         name: 'Signup',
         value: getMessageLink({
           guildId,
-          channelId: modChannelId,
+          channelId: reviewChannelId,
           id: reviewMessageId,
         }),
         inline: true,
