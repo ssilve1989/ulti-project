@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.2](https://github.com/ssilve1989/ulti-project/compare/v1.27.1...v1.27.2) (2025-02-06)
+
+
+### Bug Fixes
+
+* fixes signup link in blacklist message ([#669](https://github.com/ssilve1989/ulti-project/issues/669)) ([1bbc0cb](https://github.com/ssilve1989/ulti-project/commit/1bbc0cb51704745000f332e224b94deda044520a))
+
 ## [1.27.1](https://github.com/ssilve1989/ulti-project/compare/v1.27.0...v1.27.1) (2025-02-02)
 
 
