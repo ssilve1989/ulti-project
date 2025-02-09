@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { type ICommand, Saga, ofType } from '@nestjs/cqrs';
-import { Observable, filter, mergeMap } from 'rxjs';
+import { Observable, filter, map, mergeMap } from 'rxjs';
 import { BlacklistSearchCommand } from './slash-commands/blacklist/blacklist.commands.js';
 import { RemoveRolesCommand } from './slash-commands/signup/commands/signup.commands.js';
 import {
+  SignupApprovalSentEvent,
   SignupApprovedEvent,
   SignupCreatedEvent,
 } from './slash-commands/signup/events/signup.events.js';
@@ -24,10 +25,9 @@ class AppSagas {
   handleSignupCreated = (event$: Observable<any>): Observable<ICommand> =>
     event$.pipe(
       ofType(SignupCreatedEvent),
-      mergeMap(({ signup, guildId }) => [
-        new SendSignupReviewCommand(signup, guildId),
-        new BlacklistSearchCommand(signup, guildId),
-      ]),
+      map(
+        ({ signup, guildId }) => new SendSignupReviewCommand(signup, guildId),
+      ),
     );
 
   /**
@@ -73,6 +73,13 @@ class AppSagas {
         ],
         10,
       ),
+    );
+
+  @Saga()
+  handleSignupApprovalSend = (event$: Observable<any>): Observable<ICommand> =>
+    event$.pipe(
+      ofType(SignupApprovalSentEvent),
+      map(({ guildId, signup }) => new BlacklistSearchCommand(signup, guildId)),
     );
 }
 
