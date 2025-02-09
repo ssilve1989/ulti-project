@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.3](https://github.com/ssilve1989/ulti-project/compare/v1.27.2...v1.27.3) (2025-02-09)
+
+
+### Bug Fixes
+
+* fix link to signup message for real ([#671](https://github.com/ssilve1989/ulti-project/issues/671)) ([efa344b](https://github.com/ssilve1989/ulti-project/commit/efa344b53ce3462c1021a3d9448e8a34415aa412))
+
 ## [1.27.2](https://github.com/ssilve1989/ulti-project/compare/v1.27.1...v1.27.2) (2025-02-06)
 
 
