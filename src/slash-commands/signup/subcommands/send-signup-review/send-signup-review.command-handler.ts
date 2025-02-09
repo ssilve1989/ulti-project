@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
 import { EmbedBuilder, GuildMember } from 'discord.js';
 import {
   characterField,
@@ -16,6 +16,7 @@ import { SettingsCollection } from '../../../../firebase/collections/settings-co
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../../../firebase/models/signup.model.js';
 import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
+import { SignupApprovalSentEvent } from '../../events/signup.events.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../../signup.consts.js';
 import { SendSignupReviewCommand } from './send-signup-review.command.js';
 
@@ -29,6 +30,7 @@ class SendSignupReviewCommandHandler
     private readonly discordService: DiscordService,
     private readonly repository: SignupCollection,
     private readonly settingsCollection: SettingsCollection,
+    private readonly eventBus: EventBus,
   ) {}
 
   @SentryTraced()
@@ -41,7 +43,15 @@ class SendSignupReviewCommandHandler
       return;
     }
 
-    await this.sendSignupForApproval(signup, reviewChannel, guildId);
+    const reviewMessageId = await this.sendSignupForApproval(
+      signup,
+      reviewChannel,
+      guildId,
+    );
+
+    this.eventBus.publish(
+      new SignupApprovalSentEvent({ ...signup, reviewMessageId }, guildId),
+    );
   }
 
   /**
@@ -81,6 +91,7 @@ class SendSignupReviewCommandHandler
 
     // update firebase with the message that correlates to this signup
     await this.repository.setReviewMessageId(signup, message.id);
+    return message.id;
   }
 
   private createSignupApprovalEmbed(
