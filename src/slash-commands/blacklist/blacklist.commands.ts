@@ -22,7 +22,10 @@ export class BlacklistDisplayCommand implements DiscordCommand {
 
 export class BlacklistSearchCommand {
   constructor(
-    public readonly signup: SignupDocument,
+    public readonly signup: Pick<
+      SignupDocument,
+      'discordId' | 'character' | 'reviewMessageId'
+    >,
     public readonly guildId: string,
   ) {}
 }

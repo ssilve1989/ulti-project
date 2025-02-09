@@ -54,7 +54,7 @@ class BlacklistSearchCommandHandler
 
   private async createBlacklistEmbed(
     entry: BlacklistDocument,
-    { reviewMessageId }: SignupDocument,
+    { reviewMessageId }: Pick<SignupDocument, 'reviewMessageId'>,
     { guildId, reviewChannelId }: { guildId: string; reviewChannelId?: string },
   ) {
     const fields = await createBlacklistEmbedFields(

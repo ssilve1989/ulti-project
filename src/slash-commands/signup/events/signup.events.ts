@@ -32,3 +32,13 @@ export class SignupDeclinedEvent {
     public readonly message: Message<true>,
   ) {}
 }
+
+export class SignupApprovalSentEvent {
+  constructor(
+    public readonly signup: Pick<
+      SignupDocument,
+      'discordId' | 'character' | 'reviewMessageId'
+    >,
+    public readonly guildId: string,
+  ) {}
+}
