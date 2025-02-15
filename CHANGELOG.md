@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.28.0](https://github.com/ssilve1989/ulti-project/compare/v1.27.3...v1.28.0) (2025-02-15)
+
+
+### Features
+
+* **signups:** confirm messages now mention user for searchability ([#676](https://github.com/ssilve1989/ulti-project/issues/676)) ([df35b83](https://github.com/ssilve1989/ulti-project/commit/df35b83db025343ad8d9f5b28716bf96ce07dd8d))
+
 ## [1.27.3](https://github.com/ssilve1989/ulti-project/compare/v1.27.2...v1.27.3) (2025-02-09)
 
 
