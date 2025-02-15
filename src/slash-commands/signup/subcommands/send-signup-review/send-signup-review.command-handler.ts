@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
-import { EmbedBuilder, GuildMember } from 'discord.js';
+import { EmbedBuilder, GuildMember, userMention } from 'discord.js';
 import {
   characterField,
   worldField,
@@ -81,6 +81,7 @@ class SendSignupReviewCommandHandler
     const embed = this.createSignupApprovalEmbed(signup, member);
 
     const message = await channel.send({
+      content: `Signup Review for ${userMention(signup.discordId)}`,
       embeds: [embed],
     });
 
