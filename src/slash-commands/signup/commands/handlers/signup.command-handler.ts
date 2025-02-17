@@ -62,80 +62,118 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   @SentryTraced()
   async execute({ interaction }: SignupCommand) {
     const { username } = interaction.user;
-
     this.logger.debug(`handling signup command for user: ${username}`);
 
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-    const hasReviewChannelConfigured =
-      !!(await this.settingsService.getReviewChannel(interaction.guildId));
-
-    if (!hasReviewChannelConfigured) {
-      await interaction.editReply(
-        SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL,
-      );
-      return;
+    try {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    } catch (error) {
+      if (error.code === DiscordjsErrorCodes.InteractionAlreadyReplied) {
+        return;
+      }
+      
+      if (!interaction.deferred && !interaction.replied) {
+        try {
+          await interaction.reply({
+            content: 'Processing your request...',
+            flags: MessageFlags.Ephemeral,
+          });
+        } catch (replyError) {
+          this.logger.error('Failed to acknowledge interaction', replyError);
+          return;
+        }
+      }
     }
-
-    const [signupRequest, validationErrors] =
-      await this.createSignupRequest(interaction);
-
-    if (validationErrors) {
-      await interaction.editReply({
-        embeds: [this.createValidationErrorsEmbed(validationErrors)],
-      });
-      return;
-    }
-
-    const displayName = await this.discordService.getDisplayName({
-      userId: interaction.user.id,
-      guildId: interaction.guildId,
-    });
-
-    const embed = this.createSignupConfirmationEmbed(
-      signupRequest,
-      displayName,
-    );
-
-    const confirmationRow = new ActionRowBuilder().addComponents(
-      ConfirmButton,
-      CancelButton,
-    );
-
-    const confirmationInteraction = await interaction.editReply({
-      components: [confirmationRow as any], // the typings are wrong here? annoying af
-      embeds: [embed],
-    });
 
     try {
-      const response = await Sentry.startSpan(
-        { name: 'awaitConfirmationInteraction' },
-        () => {
-          return confirmationInteraction.awaitMessageComponent<ComponentType.Button>(
-            {
-              filter: isSameUserFilter(interaction.user),
-              time: SignupCommandHandler.SIGNUP_TIMEOUT,
-            },
-          );
-        },
+      const hasReviewChannelConfigured = 
+        !!(await this.settingsService.getReviewChannel(interaction.guildId));
+
+      if (!hasReviewChannelConfigured) {
+        await this.safeReply(interaction, SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL);
+        return;
+      }
+
+      const [signupRequest, validationErrors] =
+        await this.createSignupRequest(interaction);
+
+      if (validationErrors) {
+        await interaction.editReply({
+          embeds: [this.createValidationErrorsEmbed(validationErrors)],
+        });
+        return;
+      }
+
+      const displayName = await this.discordService.getDisplayName({
+        userId: interaction.user.id,
+        guildId: interaction.guildId,
+      });
+
+      const embed = this.createSignupConfirmationEmbed(
+        signupRequest,
+        displayName,
       );
 
-      const signup = await match(response)
-        .with({ customId: 'confirm' }, () =>
-          this.handleConfirm(signupRequest, interaction),
-        )
-        .with({ customId: 'cancel' }, () => this.handleCancel(interaction))
-        .otherwise(() => {
-          throw new UnhandledButtonInteractionException(response);
-        });
+      const confirmationRow = new ActionRowBuilder().addComponents(
+        ConfirmButton,
+        CancelButton,
+      );
 
-      if (signup) {
-        this.eventBus.publish(
-          new SignupCreatedEvent(signup, interaction.guildId),
+      const confirmationInteraction = await interaction.editReply({
+        components: [confirmationRow as any], // the typings are wrong here? annoying af
+        embeds: [embed],
+      });
+
+      try {
+        const response = await Sentry.startSpan(
+          { name: 'awaitConfirmationInteraction' },
+          () => {
+            return confirmationInteraction.awaitMessageComponent<ComponentType.Button>(
+              {
+                filter: isSameUserFilter(interaction.user),
+                time: SignupCommandHandler.SIGNUP_TIMEOUT,
+              },
+            );
+          },
         );
+
+        const signup = await match(response)
+          .with({ customId: 'confirm' }, () =>
+            this.handleConfirm(signupRequest, interaction),
+          )
+          .with({ customId: 'cancel' }, () => this.handleCancel(interaction))
+          .otherwise(() => {
+            throw new UnhandledButtonInteractionException(response);
+          });
+
+        if (signup) {
+          this.eventBus.publish(
+            new SignupCreatedEvent(signup, interaction.guildId),
+          );
+        }
+      } catch (e: unknown) {
+        await this.handleError(e, interaction);
       }
-    } catch (e: unknown) {
-      await this.handleError(e, interaction);
+    } catch (error) {
+      await this.handleError(error, interaction);
+    }
+  }
+
+  private async safeReply(
+    interaction: ChatInputCommandInteraction,
+    payload: string | { embeds: EmbedBuilder[] } | InteractionReplyOptions
+  ) {
+    try {
+      if (interaction.deferred) {
+        await interaction.editReply(payload);
+      } else if (!interaction.replied) {
+        await interaction.reply({
+          ...payload,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+    } catch (error) {
+      this.logger.error('Failed to send reply', error);
+      sentryReport(error);
     }
   }
 
@@ -250,26 +288,21 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     return screenshot ? embed.setImage(screenshot) : embed;
   }
 
-  private handleError(
-    error: unknown,
-    interaction: ChatInputCommandInteraction,
-  ) {
+  private async handleError(error: unknown, interaction: ChatInputCommandInteraction) {
     sentryReport(error);
     this.logger.error(error);
 
-    return match(error)
-      .with({ code: DiscordjsErrorCodes.InteractionCollectorError }, () =>
-        interaction.editReply({
-          content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
-          ...CLEAR_EMBED,
-        }),
-      )
-      .otherwise(() =>
-        interaction.editReply({
-          content: 'Sorry an unexpected error has occurred',
-          ...CLEAR_EMBED,
-        }),
-      );
+    const response = match(error)
+      .with({ code: DiscordjsErrorCodes.InteractionCollectorError }, () => ({
+        content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
+        ...CLEAR_EMBED,
+      }))
+      .otherwise(() => ({
+        content: 'Sorry an unexpected error has occurred',
+        ...CLEAR_EMBED,
+      }));
+
+    await this.safeReply(interaction, response);
   }
 
   private createValidationErrorsEmbed(errors: ValidationError[]) {
