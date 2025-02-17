@@ -1,4 +1,4 @@
-name: Fly Deploy
+name: Fly Deploy and Publish Release To Discord
 on:
   release:
     types: [published]
@@ -25,3 +25,25 @@ jobs:
       - run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  publish-release-to-discord:
+    name: Publish Release To Discord
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private action repository
+        uses: actions/checkout@v4
+        with:
+          repository: ssilve1989/github-releases-to-discord-action
+          token: ${{ secrets.DISCORD_RELEASES_TOKEN }}
+      - uses: pnpm/action-setup@v4.0.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - run: pnpm install
+      - run: pnpm build
+      - name: Run Publish Release
+        uses: ./
+        with:
+          webhook-url: ${{ secrets.DISCORD_RELEASES_WEBHOOK_URL }}
