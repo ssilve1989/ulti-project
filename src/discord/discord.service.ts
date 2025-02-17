@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/node';
-import { Client, DMChannel, GuildEmoji } from 'discord.js';
+import {
+  Client,
+  DMChannel,
+  DiscordAPIError,
+  GuildEmoji,
+  type GuildMember,
+} from 'discord.js';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { InjectDiscordClient } from './discord.decorators.js';
 
@@ -17,11 +23,20 @@ class DiscordService {
   public async getGuildMember({
     memberId,
     guildId,
-  }: { memberId: string; guildId: string }) {
-    const member = await this.client.guilds.cache
-      .get(guildId)
-      ?.members.fetch(memberId);
-    return member;
+  }: { memberId: string; guildId: string }): Promise<GuildMember | undefined> {
+    try {
+      const member = await this.client.guilds.cache
+        .get(guildId)
+        ?.members.fetch(memberId);
+      return member;
+    } catch (error) {
+      // Unknown Member error
+      if (error instanceof DiscordAPIError && error.code === 10007) {
+        Sentry.getCurrentScope().captureMessage(error.message, 'debug');
+        return undefined;
+      }
+      throw error;
+    }
   }
 
   public async sendDirectMessage(
