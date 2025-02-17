@@ -1,4 +1,6 @@
 import {
+  type ChatInputCommandInteraction,
+  type MessagePayload,
   MessageReaction,
   type PartialMessageReaction,
   type PartialUser,
@@ -32,4 +34,25 @@ export function CacheTime(value: number, unit: CacheTimeUnit) {
     .with('hours', () => value * CACHE_TIME_VALUES.HOUR)
     .with('days', () => value * CACHE_TIME_VALUES.DAY)
     .exhaustive();
+}
+
+/**
+ * safely replies to an interaction based on its state
+ * @param interaction
+ * @param payload
+ * @returns
+ */
+export function safeReply(
+  interaction: ChatInputCommandInteraction,
+  payload: string | MessagePayload,
+) {
+  if (interaction.deferred) {
+    return interaction.editReply(payload);
+  }
+
+  if (interaction.replied) {
+    return interaction.followUp(payload);
+  }
+
+  return interaction.reply(payload);
 }
