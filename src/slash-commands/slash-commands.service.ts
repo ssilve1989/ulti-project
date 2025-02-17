@@ -20,6 +20,7 @@ import {
 } from 'rxjs';
 import type { AppConfig, ApplicationModeConfig } from '../app.config.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
+import { safeReply } from '../discord/discord.helpers.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
 import { BlacklistSlashCommand } from './blacklist/blacklist.slash-command.js';
 import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
@@ -152,7 +153,8 @@ class SlashCommandsService {
     this.logger.error(err);
 
     try {
-      await interaction.followUp(
+      await safeReply(
+        interaction,
         'An unexpected error occurred while processing your command. Please try again later',
       );
     } catch (e) {
