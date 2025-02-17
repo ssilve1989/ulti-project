@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.28.1](https://github.com/ssilve1989/ulti-project/compare/v1.28.0...v1.28.1) (2025-02-17)
+
+
+### Bug Fixes
+
+* handle Unknown Member discord API error ([#682](https://github.com/ssilve1989/ulti-project/issues/682)) ([fb94be8](https://github.com/ssilve1989/ulti-project/commit/fb94be842c40768a6650f6f457b978e89ed7ff48)), closes [#658](https://github.com/ssilve1989/ulti-project/issues/658)
+* use safeReply in slash command error handler ([#680](https://github.com/ssilve1989/ulti-project/issues/680)) ([9730cc7](https://github.com/ssilve1989/ulti-project/commit/9730cc77637a3ebe33841a1e68d0618f04cc6868)), closes [#679](https://github.com/ssilve1989/ulti-project/issues/679)
+
 ## [1.28.0](https://github.com/ssilve1989/ulti-project/compare/v1.27.3...v1.28.0) (2025-02-15)
 
 
