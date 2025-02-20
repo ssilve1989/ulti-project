@@ -10,7 +10,7 @@ jobs:
     #     os: [macos-latest, ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4.0.0
+      - uses: pnpm/action-setup@v4.1.0
       - uses: actions/setup-node@v4
         with:
           # File containing the version Spec of the version to use.  Examples: .nvmrc, .node-version, .tool-versions.

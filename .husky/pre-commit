@@ -1,1 +1,1 @@
-pnpm typecheck && pnpm test -- --run
+pnpm typecheck && pnpm test --run

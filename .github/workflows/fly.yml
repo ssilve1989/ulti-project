@@ -10,7 +10,7 @@ jobs:
     concurrency: deploy-group # optional: ensure only one action runs at a time
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3.0.0
+      - uses: pnpm/action-setup@v4.1.0
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
@@ -36,7 +36,7 @@ jobs:
         with:
           repository: ssilve1989/github-releases-to-discord-action
           token: ${{ secrets.DISCORD_RELEASES_TOKEN }}
-      - uses: pnpm/action-setup@v4.0.0
+      - uses: pnpm/action-setup@v4.1.0
       - uses: actions/setup-node@v4
         with:
           node-version-file: ".nvmrc"
