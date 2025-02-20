@@ -93,8 +93,16 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@biomejs/biome",
       "@nestjs/core",
+      "@sentry-internal/node-cpu-profiler",
+      "@sentry/cli",
+      "@swc/core",
+      "esbuild",
       "nestjs-pino"
+    ],
+    "ignoredBuiltDependencies": [
+      "protobufjs"
     ]
   }
 }
