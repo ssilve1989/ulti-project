@@ -42,7 +42,7 @@
     "cache-manager": "^6.4.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-    "cron": "^3.5.0",
+    "cron": "^4.0.0",
     "dayjs": "^1.11.13",
     "discord.js": "^14.18.0",
     "firebase-admin": "^13.1.0",
