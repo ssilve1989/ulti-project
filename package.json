@@ -48,7 +48,7 @@
     "firebase-admin": "^13.1.0",
     "google-auth-library": "^9.15.1",
     "graphql-request": "^7.1.0",
-    "nestjs-pino": "^4.3.0",
+    "nestjs-pino": "^4.3.1",
     "pino-http": "^10.4.0",
     "pino-pretty": "^13.0.0",
     "reflect-metadata": "^0.2.2",
