@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.28.2](https://github.com/ssilve1989/ulti-project/compare/v1.28.1...v1.28.2) (2025-03-03)
+
+
+### Bug Fixes
+
+* **clear-checker:** fix request length check ([#704](https://github.com/ssilve1989/ulti-project/issues/704)) ([e90a763](https://github.com/ssilve1989/ulti-project/commit/e90a763b19959c6a94a09a3239b7578b2202e11e)), closes [#703](https://github.com/ssilve1989/ulti-project/issues/703)
+
 ## [1.28.1](https://github.com/ssilve1989/ulti-project/compare/v1.28.0...v1.28.1) (2025-02-17)
 
 
