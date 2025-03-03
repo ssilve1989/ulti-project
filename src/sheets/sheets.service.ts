@@ -157,8 +157,10 @@ class SheetsService {
       ),
     );
 
-    if (requests.length > 0) {
-      await batchUpdate(this.client, spreadsheetId, requests.flat());
+    const flattenedRequests = requests.flat();
+
+    if (flattenedRequests.length > 0) {
+      await batchUpdate(this.client, spreadsheetId, flattenedRequests);
     }
   }
 
