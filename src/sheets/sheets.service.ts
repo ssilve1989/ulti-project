@@ -1,5 +1,6 @@
 import { sheets_v4 } from '@googleapis/sheets';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import * as Sentry from '@sentry/node';
 import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
@@ -14,6 +15,8 @@ import {
 } from '../firebase/models/signup.model.js';
 import { SentryTraced } from '../sentry/sentry-traced.decorator.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
+import type { TurboProgEntry } from '../slash-commands/turboprog/turbo-prog.interfaces.js';
+import { sheetsConfig } from './sheets.config.js';
 import { type SheetRangeConfig, SheetRanges } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
 import {
@@ -24,12 +27,17 @@ import {
   getSheetValues,
   updateSheet,
 } from './sheets.utils.js';
+import {
+  TURBP_PROG_SHEET_STARTING_ROW,
+  TurboProgSheetRanges,
+} from './turbo-prog-sheets/turbo-prog-sheets.consts.js';
 
 type PartyTypes = (
   | PartyStatus.ClearParty
   | PartyStatus.ProgParty
   | PartyStatus.EarlyProgParty
 )[];
+
 /**
  * This module depends on knowing the structure of the spreadsheet
  * Ranges are very brittle and will need to be updated if the spreadsheet changes.
@@ -37,7 +45,9 @@ type PartyTypes = (
 @Injectable()
 class SheetsService {
   private readonly logger: Logger = new Logger(SheetsService.name);
-  private readonly queue = new AsyncQueue();
+  // Separate queues for regular signups and TurboProg operations
+  private readonly signupQueue = new AsyncQueue();
+  private readonly turboProgQueue = new AsyncQueue();
   private readonly progEncounters = new Set([
     Encounter.DSR,
     Encounter.TEA,
@@ -49,7 +59,11 @@ class SheetsService {
 
   constructor(
     @InjectSheetsClient() private readonly client: sheets_v4.Sheets,
+    @Inject(sheetsConfig.KEY)
+    private readonly config: ConfigType<typeof sheetsConfig>,
   ) {}
+
+  // Regular signup methods
 
   /**
    * Upsert a signup into the spreadsheet. If the character is already signed up, it will update the row
@@ -65,25 +79,94 @@ class SheetsService {
     switch (partyStatus) {
       // There can be race conditions with multiple concurrent calls out to Google Sheets
       // that can result in indeterminstic writes to the sheet. To work-around this, we use a
-      // naive async task queue to wrap the operators, so only one task can run at a time.
-      // There is a potential for the queue to build up faster than it can process, but we don't
-      // expect to have that kind of scale. A future solution would be to use a robust task queue like BullMQ
+      // naive async task queue to wrap the operators, so only one task can run at a time per queue.
       case PartyStatus.ClearParty:
       case PartyStatus.ProgParty:
       case PartyStatus.EarlyProgParty:
-        return this.queue.add(() =>
+        return this.signupQueue.add(() =>
           this.upsertRow(signup, spreadsheetId, partyStatus),
         );
-
       case PartyStatus.Cleared:
-        return this.queue.add(() => this.removeSignup(signup, spreadsheetId));
-
+        return this.signupQueue.add(() =>
+          this.removeSignup(signup, spreadsheetId),
+        );
       default: {
         const msg = `unknown party type: ${partyStatus} for character: ${signup.character}`;
         this.logger.warn(msg);
       }
     }
   }
+
+  // TurboProg methods - merged from TurboProgSheetsService
+
+  /**
+   * Upsert a TurboProg entry into the spreadsheet
+   * @param entry The TurboProg entry to insert or update
+   * @param spreadsheetId The ID of the spreadsheet
+   * @returns A promise that resolves when the operation is complete
+   */
+  @SentryTraced()
+  public upsertTurboProgEntry(entry: TurboProgEntry, spreadsheetId: string) {
+    return this.turboProgQueue.add(() =>
+      this.upsertTurboProgRow(entry, spreadsheetId),
+    );
+  }
+
+  /**
+   * Remove a TurboProg entry from the spreadsheet
+   * @param entry The entry to remove (only character and encounter are required)
+   * @param spreadsheetId The ID of the spreadsheet
+   */
+  @SentryTraced()
+  public async removeTurboProgEntry(
+    { encounter, character }: Pick<TurboProgEntry, 'encounter' | 'character'>,
+    spreadsheetId: string,
+  ) {
+    return this.turboProgQueue.add(async () => {
+      const range = TurboProgSheetRanges[encounter];
+      // Skip if this encounter doesn't support TurboProg
+      if (!range) {
+        return;
+      }
+
+      const sheetName = this.config.TURBO_PROG_SHEET_NAME;
+      const { rowIndex } = await findCharacterRowIndex(this.client, {
+        spreadsheetId,
+        range: `${sheetName}!${range.start}:${range.end}`,
+        predicate: (values) => values.has(character.toLowerCase()),
+      });
+
+      if (rowIndex !== -1) {
+        const sheetId = await getSheetIdByName(
+          this.client,
+          spreadsheetId,
+          sheetName,
+        );
+
+        const request: sheets_v4.Schema$Request = {
+          updateCells: {
+            range: {
+              sheetId,
+              startRowIndex: rowIndex,
+              endRowIndex: rowIndex + 1,
+              startColumnIndex: columnToIndex(range.start),
+              endColumnIndex: columnToIndex(range.end) + 1,
+            },
+            fields: 'userEnteredValue',
+          },
+        };
+
+        await this.client.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [request],
+          },
+        });
+      }
+    });
+  }
+
+  // Original methods
 
   @SentryTraced()
   public async removeSignup(
@@ -320,6 +403,47 @@ class SheetsService {
         });
     }
   }
+
+  // Private methods for TurboProg
+
+  /**
+   * Inserts or updates a TurboProg entry in the sheet
+   */
+  @SentryTraced()
+  private async upsertTurboProgRow(
+    { encounter, character, job, progPoint, availability }: TurboProgEntry,
+    spreadsheetId: string,
+  ) {
+    const sheetName = this.config.TURBO_PROG_SHEET_NAME;
+    const range = TurboProgSheetRanges[encounter as Encounter];
+
+    const { rowIndex, sheetValues } = await findCharacterRowIndex(this.client, {
+      spreadsheetId,
+      range: `${sheetName}!${range.start}:${range.end}`,
+      predicate: (values) => values.has(character.toLowerCase()),
+    });
+
+    const rowOffset = sheetValues
+      ? sheetValues.length + 1
+      : TURBP_PROG_SHEET_STARTING_ROW;
+
+    const values = [titleCase(character), job, progPoint, availability];
+    const updateRange =
+      rowIndex === -1
+        ? `${sheetName}!${range.start}${rowOffset}:${range.end}`
+        : `${sheetName}!${range.start}${rowIndex + 1}:${range.end}${
+            rowIndex + 1
+          }`;
+
+    await updateSheet(this.client, {
+      spreadsheetId,
+      range: updateRange,
+      values: [values],
+      type: 'update',
+    });
+  }
+
+  // Original private methods
 
   @SentryTraced()
   private async upsertRow(
