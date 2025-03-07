@@ -6,7 +6,6 @@ import type { AppConfig } from '../app.config.js';
 import { type SheetsConfig, sheetsConfig } from './sheets.config.js';
 import { SHEETS_CLIENT } from './sheets.consts.js';
 import { SheetsService } from './sheets.service.js';
-import { TurboProgSheetsService } from './turbo-prog-sheets/turbo-prog-sheets.service.js';
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
@@ -14,7 +13,6 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
   imports: [ConfigModule.forFeature(sheetsConfig)],
   providers: [
     SheetsService,
-    TurboProgSheetsService,
     {
       provide: SHEETS_CLIENT,
       inject: [ConfigService],
@@ -46,6 +44,6 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
       },
     },
   ],
-  exports: [SheetsService, TurboProgSheetsService],
+  exports: [SheetsService],
 })
 export class SheetsModule {}
