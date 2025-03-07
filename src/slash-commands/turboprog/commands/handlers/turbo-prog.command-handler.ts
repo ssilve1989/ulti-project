@@ -12,7 +12,6 @@ import {
 } from '../../../../firebase/models/signup.model.js';
 import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
-import { TurboProgSheetsService } from '../../../../sheets/turbo-prog-sheets/turbo-prog-sheets.service.js';
 import { TurboProgSignupInteractionDto } from '../../turbo-prog-signup-interaction.dto.js';
 import type { TurboProgEntry } from '../../turbo-prog.interfaces.js';
 import {
@@ -40,7 +39,6 @@ class TurboProgCommandHandler {
     private readonly settingsCollection: SettingsCollection,
     private readonly signupCollection: SignupCollection,
     private readonly sheetsService: SheetsService,
-    private readonly turboSheetService: TurboProgSheetsService,
   ) {}
 
   @SentryTraced()
@@ -66,11 +64,10 @@ class TurboProgCommandHandler {
       );
 
       if (validation.allowed) {
-        await this.turboSheetService.upsert(
+        await this.sheetsService.upsertTurboProgEntry(
           validation.data,
           settings.turboProgSpreadsheetId,
         );
-
         return await interaction.editReply(TURBO_PROG_SUBMISSION_APPROVED);
       }
 
@@ -137,7 +134,6 @@ class TurboProgCommandHandler {
           .exhaustive()
       );
     }
-
     // if they're not in the database as approved we need to check the google sheet
     return await this.findCharacterRowValues(options, spreadsheetId);
   }
@@ -151,17 +147,14 @@ class TurboProgCommandHandler {
       options,
       spreadsheetId,
     );
-
     if (rowData) {
       return {
         allowed: true,
         data: this.mapSheetData(rowData, options),
       };
     }
-
     scope.setExtra('options', options);
     scope.captureMessage('No Signup Found for Turbo Prog', 'debug');
-
     return {
       allowed: undefined,
       error: TURBO_PROG_NO_SIGNUP_FOUND,
@@ -205,7 +198,6 @@ class TurboProgCommandHandler {
         'Data found on Google Sheet is not in the correct format. Please check out that the regular signup sheet has your character entered correctly or reach out to a coordinator for assistance',
       );
     }
-
     // TODO: dear lord forgive us for our sins
     return {
       character: values[0],
