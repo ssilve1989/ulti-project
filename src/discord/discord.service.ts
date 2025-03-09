@@ -142,6 +142,72 @@ class DiscordService {
     await lastValueFrom(task$, { defaultValue: undefined });
     return members.size;
   }
+
+  /**
+   * Retires a role by removing it from all members and adding a new role
+   * @param guildId The ID of the guild
+   * @param fromRoleId The ID of the role to be removed
+   * @param toRoleId The ID of the role to be added
+   * @returns Object with statistics about the operation
+   */
+  public async retireRole(
+    guildId: string,
+    fromRoleId: string,
+    toRoleId: string,
+  ) {
+    const guild = await this.client.guilds.fetch(guildId);
+    await guild.members.fetch(); // Make sure our cache is up-to-date
+    const role = await guild.roles.fetch(fromRoleId);
+
+    if (!role) {
+      this.logger.warn(`Role ${fromRoleId} not found in guild ${guildId}`);
+      return {
+        totalMembers: 0,
+        successCount: 0,
+        failCount: 0,
+      };
+    }
+
+    const totalMembers = role.members.size;
+    let successCount = 0;
+    let failCount = 0;
+
+    if (totalMembers === 0) {
+      return {
+        totalMembers,
+        successCount,
+        failCount,
+      };
+    }
+
+    const task$ = from(role.members.values()).pipe(
+      // Process 5 role removals and additions concurrently
+      mergeMap(async (member) => {
+        try {
+          await member.roles.remove(fromRoleId);
+          await member.roles.add(toRoleId);
+          successCount++;
+          return { success: true };
+        } catch (error) {
+          this.logger.error(
+            `Failed to update roles for member ${member.user.username}`,
+            error,
+          );
+          failCount++;
+          return { success: false };
+        }
+      }, 5),
+    );
+
+    // Wait for all operations to complete
+    await lastValueFrom(task$, { defaultValue: undefined });
+
+    return {
+      totalMembers,
+      successCount,
+      failCount,
+    };
+  }
 }
 
 export { DiscordService };
