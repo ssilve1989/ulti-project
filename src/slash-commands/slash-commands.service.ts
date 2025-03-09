@@ -25,6 +25,7 @@ import { sentryReport } from '../sentry/sentry.consts.js';
 import { BlacklistSlashCommand } from './blacklist/blacklist.slash-command.js';
 import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
 import { RemoveRoleSlashCommand } from './remove-role/remove-role.slash-command.js';
+import { RetireSlashCommand } from './retire/retire.slash-command.js';
 import { SettingsSlashCommand } from './settings/settings.slash-command.js';
 import { createSignupSlashCommand } from './signup/signup.slash-command.js';
 import { createRemoveSignupSlashCommand } from './signup/subcommands/remove-signup/remove-signup.slash-command.js';
@@ -117,6 +118,7 @@ class SlashCommandsService {
       createTurboProgSlashCommand(applicationModeConfig),
       LookupSlashCommand,
       RemoveRoleSlashCommand,
+      RetireSlashCommand,
       SettingsSlashCommand,
       StatusSlashCommand,
     ];
