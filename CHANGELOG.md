@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.29.0](https://github.com/ssilve1989/ulti-project/compare/v1.28.2...v1.29.0) (2025-03-09)
+
+
+### Features
+
+* add helper retirement command ([#713](https://github.com/ssilve1989/ulti-project/issues/713)) ([ac1fa95](https://github.com/ssilve1989/ulti-project/commit/ac1fa95e5e0fc85f15a5ffa2db1a0c648efd06e5))
+
 ## [1.28.2](https://github.com/ssilve1989/ulti-project/compare/v1.28.1...v1.28.2) (2025-03-03)
 
 
