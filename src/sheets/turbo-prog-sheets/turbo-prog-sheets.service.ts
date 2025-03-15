@@ -18,7 +18,6 @@ import {
   TurboProgSheetRanges,
 } from './turbo-prog-sheets.consts.js';
 
-// TODO: Merge with SheetsService or deprecate Google Sheets entirely please.
 @Injectable()
 class TurboProgSheetsService {
   private readonly queue = new AsyncQueue();
