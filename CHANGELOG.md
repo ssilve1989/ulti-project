@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.29.0](https://github.com/ssilve1989/ulti-project/compare/v1.28.2...v1.29.0) (2025-03-15)
+
+
+### Features
+
+* add helper retirement command ([#713](https://github.com/ssilve1989/ulti-project/issues/713)) ([ac1fa95](https://github.com/ssilve1989/ulti-project/commit/ac1fa95e5e0fc85f15a5ffa2db1a0c648efd06e5))
+* **search:** adds a new command to allow for searching for users by prog point ([#721](https://github.com/ssilve1989/ulti-project/issues/721)) ([3a125ef](https://github.com/ssilve1989/ulti-project/commit/3a125ef9a16e51af3ef4b7a9e51ff84921723e95))
+
 ## [1.28.2](https://github.com/ssilve1989/ulti-project/compare/v1.28.1...v1.28.2) (2025-03-03)
 
 
