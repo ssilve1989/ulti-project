@@ -12,6 +12,8 @@ import { RemoveRoleCommand } from './remove-role/remove-role.command.js';
 import { RemoveRoleSlashCommand } from './remove-role/remove-role.slash-command.js';
 import { RetireCommand } from './retire/retire.command.js';
 import { RetireSlashCommand } from './retire/retire.slash-command.js';
+import { SearchCommand } from './search/search.command.js';
+import { SearchSlashCommand } from './search/search.slash-command.js';
 import { SettingsSlashCommand } from './settings/settings.slash-command.js';
 import { EditSettingsCommand } from './settings/subcommands/edit/edit-settings.command.js';
 import { ViewSettingsCommand } from './settings/subcommands/view/view-settings.command.js';
@@ -47,6 +49,7 @@ export function getCommandForInteraction(
     .with(SIGNUP_SLASH_COMMAND_NAME, () => new SignupCommand(interaction))
     .with(StatusSlashCommand.name, () => new StatusCommand(interaction))
     .with(RetireSlashCommand.name, () => new RetireCommand(interaction))
+    .with(SearchSlashCommand.name, () => new SearchCommand(interaction))
     .with(SettingsSlashCommand.name, () => {
       const subcommand = interaction.options.getSubcommand();
       return match(subcommand)
