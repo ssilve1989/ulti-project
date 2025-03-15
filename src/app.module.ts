@@ -15,6 +15,7 @@ import { BlacklistModule } from './slash-commands/blacklist/blacklist.module.js'
 import { LookupModule } from './slash-commands/lookup/lookup.module.js';
 import { RemoveRoleModule } from './slash-commands/remove-role/remove-role.module.js';
 import { RetireModule } from './slash-commands/retire/retire.module.js';
+import { SearchModule } from './slash-commands/search/search.module.js';
 import { SettingsModule } from './slash-commands/settings/settings.module.js';
 import { SignupModule } from './slash-commands/signup/signup.module.js';
 import { SlashCommandsModule } from './slash-commands/slash-commands.module.js';
@@ -30,6 +31,7 @@ import { TurboProgModule } from './slash-commands/turboprog/turbo-prog.module.js
     FirebaseModule,
     LookupModule,
     RetireModule,
+    SearchModule,
     SettingsModule,
     SheetsModule,
     SignupModule,
