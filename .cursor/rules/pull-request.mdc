@@ -1,0 +1,89 @@
+---
+description: Creating a Pull Request 
+globs: 
+alwaysApply: false
+---
+# Cursor Rules for Commits and PRs
+
+## Conventional Commits
+
+Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Types
+
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation only changes
+- `style`: Changes that do not affect the meaning of the code
+- `refactor`: A code change that neither fixes a bug nor adds a feature
+- `perf`: A code change that improves performance
+- `test`: Adding missing tests or correcting existing tests
+- `chore`: Changes to the build process or auxiliary tools
+
+### Examples
+
+```bash
+feat: add pagination to search results
+fix(search): handle empty result sets correctly
+refactor: extract search logic into separate service
+```
+
+## Creating Pull Requests
+
+### 1. Create PR Description
+
+Create a temporary markdown file with a structured description:
+
+```bash
+cat > pr-description.md << EOL
+# Title
+
+Brief overview of changes
+
+## Changes
+- Change 1
+- Change 2
+
+## Impact
+Description of the impact
+
+## Testing
+- Test scenario 1
+- Test scenario 2
+EOL
+```
+
+### 2. Create PR Using GitHub CLI
+
+Always create PRs targeting the origin remote:
+
+```bash
+gh pr create \
+  --title "type: descriptive title" \
+  --body-file pr-description.md \
+  --repo origin
+```
+
+### 3. Clean Up
+
+Remove the temporary markdown file after PR creation:
+
+```bash
+rm pr-description.md
+```
+
+## Best Practices
+
+1. **One Feature Per PR**: Keep PRs focused on a single feature or fix
+2. **Descriptive Titles**: Use conventional commit format for PR titles
+3. **Structured Description**: Include changes, impact, and testing sections
+4. **Clean History**: Avoid committing temporary files
+5. **Branch Naming**: Use format `type/description` (e.g., `feat/search-pagination`)
