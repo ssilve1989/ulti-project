@@ -94,6 +94,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@biomejs/biome",
+      "@firebase/util",
       "@nestjs/core",
       "@sentry-internal/node-cpu-profiler",
       "@sentry/cli",
