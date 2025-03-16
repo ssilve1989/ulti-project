@@ -251,16 +251,45 @@ describe('SearchCommandHandler', () => {
         embeds: [
           {
             title: 'Search Results',
-            description: `Found ${mockSignups.length} player(s) for **${Encounter.TOP}** at prog point: **P6 Enrage**`,
-            fields: [
+            description: `Found ${mockSignups.length} player(s) for **${Encounter.TOP}** at prog point: **P6 Enrage**\nPage 1/2`,
+            fields: mockSignups.slice(0, 8).flatMap((signup) => [
               {
                 name: 'Character',
-                value: 'Testchar',
+                value: signup.character,
                 inline: true,
               },
-              { name: 'Discord', value: '<@user123> (testuser)', inline: true },
-              { name: '​', value: '​', inline: true },
-            ],
+              {
+                name: 'Discord',
+                value: `<@${signup.discordId}> (${signup.username})`,
+                inline: true,
+              },
+              {
+                name: 'Role',
+                value: signup.role,
+                inline: true,
+              },
+            ]),
+          },
+          {
+            title: 'Search Results',
+            description: `Found ${mockSignups.length} player(s) for **${Encounter.TOP}** at prog point: **P6 Enrage**\nPage 2/2`,
+            fields: mockSignups.slice(8).flatMap((signup) => [
+              {
+                name: 'Character',
+                value: signup.character,
+                inline: true,
+              },
+              {
+                name: 'Discord',
+                value: `<@${signup.discordId}> (${signup.username})`,
+                inline: true,
+              },
+              {
+                name: 'Role',
+                value: signup.role,
+                inline: true,
+              },
+            ]),
           },
         ],
         components: [{ type: 1, components: [] }],
@@ -277,6 +306,78 @@ describe('SearchCommandHandler', () => {
 
     // Verify the response
     expect(mockProgPointSelect.editReply).toHaveBeenCalled();
+  });
+
+  it('should handle pagination when there are more than 8 players', async () => {
+    // Setup the collector
+    let collectorCallback: (i: any) => Promise<void>;
+    mockCollector.on.mockImplementation((event: string, callback: any) => {
+      if (event === 'collect') {
+        collectorCallback = callback;
+      }
+      return mockCollector;
+    });
+
+    // Create 10 mock signups (which should create 2 pages)
+    const mockSignups = Array.from({ length: 10 }, (_, i) => ({
+      character: `TestChar${i + 1}`,
+      world: 'TestWorld',
+      role: 'Tank',
+      availability: 'Weekends',
+      discordId: `user${i + 1}`,
+      notes: 'Test notes',
+      username: `testuser${i + 1}`,
+    }));
+    mockSignupsCollection.findAll.mockResolvedValue(mockSignups);
+
+    // Execute the command
+    const command = new SearchCommand(
+      mockInteraction as unknown as ChatInputCommandInteraction<
+        'cached' | 'raw'
+      >,
+    );
+    await handler.execute(command);
+
+    // First, simulate encounter selection
+    const mockEncounterSelect = createMock<StringSelectMenuInteraction>();
+    mockEncounterSelect.customId = ENCOUNTER_SELECT_ID;
+    mockEncounterSelect.values = [Encounter.TOP];
+    mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
+    await collectorCallback!(mockEncounterSelect);
+
+    // Then, simulate prog point selection
+    const mockProgPointSelect = createMock<StringSelectMenuInteraction>();
+    mockProgPointSelect.customId = PROG_POINT_SELECT_ID;
+    mockProgPointSelect.values = ['P6 Enrage'];
+    mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);
+
+    await collectorCallback!(mockProgPointSelect);
+
+    // Verify the search was performed
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
+      encounter: Encounter.TOP,
+      progPoint: 'P6 Enrage',
+    });
+
+    // Verify the response contains multiple embeds
+    expect(mockProgPointSelect.editReply).toHaveBeenCalled();
+    const editReplyCall = mockProgPointSelect.editReply.mock.calls[0][0];
+    expect(editReplyCall).toHaveProperty('embeds');
+    expect(editReplyCall.embeds).toHaveLength(2); // Should have 2 pages
+
+    // Verify first page
+    const firstEmbed = editReplyCall.embeds[0];
+    expect(firstEmbed.data).toHaveProperty('description');
+    expect(firstEmbed.data.description).toContain('Found 10 player(s)');
+    expect(firstEmbed.data.description).toContain('Page 1/2');
+    expect(firstEmbed.data.fields).toHaveLength(24); // 8 players * 3 fields each
+
+    // Verify second page
+    const secondEmbed = editReplyCall.embeds[1];
+    expect(secondEmbed.data).toHaveProperty('description');
+    expect(secondEmbed.data.description).toContain('Found 10 player(s)');
+    expect(secondEmbed.data.description).toContain('Page 2/2');
+    expect(secondEmbed.data.fields).toHaveLength(6); // 2 players * 3 fields each
   });
 
   it('should handle reset button and return to initial state', async () => {

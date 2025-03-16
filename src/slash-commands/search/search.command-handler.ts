@@ -111,7 +111,7 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
         );
 
         // Format the results
-        const embed = await this.createResultsEmbed(
+        const embeds = await this.createResultsEmbed(
           selectedEncounter as Encounter,
           selectedProgPoint,
           searchResults,
@@ -123,7 +123,7 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
         );
 
         await i.editReply({
-          embeds: [embed],
+          embeds: embeds,
           components: [resetRow],
         });
       } else if (i.customId === RESET_BUTTON_ID) {
@@ -170,35 +170,52 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
     encounter: Encounter,
     progPoint: string,
     signups: any[],
-  ) {
+  ): Promise<EmbedBuilder[]> {
     // If no results found
     if (signups.length === 0) {
-      return new EmbedBuilder()
-        .setTitle('Search Results')
-        .setDescription(
-          `No signups found for ${encounter} at prog point: ${progPoint}`,
-        )
-        .setColor(Colors.Red);
+      return [
+        new EmbedBuilder()
+          .setTitle('Search Results')
+          .setDescription(
+            `No signups found for ${encounter} at prog point: ${progPoint}`,
+          )
+          .setColor(Colors.Red),
+      ];
     }
 
-    const embed = new EmbedBuilder()
-      .setTitle('Search Results')
-      .setDescription(
-        `Found ${signups.length} player(s) for **${encounter}** at prog point: **${progPoint}**`,
-      )
-      .setColor(Colors.Green);
+    // Since each player takes 3 fields (character, discord, spacer),
+    // and embeds have a 25 field limit, we can show 8 players per embed
+    const PLAYERS_PER_PAGE = 8;
+    const totalPages = Math.ceil(signups.length / PLAYERS_PER_PAGE);
 
-    const fields = signups.flatMap((signup) => [
-      characterField(signup.character),
-      {
-        name: 'Discord',
-        value: `<@${signup.discordId}> (${signup.username})`,
-        inline: true,
-      },
-      { name: '\u200B', value: '\u200B', inline: true },
-    ]);
+    // Create embeds for each page of results
+    return Array.from({ length: totalPages }, (_, pageIndex) => {
+      const startIdx = pageIndex * PLAYERS_PER_PAGE;
+      const endIdx = Math.min(startIdx + PLAYERS_PER_PAGE, signups.length);
+      const pageSignups = signups.slice(startIdx, endIdx);
 
-    return embed.addFields(fields);
+      const embed = new EmbedBuilder()
+        .setTitle('Search Results')
+        .setDescription(
+          `Found ${signups.length} player(s) for **${encounter}** at prog point: **${progPoint}**${
+            totalPages > 1 ? `\nPage ${pageIndex + 1}/${totalPages}` : ''
+          }`,
+        )
+        .setColor(Colors.Green);
+
+      // Create fields for each player on this page using flatMap
+      const fields = pageSignups.flatMap((signup) => [
+        characterField(signup.character),
+        {
+          name: 'Discord',
+          value: `<@${signup.discordId}> (${signup.username})`,
+          inline: true,
+        },
+        { name: 'Role', value: signup.role, inline: true },
+      ]);
+
+      return embed.addFields(fields);
+    });
   }
 }
 
