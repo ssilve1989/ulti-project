@@ -6,6 +6,7 @@ import {
   ButtonBuilder,
   Colors,
   EmbedBuilder,
+  MessageFlags,
   StringSelectMenuBuilder,
 } from 'discord.js';
 import type { AppConfig, ApplicationModeConfig } from '../../app.config.js';
@@ -39,7 +40,7 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
 
   @SentryTraced()
   async execute({ interaction }: SearchCommand): Promise<void> {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const initialEmbed = new EmbedBuilder()
       .setTitle('Search Signups')

@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import {
   ButtonInteraction,
   ChatInputCommandInteraction,
+  MessageFlags,
   StringSelectMenuInteraction,
 } from 'discord.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
@@ -97,7 +98,7 @@ describe('SearchCommandHandler', () => {
     await handler.execute(command);
 
     expect(mockInteraction.deferReply).toHaveBeenCalledWith({
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     // Use a simpler assertion that just checks key properties
