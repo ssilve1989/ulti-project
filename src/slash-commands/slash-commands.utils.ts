@@ -6,6 +6,7 @@ import {
   BlacklistRemoveCommand,
 } from './blacklist/blacklist.commands.js';
 import { BlacklistSlashCommand } from './blacklist/blacklist.slash-command.js';
+import { FINAL_PUSH_SLASH_COMMAND_NAME } from './finalpush/final-push-signup.slash-command.js';
 import { LookupCommand } from './lookup/lookup.command.js';
 import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
 import { RemoveRoleCommand } from './remove-role/remove-role.command.js';
@@ -63,8 +64,10 @@ export function getCommandForInteraction(
     )
     .with(
       TURBO_PROG_SLASH_COMMAND_NAME,
+      FINAL_PUSH_SLASH_COMMAND_NAME,
       () => new TurboProgCommand(interaction),
     )
+
     .with(RemoveRoleSlashCommand.name, () => new RemoveRoleCommand(interaction))
     .otherwise(() => undefined);
 }

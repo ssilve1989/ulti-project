@@ -23,6 +23,7 @@ import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { safeReply } from '../discord/discord.helpers.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
 import { BlacklistSlashCommand } from './blacklist/blacklist.slash-command.js';
+import { createFinalPushSlashCommand } from './finalpush/final-push-signup.slash-command.js';
 import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
 import { RemoveRoleSlashCommand } from './remove-role/remove-role.slash-command.js';
 import { RetireSlashCommand } from './retire/retire.slash-command.js';
@@ -117,6 +118,7 @@ class SlashCommandsService {
       createRemoveSignupSlashCommand(applicationModeConfig),
       createSignupSlashCommand(applicationModeConfig),
       createTurboProgSlashCommand(applicationModeConfig),
+      createFinalPushSlashCommand(applicationModeConfig),
       LookupSlashCommand,
       RemoveRoleSlashCommand,
       RetireSlashCommand,

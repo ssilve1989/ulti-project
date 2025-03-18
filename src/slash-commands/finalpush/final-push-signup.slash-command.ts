@@ -1,14 +1,14 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import type { ApplicationModeConfig } from '../../app.config.js';
 import { getEncounterChoicesForMode } from '../../encounters/encounters.consts.js';
 
-// TODO: abstract common options between this and /signup
-export const TURBO_PROG_SLASH_COMMAND_NAME = 'turbo-prog';
+export const FINAL_PUSH_SLASH_COMMAND_NAME = 'final-push';
 
-export function createTurboProgSlashCommand(mode: ApplicationModeConfig) {
+export function createFinalPushSlashCommand(mode: ApplicationModeConfig) {
   return new SlashCommandBuilder()
-    .setName(TURBO_PROG_SLASH_COMMAND_NAME)
-    .setDescription('signup for the current turbo prog event!')
+    .setName(FINAL_PUSH_SLASH_COMMAND_NAME)
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDescription('signup for the final push event!')
     .addStringOption((option) =>
       option
         .setRequired(true)
