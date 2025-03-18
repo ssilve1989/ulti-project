@@ -37,13 +37,17 @@ type ProggerAllowedResponse =
 class TurboProgCommandHandler {
   constructor(
     private readonly settingsCollection: SettingsCollection,
-    private readonly signupCollection: SignupCollection,
     private readonly sheetsService: SheetsService,
+    private readonly signupCollection: SignupCollection,
   ) {}
 
   @SentryTraced()
   async execute({ interaction }: TurboProgCommand) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const options = this.getOptions(interaction);
+    const scope = Sentry.getCurrentScope();
+    scope.setExtra('options', options);
 
     const settings = await this.settingsCollection.getSettings(
       interaction.guildId,
@@ -53,14 +57,18 @@ class TurboProgCommandHandler {
       return await interaction.editReply(TURBO_PROG_INACTIVE);
     }
 
-    const options = this.getOptions(interaction);
-    const scope = Sentry.getCurrentScope();
-    scope.setExtra('input', options);
-
     if (settings.spreadsheetId && settings.turboProgSpreadsheetId) {
+      // Find signup by discordId and encounter instead of character name
+      const signup = await this.signupCollection.findOne({
+        discordId: interaction.user.id,
+        encounter: options.encounter,
+      });
+
       const validation = await this.isProggerAllowed(
         options,
         settings.spreadsheetId,
+        interaction.user.id,
+        signup,
       );
 
       if (validation.allowed) {
@@ -89,18 +97,14 @@ class TurboProgCommandHandler {
   public async isProggerAllowed(
     options: TurboProgSignupInteractionDto,
     spreadsheetId: string,
+    userId: string,
+    signup?: SignupDocument,
   ): Promise<ProggerAllowedResponse> {
-    const signup = await this.signupCollection.findOne({
-      character: options.character,
-      encounter: options.encounter,
-    });
-
     const scope = Sentry.getCurrentScope();
     // if the progger has an entry already in the database we can check its status
     if (signup) {
-      const partyStatus = signup.partyStatus || signup.partyType;
       return (
-        match([signup.status, partyStatus])
+        match([signup.status, signup.partyStatus])
           .with(
             // has a bot signup that was approved with a party status
             [SignupStatus.APPROVED, PartyStatus.ClearParty],
@@ -129,30 +133,39 @@ class TurboProgCommandHandler {
             [SignupStatus.DECLINED, P.any],
             [SignupStatus.PENDING, P.any],
             [SignupStatus.UPDATE_PENDING, P.any],
-            () => this.findCharacterRowValues(options, spreadsheetId),
+            () => this.findCharacterRowValues(options, spreadsheetId, signup),
           )
           .exhaustive()
       );
     }
-    // if they're not in the database as approved we need to check the google sheet
-    return await this.findCharacterRowValues(options, spreadsheetId);
+
+    scope.captureMessage('No Signup Found for Turbo Prog', 'debug');
+    return {
+      allowed: undefined,
+      error: TURBO_PROG_NO_SIGNUP_FOUND,
+    };
   }
 
   private async findCharacterRowValues(
     options: TurboProgSignupInteractionDto,
     spreadsheetId: string,
+    signup: SignupDocument,
   ): Promise<ProggerAllowedResponse> {
     const scope = Sentry.getCurrentScope();
+
+    // Now we can use the character from the found signup
     const rowData = await this.sheetsService.findCharacterRowValues(
-      options,
+      { ...options, character: signup.character, world: signup.world },
       spreadsheetId,
     );
+
     if (rowData) {
       return {
         allowed: true,
-        data: this.mapSheetData(rowData, options),
+        data: this.mapSheetData(rowData, options, signup.character),
       };
     }
+
     scope.setExtra('options', options);
     scope.captureMessage('No Signup Found for Turbo Prog', 'debug');
     return {
@@ -166,15 +179,13 @@ class TurboProgCommandHandler {
   }: ChatInputCommandInteraction<'cached' | 'raw'>) {
     return plainToClass(TurboProgSignupInteractionDto, {
       availability: options.getString('availability', true),
-      character: options.getString('character', true),
       encounter: options.getString('encounter', true),
-      role: options.getString('job', true),
     });
   }
 
   private mapSignupToRowData(
-    { progPointRequested, progPoint }: SignupDocument,
-    { character, role, availability, encounter }: TurboProgSignupInteractionDto,
+    { progPointRequested, progPoint, role, character }: SignupDocument,
+    { availability, encounter }: TurboProgSignupInteractionDto,
   ) {
     return {
       character,
@@ -192,6 +203,7 @@ class TurboProgCommandHandler {
   private mapSheetData(
     values: string[],
     { availability, encounter }: TurboProgSignupInteractionDto,
+    character: string,
   ) {
     if (values.length !== 4 || values.some((value, i) => i > 1 && !value)) {
       throw new Error(
@@ -200,7 +212,7 @@ class TurboProgCommandHandler {
     }
     // TODO: dear lord forgive us for our sins
     return {
-      character: values[0],
+      character,
       job: values[2],
       progPoint: values[3],
       availability,
