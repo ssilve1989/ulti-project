@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.30.0](https://github.com/ssilve1989/ulti-project/compare/v1.29.0...v1.30.0) (2025-03-18)
+
+
+### Features
+
+* **final-push:** support permanent final-push command ([046e565](https://github.com/ssilve1989/ulti-project/commit/046e565d8019c5cfd7b498a7c257629e6d13b583))
+
 ## [1.29.0](https://github.com/ssilve1989/ulti-project/compare/v1.28.2...v1.29.0) (2025-03-15)
 
 
