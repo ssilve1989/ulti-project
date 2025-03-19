@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.31.0](https://github.com/ssilve1989/ulti-project/compare/v1.30.0...v1.31.0) (2025-03-19)
+
+
+### Features
+
+* **signup:** add previously approved prog point to reviewer DM ([1510bce](https://github.com/ssilve1989/ulti-project/commit/1510bcedbe89f2d02041a2bce7a803ff606e1309))
+
 ## [1.30.0](https://github.com/ssilve1989/ulti-project/compare/v1.29.0...v1.30.0) (2025-03-18)
 
 
