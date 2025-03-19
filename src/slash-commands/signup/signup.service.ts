@@ -10,6 +10,7 @@ import {
   ActionRowBuilder,
   DiscordjsErrorCodes,
   Embed,
+  EmbedBuilder,
   type Emoji,
   Events,
   Message,
@@ -324,9 +325,19 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     const menu = EncounterProgMenus[signup.encounter];
     const row = new ActionRowBuilder().addComponents(menu);
 
+    const embed = signup.progPoint
+      ? EmbedBuilder.from(sourceEmbed).addFields([
+          {
+            name: 'Previously Approved Prog Point',
+            value: signup.progPoint,
+            inline: true,
+          },
+        ])
+      : sourceEmbed;
+
     const message = await this.discordService.sendDirectMessage(user.id, {
       content: 'Please confirm the prog point of the following signup',
-      embeds: [sourceEmbed],
+      embeds: [embed],
       components: [row as any],
     });
 
