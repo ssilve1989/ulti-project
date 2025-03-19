@@ -120,7 +120,7 @@ class SendSignupReviewCommandHandler
       {
         name: 'Prog Proof Link',
         value: proofOfProgLink,
-        transform: (v) => `[View](${v})`,
+        transform: (v: string) => `[View](${v})`,
         inline: true,
       },
       { name: 'Availability', value: availability, inline: true },
