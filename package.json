@@ -63,7 +63,7 @@
     "@commitlint/config-conventional": "^19.8.0",
     "@commitlint/cz-commitlint": "^19.8.0",
     "@commitlint/prompt-cli": "^19.8.0",
-    "@flydotio/dockerfile": "^0.7.8",
+    "@flydotio/dockerfile": "^0.7.9",
     "@golevelup/ts-vitest": "^0.5.2",
     "@graphql-codegen/cli": "5.0.5",
     "@graphql-codegen/schema-ast": "^4.1.0",
