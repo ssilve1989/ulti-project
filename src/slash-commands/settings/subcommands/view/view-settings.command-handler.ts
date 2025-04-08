@@ -18,6 +18,20 @@ function formatChannel(channelId?: string) {
   return channelId ? channelMention(channelId) : 'No Channel Set';
 }
 
+function reduceRoleSettings(
+  roleSettings: Record<string, string | undefined> | undefined,
+): string[] {
+  return Object.entries(roleSettings || {}).reduce<string[]>(
+    (acc, [encounter, role]) => {
+      if (role) {
+        acc.push(`**${encounter}:** ${roleMention(role)}`);
+      }
+      return acc;
+    },
+    [],
+  );
+}
+
 @CommandHandler(ViewSettingsCommand)
 class ViewSettingsCommandHandler
   implements ICommandHandler<ViewSettingsCommand>
@@ -43,6 +57,7 @@ class ViewSettingsCommandHandler
     const {
       modChannelId,
       progRoles,
+      clearRoles,
       reviewChannel,
       reviewerRole,
       signupChannel,
@@ -51,24 +66,8 @@ class ViewSettingsCommandHandler
       turboProgSpreadsheetId,
     } = settings;
 
-    const progRoleSettings = Object.entries(progRoles || {}).reduce<string[]>(
-      (acc, [encounter, role]) => {
-        if (role) {
-          acc.push(`**${encounter}** - ${roleMention(role)}`);
-        }
-        return acc;
-      },
-      [],
-    );
-
-    const clearRoleSettings = Object.entries(settings.clearRoles || {}).reduce<
-      string[]
-    >((acc, [encounter, role]) => {
-      if (role) {
-        acc.push(`**${encounter}:** - ${roleMention(role)}`);
-      }
-      return acc;
-    }, []);
+    const progRoleSettings = reduceRoleSettings(progRoles);
+    const clearRoleSettings = reduceRoleSettings(clearRoles);
 
     const fields = [
       {

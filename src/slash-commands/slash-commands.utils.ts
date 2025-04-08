@@ -16,7 +16,11 @@ import { RetireSlashCommand } from './retire/retire.slash-command.js';
 import { SearchCommand } from './search/search.command.js';
 import { SearchSlashCommand } from './search/search.slash-command.js';
 import { SettingsSlashCommand } from './settings/settings.slash-command.js';
-import { EditSettingsCommand } from './settings/subcommands/edit/edit-settings.command.js';
+import { EditChannelsCommand } from './settings/subcommands/channels/edit-channels.command.js';
+import { EditReviewerCommand } from './settings/subcommands/reviewer/edit-reviewer.command.js';
+import { EditEncounterRolesCommand } from './settings/subcommands/roles/edit-encounter-roles.command.js';
+import { EditSpreadsheetCommand } from './settings/subcommands/spreadsheet/edit-spreadsheet.command.js';
+import { EditTurboProgCommand } from './settings/subcommands/turbo-prog/edit-turbo-prog.command.js';
 import { ViewSettingsCommand } from './settings/subcommands/view/view-settings.command.js';
 import { SignupCommand } from './signup/commands/signup.commands.js';
 import { SIGNUP_SLASH_COMMAND_NAME } from './signup/signup.slash-command.js';
@@ -54,7 +58,14 @@ export function getCommandForInteraction(
     .with(SettingsSlashCommand.name, () => {
       const subcommand = interaction.options.getSubcommand();
       return match(subcommand)
-        .with('edit', () => new EditSettingsCommand(interaction))
+        .with('channels', () => new EditChannelsCommand(interaction))
+        .with('reviewer', () => new EditReviewerCommand(interaction))
+        .with(
+          'encounter-roles',
+          () => new EditEncounterRolesCommand(interaction),
+        )
+        .with('spreadsheet', () => new EditSpreadsheetCommand(interaction))
+        .with('turbo-prog', () => new EditTurboProgCommand(interaction))
         .with('view', () => new ViewSettingsCommand(interaction))
         .run();
     })
