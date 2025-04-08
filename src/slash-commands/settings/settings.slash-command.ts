@@ -3,9 +3,9 @@ import { PermissionFlagsBits } from 'discord.js';
 import { SlashCommandSubcommandBuilder } from 'discord.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 
-export const EditSettingsSubcommand = new SlashCommandSubcommandBuilder()
-  .setName('edit')
-  .setDescription('Edit the bot settings')
+export const EditChannelsSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('channels')
+  .setDescription('Edit channel settings')
   .addChannelOption((option) =>
     option
       .setName('signup-review-channel')
@@ -22,32 +22,6 @@ export const EditSettingsSubcommand = new SlashCommandSubcommandBuilder()
       )
       .addChannelTypes(ChannelType.GuildText),
   )
-  .addRoleOption((option) =>
-    option
-      .setName('reviewer-role')
-      .setDescription(
-        'an optional role that is allowed to review signups. If not set, anyone can review signups',
-      ),
-  )
-  .addStringOption((option) =>
-    option
-      .setName('spreadsheet-id')
-      .setDescription(
-        'The id of the spreadsheet to use for persistence modifications',
-      ),
-  )
-  .addBooleanOption((option) =>
-    option
-      .setName('turbo-prog-active')
-      .setDescription('Whether or not turbo prog is currently active')
-      .setRequired(false),
-  )
-  .addStringOption((option) =>
-    option
-      .setName('turbo-prog-spreadsheet-id')
-      .setDescription('The id of the spreadsheet to use for turbo prog')
-      .setRequired(false),
-  )
   .addChannelOption((option) =>
     option
       .setName('moderation-channel')
@@ -56,30 +30,85 @@ export const EditSettingsSubcommand = new SlashCommandSubcommandBuilder()
       .setRequired(false),
   );
 
+export const EditReviewerRoleSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('reviewer')
+  .setDescription('Edit reviewer role settings')
+  .addRoleOption((option) =>
+    option
+      .setName('reviewer-role')
+      .setDescription(
+        'an optional role that is allowed to review signups. If not set, anyone can review signups',
+      )
+      .setRequired(true),
+  );
+
+export const EditEncounterRolesSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('encounter-roles')
+  .setDescription('Edit encounter roles')
+  .addStringOption((option) =>
+    option
+      .setName('encounter')
+      .setDescription('The encounter to set roles for')
+      .setRequired(true)
+      .addChoices(
+        ...Object.entries(Encounter).map(([name, value]) => ({
+          name,
+          value,
+        })),
+      ),
+  )
+  .addRoleOption((option) =>
+    option
+      .setName('prog-role')
+      .setDescription('The role for prog parties')
+      .setRequired(true),
+  )
+  .addRoleOption((option) =>
+    option
+      .setName('clear-role')
+      .setDescription('The role for clear parties')
+      .setRequired(true),
+  );
+
+export const EditSpreadsheetSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('spreadsheet')
+  .setDescription('Edit spreadsheet settings')
+  .addStringOption((option) =>
+    option
+      .setName('spreadsheet-id')
+      .setDescription(
+        'The id of the spreadsheet to use for persistence modifications',
+      )
+      .setRequired(true),
+  );
+
+export const EditTurboProgSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('turbo-prog')
+  .setDescription('Edit turbo prog settings')
+  .addBooleanOption((option) =>
+    option
+      .setName('active')
+      .setDescription('Whether or not turbo prog is currently active')
+      .setRequired(true),
+  )
+  .addStringOption((option) =>
+    option
+      .setName('spreadsheet-id')
+      .setDescription('The id of the spreadsheet to use for turbo prog')
+      .setRequired(false),
+  );
+
 export const ViewSettingsSubcommand = new SlashCommandSubcommandBuilder()
   .setName('view')
   .setDescription('view the current bot settings');
-
-// add all encounters to have a role option
-for (const encounter in Encounter) {
-  EditSettingsSubcommand.addRoleOption((option) =>
-    option
-      .setName(`${encounter.toLowerCase()}-prog-role`)
-      .setDescription(
-        'The role to be assigned to users who have signed up for this encounter and quality for prog parties',
-      ),
-  ).addRoleOption((option) =>
-    option
-      .setName(`${encounter.toLowerCase()}-clear-role`)
-      .setDescription(
-        'The role to be assigned to users who have signed up for this encounter and quality for clear parties',
-      ),
-  );
-}
 
 export const SettingsSlashCommand = new SlashCommandBuilder()
   .setName('settings')
   .setDescription('Configure/Review the bots roles and channel settings')
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-  .addSubcommand(EditSettingsSubcommand)
+  .addSubcommand(EditChannelsSubcommand)
+  .addSubcommand(EditReviewerRoleSubcommand)
+  .addSubcommand(EditEncounterRolesSubcommand)
+  .addSubcommand(EditSpreadsheetSubcommand)
+  .addSubcommand(EditTurboProgSubcommand)
   .addSubcommand(ViewSettingsSubcommand);
