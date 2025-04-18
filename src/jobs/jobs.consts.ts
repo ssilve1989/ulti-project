@@ -30,4 +30,4 @@ export const jobDateFormatter = new Intl.DateTimeFormat('en-US', {
   timeZoneName: 'short',
 });
 
-export type JobType = 'clear-checker' | 'sheet-cleaner';
+export type JobType = 'clear-checker' | 'sheet-cleaner' | 'invite-cleaner';
