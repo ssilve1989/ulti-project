@@ -233,11 +233,12 @@ type ArchonViewModels {
   buildsSpecPageSlugs: JSON
   buildsZonePage(affixesSlug: String, difficultySlug: String, encounterSlug: String, gameSlug: String, rankingsSlug: String, zoneTypeSlug: String): JSON
   buildsZonePageSlugs: JSON
-  characterPage(characterId: Int!): JSON
-  characterPageData(characterId: Int!, userId: Int): JSON
+  characterPage(categorySlug: String!, characterSlug: String!, gameSlug: String!, userId: Int, zoneSlug: String): JSON
+  characterPageContent(categorySlug: String!, characterSlug: String!, gameSlug: String!, userId: Int, zoneSlug: String): JSON
   cmsNavigation(currentSlug: String): JSON
   contactPage: JSON
-  fightPage(fightId: Int!, reportCode: String!, userId: Int): JSON
+  fightPage(categorySlug: String!, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, reportSlug: String!, userId: Int): JSON
+  fightPageContent(categorySlug: String!, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, reportSlug: String!, userId: Int): JSON
   footer: JSON
   game: JSON
   gamePage: JSON

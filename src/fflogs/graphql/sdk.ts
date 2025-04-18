@@ -36,10 +36,11 @@ export type ArchonViewModels = {
   readonly buildsZonePage?: Maybe<Scalars['JSON']['output']>;
   readonly buildsZonePageSlugs?: Maybe<Scalars['JSON']['output']>;
   readonly characterPage?: Maybe<Scalars['JSON']['output']>;
-  readonly characterPageData?: Maybe<Scalars['JSON']['output']>;
+  readonly characterPageContent?: Maybe<Scalars['JSON']['output']>;
   readonly cmsNavigation?: Maybe<Scalars['JSON']['output']>;
   readonly contactPage?: Maybe<Scalars['JSON']['output']>;
   readonly fightPage?: Maybe<Scalars['JSON']['output']>;
+  readonly fightPageContent?: Maybe<Scalars['JSON']['output']>;
   readonly footer?: Maybe<Scalars['JSON']['output']>;
   readonly game?: Maybe<Scalars['JSON']['output']>;
   readonly gamePage?: Maybe<Scalars['JSON']['output']>;
@@ -111,13 +112,20 @@ export type ArchonViewModelsBuildsZonePageArgs = {
 
 
 export type ArchonViewModelsCharacterPageArgs = {
-  characterId: Scalars['Int']['input'];
+  categorySlug: Scalars['String']['input'];
+  characterSlug: Scalars['String']['input'];
+  gameSlug: Scalars['String']['input'];
+  userId?: InputMaybe<Scalars['Int']['input']>;
+  zoneSlug?: InputMaybe<Scalars['String']['input']>;
 };
 
 
-export type ArchonViewModelsCharacterPageDataArgs = {
-  characterId: Scalars['Int']['input'];
+export type ArchonViewModelsCharacterPageContentArgs = {
+  categorySlug: Scalars['String']['input'];
+  characterSlug: Scalars['String']['input'];
+  gameSlug: Scalars['String']['input'];
   userId?: InputMaybe<Scalars['Int']['input']>;
+  zoneSlug?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -127,8 +135,23 @@ export type ArchonViewModelsCmsNavigationArgs = {
 
 
 export type ArchonViewModelsFightPageArgs = {
-  fightId: Scalars['Int']['input'];
-  reportCode: Scalars['String']['input'];
+  categorySlug: Scalars['String']['input'];
+  fightSlug: Scalars['String']['input'];
+  gameSlug: Scalars['String']['input'];
+  phaseSlug?: InputMaybe<Scalars['String']['input']>;
+  playerSlug?: InputMaybe<Scalars['String']['input']>;
+  reportSlug: Scalars['String']['input'];
+  userId?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ArchonViewModelsFightPageContentArgs = {
+  categorySlug: Scalars['String']['input'];
+  fightSlug: Scalars['String']['input'];
+  gameSlug: Scalars['String']['input'];
+  phaseSlug?: InputMaybe<Scalars['String']['input']>;
+  playerSlug?: InputMaybe<Scalars['String']['input']>;
+  reportSlug: Scalars['String']['input'];
   userId?: InputMaybe<Scalars['Int']['input']>;
 };
 
