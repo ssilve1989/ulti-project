@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.32.0](https://github.com/ssilve1989/ulti-project/compare/v1.31.0...v1.32.0) (2025-04-18)
+
+
+### Features
+
+* add Discord invite cleaner job ([2e9a38a](https://github.com/ssilve1989/ulti-project/commit/2e9a38a69bf93feacc8355fb48a15a174c3dce0f))
+
 ## [1.31.0](https://github.com/ssilve1989/ulti-project/compare/v1.30.0...v1.31.0) (2025-03-19)
 
 
