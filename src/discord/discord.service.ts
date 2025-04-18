@@ -208,6 +208,11 @@ class DiscordService {
       failCount,
     };
   }
+
+  public async getGuildInvites(guildId: string) {
+    const guild = await this.client.guilds.fetch(guildId);
+    return guild.invites.fetch();
+  }
 }
 
 export { DiscordService };
