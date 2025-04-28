@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@googleapis/sheets':
-        specifier: ^9.6.0
-        version: 9.6.0
+        specifier: ^9.7.0
+        version: 9.7.0
       '@nestjs/cache-manager':
         specifier: ^3.0.1
         version: 3.0.1(@nestjs/common@11.1.0(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.0(@nestjs/common@11.1.0(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(cache-manager@6.4.2)(keyv@5.3.2)(rxjs@7.8.2)
@@ -891,8 +891,8 @@ packages:
     resolution: {integrity: sha512-+2k+mcQBb9zkaXMllf2wwR/rI07guAx+eZLWsGTDihW2lJRGfiqB7xu1r7/s4uvSP/T+nAumvzT5TTscwHKJ9A==}
     engines: {node: '>=14'}
 
-  '@googleapis/sheets@9.6.0':
-    resolution: {integrity: sha512-nppWh4ckXxvnFf1ILfaDO6fdoK1aMDzr8DWbb1x9dtx61dgiX7aQrDeZ9QICa+tDsFeWI6WSsS6lGFJkBgoRjQ==}
+  '@googleapis/sheets@9.7.0':
+    resolution: {integrity: sha512-laFp4BBpVzQKZuUsXG7QBZyWNtpV8SGyG+Yupjm2EfDuFuWb197zwvznyjmrIAGeEpsz11ktLpTti7+0a/2Y2Q==}
     engines: {node: '>=12.0.0'}
 
   '@graphql-codegen/add@5.0.3':
@@ -5907,7 +5907,7 @@ snapshots:
       - supports-color
     optional: true
 
-  '@googleapis/sheets@9.6.0':
+  '@googleapis/sheets@9.7.0':
     dependencies:
       googleapis-common: 7.2.0
     transitivePeerDependencies:
