@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.32.1](https://github.com/ssilve1989/ulti-project/compare/v1.32.0...v1.32.1) (2025-05-06)
+
+
+### Bug Fixes
+
+* **jobs:** fix DI error on startup ([25a9600](https://github.com/ssilve1989/ulti-project/commit/25a9600cb46a6f203bedd868df3d66c35e766038))
+
 ## [1.32.0](https://github.com/ssilve1989/ulti-project/compare/v1.31.0...v1.32.0) (2025-04-18)
 
 
