@@ -1,5 +1,6 @@
 ARG NODE_VERSION=22.14.0
-FROM node:${NODE_VERSION}-slim AS base
+# Switch to alpine instead of slim
+FROM node:${NODE_VERSION}-alpine AS base  
 
 LABEL fly_launch_runtime="NestJS"
 
