@@ -22,7 +22,7 @@ export interface SignupDocument {
   character: string;
   discordId: string;
   encounter: Encounter;
-  notes?: string;
+  notes?: string | null;
   proofOfProgLink?: string | null;
   // freeform field representing the characters job/role/class
   role: string;

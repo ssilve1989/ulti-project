@@ -11,7 +11,7 @@ import {
   QuerySnapshot,
 } from 'firebase-admin/firestore';
 import { Encounter } from '../../encounters/encounters.consts.js';
-import type { SignupInteractionDto } from '../../slash-commands/signup/signup-interaction.dto.js';
+import type { SignupSchema } from '../../slash-commands/signup/signup.schema.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import { type SignupDocument, SignupStatus } from '../models/signup.model.js';
@@ -27,7 +27,7 @@ describe('Signup Repository', () => {
   let firestore: DeepMocked<Firestore>;
   let collection: DeepMocked<CollectionReference<DocumentData>>;
   let doc: DeepMocked<DocumentReference<DocumentData>>;
-  const signupRequest = createMock<SignupInteractionDto>(SIGNUP_KEY);
+  const signupRequest = createMock<SignupSchema>(SIGNUP_KEY);
 
   beforeEach(async () => {
     doc = createMock<DocumentReference>();

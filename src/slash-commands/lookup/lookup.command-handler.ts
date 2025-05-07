@@ -1,6 +1,5 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
-import { plainToInstance } from 'class-transformer';
 import {
   Colors,
   CommandInteractionOptionResolver,
@@ -16,7 +15,7 @@ import type { SignupDocument } from '../../firebase/models/signup.model.js';
 import { SentryTraced } from '../../sentry/sentry-traced.decorator.js';
 import { sentryReport } from '../../sentry/sentry.consts.js';
 import { LookupCommand } from './lookup.command.js';
-import { LookupInteractionDto } from './lookup.dto.js';
+import { type LookupSchema, lookupSchema } from './lookup.schema.js';
 
 type BlacklistStatus = 'No' | 'Yes' | 'Unknown';
 type SignupWithBlacklistStatus = SignupDocument & {
@@ -72,7 +71,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
 
   private createLookupEmbeds(
     signups: SignupWithBlacklistStatus[],
-    dto: LookupInteractionDto,
+    dto: LookupSchema,
   ) {
     if (signups.length === 0) {
       return [
@@ -136,10 +135,10 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
       'getMessage' | 'getFocused'
     >,
   ) {
-    const character = options.getString('character')!;
-    const world = options.getString('world') ?? undefined;
+    const character = options.getString('character', true);
+    const world = options.getString('world');
 
-    return plainToInstance(LookupInteractionDto, { character, world });
+    return lookupSchema.parse({ character, world });
   }
 }
 

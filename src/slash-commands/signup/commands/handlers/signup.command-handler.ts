@@ -1,8 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
-import { plainToInstance } from 'class-transformer';
-import { ValidationError, validate } from 'class-validator';
 import {
   ActionRowBuilder,
   ChatInputCommandInteraction,
@@ -12,9 +10,9 @@ import {
   EmbedBuilder,
   MessageFlags,
 } from 'discord.js';
-import { match } from 'ts-pattern';
-
 import { titleCase } from 'title-case';
+import { match } from 'ts-pattern';
+import type { ZodError } from 'zod';
 import { isSameUserFilter } from '../../../../common/collection-filters.js';
 import {
   CancelButton,
@@ -36,8 +34,8 @@ import { SignupCollection } from '../../../../firebase/collections/signup.collec
 import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
 import { sentryReport } from '../../../../sentry/sentry.consts.js';
 import { SignupCreatedEvent } from '../../events/signup.events.js';
-import { SignupInteractionDto } from '../../signup-interaction.dto.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
+import { type SignupSchema, signupSchema } from '../../signup.schema.js';
 import { shouldDeleteReviewMessageForSignup } from '../../signup.utils.js';
 import { SignupCommand } from '../signup.commands.js';
 
@@ -78,7 +76,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     }
 
     const [signupRequest, validationErrors] =
-      await this.createSignupRequest(interaction);
+      this.createSignupRequest(interaction);
 
     if (validationErrors) {
       await interaction.editReply({
@@ -140,7 +138,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   }
 
   private async handleConfirm(
-    request: SignupInteractionDto,
+    request: SignupSchema,
     interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
   ) {
     const [existing, reviewChannelId] = await Promise.all([
@@ -179,34 +177,33 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     });
   }
 
-  private async createSignupRequest({
+  private createSignupRequest({
     options,
     user,
-  }: ChatInputCommandInteraction): Promise<
-    [SignupInteractionDto, ValidationError[] | undefined]
-  > {
-    const request: SignupInteractionDto = {
+  }: ChatInputCommandInteraction):
+    | [SignupSchema, undefined]
+    | [undefined, ZodError] {
+    const request = {
       availability: options.getString('availability', true),
       character: options.getString('character', true),
       discordId: user.id,
       encounter: options.getString('encounter', true) as Encounter,
-      notes: options.getString('notes') ?? undefined,
+      notes: options.getString('notes'),
       proofOfProgLink: options.getString('prog-proof-link'),
       progPointRequested: options.getString('prog-point', true),
       role: options.getString('job', true),
-      screenshot: options.getAttachment('screenshot')?.url ?? null,
+      screenshot: options.getAttachment('screenshot')?.url,
       username: user.username,
       world: options.getString('world', true),
     };
 
-    const transformed = plainToInstance(SignupInteractionDto, request);
-    const errors = await validate(transformed);
+    const result = signupSchema.safeParse(request);
 
-    if (errors.length > 0) {
-      return [transformed, errors];
+    if (!result.success) {
+      return [result.data, result.error];
     }
 
-    return [transformed, undefined];
+    return [result.data, undefined];
   }
 
   private createSignupConfirmationEmbed(
@@ -220,7 +217,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       screenshot,
       world,
       progPointRequested,
-    }: SignupInteractionDto,
+    }: SignupSchema,
     displayName: string,
   ) {
     const fields = createFields([
@@ -272,16 +269,16 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       );
   }
 
-  private createValidationErrorsEmbed(errors: ValidationError[]) {
-    const fields = errors.flatMap((error, index) => {
-      const { constraints = {} } = error;
+  private createValidationErrorsEmbed(error: ZodError) {
+    const fields = error.issues.flatMap((issue, index) => {
+      const { message } = issue;
 
-      return Object.entries(constraints).map(([, value]) => ({
+      return {
         // The property names are ugly to present to the user. Alternatively we could use a dictionary to map the property names
         // to friendly names
         name: `Error #${index + 1}`,
-        value,
-      }));
+        value: message,
+      };
     });
 
     const embed = new EmbedBuilder()

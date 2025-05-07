@@ -1,8 +1,8 @@
-import { RemoveSignupDto } from './remove-signup.dto.js';
+import type { RemoveSignupSchema } from './remove-signup.schema.js';
 
 export class RemoveSignupEvent {
   constructor(
-    public readonly dto: RemoveSignupDto,
+    public readonly dto: RemoveSignupSchema,
     public readonly ids: { discordId: string; guildId: string },
   ) {}
 }
