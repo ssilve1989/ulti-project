@@ -41,7 +41,7 @@
     "@sentry/profiling-node": "^9.15.0",
     "cache-manager": "^6.4.2",
     "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.1",
+    "class-validator": "^0.14.2",
     "cron": "^4.3.0",
     "dayjs": "^1.11.13",
     "discord.js": "^14.19.3",
