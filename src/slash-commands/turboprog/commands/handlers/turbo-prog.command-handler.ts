@@ -1,6 +1,5 @@
 import { CommandHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
-import { plainToClass } from 'class-transformer';
 import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { P, match } from 'ts-pattern';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
@@ -12,7 +11,10 @@ import {
 } from '../../../../firebase/models/signup.model.js';
 import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
-import { TurboProgSignupInteractionDto } from '../../turbo-prog-signup-interaction.dto.js';
+import {
+  type TurboProgSignupSchema,
+  turboProgSignupSchema,
+} from '../../turbo-prog-signup.schema.js';
 import type { TurboProgEntry } from '../../turbo-prog.interfaces.js';
 import {
   TURBO_PROG_INACTIVE,
@@ -67,7 +69,6 @@ class TurboProgCommandHandler {
       const validation = await this.isProggerAllowed(
         options,
         settings.spreadsheetId,
-        interaction.user.id,
         signup,
       );
 
@@ -95,9 +96,8 @@ class TurboProgCommandHandler {
   }
 
   public async isProggerAllowed(
-    options: TurboProgSignupInteractionDto,
+    options: TurboProgSignupSchema,
     spreadsheetId: string,
-    userId: string,
     signup?: SignupDocument,
   ): Promise<ProggerAllowedResponse> {
     const scope = Sentry.getCurrentScope();
@@ -147,7 +147,7 @@ class TurboProgCommandHandler {
   }
 
   private async findCharacterRowValues(
-    options: TurboProgSignupInteractionDto,
+    options: TurboProgSignupSchema,
     spreadsheetId: string,
     signup: SignupDocument,
   ): Promise<ProggerAllowedResponse> {
@@ -177,7 +177,7 @@ class TurboProgCommandHandler {
   private getOptions({
     options,
   }: ChatInputCommandInteraction<'cached' | 'raw'>) {
-    return plainToClass(TurboProgSignupInteractionDto, {
+    return turboProgSignupSchema.parse({
       availability: options.getString('availability', true),
       encounter: options.getString('encounter', true),
     });
@@ -185,7 +185,7 @@ class TurboProgCommandHandler {
 
   private mapSignupToRowData(
     { progPointRequested, progPoint, role, character }: SignupDocument,
-    { availability, encounter }: TurboProgSignupInteractionDto,
+    { availability, encounter }: TurboProgSignupSchema,
   ) {
     return {
       character,
@@ -202,7 +202,7 @@ class TurboProgCommandHandler {
    */
   private mapSheetData(
     values: string[],
-    { availability, encounter }: TurboProgSignupInteractionDto,
+    { availability, encounter }: TurboProgSignupSchema,
     character: string,
   ) {
     if (values.length !== 4 || values.some((value, i) => i > 1 && !value)) {

@@ -38,12 +38,6 @@ importers:
       cache-manager:
         specifier: ^6.4.2
         version: 6.4.2
-      class-transformer:
-        specifier: ^0.5.1
-        version: 0.5.1
-      class-validator:
-        specifier: ^0.14.1
-        version: 0.14.1
       cron:
         specifier: ^4.3.0
         version: 4.3.0
@@ -7416,7 +7410,8 @@ snapshots:
   '@types/tough-cookie@4.0.5':
     optional: true
 
-  '@types/validator@13.11.9': {}
+  '@types/validator@13.11.9':
+    optional: true
 
   '@types/ws@8.18.1':
     dependencies:
@@ -7941,13 +7936,15 @@ snapshots:
 
   cjs-module-lexer@1.4.3: {}
 
-  class-transformer@0.5.1: {}
+  class-transformer@0.5.1:
+    optional: true
 
   class-validator@0.14.1:
     dependencies:
       '@types/validator': 13.11.9
       libphonenumber-js: 1.10.57
       validator: 13.11.0
+    optional: true
 
   clean-stack@2.2.0: {}
 
@@ -9252,7 +9249,8 @@ snapshots:
     dependencies:
       '@keyv/serialize': 1.0.3
 
-  libphonenumber-js@1.10.57: {}
+  libphonenumber-js@1.10.57:
+    optional: true
 
   limiter@1.1.5: {}
 
@@ -10363,7 +10361,8 @@ snapshots:
 
   uuid@9.0.1: {}
 
-  validator@13.11.0: {}
+  validator@13.11.0:
+    optional: true
 
   value-or-promise@1.0.12: {}
 
