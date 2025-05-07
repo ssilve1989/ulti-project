@@ -30,7 +30,7 @@ const fieldExpectations = [
     inline: true,
   },
   { name: 'Character', value: 'Test Character', inline: true },
-  { name: 'World', value: 'Test World', inline: true },
+  { name: 'World', value: 'Jenova', inline: true },
 ];
 
 const DEFAULT_SETTINGS = {
@@ -76,7 +76,7 @@ describe('Remove Signup Command Handler', () => {
             case 'encounter':
               return Encounter.DSR;
             case 'world':
-              return 'Test World';
+              return 'Jenova';
             default:
               return '';
           }

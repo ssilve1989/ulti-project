@@ -8,7 +8,7 @@ import {
   SignupStatus,
 } from '../../../../firebase/models/signup.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
-import { TurboProgSignupInteractionDto } from '../../turbo-prog-signup-interaction.dto.js';
+import { turboProgSignupSchema } from '../../turbo-prog-signup.schema.js';
 import { TURBO_PROG_SIGNUP_INVALID } from '../../turboprog.consts.js';
 import { TurboProgCommandHandler } from './turbo-prog.command-handler.js';
 
@@ -83,15 +83,15 @@ describe('TurboProgCommandHandler', () => {
         discordId: 'testDiscordId',
       });
 
-      const options = new TurboProgSignupInteractionDto();
-      options.encounter = Encounter.DSR;
-      options.availability = 'Weekends';
+      const options = turboProgSignupSchema.parse({
+        availability: 'Weekends',
+        encounter: Encounter.DSR,
+      });
 
       // Pass the signup directly to isProggerAllowed
       const response = await handler.isProggerAllowed(
         options,
         'spreadsheetId',
-        'testDiscordId',
         mockSignup,
       );
 
@@ -116,15 +116,15 @@ describe('TurboProgCommandHandler', () => {
         discordId: 'testDiscordId',
       });
 
-      const options = new TurboProgSignupInteractionDto();
-      options.encounter = Encounter.DSR;
-      options.availability = 'Weekends';
+      const options = turboProgSignupSchema.parse({
+        availability: 'Weekends',
+        encounter: Encounter.DSR,
+      });
 
       // Pass the signup directly to isProggerAllowed
       const response = await handler.isProggerAllowed(
         options,
         'spreadsheetId',
-        'testDiscordId',
         mockSignup,
       );
 
@@ -147,21 +147,17 @@ describe('TurboProgCommandHandler', () => {
         world: 'TestWorld',
       });
 
-      const options = new TurboProgSignupInteractionDto();
-      options.encounter = Encounter.DSR;
-      options.availability = 'Weekends';
+      const options = turboProgSignupSchema.parse({
+        availability: 'Weekends',
+        encounter: Encounter.DSR,
+      });
 
       // Spy on the findCharacterRowValues method
       const spy = vi.spyOn(handler as any, 'findCharacterRowValues');
       spy.mockImplementationOnce(() => Promise.resolve({}));
 
       // Pass the signup directly to isProggerAllowed
-      await handler.isProggerAllowed(
-        options,
-        'spreadsheetId',
-        'testDiscordId',
-        mockSignup,
-      );
+      await handler.isProggerAllowed(options, 'spreadsheetId', mockSignup);
 
       expect(spy).toHaveBeenCalledWith(options, 'spreadsheetId', mockSignup);
     },
@@ -177,9 +173,10 @@ describe('TurboProgCommandHandler', () => {
     ]);
 
     // Create options for the test
-    const options = new TurboProgSignupInteractionDto();
-    options.encounter = Encounter.DSR;
-    options.availability = 'Weekends';
+    const options = turboProgSignupSchema.parse({
+      availability: 'Weekends',
+      encounter: Encounter.DSR,
+    });
 
     // Create a mock signup to pass directly
     const mockSignup = createMock<SignupDocument>({
@@ -218,9 +215,10 @@ describe('TurboProgCommandHandler', () => {
 
   it('should return error if no signups found for user', async () => {
     // Create options for the test
-    const options = new TurboProgSignupInteractionDto();
-    options.encounter = Encounter.DSR;
-    options.availability = 'Weekends';
+    const options = turboProgSignupSchema.parse({
+      availability: 'Weekends',
+      encounter: Encounter.DSR,
+    });
 
     // Create a mock signup without required sheet data
     const mockSignup = createMock<SignupDocument>({
@@ -248,9 +246,10 @@ describe('TurboProgCommandHandler', () => {
 
   it('should return error if sheet data is in wrong format', async () => {
     // Create options for the test
-    const options = new TurboProgSignupInteractionDto();
-    options.encounter = Encounter.DSR;
-    options.availability = 'Weekends';
+    const options = turboProgSignupSchema.parse({
+      availability: 'Weekends',
+      encounter: Encounter.DSR,
+    });
 
     // Create a mock signup
     const mockSignup = createMock<SignupDocument>({
@@ -274,6 +273,7 @@ describe('TurboProgCommandHandler', () => {
         mockSignup,
       ),
     ).rejects.toThrow(
+      // biome-ignore lint/performance/useTopLevelRegex: <explanation>
       /Data found on Google Sheet is not in the correct format/,
     );
   });

@@ -1,6 +1,5 @@
 import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/node';
-import { plainToClass } from 'class-transformer';
 import {
   type APIUser,
   ChatInputCommandInteraction,
@@ -16,7 +15,6 @@ import {
   worldField,
 } from '../../../../common/components/fields.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
-import { Encounter } from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
 import { DocumentNotFoundException } from '../../../../firebase/firebase.exceptions.js';
@@ -35,11 +33,14 @@ import {
   REMOVAL_NO_SHEET_ENTRY,
   REMOVAL_SUCCESS,
 } from './remove-signup.consts.js';
-import { RemoveSignupDto } from './remove-signup.dto.js';
 import { RemoveSignupEvent } from './remove-signup.events.js';
+import {
+  type RemoveSignupSchema,
+  removeSignupSchema,
+} from './remove-signup.schema.js';
 
 type RemoveSignupProps = {
-  dto: RemoveSignupDto;
+  dto: RemoveSignupSchema;
   signup: SignupDocument;
   guildId: string;
   spreadsheetId?: string;
@@ -187,16 +188,16 @@ class RemoveSignupCommandHandler
   }
 
   private getOptions({ options }: ChatInputCommandInteraction) {
-    return plainToClass(RemoveSignupDto, {
-      character: options.getString('character')!,
-      world: options.getString('world')!,
-      encounter: options.getString('encounter')! as Encounter,
+    return removeSignupSchema.parse({
+      character: options.getString('character', true),
+      world: options.getString('world', true),
+      encounter: options.getString('encounter', true),
     });
   }
 
   private async canModifySignup(
     user: User | APIUser,
-    { character, encounter, world }: RemoveSignupDto,
+    { character, encounter, world }: RemoveSignupSchema,
     guildId: string,
     reviewerRole = '',
   ) {
