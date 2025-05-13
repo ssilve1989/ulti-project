@@ -13,7 +13,7 @@ importers:
         version: 9.7.0
       '@nestjs/cache-manager':
         specifier: ^3.0.1
-        version: 3.0.1(@nestjs/common@11.1.0(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.0(@nestjs/common@11.1.0(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(cache-manager@6.4.2)(keyv@5.3.2)(rxjs@7.8.2)
+        version: 3.0.1(@nestjs/common@11.1.0(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.0(@nestjs/common@11.1.0(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(cache-manager@6.4.3)(keyv@5.3.3)(rxjs@7.8.2)
       '@nestjs/common':
         specifier: ^11.1.0
         version: 11.1.0(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -36,8 +36,8 @@ importers:
         specifier: ^9.17.0
         version: 9.17.0
       cache-manager:
-        specifier: ^6.4.2
-        version: 6.4.2
+        specifier: ^6.4.3
+        version: 6.4.3
       cron:
         specifier: ^4.3.0
         version: 4.3.0
@@ -2434,8 +2434,8 @@ packages:
     resolution: {integrity: sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ==}
     engines: {node: '>=8'}
 
-  cache-manager@6.4.2:
-    resolution: {integrity: sha512-oT0d1cGWZAlqEGDPjOfhmldTS767jT6kBT3KIdn7MX5OevlRVYqJT+LxRv5WY4xW9heJtYxeRRXaoKlEW+Biew==}
+  cache-manager@6.4.3:
+    resolution: {integrity: sha512-VV5eq/QQ5rIVix7/aICO4JyvSeEv9eIQuKL5iFwgM2BrcYoE0A/D1mNsAHJAsB0WEbNdBlKkn6Tjz6fKzh/cKQ==}
 
   cachedir@2.3.0:
     resolution: {integrity: sha512-A+Fezp4zxnit6FanDmv9EqXNAi3vt9DWp51/71UEhXukb7QUuvtv9344h91dyAxuTLoSYJFU299qzR3tzwPAhw==}
@@ -3621,8 +3621,8 @@ packages:
   jws@4.0.0:
     resolution: {integrity: sha512-KDncfTmOZoOMTFG4mBlG0qUIOlc03fmzH+ru6RgYVZhPkyiy/92Owlt/8UEN+a4TXR1FQetfIpJE8ApdvdVxTg==}
 
-  keyv@5.3.2:
-    resolution: {integrity: sha512-Lji2XRxqqa5Wg+CHLVfFKBImfJZ4pCSccu9eVWK6w4c2SDFLd8JAn1zqTuSFnsxb7ope6rMsnIHfp+eBbRBRZQ==}
+  keyv@5.3.3:
+    resolution: {integrity: sha512-Rwu4+nXI9fqcxiEHtbkvoes2X+QfkTRo1TMkPfwzipGsJlJO/z69vqB4FNl9xJ3xCpAcbkvmEabZfPzrwN3+gQ==}
 
   libphonenumber-js@1.12.8:
     resolution: {integrity: sha512-f1KakiQJa9tdc7w1phC2ST+DyxWimy9c3g3yeF+84QtEanJr2K77wAmBPP22riU05xldniHsvXuflnLZ4oysqA==}
@@ -6658,12 +6658,12 @@ snapshots:
 
   '@lukeed/csprng@1.1.0': {}
 
-  '@nestjs/cache-manager@3.0.1(@nestjs/common@11.1.0(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.0(@nestjs/common@11.1.0(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(cache-manager@6.4.2)(keyv@5.3.2)(rxjs@7.8.2)':
+  '@nestjs/cache-manager@3.0.1(@nestjs/common@11.1.0(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.0(@nestjs/common@11.1.0(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(cache-manager@6.4.3)(keyv@5.3.3)(rxjs@7.8.2)':
     dependencies:
       '@nestjs/common': 11.1.0(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 11.1.0(@nestjs/common@11.1.0(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      cache-manager: 6.4.2
-      keyv: 5.3.2
+      cache-manager: 6.4.3
+      keyv: 5.3.3
       rxjs: 7.8.2
 
   '@nestjs/cli@11.0.7(@swc/core@1.7.3)(@types/node@22.15.17)':
@@ -7838,9 +7838,9 @@ snapshots:
 
   cac@6.7.14: {}
 
-  cache-manager@6.4.2:
+  cache-manager@6.4.3:
     dependencies:
-      keyv: 5.3.2
+      keyv: 5.3.3
 
   cachedir@2.3.0: {}
 
@@ -9280,7 +9280,7 @@ snapshots:
       jwa: 2.0.0
       safe-buffer: 5.2.1
 
-  keyv@5.3.2:
+  keyv@5.3.3:
     dependencies:
       '@keyv/serialize': 1.0.3
 
