@@ -12,7 +12,7 @@ import {
 } from 'discord.js';
 import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
-import type { ZodError } from 'zod';
+import type { ZodError } from 'zod/v4';
 import { isSameUserFilter } from '../../../../common/collection-filters.js';
 import {
   CancelButton,
@@ -182,7 +182,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     user,
   }: ChatInputCommandInteraction):
     | [SignupSchema, undefined]
-    | [undefined, ZodError] {
+    | [undefined, ZodError<SignupSchema>] {
     const request = {
       availability: options.getString('availability', true),
       character: options.getString('character', true),
@@ -200,7 +200,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     const result = signupSchema.safeParse(request);
 
     if (!result.success) {
-      return [result.data, result.error];
+      return [undefined, result.error];
     }
 
     return [result.data, undefined];
