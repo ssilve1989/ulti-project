@@ -145,8 +145,8 @@ importers:
         specifier: ^9.3.7
         version: 9.3.7
       jest-extended:
-        specifier: ^4.0.2
-        version: 4.0.2
+        specifier: ^5.0.1
+        version: 5.0.1
       rimraf:
         specifier: ^6.0.1
         version: 6.0.1
@@ -3495,9 +3495,9 @@ packages:
     resolution: {integrity: sha512-LMIgiIrhigmPrs03JHpxUh2yISK3vLFPkAodPeo0+BuF7wA2FoQbkEg1u8gBYBThncu7e1oEDUfIXVuTqLRUjw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
 
-  jest-extended@4.0.2:
-    resolution: {integrity: sha512-FH7aaPgtGYHc9mRjriS0ZEHYM5/W69tLrFTIdzm+yJgeoCmmrSB/luSfMSqWP9O29QWHPEmJ4qmU6EwsZideog==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+  jest-extended@5.0.1:
+    resolution: {integrity: sha512-ZDY+KmVjRDN1dJi3KzxYSywb0JBFdxDdG3ZDsg/N02f8GAMj4VCsaQelAF4GV36iT47Ab6+yhoYnRMAA7WtrMg==}
+    engines: {node: ^18.12.0 || ^20.9.0 || ^22.11.0 || >=23.0.0}
     peerDependencies:
       jest: '>=27.2.5'
     peerDependenciesMeta:
@@ -4201,8 +4201,8 @@ packages:
   randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
 
-  react-is@18.2.0:
-    resolution: {integrity: sha512-xWGDIW6x921xtzPkhiULtthJHoJvBbF3q26fzloPCK0hsvxtPVelvftw3zjbHWSkR2km9Z+4uxbDDK/6Zw9B8w==}
+  react-is@18.3.1:
+    resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
 
   readable-stream@3.6.2:
     resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
@@ -9098,10 +9098,9 @@ snapshots:
       jest-get-type: 29.6.3
       pretty-format: 29.7.0
 
-  jest-extended@4.0.2:
+  jest-extended@5.0.1:
     dependencies:
       jest-diff: 29.7.0
-      jest-get-type: 29.6.3
 
   jest-get-type@29.6.3: {}
 
@@ -9712,7 +9711,7 @@ snapshots:
     dependencies:
       '@jest/schemas': 29.6.3
       ansi-styles: 5.2.0
-      react-is: 18.2.0
+      react-is: 18.3.1
 
   process-warning@4.0.1: {}
 
@@ -9764,7 +9763,7 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
-  react-is@18.2.0: {}
+  react-is@18.3.1: {}
 
   readable-stream@3.6.2:
     dependencies:
