@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const APPLICATION_MODES = ['savage', 'ultimate', 'legacy'] as const;
 export type ApplicationMode = (typeof APPLICATION_MODES)[number];
@@ -16,7 +16,7 @@ export const configSchema = z.object({
           'Duplicate modes are not allowed',
         ),
     )
-    .default('ultimate'),
+    .default(['ultimate']),
   CLIENT_ID: z.string(),
   DISCORD_TOKEN: z.string(),
   DISCORD_REFRESH_COMMANDS: z.coerce.boolean().default(false),

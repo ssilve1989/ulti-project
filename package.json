@@ -100,8 +100,6 @@
       "esbuild",
       "nestjs-pino"
     ],
-    "ignoredBuiltDependencies": [
-      "protobufjs"
-    ]
+    "ignoredBuiltDependencies": ["protobufjs"]
   }
 }

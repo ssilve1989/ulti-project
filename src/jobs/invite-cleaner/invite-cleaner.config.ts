@@ -1,8 +1,8 @@
 import { registerAs } from '@nestjs/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const schema = z.object({
-  INVITE_CLEANER_CONCURRENCY: z.number().default(5),
+  INVITE_CLEANER_CONCURRENCY: z.coerce.number().default(5),
 });
 
 export type InviteCleanerConfig = z.infer<typeof schema>;

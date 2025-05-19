@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { configSchema } from './app.config.js';
 
 describe('configSchema', () => {
@@ -48,16 +48,29 @@ describe('configSchema', () => {
   });
 
   it('should reject duplicate APPLICATION_MODE values', () => {
-    expect(() =>
-      configSchema.parse({
-        APPLICATION_MODE: 'ultimate+ultimate',
-        CLIENT_ID: 'test-id',
-        DISCORD_TOKEN: 'test-token',
-        GCP_PRIVATE_KEY: 'key',
-        GCP_ACCOUNT_EMAIL: 'email',
-        GCP_PROJECT_ID: 'project',
-      }),
-    ).toThrow('Duplicate modes are not allowed');
+    const result = configSchema.safeParse({
+      APPLICATION_MODE: 'ultimate+ultimate',
+      CLIENT_ID: 'test-id',
+      DISCORD_TOKEN: 'test-token',
+      GCP_PRIVATE_KEY: 'key',
+      GCP_ACCOUNT_EMAIL: 'email',
+      GCP_PROJECT_ID: 'project',
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error).toBeInstanceOf(z.ZodError);
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'custom',
+            message: 'Duplicate modes are not allowed',
+            path: ['APPLICATION_MODE'],
+          }),
+        ]),
+      );
+    }
   });
 
   it('should validate required fields', () => {
