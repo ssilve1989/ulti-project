@@ -77,7 +77,6 @@
     "husky": "^9.1.7",
     "hygen": "^6.2.11",
     "inquirer": "^9.3.7",
-    "jest-extended": "^5.0.1",
     "rimraf": "^6.0.1",
     "source-map-support": "^0.5.21",
     "typescript": "^5.8.3",
@@ -100,6 +99,8 @@
       "esbuild",
       "nestjs-pino"
     ],
-    "ignoredBuiltDependencies": ["protobufjs"]
+    "ignoredBuiltDependencies": [
+      "protobufjs"
+    ]
   }
 }

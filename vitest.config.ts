@@ -12,7 +12,6 @@ export default defineConfig({
         singleThread: true,
       },
     },
-    setupFiles: ['./test/test-setup.ts'],
     globals: true,
     coverage: {
       include: ['src/**/*.ts'],
