@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/node';
+import { SentryTraced } from '@sentry/nestjs';
+import * as Sentry from '@sentry/nestjs';
 import {
   ActionRowBuilder,
   ChatInputCommandInteraction,
@@ -31,7 +32,6 @@ import {
 } from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
-import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
 import { sentryReport } from '../../../../sentry/sentry.consts.js';
 import { SignupCreatedEvent } from '../../events/signup.events.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';

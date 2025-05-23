@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { SentryTraced } from '@sentry/nestjs';
 import { Firestore } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../../firebase/firebase.decorators.js';
 import type { SignupDocument } from '../../firebase/models/signup.model.js';
-import { SentryTraced } from '../../sentry/sentry-traced.decorator.js';
 
 @Injectable()
 class StatusService {

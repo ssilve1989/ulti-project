@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
+import { SentryTraced } from '@sentry/nestjs';
 import { EmbedBuilder, GuildMember, userMention } from 'discord.js';
 import {
   characterField,
@@ -15,7 +16,6 @@ import {
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../../../firebase/models/signup.model.js';
-import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
 import { SignupApprovalSentEvent } from '../../events/signup.events.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../../signup.consts.js';
 import { SendSignupReviewCommand } from './send-signup-review.command.js';

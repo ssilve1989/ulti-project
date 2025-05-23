@@ -1,5 +1,6 @@
 import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/node';
+import { SentryTraced } from '@sentry/nestjs';
+import * as Sentry from '@sentry/nestjs';
 import {
   type APIUser,
   ChatInputCommandInteraction,
@@ -22,7 +23,6 @@ import {
   type SignupDocument,
   SignupStatus,
 } from '../../../../firebase/models/signup.model.js';
-import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { shouldDeleteReviewMessageForSignup } from '../../signup.utils.js';

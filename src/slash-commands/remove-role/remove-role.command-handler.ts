@@ -1,8 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { SentryTraced } from '@sentry/nestjs';
 import { MessageFlags } from 'discord.js';
 import { DiscordService } from '../../discord/discord.service.js';
-import { SentryTraced } from '../../sentry/sentry-traced.decorator.js';
 import { RemoveRoleCommand } from './remove-role.command.js';
 
 @CommandHandler(RemoveRoleCommand)

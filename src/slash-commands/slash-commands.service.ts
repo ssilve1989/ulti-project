@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CommandBus } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 import {
   ChatInputCommandInteraction,
   Client,

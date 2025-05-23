@@ -1,5 +1,5 @@
 import { sheets_v4 } from '@googleapis/sheets';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 
 type GetSheetValuesProps = {
   spreadsheetId: string;

@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 import { Colors, EmbedBuilder, Message, User, userMention } from 'discord.js';
 import {
   characterField,
