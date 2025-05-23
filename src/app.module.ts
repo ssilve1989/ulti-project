@@ -9,7 +9,6 @@ import { AppService } from './app.service.js';
 import { DiscordModule } from './discord/discord.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
-import { SentryModule } from './sentry/sentry.module.js';
 import { SheetsModule } from './sheets/sheets.module.js';
 import { BlacklistModule } from './slash-commands/blacklist/blacklist.module.js';
 import { LookupModule } from './slash-commands/lookup/lookup.module.js';
@@ -61,7 +60,6 @@ import { TurboProgModule } from './slash-commands/turboprog/turbo-prog.module.js
         },
       }),
     }),
-    SentryModule,
   ],
   providers: [AppService, AppSagas],
   controllers: [AppController],

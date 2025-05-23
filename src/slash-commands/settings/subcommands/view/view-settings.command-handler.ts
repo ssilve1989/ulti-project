@@ -1,4 +1,5 @@
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { SentryTraced } from '@sentry/nestjs';
 import {
   EmbedBuilder,
   MessageFlags,
@@ -6,7 +7,6 @@ import {
   roleMention,
 } from 'discord.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { ViewSettingsCommand } from './view-settings.command.js';
 

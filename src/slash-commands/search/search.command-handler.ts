@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { SentryTraced } from '@sentry/nestjs';
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -14,7 +15,6 @@ import { isSameUserFilter } from '../../common/collection-filters.js';
 import { characterField } from '../../common/components/fields.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import { SentryTraced } from '../../sentry/sentry-traced.decorator.js';
 import { SearchCommand } from './search.command.js';
 import {
   ENCOUNTER_SELECT_ID,

@@ -1,9 +1,9 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/node';
+import { SentryTraced } from '@sentry/nestjs';
+import * as Sentry from '@sentry/nestjs';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
 import { RemoveRolesCommand } from '../signup.commands.js';
 
 // TODO: Re-locate under `roles-manager` module

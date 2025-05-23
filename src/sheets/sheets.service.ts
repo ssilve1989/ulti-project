@@ -1,7 +1,8 @@
 import { sheets_v4 } from '@googleapis/sheets';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import * as Sentry from '@sentry/node';
+import { SentryTraced } from '@sentry/nestjs';
+import * as Sentry from '@sentry/nestjs';
 import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
@@ -13,7 +14,6 @@ import {
   PartyStatus,
   type SignupDocument,
 } from '../firebase/models/signup.model.js';
-import { SentryTraced } from '../sentry/sentry-traced.decorator.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
 import type { TurboProgEntry } from '../slash-commands/turboprog/turbo-prog.interfaces.js';
 import { sheetsConfig } from './sheets.config.js';

@@ -1,7 +1,7 @@
 import { CACHE_MANAGER, type Cache } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { SentryTraced } from '@sentry/nestjs';
 import { CollectionReference, Firestore } from 'firebase-admin/firestore';
-import { SentryTraced } from '../../sentry/sentry-traced.decorator.js';
 import { InjectFirestore } from '../firebase.decorators.js';
 import type { SettingsDocument } from '../models/settings.model.js';
 

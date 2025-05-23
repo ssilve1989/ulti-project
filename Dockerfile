@@ -14,7 +14,7 @@ RUN corepack enable
 # Print the pnpm version
 RUN pnpm --version
 
-COPY package.json pnpm-lock.yaml tsconfig.json tsconfig.build.json /app/
+COPY package.json pnpm-lock.yaml tsconfig.json tsconfig.build.json instrumentation.mjs /app/
 COPY src /app/src
 COPY scripts /app/scripts
 
@@ -37,4 +37,4 @@ COPY --from=prod-deps /app/node_modules /app/node_modules
 COPY --from=build /app/dist /app/dist
 
 EXPOSE 3000
-CMD [ "node", "dist/main" ]
+CMD [ "node", "--import", "./instrumentation.mjs", "dist/main" ]

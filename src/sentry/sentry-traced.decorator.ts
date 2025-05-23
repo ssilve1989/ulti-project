@@ -1,4 +1,4 @@
-import { startSpan } from '@sentry/node';
+import { startSpan } from '@sentry/nestjs';
 
 /**
  * A decorator usable to wrap arbitrary functions with spans.

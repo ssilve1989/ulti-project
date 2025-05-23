@@ -1,5 +1,5 @@
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 import { Colors, EmbedBuilder, userMention } from 'discord.js';
 import { P, match } from 'ts-pattern';
 import { DiscordService } from '../../../../discord/discord.service.js';

@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { SentryTraced } from '@sentry/nestjs';
 import {
   Colors,
   CommandInteractionOptionResolver,
@@ -12,7 +13,6 @@ import { createFields } from '../../common/embed-helpers.js';
 import { BlacklistCollection } from '../../firebase/collections/blacklist-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../firebase/models/signup.model.js';
-import { SentryTraced } from '../../sentry/sentry-traced.decorator.js';
 import { sentryReport } from '../../sentry/sentry.consts.js';
 import { LookupCommand } from './lookup.command.js';
 import { type LookupSchema, lookupSchema } from './lookup.schema.js';
