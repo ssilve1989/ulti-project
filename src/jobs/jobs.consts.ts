@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 import { CronJob, type CronJobParams } from 'cron';
 import { USTimeZones } from '../common/time-zones.js';
 

@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 import { P, match } from 'ts-pattern';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { PartyStatus } from '../../../../firebase/models/signup.model.js';

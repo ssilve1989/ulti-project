@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { SentryTraced } from '@sentry/nestjs';
 import {
   ChatInputCommandInteraction,
   EmbedBuilder,
@@ -10,7 +11,6 @@ import {
   type SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
-import { SentryTraced } from '../../sentry/sentry-traced.decorator.js';
 import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../signup/signup.consts.js';
 import { StatusCommand } from './status.command.js';

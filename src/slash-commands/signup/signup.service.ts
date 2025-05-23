@@ -5,7 +5,8 @@ import {
   type OnModuleDestroy,
 } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/node';
+import { SentryTraced } from '@sentry/nestjs';
+import * as Sentry from '@sentry/nestjs';
 import {
   ActionRowBuilder,
   DiscordjsErrorCodes,
@@ -50,7 +51,6 @@ import {
   type SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
-import { SentryTraced } from '../../sentry/sentry-traced.decorator.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import {
   SignupApprovedEvent,
@@ -93,11 +93,17 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
           group$.pipe(
             concatMap((event) =>
               Sentry.startNewTrace(() =>
-                Sentry.withScope(() =>
-                  Sentry.startSpan({ name: Events.MessageReactionAdd }, () =>
-                    this.processEvent(event),
-                  ),
-                ),
+                Sentry.withScope((scope) => {
+                  // Prevent Sentry from capturing the event if we've determined we aren't going to handle it anyway
+                  scope.addEventProcessor((event) =>
+                    event.extra?.shouldHandleReaction ? event : null,
+                  );
+
+                  return Sentry.startSpan(
+                    { name: Events.MessageReactionAdd },
+                    () => this.processEvent(event),
+                  );
+                }),
               ),
             ),
           ),
@@ -112,10 +118,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
   async processEvent(event: ReactionEvent) {
     const scope = Sentry.getCurrentScope();
-    // Prevent Sentry from capturing the event if we've determined we aren't going to handle it anyway
-    scope.addEventProcessor((sentryEvent) =>
-      sentryEvent.extra?.shouldHandleReaction ? sentryEvent : null,
-    );
 
     if (!event.reaction.message.inGuild()) {
       return;
@@ -305,6 +307,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       )
       .otherwise(() => SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR);
 
+    this.logger.log('capturing message');
     Sentry.getCurrentScope().captureMessage(reply, 'debug');
 
     // TODO: Improve error reporting to better inform user what happened

@@ -1,5 +1,6 @@
 import { CommandHandler } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/node';
+import { SentryTraced } from '@sentry/nestjs';
+import * as Sentry from '@sentry/nestjs';
 import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { P, match } from 'ts-pattern';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
@@ -9,7 +10,6 @@ import {
   type SignupDocument,
   SignupStatus,
 } from '../../../../firebase/models/signup.model.js';
-import { SentryTraced } from '../../../../sentry/sentry-traced.decorator.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import {
   type TurboProgSignupSchema,

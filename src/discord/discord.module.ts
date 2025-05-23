@@ -5,7 +5,7 @@ import {
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 import { ActivityType, Client, Events, Options } from 'discord.js';
 import { first, firstValueFrom, fromEvent } from 'rxjs';
 import type { AppConfig } from '../app.config.js';

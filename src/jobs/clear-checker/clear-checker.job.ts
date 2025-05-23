@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { EventBus } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 import { CronJob } from 'cron';
 import { EmbedBuilder } from 'discord.js';
 import {
