@@ -1,4 +1,6 @@
 name: Fly Deploy and Publish Release To Discord
+permissions:
+  contents: read
 on:
   release:
     types: [published]
