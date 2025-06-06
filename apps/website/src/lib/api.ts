@@ -1,9 +1,9 @@
-import { mockEncounters, mockSignups } from './mockData.js';
 import type {
   CommunityStats,
   SignupFilters,
   SignupsResponse,
-} from './types.js';
+} from '@ulti-project/shared/types';
+import { mockEncounters, mockSignups } from './mockData.js';
 
 const USE_MOCK_DATA = true; // Always use mock data for now
 

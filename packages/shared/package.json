@@ -1,0 +1,33 @@
+{
+  "name": "@ulti-project/shared",
+  "version": "1.0.0",
+  "description": "Shared types and utilities for Ulti-Project",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "require": "./dist/types/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'No linting configured for shared package'"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "zod": "^3.25.30"
+  }
+}

@@ -1,19 +1,11 @@
-import type { Encounter, SignupDocument } from './types.js';
+import {
+  ENCOUNTER_INFO,
+  type SignupDisplayData,
+} from '@ulti-project/shared/types';
 
-export const mockEncounters: Encounter[] = [
-  { id: 'FRU', name: 'Futures Rewritten (Ultimate)', shortName: 'FRU' },
-  { id: 'TOP', name: 'The Omega Protocol (Ultimate)', shortName: 'TOP' },
-  { id: 'DSR', name: "Dragonsong's Reprise (Ultimate)", shortName: 'DSR' },
-  { id: 'TEA', name: 'The Epic of Alexander (Ultimate)', shortName: 'TEA' },
-  { id: 'UWU', name: "The Weapon's Refrain (Ultimate)", shortName: 'UWU' },
-  {
-    id: 'UCOB',
-    name: 'The Unending Coil of Bahamut (Ultimate)',
-    shortName: 'UCOB',
-  },
-];
+export const mockEncounters = Object.values(ENCOUNTER_INFO);
 
-export const mockSignups: SignupDocument[] = [
+export const mockSignups: SignupDisplayData[] = [
   {
     id: '1',
     characterName: 'Warrior Light',
