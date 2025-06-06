@@ -1,114 +1,111 @@
+---
 import Layout from '../layouts/Layout.astro';
 import { getCommunityStats } from '../lib/api.js';
 
 const stats = await getCommunityStats();
+---
 
 <Layout title="Ulti Project - FFXIV Endgame Community">
   <!-- Hero Section -->
-  <section class="bg-gradient-to-r from-blue-900 to-purple-900 py-20">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-      <h1 class="text-4xl md:text-6xl font-bold text-white mb-6">
-        Welcome to <span class="text-blue-400">Ulti Project</span>!
+  <section class="hero-section">
+    <div class="hero-container">
+      <h1 class="hero-title">
+        Welcome to <span class="hero-accent">Ulti Project</span>!
       </h1>
-      <p class="text-xl md:text-2xl text-gray-200 mb-8 max-w-4xl mx-auto">
+      <p class="hero-subtitle">
         A FFXIV opportunity for NA players to progress thru <strong>ENDGAME CONTENT</strong> and achieve their 1st-time clears!
       </p>
-      <div class="mb-8">
-        <p class="text-lg text-blue-300 font-semibold">
+      <div class="hero-current-content">
+        <p class="current-content-text">
           <strong>Current Content:</strong> {stats.currentContent}
         </p>
       </div>
-      <a href="/signups" 
-         class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors">
+      <a href="/signups" class="hero-cta">
         SIGN UP HERE
       </a>
-      <div class="flex justify-center space-x-6 mt-8">
+      <div class="hero-social-links">
         <a href={stats.socialLinks.discord} target="_blank" rel="noopener noreferrer" 
-           class="text-gray-300 hover:text-white">Discord</a>
-        <a href={stats.socialLinks.twitter} class="text-gray-300 hover:text-white">Twitter</a>
-        <a href={stats.socialLinks.twitch} class="text-gray-300 hover:text-white">Twitch</a>
-        <a href={stats.socialLinks.youtube} class="text-gray-300 hover:text-white">YouTube</a>
+           class="social-link">Discord</a>
+        <a href={stats.socialLinks.twitter} class="social-link">Twitter</a>
+        <a href={stats.socialLinks.twitch} class="social-link">Twitch</a>
+        <a href={stats.socialLinks.youtube} class="social-link">YouTube</a>
       </div>
     </div>
   </section>
 
   <!-- Community Identity Section -->
-  <section class="py-16 bg-gray-800">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl font-bold text-white mb-4">About Our Community</h2>
-        <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+  <section class="community-section">
+    <div class="section-container">
+      <div class="section-header">
+        <h2 class="section-title">About Our Community</h2>
+        <p class="section-subtitle">
           <strong>Sausfest</strong> is a FFXIV community located on the <strong>Aether Data Center</strong> that helps players progress and clear <strong>Endgame Content!</strong>
         </p>
       </div>
       
       <!-- Stats Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-        <div class="bg-gray-700 rounded-lg p-6 text-center">
-          <div class="text-3xl font-bold text-blue-400 mb-2">{stats.totalSignups}</div>
-          <div class="text-gray-300">Total Signups</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number stat-blue">{stats.totalSignups}</div>
+          <div class="stat-label">Total Signups</div>
         </div>
-        <div class="bg-gray-700 rounded-lg p-6 text-center">
-          <div class="text-3xl font-bold text-purple-400 mb-2">{stats.activeEncounters}</div>
-          <div class="text-gray-300">Active Encounters</div>
+        <div class="stat-card">
+          <div class="stat-number stat-purple">{stats.activeEncounters}</div>
+          <div class="stat-label">Active Encounters</div>
         </div>
-        <div class="bg-gray-700 rounded-lg p-6 text-center">
-          <div class="text-3xl font-bold text-green-400 mb-2">{stats.squads.length}</div>
-          <div class="text-gray-300">Active Squads</div>
+        <div class="stat-card">
+          <div class="stat-number stat-green">{stats.squads.length}</div>
+          <div class="stat-label">Active Squads</div>
         </div>
       </div>
     </div>
   </section>
 
   <!-- Clear Squads Section -->
-  <section class="py-16 bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl font-bold text-white mb-4">Clear Squads</h2>
-        <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+  <section class="squads-section">
+    <div class="section-container">
+      <div class="section-header">
+        <h2 class="section-title">Clear Squads</h2>
+        <p class="section-subtitle">
           Teams that aim to provide a safe & efficient prog/clear experience for players in the hosted <strong>Endgame Content</strong>
         </p>
       </div>
       
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+      <div class="squads-grid">
         {stats.squads.map((squad) => (
-          <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-            <h3 class="text-xl font-bold text-white mb-2">{squad.name}</h3>
-            <span class={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-              squad.status === 'active' 
-                ? 'bg-green-900 text-green-300' 
-                : 'bg-gray-700 text-gray-300'
-            }`}>
+          <div class="squad-card">
+            <h3 class="squad-name">{squad.name}</h3>
+            <span class={`squad-status ${squad.status === 'active' ? 'status-active' : 'status-inactive'}`}>
               {squad.status}
             </span>
           </div>
         ))}
       </div>
       
-      <div class="text-center">
-        <p class="text-gray-400 italic">(under construction)</p>
+      <div class="under-construction">
+        <p>(under construction)</p>
       </div>
     </div>
   </section>
 
   <!-- Qualified Prog-points Section -->
-  <section class="py-16 bg-gray-800">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl font-bold text-white mb-4">Qualified Prog-points</h2>
+  <section class="prog-section">
+    <div class="section-container">
+      <div class="section-header">
+        <h2 class="section-title">Qualified Prog-points</h2>
       </div>
       
       {Object.entries(stats.progRequirements).map(([encounter, requirements]) => (
-        <div class="bg-gray-700 rounded-lg p-6 mb-6">
-          <h3 class="text-xl font-bold text-blue-400 mb-4">{encounter}</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 class="font-semibold text-white mb-2">Prog Parties:</h4>
-              <p class="text-gray-300">{(requirements as any).prog}</p>
+        <div class="prog-card">
+          <h3 class="prog-encounter">{encounter}</h3>
+          <div class="prog-requirements">
+            <div class="prog-requirement">
+              <h4 class="prog-type">Prog Parties:</h4>
+              <p class="prog-point">{(requirements as any).prog}</p>
             </div>
-            <div>
-              <h4 class="font-semibold text-white mb-2">Clear-Ready:</h4>
-              <p class="text-gray-300">{(requirements as any).clear}</p>
+            <div class="prog-requirement">
+              <h4 class="prog-type">Clear-Ready:</h4>
+              <p class="prog-point">{(requirements as any).clear}</p>
             </div>
           </div>
         </div>
@@ -117,44 +114,44 @@ const stats = await getCommunityStats();
   </section>
 
   <!-- Sign-Up Instructions Section -->
-  <section class="py-16 bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl font-bold text-white mb-4">Sign-Up Instructions</h2>
-        <p class="text-gray-300 mb-4">Sign ups are taken thru our Discord!</p>
-        <p class="text-sm text-yellow-400 bg-yellow-900/20 rounded-lg p-3 inline-block">
+  <section class="instructions-section">
+    <div class="section-container">
+      <div class="section-header">
+        <h2 class="section-title">Sign-Up Instructions</h2>
+        <p class="instructions-intro">Sign ups are taken thru our Discord!</p>
+        <p class="disclaimer">
           <strong>Disclaimer:</strong> Your log/screenshot/video proof of prog-point must not be older than <strong>4 weeks</strong> from the day you sign-up.
         </p>
       </div>
       
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
-          <div class="text-2xl font-bold text-blue-400 mb-2">1</div>
-          <h3 class="font-semibold text-white mb-2">Join Discord</h3>
-          <p class="text-gray-300 text-sm">Join the <strong>Sausfest Discord</strong>!</p>
+      <div class="instructions-grid">
+        <div class="instruction-card">
+          <div class="instruction-number">1</div>
+          <h3 class="instruction-title">Join Discord</h3>
+          <p class="instruction-text">Join the <strong>Sausfest Discord</strong>!</p>
         </div>
-        <div class="bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
-          <div class="text-2xl font-bold text-blue-400 mb-2">2</div>
-          <h3 class="font-semibold text-white mb-2">Get Role</h3>
-          <p class="text-gray-300 text-sm">Grab the <strong>@Ulti Project</strong> role</p>
+        <div class="instruction-card">
+          <div class="instruction-number">2</div>
+          <h3 class="instruction-title">Get Role</h3>
+          <p class="instruction-text">Grab the <strong>@Ulti Project</strong> role</p>
         </div>
-        <div class="bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
-          <div class="text-2xl font-bold text-blue-400 mb-2">3</div>
-          <h3 class="font-semibold text-white mb-2">Verify Character</h3>
-          <p class="text-gray-300 text-sm">Verify your character in <strong>#bot-verification</strong></p>
+        <div class="instruction-card">
+          <div class="instruction-number">3</div>
+          <h3 class="instruction-title">Verify Character</h3>
+          <p class="instruction-text">Verify your character in <strong>#bot-verification</strong></p>
         </div>
-        <div class="bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
-          <div class="text-2xl font-bold text-blue-400 mb-2">4</div>
-          <h3 class="font-semibold text-white mb-2">Sign Up</h3>
-          <p class="text-gray-300 text-sm">Sign up in <strong>#project-signups</strong></p>
+        <div class="instruction-card">
+          <div class="instruction-number">4</div>
+          <h3 class="instruction-title">Sign Up</h3>
+          <p class="instruction-text">Sign up in <strong>#project-signups</strong></p>
         </div>
       </div>
       
-      <div class="text-center bg-blue-900/20 rounded-lg p-6">
-        <p class="text-blue-300 mb-2">
+      <div class="signup-reminder">
+        <p class="reminder-text">
           Once sign-up is approved, a Coordinator with the availability to schedule you will reach out eventually!
         </p>
-        <p class="text-yellow-400 font-semibold">
+        <p class="reminder-warning">
           <strong>REMINDER: Please turn Discord DMs & pings ON</strong>
         </p>
       </div>
@@ -162,19 +159,406 @@ const stats = await getCommunityStats();
   </section>
 
   <!-- Call to Action -->
-  <section class="py-16 bg-gradient-to-r from-purple-900 to-blue-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-      <h2 class="text-3xl font-bold text-white mb-4">We'll see you soon!</h2>
-      <div class="space-y-4">
-        <a href="/signups" 
-           class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors mr-4">
+  <section class="cta-section">
+    <div class="section-container">
+      <h2 class="cta-title">We'll see you soon!</h2>
+      <div class="cta-buttons">
+        <a href="/signups" class="cta-button cta-primary">
           View Current Signups
         </a>
         <a href={stats.socialLinks.discord} target="_blank" rel="noopener noreferrer"
-           class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors">
+           class="cta-button cta-secondary">
           Join Our Discord
         </a>
       </div>
     </div>
   </section>
-</Layout> 
+</Layout>
+
+<style>
+  /* Hero Section */
+  .hero-section {
+    background: linear-gradient(135deg, #1e3a8a 0%, #581c87 100%);
+    padding: 5rem 0;
+    text-align: center;
+  }
+  
+  .hero-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+  
+  .hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--text-inverse);
+    margin-bottom: 1.5rem;
+  }
+  
+  .hero-accent {
+    color: #60a5fa;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.25rem;
+    color: #e5e7eb;
+    margin-bottom: 2rem;
+    max-width: 4xl;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .hero-current-content {
+    margin-bottom: 2rem;
+  }
+  
+  .current-content-text {
+    font-size: 1.125rem;
+    color: #93c5fd;
+    font-weight: 600;
+  }
+  
+  .hero-cta {
+    display: inline-block;
+    background-color: #2563eb;
+    color: var(--text-inverse);
+    font-weight: 700;
+    padding: 1rem 2rem;
+    border-radius: 0.5rem;
+    font-size: 1.125rem;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+    margin-bottom: 2rem;
+  }
+  
+  .hero-cta:hover {
+    background-color: #1d4ed8;
+  }
+  
+  .hero-social-links {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+  
+  .social-link {
+    color: #d1d5db;
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+  
+  .social-link:hover {
+    color: var(--text-inverse);
+  }
+
+  /* Section Styles */
+  .community-section {
+    padding: 4rem 0;
+    background-color: var(--bg-secondary);
+  }
+  
+  .squads-section {
+    padding: 4rem 0;
+    background-color: var(--bg-primary);
+  }
+  
+  .prog-section {
+    padding: 4rem 0;
+    background-color: var(--bg-secondary);
+  }
+  
+  .instructions-section {
+    padding: 4rem 0;
+    background-color: var(--bg-primary);
+  }
+  
+  .cta-section {
+    padding: 4rem 0;
+    background: linear-gradient(135deg, #581c87 0%, #1e3a8a 100%);
+    text-align: center;
+  }
+  
+  .section-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+  
+  .section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  
+  .section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+  }
+  
+  .section-subtitle {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+  
+  .stat-card {
+    background-color: var(--bg-tertiary);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  
+  .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+  
+  .stat-blue {
+    color: var(--text-accent);
+  }
+  
+  .stat-purple {
+    color: var(--purple-accent);
+  }
+  
+  .stat-green {
+    color: var(--success-text);
+  }
+  
+  .stat-label {
+    color: var(--text-secondary);
+  }
+
+  /* Squads */
+  .squads-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .squad-card {
+    background-color: var(--bg-secondary);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    border: 1px solid var(--border-primary);
+  }
+  
+  .squad-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+  
+  .squad-status {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  
+  .status-active {
+    background-color: var(--success-bg);
+    color: var(--success-text);
+  }
+  
+  .status-inactive {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+  }
+  
+  .under-construction {
+    text-align: center;
+  }
+  
+  .under-construction p {
+    color: var(--text-tertiary);
+    font-style: italic;
+  }
+
+  /* Prog Requirements */
+  .prog-card {
+    background-color: var(--bg-tertiary);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .prog-encounter {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-accent);
+    margin-bottom: 1rem;
+  }
+  
+  .prog-requirements {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+  
+  .prog-type {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+  
+  .prog-point {
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  /* Instructions */
+  .instructions-intro {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+  }
+  
+  .disclaimer {
+    font-size: 0.875rem;
+    background-color: var(--warning-bg);
+    color: var(--warning-text);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    display: inline-block;
+    border: 1px solid var(--warning-border);
+  }
+  
+  .instructions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+  }
+  
+  .instruction-card {
+    background-color: var(--bg-secondary);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px solid var(--border-primary);
+  }
+  
+  .instruction-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-accent);
+    margin-bottom: 0.5rem;
+  }
+  
+  .instruction-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+  
+  .instruction-text {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin: 0;
+  }
+  
+  .signup-reminder {
+    text-align: center;
+    background-color: rgba(59, 130, 246, 0.1);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    border: 1px solid var(--bg-accent);
+  }
+  
+  .reminder-text {
+    color: var(--text-accent);
+    margin-bottom: 0.5rem;
+  }
+  
+  .reminder-warning {
+    color: var(--warning-text);
+    font-weight: 600;
+    margin: 0;
+  }
+
+  /* Call to Action */
+  .cta-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-inverse);
+    margin-bottom: 1rem;
+  }
+  
+  .cta-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .cta-button {
+    display: inline-block;
+    font-weight: 700;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 1.125rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+  
+  .cta-primary {
+    background-color: #2563eb;
+    color: var(--text-inverse);
+  }
+  
+  .cta-primary:hover {
+    background-color: #1d4ed8;
+  }
+  
+  .cta-secondary {
+    background-color: var(--purple-accent);
+    color: var(--text-inverse);
+  }
+  
+  .cta-secondary:hover {
+    background-color: var(--purple-accent-hover);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+      font-size: 1rem;
+    }
+    
+    .section-title {
+      font-size: 1.75rem;
+    }
+    
+    .section-subtitle {
+      font-size: 1rem;
+    }
+    
+    .hero-social-links {
+      gap: 1rem;
+    }
+    
+    .cta-buttons {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+</style> 

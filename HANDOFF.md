@@ -1,395 +1,228 @@
-# Ulti-Project Handoff Documentation
+# HANDOFF DOCUMENT - Ulti Project
 
-## Current Status: Workspace Restructure Complete
+## Project Overview
 
-The repository has been successfully restructured as a **pnpm workspace** with shared types and improved architecture. All file history has been preserved through proper `git mv` operations.
+Discord bot project for managing FFXIV (Final Fantasy XIV) community signups for ultimate raids. Currently syncs data to Firebase and Google Sheets, with a new Astro.build website being added to replace Google Sheets dependency.
 
-## Repository Structure
+## Current Status: ✅ PHASE 2 COMPLETE - Mock Website Running
+
+### What's Working
+
+- **Astro Website**: Fully functional at `http://localhost:4323`
+- **Landing Page**: Complete with community branding, theme toggle, and all sections
+- **Signups Page**: Functional with 12 mock signups and filtering
+- **Theme System**: Dark/light mode toggle with proper contrast
+- **Mock API**: Realistic data structure matching Firebase schema
+
+### Recent Fixes Applied
+
+- ✅ Fixed Layout component issues by removing dependency
+- ✅ Implemented self-contained pages with inline CSS
+- ✅ Added complete theme toggle system with localStorage persistence
+- ✅ Fixed light mode contrast issues (especially warning section)
+- ✅ Used proper `.js` extensions for ESM imports
+
+## Technical Architecture
+
+### Current Stack
+
+- **Backend**: NestJS Discord bot with Firebase/Firestore
+- **Frontend**: Astro.build with React components
+- **Styling**: CSS custom properties (no Tailwind dependency issues)
+- **Data**: Mock API currently, ready for real Firebase integration
+
+### File Structure
 
 ```
 ulti-project/
-├── apps/
-│   ├── discord-bot/          # NestJS Discord bot (moved from src/)
-│   │   ├── src/             # All Discord bot source code
-│   │   ├── package.json     # Bot-specific dependencies
-│   │   ├── tsconfig.json    # Bot TypeScript config
-│   │   └── ...              # Bot-specific config files
-│   └── website/             # Astro.build website (moved from website/)
-│       ├── src/             # Website source code
-│       ├── package.json     # Website dependencies
-│       ├── tsconfig.json    # Website TypeScript config
-│       └── astro.config.mjs # Astro configuration
-├── packages/
-│   └── shared/              # Shared types and utilities
-│       ├── src/types/       # Consolidated type definitions
-│       ├── package.json     # Shared package config
-│       └── tsconfig.json    # Shared TypeScript config
-├── package.json             # Workspace root configuration
-├── pnpm-workspace.yaml      # pnpm workspace definition
-└── tsconfig.json            # Workspace TypeScript config with project references
+├── website/                    # Astro website
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── index.astro     # Landing page (self-contained)
+│   │   │   └── signups.astro   # Signups page (self-contained)
+│   │   ├── lib/
+│   │   │   ├── types.ts        # TypeScript interfaces
+│   │   │   └── mockData.ts     # Mock signup data
+│   │   └── api/
+│   │       └── signups.ts      # Mock API endpoint
+│   └── package.json
+├── ASTRO_INTEGRATION_PLAN.md   # Detailed technical plan
+└── HANDOFF.md                  # This document
 ```
 
-## Key Changes Made
+### Key Implementation Details
 
-### 1. Workspace Structure
+#### Theme System
 
-- **Root**: Now workspace-only with `pnpm -r` commands
-- **Apps**: Discord bot and website as separate applications
-- **Packages**: Shared types package for consistency
+- CSS custom properties for theming
+- Floating toggle button (top-right corner)
+- localStorage persistence
+- Smooth transitions between themes
+- Fixed contrast issues in light mode
 
-### 2. Type Consolidation
-
-- **Before**: Duplicate types between `src/firebase/models/signup.model.ts` and `website/src/lib/types.ts`
-- **After**: Single source of truth in `packages/shared/src/types/`
-
-### 3. Shared Types Package (`@ulti-project/shared`)
+#### Mock Data Structure
 
 ```typescript
-// packages/shared/src/types/encounters.ts
-export enum Encounter {
-  TOP = 'TOP',
-  UWU = 'UWU', 
-  UCOB = 'UCOB',
-  TEA = 'TEA',
-  DSR = 'DSR',
-  FRU = 'FRU',
-}
-
-export const ENCOUNTER_INFO: Record<Encounter, EncounterInfo> = {
-  // Consolidated encounter definitions with friendly names
-}
-
-// packages/shared/src/types/signup.ts
-export interface SignupDocument {
-  // Backend interface (matches Firebase document structure)
-}
-
-export interface SignupDisplayData {
-  // Frontend interface (normalized for display)
-}
-
-// packages/shared/src/types/community.ts
-export interface CommunityStats {
-  // Community statistics and metadata
+interface Signup {
+  id: string;
+  discordId: string;
+  characterName: string;
+  world: string;
+  job: string;
+  encounter: string;
+  partyType: 'Prog' | 'Clear';
+  progPoint: string;
+  availability: string[];
+  createdAt: Date;
+  status: 'pending' | 'approved' | 'rejected';
+  schedulingStatus?: 'unscheduled' | 'scheduled' | 'completed';
 }
 ```
 
-### 4. Git History Preservation
+#### Current Mock Data
 
-All files were moved using `git mv` to preserve complete history:
-
-```bash
-# Example: Check preserved history
-git log --follow --oneline apps/discord-bot/firebase/models/signup.model.ts
-git log --follow --oneline apps/website/src/pages/signups.astro
-```
-
-## Building and Deployment
-
-### Docker Build (Discord Bot)
-
-The Discord bot can be built and deployed using Docker. The Dockerfile has been updated to work with the workspace structure:
-
-```bash
-# From the Discord bot directory
-cd apps/discord-bot
-pnpm docker:build
-
-# Or from the root directory
-docker build -f apps/discord-bot/Dockerfile -t ulti-project-bot:latest .
-```
-
-### Fly.io Deployment
-
-The bot is configured for deployment on Fly.io. The `fly.toml` has been updated to work with the new structure:
-
-```bash
-# Deploy from the root directory (fly.toml points to the correct Dockerfile)
-fly deploy --config apps/discord-bot/fly.toml
-
-# Or from the Discord bot directory
-cd apps/discord-bot
-fly deploy
-```
-
-### Key Files Moved for Deployment
-
-- **`Dockerfile`** → `apps/discord-bot/Dockerfile` (updated for workspace)
-- **`instrumentation.mjs`** → `apps/discord-bot/instrumentation.mjs` (Sentry)
-- **`fly.toml`** → `apps/discord-bot/fly.toml` (deployment config)
-- **`.dockerignore`** → `apps/discord-bot/.dockerignore`
-- **`nest-cli.json`** → `apps/discord-bot/nest-cli.json`
-- **`biome.json`** → `apps/discord-bot/biome.json` (linting)
-- **`_templates/`** → `apps/discord-bot/_templates/` (Hygen templates)
+- 12 realistic signups focused on "FRU" (Futures Rewritten Ultimate)
+- Mix of Prog/Clear party types
+- Realistic prog points (P2 Light Rampant, P5 Fulgent Blade 1, etc.)
+- Various jobs and availability patterns
 
 ## Development Commands
-
-### Workspace Level
-
-```bash
-# Install all dependencies
-pnpm install
-
-# Build all packages
-pnpm build
-
-# Run all apps in development mode
-pnpm dev
-
-# Run tests across all packages
-pnpm test
-
-# Type check all packages
-pnpm typecheck
-
-# Lint all packages
-pnpm lint
-```
-
-### Discord Bot (`apps/discord-bot/`)
-
-```bash
-cd apps/discord-bot
-
-# Development
-pnpm dev
-
-# Build
-pnpm build
-
-# Start production
-pnpm start
-
-# Tests
-pnpm test
-
-# Generate GraphQL types
-pnpm graphql:codegen
-```
-
-### Website (`apps/website/`)
-
-```bash
-cd apps/website
-
-# Development server
-pnpm dev
-
-# Build for production
-pnpm build
-
-# Preview production build
-pnpm preview
-
-# Type checking
-pnpm typecheck
-```
-
-### Shared Package (`packages/shared/`)
-
-```bash
-cd packages/shared
-
-# Build types
-pnpm build
-
-# Watch mode for development
-pnpm dev
-
-# Type checking
-pnpm typecheck
-```
-
-## Type Usage Examples
-
-### Frontend (Website)
-
-```typescript
-// apps/website/src/lib/types.ts
-export * from '@ulti-project/shared/types';
-
-// apps/website/src/lib/mockData.ts
-import { Encounter, ENCOUNTER_INFO, type SignupDisplayData } from '@ulti-project/shared/types';
-
-export const mockEncounters = Object.values(ENCOUNTER_INFO);
-export const mockSignups: SignupDisplayData[] = [
-  {
-    encounter: Encounter.FRU,
-    // ... other properties
-  }
-];
-```
-
-### Backend (Discord Bot)
-
-```typescript
-// apps/discord-bot/src/firebase/models/signup.model.ts
-import { SignupDocument, Encounter } from '@ulti-project/shared/types';
-
-// Use shared types in Firebase collections
-export class SignupCollection {
-  async create(signup: SignupDocument) {
-    // Implementation using shared types
-  }
-}
-```
-
-## Current Website Status
-
-The website is fully functional with:
-
-- **12 mock signups** across multiple encounters (FRU, TOP, DSR)
-- **Complete filtering system** (encounter, party type, role, search)
-- **Responsive design** with Tailwind CSS
-- **Type-safe development** using shared types
 
 ### Running the Website
 
 ```bash
-cd apps/website
-pnpm dev --host --port 4323
+cd website
+pnpm run dev --host
+# Runs on http://localhost:4323 (ports 4321/4322 often in use)
 ```
 
-Access at: <http://localhost:4323>
+### Project Root Commands
 
-## Benefits Achieved
-
-### 1. Type Consistency
-
-- **Single source of truth** for all type definitions
-- **No more type drift** between frontend and backend
-- **Compile-time safety** across the entire codebase
-
-### 2. Better Developer Experience
-
-- **Faster builds** with TypeScript project references
-- **Easier dependency management** with workspace structure
-- **Consistent tooling** across all packages
-
-### 3. Scalability
-
-- **Easy to add new packages** (e.g., mobile app, admin dashboard)
-- **Shared utilities** can be added to the shared package
-- **Independent versioning** for each app
-
-### 4. Maintainability
-
-- **Clear separation of concerns** between apps and shared code
-- **Easier testing** with isolated packages
-- **Better CI/CD** with workspace-aware commands
+```bash
+# From ulti-project root - these don't work yet
+pnpm dev  # ❌ Command not found (needs workspace setup)
+```
 
 ## Next Steps (Phase 3: Real API Integration)
 
-The next developer should focus on replacing mock data with real API integration:
+### Immediate Tasks
 
-### 1. Backend API Endpoints
+1. **Backend API Development**
+   - Create NestJS API endpoints (`/api/signups`, `/api/stats`)
+   - Implement Firebase/Firestore queries
+   - Add filtering and pagination
+   - Cost optimization (avoid direct Firestore calls from frontend)
 
-```typescript
-// apps/discord-bot/src/website/website.controller.ts
-@Controller('api/website')
-export class WebsiteController {
-  @Get('signups')
-  async getSignups(@Query() filters: SignupFilters) {
-    // Return real data from Firebase
-  }
+2. **Frontend Integration**
+   - Replace mock API calls with real endpoints
+   - Add error handling and loading states
+   - Implement real-time updates if needed
 
-  @Get('stats')
-  async getStats() {
-    // Return community statistics
-  }
-}
-```
+3. **Deployment**
+   - Deploy website (Vercel/Netlify recommended)
+   - Configure environment variables
+   - Set up CI/CD pipeline
 
-### 2. Frontend API Integration
+### Future Enhancements
 
-```typescript
-// apps/website/src/lib/api.ts
-const USE_MOCK_DATA = process.env.NODE_ENV === 'development' && process.env.USE_MOCK === 'true';
+1. **Scheduling System**
+   - Coordinator dashboard
+   - Optimistic locking for concurrency
+   - Calendar integration
+   - Automated notifications
 
-export async function getSignups(filters: SignupFilters = {}) {
-  if (USE_MOCK_DATA) {
-    return getMockSignups(filters);
-  }
-  
-  // Real API calls to Discord bot backend
-  const response = await fetch(`${API_BASE_URL}/api/website/signups`);
-  return response.json();
-}
-```
+2. **Advanced Features**
+   - User authentication
+   - Real-time signup updates
+   - Advanced filtering/search
+   - Mobile responsiveness improvements
 
-### 3. Environment Configuration
+## Cost Considerations
 
-```bash
-# apps/website/.env.local
-API_BASE_URL=http://localhost:3000
-USE_MOCK=false
-```
+- **Current**: <$5/month (Fly.io + free-tier Firestore)
+- **Projected**: <$7/month with website hosting
+- **Savings**: ~$15/month by removing Google Sheets API dependency
 
-## Migration Notes
+## Known Issues & Limitations
 
-### From Previous Structure
+### Resolved Issues
 
-- All Discord bot code moved from `src/` to `apps/discord-bot/src/`
-- Website code moved from `website/` to `apps/website/`
-- Shared types extracted to `packages/shared/src/types/`
+- ✅ Layout component import errors
+- ✅ Light mode contrast problems
+- ✅ File extension issues with ESM imports
+- ✅ Theme toggle functionality
 
-### Breaking Changes
+### Current Limitations
 
-- Import paths changed for shared types
-- Build commands now use workspace structure
-- TypeScript configuration uses project references
+- Mock data only (by design for Phase 2)
+- No real-time updates
+- Basic responsive design
+- No user authentication
 
-### Compatibility
+## Development Notes
 
-- All existing functionality preserved
-- Firebase integration unchanged
-- Discord bot commands work identically
-- Website features fully functional
+### Important Technical Decisions
 
-## Troubleshooting
+1. **No Layout Component**: Removed to avoid Astro import issues, using self-contained pages
+2. **CSS Custom Properties**: Chosen over Tailwind for better theme control
+3. **Mock-First Approach**: Allows frontend development without backend changes
+4. **ESM Imports**: Using `.js` extensions for proper modern JavaScript practices
 
-### Type Errors
+### Code Quality Standards
 
-If you see type errors related to `@ulti-project/shared`:
+- TypeScript strict mode enabled
+- Functional programming preferred
+- Modern ES6+ practices
+- Composition over configuration
+- Clean up unused variables
+- Prefer `as const` over `enum`
+- **NEVER change colors of pre-existing components/styles unless explicitly requested**
+- **Squad and Status columns are FUTURE FEATURES - keep them hidden from signups table**
 
-```bash
-# Build the shared package first
-cd packages/shared && pnpm build
+## Community Context
 
-# Or build all packages
-pnpm build
-```
+### Sausfest Community
 
-### Dependency Issues
+- FFXIV community on Aether Data Center
+- Focus on endgame content (Ultimate raids)
+- Current content: FRU (Futures Rewritten Ultimate)
+- Active squads: Sex Gods 3000, Space Travelers
 
-```bash
-# Clean install
-rm -rf node_modules
-pnpm install
-```
+### Prog Requirements
 
-### Development Server Issues
+- **Prog Parties**: P2 Light Rampant minimum
+- **Clear-Ready**: P5 Fulgent Blade 1 (Exalines 1) minimum
+- **Proof Requirement**: Screenshots/logs must be <4 weeks old
 
-```bash
-# Make sure you're in the right directory
-cd apps/website  # for website
-cd apps/discord-bot  # for Discord bot
+## Migration Guide Integration
 
-# Check if dependencies are installed
-pnpm install
-```
+This handoff document should be read alongside `ASTRO_INTEGRATION_PLAN.md` which contains:
 
-## Documentation Links
+- Detailed technical architecture
+- Cost analysis and projections
+- Step-by-step implementation phases
+- Database schema considerations
+- Future scheduling system design
 
-- [pnpm Workspaces](https://pnpm.io/workspaces)
-- [TypeScript Project References](https://www.typescriptlang.org/docs/handbook/project-references.html)
-- [Astro.build Documentation](https://docs.astro.build/)
-- [NestJS Documentation](https://docs.nestjs.com/)
+## Session Continuity
+
+### For Next Session
+
+1. Read this HANDOFF.md first
+2. Review ASTRO_INTEGRATION_PLAN.md for technical details
+3. Test current website: `cd website && pnpm run dev --host`
+4. Verify all functionality before making changes
+5. Update this document with any new developments
+
+### Update Protocol
+
+- Always update HANDOFF.md when making significant changes
+- Keep both HANDOFF.md and ASTRO_INTEGRATION_PLAN.md in sync
+- Document any new issues or resolutions
+- Update status sections with current progress
 
 ---
 
-**Status**: ✅ Workspace Restructure Complete  
-**Next Phase**: Real API Integration  
-**Estimated Effort**: 1-2 weeks for full API integration
-
-The repository is now ready for the next developer to implement real API integration using the shared types and improved architecture.
+**Last Updated**: Current session - Website fully functional with theme system
+**Next Priority**: Phase 3 - Real API integration when ready
+**Status**: ✅ Ready for community feedback and Phase 3 planning

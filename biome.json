@@ -63,6 +63,16 @@
           }
         }
       }
+    },
+    {
+      "include": ["**/*.astro"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "off"
+          }
+        }
+      }
     }
   ]
 }

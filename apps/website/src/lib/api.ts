@@ -7,16 +7,37 @@ import { mockEncounters, mockSignups } from './mockData.js';
 
 const USE_MOCK_DATA = true; // Always use mock data for now
 
+export interface PaginationParams {
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PaginatedSignupsResponse extends SignupsResponse {
+  pagination: {
+    currentPage: number;
+    pageSize: number;
+    totalPages: number;
+    totalItems: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
 export async function getSignups(
   filters: SignupFilters = {},
-): Promise<SignupsResponse> {
+  pagination: PaginationParams = {},
+): Promise<PaginatedSignupsResponse> {
   if (USE_MOCK_DATA) {
-    return getMockSignups(filters);
+    return getMockSignups(filters, pagination);
   }
 
   // Real API implementation (for future use)
   const baseUrl = 'http://localhost:3000';
-  const params = new URLSearchParams(filters as any);
+  const params = new URLSearchParams({
+    ...filters,
+    page: pagination.page?.toString() || '1',
+    pageSize: pagination.pageSize?.toString() || '20',
+  } as any);
   const response = await fetch(`${baseUrl}/api/website/signups?${params}`);
 
   if (!response.ok) {
@@ -44,9 +65,13 @@ export async function getCommunityStats(): Promise<CommunityStats> {
 // Mock implementations
 async function getMockSignups(
   filters: SignupFilters = {},
-): Promise<SignupsResponse> {
+  pagination: PaginationParams = {},
+): Promise<PaginatedSignupsResponse> {
   // Simulate API delay for realistic experience
   await new Promise((resolve) => setTimeout(resolve, 300));
+
+  const page = pagination.page || 1;
+  const pageSize = pagination.pageSize || 20;
 
   // Single-pass filtering for efficiency
   const filteredSignups = mockSignups.filter((signup) => {
@@ -78,10 +103,25 @@ async function getMockSignups(
     return true;
   });
 
+  // Calculate pagination
+  const totalItems = filteredSignups.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedSignups = filteredSignups.slice(startIndex, endIndex);
+
   return {
-    signups: filteredSignups,
-    total: filteredSignups.length,
+    signups: paginatedSignups,
+    total: paginatedSignups.length,
     encounters: mockEncounters,
+    pagination: {
+      currentPage: page,
+      pageSize,
+      totalPages,
+      totalItems,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    },
   };
 }
 

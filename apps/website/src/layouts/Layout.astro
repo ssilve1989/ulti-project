@@ -8,7 +8,7 @@ const { title, description = "A FFXIV opportunity for NA players to progress thr
 ---
 
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
@@ -17,24 +17,29 @@ const { title, description = "A FFXIV opportunity for NA players to progress thr
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
   </head>
-  <body class="bg-gray-900 text-gray-100 min-h-screen">
-    <header class="bg-gray-800 border-b border-gray-700">
-      <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex items-center">
-            <a href="/" class="text-xl font-bold text-blue-400 hover:text-blue-300">
+  <body>
+    <!-- Theme Toggle Button -->
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+      <span class="theme-toggle-icon">🌙</span>
+    </button>
+
+    <header class="header">
+      <nav class="nav-container">
+        <div class="nav-content">
+          <div class="nav-brand">
+            <a href="/" class="brand-link">
               Ulti Project
             </a>
           </div>
-          <div class="flex items-center space-x-8">
-            <a href="/" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+          <div class="nav-links">
+            <a href="/" class="nav-link">
               Home
             </a>
-            <a href="/signups" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+            <a href="/signups" class="nav-link">
               Signups
             </a>
             <a href="https://discord.gg/sausfest" target="_blank" rel="noopener noreferrer" 
-               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+               class="nav-cta">
               Join Discord
             </a>
           </div>
@@ -42,34 +47,300 @@ const { title, description = "A FFXIV opportunity for NA players to progress thr
       </nav>
     </header>
 
-    <main class="flex-1">
+    <main class="main-content">
       <slot />
     </main>
 
-    <footer class="bg-gray-800 border-t border-gray-700 mt-16">
-      <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center">
-          <div class="text-gray-400 text-sm">
+    <footer class="footer">
+      <div class="footer-container">
+        <div class="footer-content">
+          <div class="footer-info">
             <p>&copy; 2024 Ulti Project - Sausfest Community</p>
-            <p class="mt-1">Aether Data Center • FFXIV Endgame Content</p>
+            <p>Aether Data Center • FFXIV Endgame Content</p>
           </div>
-          <div class="flex space-x-4">
+          <div class="footer-links">
             <a href="https://discord.gg/sausfest" target="_blank" rel="noopener noreferrer" 
-               class="text-gray-400 hover:text-white">
+               class="footer-link">
               Discord
             </a>
-            <a href="#" class="text-gray-400 hover:text-white">Twitter</a>
-            <a href="#" class="text-gray-400 hover:text-white">Twitch</a>
-            <a href="#" class="text-gray-400 hover:text-white">YouTube</a>
+            <a href="#" class="footer-link">Twitter</a>
+            <a href="#" class="footer-link">Twitch</a>
+            <a href="#" class="footer-link">YouTube</a>
           </div>
         </div>
       </div>
     </footer>
+
+    <script>
+      // Theme management
+      const themeToggle = document.getElementById('theme-toggle');
+      const themeIcon = themeToggle?.querySelector('.theme-toggle-icon');
+      
+      // Get saved theme or default to dark
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      
+      // Update icon based on current theme
+      function updateThemeIcon(theme: string) {
+        if (themeIcon) {
+          themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+      }
+      
+      // Initialize icon
+      updateThemeIcon(savedTheme);
+      
+      // Theme toggle handler
+      themeToggle?.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+      });
+    </script>
   </body>
 </html>
 
 <style>
+  /* CSS Custom Properties for Theme System */
+  :root {
+    /* Light theme colors */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #e2e8f0;
+    --bg-accent: #1e40af;
+    --bg-accent-hover: #1d4ed8;
+    --text-primary: #1f2937;
+    --text-secondary: #4b5563;
+    --text-tertiary: #6b7280;
+    --text-accent: #1e40af;
+    --text-accent-hover: #1d4ed8;
+    --text-inverse: #ffffff;
+    --border-primary: #e5e7eb;
+    --border-secondary: #d1d5db;
+    --shadow: rgba(0, 0, 0, 0.1);
+    --warning-bg: #fef3c7;
+    --warning-text: #92400e;
+    --warning-border: #f59e0b;
+    --success-bg: #d1fae5;
+    --success-text: #065f46;
+    --purple-accent: #7c3aed;
+    --purple-accent-hover: #8b5cf6;
+  }
+  
+  [data-theme="dark"] {
+    /* Dark theme colors */
+    --bg-primary: #111827;
+    --bg-secondary: #1f2937;
+    --bg-tertiary: #374151;
+    --bg-accent: #3b82f6;
+    --bg-accent-hover: #2563eb;
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --text-tertiary: #9ca3af;
+    --text-accent: #60a5fa;
+    --text-accent-hover: #3b82f6;
+    --text-inverse: #ffffff;
+    --border-primary: #374151;
+    --border-secondary: #4b5563;
+    --shadow: rgba(0, 0, 0, 0.3);
+    --warning-bg: rgba(251, 191, 36, 0.1);
+    --warning-text: #fbbf24;
+    --warning-border: #f59e0b;
+    --success-bg: rgba(16, 185, 129, 0.1);
+    --success-text: #10b981;
+    --purple-accent: #a78bfa;
+    --purple-accent-hover: #8b5cf6;
+  }
+
+  /* Base Styles */
   html {
     font-family: system-ui, sans-serif;
+  }
+  
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    margin: 0;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Theme Toggle Button */
+  .theme-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background-color: var(--bg-accent);
+    color: var(--text-inverse);
+    border: 2px solid var(--border-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px var(--shadow);
+  }
+  
+  .theme-toggle:hover {
+    background-color: var(--bg-accent-hover);
+    transform: scale(1.05);
+  }
+
+  /* Header Styles */
+  .header {
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+  }
+  
+  .nav-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+  
+  .nav-content {
+    display: flex;
+    justify-content: space-between;
+    height: 4rem;
+  }
+  
+  .nav-brand {
+    display: flex;
+    align-items: center;
+  }
+  
+  .brand-link {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-accent);
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+  
+  .brand-link:hover {
+    color: var(--text-accent-hover);
+  }
+  
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+  }
+  
+  .nav-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.3s ease;
+  }
+  
+  .nav-link:hover {
+    color: var(--text-primary);
+  }
+  
+  .nav-cta {
+    background-color: var(--bg-accent);
+    color: var(--text-inverse);
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+  }
+  
+  .nav-cta:hover {
+    background-color: var(--bg-accent-hover);
+  }
+
+  /* Main Content */
+  .main-content {
+    flex: 1;
+  }
+
+  /* Footer */
+  .footer {
+    background-color: var(--bg-secondary);
+    border-top: 1px solid var(--border-primary);
+    margin-top: 4rem;
+  }
+  
+  .footer-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+  
+  .footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .footer-info {
+    color: var(--text-tertiary);
+    font-size: 0.875rem;
+  }
+  
+  .footer-info p {
+    margin: 0;
+  }
+  
+  .footer-info p:not(:first-child) {
+    margin-top: 0.25rem;
+  }
+  
+  .footer-links {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .footer-link {
+    color: var(--text-tertiary);
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+  
+  .footer-link:hover {
+    color: var(--text-primary);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .nav-content {
+      flex-direction: column;
+      height: auto;
+      padding: 1rem 0;
+    }
+    
+    .nav-links {
+      margin-top: 1rem;
+      gap: 1rem;
+    }
+    
+    .footer-content {
+      flex-direction: column;
+      text-align: center;
+      gap: 1rem;
+    }
+    
+    .theme-toggle {
+      top: 0.5rem;
+      right: 0.5rem;
+      width: 2.5rem;
+      height: 2.5rem;
+      font-size: 1rem;
+    }
   }
 </style> 

@@ -4,6 +4,8 @@
 
 This plan outlines the integration of an Astro.build website with the existing Discord bot project to provide a web interface for viewing signups and community information, moving away from Google Sheets dependency.
 
+**Note**: This project has been migrated to a pnpm workspace structure with the website in `apps/website/`, Discord bot in `apps/discord-bot/`, and shared types in `packages/shared/`.
+
 ## Current State Analysis
 
 ### Existing Tech Stack
@@ -22,29 +24,40 @@ This plan outlines the integration of an Astro.build website with the existing D
 
 ## Proposed Architecture
 
-### 1. Astro Website Structure
+### 1. Astro Website Structure (pnpm Workspace)
 
 ```
-website/
-├── src/
-│   ├── components/
-│   │   ├── SignupTable.astro
-│   │   ├── EncounterFilter.astro
-│   │   ├── PartyTypeFilter.astro
-│   │   ├── Layout.astro
-│   │   └── Navigation.astro
-│   ├── pages/
-│   │   ├── index.astro (Landing page)
-│   │   ├── signups.astro (Main signups page)
-│   │   └── api/
-│   │       └── signups.json.ts (API endpoint)
-│   ├── layouts/
-│   │   └── BaseLayout.astro
-│   └── styles/
-│       └── global.css
-├── public/
-├── astro.config.mjs
-└── package.json
+ulti-project/ (workspace root)
+├── pnpm-workspace.yaml
+├── package.json (workspace root)
+├── apps/
+│   ├── website/
+│   │   ├── src/
+│   │   │   ├── components/
+│   │   │   │   ├── SignupTable.astro
+│   │   │   │   ├── EncounterFilter.astro
+│   │   │   │   ├── PartyTypeFilter.astro
+│   │   │   │   ├── Layout.astro
+│   │   │   │   └── Navigation.astro
+│   │   │   ├── pages/
+│   │   │   │   ├── index.astro (Landing page)
+│   │   │   │   ├── signups.astro (Main signups page)
+│   │   │   │   └── api/
+│   │   │   │       └── signups.json.ts (API endpoint)
+│   │   │   ├── layouts/
+│   │   │   │   └── BaseLayout.astro
+│   │   │   └── styles/
+│   │   │       └── global.css
+│   │   ├── public/
+│   │   ├── astro.config.mjs
+│   │   └── package.json
+│   └── discord-bot/
+│       ├── src/ (existing NestJS app)
+│       └── package.json
+└── packages/
+    └── shared/
+        ├── src/ (shared types and utilities)
+        └── package.json
 ```
 
 ### 2. Integration Points
@@ -67,20 +80,22 @@ website/
 
 ### Phase 1: Project Setup & Mock Implementation (Week 1)
 
-#### 1.1 Astro Installation & Configuration
+#### 1.1 Astro Installation & Configuration (pnpm Workspace)
 
 ```bash
-# In project root
-pnpm create astro@latest website
-cd website
+# In workspace root
+cd apps/website
 pnpm install @astrojs/tailwind @astrojs/react
 # Note: No firebase-admin yet - we'll add this in Phase 3
+
+# Or from workspace root:
+pnpm --filter website add @astrojs/tailwind @astrojs/react
 ```
 
-#### 1.2 Project Structure with Mock Data
+#### 1.2 Project Structure with Mock Data (pnpm Workspace)
 
 ```
-website/
+apps/website/
 ├── src/
 │   ├── components/
 │   │   ├── SignupTable.astro
@@ -99,15 +114,27 @@ website/
 │       └── global.css
 ├── astro.config.mjs
 └── package.json
+
+packages/shared/
+├── src/
+│   ├── types/
+│   │   ├── signup.ts (shared type definitions)
+│   │   ├── encounter.ts
+│   │   └── index.ts
+│   └── utils/
+│       └── index.ts
+└── package.json
 ```
 
-#### 1.3 Mock Data Implementation
+#### 1.3 Mock Data Implementation (with Shared Types)
 
-Create realistic mock data that matches your existing Firebase schema:
+Create realistic mock data that matches your existing Firebase schema, using shared types from the workspace:
 
 ```typescript
-// src/lib/mockData.ts
-export const mockSignups = [
+// apps/website/src/lib/mockData.ts
+import type { SignupDocument, Encounter } from '@ulti-project/shared';
+
+export const mockSignups: SignupDocument[] = [
   {
     id: '1',
     characterName: 'Warrior Light',
@@ -159,7 +186,7 @@ export const mockSignups = [
   // Add more FRU-focused entries to match current content focus
 ];
 
-export const mockEncounters = [
+export const mockEncounters: Encounter[] = [
   { id: 'FRU', name: 'Futures Rewritten (Ultimate)', shortName: 'FRU' },
   { id: 'TOP', name: 'The Omega Protocol (Ultimate)', shortName: 'TOP' },
   { id: 'DSR', name: 'Dragonsong\'s Reprise (Ultimate)', shortName: 'DSR' },
@@ -172,15 +199,11 @@ export const mockEncounters = [
 #### 1.4 Mock API Implementation
 
 ```typescript
-// src/lib/api.ts
+// apps/website/src/lib/api.ts
+import type { SignupDocument, Encounter, SignupFilters } from '@ulti-project/shared';
 import { mockSignups, mockEncounters } from './mockData';
 
-export interface SignupFilters {
-  encounter?: string;
-  partyType?: string;
-  role?: string;
-  search?: string;
-}
+// SignupFilters interface is now imported from @ulti-project/shared
 
 export async function getSignups(filters: SignupFilters = {}) {
   // Simulate API delay for realistic experience
@@ -250,9 +273,11 @@ export async function getCommunityStats() {
 
 #### 1.5 Workspace Structure
 
-- Create `website/` directory alongside existing `src/`
-- Keep it completely independent initially (no shared dependencies)
-- Focus on UI/UX development without backend complexity
+- Website is already in `apps/website/` as part of pnpm workspace
+- Shared types and utilities in `packages/shared/`
+- Discord bot in `apps/discord-bot/`
+- Workspace-level scripts in root `package.json` for coordinated development
+- Focus on UI/UX development with shared type safety
 
 ### Phase 2: UI/UX Development with Mock Data (Week 2)
 
@@ -364,7 +389,7 @@ interface Props {
 Add new controllers to existing NestJS application:
 
 ```typescript
-// src/website/website.controller.ts
+// apps/discord-bot/src/website/website.controller.ts
 @Controller('api/website')
 export class WebsiteController {
   constructor(private readonly signupCollection: SignupCollection) {}
@@ -389,7 +414,7 @@ export class WebsiteController {
 Implement caching in NestJS to minimize Firestore reads:
 
 ```typescript
-// src/website/website.service.ts
+// apps/discord-bot/src/website/website.service.ts
 @Injectable()
 export class WebsiteService {
   private readonly cache = new Map();
@@ -415,7 +440,7 @@ export class WebsiteService {
 Update the existing mock API to call real NestJS endpoints:
 
 ```typescript
-// website/src/lib/api.ts - Updated from mock implementation
+// apps/website/src/lib/api.ts - Updated from mock implementation
 const USE_MOCK_DATA = process.env.NODE_ENV === 'development' && process.env.USE_MOCK === 'true';
 
 export async function getSignups(filters: SignupFilters = {}) {
@@ -455,7 +480,7 @@ export async function getCommunityStats() {
 #### 3.4 Environment Configuration
 
 ```bash
-# website/.env.local
+# apps/website/.env.local
 API_BASE_URL=http://localhost:3000
 USE_MOCK=false  # Set to true to use mock data during development
 ```
@@ -651,7 +676,23 @@ export class SignupCacheService {
 
 ## Technical Specifications
 
-### Dependencies
+### Dependencies (pnpm Workspace)
+
+**Root workspace (`package.json`):**
+
+```json
+{
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  }
+}
+```
+
+**Website app (`apps/website/package.json`):**
 
 ```json
 {
@@ -661,7 +702,20 @@ export class SignupCacheService {
     "@astrojs/react": "^3.0.0",
     "dayjs": "^1.11.13",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react-dom": "^18.0.0",
+    "@ulti-project/shared": "workspace:*"
+  }
+}
+```
+
+**Shared package (`packages/shared/package.json`):**
+
+```json
+{
+  "name": "@ulti-project/shared",
+  "dependencies": {
+    "zod": "^3.25.30",
+    "dayjs": "^1.11.13"
   }
 }
 ```
@@ -679,34 +733,58 @@ ASTRO_SITE_URL=https://your-domain.com
 GUILD_ID=your-discord-guild-id
 ```
 
-### Build & Deployment
+### Build & Deployment (pnpm Workspace)
 
 **Option 1: Same Fly.io Instance (Recommended)**
 
 ```bash
-# Build Astro as static files
-cd website && pnpm run build
+# From workspace root - build all apps
+pnpm build
+
+# Or build just the website
+pnpm --filter website build
 
 # Serve from NestJS backend
 # Add static file serving to your existing NestJS app
-app.useStaticAssets(join(__dirname, '..', 'website', 'dist'));
+app.useStaticAssets(join(__dirname, '..', '..', 'website', 'dist'));
 ```
 
 **Option 2: Separate Fly.io Instance**
 
 ```bash
-# Deploy Astro as separate Fly.io app
-cd website
+# From workspace root
+pnpm --filter website build
+cd apps/website
 fly deploy
 ```
 
-**Benefits of Keeping Everything on Fly.io:**
+**Workspace Development:**
+
+```bash
+# Start all apps in development mode
+pnpm dev
+
+# Start only specific apps
+pnpm --filter website dev
+pnpm --filter discord-bot dev
+
+# Run tests across all packages
+pnpm test
+
+# Type check all packages
+pnpm typecheck
+```
+
+**Benefits of pnpm Workspace + Fly.io:**
 
 - **Simplified infrastructure**: Single provider, single billing
 - **No CORS issues**: API and frontend on same domain
 - **Better performance**: Lower latency between frontend and API
-- **Easier deployment**: Single deployment pipeline
+- **Easier deployment**: Single deployment pipeline from workspace root
 - **Cost efficiency**: Leverage existing Fly.io setup
+- **Shared types**: Type safety between frontend and backend
+- **Coordinated development**: Run all apps simultaneously with `pnpm dev`
+- **Unified tooling**: Shared linting, formatting, and testing across all packages
 
 ## Data Flow
 
@@ -940,6 +1018,7 @@ export class SchedulingService {
 #### API Endpoints
 
 ```typescript
+// apps/discord-bot/src/scheduling/scheduling.controller.ts
 // New scheduling endpoints
 @Controller('api/scheduling')
 export class SchedulingController {
