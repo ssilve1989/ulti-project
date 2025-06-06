@@ -1,0 +1,217 @@
+---
+import { getSignups } from '../lib/api.js';
+
+const signupsData = await getSignups();
+---
+
+<Layout title="Current Signups - Ulti Project">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-white mb-4">Current Signups</h1>
+      <p class="text-gray-300">
+        View all approved signups for endgame content. Use the filters below to find specific encounters, party types, or roles.
+      </p>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-gray-800 rounded-lg p-6 mb-8">
+      <h2 class="text-xl font-semibold text-white mb-4">Filters</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label for="encounter" class="block text-sm font-medium text-gray-300 mb-2">Encounter</label>
+          <select id="encounter" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white">
+            <option value="">All Encounters</option>
+            {signupsData.encounters.map((encounter) => (
+              <option value={encounter.id}>{encounter.shortName}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label for="partyType" class="block text-sm font-medium text-gray-300 mb-2">Party Type</label>
+          <select id="partyType" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white">
+            <option value="">All Types</option>
+            <option value="Early Prog">Early Prog</option>
+            <option value="Prog">Prog</option>
+            <option value="Clear">Clear</option>
+          </select>
+        </div>
+        <div>
+          <label for="role" class="block text-sm font-medium text-gray-300 mb-2">Role</label>
+          <select id="role" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white">
+            <option value="">All Roles</option>
+            <option value="Tank">Tank</option>
+            <option value="Healer">Healer</option>
+            <option value="DPS">DPS</option>
+          </select>
+        </div>
+        <div>
+          <label for="search" class="block text-sm font-medium text-gray-300 mb-2">Search</label>
+          <input 
+            type="text" 
+            id="search" 
+            placeholder="Character name or world..."
+            class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-400"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="bg-gray-800 rounded-lg p-4 mb-6">
+      <p class="text-gray-300">
+        Showing <span class="text-blue-400 font-semibold">{signupsData.total}</span> approved signups
+      </p>
+    </div>
+
+    <!-- Signups Table -->
+    <div class="bg-gray-800 rounded-lg overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-700">
+          <thead class="bg-gray-700">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Character
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Encounter
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Party Type
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Role/Job
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Prog Point
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Squad
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Status
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-gray-800 divide-y divide-gray-700">
+            {signupsData.signups.map((signup) => (
+              <tr class="hover:bg-gray-700">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div>
+                    <div class="text-sm font-medium text-white">{signup.characterName}</div>
+                    <div class="text-sm text-gray-400">{signup.world}</div>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900 text-blue-300">
+                    {signup.encounter}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    signup.partyType === 'Clear' 
+                      ? 'bg-green-900 text-green-300'
+                      : signup.partyType === 'Prog'
+                      ? 'bg-yellow-900 text-yellow-300'
+                      : 'bg-purple-900 text-purple-300'
+                  }`}>
+                    {signup.partyType}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div>
+                    <div class="text-sm text-white">{signup.role}</div>
+                    <div class="text-sm text-gray-400">{signup.job}</div>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="text-sm text-gray-300 max-w-xs">
+                    {signup.progPoint}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  {signup.squad ? (
+                    <span class="text-sm text-blue-400">{signup.squad}</span>
+                  ) : (
+                    <span class="text-sm text-gray-500">Unassigned</span>
+                  )}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    signup.schedulingStatus === 'confirmed'
+                      ? 'bg-green-900 text-green-300'
+                      : signup.schedulingStatus === 'scheduled'
+                      ? 'bg-blue-900 text-blue-300'
+                      : 'bg-gray-700 text-gray-300'
+                  }`}>
+                    {signup.schedulingStatus || 'unscheduled'}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    {signupsData.signups.length === 0 && (
+      <div class="text-center py-12">
+        <div class="text-gray-400 text-lg">No signups found matching your filters.</div>
+        <p class="text-gray-500 mt-2">Try adjusting your search criteria.</p>
+      </div>
+    )}
+  </div>
+</Layout>
+
+<script>
+  // Client-side filtering functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    const encounterFilter = document.getElementById('encounter') as HTMLSelectElement;
+    const partyTypeFilter = document.getElementById('partyType') as HTMLSelectElement;
+    const roleFilter = document.getElementById('role') as HTMLSelectElement;
+    const searchInput = document.getElementById('search') as HTMLInputElement;
+    
+    function applyFilters() {
+      const encounter = encounterFilter.value;
+      const partyType = partyTypeFilter.value;
+      const role = roleFilter.value;
+      const search = searchInput.value.toLowerCase();
+      
+      const rows = document.querySelectorAll('tbody tr');
+      let visibleCount = 0;
+      
+      rows.forEach((row) => {
+        const encounterCell = row.querySelector('td:nth-child(2)')?.textContent?.trim();
+        const partyTypeCell = row.querySelector('td:nth-child(3)')?.textContent?.trim();
+        const roleCell = row.querySelector('td:nth-child(4)')?.textContent?.trim();
+        const characterCell = row.querySelector('td:nth-child(1)')?.textContent?.toLowerCase();
+        
+        const matchesEncounter = !encounter || encounterCell === encounter;
+        const matchesPartyType = !partyType || partyTypeCell === partyType;
+        const matchesRole = !role || roleCell?.includes(role);
+        const matchesSearch = !search || characterCell?.includes(search);
+        
+        const shouldShow = matchesEncounter && matchesPartyType && matchesRole && matchesSearch;
+        
+        if (shouldShow) {
+          (row as HTMLElement).style.display = '';
+          visibleCount++;
+        } else {
+          (row as HTMLElement).style.display = 'none';
+        }
+      });
+      
+      // Update count
+      const countElement = document.querySelector('.text-blue-400.font-semibold');
+      if (countElement) {
+        countElement.textContent = visibleCount.toString();
+      }
+    }
+    
+    encounterFilter.addEventListener('change', applyFilters);
+    partyTypeFilter.addEventListener('change', applyFilters);
+    roleFilter.addEventListener('change', applyFilters);
+    searchInput.addEventListener('input', applyFilters);
+  });
+</script> 

@@ -1,0 +1,75 @@
+---
+export interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "A FFXIV opportunity for NA players to progress thru ENDGAME CONTENT and achieve their 1st-time clears!" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+  </head>
+  <body class="bg-gray-900 text-gray-100 min-h-screen">
+    <header class="bg-gray-800 border-b border-gray-700">
+      <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex items-center">
+            <a href="/" class="text-xl font-bold text-blue-400 hover:text-blue-300">
+              Ulti Project
+            </a>
+          </div>
+          <div class="flex items-center space-x-8">
+            <a href="/" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+              Home
+            </a>
+            <a href="/signups" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+              Signups
+            </a>
+            <a href="https://discord.gg/sausfest" target="_blank" rel="noopener noreferrer" 
+               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+              Join Discord
+            </a>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="flex-1">
+      <slot />
+    </main>
+
+    <footer class="bg-gray-800 border-t border-gray-700 mt-16">
+      <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center">
+          <div class="text-gray-400 text-sm">
+            <p>&copy; 2024 Ulti Project - Sausfest Community</p>
+            <p class="mt-1">Aether Data Center • FFXIV Endgame Content</p>
+          </div>
+          <div class="flex space-x-4">
+            <a href="https://discord.gg/sausfest" target="_blank" rel="noopener noreferrer" 
+               class="text-gray-400 hover:text-white">
+              Discord
+            </a>
+            <a href="#" class="text-gray-400 hover:text-white">Twitter</a>
+            <a href="#" class="text-gray-400 hover:text-white">Twitch</a>
+            <a href="#" class="text-gray-400 hover:text-white">YouTube</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  html {
+    font-family: system-ui, sans-serif;
+  }
+</style> 
