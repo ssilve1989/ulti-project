@@ -1,0 +1,531 @@
+---
+import { SignupsTableWithProvider } from '../components/SignupsTable/SignupsTableWithProvider.js';
+import Layout from '../layouts/Layout.astro';
+
+// No SSR data loading - let the client handle everything
+---
+
+<Layout title="Current Signups - Ulti Project">
+  <div class="page-container">
+    <!-- Header -->
+    <div class="page-header">
+      <h1 class="page-title">Current Signups</h1>
+      <p class="page-description">
+        View all approved signups for endgame content. Use the filters below to find specific encounters, party types, or roles.
+        <strong>Live updates are enabled</strong> - the table will automatically refresh as new signups are added or updated.
+      </p>
+    </div>
+
+    <!-- React SignupsTable Component - no initial data, load everything client-side -->
+    <SignupsTableWithProvider client:load />
+  </div>
+</Layout>
+
+<style>
+  /* Page Layout */
+  .page-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+  
+  .page-header {
+    margin-bottom: 2rem;
+  }
+  
+  .page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+  }
+  
+  .page-description {
+    color: var(--text-secondary);
+  }
+
+  /* Connection Status */
+  :global(.connection-status) {
+    background-color: var(--bg-secondary);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: center;
+  }
+  
+  :global(.status-indicator) {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  
+  :global(.status-indicator.connected) {
+    color: var(--success-text);
+  }
+  
+  :global(.status-indicator.disconnected) {
+    color: var(--warning-text);
+  }
+  
+  :global(.status-dot) {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  
+  :global(.status-indicator.connected .status-dot) {
+    background-color: var(--success-text);
+    animation: pulse 2s infinite;
+  }
+  
+  :global(.status-indicator.disconnected .status-dot) {
+    background-color: var(--warning-text);
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* Filters */
+  :global(.filters-container) {
+    background-color: var(--bg-secondary);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  :global(.filters-title) {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+  }
+  
+  :global(.filters-grid) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  :global(.filter-group) {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  :global(.filter-label) {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+  
+  :global(.filter-select),
+  :global(.filter-input) {
+    width: 100%;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+  }
+  
+  :global(.filter-select:focus),
+  :global(.filter-input:focus) {
+    outline: none;
+    border-color: var(--bg-accent);
+    background-color: var(--bg-primary);
+  }
+  
+  :global(.filter-input::placeholder) {
+    color: var(--text-tertiary);
+  }
+
+  /* Stats and Page Size */
+  :global(.stats-container) {
+    background-color: var(--bg-secondary);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  :global(.stats-info) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  :global(.stats-text) {
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  
+  :global(.stats-count),
+  :global(.stats-total) {
+    color: var(--text-accent);
+    font-weight: 600;
+  }
+  
+  :global(.total-signups) {
+    color: var(--text-tertiary);
+    font-size: 0.875rem;
+  }
+  
+  :global(.pagination-info) {
+    color: var(--text-tertiary);
+    font-size: 0.875rem;
+    margin: 0;
+  }
+  
+  :global(.page-size-selector) {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  :global(.page-size-label) {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+  }
+  
+  :global(.page-size-select) {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+  }
+
+  /* Table */
+  :global(.table-container) {
+    background-color: var(--bg-secondary);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  
+  :global(.table-wrapper) {
+    overflow-x: auto;
+  }
+  
+  :global(.signups-table) {
+    min-width: 100%;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  :global(.table-header) {
+    background-color: var(--bg-tertiary);
+  }
+  
+  :global(.table-header-cell) {
+    padding: 0.75rem 1.5rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-primary);
+  }
+  
+  :global(.table-body) {
+    background-color: var(--bg-secondary);
+  }
+  
+  :global(.table-row) {
+    border-bottom: 1px solid var(--border-primary);
+    transition: background-color 0.2s ease;
+  }
+  
+  :global(.table-row:hover) {
+    background-color: var(--bg-tertiary);
+  }
+
+  /* Row Update Animation */
+  :global(.row-updated) {
+    animation: flashUpdate 2s ease-out;
+  }
+
+  @keyframes flashUpdate {
+    0% {
+      background-color: var(--bg-accent);
+      box-shadow: 0 0 0 2px var(--bg-accent);
+      transform: scale(1.01);
+    }
+    25% {
+      background-color: rgba(59, 130, 246, 0.7);
+      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.7);
+      transform: scale(1.005);
+    }
+    50% {
+      background-color: rgba(59, 130, 246, 0.4);
+      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4);
+      transform: scale(1.002);
+    }
+    75% {
+      background-color: rgba(59, 130, 246, 0.2);
+      box-shadow: none;
+      transform: scale(1.001);
+    }
+    100% {
+      background-color: transparent;
+      box-shadow: none;
+      transform: scale(1);
+    }
+  }
+  
+  :global(.table-cell) {
+    padding: 1rem 1.5rem;
+    white-space: nowrap;
+    vertical-align: top;
+  }
+  
+  :global(.character-name) {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  
+  :global(.character-world) {
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+  }
+  
+  :global(.role-name) {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+  }
+  
+  :global(.job-name) {
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+  }
+  
+  :global(.prog-point) {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    max-width: 18rem;
+    word-wrap: break-word;
+    white-space: normal;
+  }
+
+  /* Badges */
+  :global(.badge) {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  :global(.badge-encounter) {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--text-accent);
+    border: 1px solid var(--bg-accent);
+  }
+  
+  :global(.badge-clear) {
+    background-color: var(--success-bg);
+    color: var(--success-text);
+  }
+  
+  :global(.badge-prog) {
+    background-color: var(--warning-bg);
+    color: var(--warning-text);
+  }
+  
+  :global(.badge-early-prog) {
+    background-color: rgba(147, 51, 234, 0.1);
+    color: var(--purple-accent);
+    border: 1px solid var(--purple-accent);
+  }
+
+  /* Pagination */
+  :global(.pagination-container) {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+  }
+  
+  :global(.pagination-controls) {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  
+  :global(.pagination-button) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0.5rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 0.375rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+  
+  :global(.pagination-button:hover:not(.disabled)) {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+  
+  :global(.pagination-button.active) {
+    background-color: var(--bg-accent);
+    color: var(--text-inverse);
+    border-color: var(--bg-accent);
+  }
+  
+  :global(.pagination-button.disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  
+  :global(.pagination-ellipsis) {
+    padding: 0 0.5rem;
+    color: var(--text-tertiary);
+    user-select: none;
+  }
+
+  /* Loading State */
+  :global(.loading-container) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1rem;
+    text-align: center;
+  }
+  
+  :global(.loading-spinner) {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid var(--border-primary);
+    border-top: 3px solid var(--bg-accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Error State */
+  :global(.error-container) {
+    display: flex;
+    justify-content: center;
+    padding: 4rem 1rem;
+  }
+  
+  :global(.error-message) {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--error-border);
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    max-width: 400px;
+  }
+  
+  :global(.error-message h3) {
+    color: var(--error-text);
+    margin-bottom: 1rem;
+  }
+  
+  :global(.error-message p) {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+  }
+  
+  :global(.retry-button) {
+    background-color: var(--bg-accent);
+    color: var(--text-inverse);
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  :global(.retry-button:hover) {
+    background-color: var(--bg-accent-hover);
+  }
+
+  /* Empty State */
+  :global(.empty-state) {
+    text-align: center;
+    padding: 3rem 0;
+  }
+  
+  :global(.empty-message) {
+    color: var(--text-tertiary);
+    font-size: 1.125rem;
+  }
+  
+  :global(.empty-subtext) {
+    color: var(--text-tertiary);
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .page-container {
+      padding: 1rem;
+    }
+    
+    .page-title {
+      font-size: 1.75rem;
+    }
+    
+    :global(.filters-grid) {
+      grid-template-columns: 1fr;
+    }
+    
+    :global(.stats-container) {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    :global(.table-header-cell),
+    :global(.table-cell) {
+      padding: 0.5rem 0.75rem;
+    }
+    
+    :global(.prog-point) {
+      max-width: 12rem;
+    }
+    
+    :global(.pagination-controls) {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  }
+</style> 

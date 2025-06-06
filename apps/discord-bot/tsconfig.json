@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "references": [
+    {
+      "path": "../../packages/shared"
+    }
+  ],
+  "files": [
+    "global.d.ts"
+  ]
+}

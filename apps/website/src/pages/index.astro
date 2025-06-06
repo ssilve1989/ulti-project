@@ -1,0 +1,652 @@
+---
+import { CommunityStatsSectionWithProvider } from '../components/CommunityStatsSectionWithProvider.js';
+import Layout from '../layouts/Layout.astro';
+
+// Static data for squads and prog requirements
+const squads = [
+  { name: 'Sex Gods 3000', status: 'active' },
+  { name: 'Space Travelers', status: 'active' },
+];
+
+const progRequirements = {
+  FRU: {
+    prog: 'P2 Light Rampant',
+    clear: 'P5 Fulgent Blade 1 (Exalines 1)',
+  },
+  TOP: {
+    prog: 'P2 Party Synergy',
+    clear: 'P5 Run Dynamis',
+  },
+};
+---
+
+<Layout title="Ulti Project - FFXIV Endgame Community">
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-container">
+      <h1 class="hero-title">
+        Welcome to <span class="hero-accent">Ulti Project</span>
+      </h1>
+      <p class="hero-subtitle">
+        A FFXIV opportunity for NA players to progress thru <strong>ENDGAME CONTENT</strong> and achieve their 1st-time clears!
+      </p>
+      <div class="hero-current-content">
+        <p class="current-content-text">
+          <strong>Current Content:</strong> Future's Rewritten (FRU)
+        </p>
+      </div>
+      <a href="/signups" class="hero-cta">
+        SIGN UP HERE
+      </a>
+      <div class="hero-social-links">
+        <a href="https://discord.gg/sausfest" target="_blank" rel="noopener noreferrer" 
+           class="social-link">Discord</a>
+        <a href="#" class="social-link">Twitter</a>
+        <a href="#" class="social-link">Twitch</a>
+        <a href="#" class="social-link">YouTube</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Community Identity Section -->
+  <section class="community-section">
+    <div class="section-container">
+      <div class="section-header">
+        <h2 class="section-title">About Our Community</h2>
+        <p class="section-subtitle">
+          <strong>Sausfest</strong> is a FFXIV community located on the <strong>Aether Data Center</strong> that helps players progress and clear <strong>Endgame Content!</strong>
+        </p>
+      </div>
+      
+      <!-- Stats Grid - Dynamic Component -->
+      <CommunityStatsSectionWithProvider client:load />
+    </div>
+  </section>
+
+  <!-- Clear Squads Section -->
+  <section class="squads-section">
+    <div class="section-container">
+      <div class="section-header">
+        <h2 class="section-title">Clear Squads</h2>
+        <p class="section-subtitle">
+          Teams that aim to provide a safe & efficient prog/clear experience for players in the hosted <strong>Endgame Content</strong>
+        </p>
+      </div>
+      
+      <div class="squads-grid">
+        {squads.map((squad) => (
+          <div class="squad-card">
+            <div class="squad-header">
+              <h3 class="squad-name">{squad.name}</h3>
+              <span class={`squad-status ${squad.status === 'active' ? 'status-active' : 'status-inactive'}`}>
+                {squad.status}
+              </span>
+            </div>
+            <div class="squad-description">
+              <p>Dedicated team focused on providing a safe and efficient progression experience for endgame content.</p>
+            </div>
+            <div class="squad-footer">
+              <div class="squad-icon">⚔️</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Qualified Prog-points Section -->
+  <section class="prog-section">
+    <div class="section-container">
+      <div class="section-header">
+        <h2 class="section-title">Qualified Prog-points</h2>
+      </div>
+      
+      {Object.entries(progRequirements).map(([encounter, requirements]) => (
+        <div class="prog-card">
+          <h3 class="prog-encounter">{encounter}</h3>
+          <div class="prog-requirements">
+            <div class="prog-requirement">
+              <h4 class="prog-type">Prog Parties:</h4>
+              <p class="prog-point">{requirements.prog}</p>
+            </div>
+            <div class="prog-requirement">
+              <h4 class="prog-type">Clear-Ready:</h4>
+              <p class="prog-point">{requirements.clear}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- Sign-Up Instructions Section -->
+  <section class="instructions-section">
+    <div class="section-container">
+      <div class="section-header">
+        <h2 class="section-title">Sign-Up Instructions</h2>
+        <p class="instructions-intro">Sign ups are taken thru our Discord!</p>
+        <p class="disclaimer">
+          <strong>Disclaimer:</strong> Your log/screenshot/video proof of prog-point must not be older than <strong>4 weeks</strong> from the day you sign-up.
+        </p>
+      </div>
+      
+      <div class="instructions-grid">
+        <div class="instruction-card">
+          <div class="instruction-number">1</div>
+          <h3 class="instruction-title">Join Discord</h3>
+          <p class="instruction-text">Join the <strong>Sausfest Discord</strong>!</p>
+        </div>
+        <div class="instruction-card">
+          <div class="instruction-number">2</div>
+          <h3 class="instruction-title">Get Role</h3>
+          <p class="instruction-text">Grab the <strong>@Ulti Project</strong> role</p>
+        </div>
+        <div class="instruction-card">
+          <div class="instruction-number">3</div>
+          <h3 class="instruction-title">Verify Character</h3>
+          <p class="instruction-text">Verify your character in <strong>#bot-verification</strong></p>
+        </div>
+        <div class="instruction-card">
+          <div class="instruction-number">4</div>
+          <h3 class="instruction-title">Sign Up</h3>
+          <p class="instruction-text">Sign up in <strong>#project-signups</strong></p>
+        </div>
+      </div>
+      
+      <div class="signup-reminder">
+        <p class="reminder-text">
+          Once sign-up is approved, a Coordinator with the availability to schedule you will reach out eventually!
+        </p>
+        <p class="reminder-warning">
+          <strong>REMINDER: Please turn Discord DMs & pings ON</strong>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Call to Action -->
+  <section class="cta-section">
+    <div class="section-container">
+      <h2 class="cta-title">We'll see you soon!</h2>
+      <div class="cta-buttons">
+        <a href="/signups" class="cta-button cta-primary">
+          View Current Signups
+        </a>
+        <a href="https://discord.gg/sausfest" target="_blank" rel="noopener noreferrer"
+           class="cta-button cta-secondary">
+          Join Our Discord
+        </a>
+      </div>
+    </div>
+  </section>
+  </Layout>
+
+<style>
+  /* Hero Section */
+  .hero-section {
+    background: linear-gradient(135deg, #1e3a8a 0%, #581c87 100%);
+    padding: 5rem 0;
+    text-align: center;
+  }
+  
+  .hero-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+  
+  .hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--text-inverse);
+    margin-bottom: 1.5rem;
+  }
+  
+  .hero-accent {
+    color: #60a5fa;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.25rem;
+    color: #e5e7eb;
+    margin-bottom: 2rem;
+    max-width: 56rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .hero-current-content {
+    margin-bottom: 2rem;
+  }
+  
+  .current-content-text {
+    font-size: 1.125rem;
+    color: #93c5fd;
+    font-weight: 600;
+  }
+  
+  .hero-cta {
+    display: inline-block;
+    background-color: #2563eb;
+    color: var(--text-inverse);
+    font-weight: 700;
+    padding: 1rem 2rem;
+    border-radius: 0.5rem;
+    font-size: 1.125rem;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+    margin-bottom: 2rem;
+  }
+  
+  .hero-cta:hover {
+    background-color: #1d4ed8;
+  }
+  
+  .hero-social-links {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+  
+  .social-link {
+    color: #d1d5db;
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+  
+  .social-link:hover {
+    color: var(--text-inverse);
+  }
+
+  /* Section Styles */
+  .community-section {
+    padding: 4rem 0;
+    background-color: var(--bg-secondary);
+  }
+  
+  .squads-section {
+    padding: 4rem 0;
+    background-color: var(--bg-primary);
+  }
+  
+  .prog-section {
+    padding: 4rem 0;
+    background-color: var(--bg-secondary);
+  }
+  
+  .instructions-section {
+    padding: 4rem 0;
+    background-color: var(--bg-primary);
+  }
+  
+  .cta-section {
+    padding: 4rem 0;
+    background: linear-gradient(135deg, #581c87 0%, #1e3a8a 100%);
+    text-align: center;
+  }
+  
+  .section-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+  
+  .section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  
+  .section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+  }
+  
+  .section-subtitle {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  /* Stats Grid */
+  :global(.stats-grid) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+  
+  :global(.stat-card) {
+    background-color: var(--bg-tertiary);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  
+  :global(.stat-number) {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  :global(.stat-blue) {
+    color: var(--text-accent);
+  }
+  
+  :global(.stat-purple) {
+    color: var(--purple-accent);
+  }
+  
+  :global(.stat-green) {
+    color: var(--success-text);
+  }
+  
+  :global(.stat-label) {
+    color: var(--text-secondary);
+  }
+
+  :global(.loading-spinner-small) {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 3px solid var(--border-primary);
+    border-top: 3px solid var(--bg-accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  /* Squads */
+  .squads-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .squad-card {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+    border-radius: 1rem;
+    padding: 2rem;
+    border: 1px solid var(--border-primary);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .squad-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #2563eb, #7c3aed, #2563eb);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  
+  .squad-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border-color: var(--text-accent);
+  }
+  
+  .squad-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+  }
+  
+  .squad-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+  }
+  
+  .squad-status {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+  
+  .status-active {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+  }
+  
+  .status-inactive {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-primary);
+  }
+  
+  .squad-description {
+    margin-bottom: 1.5rem;
+  }
+  
+  .squad-description p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0;
+  }
+  
+  .squad-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .squad-icon {
+    font-size: 2rem;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+  }
+  
+  .squad-card:hover .squad-icon {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Prog Requirements */
+  .prog-card {
+    background-color: var(--bg-tertiary);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .prog-encounter {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-accent);
+    margin-bottom: 1rem;
+  }
+  
+  .prog-requirements {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+  
+  .prog-type {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+  
+  .prog-point {
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  /* Instructions */
+  .instructions-intro {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+  }
+  
+  .disclaimer {
+    font-size: 0.875rem;
+    background-color: var(--warning-bg);
+    color: var(--warning-text);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    display: inline-block;
+    border: 1px solid var(--warning-border);
+  }
+  
+  .instructions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+  }
+  
+  .instruction-card {
+    background-color: var(--bg-secondary);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px solid var(--border-primary);
+  }
+  
+  .instruction-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-accent);
+    margin-bottom: 0.5rem;
+  }
+  
+  .instruction-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+  
+  .instruction-text {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin: 0;
+  }
+  
+  .signup-reminder {
+    text-align: center;
+    background-color: rgba(59, 130, 246, 0.1);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    border: 1px solid var(--bg-accent);
+  }
+  
+  .reminder-text {
+    color: var(--text-accent);
+    margin-bottom: 0.5rem;
+  }
+  
+  .reminder-warning {
+    color: var(--warning-text);
+    font-weight: 600;
+    margin: 0;
+  }
+
+  /* Call to Action */
+  .cta-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-inverse);
+    margin-bottom: 1rem;
+  }
+  
+  .cta-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .cta-button {
+    display: inline-block;
+    font-weight: 700;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 1.125rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+  
+  .cta-primary {
+    background-color: #2563eb;
+    color: var(--text-inverse);
+  }
+  
+  .cta-primary:hover {
+    background-color: #1d4ed8;
+  }
+  
+  .cta-secondary {
+    background-color: var(--purple-accent);
+    color: var(--text-inverse);
+  }
+  
+  .cta-secondary:hover {
+    background-color: var(--purple-accent-hover);
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+      font-size: 1rem;
+    }
+    
+    .section-title {
+      font-size: 1.75rem;
+    }
+    
+    .section-subtitle {
+      font-size: 1rem;
+    }
+    
+    .hero-social-links {
+      gap: 1rem;
+    }
+    
+    .cta-buttons {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+</style> 

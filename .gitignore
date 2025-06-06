@@ -41,3 +41,7 @@ NOTES.md
 .sentryclirc
 .private
 pr-description.md
+
+**/.astro
+**/*.tsbuildinfo
+**/*.db

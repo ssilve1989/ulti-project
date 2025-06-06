@@ -1,0 +1,25 @@
+---
+const isDevelopment = import.meta.env.DEV;
+---
+
+{isDevelopment && (
+  <>
+    <div id="dev-mock-toggle-root"></div>
+    <script>
+      // Only load the DevMockDataToggle component in development
+      if (import.meta.env.DEV) {
+        import('./DevMockDataToggle.js').then(({ DevMockDataToggle }) => {
+          import('react').then(({ default: React }) => {
+            import('react-dom/client').then(({ createRoot }) => {
+              const container = document.getElementById('dev-mock-toggle-root');
+              if (container) {
+                const root = createRoot(container);
+                root.render(React.createElement(DevMockDataToggle));
+              }
+            });
+          });
+        });
+      }
+    </script>
+  </>
+)} 
