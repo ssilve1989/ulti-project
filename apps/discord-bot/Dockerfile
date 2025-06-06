@@ -15,7 +15,7 @@ RUN corepack enable
 RUN pnpm --version
 
 # Copy workspace configuration
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json /app/
 COPY packages/shared /app/packages/shared
 COPY apps/discord-bot /app/apps/discord-bot
 COPY scripts /app/scripts

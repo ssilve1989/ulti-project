@@ -5,10 +5,10 @@
     "**/*.spec.ts"
   ],
   "include": [
-    "src/**/*.ts"
+    "**/*.ts"
   ],
   "compilerOptions": {
-    "rootDir": "./src",
+    "rootDir": "./",
     "outDir": "./dist"
   }
 }
