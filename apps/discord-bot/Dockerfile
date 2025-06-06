@@ -14,8 +14,10 @@ RUN corepack enable
 # Print the pnpm version
 RUN pnpm --version
 
-COPY package.json pnpm-lock.yaml tsconfig.json tsconfig.build.json instrumentation.mjs /app/
-COPY src /app/src
+# Copy workspace configuration
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
+COPY packages/shared /app/packages/shared
+COPY apps/discord-bot /app/apps/discord-bot
 COPY scripts /app/scripts
 
 WORKDIR /app
@@ -27,14 +29,22 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-l
 
 FROM base AS build
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm run build
+# Build shared package first
+RUN pnpm --filter @ulti-project/shared build
+# Build discord bot
+RUN pnpm --filter @ulti-project/discord-bot build
 
 FROM base
 
 ENV FORCE_COLOR=1
 
 COPY --from=prod-deps /app/node_modules /app/node_modules
-COPY --from=build /app/dist /app/dist
+COPY --from=prod-deps /app/packages/shared/node_modules /app/packages/shared/node_modules
+COPY --from=prod-deps /app/apps/discord-bot/node_modules /app/apps/discord-bot/node_modules
+COPY --from=build /app/packages/shared/dist /app/packages/shared/dist
+COPY --from=build /app/apps/discord-bot/dist /app/apps/discord-bot/dist
+
+WORKDIR /app/apps/discord-bot
 
 EXPOSE 3000
 CMD [ "node", "--import", "./instrumentation.mjs", "dist/main" ]

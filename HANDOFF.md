@@ -84,6 +84,44 @@ git log --follow --oneline apps/discord-bot/firebase/models/signup.model.ts
 git log --follow --oneline apps/website/src/pages/signups.astro
 ```
 
+## Building and Deployment
+
+### Docker Build (Discord Bot)
+
+The Discord bot can be built and deployed using Docker. The Dockerfile has been updated to work with the workspace structure:
+
+```bash
+# From the Discord bot directory
+cd apps/discord-bot
+pnpm docker:build
+
+# Or from the root directory
+docker build -f apps/discord-bot/Dockerfile -t ulti-project-bot:latest .
+```
+
+### Fly.io Deployment
+
+The bot is configured for deployment on Fly.io. The `fly.toml` has been updated to work with the new structure:
+
+```bash
+# Deploy from the root directory (fly.toml points to the correct Dockerfile)
+fly deploy --config apps/discord-bot/fly.toml
+
+# Or from the Discord bot directory
+cd apps/discord-bot
+fly deploy
+```
+
+### Key Files Moved for Deployment
+
+- **`Dockerfile`** → `apps/discord-bot/Dockerfile` (updated for workspace)
+- **`instrumentation.mjs`** → `apps/discord-bot/instrumentation.mjs` (Sentry)
+- **`fly.toml`** → `apps/discord-bot/fly.toml` (deployment config)
+- **`.dockerignore`** → `apps/discord-bot/.dockerignore`
+- **`nest-cli.json`** → `apps/discord-bot/nest-cli.json`
+- **`biome.json`** → `apps/discord-bot/biome.json` (linting)
+- **`_templates/`** → `apps/discord-bot/_templates/` (Hygen templates)
+
 ## Development Commands
 
 ### Workspace Level
