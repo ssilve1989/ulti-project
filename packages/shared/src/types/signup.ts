@@ -47,7 +47,7 @@ export interface SignupDisplayData {
   characterName: string;
   world: string;
   encounter: Encounter;
-  partyType: 'Early Prog' | 'Prog' | 'Clear';
+  partyStatus: 'Early Prog Party' | 'Prog Party' | 'Clear Party' | 'Cleared';
   role: Role;
   job: string;
   progPoint: string;

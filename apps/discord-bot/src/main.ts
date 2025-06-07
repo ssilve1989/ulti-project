@@ -19,6 +19,7 @@ async function bootstrap() {
   app.useLogger(logger);
   app.flushLogs();
   app.enableShutdownHooks();
+  app.setGlobalPrefix('api', { exclude: ['health'] });
 
   logger.log(`NodeJS Version: ${process.version}`);
 

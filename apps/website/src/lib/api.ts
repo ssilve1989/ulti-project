@@ -90,23 +90,65 @@ export function createSignupsEventSource(): EventSource | null {
   }
 
   const baseUrl = getBaseUrl();
-  return new EventSource(`${baseUrl}/firestore/signups`);
+  return new EventSource(`${baseUrl}/api/firestore/signups`);
 }
 
-// Get initial signups data (for SSR)
+// Get initial signups data by collecting from SSE stream
 export async function getInitialSignups(): Promise<SignupsResponse> {
   if (USE_MOCK_DATA) {
     return getMockInitialSignups();
   }
 
-  const baseUrl = getBaseUrl();
-  const response = await fetch(`${baseUrl}/api/website/signups/initial`);
+  return new Promise((resolve, reject) => {
+    const baseUrl = getBaseUrl();
+    const eventSource = new EventSource(`${baseUrl}/api/firestore/signups`);
+    const signups: SignupDisplayData[] = [];
+    let hasReceivedData = false;
 
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.status}`);
-  }
+    const timeout = setTimeout(() => {
+      eventSource.close();
+      reject(new Error('Timeout waiting for initial data'));
+    }, 10000); // 10 second timeout
 
-  return response.json();
+    eventSource.onmessage = (event) => {
+      try {
+        const changeEvent: SignupChangeEvent = JSON.parse(event.data);
+
+        if (changeEvent.type === 'added') {
+          signups.push(changeEvent.doc);
+          hasReceivedData = true;
+        }
+      } catch (error) {
+        console.error('Failed to parse SSE message:', error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      clearTimeout(timeout);
+      eventSource.close();
+
+      if (hasReceivedData) {
+        // If we got some data before the error, return what we have
+        resolve({
+          signups,
+          encounters: mockEncounters, // Use mock encounters for now
+        });
+      } else {
+        reject(new Error('Failed to connect to signup stream'));
+      }
+    };
+
+    // Wait a bit for initial data to load, then resolve
+    setTimeout(() => {
+      clearTimeout(timeout);
+      eventSource.close();
+
+      resolve({
+        signups,
+        encounters: mockEncounters, // Use mock encounters for now
+      });
+    }, 2000); // Wait 2 seconds for initial data
+  });
 }
 
 export async function getCommunityStats(): Promise<CommunityStats> {

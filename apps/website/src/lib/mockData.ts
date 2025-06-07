@@ -130,7 +130,7 @@ const worlds = [
 ];
 
 const encounters = ['FRU', 'TOP', 'DSR', 'TEA', 'UWU', 'UCOB'];
-const partyTypes = ['Prog', 'Clear'];
+const partyStatuses = ['Prog Party', 'Clear Party'];
 const roles = ['Tank', 'Healer', 'DPS'];
 
 const jobsByRole = {
@@ -154,24 +154,28 @@ const jobsByRole = {
 
 const progPointsByEncounter = {
   FRU: {
-    Prog: ['P1 Fatebreaker', 'P2 Light Rampant', 'P3 Utopian Sky'],
-    Clear: [
+    'Prog Party': ['P1 Fatebreaker', 'P2 Light Rampant', 'P3 Utopian Sky'],
+    'Clear Party': [
       'P4 Paradise Lost',
       'P5 Fulgent Blade 1 (Exalines 1)',
       'P5 Fulgent Blade 2 (Exalines 2)',
     ],
   },
   TOP: {
-    Prog: ['P1 Beetle/Final Omega', 'P2 Party Synergy', 'P3 Hello World'],
-    Clear: ['P4 Blue Screen', 'P5 Run Dynamis', 'P6 Alpha Omega'],
+    'Prog Party': [
+      'P1 Beetle/Final Omega',
+      'P2 Party Synergy',
+      'P3 Hello World',
+    ],
+    'Clear Party': ['P4 Blue Screen', 'P5 Run Dynamis', 'P6 Alpha Omega'],
   },
   DSR: {
-    Prog: [
+    'Prog Party': [
       'P1 Door Boss',
       'P2 Sanctity of the Ward',
       'P3 Strength of the Ward',
     ],
-    Clear: [
+    'Clear Party': [
       'P4 Wroth Flames',
       'P5 Death of the Heavens',
       'P6 Gigaflare',
@@ -179,16 +183,16 @@ const progPointsByEncounter = {
     ],
   },
   TEA: {
-    Prog: ['P1 Living Liquid', 'P2 Limit Cut', 'P3 Temporal Stasis'],
-    Clear: ['P4 Wormhole Formation', 'Perfect Alexander'],
+    'Prog Party': ['P1 Living Liquid', 'P2 Limit Cut', 'P3 Temporal Stasis'],
+    'Clear Party': ['P4 Wormhole Formation', 'Perfect Alexander'],
   },
   UWU: {
-    Prog: ['P1 Garuda', 'P2 Ifrit', 'P3 Titan'],
-    Clear: ['P4 Lahabrea', 'P5 Ultima'],
+    'Prog Party': ['P1 Garuda', 'P2 Ifrit', 'P3 Titan'],
+    'Clear Party': ['P4 Lahabrea', 'P5 Ultima'],
   },
   UCOB: {
-    Prog: ['P1 Twintania', 'P2 Nael', 'P3 Bahamut Prime'],
-    Clear: ['P4 Adds Phase', 'P5 Golden Bahamut'],
+    'Prog Party': ['P1 Twintania', 'P2 Nael', 'P3 Bahamut Prime'],
+    'Clear Party': ['P4 Adds Phase', 'P5 Golden Bahamut'],
   },
 };
 
@@ -221,18 +225,18 @@ function generateMockSignups(): SignupDisplayData[] {
     const encounter = encounters[
       Math.floor(Math.random() * encounters.length)
     ] as keyof typeof progPointsByEncounter;
-    const partyType = partyTypes[
-      Math.floor(Math.random() * partyTypes.length)
-    ] as 'Prog' | 'Clear';
-    const progPoints = progPointsByEncounter[encounter][partyType];
+    const partyStatus = partyStatuses[
+      Math.floor(Math.random() * partyStatuses.length)
+    ] as 'Prog Party' | 'Clear Party';
+    const progPoints = progPointsByEncounter[encounter][partyStatus];
 
     signups.push({
       id: i.toString(),
       characterName:
         characterNames[Math.floor(Math.random() * characterNames.length)],
       world: worlds[Math.floor(Math.random() * worlds.length)],
-      encounter,
-      partyType,
+      encounter: encounter as any,
+      partyStatus,
       role,
       job: jobsByRole[role][
         Math.floor(Math.random() * jobsByRole[role].length)

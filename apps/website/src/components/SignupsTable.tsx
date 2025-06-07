@@ -6,20 +6,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   type SignupChangeEvent,
   createSignupsEventSource,
+  getInitialSignups,
 } from '../lib/api.js';
 
-interface SignupsTableProps {
-  initialSignups: SignupDisplayData[];
-  encounters: EncounterInfo[];
-}
-
-export function SignupsTable({
-  initialSignups,
-  encounters,
-}: SignupsTableProps) {
+export function SignupsTable() {
   // State for real-time signups data
-  const [signups, setSignups] = useState<SignupDisplayData[]>(initialSignups);
+  const [signups, setSignups] = useState<SignupDisplayData[]>([]);
+  const [encounters, setEncounters] = useState<EncounterInfo[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [recentlyUpdated, setRecentlyUpdated] = useState<Set<string>>(
+    new Set(),
+  );
 
   // UI State
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,6 +29,38 @@ export function SignupsTable({
     role: '',
     search: '',
   });
+
+  // Load initial data on mount and when mock data setting changes
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        setSignups([]); // Clear existing data
+        const data = await getInitialSignups();
+        setSignups(data.signups);
+        setEncounters(data.encounters as EncounterInfo[]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load signups');
+        console.error('Failed to load initial signups:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialData();
+
+    // Listen for mock data toggle changes
+    const handleMockDataChange = () => {
+      loadInitialData();
+    };
+
+    window.addEventListener('mock-data-changed', handleMockDataChange);
+
+    return () => {
+      window.removeEventListener('mock-data-changed', handleMockDataChange);
+    };
+  }, []);
 
   // Handle SSE updates
   const handleSignupChange = useCallback((event: SignupChangeEvent) => {
@@ -45,6 +76,18 @@ export function SignupsTable({
           return [...prevSignups, doc];
 
         case 'modified':
+          // Mark as recently updated for flash animation
+          setRecentlyUpdated((prev) => new Set(prev).add(doc.id));
+
+          // Remove from recently updated after animation duration
+          setTimeout(() => {
+            setRecentlyUpdated((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(doc.id);
+              return newSet;
+            });
+          }, 2000); // 2 second flash duration
+
           return prevSignups.map((signup) =>
             signup.id === doc.id ? doc : signup,
           );
@@ -58,8 +101,13 @@ export function SignupsTable({
     });
   }, []);
 
-  // Set up SSE connection
+  // Set up SSE connection for real-time updates (after initial load)
   useEffect(() => {
+    // Only set up SSE after initial data is loaded
+    if (isLoading) {
+      return;
+    }
+
     const eventSource = createSignupsEventSource();
 
     if (!eventSource) {
@@ -69,7 +117,10 @@ export function SignupsTable({
     const handleMessage = (event: MessageEvent) => {
       try {
         const changeEvent: SignupChangeEvent = JSON.parse(event.data);
-        handleSignupChange(changeEvent);
+        // Only handle modifications and removals, not additions (to avoid duplicates from initial load)
+        if (changeEvent.type === 'modified' || changeEvent.type === 'removed') {
+          handleSignupChange(changeEvent);
+        }
       } catch (error) {
         console.error('Failed to parse SSE message:', error);
       }
@@ -77,7 +128,7 @@ export function SignupsTable({
 
     const handleOpen = () => {
       setIsConnected(true);
-      console.log('SSE connection established');
+      console.log('SSE connection established for real-time updates');
     };
 
     const handleError = (error: Event) => {
@@ -93,14 +144,14 @@ export function SignupsTable({
       eventSource.close();
       setIsConnected(false);
     };
-  }, [handleSignupChange]);
+  }, [handleSignupChange, isLoading]);
 
   // Client-side filtering
   const filteredSignups = useMemo(() => {
     return signups.filter((signup) => {
       if (filters.encounter && signup.encounter !== filters.encounter)
         return false;
-      if (filters.partyType && signup.partyType !== filters.partyType)
+      if (filters.partyType && signup.partyStatus !== filters.partyType)
         return false;
       if (filters.role && signup.role !== filters.role) return false;
       if (filters.search) {
@@ -123,9 +174,10 @@ export function SignupsTable({
   const paginatedSignups = filteredSignups.slice(startIndex, endIndex);
 
   // Reset to page 1 when filters change
+  const filtersString = JSON.stringify(filters);
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters]);
+  }, [filtersString]);
 
   // Pagination controls
   const goToPage = (page: number) => {
@@ -172,6 +224,35 @@ export function SignupsTable({
 
     return pages;
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner" />
+        <p>Loading signups...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="error-container">
+        <div className="error-message">
+          <h3>Failed to load signups</h3>
+          <p>{error}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="retry-button"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -222,9 +303,10 @@ export function SignupsTable({
               }
             >
               <option value="">All Types</option>
-              <option value="Early Prog">Early Prog</option>
-              <option value="Prog">Prog</option>
-              <option value="Clear">Clear</option>
+              <option value="Early Prog Party">Early Prog Party</option>
+              <option value="Prog Party">Prog Party</option>
+              <option value="Clear Party">Clear Party</option>
+              <option value="Cleared">Cleared</option>
             </select>
           </div>
           <div className="filter-group">
@@ -308,7 +390,10 @@ export function SignupsTable({
             </thead>
             <tbody className="table-body">
               {paginatedSignups.map((signup) => (
-                <tr key={signup.id} className="table-row">
+                <tr
+                  key={signup.id}
+                  className={`table-row ${recentlyUpdated.has(signup.id) ? 'row-updated' : ''}`}
+                >
                   <td className="table-cell">
                     <div>
                       <div className="character-name">
@@ -325,14 +410,14 @@ export function SignupsTable({
                   <td className="table-cell">
                     <span
                       className={`badge ${
-                        signup.partyType === 'Clear'
+                        signup.partyStatus === 'Clear Party'
                           ? 'badge-clear'
-                          : signup.partyType === 'Prog'
+                          : signup.partyStatus === 'Prog Party'
                             ? 'badge-prog'
                             : 'badge-early-prog'
                       }`}
                     >
-                      {signup.partyType}
+                      {signup.partyStatus}
                     </span>
                   </td>
                   <td className="table-cell">
@@ -379,7 +464,7 @@ export function SignupsTable({
               if (page === '...') {
                 return (
                   <span
-                    key={`ellipsis-${currentPage}-${index}`}
+                    key={`ellipsis-${index}`}
                     className="pagination-ellipsis"
                   >
                     ...
