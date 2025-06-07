@@ -1,0 +1,116 @@
+---
+description: 
+globs: *.tsx
+alwaysApply: false
+---
+# Cursor Rules for Ulti Project
+
+## Component Architecture
+
+### React Component Structure
+
+- **Components should be pure presentation layers** - focus only on rendering UI
+- **Extract all business logic** into separate files:
+  - Custom hooks for state management and effects
+  - Utility functions for pure logic
+  - Service modules for API calls
+  - Type definitions in separate files
+
+### File Organization Pattern
+
+```
+components/
+├── ComponentName/
+│   ├── index.ts                 # Re-exports
+│   ├── ComponentName.tsx        # Pure presentation component
+│   ├── useComponentData.ts      # Data fetching hook
+│   ├── useComponentLogic.ts     # Business logic hook
+│   ├── componentUtils.ts        # Pure utility functions
+│   └── types.ts                 # Component-specific types
+```
+
+### Custom Hooks Guidelines
+
+- **Single Responsibility**: Each hook should handle one specific concern
+- **Naming Convention**: `use[Concern]` (e.g., `useFiltering`, `usePagination`)
+- **Return Objects**: Always return objects with named properties, not arrays
+- **Pure Functions**: Extract complex logic into separate utility functions
+
+### Component Guidelines
+
+- **No useState/useEffect** in presentation components when possible
+- **Props Interface**: Always define explicit props interfaces
+- **Conditional Rendering**: Keep early returns for loading/error states
+- **Event Handlers**: Pass down from hooks, don't define inline
+
+### Code Quality
+
+- **TypeScript**: Always use explicit types, avoid `any`
+- **Functional Style**: Prefer functional programming patterns
+- **Composition over Configuration**: Build small, composable pieces
+- **Modern Best Practices**: Use `as const` over `enum`, prefer arrow functions
+- **Clean Up**: Remove unused variables and imports
+
+### Import/Export Patterns
+
+- **Explicit Extensions**: Use `.js` extensions for imports (TypeScript compilation)
+- **Index Files**: Use index.ts files for clean re-exports
+- **Named Exports**: Prefer named exports over default exports
+- **Barrel Exports**: Group related exports in index files
+
+### Testing Considerations
+
+- **Testable Hooks**: Custom hooks should be easily unit testable
+- **Mock-Friendly**: Structure code to be easily mockable
+- **Pure Functions**: Utility functions should be pure and testable
+
+## Examples
+
+### ❌ Bad - Monolithic Component
+
+```tsx
+export function MyComponent() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({});
+  
+  useEffect(() => {
+    // Complex data fetching logic
+  }, []);
+  
+  const handleFilter = (newFilter) => {
+    // Complex filtering logic
+  };
+  
+  // 200+ lines of mixed logic and JSX
+}
+```
+
+### ✅ Good - Separated Concerns
+
+```tsx
+// MyComponent.tsx
+export function MyComponent() {
+  const { data, loading, error } = useMyComponentData();
+  const { filters, setFilters, filteredData } = useFiltering(data);
+  const { currentPage, goToPage } = usePagination(filteredData);
+  
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+  
+  return (
+    <div>
+      <Filters filters={filters} onFilterChange={setFilters} />
+      <DataTable data={filteredData} />
+      <Pagination currentPage={currentPage} onPageChange={goToPage} />
+    </div>
+  );
+}
+```
+
+## Pull Request Guidelines
+
+- Always add a footer note: "Assisted by Cursor AI with [model name]"
+- Include before/after architecture explanations for refactoring PRs
+- Test all functionality before submitting
+- Ensure no visual regressions in UI components
