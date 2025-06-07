@@ -1,13 +1,10 @@
 ---
 import { SignupsTable } from '../components/SignupsTable';
 import Layout from '../layouts/Layout.astro';
-import { getSignups } from '../lib/api.js';
+import { getInitialSignups } from '../lib/api.js';
 
-// Load all signups initially (we'll paginate on the client)
-const signupsData = await getSignups({}, { page: 1, pageSize: 1000 });
-
-// The encounters already have the proper type from mockEncounters
-const encounters = signupsData.encounters;
+// Load initial signups for SSR
+const signupsData = await getInitialSignups();
 ---
 
 <Layout title="Current Signups - Ulti Project">
@@ -17,13 +14,14 @@ const encounters = signupsData.encounters;
       <h1 class="page-title">Current Signups</h1>
       <p class="page-description">
         View all approved signups for endgame content. Use the filters below to find specific encounters, party types, or roles.
+        <strong>Live updates are enabled</strong> - the table will automatically refresh as new signups are added or updated.
       </p>
     </div>
 
     <!-- React SignupsTable Component -->
     <SignupsTable 
-      signups={signupsData.signups} 
-      encounters={encounters}
+      initialSignups={signupsData.signups} 
+      encounters={signupsData.encounters}
       client:load 
     />
   </div>
@@ -50,6 +48,57 @@ const encounters = signupsData.encounters;
   
   .page-description {
     color: var(--text-secondary);
+  }
+
+  /* Connection Status */
+  :global(.connection-status) {
+    background-color: var(--bg-secondary);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: center;
+  }
+  
+  :global(.status-indicator) {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  
+  :global(.status-indicator.connected) {
+    color: var(--success-text);
+  }
+  
+  :global(.status-indicator.disconnected) {
+    color: var(--warning-text);
+  }
+  
+  :global(.status-dot) {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  
+  :global(.status-indicator.connected .status-dot) {
+    background-color: var(--success-text);
+    animation: pulse 2s infinite;
+  }
+  
+  :global(.status-indicator.disconnected .status-dot) {
+    background-color: var(--warning-text);
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 
   /* Filters */
@@ -137,6 +186,11 @@ const encounters = signupsData.encounters;
   :global(.stats-total) {
     color: var(--text-accent);
     font-weight: 600;
+  }
+  
+  :global(.total-signups) {
+    color: var(--text-tertiary);
+    font-size: 0.875rem;
   }
   
   :global(.pagination-info) {

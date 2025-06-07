@@ -1,10 +1,13 @@
 ---
+import { DevMockDataToggle } from '../components/DevMockDataToggle';
+
 export interface Props {
   title: string;
   description?: string;
 }
 
 const { title, description = "A FFXIV opportunity for NA players to progress thru ENDGAME CONTENT and achieve their 1st-time clears!" } = Astro.props;
+const isDevelopment = import.meta.env.DEV;
 ---
 
 <!doctype html>
@@ -18,6 +21,9 @@ const { title, description = "A FFXIV opportunity for NA players to progress thr
     <title>{title}</title>
   </head>
   <body>
+    <!-- Development Mock Data Toggle -->
+    {isDevelopment && <DevMockDataToggle client:load />}
+
     <!-- Theme Toggle Button -->
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
       <span class="theme-toggle-icon">🌙</span>
@@ -104,6 +110,112 @@ const { title, description = "A FFXIV opportunity for NA players to progress thr
 </html>
 
 <style>
+  /* Notification animations */
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideOut {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+
+  /* Development Mock Data Toggle */
+  :global(.dev-toggle-container) {
+    position: fixed;
+    top: 5rem;
+    right: 1rem;
+    z-index: 999;
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--warning-border);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    box-shadow: 0 4px 6px var(--shadow);
+  }
+  
+  :global(.dev-toggle-content) {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  :global(.dev-toggle-label) {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--warning-text);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  :global(.dev-toggle-switch) {
+    position: relative;
+    display: inline-block;
+    width: 3rem;
+    height: 1.5rem;
+    cursor: pointer;
+  }
+  
+  :global(.dev-toggle-input) {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  :global(.dev-toggle-slider) {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-tertiary);
+    transition: 0.3s;
+    border-radius: 1.5rem;
+    border: 1px solid var(--border-primary);
+  }
+  
+  :global(.dev-toggle-slider:before) {
+    position: absolute;
+    content: "";
+    height: 1rem;
+    width: 1rem;
+    left: 0.125rem;
+    bottom: 0.125rem;
+    background-color: var(--text-secondary);
+    transition: 0.3s;
+    border-radius: 50%;
+  }
+  
+  :global(.dev-toggle-input:checked + .dev-toggle-slider) {
+    background-color: var(--bg-accent);
+    border-color: var(--bg-accent);
+  }
+  
+  :global(.dev-toggle-input:checked + .dev-toggle-slider:before) {
+    transform: translateX(1.5rem);
+    background-color: var(--text-inverse);
+  }
+  
+  :global(.dev-toggle-text) {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    min-width: 4rem;
+  }
+
   /* CSS Custom Properties for Theme System */
   :root {
     /* Light theme colors */
@@ -341,6 +453,21 @@ const { title, description = "A FFXIV opportunity for NA players to progress thr
       width: 2.5rem;
       height: 2.5rem;
       font-size: 1rem;
+    }
+    
+    :global(.dev-toggle-container) {
+      top: 4rem;
+      right: 0.5rem;
+      padding: 0.5rem;
+    }
+    
+    :global(.dev-toggle-content) {
+      gap: 0.25rem;
+    }
+    
+    :global(.dev-toggle-text) {
+      font-size: 0.625rem;
+      min-width: 3rem;
     }
   }
 </style> 

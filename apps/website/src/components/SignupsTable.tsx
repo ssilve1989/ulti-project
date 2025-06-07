@@ -2,15 +2,26 @@ import type {
   EncounterInfo,
   SignupDisplayData,
 } from '@ulti-project/shared/types';
-import React, { useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  type SignupChangeEvent,
+  createSignupsEventSource,
+} from '../lib/api.js';
 
 interface SignupsTableProps {
-  signups: SignupDisplayData[];
+  initialSignups: SignupDisplayData[];
   encounters: EncounterInfo[];
 }
 
-export function SignupsTable({ signups, encounters }: SignupsTableProps) {
-  // State
+export function SignupsTable({
+  initialSignups,
+  encounters,
+}: SignupsTableProps) {
+  // State for real-time signups data
+  const [signups, setSignups] = useState<SignupDisplayData[]>(initialSignups);
+  const [isConnected, setIsConnected] = useState(false);
+
+  // UI State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [filters, setFilters] = useState({
@@ -20,7 +31,71 @@ export function SignupsTable({ signups, encounters }: SignupsTableProps) {
     search: '',
   });
 
-  // Filtered signups
+  // Handle SSE updates
+  const handleSignupChange = useCallback((event: SignupChangeEvent) => {
+    setSignups((prevSignups) => {
+      const { type, doc } = event;
+
+      switch (type) {
+        case 'added':
+          // Check if signup already exists (to handle initial load)
+          if (prevSignups.some((s) => s.id === doc.id)) {
+            return prevSignups;
+          }
+          return [...prevSignups, doc];
+
+        case 'modified':
+          return prevSignups.map((signup) =>
+            signup.id === doc.id ? doc : signup,
+          );
+
+        case 'removed':
+          return prevSignups.filter((signup) => signup.id !== doc.id);
+
+        default:
+          return prevSignups;
+      }
+    });
+  }, []);
+
+  // Set up SSE connection
+  useEffect(() => {
+    const eventSource = createSignupsEventSource();
+
+    if (!eventSource) {
+      return; // SSR or mock disabled
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const changeEvent: SignupChangeEvent = JSON.parse(event.data);
+        handleSignupChange(changeEvent);
+      } catch (error) {
+        console.error('Failed to parse SSE message:', error);
+      }
+    };
+
+    const handleOpen = () => {
+      setIsConnected(true);
+      console.log('SSE connection established');
+    };
+
+    const handleError = (error: Event) => {
+      setIsConnected(false);
+      console.error('SSE connection error:', error);
+    };
+
+    eventSource.addEventListener('message', handleMessage);
+    eventSource.addEventListener('open', handleOpen);
+    eventSource.addEventListener('error', handleError);
+
+    return () => {
+      eventSource.close();
+      setIsConnected(false);
+    };
+  }, [handleSignupChange]);
+
+  // Client-side filtering
   const filteredSignups = useMemo(() => {
     return signups.filter((signup) => {
       if (filters.encounter && signup.encounter !== filters.encounter)
@@ -40,7 +115,7 @@ export function SignupsTable({ signups, encounters }: SignupsTableProps) {
     });
   }, [signups, filters]);
 
-  // Pagination calculations
+  // Client-side pagination
   const totalItems = filteredSignups.length;
   const totalPages = Math.ceil(totalItems / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
@@ -48,7 +123,7 @@ export function SignupsTable({ signups, encounters }: SignupsTableProps) {
   const paginatedSignups = filteredSignups.slice(startIndex, endIndex);
 
   // Reset to page 1 when filters change
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [filters]);
 
@@ -100,6 +175,16 @@ export function SignupsTable({ signups, encounters }: SignupsTableProps) {
 
   return (
     <div>
+      {/* Connection Status */}
+      <div className="connection-status">
+        <div
+          className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}
+        >
+          <span className="status-dot" />
+          {isConnected ? 'Live Updates Active' : 'Connecting...'}
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="filters-container">
         <h2 className="filters-title">Filters</h2>
@@ -183,6 +268,7 @@ export function SignupsTable({ signups, encounters }: SignupsTableProps) {
             Showing{' '}
             <span className="stats-count">{paginatedSignups.length}</span> of
             <span className="stats-total"> {totalItems}</span> approved signups
+            <span className="total-signups"> (Total: {signups.length})</span>
           </p>
           <p className="pagination-info">
             Page {currentPage} of {totalPages || 1}

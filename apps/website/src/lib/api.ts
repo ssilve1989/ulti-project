@@ -1,44 +1,106 @@
 import type {
   CommunityStats,
-  SignupFilters,
-  SignupsResponse,
+  SignupDisplayData,
 } from '@ulti-project/shared/types';
 import { mockEncounters, mockSignups } from './mockData.js';
 
-const USE_MOCK_DATA = true; // Always use mock data for now
+// Development mode detection and mock data toggle
+const isDevelopment = import.meta.env.DEV;
+const MOCK_DATA_KEY = 'ulti-project-use-mock-data';
 
-export interface PaginationParams {
-  page?: number;
-  pageSize?: number;
+// Get initial mock data preference from localStorage or default to true
+const getInitialMockDataSetting = (): boolean => {
+  if (typeof window === 'undefined') {
+    return true; // Default to mock data on server
+  }
+  const stored = localStorage.getItem(MOCK_DATA_KEY);
+  return stored !== null ? stored === 'true' : true;
+};
+
+let USE_MOCK_DATA = getInitialMockDataSetting();
+
+// Development-only functions to control mock data mode
+export const devControls = isDevelopment
+  ? {
+      useMockData: (): boolean => USE_MOCK_DATA,
+      setMockData: (enabled: boolean): void => {
+        USE_MOCK_DATA = enabled;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(MOCK_DATA_KEY, enabled.toString());
+          // Dispatch custom event to notify components
+          window.dispatchEvent(
+            new CustomEvent('mock-data-changed', {
+              detail: { enabled },
+            }),
+          );
+        }
+      },
+      toggleMockData: (): boolean => {
+        const newValue = !USE_MOCK_DATA;
+        if (devControls) {
+          devControls.setMockData(newValue);
+        }
+        return newValue;
+      },
+    }
+  : null;
+
+// Make dev controls available globally in development
+if (isDevelopment && typeof window !== 'undefined') {
+  (window as any).__ultiDevControls = devControls;
 }
 
-export interface PaginatedSignupsResponse extends SignupsResponse {
-  pagination: {
-    currentPage: number;
-    pageSize: number;
-    totalPages: number;
-    totalItems: number;
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-  };
+// Use relative URL in development, absolute URL in production
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    // Client-side: use relative URL to leverage the proxy
+    return '';
+  }
+  // Server-side: use absolute URL for SSR
+  return process.env.NODE_ENV === 'production'
+    ? 'https://your-api-domain.com'
+    : 'http://localhost:3000';
+};
+
+// SSE Event types matching the server
+export interface SignupChangeEvent {
+  type: 'added' | 'modified' | 'removed';
+  doc: SignupDisplayData;
 }
 
-export async function getSignups(
-  filters: SignupFilters = {},
-  pagination: PaginationParams = {},
-): Promise<PaginatedSignupsResponse> {
-  if (USE_MOCK_DATA) {
-    return getMockSignups(filters, pagination);
+// Initial signups response (for SSR and initial load)
+export interface SignupsResponse {
+  signups: SignupDisplayData[];
+  encounters: Array<{
+    id: string;
+    name: string;
+    shortName: string;
+  }>;
+}
+
+// SSE connection for real-time updates
+export function createSignupsEventSource(): EventSource | null {
+  if (typeof window === 'undefined') {
+    return null; // SSE only works client-side
   }
 
-  // Real API implementation (for future use)
-  const baseUrl = 'http://localhost:3000';
-  const params = new URLSearchParams({
-    ...filters,
-    page: pagination.page?.toString() || '1',
-    pageSize: pagination.pageSize?.toString() || '20',
-  } as any);
-  const response = await fetch(`${baseUrl}/api/website/signups?${params}`);
+  if (USE_MOCK_DATA) {
+    // For mock data, we'll simulate SSE events
+    return createMockEventSource();
+  }
+
+  const baseUrl = getBaseUrl();
+  return new EventSource(`${baseUrl}/firestore/signups`);
+}
+
+// Get initial signups data (for SSR)
+export async function getInitialSignups(): Promise<SignupsResponse> {
+  if (USE_MOCK_DATA) {
+    return getMockInitialSignups();
+  }
+
+  const baseUrl = getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/website/signups/initial`);
 
   if (!response.ok) {
     throw new Error(`API Error: ${response.status}`);
@@ -52,7 +114,7 @@ export async function getCommunityStats(): Promise<CommunityStats> {
     return getMockCommunityStats();
   }
 
-  const baseUrl = 'http://localhost:3000';
+  const baseUrl = getBaseUrl();
   const response = await fetch(`${baseUrl}/api/website/stats`);
 
   if (!response.ok) {
@@ -63,65 +125,75 @@ export async function getCommunityStats(): Promise<CommunityStats> {
 }
 
 // Mock implementations
-async function getMockSignups(
-  filters: SignupFilters = {},
-  pagination: PaginationParams = {},
-): Promise<PaginatedSignupsResponse> {
-  // Simulate API delay for realistic experience
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  const page = pagination.page || 1;
-  const pageSize = pagination.pageSize || 20;
-
-  // Single-pass filtering for efficiency
-  const filteredSignups = mockSignups.filter((signup) => {
-    // Early returns for better performance
-    if (filters.encounter && signup.encounter !== filters.encounter) {
-      return false;
-    }
-
-    if (filters.partyType && signup.partyType !== filters.partyType) {
-      return false;
-    }
-
-    if (filters.role && signup.role !== filters.role) {
-      return false;
-    }
-
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      const characterMatch = signup.characterName
-        .toLowerCase()
-        .includes(searchLower);
-      const worldMatch = signup.world.toLowerCase().includes(searchLower);
-
-      if (!characterMatch && !worldMatch) {
-        return false;
+function createMockEventSource(): EventSource {
+  // Create a mock EventSource that simulates real-time updates
+  const mockEventSource = {
+    onmessage: null as ((event: MessageEvent) => void) | null,
+    onerror: null as ((event: Event) => void) | null,
+    onopen: null as ((event: Event) => void) | null,
+    readyState: 1, // OPEN
+    url: '/mock/signups',
+    withCredentials: false,
+    CONNECTING: 0,
+    OPEN: 1,
+    CLOSED: 2,
+    close: () => {},
+    addEventListener: (type: string, listener: EventListener) => {
+      if (type === 'message') {
+        mockEventSource.onmessage = listener as (event: MessageEvent) => void;
       }
+    },
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  } as unknown as EventSource;
+
+  // Simulate initial data load
+  setTimeout(() => {
+    if (mockEventSource.onmessage) {
+      // Send all existing signups as 'added' events
+      mockSignups.forEach((signup, index) => {
+        setTimeout(() => {
+          const event = new MessageEvent('message', {
+            data: JSON.stringify({
+              type: 'added',
+              doc: signup,
+            } as SignupChangeEvent),
+          });
+          mockEventSource.onmessage?.(event);
+        }, index * 10); // Stagger the events slightly
+      });
     }
+  }, 100);
 
-    return true;
-  });
+  // Simulate occasional updates
+  setInterval(() => {
+    if (mockEventSource.onmessage && Math.random() < 0.1) {
+      // 10% chance every 5 seconds to simulate an update
+      const randomSignup =
+        mockSignups[Math.floor(Math.random() * mockSignups.length)];
+      const event = new MessageEvent('message', {
+        data: JSON.stringify({
+          type: 'modified',
+          doc: {
+            ...randomSignup,
+            lastUpdated: new Date(),
+          },
+        } as SignupChangeEvent),
+      });
+      mockEventSource.onmessage(event);
+    }
+  }, 5000);
 
-  // Calculate pagination
-  const totalItems = filteredSignups.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
-  const startIndex = (page - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedSignups = filteredSignups.slice(startIndex, endIndex);
+  return mockEventSource;
+}
+
+async function getMockInitialSignups(): Promise<SignupsResponse> {
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 200));
 
   return {
-    signups: paginatedSignups,
-    total: paginatedSignups.length,
+    signups: mockSignups,
     encounters: mockEncounters,
-    pagination: {
-      currentPage: page,
-      pageSize,
-      totalPages,
-      totalItems,
-      hasNextPage: page < totalPages,
-      hasPreviousPage: page > 1,
-    },
   };
 }
 
