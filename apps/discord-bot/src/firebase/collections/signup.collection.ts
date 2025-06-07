@@ -1,16 +1,12 @@
-import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import day from 'dayjs';
 import {
   type CollectionReference,
   type DocumentData,
-  Firestore,
   type Query,
-  type QuerySnapshot,
   Timestamp,
 } from 'firebase-admin/firestore';
-import { match } from 'ts-pattern';
-import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import {
   type CreateSignupDocumentProps,
@@ -20,57 +16,12 @@ import {
 } from '../models/signup.model.js';
 
 @Injectable()
-class SignupCollection implements OnModuleInit {
-  private readonly collection: CollectionReference<SignupDocument>;
-  private readonly logger = new Logger(SignupCollection.name);
-  // we are aware this is unbounded but its fine generally speaking for the size of our data and limits
-  // of our container this runs in
-  private readonly cache: Map<string, SignupDocument> = new Map();
-
-  constructor(@InjectFirestore() private readonly firestore: Firestore) {
-    this.collection = this.firestore.collection(
-      'signups',
-    ) as CollectionReference<SignupDocument>;
-  }
-
-  onModuleInit() {
-    // load snapshot into cache
-    this.collection.get().then((snapshot) => {
-      this.seedCache(snapshot);
-    });
-
-    this.collection.onSnapshot((snapshot) => {
-      const changes = snapshot.docChanges();
-      for (const change of changes) {
-        match(change.type)
-          .with('added', () => this.addToCache(change.doc.data()))
-          .with('modified', () => this.updateCache(change.doc.data()))
-          .with('removed', () => this.removeFromCache(change.doc.data()))
-          .exhaustive();
-      }
-    });
-  }
-
-  private seedCache(snapshot: QuerySnapshot<SignupDocument, DocumentData>) {
-    for (const doc of snapshot.docs) {
-      this.addToCache(doc.data());
-    }
-    this.logger.log(`Seeded cache with ${snapshot.docs.length} signups`);
-  }
-
-  private addToCache(signup: SignupDocument): any {
-    this.cache.set(SignupCollection.getKeyForSignup(signup), signup);
-    this.logger.log(`Added signup for user ${signup.discordId} to cache`);
-  }
-
-  private updateCache(signup: SignupDocument): any {
-    this.cache.set(SignupCollection.getKeyForSignup(signup), signup);
-    this.logger.log(`Updated signup for user ${signup.discordId} in cache`);
-  }
-
-  private removeFromCache(signup: SignupDocument): any {
-    this.cache.delete(SignupCollection.getKeyForSignup(signup));
-    this.logger.log(`Removed signup for user ${signup.discordId} from cache`);
+class SignupCollection {
+  constructor(
+    @Inject('SIGNUP_COLLECTION')
+    private readonly collection: CollectionReference<SignupDocument>,
+  ) {
+    this.collection = collection;
   }
 
   @SentryTraced()
