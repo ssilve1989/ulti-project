@@ -7,8 +7,23 @@
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "@ulti-project/shared": [
+        "../../packages/shared/src/index.ts"
+      ],
+      "@ulti-project/shared/*": [
+        "../../packages/shared/src/*"
+      ]
+    }
   },
+  "references": [
+    {
+      "path": "../../packages/shared"
+    }
+  ],
   "include": [
     "src/**/*"
   ],

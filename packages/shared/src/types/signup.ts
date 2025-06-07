@@ -44,7 +44,7 @@ export interface SignupDocument {
 // Frontend interface (normalized for display)
 export interface SignupDisplayData {
   id: string;
-  characterName: string;
+  character: string;
   world: string;
   encounter: Encounter;
   partyStatus: 'Early Prog Party' | 'Prog Party' | 'Clear Party' | 'Cleared';

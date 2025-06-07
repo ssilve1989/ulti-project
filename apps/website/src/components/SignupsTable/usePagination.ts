@@ -11,7 +11,6 @@ export function usePagination(totalItems: number, filters: SignupFilters) {
     const filtersChanged =
       prevFiltersRef.current.encounter !== filters.encounter ||
       prevFiltersRef.current.partyType !== filters.partyType ||
-      prevFiltersRef.current.role !== filters.role ||
       prevFiltersRef.current.search !== filters.search;
 
     if (filtersChanged) {

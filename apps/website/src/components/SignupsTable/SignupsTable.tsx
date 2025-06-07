@@ -118,22 +118,7 @@ export function SignupsTable() {
               <option value="Cleared">Cleared</option>
             </select>
           </div>
-          <div className="filter-group">
-            <label htmlFor="role" className="filter-label">
-              Role
-            </label>
-            <select
-              id="role"
-              className="filter-select"
-              value={filters.role}
-              onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-            >
-              <option value="">All Roles</option>
-              <option value="Tank">Tank</option>
-              <option value="Healer">Healer</option>
-              <option value="DPS">DPS</option>
-            </select>
-          </div>
+
           <div className="filter-group">
             <label htmlFor="search" className="filter-label">
               Search
@@ -205,9 +190,7 @@ export function SignupsTable() {
                 >
                   <td className="table-cell">
                     <div>
-                      <div className="character-name">
-                        {signup.characterName}
-                      </div>
+                      <div className="character-name">{signup.character}</div>
                       <div className="character-world">{signup.world}</div>
                     </div>
                   </td>

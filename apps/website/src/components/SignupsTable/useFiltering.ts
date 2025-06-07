@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 export interface SignupFilters {
   encounter: string;
   partyType: string;
-  role: string;
   search: string;
 }
 
@@ -12,7 +11,6 @@ export function useFiltering(signups: SignupDisplayData[]) {
   const [filters, setFilters] = useState<SignupFilters>({
     encounter: '',
     partyType: '',
-    role: '',
     search: '',
   });
 
@@ -22,10 +20,9 @@ export function useFiltering(signups: SignupDisplayData[]) {
         return false;
       if (filters.partyType && signup.partyStatus !== filters.partyType)
         return false;
-      if (filters.role && signup.role !== filters.role) return false;
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
-        const matchesName = signup.characterName
+        const matchesName = signup.character
           .toLowerCase()
           .includes(searchLower);
         const matchesWorld = signup.world.toLowerCase().includes(searchLower);

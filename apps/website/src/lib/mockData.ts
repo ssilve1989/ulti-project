@@ -232,7 +232,7 @@ function generateMockSignups(): SignupDisplayData[] {
 
     signups.push({
       id: i.toString(),
-      characterName:
+      character:
         characterNames[Math.floor(Math.random() * characterNames.length)],
       world: worlds[Math.floor(Math.random() * worlds.length)],
       encounter: encounter as any,
