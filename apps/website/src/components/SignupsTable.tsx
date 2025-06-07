@@ -2,10 +2,11 @@ import type {
   EncounterInfo,
   SignupDisplayData,
 } from '@ulti-project/shared/types';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type SignupChangeEvent,
   createSignupsEventSource,
+  devControls,
   getInitialSignups,
 } from '../lib/api.js';
 
@@ -18,6 +19,9 @@ export function SignupsTable() {
   const [error, setError] = useState<string | null>(null);
   const [recentlyUpdated, setRecentlyUpdated] = useState<Set<string>>(
     new Set(),
+  );
+  const [useMockData, setUseMockData] = useState(
+    devControls?.useMockData() ?? false,
   );
 
   // UI State
@@ -52,6 +56,8 @@ export function SignupsTable() {
 
     // Listen for mock data toggle changes
     const handleMockDataChange = () => {
+      // Update mock data state
+      setUseMockData(devControls?.useMockData() ?? false);
       loadInitialData();
     };
 
@@ -174,10 +180,19 @@ export function SignupsTable() {
   const paginatedSignups = filteredSignups.slice(startIndex, endIndex);
 
   // Reset to page 1 when filters change
-  const filtersString = JSON.stringify(filters);
+  const prevFiltersRef = useRef(filters);
   useEffect(() => {
-    setCurrentPage(1);
-  }, [filtersString]);
+    const filtersChanged =
+      prevFiltersRef.current.encounter !== filters.encounter ||
+      prevFiltersRef.current.partyType !== filters.partyType ||
+      prevFiltersRef.current.role !== filters.role ||
+      prevFiltersRef.current.search !== filters.search;
+
+    if (filtersChanged) {
+      setCurrentPage(1);
+      prevFiltersRef.current = filters;
+    }
+  });
 
   // Pagination controls
   const goToPage = (page: number) => {
@@ -256,15 +271,17 @@ export function SignupsTable() {
 
   return (
     <div>
-      {/* Connection Status */}
-      <div className="connection-status">
-        <div
-          className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}
-        >
-          <span className="status-dot" />
-          {isConnected ? 'Live Updates Active' : 'Connecting...'}
+      {/* Connection Status - only show when not using mock data */}
+      {!useMockData && (
+        <div className="connection-status">
+          <div
+            className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}
+          >
+            <span className="status-dot" />
+            {isConnected ? 'Live Updates Active' : 'Connecting...'}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Filters */}
       <div className="filters-container">
@@ -460,11 +477,11 @@ export function SignupsTable() {
             </button>
 
             {/* Page numbers */}
-            {getPageNumbers().map((page, index) => {
+            {getPageNumbers().map((page) => {
               if (page === '...') {
                 return (
                   <span
-                    key={`ellipsis-${index}`}
+                    key={`ellipsis-${Math.random()}`}
                     className="pagination-ellipsis"
                   >
                     ...
