@@ -17,8 +17,11 @@ export const configSchema = z.object({
         ),
     )
     .default(['ultimate']),
+  BETTER_AUTH_SECRET: z.string(),
+  BETTER_AUTH_BASE_URL: z.string().default('http://localhost:3000'),
   CLIENT_ID: z.string(),
   DISCORD_TOKEN: z.string(),
+  DISCORD_OAUTH_TOKEN: z.string(),
   DISCORD_REFRESH_COMMANDS: z.coerce.boolean().default(false),
   FFLOGS_API_ACCESS_TOKEN: z.string().optional(),
   GCP_PRIVATE_KEY: z.string(),

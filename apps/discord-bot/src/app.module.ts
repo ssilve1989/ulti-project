@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { LoggerModule } from 'nestjs-pino';
+import { AuthModule } from './api/auth/auth.module.js';
 import { type AppConfig, configSchema } from './app.config.js';
 import { AppController } from './app.controller.js';
 import { AppSagas } from './app.sagas.js';
@@ -23,6 +24,7 @@ import { TurboProgModule } from './slash-commands/turboprog/turbo-prog.module.js
 
 @Module({
   imports: [
+    AuthModule,
     BlacklistModule,
     RemoveRoleModule,
     CqrsModule,

@@ -1,5 +1,6 @@
 ---
 import { DevMockDataToggle } from '../components/DevMockDataToggle';
+import { DiscordLoginButton } from '../components/DiscordLoginButton';
 
 export interface Props {
   title: string;
@@ -44,10 +45,7 @@ const isDevelopment = import.meta.env.DEV;
             <a href="/signups" class="nav-link">
               Signups
             </a>
-            <a href="https://discord.gg/sausfest" target="_blank" rel="noopener noreferrer" 
-               class="nav-cta">
-              Join Discord
-            </a>
+            <DiscordLoginButton client:load />
           </div>
         </div>
       </nav>
@@ -378,6 +376,82 @@ const isDevelopment = import.meta.env.DEV;
     background-color: var(--bg-accent-hover);
   }
 
+  /* Discord Login Button & User Menu */
+  :global(.discord-login) {
+    background-color: #5865f2;
+    color: var(--text-inverse);
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    border: none;
+    cursor: pointer;
+  }
+  
+  :global(.discord-login:hover) {
+    background-color: #4752c4;
+  }
+  
+  :global(.discord-login:disabled) {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  :global(.user-menu) {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  :global(.user-info) {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  :global(.user-avatar) {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 2px solid var(--border-primary);
+  }
+  
+  :global(.user-name) {
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  
+  :global(.sign-out-button) {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-primary);
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  :global(.sign-out-button:hover) {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+  
+  :global(.sign-out-button:disabled) {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  :global(.loading) {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    cursor: default;
+  }
+
   /* Main Content */
   .main-content {
     flex: 1;
@@ -472,6 +546,24 @@ const isDevelopment = import.meta.env.DEV;
     :global(.dev-toggle-text) {
       font-size: 0.625rem;
       min-width: 3rem;
+    }
+    
+    :global(.user-menu) {
+      gap: 0.5rem;
+    }
+    
+    :global(.user-name) {
+      display: none;
+    }
+    
+    :global(.user-avatar) {
+      width: 1.75rem;
+      height: 1.75rem;
+    }
+    
+    :global(.sign-out-button) {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.625rem;
     }
   }
 </style> 
