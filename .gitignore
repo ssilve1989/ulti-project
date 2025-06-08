@@ -44,3 +44,4 @@ pr-description.md
 
 **/.astro
 **/*.tsbuildinfo
+**/*.db
