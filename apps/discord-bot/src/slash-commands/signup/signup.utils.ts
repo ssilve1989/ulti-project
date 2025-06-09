@@ -1,5 +1,5 @@
+import { PartyStatus } from '@ulti-project/shared';
 import {
-  PartyStatus,
   type SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';

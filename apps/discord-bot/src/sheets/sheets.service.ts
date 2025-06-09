@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { SentryTraced } from '@sentry/nestjs';
 import * as Sentry from '@sentry/nestjs';
+import { PartyStatus } from '@ulti-project/shared';
 import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
@@ -10,10 +11,7 @@ import {
   Encounter,
   EncounterProgPoints,
 } from '../encounters/encounters.consts.js';
-import {
-  PartyStatus,
-  type SignupDocument,
-} from '../firebase/models/signup.model.js';
+import { type SignupDocument } from '../firebase/models/signup.model.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
 import type { TurboProgEntry } from '../slash-commands/turboprog/turbo-prog.interfaces.js';
 import { sheetsConfig } from './sheets.config.js';

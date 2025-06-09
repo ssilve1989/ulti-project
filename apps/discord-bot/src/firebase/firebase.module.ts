@@ -11,7 +11,6 @@ import { SignupCollection } from './collections/signup.collection.js';
 import { SignupDocumentCache } from './collections/utils/signup-document.cache.js';
 import { firebaseConfig } from './firebase.config.js';
 import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
-import { FirebaseController } from './firebase.controller.js';
 
 @Module({
   imports: [
@@ -65,7 +64,7 @@ import { FirebaseController } from './firebase.controller.js';
     SettingsCollection,
     BlacklistCollection,
     JobCollection,
+    SignupDocumentCache,
   ],
-  controllers: [FirebaseController],
 })
 export class FirebaseModule {}

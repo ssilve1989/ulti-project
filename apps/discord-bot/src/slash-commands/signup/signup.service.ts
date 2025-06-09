@@ -7,6 +7,7 @@ import {
 import { EventBus } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
 import * as Sentry from '@sentry/nestjs';
+import { PartyStatus } from '@ulti-project/shared';
 import {
   ActionRowBuilder,
   DiscordjsErrorCodes,
@@ -47,7 +48,6 @@ import { SignupCollection } from '../../firebase/collections/signup.collection.j
 import { DocumentNotFoundException } from '../../firebase/firebase.exceptions.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import {
-  PartyStatus,
   type SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';

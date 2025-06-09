@@ -1,5 +1,5 @@
+import { PartyStatus } from '@ulti-project/shared';
 import type { ApplicationMode, ApplicationModeConfig } from '../app.config.js';
-import { PartyStatus } from '../firebase/models/signup.model.js';
 
 export enum Encounter {
   TOP = 'TOP',

@@ -1,3 +1,4 @@
+import { PartyStatus } from '@ulti-project/shared';
 import { Timestamp } from 'firebase-admin/firestore';
 import { Encounter } from '../../encounters/encounters.consts.js';
 
@@ -9,13 +10,6 @@ export enum SignupStatus {
 }
 
 export type SignupStatusValues = keyof { [K in SignupStatus]: any };
-
-export enum PartyStatus {
-  EarlyProgParty = 'Early Prog Party',
-  ProgParty = 'Prog Party',
-  ClearParty = 'Clear Party',
-  Cleared = 'Cleared',
-}
 
 export interface SignupDocument {
   availability: string;

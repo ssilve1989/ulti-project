@@ -1,4 +1,4 @@
-import { PartyStatus } from '../firebase/models/signup.model.js';
+import { PartyStatus } from '@ulti-project/shared';
 
 export const SHEETS_CLIENT = '@goolge/sheets-client';
 

@@ -1,12 +1,12 @@
 import { CommandHandler } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
 import * as Sentry from '@sentry/nestjs';
+import { PartyStatus } from '@ulti-project/shared';
 import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { P, match } from 'ts-pattern';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
 import {
-  PartyStatus,
   type SignupDocument,
   SignupStatus,
 } from '../../../../firebase/models/signup.model.js';

@@ -119,7 +119,7 @@ export async function getInitialSignups(): Promise<SignupsResponse> {
 
   return new Promise((resolve, reject) => {
     const baseUrl = getBaseUrl();
-    const eventSource = new EventSource(`${baseUrl}/api/firestore/signups`);
+    const eventSource = new EventSource(`${baseUrl}/api/signups`);
     const signups: SignupDisplayData[] = [];
     let hasReceivedData = false;
 

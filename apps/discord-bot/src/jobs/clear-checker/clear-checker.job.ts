@@ -8,6 +8,7 @@ import {
 import type { ConfigType } from '@nestjs/config';
 import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
+import { PartyStatus } from '@ulti-project/shared';
 import { CronJob } from 'cron';
 import { EmbedBuilder } from 'discord.js';
 import {
@@ -28,10 +29,7 @@ import { FFLogsService } from '../../fflogs/fflogs.service.js';
 import { JobCollection } from '../../firebase/collections/job/job.collection.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import {
-  PartyStatus,
-  type SignupDocument,
-} from '../../firebase/models/signup.model.js';
+import { type SignupDocument } from '../../firebase/models/signup.model.js';
 import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import { RemoveSignupEvent } from '../../slash-commands/signup/subcommands/remove-signup/remove-signup.events.js';

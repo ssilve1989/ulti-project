@@ -1,8 +1,8 @@
+import { PartyStatus } from '@ulti-project/shared';
 import {
   type SelectMenuComponentOptionData,
   StringSelectMenuBuilder,
 } from 'discord.js';
-import { PartyStatus } from '../firebase/models/signup.model.js';
 import {
   Encounter,
   EncounterProgPoints,

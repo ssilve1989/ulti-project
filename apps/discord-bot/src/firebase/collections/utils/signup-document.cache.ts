@@ -35,6 +35,12 @@ class SignupDocumentCache implements OnModuleInit {
     });
   }
 
+  public getStats() {
+    return {
+      totalSignups: this.cache.size,
+    };
+  }
+
   public getStream(): Observable<{
     type: DocumentChangeType;
     doc: SignupDocument;

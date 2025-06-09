@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
+import { PartyStatus } from '@ulti-project/shared';
 import { Colors, EmbedBuilder, Message, User, userMention } from 'discord.js';
 import {
   characterField,
@@ -13,10 +14,7 @@ import {
   EncounterEmoji,
   EncounterFriendlyDescription,
 } from '../../../../encounters/encounters.consts.js';
-import {
-  PartyStatus,
-  type SignupDocument,
-} from '../../../../firebase/models/signup.model.js';
+import { type SignupDocument } from '../../../../firebase/models/signup.model.js';
 import { SignupApprovedEvent } from '../signup.events.js';
 
 @EventsHandler(SignupApprovedEvent)

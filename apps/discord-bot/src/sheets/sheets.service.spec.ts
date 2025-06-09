@@ -1,8 +1,8 @@
 import { sheets_v4 } from '@googleapis/sheets';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
+import { PartyStatus } from '@ulti-project/shared';
 import { Encounter } from '../encounters/encounters.consts.js';
-import { PartyStatus } from '../firebase/models/signup.model.js';
 import { sheetsConfig } from './sheets.config.js';
 import { SHEETS_CLIENT } from './sheets.consts.js';
 import { SheetsService } from './sheets.service.js';

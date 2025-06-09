@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { LoggerModule } from 'nestjs-pino';
-import { AuthModule } from './api/auth/auth.module.js';
+import { ApiModule } from './api/api.module.js';
 import { type AppConfig, configSchema } from './app.config.js';
 import { AppController } from './app.controller.js';
 import { AppSagas } from './app.sagas.js';
@@ -24,7 +24,7 @@ import { TurboProgModule } from './slash-commands/turboprog/turbo-prog.module.js
 
 @Module({
   imports: [
-    AuthModule,
+    ApiModule,
     BlacklistModule,
     RemoveRoleModule,
     CqrsModule,
@@ -44,10 +44,10 @@ import { TurboProgModule } from './slash-commands/turboprog/turbo-prog.module.js
       cache: true,
       envFilePath: ['.env', '.env.development'],
       ignoreEnvFile: process.env.NODE_ENV === 'production',
-      // Note: `passthrough` is required or the values parsed by the env files will not
+      // Note: `loose` is required or the values parsed by the env files will not
       // be assigned to `process.env`. This means all ConfigModule.forFeature invocations will fail
       // since nothing will be on process.env that is sourced from .env files
-      validate: (config) => configSchema.passthrough().parse(config),
+      validate: (config) => configSchema.loose().parse(config),
     }),
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
