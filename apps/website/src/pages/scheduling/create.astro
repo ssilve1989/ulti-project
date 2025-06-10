@@ -194,6 +194,7 @@ const defaultDuration = {
 
       try {
         const event = await createEvent({
+          guildId: __GUILD_ID__,
           name: formData.get('name') as string,
           encounter: formData.get('encounter') as Encounter,
           scheduledTime,

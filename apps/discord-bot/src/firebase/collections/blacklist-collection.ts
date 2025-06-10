@@ -99,10 +99,17 @@ class BlacklistCollection {
     return res.docs[0];
   }
 
+  /**
+   * @deprecated - use getGuildCollection instead
+   * @param guildId
+   * @returns
+   */
   private getCollection(
     guildId: string,
   ): CollectionReference<BlacklistDocument> {
-    return this.firestore.collection(`blacklist/${guildId}/documents`);
+    return this.firestore.collection(
+      `blacklist/${guildId}/documents`,
+    ) as CollectionReference<BlacklistDocument>;
   }
 }
 

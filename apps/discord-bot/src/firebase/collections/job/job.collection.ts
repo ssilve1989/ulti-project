@@ -25,6 +25,11 @@ class JobCollection {
     await this.getCollection(guildId).doc(job.name).set(job, { merge: true });
   }
 
+  /**
+   * @deprecated - use getGuildCollection instead
+   * @param guildId
+   * @returns
+   */
   private getCollection(guildId: string) {
     return this.firestore.collection(
       `guilds/${guildId}/jobs`,

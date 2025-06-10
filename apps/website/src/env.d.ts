@@ -9,3 +9,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// Global variables defined in astro.config.mjs
+declare const __GUILD_ID__: string;

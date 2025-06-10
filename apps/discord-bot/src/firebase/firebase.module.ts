@@ -5,6 +5,7 @@ import { type App, cert, initializeApp } from 'firebase-admin/app';
 import { type Firestore, getFirestore } from 'firebase-admin/firestore';
 import type { AppConfig } from '../app.config.js';
 import { BlacklistCollection } from './collections/blacklist-collection.js';
+import { EventsCollection } from './collections/events.collection.js';
 import { JobCollection } from './collections/job/job.collection.js';
 import { SettingsCollection } from './collections/settings-collection.js';
 import { SignupCollection } from './collections/signup.collection.js';
@@ -57,6 +58,7 @@ import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
     BlacklistCollection,
     JobCollection,
     SignupDocumentCache,
+    EventsCollection,
   ],
   exports: [
     FIRESTORE,
@@ -65,6 +67,7 @@ import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
     BlacklistCollection,
     JobCollection,
     SignupDocumentCache,
+    EventsCollection,
   ],
 })
 export class FirebaseModule {}

@@ -1,5 +1,5 @@
-import { Encounter } from '@ulti-project/shared';
-import type { Participant } from '@ulti-project/shared';
+import { Encounter, ParticipantType } from '@ulti-project/shared';
+import type { Job, Participant } from '@ulti-project/shared';
 import { MOCK_CONFIG, delay } from './config.js';
 import { getHelperById } from './helpers.js';
 
@@ -7,96 +7,96 @@ import { getHelperById } from './helpers.js';
 // For now, creating some mock proggers that match the scheduling system requirements
 const mockProggers: Participant[] = [
   {
-    type: 'progger',
+    type: ParticipantType.Progger,
     id: 'progger-1',
     discordId: '111111111111111111',
     name: 'ProggerOne',
     characterName: 'Warrior Light',
-    job: 'Black Mage',
+    job: 'Black Mage' as Job,
     encounter: Encounter.FRU,
     progPoint: 'P2 Light Rampant',
     availability: 'Tuesday 8PM EST, Thursday 8PM EST',
     isConfirmed: false,
   },
   {
-    type: 'progger',
+    type: ParticipantType.Progger,
     id: 'progger-2',
     discordId: '222222222222222222',
     name: 'ProggerTwo',
     characterName: 'Astral Healer',
-    job: 'White Mage',
+    job: 'White Mage' as Job,
     encounter: Encounter.FRU,
     progPoint: 'P5 Fulgent Blade 1 (Exalines 1)',
     availability: 'Monday 7PM EST, Wednesday 7PM EST, Friday 7PM EST',
     isConfirmed: false,
   },
   {
-    type: 'progger',
+    type: ParticipantType.Progger,
     id: 'progger-3',
     discordId: '333333333333333333',
     name: 'ProggerThree',
     characterName: 'Aether Striker',
-    job: 'Dragoon',
+    job: 'Dragoon' as Job,
     encounter: Encounter.FRU,
     progPoint: 'P2 Light Rampant',
     availability: 'Thursday 9PM EST, Saturday 8PM EST',
     isConfirmed: false,
   },
   {
-    type: 'progger',
+    type: ParticipantType.Progger,
     id: 'progger-4',
     discordId: '444444444444444444',
     name: 'ProggerFour',
     characterName: 'Crystal Guardian',
-    job: 'Paladin',
+    job: 'Paladin' as Job,
     encounter: Encounter.TOP,
     progPoint: 'P2 Party Synergy',
     availability: 'Monday 8PM EST, Wednesday 8PM EST',
     isConfirmed: false,
   },
   {
-    type: 'progger',
+    type: ParticipantType.Progger,
     id: 'progger-5',
     discordId: '555555555555555555',
     name: 'ProggerFive',
     characterName: 'Void Caster',
-    job: 'Summoner',
+    job: 'Summoner' as Job,
     encounter: Encounter.DSR,
     progPoint: 'P3 Strength of the Ward',
     availability: 'Tuesday 7PM EST, Friday 8PM EST',
     isConfirmed: false,
   },
   {
-    type: 'progger',
+    type: ParticipantType.Progger,
     id: 'progger-6',
     discordId: '666666666666666666',
     name: 'ProggerSix',
     characterName: 'Divine Scholar',
-    job: 'Scholar',
+    job: 'Scholar' as Job,
     encounter: Encounter.TEA,
     progPoint: 'P3 Temporal Stasis',
     availability: 'Sunday 6PM EST, Thursday 7PM EST',
     isConfirmed: false,
   },
   {
-    type: 'progger',
+    type: ParticipantType.Progger,
     id: 'progger-7',
     discordId: '777777777777777777',
     name: 'ProggerSeven',
     characterName: 'Storm Breaker',
-    job: 'Warrior',
+    job: 'Warrior' as Job,
     encounter: Encounter.UWU,
     progPoint: 'P3 Titan',
     availability: 'Wednesday 9PM EST, Saturday 7PM EST',
     isConfirmed: false,
   },
   {
-    type: 'progger',
+    type: ParticipantType.Progger,
     id: 'progger-8',
     discordId: '888888888888888888',
     name: 'ProggerEight',
     characterName: 'Lunar Sage',
-    job: 'Astrologian',
+    job: 'Astrologian' as Job,
     encounter: Encounter.UCOB,
     progPoint: 'P2 Nael',
     availability: 'Monday 9PM EST, Friday 7PM EST',
@@ -165,7 +165,7 @@ export async function getAllParticipants(filters?: {
       for (const helperJob of helper.availableJobs) {
         if (!filters?.role || helperJob.role === filters.role) {
           participants.push({
-            type: 'helper',
+            type: ParticipantType.Helper,
             id: helper.id,
             discordId: helper.discordId,
             name: helper.name,
@@ -199,7 +199,7 @@ export async function getParticipant(
   if (!firstJob) return null;
 
   return {
-    type: 'helper',
+    type: ParticipantType.Helper,
     id: helper.id,
     discordId: helper.discordId,
     name: helper.name,

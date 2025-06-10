@@ -1,4 +1,4 @@
-import { Encounter } from '@ulti-project/shared';
+import { Encounter, ParticipantType, Role } from '@ulti-project/shared';
 import type {
   AssignParticipantRequest,
   CreateEventRequest,
@@ -31,16 +31,16 @@ function createEmptyRoster(partyCount = 1): EventRoster {
   for (let i = 0; i < partyCount; i++) {
     const party: PartySlot[] = [
       // Tanks
-      { id: `party-${i}-tank-1`, role: 'Tank', isHelperSlot: false },
-      { id: `party-${i}-tank-2`, role: 'Tank', isHelperSlot: false },
+      { id: `party-${i}-tank-1`, role: Role.Tank, isHelperSlot: false },
+      { id: `party-${i}-tank-2`, role: Role.Tank, isHelperSlot: false },
       // Healers
-      { id: `party-${i}-healer-1`, role: 'Healer', isHelperSlot: false },
-      { id: `party-${i}-healer-2`, role: 'Healer', isHelperSlot: false },
+      { id: `party-${i}-healer-1`, role: Role.Healer, isHelperSlot: false },
+      { id: `party-${i}-healer-2`, role: Role.Healer, isHelperSlot: false },
       // DPS
-      { id: `party-${i}-dps-1`, role: 'DPS', isHelperSlot: false },
-      { id: `party-${i}-dps-2`, role: 'DPS', isHelperSlot: false },
-      { id: `party-${i}-dps-3`, role: 'DPS', isHelperSlot: false },
-      { id: `party-${i}-dps-4`, role: 'DPS', isHelperSlot: false },
+      { id: `party-${i}-dps-1`, role: Role.DPS, isHelperSlot: false },
+      { id: `party-${i}-dps-2`, role: Role.DPS, isHelperSlot: false },
+      { id: `party-${i}-dps-3`, role: Role.DPS, isHelperSlot: false },
+      { id: `party-${i}-dps-4`, role: Role.DPS, isHelperSlot: false },
     ];
     parties.push(party);
   }
@@ -60,23 +60,23 @@ function createPartiallyFilledRoster(): EventRoster {
     // Tanks - one filled with a helper, one empty
     {
       id: 'party-0-tank-1',
-      role: 'Tank',
+      role: Role.Tank,
       isHelperSlot: true,
       assignedParticipant: {
-        type: 'helper',
+        type: ParticipantType.Helper,
         id: 'helper-2', // HealBot (who is always available)
         discordId: '234567890123456789',
         name: 'HealBot',
-        job: 'Paladin',
+        job: 'Paladin' as const,
         isConfirmed: false,
       },
     },
-    { id: 'party-0-tank-2', role: 'Tank', isHelperSlot: false },
+    { id: 'party-0-tank-2', role: Role.Tank, isHelperSlot: false },
 
     // Healers - one filled with an unavailable helper, one empty
     {
       id: 'party-0-healer-1',
-      role: 'Healer',
+      role: Role.Healer,
       isHelperSlot: true,
       assignedParticipant: {
         type: 'helper',
@@ -87,12 +87,12 @@ function createPartiallyFilledRoster(): EventRoster {
         isConfirmed: false,
       },
     },
-    { id: 'party-0-healer-2', role: 'Healer', isHelperSlot: false },
+    { id: 'party-0-healer-2', role: Role.Healer, isHelperSlot: false },
 
     // DPS - mix of helpers and proggers
     {
       id: 'party-0-dps-1',
-      role: 'DPS',
+      role: Role.DPS,
       isHelperSlot: false,
       assignedParticipant: {
         type: 'progger',
@@ -109,7 +109,7 @@ function createPartiallyFilledRoster(): EventRoster {
     },
     {
       id: 'party-0-dps-2',
-      role: 'DPS',
+      role: Role.DPS,
       isHelperSlot: true,
       assignedParticipant: {
         type: 'helper',
@@ -120,8 +120,8 @@ function createPartiallyFilledRoster(): EventRoster {
         isConfirmed: false,
       },
     },
-    { id: 'party-0-dps-3', role: 'DPS', isHelperSlot: false },
-    { id: 'party-0-dps-4', role: 'DPS', isHelperSlot: false },
+    { id: 'party-0-dps-3', role: Role.DPS, isHelperSlot: false },
+    { id: 'party-0-dps-4', role: Role.DPS, isHelperSlot: false },
   ];
 
   parties.push(party);

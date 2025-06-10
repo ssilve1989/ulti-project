@@ -2,6 +2,8 @@ import type {
   HelperAbsence,
   HelperData,
   HelperWeeklyAvailability,
+  Job,
+  Role,
 } from '@ulti-project/shared';
 import { MOCK_CONFIG, delay } from './config.js';
 
@@ -12,9 +14,9 @@ const mockHelpers: HelperData[] = [
     discordId: '123456789012345678',
     name: 'TankMaster',
     availableJobs: [
-      { job: 'Paladin', role: 'Tank' },
-      { job: 'Warrior', role: 'Tank' },
-      { job: 'Dark Knight', role: 'Tank' },
+      { job: 'Paladin' as Job, role: 'Tank' as Role },
+      { job: 'Warrior' as Job, role: 'Tank' as Role },
+      { job: 'Dark Knight' as Job, role: 'Tank' as Role },
     ],
     weeklyAvailability: [
       // Monday - Wednesday evenings (restrictive schedule)
@@ -37,10 +39,10 @@ const mockHelpers: HelperData[] = [
     discordId: '234567890123456789',
     name: 'HealBot',
     availableJobs: [
-      { job: 'White Mage', role: 'Healer' },
-      { job: 'Scholar', role: 'Healer' },
-      { job: 'Astrologian', role: 'Healer' },
-      { job: 'Sage', role: 'Healer' },
+      { job: 'White Mage' as Job, role: 'Healer' as Role },
+      { job: 'Scholar' as Job, role: 'Healer' as Role },
+      { job: 'Astrologian' as Job, role: 'Healer' as Role },
+      { job: 'Sage' as Job, role: 'Healer' as Role },
     ],
     // No weeklyAvailability - defaults to always available
   },
@@ -49,10 +51,10 @@ const mockHelpers: HelperData[] = [
     discordId: '345678901234567890',
     name: 'DPSGod',
     availableJobs: [
-      { job: 'Black Mage', role: 'DPS' },
-      { job: 'Summoner', role: 'DPS' },
-      { job: 'Red Mage', role: 'DPS' },
-      { job: 'Dragoon', role: 'DPS' },
+      { job: 'Black Mage' as Job, role: 'DPS' as Role },
+      { job: 'Summoner' as Job, role: 'DPS' as Role },
+      { job: 'Red Mage' as Job, role: 'DPS' as Role },
+      { job: 'Dragoon' as Job, role: 'DPS' as Role },
     ],
     weeklyAvailability: [
       // Very limited schedule - only Tuesday and Thursday evenings
@@ -65,10 +67,10 @@ const mockHelpers: HelperData[] = [
     discordId: '456789012345678901',
     name: 'FlexPlayer',
     availableJobs: [
-      { job: 'Gunbreaker', role: 'Tank' },
-      { job: 'Sage', role: 'Healer' },
-      { job: 'Reaper', role: 'DPS' },
-      { job: 'Dancer', role: 'DPS' },
+      { job: 'Gunbreaker' as Job, role: 'Tank' as Role },
+      { job: 'Sage' as Job, role: 'Healer' as Role },
+      { job: 'Reaper' as Job, role: 'DPS' as Role },
+      { job: 'Dancer' as Job, role: 'DPS' as Role },
     ],
     // No weeklyAvailability - defaults to always available (very flexible player)
   },
@@ -77,9 +79,9 @@ const mockHelpers: HelperData[] = [
     discordId: '567890123456789012',
     name: 'RangedExpert',
     availableJobs: [
-      { job: 'Bard', role: 'DPS' },
-      { job: 'Machinist', role: 'DPS' },
-      { job: 'Dancer', role: 'DPS' },
+      { job: 'Bard' as Job, role: 'DPS' as Role },
+      { job: 'Machinist' as Job, role: 'DPS' as Role },
+      { job: 'Dancer' as Job, role: 'DPS' as Role },
     ],
     weeklyAvailability: [
       // Weekend only availability
@@ -92,11 +94,11 @@ const mockHelpers: HelperData[] = [
     discordId: '678901234567890123',
     name: 'MeleeMain',
     availableJobs: [
-      { job: 'Monk', role: 'DPS' },
-      { job: 'Dragoon', role: 'DPS' },
-      { job: 'Ninja', role: 'DPS' },
-      { job: 'Samurai', role: 'DPS' },
-      { job: 'Reaper', role: 'DPS' },
+      { job: 'Monk' as Job, role: 'DPS' as Role },
+      { job: 'Dragoon' as Job, role: 'DPS' as Role },
+      { job: 'Ninja' as Job, role: 'DPS' as Role },
+      { job: 'Samurai' as Job, role: 'DPS' as Role },
+      { job: 'Reaper' as Job, role: 'DPS' as Role },
     ],
     // No weeklyAvailability - defaults to always available
   },
