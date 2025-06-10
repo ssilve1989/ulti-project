@@ -16,6 +16,7 @@ import {
   isHelperAvailableForEvent,
 } from '../../lib/schedulingApi.js';
 import { getJobRole } from '../../lib/utils/jobUtils.js';
+import { getParticipantStatusColor } from '../../lib/utils/statusUtils.js';
 
 interface ParticipantPoolProps {
   event: ScheduledEvent;
@@ -295,7 +296,7 @@ export default function ParticipantPool({
         return {
           type: 'selected',
           label: 'Selected',
-          color: 'bg-green-100 text-green-800',
+          color: getParticipantStatusColor('selected'),
         };
       }
 
@@ -314,7 +315,7 @@ export default function ParticipantPool({
         return {
           type: 'locked',
           label: `Locked by ${lock.lockedByName || 'Unknown'} (${minutesLeft}m)`,
-          color: 'bg-yellow-100 text-yellow-800',
+          color: getParticipantStatusColor('locked'),
         };
       }
 
@@ -332,7 +333,7 @@ export default function ParticipantPool({
           return {
             type: 'unavailable',
             label,
-            color: 'bg-red-100 text-red-800',
+            color: getParticipantStatusColor('unavailable'),
           };
         }
       }
@@ -340,14 +341,14 @@ export default function ParticipantPool({
       return {
         type: 'available',
         label: 'Available',
-        color: 'bg-gray-100 text-gray-600',
+        color: getParticipantStatusColor('available'),
       };
     } catch (err) {
       console.warn('Error getting participant status:', participant, err);
       return {
         type: 'available',
         label: 'Available',
-        color: 'bg-gray-100 text-gray-600',
+        color: getParticipantStatusColor('available'),
       };
     }
   };

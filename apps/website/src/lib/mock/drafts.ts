@@ -65,8 +65,6 @@ export async function lockParticipant(
 ): Promise<DraftLock> {
   await delay(MOCK_CONFIG.delays.fast);
 
-  const lockKey = `${request.participantType}-${request.participantId}`;
-
   // Check for existing lock
   const existingLock = Array.from(activeLocks.values()).find(
     (lock) =>

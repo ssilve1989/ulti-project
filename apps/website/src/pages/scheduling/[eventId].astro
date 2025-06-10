@@ -2,6 +2,8 @@
 import RosterManagement from '../../components/scheduling/RosterManagement.js';
 import Layout from '../../layouts/Layout.astro';
 import { getEvent, getEvents } from '../../lib/schedulingApi.js';
+import { getEventStatusColor } from '../../lib/utils/statusUtils.js';
+import { formatEventDate } from '../../lib/utils/uiUtils.js';
 
 // Generate static paths for all existing events
 export async function getStaticPaths() {
@@ -15,28 +17,6 @@ export async function getStaticPaths() {
 
 // Get the event from props (pre-fetched in getStaticPaths)
 const { event } = Astro.props;
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZoneName: 'short'
-  }).format(date);
-}
-
-function getStatusColor(status: string): string {
-  switch (status) {
-    case 'draft': return 'bg-yellow-100 text-yellow-800';
-    case 'published': return 'bg-blue-100 text-blue-800';
-    case 'in-progress': return 'bg-green-100 text-green-800';
-    case 'completed': return 'bg-gray-100 text-gray-800';
-    case 'cancelled': return 'bg-red-100 text-red-800';
-    default: return 'bg-gray-100 text-gray-800';
-  }
-}
 ---
 
 <Layout title={`${event.name} - Roster Management`}>
@@ -54,7 +34,7 @@ function getStatusColor(status: string): string {
             </svg>
             Back to Events
           </a>
-          <span class={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(event.status)}`}>
+          <span class={`px-3 py-1 rounded-full text-sm font-medium ${getEventStatusColor(event.status)}`}>
             {event.status}
           </span>
         </div>
@@ -75,7 +55,7 @@ function getStatusColor(status: string): string {
           
           <div>
             <h3 class="text-sm font-medium text-gray-500 mb-1">Scheduled Time</h3>
-            <p class="text-lg font-semibold text-gray-900">{formatDate(event.scheduledTime)}</p>
+            <p class="text-lg font-semibold text-gray-900">{formatEventDate(event.scheduledTime)}</p>
           </div>
           
           <div>

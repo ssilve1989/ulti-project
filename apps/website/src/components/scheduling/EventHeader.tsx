@@ -2,6 +2,8 @@ import { EventStatus } from '@ulti-project/shared';
 import type { ScheduledEvent } from '@ulti-project/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { deleteEvent, updateEvent } from '../../lib/schedulingApi.js';
+import { getEventStatusColorDashboard } from '../../lib/utils/statusUtils.js';
+import { getLoadingSpinnerClasses } from '../../lib/utils/uiUtils.js';
 
 interface EventHeaderProps {
   event: ScheduledEvent;
@@ -168,23 +170,6 @@ This action cannot be undone.`,
     return { isValid: true, message: '' };
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'published':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'in-progress':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
   const canPublish = event.status === 'draft' && event.roster.filledSlots > 0;
   const canSave = event.status === 'draft';
   const canCancel = ['draft', 'published'].includes(event.status);
@@ -211,7 +196,7 @@ This action cannot be undone.`,
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <span
-            className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(event.status)}`}
+            className={`px-3 py-1 rounded-full text-sm font-medium border ${getEventStatusColorDashboard(event.status)}`}
           >
             {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
           </span>
@@ -257,7 +242,12 @@ This action cannot be undone.`,
           >
             {loading === 'publish' ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                <div
+                  className={getLoadingSpinnerClasses({
+                    size: 'small',
+                    color: 'white',
+                  })}
+                />
                 Publishing...
               </>
             ) : (
@@ -300,7 +290,12 @@ This action cannot be undone.`,
           >
             {loading === 'save' ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600" />
+                <div
+                  className={getLoadingSpinnerClasses({
+                    size: 'small',
+                    color: 'gray',
+                  })}
+                />
                 Saving...
               </>
             ) : (
@@ -341,7 +336,12 @@ This action cannot be undone.`,
           >
             {loading === 'cancel' ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600" />
+                <div
+                  className={getLoadingSpinnerClasses({
+                    size: 'small',
+                    color: 'gray',
+                  })}
+                />
                 Canceling...
               </>
             ) : (

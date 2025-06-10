@@ -1,5 +1,10 @@
 import type { ScheduledEvent } from '@ulti-project/shared';
 import { useMemo } from 'react';
+import { getProgressColor, getRoleIcon } from '../../lib/utils/roleUtils.js';
+import {
+  getEventIcon,
+  getEventStatusColorDashboard,
+} from '../../lib/utils/statusUtils.js';
 
 interface EventStatusDashboardProps {
   event: ScheduledEvent;
@@ -60,61 +65,6 @@ export default function EventStatusDashboard({
     };
   }, [event.roster]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'published':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
-      case 'in-progress':
-        return 'text-green-600 bg-green-50 border-green-200';
-      case 'completed':
-        return 'text-gray-600 bg-gray-50 border-gray-200';
-      case 'cancelled':
-        return 'text-red-600 bg-red-50 border-red-200';
-      default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
-  };
-
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return 'bg-green-500';
-    if (percentage >= 75) return 'bg-blue-500';
-    if (percentage >= 50) return 'bg-yellow-500';
-    if (percentage >= 25) return 'bg-orange-500';
-    return 'bg-red-500';
-  };
-
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'Tank':
-        return '🛡️';
-      case 'Healer':
-        return '💚';
-      case 'DPS':
-        return '⚔️';
-      default:
-        return '❓';
-    }
-  };
-
-  const getEventIcon = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return '📝';
-      case 'published':
-        return '📢';
-      case 'in-progress':
-        return '⚔️';
-      case 'completed':
-        return '✅';
-      case 'cancelled':
-        return '❌';
-      default:
-        return '❓';
-    }
-  };
-
   const isReadyToPublish =
     stats.filledSlots > 0 &&
     stats.roleBreakdown.Tank.filled > 0 &&
@@ -138,7 +88,7 @@ export default function EventStatusDashboard({
         </div>
 
         <div
-          className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(event.status)}`}
+          className={`px-3 py-1 rounded-full text-sm font-medium border ${getEventStatusColorDashboard(event.status)}`}
         >
           {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
         </div>

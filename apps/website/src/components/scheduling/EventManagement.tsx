@@ -2,6 +2,8 @@ import { EventStatus } from '@ulti-project/shared';
 import type { ScheduledEvent } from '@ulti-project/shared';
 import { useEffect, useState } from 'react';
 import { deleteEvent, updateEvent } from '../../lib/schedulingApi.js';
+import { getEventStatusInfo } from '../../lib/utils/statusUtils.js';
+import { getLoadingSpinnerClasses } from '../../lib/utils/uiUtils.js';
 
 interface EventManagementProps {
   event: ScheduledEvent;
@@ -272,48 +274,7 @@ Continue?`,
     return { isValid: true, message: '' };
   };
 
-  const getStatusInfo = () => {
-    switch (event.status) {
-      case EventStatus.Draft:
-        return {
-          color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-          icon: '📝',
-          label: 'Draft',
-        };
-      case EventStatus.Published:
-        return {
-          color: 'bg-blue-100 text-blue-800 border-blue-200',
-          icon: '📢',
-          label: 'Published',
-        };
-      case EventStatus.InProgress:
-        return {
-          color: 'bg-green-100 text-green-800 border-green-200',
-          icon: '🎮',
-          label: 'In Progress',
-        };
-      case EventStatus.Completed:
-        return {
-          color: 'bg-gray-100 text-gray-800 border-gray-200',
-          icon: '✅',
-          label: 'Completed',
-        };
-      case EventStatus.Cancelled:
-        return {
-          color: 'bg-red-100 text-red-800 border-red-200',
-          icon: '❌',
-          label: 'Cancelled',
-        };
-      default:
-        return {
-          color: 'bg-gray-100 text-gray-800 border-gray-200',
-          icon: '❓',
-          label: 'Unknown',
-        };
-    }
-  };
-
-  const statusInfo = getStatusInfo();
+  const statusInfo = getEventStatusInfo(event.status);
   const canPublish =
     event.status === EventStatus.Draft && event.roster.filledSlots > 0;
   const canSave = event.status === EventStatus.Draft;
@@ -409,7 +370,12 @@ Continue?`,
             >
               {loading === 'publish' ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                  <div
+                    className={getLoadingSpinnerClasses({
+                      size: 'small',
+                      color: 'white',
+                    })}
+                  />
                   Publishing...
                 </>
               ) : (

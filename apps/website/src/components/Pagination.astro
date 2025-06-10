@@ -1,4 +1,6 @@
 ---
+import { getPaginationState } from '../lib/utils/paginationUtils.js';
+
 export interface Props {
   currentPage: number;
   totalPages: number;
@@ -8,40 +10,7 @@ export interface Props {
 
 const { currentPage, totalPages, pageSize, baseUrl = '/signups' } = Astro.props;
 
-// Generate array of page numbers to display
-function getPageNumbers(current: number, total: number) {
-  const pages = [];
-  const maxVisible = 5;
-  
-  if (total <= maxVisible) {
-    for (let i = 1; i <= total; i++) {
-      pages.push(i);
-    }
-  } else {
-    let start = Math.max(1, current - 2);
-    let end = Math.min(total, current + 2);
-    
-    if (end - start + 1 < maxVisible) {
-      if (start === 1) {
-        end = Math.min(total, start + maxVisible - 1);
-      } else {
-        start = Math.max(1, end - maxVisible + 1);
-      }
-    }
-    
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
-  }
-  
-  return pages;
-}
-
-const pageNumbers = getPageNumbers(currentPage, totalPages);
-const hasPrevious = currentPage > 1;
-const hasNext = currentPage < totalPages;
-const showFirstEllipsis = pageNumbers[0] > 2;
-const showLastEllipsis = pageNumbers[pageNumbers.length - 1] < totalPages - 1;
+const { pages: pageNumbers, hasPrevious, hasNext, showFirstEllipsis, showLastEllipsis } = getPaginationState(currentPage, totalPages);
 ---
 
 <div class="pagination-controls">
@@ -63,40 +32,20 @@ const showLastEllipsis = pageNumbers[pageNumbers.length - 1] < totalPages - 1;
     ⟨
   </a>
   
-  <!-- First page if not in range -->
-  {pageNumbers[0] > 1 && (
-    <a href={`${baseUrl}?page=1&pageSize=${pageSize}`} class="pagination-button">
-      1
-    </a>
-  )}
-  
-  <!-- First ellipsis -->
-  {showFirstEllipsis && (
-    <span class="pagination-ellipsis">...</span>
-  )}
-  
-  <!-- Page numbers -->
+  <!-- Page numbers and ellipsis -->
   {pageNumbers.map((pageNum) => (
-    <a 
-      href={`${baseUrl}?page=${pageNum}&pageSize=${pageSize}`}
-      class={`pagination-button ${pageNum === currentPage ? 'active' : ''}`}
-      aria-current={pageNum === currentPage ? 'page' : undefined}
-    >
-      {pageNum}
-    </a>
+    pageNum === '...' ? (
+      <span class="pagination-ellipsis">...</span>
+    ) : (
+      <a 
+        href={`${baseUrl}?page=${pageNum}&pageSize=${pageSize}`}
+        class={`pagination-button ${pageNum === currentPage ? 'active' : ''}`}
+        aria-current={pageNum === currentPage ? 'page' : undefined}
+      >
+        {pageNum}
+      </a>
+    )
   ))}
-  
-  <!-- Last ellipsis -->
-  {showLastEllipsis && (
-    <span class="pagination-ellipsis">...</span>
-  )}
-  
-  <!-- Last page if not in range -->
-  {pageNumbers[pageNumbers.length - 1] < totalPages && (
-    <a href={`${baseUrl}?page=${totalPages}&pageSize=${pageSize}`} class="pagination-button">
-      {totalPages}
-    </a>
-  )}
   
   <!-- Next & Last -->
   <a 

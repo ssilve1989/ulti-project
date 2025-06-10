@@ -1,7 +1,8 @@
 ---
-import type { ScheduledEvent } from '@ulti-project/shared';
 import Layout from '../../layouts/Layout.astro';
 import { getEvents } from '../../lib/schedulingApi.js';
+import { getEventStatusColor } from '../../lib/utils/statusUtils.js';
+import { formatSchedulingDate } from '../../lib/utils/uiUtils.js';
 
 // Fetch events on the server
 const events = await getEvents();
@@ -13,28 +14,6 @@ const eventsByStatus = {
   'in-progress': events.filter(e => e.status === 'in-progress'),
   completed: events.filter(e => e.status === 'completed'),
 };
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZoneName: 'short'
-  }).format(date);
-}
-
-function getStatusColor(status: ScheduledEvent['status']): string {
-  switch (status) {
-    case 'draft': return 'bg-yellow-100 text-yellow-800';
-    case 'published': return 'bg-blue-100 text-blue-800';
-    case 'in-progress': return 'bg-green-100 text-green-800';
-    case 'completed': return 'bg-gray-100 text-gray-800';
-    case 'cancelled': return 'bg-red-100 text-red-800';
-    default: return 'bg-gray-100 text-gray-800';
-  }
-}
 ---
 
 <Layout title="Event Scheduling">
@@ -71,7 +50,7 @@ function getStatusColor(status: ScheduledEvent['status']): string {
                       <h3 class="font-semibold text-gray-900 text-lg">{event.name}</h3>
                       <p class="text-sm text-gray-600">{event.encounter}</p>
                     </div>
-                    <span class={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(event.status)}`}>
+                    <span class={`px-2 py-1 rounded-full text-xs font-medium ${getEventStatusColor(event.status)}`}>
                       {event.status}
                     </span>
                   </div>
@@ -82,7 +61,7 @@ function getStatusColor(status: ScheduledEvent['status']): string {
                       <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                       </svg>
-                      {formatDate(event.scheduledTime)}
+                      {formatSchedulingDate(event.scheduledTime)}
                     </div>
                     
                     <div class="flex items-center text-sm text-gray-600">

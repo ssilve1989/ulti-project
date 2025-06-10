@@ -1,4 +1,4 @@
-import { generatePageNumbers } from './paginationUtils.js';
+import { generatePaginationPages } from '../../lib/utils/paginationUtils.js';
 import { useFiltering } from './useFiltering.js';
 import { usePagination } from './usePagination.js';
 import { useSignupsData } from './useSignupsData.js';
@@ -252,7 +252,7 @@ export function SignupsTable() {
             </button>
 
             {/* Page numbers */}
-            {generatePageNumbers(currentPage, totalPages).map((page) => {
+            {generatePaginationPages(currentPage, totalPages).map((page) => {
               if (page === '...') {
                 return (
                   <span
