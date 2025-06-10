@@ -1,9 +1,9 @@
+import { ParticipantType, Role } from '@ulti-project/shared';
 import type {
   DraftLock,
   Encounter,
   HelperData,
   Participant,
-  Role,
   ScheduledEvent,
 } from '@ulti-project/shared';
 import { useEffect, useMemo, useState } from 'react';
@@ -15,6 +15,7 @@ import {
   getHelpers,
   isHelperAvailableForEvent,
 } from '../../lib/schedulingApi.js';
+import { getJobRole } from '../../lib/utils/jobUtils.js';
 
 interface ParticipantPoolProps {
   event: ScheduledEvent;
@@ -171,17 +172,23 @@ export default function ParticipantPool({
   // Convert helpers to participants
   const helperParticipants = useMemo(() => {
     try {
-      return helpers.map((helper) => ({
-        type: 'helper' as const,
-        id: helper.id,
-        discordId: helper.discordId,
-        name: helper.name,
-        characterName: undefined,
-        job: helper.availableJobs?.[0]?.job || 'Paladin',
-        availability: undefined,
-        isConfirmed: false,
-        availableJobs: helper.availableJobs || [],
-      }));
+      return helpers.map(
+        (helper) =>
+          ({
+            type: ParticipantType.Helper,
+            id: helper.id,
+            discordId: helper.discordId,
+            name: helper.name,
+            characterName: undefined,
+            job: helper.availableJobs?.[0]?.job || 'Paladin',
+            encounter: undefined,
+            progPoint: undefined,
+            availability: undefined,
+            isConfirmed: false,
+            // Store availableJobs as a custom property for helpers
+            availableJobs: helper.availableJobs || [],
+          }) as Participant & { availableJobs: any[] },
+      );
     } catch (err) {
       console.warn('Error converting helpers to participants:', err);
       return [];
@@ -541,11 +548,14 @@ export default function ParticipantPool({
                           <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-800 rounded">
                             {participant.job}
                           </span>
-                          {participant.type === 'progger' && (
-                            <div className="text-xs text-gray-500 mt-1 truncate">
-                              {participant.encounter} • {participant.progPoint}
-                            </div>
-                          )}
+                          {participant.type === ParticipantType.Progger &&
+                            participant.encounter &&
+                            participant.progPoint && (
+                              <div className="text-xs text-gray-500 mt-1 truncate">
+                                {participant.encounter} •{' '}
+                                {participant.progPoint}
+                              </div>
+                            )}
                         </div>
                       )}
 
@@ -572,14 +582,4 @@ export default function ParticipantPool({
       </div>
     </div>
   );
-}
-
-// Helper function to determine role from job
-function getJobRole(job: string): Role {
-  const tankJobs = ['Paladin', 'Warrior', 'Dark Knight', 'Gunbreaker'];
-  const healerJobs = ['White Mage', 'Scholar', 'Astrologian', 'Sage'];
-
-  if (tankJobs.includes(job)) return 'Tank';
-  if (healerJobs.includes(job)) return 'Healer';
-  return 'DPS';
 }

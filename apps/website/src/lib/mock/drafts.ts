@@ -1,3 +1,4 @@
+import { ParticipantType } from '@ulti-project/shared';
 import type {
   ConflictError,
   DraftLock,
@@ -128,7 +129,7 @@ export async function releaseLock(
   eventId: string,
   teamLeaderId: string,
   participantId: string,
-  participantType: 'helper' | 'progger',
+  participantType: ParticipantType,
 ): Promise<void> {
   await delay(MOCK_CONFIG.delays.fast);
 
@@ -167,7 +168,7 @@ export async function getActiveLocks(eventId?: string): Promise<DraftLock[]> {
 
 export async function getParticipantLock(
   participantId: string,
-  participantType: 'helper' | 'progger',
+  participantType: ParticipantType,
 ): Promise<DraftLock | null> {
   await delay(MOCK_CONFIG.delays.fast);
 
@@ -182,7 +183,7 @@ export async function getParticipantLock(
 
 export async function isParticipantLocked(
   participantId: string,
-  participantType: 'helper' | 'progger',
+  participantType: ParticipantType,
   excludeTeamLeader?: string,
 ): Promise<boolean> {
   await delay(MOCK_CONFIG.delays.fast);
@@ -297,7 +298,10 @@ if (MOCK_CONFIG && typeof window !== 'undefined') {
 
       lockParticipant(demoEventId, demoTeamLeader, {
         participantId: demoParticipantId,
-        participantType: Math.random() < 0.5 ? 'helper' : 'progger',
+        participantType:
+          Math.random() < 0.5
+            ? ParticipantType.Helper
+            : ParticipantType.Progger,
       }).catch(() => {
         // Ignore conflicts in demo
       });

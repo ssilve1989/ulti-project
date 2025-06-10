@@ -1,4 +1,5 @@
 import { z } from 'zod/v4';
+import { Encounter } from '../../types/encounters.js';
 
 // Native enum definitions
 export enum Job {
@@ -28,15 +29,6 @@ export enum Job {
   Summoner = 'Summoner',
   RedMage = 'Red Mage',
   Pictomancer = 'Pictomancer',
-}
-
-export enum Encounter {
-  FRU = 'FRU',
-  DSR = 'DSR',
-  TOP = 'TOP',
-  TEA = 'TEA',
-  UCOB = 'UCOB',
-  UWU = 'UWU',
 }
 
 export enum Role {
@@ -126,7 +118,7 @@ export const PartySlotSchema = z.object({
 });
 
 export const EventRosterSchema = z.object({
-  parties: z.array(z.array(PartySlotSchema)),
+  party: z.array(PartySlotSchema),
   totalSlots: z.number(),
   filledSlots: z.number(),
 });

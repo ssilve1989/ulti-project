@@ -1,3 +1,4 @@
+import { EventStatus } from '@ulti-project/shared';
 import type { ScheduledEvent } from '@ulti-project/shared';
 import { useEffect, useState } from 'react';
 import { deleteEvent, updateEvent } from '../../lib/schedulingApi.js';
@@ -30,7 +31,7 @@ export default function EventManagement({
 
   // Auto-save functionality
   useEffect(() => {
-    if (!hasUnsavedChanges || event.status !== 'draft') return;
+    if (!hasUnsavedChanges || event.status !== EventStatus.Draft) return;
 
     const autoSaveInterval = setInterval(() => {
       handleAutoSave();
@@ -103,7 +104,9 @@ Current roster: ${event.roster.filledSlots}/${event.roster.totalSlots} slots fil
 
     try {
       setLoading('publish');
-      const updatedEvent = await updateEvent(event.id, { status: 'published' });
+      const updatedEvent = await updateEvent(event.id, {
+        status: EventStatus.Published,
+      });
 
       onEventUpdate(updatedEvent);
       setHasUnsavedChanges(false);
@@ -218,14 +221,18 @@ Continue?`,
 
     try {
       setLoading('unpublish');
-      const updatedEvent = await updateEvent(event.id, { status: 'draft' });
+      const updatedEvent = await updateEvent(event.id, {
+        status: EventStatus.Draft,
+      });
 
       onEventUpdate(updatedEvent);
+      setHasUnsavedChanges(false);
+      setLastSaved(new Date());
 
       addNotification({
-        type: 'info',
+        type: 'success',
         title: 'Event Unpublished',
-        message: `"${event.name}" is now back in draft mode and can be modified.`,
+        message: `"${event.name}" has been moved back to draft status.`,
         duration: 5000,
       });
     } catch (error) {
@@ -243,11 +250,9 @@ Continue?`,
   const validateRosterRoles = () => {
     const roleCounts = { Tank: 0, Healer: 0, DPS: 0 };
 
-    for (const party of event.roster.parties) {
-      for (const slot of party) {
-        if (slot.assignedParticipant) {
-          roleCounts[slot.role]++;
-        }
+    for (const slot of event.roster.party) {
+      if (slot.assignedParticipant) {
+        roleCounts[slot.role]++;
       }
     }
 
@@ -269,50 +274,53 @@ Continue?`,
 
   const getStatusInfo = () => {
     switch (event.status) {
-      case 'draft':
+      case EventStatus.Draft:
         return {
           color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
           icon: '📝',
-          description: 'Event is being prepared and can be modified freely',
+          label: 'Draft',
         };
-      case 'published':
+      case EventStatus.Published:
         return {
           color: 'bg-blue-100 text-blue-800 border-blue-200',
           icon: '📢',
-          description: 'Event is live and participants have been notified',
+          label: 'Published',
         };
-      case 'in-progress':
+      case EventStatus.InProgress:
         return {
           color: 'bg-green-100 text-green-800 border-green-200',
-          icon: '⚔️',
-          description: 'Event is currently active',
+          icon: '🎮',
+          label: 'In Progress',
         };
-      case 'completed':
+      case EventStatus.Completed:
         return {
           color: 'bg-gray-100 text-gray-800 border-gray-200',
           icon: '✅',
-          description: 'Event has been completed',
+          label: 'Completed',
         };
-      case 'cancelled':
+      case EventStatus.Cancelled:
         return {
           color: 'bg-red-100 text-red-800 border-red-200',
           icon: '❌',
-          description: 'Event was cancelled',
+          label: 'Cancelled',
         };
       default:
         return {
           color: 'bg-gray-100 text-gray-800 border-gray-200',
           icon: '❓',
-          description: 'Unknown status',
+          label: 'Unknown',
         };
     }
   };
 
   const statusInfo = getStatusInfo();
-  const canPublish = event.status === 'draft' && event.roster.filledSlots > 0;
-  const canSave = event.status === 'draft';
-  const canUnpublish = event.status === 'published';
-  const canCancel = ['draft', 'published'].includes(event.status);
+  const canPublish =
+    event.status === EventStatus.Draft && event.roster.filledSlots > 0;
+  const canSave = event.status === EventStatus.Draft;
+  const canUnpublish = event.status === EventStatus.Published;
+  const canCancel = [EventStatus.Draft, EventStatus.Published].includes(
+    event.status,
+  );
 
   return (
     <div className="space-y-4">
@@ -357,11 +365,10 @@ Continue?`,
             <span
               className={`px-3 py-1 rounded-full text-sm font-medium border ${statusInfo.color}`}
             >
-              {statusInfo.icon}{' '}
-              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+              {statusInfo.icon} {statusInfo.label}
             </span>
 
-            {hasUnsavedChanges && event.status === 'draft' && (
+            {hasUnsavedChanges && event.status === EventStatus.Draft && (
               <span className="text-sm text-amber-600 flex items-center gap-1">
                 <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
                 Unsaved changes
@@ -383,8 +390,6 @@ Continue?`,
             slots filled
           </div>
         </div>
-
-        <p className="text-sm text-gray-600 mb-4">{statusInfo.description}</p>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3">

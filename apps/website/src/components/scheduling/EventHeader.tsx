@@ -1,3 +1,4 @@
+import { EventStatus } from '@ulti-project/shared';
 import type { ScheduledEvent } from '@ulti-project/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { deleteEvent, updateEvent } from '../../lib/schedulingApi.js';
@@ -108,7 +109,9 @@ Roster: ${event.roster.filledSlots}/${event.roster.totalSlots} slots filled`,
       setLoading('publish');
       setError(null);
 
-      const updatedEvent = await updateEvent(event.id, { status: 'published' });
+      const updatedEvent = await updateEvent(event.id, {
+        status: EventStatus.Published,
+      });
       onEventUpdate(updatedEvent);
       setHasUnsavedChanges(false);
       setLastSaved(new Date());
@@ -149,11 +152,9 @@ This action cannot be undone.`,
   const validateRosterRoles = () => {
     const roleCounts = { Tank: 0, Healer: 0, DPS: 0 };
 
-    for (const party of event.roster.parties) {
-      for (const slot of party) {
-        if (slot.assignedParticipant) {
-          roleCounts[slot.role]++;
-        }
+    for (const slot of event.roster.party) {
+      if (slot.assignedParticipant) {
+        roleCounts[slot.role]++;
       }
     }
 

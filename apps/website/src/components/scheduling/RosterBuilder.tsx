@@ -1,8 +1,8 @@
+import { Role } from '@ulti-project/shared';
 import type {
   Job,
   Participant,
   PartySlot,
-  Role,
   ScheduledEvent,
 } from '@ulti-project/shared';
 import { useEffect, useState } from 'react';
@@ -13,6 +13,7 @@ import {
   releaseLock,
   unassignParticipant,
 } from '../../lib/schedulingApi.js';
+import { getJobRole } from '../../lib/utils/jobUtils.js';
 
 interface RosterBuilderProps {
   event: ScheduledEvent;
@@ -264,14 +265,6 @@ export default function RosterBuilder({
       };
     }
 
-    if (slot.isHelperSlot) {
-      return {
-        type: 'helper',
-        color: 'bg-blue-50 border-blue-200 text-blue-900',
-        hoverColor: 'hover:bg-blue-100',
-      };
-    }
-
     return {
       type: 'empty',
       color: 'bg-gray-50 border-gray-200 text-gray-600',
@@ -301,16 +294,6 @@ export default function RosterBuilder({
     return true;
   };
 
-  // Helper function to determine role from job
-  const getJobRole = (job: string): Role => {
-    const tankJobs = ['Paladin', 'Warrior', 'Dark Knight', 'Gunbreaker'];
-    const healerJobs = ['White Mage', 'Scholar', 'Astrologian', 'Sage'];
-
-    if (tankJobs.includes(job)) return 'Tank';
-    if (healerJobs.includes(job)) return 'Healer';
-    return 'DPS';
-  };
-
   return (
     <div className="bg-white rounded-lg border border-gray-200">
       {/* Header */}
@@ -333,17 +316,13 @@ export default function RosterBuilder({
 
       {/* Party Grid */}
       <div className="p-4">
-        {currentEvent.roster.parties.map((party, partyIndex) => (
-          <div
-            key={`party-${currentEvent.id}-${partyIndex}`}
-            className="mb-6 last:mb-0"
-          >
-            <h3 className="text-md font-medium text-gray-900 mb-3">
-              Party {partyIndex + 1}
+        <div className="space-y-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Party Roster
             </h3>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {party.map((slot) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {currentEvent.roster.party.map((slot) => {
                 const status = getSlotStatus(slot);
                 const isLoading = loading === slot.id;
 
@@ -379,12 +358,6 @@ export default function RosterBuilder({
                             {slot.role}
                           </span>
                         </div>
-
-                        {slot.isHelperSlot && (
-                          <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded">
-                            Helper
-                          </span>
-                        )}
                       </div>
 
                       {/* Participant Info */}
@@ -426,7 +399,7 @@ export default function RosterBuilder({
               })}
             </div>
           </div>
-        ))}
+        </div>
       </div>
 
       {/* Job Selection Modal */}

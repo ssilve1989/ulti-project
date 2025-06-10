@@ -1,5 +1,10 @@
-import type { Encounter } from './encounters.js';
-import type { Role } from './signup.js';
+import type {
+  EventStatus,
+  Job,
+  ParticipantType,
+  Role,
+} from '../schemas/api/common.js';
+import { Encounter } from './encounters.js';
 
 /**
  * Scheduling system types for the Ulti-Project
@@ -24,7 +29,7 @@ export interface ScheduledEvent {
   duration: number; // minutes
   teamLeaderId: string;
   teamLeaderName: string;
-  status: 'draft' | 'published' | 'in-progress' | 'completed' | 'cancelled';
+  status: EventStatus;
   roster: EventRoster;
   createdAt: Date;
   lastModified: Date;
@@ -32,7 +37,7 @@ export interface ScheduledEvent {
 }
 
 export interface EventRoster {
-  parties: PartySlot[][];
+  party: PartySlot[];
   totalSlots: number;
   filledSlots: number;
 }
@@ -48,7 +53,7 @@ export interface PartySlot {
 }
 
 export interface Participant {
-  type: 'helper' | 'progger';
+  type: ParticipantType;
   id: string; // helperId or signupId
   discordId: string;
   name: string;
@@ -96,7 +101,7 @@ export interface DraftLock {
   id: string;
   eventId: string;
   participantId: string;
-  participantType: 'helper' | 'progger';
+  participantType: ParticipantType;
   lockedBy: string; // Team leader ID
   lockedByName: string; // Team leader name
   lockedAt: Date;
@@ -117,26 +122,26 @@ export interface UpdateEventRequest {
   name?: string;
   scheduledTime?: Date;
   duration?: number;
-  status?: ScheduledEvent['status'];
+  status?: EventStatus;
   roster?: EventRoster;
 }
 
 export interface LockParticipantRequest {
   participantId: string;
-  participantType: 'helper' | 'progger';
+  participantType: ParticipantType;
   slotId?: string;
 }
 
 export interface AssignParticipantRequest {
   participantId: string;
-  participantType: 'helper' | 'progger';
+  participantType: ParticipantType;
   slotId: string;
   selectedJob: Job;
 }
 
 export interface EventFilters {
   teamLeaderId?: string;
-  status?: ScheduledEvent['status'];
+  status?: EventStatus;
   encounter?: Encounter;
   dateFrom?: Date;
   dateTo?: Date;
@@ -285,32 +290,3 @@ export type SchedulingSSEEvent =
   | ParticipantAssignedEvent
   | HelperAvailabilityChangedEvent
   | HelpersUpdatedEvent;
-
-// Job type - specific to scheduling system
-export type Job =
-  // Tanks
-  | 'Paladin'
-  | 'Warrior'
-  | 'Dark Knight'
-  | 'Gunbreaker'
-  // Healers
-  | 'White Mage'
-  | 'Scholar'
-  | 'Astrologian'
-  | 'Sage'
-  // Melee DPS
-  | 'Dragoon'
-  | 'Monk'
-  | 'Ninja'
-  | 'Samurai'
-  | 'Reaper'
-  | 'Viper'
-  // Ranged Physical DPS
-  | 'Bard'
-  | 'Machinist'
-  | 'Dancer'
-  // Ranged Magical DPS
-  | 'Black Mage'
-  | 'Summoner'
-  | 'Red Mage'
-  | 'Pictomancer';

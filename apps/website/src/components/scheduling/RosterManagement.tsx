@@ -71,13 +71,11 @@ export default function RosterManagement({
 
       const selected = new Set<string>();
 
-      for (const party of updatedEvent.roster.parties) {
-        for (const slot of party) {
-          if (slot.assignedParticipant) {
-            selected.add(
-              `${slot.assignedParticipant.type}-${slot.assignedParticipant.id}`,
-            );
-          }
+      for (const slot of updatedEvent.roster.party) {
+        if (slot.assignedParticipant) {
+          selected.add(
+            `${slot.assignedParticipant.type}-${slot.assignedParticipant.id}`,
+          );
         }
       }
 

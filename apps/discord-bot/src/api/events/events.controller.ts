@@ -6,17 +6,27 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
-import type { ScheduledEvent } from '@ulti-project/shared';
-import { EventsCollection } from '../../firebase/collections/events.collection.js';
+import {
+  type GetEventsQuery,
+  GetEventsQuerySchema,
+  type GetEventsResponse,
+  type ScheduledEvent,
+} from '@ulti-project/shared';
+import { ZodValidationPipe } from '../../utils/pipes/zod-validation.pipe.js';
+import { EventsService } from './events.service.js';
 
 @Controller('events')
 class EventsController {
-  constructor(private readonly eventsCollection: EventsCollection) {}
+  constructor(private readonly eventsService: EventsService) {}
 
   @Get()
-  async getEvents(): Promise<ScheduledEvent[]> {
-    return this.eventsCollection.getEvents();
+  async getEvents(
+    @Query(new ZodValidationPipe(GetEventsQuerySchema))
+    query: GetEventsQuery,
+  ): Promise<GetEventsResponse> {
+    return this.eventsService.getEvents(query);
   }
 
   @Get(':id')

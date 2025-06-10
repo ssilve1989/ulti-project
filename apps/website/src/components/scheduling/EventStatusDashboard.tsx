@@ -33,20 +33,18 @@ export default function EventStatusDashboard({
       DPS: { filled: 0, total: 0 },
     };
 
-    for (const party of event.roster.parties) {
-      for (const slot of party) {
-        totalSlots++;
-        roleBreakdown[slot.role].total++;
+    for (const slot of event.roster.party) {
+      totalSlots++;
+      roleBreakdown[slot.role].total++;
 
-        if (slot.assignedParticipant) {
-          filledSlots++;
-          roleBreakdown[slot.role].filled++;
+      if (slot.assignedParticipant) {
+        filledSlots++;
+        roleBreakdown[slot.role].filled++;
 
-          if (slot.assignedParticipant.type === 'helper') {
-            helperSlots++;
-          } else {
-            proggerSlots++;
-          }
+        if (slot.assignedParticipant.type === 'helper') {
+          helperSlots++;
+        } else {
+          proggerSlots++;
         }
       }
     }

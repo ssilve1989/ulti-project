@@ -25,8 +25,33 @@ export {
   PartyStatus,
 } from './types/signup.js';
 
-// Note: Encounter, Job, Role, EventStatus, ParticipantType are now exported as native enums from the API schemas
-// The old explicit types in encounters.ts and signup.ts are deprecated
+// Export specific scheduling types that don't conflict with schemas
+export type {
+  HelperAvailabilityResponse,
+  SetHelperAvailabilityRequest,
+  CreateAbsenceRequest,
+  UpdateEventRequest,
+  LockParticipantRequest,
+  AssignParticipantRequest,
+  SSEEvent,
+  EventUpdateEvent,
+  DraftLockEvent,
+  ParticipantAssignedEvent,
+  HelperAvailabilityChangedEvent,
+  HelpersUpdatedEvent,
+  SchedulingSSEEvent,
+} from './types/scheduling.js';
+
+// Export all encounter types (includes Encounter enum)
+export * from './types/encounters.js';
+
+// Re-export the enums from schemas for easy access (excluding Encounter to avoid conflict)
+export {
+  Job,
+  Role,
+  EventStatus,
+  ParticipantType,
+} from './schemas/api/common.js';
 
 // Utility functions can be added here in the future
 // export * from './utils/index.js';

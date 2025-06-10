@@ -1,6 +1,7 @@
 // Scheduling API integration
 // This file provides a clean interface to the scheduling mock API
 
+import { ParticipantType } from '@ulti-project/shared';
 import type {
   AssignParticipantRequest,
   CreateEventRequest,
@@ -196,7 +197,7 @@ export async function releaseLock(
   eventId: string,
   teamLeaderId: string,
   participantId: string,
-  participantType: 'helper' | 'progger',
+  participantType: ParticipantType,
 ): Promise<void> {
   if (USE_MOCK_DATA) {
     const { releaseLock: mockReleaseLock } = await import('./mock/drafts.js');

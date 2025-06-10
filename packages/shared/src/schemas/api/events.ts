@@ -43,12 +43,12 @@ export const GetEventsQuerySchema = z.object({
   dateFrom: z.coerce.date().optional(),
   dateTo: z.coerce.date().optional(),
   limit: z.coerce.number().positive().max(100).default(50),
-  offset: z.coerce.number().nonnegative().default(0),
+  cursor: z.string().optional(),
 });
 
 export const GetEventsResponseSchema = z.object({
   events: z.array(ScheduledEventSchema.extend({ guildId: z.string() })),
-  total: z.number(),
+  nextCursor: z.string().optional(),
   hasMore: z.boolean(),
 });
 

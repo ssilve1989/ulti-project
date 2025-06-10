@@ -15,11 +15,11 @@ interface ZodValidationPipeOptions {
  */
 class ZodValidationPipe implements PipeTransform {
   constructor(
-    private readonly schema: ZodType,
+    private readonly schema: ZodType<any, any>,
     private readonly options: ZodValidationPipeOptions = {},
   ) {}
 
-  transform(value: unknown) {
+  transform(value: unknown): any {
     const result = this.schema.safeParse(value);
 
     if (!result.success) {

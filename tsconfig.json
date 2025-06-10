@@ -98,5 +98,9 @@
     "skipLibCheck": true /* Skip type checking all .d.ts files. */,
     "sourceMap": true /* Create source map files for emitted JavaScript files. */,
     "inlineSources": true /* Include source code in the sourcemaps inside the emitted JavaScript. */,
-  }
+  },
+  "exclude": [
+    "**/dist",
+    "**/node_modules"
+  ]
 }

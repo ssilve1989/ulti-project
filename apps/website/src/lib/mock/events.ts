@@ -1,4 +1,10 @@
-import { Encounter, ParticipantType, Role } from '@ulti-project/shared';
+import {
+  Encounter,
+  EventStatus,
+  Job,
+  ParticipantType,
+  Role,
+} from '@ulti-project/shared';
 import type {
   AssignParticipantRequest,
   CreateEventRequest,
@@ -8,6 +14,7 @@ import type {
   ScheduledEvent,
   UpdateEventRequest,
 } from '@ulti-project/shared';
+import { getJobRole } from '../utils/jobUtils.js';
 import { MOCK_CONFIG, delay } from './config.js';
 import { isParticipantLocked, releaseLock } from './drafts.js';
 import { isHelperAvailable } from './helpers.js';
@@ -25,111 +32,102 @@ const COUNTER_KEY = 'ulti-project-event-counter';
 const eventConnections = new Map<string, Set<(event: MessageEvent) => void>>();
 
 // Helper function to create empty roster
-function createEmptyRoster(partyCount = 1): EventRoster {
-  const parties: PartySlot[][] = [];
+function createEmptyRoster(): EventRoster {
+  const party: PartySlot[] = [];
 
-  for (let i = 0; i < partyCount; i++) {
-    const party: PartySlot[] = [
-      // Tanks
-      { id: `party-${i}-tank-1`, role: Role.Tank, isHelperSlot: false },
-      { id: `party-${i}-tank-2`, role: Role.Tank, isHelperSlot: false },
-      // Healers
-      { id: `party-${i}-healer-1`, role: Role.Healer, isHelperSlot: false },
-      { id: `party-${i}-healer-2`, role: Role.Healer, isHelperSlot: false },
-      // DPS
-      { id: `party-${i}-dps-1`, role: Role.DPS, isHelperSlot: false },
-      { id: `party-${i}-dps-2`, role: Role.DPS, isHelperSlot: false },
-      { id: `party-${i}-dps-3`, role: Role.DPS, isHelperSlot: false },
-      { id: `party-${i}-dps-4`, role: Role.DPS, isHelperSlot: false },
-    ];
-    parties.push(party);
+  // Create 8 slots (2 tanks, 2 healers, 4 DPS)
+  for (let i = 0; i < 8; i++) {
+    const slot: PartySlot = {
+      id: `slot-${i + 1}`,
+      role: i < 2 ? Role.Tank : i < 4 ? Role.Healer : Role.DPS,
+      isHelperSlot: i % 2 === 0, // Alternate helper/progger slots
+    };
+    party.push(slot);
   }
 
   return {
-    parties,
-    totalSlots: partyCount * 8,
+    party,
+    totalSlots: 8,
     filledSlots: 0,
   };
 }
 
 // Helper function to create partially filled roster for testing
 function createPartiallyFilledRoster(): EventRoster {
-  const parties: PartySlot[][] = [];
-
-  const party: PartySlot[] = [
-    // Tanks - one filled with a helper, one empty
+  const slots: PartySlot[] = [
+    // Tank slots
     {
-      id: 'party-0-tank-1',
+      id: 'slot-1',
       role: Role.Tank,
       isHelperSlot: true,
       assignedParticipant: {
         type: ParticipantType.Helper,
-        id: 'helper-2', // HealBot (who is always available)
-        discordId: '234567890123456789',
-        name: 'HealBot',
-        job: 'Paladin' as const,
-        isConfirmed: false,
-      },
-    },
-    { id: 'party-0-tank-2', role: Role.Tank, isHelperSlot: false },
-
-    // Healers - one filled with an unavailable helper, one empty
-    {
-      id: 'party-0-healer-1',
-      role: Role.Healer,
-      isHelperSlot: true,
-      assignedParticipant: {
-        type: 'helper',
-        id: 'helper-5', // RangedExpert (weekend only - likely unavailable for weekday events)
-        discordId: '567890123456789012',
-        name: 'RangedExpert',
-        job: 'White Mage',
-        isConfirmed: false,
-      },
-    },
-    { id: 'party-0-healer-2', role: Role.Healer, isHelperSlot: false },
-
-    // DPS - mix of helpers and proggers
-    {
-      id: 'party-0-dps-1',
-      role: Role.DPS,
-      isHelperSlot: false,
-      assignedParticipant: {
-        type: 'progger',
-        id: 'signup-1',
-        discordId: '111111111111111111',
-        name: 'ProgMaster',
-        characterName: 'Prog McProgface',
-        job: 'Black Mage',
+        id: 'helper-tank-1',
+        discordId: '123456789',
+        name: 'TankMaster',
+        characterName: 'Tank Master',
+        job: Job.Paladin,
         encounter: Encounter.FRU,
-        progPoint: 'P1 (Lightning)',
-        availability: 'Weekday evenings after 7pm EST',
         isConfirmed: true,
       },
     },
     {
-      id: 'party-0-dps-2',
-      role: Role.DPS,
-      isHelperSlot: true,
+      id: 'slot-2',
+      role: Role.Tank,
+      isHelperSlot: false,
       assignedParticipant: {
-        type: 'helper',
-        id: 'helper-6', // MeleeMain (always available)
-        discordId: '678901234567890123',
-        name: 'MeleeMain',
-        job: 'Dragoon',
+        type: ParticipantType.Progger,
+        id: 'progger-tank-1',
+        discordId: '987654321',
+        name: 'NewTank',
+        characterName: 'New Tank',
+        job: Job.Warrior,
+        encounter: Encounter.FRU,
         isConfirmed: false,
       },
     },
-    { id: 'party-0-dps-3', role: Role.DPS, isHelperSlot: false },
-    { id: 'party-0-dps-4', role: Role.DPS, isHelperSlot: false },
+    // Healer slots
+    {
+      id: 'slot-3',
+      role: Role.Healer,
+      isHelperSlot: true,
+      assignedParticipant: {
+        type: ParticipantType.Helper,
+        id: 'helper-healer-1',
+        discordId: '456789123',
+        name: 'HealBot',
+        characterName: 'Heal Bot',
+        job: Job.WhiteMage,
+        encounter: Encounter.FRU,
+        isConfirmed: true,
+      },
+    },
+    {
+      id: 'slot-4',
+      role: Role.Healer,
+      isHelperSlot: false,
+      assignedParticipant: {
+        type: ParticipantType.Progger,
+        id: 'progger-healer-1',
+        discordId: '789123456',
+        name: 'LearningHealer',
+        characterName: 'Learning Healer',
+        job: Job.Scholar,
+        encounter: Encounter.FRU,
+        isConfirmed: true,
+      },
+    },
+    // DPS slots (4 empty)
+    { id: 'slot-5', role: Role.DPS, isHelperSlot: true },
+    { id: 'slot-6', role: Role.DPS, isHelperSlot: false },
+    { id: 'slot-7', role: Role.DPS, isHelperSlot: true },
+    { id: 'slot-8', role: Role.DPS, isHelperSlot: false },
   ];
 
-  parties.push(party);
-
   return {
-    parties,
+    party: slots,
     totalSlots: 8,
-    filledSlots: 4, // 4 out of 8 slots filled
+    filledSlots: 4,
   };
 }
 
@@ -143,7 +141,7 @@ const sampleEvents: ScheduledEvent[] = [
     duration: 120, // 2 hours
     teamLeaderId: 'leader-1',
     teamLeaderName: 'TeamAlpha',
-    status: 'draft',
+    status: EventStatus.Draft,
     roster: createPartiallyFilledRoster(), // Partially filled for testing
     createdAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
     lastModified: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
@@ -157,8 +155,8 @@ const sampleEvents: ScheduledEvent[] = [
     duration: 180, // 3 hours
     teamLeaderId: 'leader-2',
     teamLeaderName: 'TeamBeta',
-    status: 'published',
-    roster: createEmptyRoster(1), // Keep this one empty for testing empty state
+    status: EventStatus.Published,
+    roster: createEmptyRoster(), // Keep this one empty for testing empty state
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
     lastModified: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
     version: 3,
@@ -225,14 +223,10 @@ function loadEventsFromStorage(): void {
           teamLeaderName: eventData.teamLeaderName,
           status: eventData.status,
           roster: {
-            parties: eventData.roster.parties.map((party: any[]) =>
-              party.map((slot: any) => ({
-                ...slot,
-                draftedAt: slot.draftedAt
-                  ? new Date(slot.draftedAt)
-                  : undefined,
-              })),
-            ),
+            party: eventData.roster.party.map((slot: any) => ({
+              ...slot,
+              draftedAt: slot.draftedAt ? new Date(slot.draftedAt) : undefined,
+            })),
             totalSlots: eventData.roster.totalSlots,
             filledSlots: eventData.roster.filledSlots,
           },
@@ -251,8 +245,8 @@ function loadEventsFromStorage(): void {
           id: event1.id,
           name: event1.name,
           filledSlots: event1.roster.filledSlots,
-          firstSlot: event1.roster.parties[0]?.[0],
-          hasAssignedParticipants: event1.roster.parties[0]?.some(
+          firstSlot: event1.roster.party[0],
+          hasAssignedParticipants: event1.roster.party.some(
             (slot) => slot.assignedParticipant,
           ),
         });
@@ -328,8 +322,8 @@ export async function createEvent(
     duration: request.duration,
     teamLeaderId: request.teamLeaderId,
     teamLeaderName: `Leader-${request.teamLeaderId}`,
-    status: 'draft',
-    roster: createEmptyRoster(request.partyCount || 1),
+    status: EventStatus.Draft,
+    roster: createEmptyRoster(),
     createdAt: new Date(),
     lastModified: new Date(),
     version: 1,
@@ -452,14 +446,17 @@ export async function assignParticipant(
   // No need to validate team leader here
 
   // Find the slot
-  let targetSlot: PartySlot | undefined;
-  for (const party of event.roster.parties) {
-    targetSlot = party.find((slot) => slot.id === request.slotId);
-    if (targetSlot) break;
-  }
+  const targetSlot = event.roster.party.find(
+    (slot) => slot.id === request.slotId,
+  );
 
   if (!targetSlot) {
     throw new Error('Slot not found');
+  }
+
+  // Check if slot is already filled
+  if (targetSlot.assignedParticipant) {
+    throw new Error('Slot is already filled');
   }
 
   // Check if participant is locked by another team leader
@@ -482,8 +479,24 @@ export async function assignParticipant(
     throw new Error('Participant not found');
   }
 
+  // Validate role compatibility
+  const participantRole = getJobRole(request.selectedJob);
+  if (targetSlot.role !== participantRole) {
+    throw new Error(
+      `Cannot assign ${request.selectedJob} (${participantRole}) to ${targetSlot.role} slot`,
+    );
+  }
+
+  // Check job restrictions (if any)
+  if (
+    targetSlot.jobRestriction &&
+    targetSlot.jobRestriction !== request.selectedJob
+  ) {
+    throw new Error(`Slot is restricted to ${targetSlot.jobRestriction} only`);
+  }
+
   // Check availability for helpers
-  if (request.participantType === 'helper') {
+  if (request.participantType === ParticipantType.Helper) {
     const endTime = new Date(
       event.scheduledTime.getTime() + event.duration * 60 * 1000,
     );
@@ -573,11 +586,7 @@ export async function unassignParticipant(
   // No need to validate team leader here
 
   // Find the slot
-  let targetSlot: PartySlot | undefined;
-  for (const party of event.roster.parties) {
-    targetSlot = party.find((slot) => slot.id === slotId);
-    if (targetSlot) break;
-  }
+  const targetSlot = event.roster.party.find((slot) => slot.id === slotId);
 
   if (!targetSlot) {
     throw new Error('Slot not found');
