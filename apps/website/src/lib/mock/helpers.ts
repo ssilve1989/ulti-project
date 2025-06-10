@@ -1,5 +1,9 @@
-import type { HelperAbsence, HelperData } from '@ulti-project/shared';
-import { MOCK_CONFIG, delay } from './index.js';
+import type {
+  HelperAbsence,
+  HelperData,
+  HelperWeeklyAvailability,
+} from '@ulti-project/shared';
+import { MOCK_CONFIG, delay } from './config.js';
 
 // Mock helper data
 const mockHelpers: HelperData[] = [
@@ -12,6 +16,21 @@ const mockHelpers: HelperData[] = [
       { job: 'Warrior', role: 'Tank' },
       { job: 'Dark Knight', role: 'Tank' },
     ],
+    weeklyAvailability: [
+      // Monday - Wednesday evenings (restrictive schedule)
+      { dayOfWeek: 1, timeRanges: [{ start: '19:00', end: '23:00' }] },
+      { dayOfWeek: 2, timeRanges: [{ start: '19:00', end: '23:00' }] },
+      { dayOfWeek: 3, timeRanges: [{ start: '19:00', end: '23:00' }] },
+      // Weekend afternoons and evenings
+      {
+        dayOfWeek: 6,
+        timeRanges: [
+          { start: '14:00', end: '18:00' },
+          { start: '20:00', end: '24:00' },
+        ],
+      },
+      { dayOfWeek: 0, timeRanges: [{ start: '12:00', end: '18:00' }] },
+    ],
   },
   {
     id: 'helper-2',
@@ -23,6 +42,7 @@ const mockHelpers: HelperData[] = [
       { job: 'Astrologian', role: 'Healer' },
       { job: 'Sage', role: 'Healer' },
     ],
+    // No weeklyAvailability - defaults to always available
   },
   {
     id: 'helper-3',
@@ -33,6 +53,11 @@ const mockHelpers: HelperData[] = [
       { job: 'Summoner', role: 'DPS' },
       { job: 'Red Mage', role: 'DPS' },
       { job: 'Dragoon', role: 'DPS' },
+    ],
+    weeklyAvailability: [
+      // Very limited schedule - only Tuesday and Thursday evenings
+      { dayOfWeek: 2, timeRanges: [{ start: '20:00', end: '24:00' }] },
+      { dayOfWeek: 4, timeRanges: [{ start: '20:00', end: '24:00' }] },
     ],
   },
   {
@@ -45,6 +70,7 @@ const mockHelpers: HelperData[] = [
       { job: 'Reaper', role: 'DPS' },
       { job: 'Dancer', role: 'DPS' },
     ],
+    // No weeklyAvailability - defaults to always available (very flexible player)
   },
   {
     id: 'helper-5',
@@ -54,6 +80,11 @@ const mockHelpers: HelperData[] = [
       { job: 'Bard', role: 'DPS' },
       { job: 'Machinist', role: 'DPS' },
       { job: 'Dancer', role: 'DPS' },
+    ],
+    weeklyAvailability: [
+      // Weekend only availability
+      { dayOfWeek: 6, timeRanges: [{ start: '15:00', end: '19:00' }] },
+      { dayOfWeek: 0, timeRanges: [{ start: '15:00', end: '19:00' }] },
     ],
   },
   {
@@ -67,6 +98,7 @@ const mockHelpers: HelperData[] = [
       { job: 'Samurai', role: 'DPS' },
       { job: 'Reaper', role: 'DPS' },
     ],
+    // No weeklyAvailability - defaults to always available
   },
 ];
 
@@ -125,14 +157,111 @@ export async function isHelperAvailable(
   const helper = mockHelpers.find((h) => h.id === helperId);
   if (!helper) return false;
 
-  // Check against absences
+  // Check against absences first
   const conflicts = mockAbsences.filter(
     (absence) =>
       absence.helperId === helperId &&
       !(endTime <= absence.startDate || startTime >= absence.endDate),
   );
 
-  return conflicts.length === 0;
+  if (conflicts.length > 0) return false;
+
+  // Check against weekly availability if it exists
+  if (helper.weeklyAvailability && helper.weeklyAvailability.length > 0) {
+    return isWithinWeeklyAvailability(
+      startTime,
+      endTime,
+      helper.weeklyAvailability,
+    );
+  }
+
+  // If no weekly availability is set, assume available (legacy behavior)
+  return true;
+}
+
+// New function to check if event time falls within weekly availability
+export async function isHelperAvailableForEvent(
+  helperId: string,
+  eventStart: Date,
+  eventEnd: Date,
+): Promise<{
+  available: boolean;
+  reason?: 'absent' | 'outside_schedule' | 'available';
+}> {
+  await delay(MOCK_CONFIG.delays.fast);
+
+  const helper = mockHelpers.find((h) => h.id === helperId);
+  if (!helper) {
+    return { available: false, reason: 'outside_schedule' };
+  }
+
+  // Check against absences first
+  const hasAbsence = mockAbsences.some(
+    (absence) =>
+      absence.helperId === helperId &&
+      !(eventEnd <= absence.startDate || eventStart >= absence.endDate),
+  );
+
+  if (hasAbsence) {
+    return { available: false, reason: 'absent' };
+  }
+
+  // Check weekly availability
+  if (helper.weeklyAvailability && helper.weeklyAvailability.length > 0) {
+    const withinSchedule = isWithinWeeklyAvailability(
+      eventStart,
+      eventEnd,
+      helper.weeklyAvailability,
+    );
+
+    return {
+      available: withinSchedule,
+      reason: withinSchedule ? 'available' : 'outside_schedule',
+    };
+  }
+
+  // If no weekly availability set, assume available
+  return { available: true, reason: 'available' };
+}
+
+// Helper function to check if time range falls within weekly availability
+function isWithinWeeklyAvailability(
+  startTime: Date,
+  endTime: Date,
+  weeklyAvailability: HelperWeeklyAvailability[],
+): boolean {
+  const dayOfWeek = startTime.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+  // Find availability for this day of week
+  const dayAvailability = weeklyAvailability.find(
+    (avail) => avail.dayOfWeek === dayOfWeek,
+  );
+
+  if (!dayAvailability || dayAvailability.timeRanges.length === 0) {
+    return false;
+  }
+
+  // Convert event times to minutes since midnight
+  const eventStartMinutes = startTime.getHours() * 60 + startTime.getMinutes();
+  const eventEndMinutes = endTime.getHours() * 60 + endTime.getMinutes();
+
+  // Check if event falls within any of the available time ranges for this day
+  return dayAvailability.timeRanges.some((range) => {
+    const rangeStartMinutes = timeStringToMinutes(range.start);
+    const rangeEndMinutes = timeStringToMinutes(range.end);
+
+    // Event must start and end within the available time range
+    return (
+      eventStartMinutes >= rangeStartMinutes &&
+      eventEndMinutes <= rangeEndMinutes
+    );
+  });
+}
+
+// Helper function to convert "HH:MM" to minutes since midnight
+function timeStringToMinutes(timeString: string): number {
+  const [hours, minutes] = timeString.split(':').map(Number);
+  return hours * 60 + minutes;
 }
 
 // SSE Stream simulation

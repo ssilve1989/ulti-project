@@ -1,7 +1,7 @@
 import { Encounter } from '@ulti-project/shared';
 import type { Participant } from '@ulti-project/shared';
+import { MOCK_CONFIG, delay } from './config.js';
 import { getHelperById } from './helpers.js';
-import { MOCK_CONFIG, delay } from './index.js';
 
 // Import existing signup data - we'll need to adapt this to work with the existing mockData
 // For now, creating some mock proggers that match the scheduling system requirements

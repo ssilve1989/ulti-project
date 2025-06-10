@@ -8,17 +8,130 @@ import type {
   ScheduledEvent,
   UpdateEventRequest,
 } from '@ulti-project/shared';
+import { MOCK_CONFIG, delay } from './config.js';
 import { isParticipantLocked, releaseLock } from './drafts.js';
 import { isHelperAvailable } from './helpers.js';
-import { MOCK_CONFIG, delay } from './index.js';
 import { getParticipant } from './participants.js';
 
 // In-memory events storage
 const mockEvents = new Map<string, ScheduledEvent>();
 let eventIdCounter = 1;
 
+// Storage key for sessionStorage
+const STORAGE_KEY = 'ulti-project-mock-events';
+const COUNTER_KEY = 'ulti-project-event-counter';
+
 // SSE connections for event updates
 const eventConnections = new Map<string, Set<(event: MessageEvent) => void>>();
+
+// Helper function to create empty roster
+function createEmptyRoster(partyCount = 1): EventRoster {
+  const parties: PartySlot[][] = [];
+
+  for (let i = 0; i < partyCount; i++) {
+    const party: PartySlot[] = [
+      // Tanks
+      { id: `party-${i}-tank-1`, role: 'Tank', isHelperSlot: false },
+      { id: `party-${i}-tank-2`, role: 'Tank', isHelperSlot: false },
+      // Healers
+      { id: `party-${i}-healer-1`, role: 'Healer', isHelperSlot: false },
+      { id: `party-${i}-healer-2`, role: 'Healer', isHelperSlot: false },
+      // DPS
+      { id: `party-${i}-dps-1`, role: 'DPS', isHelperSlot: false },
+      { id: `party-${i}-dps-2`, role: 'DPS', isHelperSlot: false },
+      { id: `party-${i}-dps-3`, role: 'DPS', isHelperSlot: false },
+      { id: `party-${i}-dps-4`, role: 'DPS', isHelperSlot: false },
+    ];
+    parties.push(party);
+  }
+
+  return {
+    parties,
+    totalSlots: partyCount * 8,
+    filledSlots: 0,
+  };
+}
+
+// Helper function to create partially filled roster for testing
+function createPartiallyFilledRoster(): EventRoster {
+  const parties: PartySlot[][] = [];
+
+  const party: PartySlot[] = [
+    // Tanks - one filled with a helper, one empty
+    {
+      id: 'party-0-tank-1',
+      role: 'Tank',
+      isHelperSlot: true,
+      assignedParticipant: {
+        type: 'helper',
+        id: 'helper-2', // HealBot (who is always available)
+        discordId: '234567890123456789',
+        name: 'HealBot',
+        job: 'Paladin',
+        isConfirmed: false,
+      },
+    },
+    { id: 'party-0-tank-2', role: 'Tank', isHelperSlot: false },
+
+    // Healers - one filled with an unavailable helper, one empty
+    {
+      id: 'party-0-healer-1',
+      role: 'Healer',
+      isHelperSlot: true,
+      assignedParticipant: {
+        type: 'helper',
+        id: 'helper-5', // RangedExpert (weekend only - likely unavailable for weekday events)
+        discordId: '567890123456789012',
+        name: 'RangedExpert',
+        job: 'White Mage',
+        isConfirmed: false,
+      },
+    },
+    { id: 'party-0-healer-2', role: 'Healer', isHelperSlot: false },
+
+    // DPS - mix of helpers and proggers
+    {
+      id: 'party-0-dps-1',
+      role: 'DPS',
+      isHelperSlot: false,
+      assignedParticipant: {
+        type: 'progger',
+        id: 'signup-1',
+        discordId: '111111111111111111',
+        name: 'ProgMaster',
+        characterName: 'Prog McProgface',
+        job: 'Black Mage',
+        encounter: Encounter.FRU,
+        progPoint: 'P1 (Lightning)',
+        availability: 'Weekday evenings after 7pm EST',
+        isConfirmed: true,
+      },
+    },
+    {
+      id: 'party-0-dps-2',
+      role: 'DPS',
+      isHelperSlot: true,
+      assignedParticipant: {
+        type: 'helper',
+        id: 'helper-6', // MeleeMain (always available)
+        discordId: '678901234567890123',
+        name: 'MeleeMain',
+        job: 'Dragoon',
+        isConfirmed: false,
+      },
+    },
+    { id: 'party-0-dps-3', role: 'DPS', isHelperSlot: false },
+    { id: 'party-0-dps-4', role: 'DPS', isHelperSlot: false },
+  ];
+
+  parties.push(party);
+
+  return {
+    parties,
+    totalSlots: 8,
+    filledSlots: 4, // 4 out of 8 slots filled
+  };
+}
 
 // Initialize with some sample events
 const sampleEvents: ScheduledEvent[] = [
@@ -31,7 +144,7 @@ const sampleEvents: ScheduledEvent[] = [
     teamLeaderId: 'leader-1',
     teamLeaderName: 'TeamAlpha',
     status: 'draft',
-    roster: createEmptyRoster(1),
+    roster: createPartiallyFilledRoster(), // Partially filled for testing
     createdAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
     lastModified: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
     version: 1,
@@ -45,44 +158,138 @@ const sampleEvents: ScheduledEvent[] = [
     teamLeaderId: 'leader-2',
     teamLeaderName: 'TeamBeta',
     status: 'published',
-    roster: createEmptyRoster(1),
+    roster: createEmptyRoster(1), // Keep this one empty for testing empty state
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
     lastModified: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
     version: 3,
   },
 ];
 
-// Initialize sample events
-for (const event of sampleEvents) {
-  mockEvents.set(event.id, event);
+// Initialize data
+let isInitialized = false;
+
+function initializeEvents() {
+  if (isInitialized) return;
+  isInitialized = true;
+
+  // Try to load from storage first
+  loadEventsFromStorage();
+
+  // Only initialize sample events if no events were loaded from storage
+  if (mockEvents.size === 0) {
+    console.log('No events in storage, initializing with sample events');
+    for (const event of sampleEvents) {
+      mockEvents.set(event.id, event);
+    }
+    saveEventsToStorage();
+  } else {
+    console.log(`Using ${mockEvents.size} events from storage`);
+  }
 }
 
-// Helper function to create empty roster
-function createEmptyRoster(partyCount = 1): EventRoster {
-  const parties: PartySlot[][] = [];
+// Initialize on module load
+initializeEvents();
 
-  for (let i = 0; i < partyCount; i++) {
-    const party: PartySlot[] = [
-      // Tanks
-      { id: `party-${i}-tank-1`, role: 'Tank', isHelperSlot: true },
-      { id: `party-${i}-tank-2`, role: 'Tank', isHelperSlot: false },
-      // Healers
-      { id: `party-${i}-healer-1`, role: 'Healer', isHelperSlot: true },
-      { id: `party-${i}-healer-2`, role: 'Healer', isHelperSlot: false },
-      // DPS
-      { id: `party-${i}-dps-1`, role: 'DPS', isHelperSlot: true },
-      { id: `party-${i}-dps-2`, role: 'DPS', isHelperSlot: false },
-      { id: `party-${i}-dps-3`, role: 'DPS', isHelperSlot: false },
-      { id: `party-${i}-dps-4`, role: 'DPS', isHelperSlot: false },
-    ];
-    parties.push(party);
+// Re-initialize on client side to ensure we have the latest from sessionStorage
+if (typeof window !== 'undefined') {
+  // Use a small delay to ensure DOM is ready
+  setTimeout(() => {
+    console.log('Client-side re-initialization...');
+    isInitialized = false; // Allow re-initialization
+    initializeEvents();
+  }, 0);
+}
+
+// Load events from sessionStorage on initialization
+function loadEventsFromStorage(): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const storedEvents = sessionStorage.getItem(STORAGE_KEY);
+    const storedCounter = sessionStorage.getItem(COUNTER_KEY);
+
+    if (storedEvents) {
+      const parsed = JSON.parse(storedEvents);
+      mockEvents.clear();
+
+      for (const [id, event] of Object.entries(parsed)) {
+        // Convert date strings back to Date objects
+        const eventData = event as any;
+        const restoredEvent: ScheduledEvent = {
+          id: eventData.id,
+          name: eventData.name,
+          encounter: eventData.encounter,
+          scheduledTime: new Date(eventData.scheduledTime),
+          duration: eventData.duration,
+          teamLeaderId: eventData.teamLeaderId,
+          teamLeaderName: eventData.teamLeaderName,
+          status: eventData.status,
+          roster: {
+            parties: eventData.roster.parties.map((party: any[]) =>
+              party.map((slot: any) => ({
+                ...slot,
+                draftedAt: slot.draftedAt
+                  ? new Date(slot.draftedAt)
+                  : undefined,
+              })),
+            ),
+            totalSlots: eventData.roster.totalSlots,
+            filledSlots: eventData.roster.filledSlots,
+          },
+          createdAt: new Date(eventData.createdAt),
+          lastModified: new Date(eventData.lastModified),
+          version: eventData.version,
+        };
+        mockEvents.set(id, restoredEvent);
+      }
+      console.log(`Loaded ${mockEvents.size} events from sessionStorage`);
+
+      // Debug logging
+      const event1 = mockEvents.get('event-1');
+      if (event1) {
+        console.log('Loaded event-1:', {
+          id: event1.id,
+          name: event1.name,
+          filledSlots: event1.roster.filledSlots,
+          firstSlot: event1.roster.parties[0]?.[0],
+          hasAssignedParticipants: event1.roster.parties[0]?.some(
+            (slot) => slot.assignedParticipant,
+          ),
+        });
+      }
+    }
+
+    if (storedCounter) {
+      eventIdCounter = Number.parseInt(storedCounter, 10);
+    }
+  } catch (error) {
+    console.error('Failed to load events from sessionStorage:', error);
   }
+}
 
-  return {
-    parties,
-    totalSlots: partyCount * 8,
-    filledSlots: 0,
-  };
+// Save events to sessionStorage
+function saveEventsToStorage(): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const eventsObj: Record<string, ScheduledEvent> = {};
+    for (const [id, event] of mockEvents.entries()) {
+      eventsObj[id] = event;
+    }
+
+    const serialized = JSON.stringify(eventsObj);
+    sessionStorage.setItem(STORAGE_KEY, serialized);
+    sessionStorage.setItem(COUNTER_KEY, eventIdCounter.toString());
+
+    // Debug logging
+    console.log('Saved events to sessionStorage:', {
+      eventCount: Object.keys(eventsObj).length,
+      sampleEvent: eventsObj['event-1'],
+      dataSize: serialized.length,
+    });
+  } catch (error) {
+    console.error('Failed to save events to sessionStorage:', error);
+  }
 }
 
 // Broadcast event updates
@@ -129,6 +336,7 @@ export async function createEvent(
   };
 
   mockEvents.set(event.id, event);
+  saveEventsToStorage();
 
   return event;
 }
@@ -194,6 +402,7 @@ export async function updateEvent(
   };
 
   mockEvents.set(id, updatedEvent);
+  saveEventsToStorage();
 
   // Broadcast update
   broadcastEventUpdate(id, updatedEvent, updates);
@@ -212,15 +421,15 @@ export async function deleteEvent(
     throw new Error('Event not found');
   }
 
-  if (event.teamLeaderId !== teamLeaderId) {
-    throw new Error('Only the team leader can delete this event');
-  }
+  // Authentication should handle access control at the route level
+  // No need to validate team leader here
 
   if (event.status === 'in-progress') {
     throw new Error('Cannot delete events that are in progress');
   }
 
   mockEvents.delete(id);
+  saveEventsToStorage();
 
   // Release all locks for this event
   const { releaseAllLocksForTeamLeader } = await import('./drafts.js');
@@ -239,9 +448,8 @@ export async function assignParticipant(
     throw new Error('Event not found');
   }
 
-  if (event.teamLeaderId !== teamLeaderId) {
-    throw new Error('Only the team leader can assign participants');
-  }
+  // Authentication should handle access control at the route level
+  // No need to validate team leader here
 
   // Find the slot
   let targetSlot: PartySlot | undefined;
@@ -254,14 +462,14 @@ export async function assignParticipant(
     throw new Error('Slot not found');
   }
 
-  // Check if participant is locked by this team leader
-  const isLocked = await isParticipantLocked(
+  // Check if participant is locked by another team leader
+  const isLockedByOther = await isParticipantLocked(
     request.participantId,
     request.participantType,
-    teamLeaderId,
+    teamLeaderId, // exclude this team leader
   );
 
-  if (isLocked) {
+  if (isLockedByOther) {
     throw new Error('Participant is locked by another team leader');
   }
 
@@ -289,14 +497,24 @@ export async function assignParticipant(
     }
   }
 
+  // Check if slot was empty before assignment
+  const wasEmpty = !targetSlot.assignedParticipant;
+
   // Assign participant to slot
   targetSlot.assignedParticipant = {
-    ...participant,
+    type: participant.type,
+    id: participant.id,
+    discordId: participant.discordId,
+    name: participant.name,
+    characterName: participant.characterName,
     job: request.selectedJob,
+    encounter: participant.encounter,
+    progPoint: participant.progPoint,
+    availability: participant.availability,
+    isConfirmed: participant.isConfirmed || false,
   };
 
   // Update roster stats
-  const wasEmpty = !targetSlot.assignedParticipant;
   if (wasEmpty) {
     event.roster.filledSlots++;
   }
@@ -305,6 +523,7 @@ export async function assignParticipant(
   event.version++;
 
   mockEvents.set(eventId, event);
+  saveEventsToStorage();
 
   // Release the lock since participant is now assigned
   await releaseLock(
@@ -350,9 +569,8 @@ export async function unassignParticipant(
     throw new Error('Event not found');
   }
 
-  if (event.teamLeaderId !== teamLeaderId) {
-    throw new Error('Only the team leader can unassign participants');
-  }
+  // Authentication should handle access control at the route level
+  // No need to validate team leader here
 
   // Find the slot
   let targetSlot: PartySlot | undefined;
@@ -377,6 +595,7 @@ export async function unassignParticipant(
   event.version++;
 
   mockEvents.set(eventId, event);
+  saveEventsToStorage();
 
   // Broadcast unassignment
   const connections = eventConnections.get(eventId);

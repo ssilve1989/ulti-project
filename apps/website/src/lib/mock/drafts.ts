@@ -3,7 +3,7 @@ import type {
   DraftLock,
   LockParticipantRequest,
 } from '@ulti-project/shared';
-import { MOCK_CONFIG, delay } from './index.js';
+import { MOCK_CONFIG, delay } from './config.js';
 
 // In-memory draft locks storage
 const activeLocks = new Map<string, DraftLock>();

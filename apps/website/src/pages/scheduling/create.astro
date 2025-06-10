@@ -1,0 +1,217 @@
+---
+import { Encounter } from '@ulti-project/shared';
+import Layout from '../../layouts/Layout.astro';
+
+// Get all encounters for the dropdown
+const encounters = Object.values(Encounter);
+
+// Default values for the form
+const defaultDuration = {
+  [Encounter.FRU]: 120,
+  [Encounter.TOP]: 180,
+  [Encounter.DSR]: 150,
+  [Encounter.TEA]: 120,
+  [Encounter.UWU]: 90,
+  [Encounter.UCOB]: 90,
+};
+---
+
+<Layout title="Create New Event">
+  <div class="min-h-screen grid grid-cols-[1fr_min(800px,100%)_1fr] px-4 py-8">
+    <div class="col-start-2">
+      <!-- Header -->
+      <div class="mb-8">
+        <div class="flex items-center gap-4 mb-4">
+          <a 
+            href="/scheduling"
+            class="text-blue-600 hover:text-blue-700 flex items-center gap-2"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Back to Events
+          </a>
+        </div>
+        
+        <h1 class="text-3xl font-bold text-gray-900">Create New Event</h1>
+        <p class="text-gray-600 mt-2">Set up a new Ultimate raid event</p>
+      </div>
+
+      <!-- Form -->
+      <form id="create-event-form" class="space-y-6">
+        <!-- Event Name -->
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+            Event Name
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            required
+            placeholder="e.g., FRU Prog Session, TOP Clear Run"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+
+        <!-- Encounter -->
+        <div>
+          <label for="encounter" class="block text-sm font-medium text-gray-700 mb-2">
+            Encounter
+          </label>
+          <select
+            id="encounter"
+            name="encounter"
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Select an encounter</option>
+            {encounters.map((encounter) => (
+              <option value={encounter}>{encounter}</option>
+            ))}
+          </select>
+        </div>
+
+        <!-- Date and Time -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="date" class="block text-sm font-medium text-gray-700 mb-2">
+              Date
+            </label>
+            <input
+              type="date"
+              id="date"
+              name="date"
+              required
+              min={new Date().toISOString().split('T')[0]}
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label for="time" class="block text-sm font-medium text-gray-700 mb-2">
+              Start Time
+            </label>
+            <input
+              type="time"
+              id="time"
+              name="time"
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        <!-- Duration -->
+        <div>
+          <label for="duration" class="block text-sm font-medium text-gray-700 mb-2">
+            Duration (minutes)
+          </label>
+          <input
+            type="number"
+            id="duration"
+            name="duration"
+            required
+            min="30"
+            max="300"
+            step="15"
+            placeholder="120"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+          <p class="text-sm text-gray-500 mt-1">
+            Typical durations: Clear parties (20-120 min), Prog parties (60-180 min)
+          </p>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex gap-4 pt-6">
+          <button
+            type="submit"
+            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+          >
+            Create Event
+          </button>
+          
+          <a
+            href="/scheduling"
+            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium text-center transition-colors"
+          >
+            Cancel
+          </a>
+        </div>
+      </form>
+
+      <!-- Loading State -->
+      <div id="loading" class="hidden text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p class="text-gray-600 mt-2">Creating event...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { createEvent } from '../../lib/schedulingApi.js';
+    import { Encounter } from '@ulti-project/shared';
+
+    // Default durations for each encounter
+    const defaultDurations = {
+      [Encounter.FRU]: 120,
+      [Encounter.TOP]: 180,
+      [Encounter.DSR]: 150,
+      [Encounter.TEA]: 120,
+      [Encounter.UWU]: 90,
+      [Encounter.UCOB]: 90,
+    };
+
+    // Auto-fill duration when encounter changes
+    const encounterSelect = document.getElementById('encounter') as HTMLSelectElement;
+    const durationInput = document.getElementById('duration') as HTMLInputElement;
+
+    encounterSelect.addEventListener('change', () => {
+      const selectedEncounter = encounterSelect.value as Encounter;
+      if (selectedEncounter && defaultDurations[selectedEncounter]) {
+        durationInput.value = defaultDurations[selectedEncounter].toString();
+      }
+    });
+
+    // Handle form submission
+    const form = document.getElementById('create-event-form') as HTMLFormElement;
+    const loadingDiv = document.getElementById('loading') as HTMLElement;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(form);
+      const date = formData.get('date') as string;
+      const time = formData.get('time') as string;
+      
+      // Combine date and time
+      const scheduledTime = new Date(`${date}T${time}`);
+      
+      // Show loading state
+      form.style.display = 'none';
+      loadingDiv.classList.remove('hidden');
+
+      try {
+        const event = await createEvent({
+          name: formData.get('name') as string,
+          encounter: formData.get('encounter') as Encounter,
+          scheduledTime,
+          duration: parseInt(formData.get('duration') as string),
+          teamLeaderId: 'current-user', // This will be replaced with actual user ID
+          partyCount: 1, // Hardcoded to 1 party
+        });
+
+        // Redirect to roster management
+        window.location.href = `/scheduling/${event.id}`;
+      } catch (error) {
+        console.error('Failed to create event:', error);
+        alert('Failed to create event. Please try again.');
+        
+        // Show form again
+        form.style.display = 'block';
+        loadingDiv.classList.add('hidden');
+      }
+    });
+  </script>
+</Layout> 

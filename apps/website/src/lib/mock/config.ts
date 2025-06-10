@@ -1,18 +1,10 @@
-// Mock API exports for scheduling system
-export * from './types.js';
-export * from './config.js';
-export * from './helpers.js';
-export * from './participants.js';
-export * from './drafts.js';
-export * from './events.js';
-
 // Mock API configuration
 export const MOCK_CONFIG = {
   // Delays to simulate network latency
   delays: {
-    fast: 100, // Quick operations like locks
-    medium: 300, // Standard API calls
-    slow: 800, // Complex operations like event creation
+    fast: 20, // Quick operations like locks
+    medium: 100, // Standard API calls
+    slow: 500, // Complex operations like event creation
   },
 
   // SSE simulation intervals
