@@ -204,13 +204,76 @@ export async function getActiveLocks(eventId?: string): Promise<DraftLock[]> {
   throw new Error('Real API not implemented yet');
 }
 
-// SSE Event Sources
+// Mock EventSource implementation
+class MockEventSource extends EventTarget {
+  public readyState = 1; // OPEN
+  public url: string;
+  private intervalId?: number;
+
+  constructor(url: string) {
+    super();
+    this.url = url;
+
+    // Simulate connection opening
+    setTimeout(() => {
+      this.dispatchEvent(new Event('open'));
+    }, 100);
+  }
+
+  close() {
+    this.readyState = 2; // CLOSED
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
+    this.dispatchEvent(new Event('close'));
+  }
+
+  // Add EventSource-like properties
+  get onmessage() {
+    return null;
+  }
+  set onmessage(handler: ((event: MessageEvent) => void) | null) {
+    if (handler) {
+      this.addEventListener('message', handler as EventListener);
+    }
+  }
+
+  get onerror() {
+    return null;
+  }
+  set onerror(handler: ((event: Event) => void) | null) {
+    if (handler) {
+      this.addEventListener('error', handler as EventListener);
+    }
+  }
+
+  get onopen() {
+    return null;
+  }
+  set onopen(handler: ((event: Event) => void) | null) {
+    if (handler) {
+      this.addEventListener('open', handler as EventListener);
+    }
+  }
+}
+
+// SSE Event Sources - Mock implementation
 export function createEventEventSource(eventId: string): EventSource {
   if (USE_MOCK_DATA) {
-    // Dynamic import for SSE functions
-    import('./mock/events.js').then(({ createEventEventSource }) => {
-      return createEventEventSource(eventId);
-    });
+    const mockSource = new MockEventSource(`/mock/events/${eventId}/stream`);
+
+    // Simulate periodic updates
+    setTimeout(() => {
+      const mockEvent = new MessageEvent('message', {
+        data: JSON.stringify({
+          type: 'event_updated',
+          data: { eventId, timestamp: new Date() },
+        }),
+      });
+      mockSource.dispatchEvent(mockEvent);
+    }, 1000);
+
+    return mockSource as any;
   }
 
   throw new Error('Real SSE not implemented yet');
@@ -218,9 +281,26 @@ export function createEventEventSource(eventId: string): EventSource {
 
 export function createHelpersEventSource(): EventSource {
   if (USE_MOCK_DATA) {
-    import('./mock/helpers.js').then(({ createHelpersEventSource }) => {
-      return createHelpersEventSource();
-    });
+    const mockSource = new MockEventSource('/mock/helpers/stream');
+
+    // Load and send initial helpers data
+    getHelpers()
+      .then((helpers) => {
+        setTimeout(() => {
+          const mockEvent = new MessageEvent('message', {
+            data: JSON.stringify(helpers),
+          });
+          mockSource.dispatchEvent(mockEvent);
+        }, 500);
+      })
+      .catch((err) => {
+        console.warn('Failed to load helpers for SSE:', err);
+        setTimeout(() => {
+          mockSource.dispatchEvent(new Event('error'));
+        }, 500);
+      });
+
+    return mockSource as any;
   }
 
   throw new Error('Real SSE not implemented yet');
@@ -228,9 +308,28 @@ export function createHelpersEventSource(): EventSource {
 
 export function createDraftLocksEventSource(eventId: string): EventSource {
   if (USE_MOCK_DATA) {
-    import('./mock/drafts.js').then(({ createDraftLocksEventSource }) => {
-      return createDraftLocksEventSource(eventId);
-    });
+    const mockSource = new MockEventSource(
+      `/mock/events/${eventId}/locks/stream`,
+    );
+
+    // Load and send initial locks data
+    getActiveLocks(eventId)
+      .then((locks) => {
+        setTimeout(() => {
+          const mockEvent = new MessageEvent('message', {
+            data: JSON.stringify(locks),
+          });
+          mockSource.dispatchEvent(mockEvent);
+        }, 500);
+      })
+      .catch((err) => {
+        console.warn('Failed to load locks for SSE:', err);
+        setTimeout(() => {
+          mockSource.dispatchEvent(new Event('error'));
+        }, 500);
+      });
+
+    return mockSource as any;
   }
 
   throw new Error('Real SSE not implemented yet');

@@ -92,6 +92,7 @@ export interface UpdateEventRequest {
   scheduledTime?: Date;
   duration?: number;
   status?: ScheduledEvent['status'];
+  roster?: EventRoster;
 }
 
 export interface LockParticipantRequest {

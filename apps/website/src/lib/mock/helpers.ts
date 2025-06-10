@@ -1,5 +1,5 @@
 import type { HelperAbsence, HelperData } from '@ulti-project/shared';
-import { MOCK_CONFIG, delay } from './index.js';
+import { MOCK_CONFIG, delay } from './config.js';
 
 // Mock helper data
 const mockHelpers: HelperData[] = [
