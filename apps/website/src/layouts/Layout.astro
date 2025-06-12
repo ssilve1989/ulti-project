@@ -61,8 +61,8 @@ const { title, description = "A FFXIV opportunity for NA players to progress thr
       <div class="footer-container">
         <div class="footer-content">
           <div class="footer-info">
-            <p>&copy; 2024 Ulti Project - Sausfest Community</p>
-            <p>Aether Data Center • FFXIV Endgame Content</p>
+            <p>&copy; 2025 Ulti Project - Sausfest Community</p>
+            <p class="trademark-notice">FINAL FANTASY is a registered trademark of Square Enix Holdings Co., Ltd. FINAL FANTASY XIV © SQUARE ENIX</p>
           </div>
           <div class="footer-links">
             <a href="https://discord.gg/sausfest" target="_blank" rel="noopener noreferrer" 
@@ -542,6 +542,13 @@ const { title, description = "A FFXIV opportunity for NA players to progress thr
   
   .footer-info p:not(:first-child) {
     margin-top: 0.25rem;
+  }
+  
+  .trademark-notice {
+    font-size: 0.75rem !important;
+    color: var(--text-tertiary);
+    font-style: italic;
+    margin-top: 0.5rem !important;
   }
   
   .footer-links {

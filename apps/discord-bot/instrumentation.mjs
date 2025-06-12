@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/nestjs';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import pkg from './package.json' with { type: 'json' };
 
-const { NODE_ENV = "development", SENTRY_DEBUG, SENTRY_DSN } = process.env;
+const { NODE_ENV = 'development', SENTRY_DEBUG, SENTRY_DSN } = process.env;
 
 Sentry.init({
   debug: !!SENTRY_DEBUG,

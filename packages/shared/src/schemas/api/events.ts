@@ -14,7 +14,6 @@ export const CreateEventRequestSchema = z.object({
   scheduledTime: z.coerce.date(),
   duration: z.number().positive('Duration must be positive'),
   teamLeaderId: z.string(),
-  partyCount: z.number().positive().optional(),
 });
 
 export const CreateEventResponseSchema = ScheduledEventSchema.extend({

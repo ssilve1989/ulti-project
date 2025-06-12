@@ -1,9 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import type {
+  CreateEventRequest,
   GetEventsQuery,
   GetEventsResponse,
   ScheduledEvent,
+  UpdateEventRequest,
 } from '@ulti-project/shared';
+import { EventStatus } from '@ulti-project/shared';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
 
 @Injectable()
@@ -36,23 +40,70 @@ class EventsService {
 
   async createEvent(
     guildId: string,
-    event: ScheduledEvent,
+    createRequest: CreateEventRequest,
   ): Promise<ScheduledEvent> {
-    return this.eventsCollection.createEvent(guildId, event);
+    // Generate unique ID for the event
+    const eventId = randomUUID();
+
+    // Transform CreateEventRequest into ScheduledEvent
+    const scheduledEvent: ScheduledEvent = {
+      id: eventId,
+      name: createRequest.name,
+      encounter: createRequest.encounter,
+      scheduledTime: createRequest.scheduledTime,
+      duration: createRequest.duration,
+      teamLeaderId: createRequest.teamLeaderId,
+      teamLeaderName: '', // Will be populated from Discord user data
+      status: EventStatus.Draft,
+      roster: {
+        party: [],
+        totalSlots: 8, // FFXIV party always has 8 slots
+        filledSlots: 0,
+      },
+      createdAt: new Date(),
+      lastModified: new Date(),
+      version: 1,
+    };
+
+    return this.eventsCollection.createEvent(guildId, scheduledEvent);
   }
 
   async updateEvent(
     guildId: string,
     eventId: string,
-    event: ScheduledEvent,
+    updateRequest: UpdateEventRequest,
   ): Promise<ScheduledEvent> {
-    return this.eventsCollection.updateEvent(guildId, eventId, event);
+    // Get the existing event
+    const existingEvent = await this.eventsCollection.getEvent(
+      guildId,
+      eventId,
+    );
+    if (!existingEvent) {
+      throw new NotFoundException(`Event with id ${eventId} not found`);
+    }
+
+    // Merge the update request with the existing event
+    const updatedEvent: ScheduledEvent = {
+      ...existingEvent,
+      ...updateRequest,
+      lastModified: new Date(),
+      version: existingEvent.version + 1, // Increment version for optimistic locking
+    };
+
+    return this.eventsCollection.updateEvent(guildId, eventId, updatedEvent);
   }
 
   async deleteEvent(guildId: string, eventId: string): Promise<void> {
-    // Implementation will depend on your delete requirements
-    // For now, just a placeholder
-    throw new Error('Delete event not implemented');
+    // Check if the event exists before attempting to delete
+    const existingEvent = await this.eventsCollection.getEvent(
+      guildId,
+      eventId,
+    );
+    if (!existingEvent) {
+      throw new NotFoundException(`Event with id ${eventId} not found`);
+    }
+
+    await this.eventsCollection.deleteEvent(guildId, eventId);
   }
 }
 

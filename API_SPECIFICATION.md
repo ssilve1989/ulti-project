@@ -177,7 +177,6 @@ Request Body: {
   scheduledTime: Date;
   duration: number;
   teamLeaderId: string;
-  partyCount?: number; // defaults to 1
 }
 
 Response: ScheduledEvent
@@ -226,11 +225,12 @@ Get all participants (helpers and proggers)
 Query Parameters:
 - guildId: string (required)
 - encounter?: string
-- role?: 'Tank' | 'Healer' | 'DPS'
 - type?: 'helper' | 'progger'
 
 Response: Participant[]
 ```
+
+**Note**: When `type=progger` is specified, this returns approved signups from the Discord bot signup system. When `type=helper` is specified, this returns available helpers. When no type is specified, both helpers and proggers are returned.
 
 #### **GET /helpers**
 
@@ -252,19 +252,6 @@ Query Parameters:
 - guildId: string (required)
 
 Response: HelperData
-```
-
-#### **GET /proggers**
-
-Get all proggers  
-
-```typescript
-Query Parameters:
-- guildId: string (required)
-- encounter?: string
-- role?: string
-
-Response: Participant[] // filtered to type: 'progger'
 ```
 
 ---
@@ -441,20 +428,25 @@ Events:
 Content-Type: text/event-stream
 ```
 
-#### **GET /helpers/stream**
+#### **GET /participants/stream**
 
-Real-time helper updates
+Real-time participant updates (helpers and proggers)
 
 ```typescript
 Query Parameters:
 - guildId: string (required)
+- type?: 'helper' | 'progger'
 
 Events:
-- helpers_updated: HelperData[]
+- participants_updated: Participant[]
+- signup_approved: { participant: Participant }
+- signup_declined: { participantId: string }
 - helper_availability_changed: { helperId, availability }
 
 Content-Type: text/event-stream
 ```
+
+**Note**: This unified stream includes both signup events (progger updates) and helper availability changes. The frontend can filter by participant type if needed.
 
 #### **GET /events/:eventId/locks/stream**
 

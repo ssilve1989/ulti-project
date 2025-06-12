@@ -163,6 +163,15 @@ class EventsCollection {
     await collection.doc(eventId).set(event, { merge: true });
     return event;
   }
+
+  async deleteEvent(guildId: string, eventId: string): Promise<void> {
+    const collection = getGuildCollection<ScheduledEvent>(this.firestore, {
+      collectionName: 'events',
+      guildId,
+    });
+
+    await collection.doc(eventId).delete();
+  }
 }
 
 export { EventsCollection };

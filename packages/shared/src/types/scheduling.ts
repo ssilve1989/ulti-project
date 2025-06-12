@@ -115,7 +115,6 @@ export interface CreateEventRequest {
   scheduledTime: Date;
   duration: number;
   teamLeaderId: string;
-  partyCount?: number;
 }
 
 export interface UpdateEventRequest {
@@ -283,10 +282,43 @@ export interface HelpersUpdatedEvent extends SSEEvent {
   data: HelperData[];
 }
 
+// New participant stream events
+export interface ParticipantsUpdatedEvent extends SSEEvent {
+  type: 'participants_updated';
+  data: Participant[];
+}
+
+export interface SignupApprovedEvent extends SSEEvent {
+  type: 'signup_approved';
+  data: {
+    participant: Participant;
+  };
+}
+
+export interface SignupDeclinedEvent extends SSEEvent {
+  type: 'signup_declined';
+  data: {
+    participantId: string;
+    discordId: string;
+    encounter: Encounter;
+  };
+}
+
+// Query interface for participants endpoint
+export interface GetParticipantsQuery {
+  guildId: string;
+  type?: ParticipantType;
+  encounter?: Encounter;
+  role?: 'Tank' | 'Healer' | 'DPS';
+}
+
 // Union type for all SSE events
 export type SchedulingSSEEvent =
   | EventUpdateEvent
   | DraftLockEvent
   | ParticipantAssignedEvent
   | HelperAvailabilityChangedEvent
-  | HelpersUpdatedEvent;
+  | HelpersUpdatedEvent
+  | ParticipantsUpdatedEvent
+  | SignupApprovedEvent
+  | SignupDeclinedEvent;
