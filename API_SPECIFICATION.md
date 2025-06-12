@@ -4,6 +4,15 @@
 
 This document outlines the REST API endpoints and real-time features needed for the Ulti Project scheduling system, based on the comprehensive mock implementation. The API supports multi-tenancy through guild-based data isolation, as the Discord bot operates across multiple Discord servers (guilds).
 
+## Implementation Status
+
+This specification tracks the current implementation status of each endpoint:
+
+- ✅ **Implemented** - Endpoint is fully implemented and tested
+- 🚧 **In Progress** - Implementation started but not complete  
+- ❌ **Not Implemented** - Not yet started
+- 📋 **Planned** - Documented but waiting for prerequisites
+
 ## Base URL
 
 ```
@@ -132,7 +141,7 @@ interface DraftLock {
 
 ### 1. Events Management
 
-#### **GET /events**
+#### **GET /events** ✅
 
 Get list of events with optional filtering
 
@@ -154,7 +163,7 @@ Response: {
 }
 ```
 
-#### **GET /events/:eventId**
+#### **GET /events/:eventId** ✅
 
 Get a specific event by ID
 
@@ -165,7 +174,7 @@ Query Parameters:
 Response: ScheduledEvent
 ```
 
-#### **POST /events**
+#### **POST /events** ✅
 
 Create a new event
 
@@ -182,7 +191,7 @@ Request Body: {
 Response: ScheduledEvent
 ```
 
-#### **PUT /events/:eventId**
+#### **PUT /events/:eventId** ✅
 
 Update an existing event
 
@@ -201,7 +210,7 @@ Request Body: {
 Response: ScheduledEvent
 ```
 
-#### **DELETE /events/:eventId**
+#### **DELETE /events/:eventId** ✅
 
 Delete an event
 
@@ -217,7 +226,7 @@ Response: { success: true }
 
 ### 2. Participants Management
 
-#### **GET /participants**
+#### **GET /participants** ✅
 
 Get all participants (helpers and proggers)
 
@@ -232,7 +241,7 @@ Response: Participant[]
 
 **Note**: When `type=progger` is specified, this returns approved signups from the Discord bot signup system. When `type=helper` is specified, this returns available helpers. When no type is specified, both helpers and proggers are returned.
 
-#### **GET /helpers**
+#### **GET /helpers** ❌
 
 Get all helpers
 
@@ -243,7 +252,7 @@ Query Parameters:
 Response: HelperData[]
 ```
 
-#### **GET /helpers/:helperId**
+#### **GET /helpers/:helperId** ❌
 
 Get specific helper details
 
@@ -258,7 +267,7 @@ Response: HelperData
 
 ### 3. Helper Availability
 
-#### **GET /helpers/:helperId/availability**
+#### **GET /helpers/:helperId/availability** ❌
 
 Check if a helper is available for a specific time
 
@@ -274,7 +283,7 @@ Response: {
 }
 ```
 
-#### **POST /helpers/:helperId/availability**
+#### **POST /helpers/:helperId/availability** ❌
 
 Set helper's weekly availability
 
@@ -289,7 +298,7 @@ Request Body: {
 Response: HelperData
 ```
 
-#### **GET /helpers/:helperId/absences**
+#### **GET /helpers/:helperId/absences** ❌
 
 Get helper's absence periods
 
@@ -300,7 +309,7 @@ Query Parameters:
 Response: HelperAbsence[]
 ```
 
-#### **POST /helpers/:helperId/absences**
+#### **POST /helpers/:helperId/absences** ❌
 
 Create an absence period
 
@@ -321,7 +330,7 @@ Response: HelperAbsence
 
 ### 4. Roster Management
 
-#### **POST /events/:eventId/roster/assign**
+#### **POST /events/:eventId/roster/assign** ❌
 
 Assign a participant to a roster slot
 
@@ -340,7 +349,7 @@ Request Body: {
 Response: ScheduledEvent
 ```
 
-#### **DELETE /events/:eventId/roster/slots/:slotId**
+#### **DELETE /events/:eventId/roster/slots/:slotId** ❌
 
 Unassign a participant from a roster slot
 
@@ -356,7 +365,7 @@ Response: ScheduledEvent
 
 ### 5. Draft Lock Management
 
-#### **GET /events/:eventId/locks**
+#### **GET /events/:eventId/locks** ✅
 
 Get all active draft locks for an event
 
@@ -367,7 +376,7 @@ Query Parameters:
 Response: DraftLock[]
 ```
 
-#### **POST /events/:eventId/locks**
+#### **POST /events/:eventId/locks** ✅
 
 Create a draft lock on a participant
 
@@ -385,7 +394,7 @@ Request Body: {
 Response: DraftLock
 ```
 
-#### **DELETE /events/:eventId/locks/:participantType/:participantId**
+#### **DELETE /events/:eventId/locks/:participantType/:participantId** ✅
 
 Release a draft lock
 
@@ -397,7 +406,7 @@ Query Parameters:
 Response: { success: true }
 ```
 
-#### **DELETE /events/:eventId/locks/team-leader/:teamLeaderId**
+#### **DELETE /events/:eventId/locks/team-leader/:teamLeaderId** ✅
 
 Release all locks held by a team leader for an event
 
@@ -412,7 +421,7 @@ Response: { success: true }
 
 ### 6. Real-time Updates (Server-Sent Events)
 
-#### **GET /events/:eventId/stream**
+#### **GET /events/:eventId/stream** ❌
 
 Real-time event updates
 
@@ -428,7 +437,7 @@ Events:
 Content-Type: text/event-stream
 ```
 
-#### **GET /participants/stream**
+#### **GET /participants/stream** ✅
 
 Real-time participant updates (helpers and proggers)
 
@@ -448,7 +457,7 @@ Content-Type: text/event-stream
 
 **Note**: This unified stream includes both signup events (progger updates) and helper availability changes. The frontend can filter by participant type if needed.
 
-#### **GET /events/:eventId/locks/stream**
+#### **GET /events/:eventId/locks/stream** ✅
 
 Real-time draft lock updates
 
@@ -457,9 +466,7 @@ Query Parameters:
 - guildId: string (required)
 
 Events:
-- draft_lock_created: { eventId, lock }
-- draft_lock_released: { eventId, lock }
-- draft_lock_expired: { eventId, lock }
+- locks_updated: DraftLock[]
 
 Content-Type: text/event-stream
 ```
@@ -468,24 +475,95 @@ Content-Type: text/event-stream
 
 ## Implementation Priorities
 
-### Phase 1: Core Functionality
+### Phase 1: Core Functionality ✅ COMPLETED
 
-1. **Guild-based authentication** - Verify user membership and permissions per guild
-2. **Events CRUD** - Basic event management with guild isolation
-3. **Participants endpoints** - Helper and progger data scoped to guilds
-4. **Basic roster management** - Assign/unassign without locking
+1. **Guild-based authentication** - ✅ Verify user membership and permissions per guild
+2. **Events CRUD** - ✅ Basic event management with guild isolation
+3. **Participants endpoints** - ✅ Helper and progger data scoped to guilds
+4. **Basic roster management** - ❌ Assign/unassign without locking
 
-### Phase 2: Advanced Features  
+### Phase 2: Advanced Features 🚧 IN PROGRESS
 
-1. **Draft locking system** - Prevent concurrent assignment conflicts within guilds
-2. **Helper availability** - Weekly schedules and absence management per guild
-3. **Real-time updates** - SSE streams for live collaboration per guild
+1. **Draft locking system** - ✅ Prevent concurrent assignment conflicts within guilds
+2. **Helper availability** - ❌ Weekly schedules and absence management per guild
+3. **Real-time updates** - 🚧 SSE streams for live collaboration per guild (partial)
 
-### Phase 3: Optimization
+### Phase 3: Optimization 📋 PLANNED
 
-1. **Caching strategies** - Redis with guild-based cache keys
-2. **Rate limiting** - Prevent abuse of real-time features per guild
-3. **Monitoring** - Performance and error tracking with guild context
+1. **Caching strategies** - ❌ Redis with guild-based cache keys
+2. **Rate limiting** - ❌ Prevent abuse of real-time features per guild
+3. **Monitoring** - ❌ Performance and error tracking with guild context
+
+---
+
+## Implementation Summary
+
+### ✅ Completed Endpoints (11/19)
+
+**Events Management (5/5)**
+
+- ✅ GET /events
+- ✅ GET /events/:eventId  
+- ✅ POST /events
+- ✅ PUT /events/:eventId
+- ✅ DELETE /events/:eventId
+
+**Participants Management (1/3)**
+
+- ✅ GET /participants
+- ❌ GET /helpers
+- ❌ GET /helpers/:helperId
+
+**Draft Lock Management (4/4)**
+
+- ✅ GET /events/:eventId/locks
+- ✅ POST /events/:eventId/locks
+- ✅ DELETE /events/:eventId/locks/:participantType/:participantId
+- ✅ DELETE /events/:eventId/locks/team-leader/:teamLeaderId
+
+**Real-time Updates (2/3)**
+
+- ❌ GET /events/:eventId/stream
+- ✅ GET /participants/stream
+- ✅ GET /events/:eventId/locks/stream
+
+### ❌ Remaining Endpoints (8/19)
+
+**Helper Availability (0/4)**
+
+- ❌ GET /helpers/:helperId/availability
+- ❌ POST /helpers/:helperId/availability
+- ❌ GET /helpers/:helperId/absences
+- ❌ POST /helpers/:helperId/absences
+
+**Roster Management (0/2)**
+
+- ❌ POST /events/:eventId/roster/assign
+- ❌ DELETE /events/:eventId/roster/slots/:slotId
+
+**Additional Missing (2)**
+
+- ❌ GET /helpers
+- ❌ GET /helpers/:helperId
+- ❌ GET /events/:eventId/stream
+
+### Key Features Implemented
+
+✅ **Guild-based Multi-tenancy**: All endpoints properly isolated by guild ID
+✅ **Draft Locking System**: Prevents concurrent roster assignment conflicts  
+✅ **Real-time Updates**: Firestore listeners for efficient live updates
+✅ **Shared Schema Architecture**: Centralized validation schemas in shared package
+✅ **Type Safety**: Full TypeScript support across frontend and backend
+✅ **Error Handling**: Structured error responses with proper HTTP status codes
+
+### Next Implementation Priorities
+
+1. **Roster Management** - Core functionality for assigning participants to slots
+2. **Helper System** - Support for helper availability and scheduling  
+3. **Event Streaming** - Real-time updates for roster changes
+4. **Helper Availability Management** - Weekly schedules and absence periods
+
+The foundation is solid with events management, draft locking, and participant retrieval fully implemented. The next major milestone is implementing the roster assignment system to complete the core scheduling functionality.
 
 ---
 
