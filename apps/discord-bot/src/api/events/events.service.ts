@@ -9,10 +9,14 @@ import type {
 } from '@ulti-project/shared';
 import { EventStatus } from '@ulti-project/shared';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
+import { RosterService } from './roster.service.js';
 
 @Injectable()
 class EventsService {
-  constructor(private readonly eventsCollection: EventsCollection) {}
+  constructor(
+    private readonly eventsCollection: EventsCollection,
+    private readonly rosterService: RosterService,
+  ) {}
 
   async getEvents(query: GetEventsQuery): Promise<GetEventsResponse> {
     // Use Firestore filtering instead of in-memory filtering
@@ -45,6 +49,9 @@ class EventsService {
     // Generate unique ID for the event
     const eventId = randomUUID();
 
+    // Create empty roster with proper party slots
+    const partySlots = this.rosterService.createEmptyRoster();
+
     // Transform CreateEventRequest into ScheduledEvent
     const scheduledEvent: ScheduledEvent = {
       id: eventId,
@@ -56,7 +63,7 @@ class EventsService {
       teamLeaderName: '', // Will be populated from Discord user data
       status: EventStatus.Draft,
       roster: {
-        party: [],
+        party: partySlots,
         totalSlots: 8, // FFXIV party always has 8 slots
         filledSlots: 0,
       },

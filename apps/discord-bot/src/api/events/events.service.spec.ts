@@ -9,10 +9,12 @@ import { Encounter, EventStatus } from '@ulti-project/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
 import { EventsService } from './events.service.js';
+import { RosterService } from './roster.service.js';
 
 describe('EventsService', () => {
   let service: EventsService;
   let eventsCollection: EventsCollection;
+  let rosterService: RosterService;
 
   const mockGuildId = 'test-guild-123';
   const mockEventId = 'test-event-456';
@@ -59,11 +61,18 @@ describe('EventsService', () => {
             deleteEvent: vi.fn(),
           },
         },
+        {
+          provide: RosterService,
+          useValue: {
+            createEmptyRoster: vi.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get(EventsService);
     eventsCollection = module.get(EventsCollection);
+    rosterService = module.get(RosterService);
   });
 
   describe('getEvents', () => {
@@ -184,6 +193,7 @@ describe('EventsService', () => {
       vi.spyOn(eventsCollection, 'createEvent').mockResolvedValue(
         mockCreatedEvent,
       );
+      vi.spyOn(rosterService, 'createEmptyRoster').mockReturnValue([]);
 
       const result = await service.createEvent(mockGuildId, mockCreateRequest);
 
@@ -199,12 +209,14 @@ describe('EventsService', () => {
           status: EventStatus.Draft,
         }),
       );
+      expect(rosterService.createEmptyRoster).toHaveBeenCalled();
       expect(result).toEqual(mockCreatedEvent);
     });
 
     it('should propagate errors from events collection', async () => {
       const error = new Error('Creation failed');
       vi.spyOn(eventsCollection, 'createEvent').mockRejectedValue(error);
+      vi.spyOn(rosterService, 'createEmptyRoster').mockReturnValue([]);
 
       await expect(
         service.createEvent(mockGuildId, mockCreateRequest),

@@ -43,12 +43,12 @@ This document tracks the implementation status of the Ulti Project Scheduling AP
 | GET /helpers/:helperId/absences | ❌ | Needs HelperAbsenceService |
 | POST /helpers/:helperId/absences | ❌ | Needs HelperAbsenceService |
 
-### Roster Management (0/2) ❌
+### Roster Management (2/2) ✅
 
 | Endpoint | Status | Implementation |
 |----------|--------|----------------|
-| POST /events/:eventId/roster/assign | ❌ | Needs RosterService.assignParticipant() |
-| DELETE /events/:eventId/roster/slots/:slotId | ❌ | Needs RosterService.unassignParticipant() |
+| POST /events/:eventId/roster/assign | ✅ | EventsController.assignParticipant() |
+| DELETE /events/:eventId/roster/slots/:slotId | ✅ | EventsController.unassignParticipant() |
 
 ### Draft Lock Management (4/4) ✅
 

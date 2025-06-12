@@ -7,5 +7,6 @@ import { ParticipantsService } from './participants.service.js';
   imports: [FirebaseModule],
   controllers: [ParticipantsController],
   providers: [ParticipantsService],
+  exports: [ParticipantsService],
 })
 export class ParticipantsModule {}

@@ -10,6 +10,12 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  type AssignParticipantParams,
+  AssignParticipantParamsSchema,
+  type AssignParticipantQuery,
+  AssignParticipantQuerySchema,
+  type AssignParticipantRequest,
+  AssignParticipantRequestSchema,
   type CreateEventRequest,
   CreateEventRequestSchema,
   type DeleteEventParams,
@@ -20,15 +26,23 @@ import {
   GetEventsQuerySchema,
   type GetEventsResponse,
   type ScheduledEvent,
+  type UnassignParticipantParams,
+  UnassignParticipantParamsSchema,
+  type UnassignParticipantQuery,
+  UnassignParticipantQuerySchema,
   type UpdateEventRequest,
   UpdateEventRequestSchema,
 } from '@ulti-project/shared';
 import { ZodValidationPipe } from '../../utils/pipes/zod-validation.pipe.js';
 import { EventsService } from './events.service.js';
+import { RosterService } from './roster.service.js';
 
 @Controller('events')
 class EventsController {
-  constructor(private readonly eventsService: EventsService) {}
+  constructor(
+    private readonly eventsService: EventsService,
+    private readonly rosterService: RosterService,
+  ) {}
 
   @Get()
   getEvents(
@@ -77,6 +91,40 @@ class EventsController {
   ): Promise<{ success: boolean }> {
     await this.eventsService.deleteEvent(query.guildId, params.id);
     return { success: true };
+  }
+
+  // Roster Management Endpoints
+
+  @Post(':eventId/roster/assign')
+  async assignParticipant(
+    @Param(new ZodValidationPipe(AssignParticipantParamsSchema))
+    params: AssignParticipantParams,
+    @Query(new ZodValidationPipe(AssignParticipantQuerySchema))
+    query: AssignParticipantQuery,
+    @Body(new ZodValidationPipe(AssignParticipantRequestSchema))
+    request: AssignParticipantRequest,
+  ): Promise<ScheduledEvent> {
+    return this.rosterService.assignParticipant(
+      query.guildId,
+      params.eventId,
+      query.teamLeaderId,
+      request,
+    );
+  }
+
+  @Delete(':eventId/roster/slots/:slotId')
+  async unassignParticipant(
+    @Param(new ZodValidationPipe(UnassignParticipantParamsSchema))
+    params: UnassignParticipantParams,
+    @Query(new ZodValidationPipe(UnassignParticipantQuerySchema))
+    query: UnassignParticipantQuery,
+  ): Promise<ScheduledEvent> {
+    return this.rosterService.unassignParticipant(
+      query.guildId,
+      params.eventId,
+      params.slotId,
+      query.teamLeaderId,
+    );
   }
 }
 
