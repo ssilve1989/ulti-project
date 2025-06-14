@@ -279,14 +279,11 @@ export async function getAllParticipants(filters?: {
       // Create a participant entry for each job the helper can play
       for (const helperJob of helper.availableJobs) {
         if (!filters?.role || helperJob.role === filters.role) {
-          // Generate a character name based on helper name and job
-          const characterName = `${helper.name} ${helperJob.job.replace(' ', '')}`;
-
           participants.push({
             type: ParticipantType.Helper,
             id: helper.id,
             discordId: helper.discordId,
-            name: helper.characterName,
+            name: helper.name,
             job: helperJob.job,
             isConfirmed: false,
           });
@@ -320,7 +317,7 @@ export async function getParticipant(
     type: ParticipantType.Helper,
     id: helper.id,
     discordId: helper.discordId,
-    name: helper.characterName,
+    name: helper.name,
     job: firstJob.job,
     isConfirmed: false,
   };

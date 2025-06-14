@@ -190,15 +190,28 @@ This action cannot be undone.`,
   const canCancel = ['draft', 'published'].includes(event.status);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+    <div
+      style={{
+        backgroundColor: 'var(--bg-primary)',
+        borderColor: 'var(--border-primary)',
+      }}
+      className="rounded-lg border p-4 mb-6"
+    >
       {/* Error Display */}
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <div className="text-red-600 text-sm">
+        <div
+          style={{
+            backgroundColor: 'var(--warning-bg)',
+            borderColor: 'var(--warning-border)',
+          }}
+          className="mb-4 p-3 border rounded-lg"
+        >
+          <div style={{ color: 'var(--warning-text)' }} className="text-sm">
             <strong>Error:</strong> {error}
             <button
               type="button"
-              className="ml-2 text-red-400 hover:text-red-600"
+              style={{ color: 'var(--warning-text)' }}
+              className="ml-2 opacity-60 hover:opacity-100"
               onClick={() => setError(null)}
             >
               ✕
@@ -231,7 +244,7 @@ This action cannot be undone.`,
           )}
         </div>
 
-        <div className="text-sm text-gray-600">
+        <div style={{ color: 'var(--text-secondary)' }} className="text-sm">
           <strong>
             {event.roster.filledSlots}/{event.roster.totalSlots}
           </strong>{' '}
@@ -290,16 +303,25 @@ This action cannot be undone.`,
         {canSave && (
           <button
             type="button"
-            className={`
-              px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2
-              ${
+            style={{
+              backgroundColor:
                 loading === 'save'
-                  ? 'bg-gray-300 cursor-wait'
+                  ? 'var(--bg-tertiary)'
                   : hasUnsavedChanges
-                    ? 'bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-              }
-            `}
+                    ? 'var(--warning-bg)'
+                    : 'var(--bg-secondary)',
+              color:
+                loading === 'save'
+                  ? 'var(--text-secondary)'
+                  : hasUnsavedChanges
+                    ? 'var(--warning-text)'
+                    : 'var(--text-primary)',
+              borderColor: hasUnsavedChanges
+                ? 'var(--warning-border)'
+                : 'transparent',
+              cursor: loading === 'save' ? 'wait' : 'pointer',
+            }}
+            className="px-6 py-3 rounded-lg font-medium transition-opacity flex items-center gap-2 border hover:opacity-80"
             onClick={() => handleSaveAsDraft(false)}
             disabled={loading !== null}
           >
@@ -383,8 +405,14 @@ This action cannot be undone.`,
       </div>
 
       {/* Additional Info */}
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+      <div
+        style={{ borderColor: 'var(--border-primary)' }}
+        className="mt-4 pt-4 border-t"
+      >
+        <div
+          style={{ color: 'var(--text-secondary)' }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm"
+        >
           <div>
             <strong>Created:</strong>{' '}
             {new Date(event.createdAt).toLocaleString()}

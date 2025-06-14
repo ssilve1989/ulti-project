@@ -353,44 +353,93 @@ export default function ParticipantPool({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 min-w-0">
+      <div
+        style={{
+          backgroundColor: 'var(--bg-primary)',
+          borderColor: 'var(--border-primary)',
+        }}
+        className="rounded-lg border min-w-0"
+      >
         <div className="animate-pulse">
           {/* Header - matches real content structure */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="h-6 bg-gray-200 rounded mb-4 w-48" />
+          <div
+            style={{ borderColor: 'var(--border-primary)' }}
+            className="p-4 border-b"
+          >
+            <div
+              style={{ backgroundColor: 'var(--bg-tertiary)' }}
+              className="h-6 rounded mb-4 w-48"
+            />
 
             {/* Filters - matches real content structure */}
             <div className="space-y-3">
-              <div className="h-10 bg-gray-200 rounded w-full" />
+              <div
+                style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                className="h-10 rounded w-full"
+              />
 
               <div className="flex flex-wrap gap-2">
-                <div className="h-8 bg-gray-200 rounded w-24" />
-                <div className="h-8 bg-gray-200 rounded w-24" />
-                <div className="h-8 bg-gray-200 rounded w-28" />
+                <div
+                  style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                  className="h-8 rounded w-24"
+                />
+                <div
+                  style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                  className="h-8 rounded w-24"
+                />
+                <div
+                  style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                  className="h-8 rounded w-28"
+                />
               </div>
             </div>
           </div>
 
           {/* Participant List - matches real content structure */}
           <div className="max-h-96 overflow-y-auto">
-            <div className="space-y-0 divide-y divide-gray-200">
+            <div
+              style={{ borderColor: 'var(--border-primary)' }}
+              className="space-y-0 divide-y"
+            >
               {Array.from({ length: 5 }, (_, i) => (
                 <div
                   key={`skeleton-item-${Date.now()}-${i}`}
-                  className="min-h-[5rem] bg-gray-50 flex items-start p-4"
+                  style={{ backgroundColor: 'var(--bg-secondary)' }}
+                  className="min-h-[5rem] flex items-start p-4"
                 >
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-1/3" />
-                    <div className="h-3 bg-gray-200 rounded w-1/2" />
+                    <div
+                      style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                      className="h-4 rounded w-1/3"
+                    />
+                    <div
+                      style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                      className="h-3 rounded w-1/2"
+                    />
                     <div className="flex gap-1">
-                      <div className="h-5 bg-gray-200 rounded w-12" />
-                      <div className="h-5 bg-gray-200 rounded w-12" />
-                      <div className="h-5 bg-gray-200 rounded w-12" />
+                      <div
+                        style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                        className="h-5 rounded w-12"
+                      />
+                      <div
+                        style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                        className="h-5 rounded w-12"
+                      />
+                      <div
+                        style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                        className="h-5 rounded w-12"
+                      />
                     </div>
-                    <div className="h-3 bg-gray-200 rounded w-3/4" />
+                    <div
+                      style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                      className="h-3 rounded w-3/4"
+                    />
                   </div>
                   <div className="flex-shrink-0 mt-1">
-                    <div className="h-6 bg-gray-200 rounded-full w-16" />
+                    <div
+                      style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                      className="h-6 rounded-full w-16"
+                    />
                   </div>
                 </div>
               ))}
@@ -403,8 +452,14 @@ export default function ParticipantPool({
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg border border-red-200 p-6 min-w-0">
-        <div className="text-red-600">
+      <div
+        style={{
+          backgroundColor: 'var(--bg-primary)',
+          borderColor: 'var(--warning-border)',
+        }}
+        className="rounded-lg border p-6 min-w-0"
+      >
+        <div style={{ color: 'var(--warning-text)' }}>
           <h3 className="font-medium mb-2">Error Loading Participants</h3>
           <p className="text-sm">{error}</p>
         </div>
@@ -413,10 +468,22 @@ export default function ParticipantPool({
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 min-w-0">
+    <div
+      style={{
+        backgroundColor: 'var(--bg-primary)',
+        borderColor: 'var(--border-primary)',
+      }}
+      className="rounded-lg border min-w-0"
+    >
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div
+        style={{ borderColor: 'var(--border-primary)' }}
+        className="p-4 border-b"
+      >
+        <h2
+          style={{ color: 'var(--text-primary)' }}
+          className="text-lg font-semibold mb-4"
+        >
           Available Participants
         </h2>
 
@@ -429,7 +496,12 @@ export default function ParticipantPool({
             onChange={(e) =>
               setFilters((prev) => ({ ...prev, search: e.target.value }))
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style={{
+              backgroundColor: 'var(--bg-primary)',
+              borderColor: 'var(--border-primary)',
+              color: 'var(--text-primary)',
+            }}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
           />
 
           <div className="flex flex-wrap gap-2">
@@ -438,7 +510,12 @@ export default function ParticipantPool({
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, type: e.target.value as any }))
               }
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                borderColor: 'var(--border-primary)',
+                color: 'var(--text-primary)',
+              }}
+              className="px-3 py-1 border rounded-md text-sm"
             >
               <option value="all">All Types</option>
               <option value="helper">Helpers</option>
@@ -450,7 +527,12 @@ export default function ParticipantPool({
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, role: e.target.value as any }))
               }
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                borderColor: 'var(--border-primary)',
+                color: 'var(--text-primary)',
+              }}
+              className="px-3 py-1 border rounded-md text-sm"
             >
               <option value="all">All Roles</option>
               <option value="Tank">Tank</option>
@@ -466,7 +548,12 @@ export default function ParticipantPool({
                   availability: e.target.value as any,
                 }))
               }
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                borderColor: 'var(--border-primary)',
+                color: 'var(--text-primary)',
+              }}
+              className="px-3 py-1 border rounded-md text-sm"
             >
               <option value="all">All Status</option>
               <option value="available">Available</option>
@@ -479,11 +566,17 @@ export default function ParticipantPool({
       {/* Participant List */}
       <div className="max-h-96 overflow-y-auto">
         {filteredParticipants.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">
+          <div
+            className="p-6 text-center"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             <p>No participants match your filters</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div
+            style={{ borderColor: 'var(--border-primary)' }}
+            className="divide-y"
+          >
             {filteredParticipants.map((participant) => {
               const status = getParticipantStatus(participant);
               const canSelect = status.type === 'available';
@@ -500,16 +593,39 @@ export default function ParticipantPool({
                     isPending
                       ? 'bg-blue-100 border-l-4 border-blue-500'
                       : canSelect
-                        ? 'cursor-pointer hover:bg-gray-50'
+                        ? 'cursor-pointer hover:bg-opacity-50'
                         : 'cursor-not-allowed opacity-60'
                   }`}
+                  style={{
+                    backgroundColor: isPending
+                      ? 'rgba(59, 130, 246, 0.1)'
+                      : canSelect
+                        ? 'transparent'
+                        : 'var(--bg-primary)',
+                    borderLeftColor: isPending ? '#3b82f6' : 'transparent',
+                    borderLeftWidth: isPending ? '4px' : '0',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (canSelect && !isPending) {
+                      e.currentTarget.style.backgroundColor =
+                        'var(--bg-secondary)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (canSelect && !isPending) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}
                   onClick={() => canSelect && onParticipantSelect(participant)}
                   disabled={!canSelect}
                 >
                   <div className="flex items-start justify-between w-full min-w-0 gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-medium text-gray-900 truncate text-sm">
+                        <h3
+                          style={{ color: 'var(--text-primary)' }}
+                          className="font-medium truncate text-sm"
+                        >
                           {participant.name}
                         </h3>
                       </div>
@@ -524,7 +640,11 @@ export default function ParticipantPool({
                               .map((helperJob: any, index: number) => (
                                 <div
                                   key={`${helperJob.job}-${index}`}
-                                  className="flex items-center gap-1 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded whitespace-nowrap"
+                                  className="flex items-center gap-1 px-1.5 py-0.5 text-xs rounded whitespace-nowrap"
+                                  style={{
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    color: 'var(--text-accent)',
+                                  }}
                                 >
                                   <OptimizedIcon
                                     {...getJobIconProps(helperJob.job)}
@@ -534,7 +654,13 @@ export default function ParticipantPool({
                                 </div>
                               ))}
                             {(participant as any).availableJobs.length > 3 && (
-                              <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
+                              <span
+                                className="inline-block px-1.5 py-0.5 text-xs rounded whitespace-nowrap"
+                                style={{
+                                  backgroundColor: 'var(--bg-secondary)',
+                                  color: 'var(--text-secondary)',
+                                }}
+                              >
                                 +{(participant as any).availableJobs.length - 3}
                               </span>
                             )}
@@ -547,14 +673,23 @@ export default function ParticipantPool({
                               {...getJobIconProps(participant.job)}
                               className="w-4 h-4"
                             />
-                            <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-800 rounded">
+                            <span
+                              className="inline-block px-1.5 py-0.5 text-xs rounded"
+                              style={{
+                                backgroundColor: 'var(--bg-secondary)',
+                                color: 'var(--text-primary)',
+                              }}
+                            >
                               {participant.job}
                             </span>
                           </div>
                           {participant.type === ParticipantType.Progger &&
                             participant.encounter &&
                             participant.progPoint && (
-                              <div className="text-xs text-gray-500 mt-1 truncate">
+                              <div
+                                style={{ color: 'var(--text-tertiary)' }}
+                                className="text-xs mt-1 truncate"
+                              >
                                 {participant.encounter} •{' '}
                                 {participant.progPoint}
                               </div>
@@ -563,7 +698,10 @@ export default function ParticipantPool({
                       )}
 
                       {participant.availability && (
-                        <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">
+                        <p
+                          style={{ color: 'var(--text-secondary)' }}
+                          className="text-xs leading-relaxed line-clamp-2"
+                        >
                           {participant.availability}
                         </p>
                       )}

@@ -101,6 +101,16 @@ export default function RosterBuilder({
       setLoading(slot.id);
       setError(null);
 
+      // CRITICAL: Role validation - prevents DPS from going into Tank/Healer slots, etc.
+      // This validation check should NEVER be removed as it ensures roster integrity
+      if (!isSlotCompatible(slot, participant)) {
+        const participantRole = getJobRole(participant.job);
+        setError(
+          `Cannot assign ${participant.name} (${participantRole}) to ${slot.role} slot. Role mismatch.`,
+        );
+        return;
+      }
+
       // For helpers with multiple jobs, show job selection modal
       if (
         participant.type === 'helper' &&
@@ -291,7 +301,8 @@ export default function RosterBuilder({
     // Can't assign to locked slots
     if (slot.draftedBy && slot.draftedBy !== teamLeaderId) return false;
 
-    // Check role compatibility
+    // CRITICAL: Role compatibility check - this prevents role mismatches
+    // DO NOT REMOVE: Ensures DPS can't be assigned to Tank/Healer slots, etc.
     const participantRole = getJobRole(participant.job);
     if (slot.role !== participantRole) return false;
 
@@ -304,11 +315,25 @@ export default function RosterBuilder({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200">
+    <div
+      style={{
+        backgroundColor: 'var(--bg-primary)',
+        borderColor: 'var(--border-primary)',
+      }}
+      className="rounded-lg border"
+    >
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Party Roster</h2>
-        <p className="text-sm text-gray-600 mt-1">
+      <div
+        style={{ borderColor: 'var(--border-primary)' }}
+        className="p-4 border-b"
+      >
+        <h2
+          style={{ color: 'var(--text-primary)' }}
+          className="text-lg font-semibold"
+        >
+          Party Roster
+        </h2>
+        <p style={{ color: 'var(--text-secondary)' }} className="text-sm mt-1">
           {currentEvent.roster.filledSlots}/{currentEvent.roster.totalSlots}{' '}
           slots filled
         </p>
@@ -316,8 +341,14 @@ export default function RosterBuilder({
 
       {/* Error Display */}
       {error && (
-        <div className="p-4 bg-red-50 border-b border-red-200">
-          <div className="text-red-600 text-sm">
+        <div
+          style={{
+            backgroundColor: 'var(--warning-bg)',
+            borderColor: 'var(--warning-border)',
+          }}
+          className="p-4 border-b"
+        >
+          <div style={{ color: 'var(--warning-text)' }} className="text-sm">
             <strong>Error:</strong> {error}
           </div>
         </div>
@@ -326,8 +357,17 @@ export default function RosterBuilder({
       {/* Party Grid */}
       <div className="p-4">
         <div className="space-y-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
+          <div
+            style={{
+              backgroundColor: 'var(--bg-primary)',
+              borderColor: 'var(--border-primary)',
+            }}
+            className="rounded-lg border p-6"
+          >
+            <h3
+              style={{ color: 'var(--text-primary)' }}
+              className="text-lg font-medium mb-4"
+            >
               Party Roster
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -357,17 +397,27 @@ export default function RosterBuilder({
 
                     {/* Slot Content */}
                     <div className={`${isLoading ? 'opacity-30' : ''}`}>
-                      {/* Role Header */}
+                      {/* Role/Job Header */}
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-1">
                           <div className="flex items-center">
-                            {getRoleIcon(slot.role)}
+                            {slot.assignedParticipant ? (
+                              <OptimizedIcon
+                                {...getJobIconProps(slot.assignedParticipant.job)}
+                                className="w-5 h-5"
+                              />
+                            ) : (
+                              getRoleIcon(slot.role)
+                            )}
                             <span className="text-lg hidden">
-                              {getRoleIconFallback(slot.role)}
+                              {slot.assignedParticipant ? 
+                                slot.assignedParticipant.job : 
+                                getRoleIconFallback(slot.role)
+                              }
                             </span>
                           </div>
                           <span className="text-xs font-medium">
-                            {slot.role}
+                            {slot.assignedParticipant ? slot.assignedParticipant.job : slot.role}
                           </span>
                         </div>
                       </div>
@@ -375,14 +425,8 @@ export default function RosterBuilder({
                       {/* Participant Info */}
                       {slot.assignedParticipant ? (
                         <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <OptimizedIcon
-                              {...getJobIconProps(slot.assignedParticipant.job)}
-                              className="w-6 h-6"
-                            />
-                            <div className="font-medium text-sm truncate">
-                              {slot.assignedParticipant.name}
-                            </div>
+                          <div className="font-medium text-sm truncate mb-1">
+                            {slot.assignedParticipant.name}
                           </div>
                           <div className="text-xs text-gray-600 truncate">
                             {slot.assignedParticipant.job}
@@ -418,12 +462,21 @@ export default function RosterBuilder({
       {/* Job Selection Modal */}
       {jobSelectionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div
+            style={{ backgroundColor: 'var(--bg-primary)' }}
+            className="rounded-lg p-6 max-w-md w-full mx-4"
+          >
+            <h3
+              style={{ color: 'var(--text-primary)' }}
+              className="text-lg font-semibold mb-4"
+            >
               Select Job for {jobSelectionModal.participant.name}
             </h3>
 
-            <p className="text-sm text-gray-600 mb-4">
+            <p
+              style={{ color: 'var(--text-secondary)' }}
+              className="text-sm mb-4"
+            >
               This helper can play multiple {jobSelectionModal.slot.role} jobs.
               Please select which job they should play for this event.
             </p>
@@ -433,7 +486,19 @@ export default function RosterBuilder({
                 <button
                   key={job}
                   type="button"
-                  className="flex items-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{
+                    borderColor: 'var(--border-primary)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                  }}
+                  className="flex items-center gap-2 p-3 border rounded-lg hover:bg-opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                      'var(--bg-secondary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+                  }}
                   onClick={() => jobSelectionModal.onConfirm(job)}
                 >
                   <OptimizedIcon
@@ -448,7 +513,17 @@ export default function RosterBuilder({
             <div className="flex gap-3">
               <button
                 type="button"
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                }}
+                className="flex-1 px-4 py-2 rounded-lg hover:bg-opacity-80"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                }}
                 onClick={jobSelectionModal.onCancel}
               >
                 Cancel

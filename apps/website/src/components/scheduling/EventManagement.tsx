@@ -297,8 +297,9 @@ Continue?`,
         {notifications.map((notification) => (
           <div
             key={notification.id}
+            style={{ backgroundColor: 'var(--bg-primary)' }}
             className={`
-              max-w-sm p-4 rounded-lg shadow-lg border-l-4 bg-white
+              max-w-sm p-4 rounded-lg shadow-lg border-l-4
               ${notification.type === 'success' ? 'border-green-500' : ''}
               ${notification.type === 'error' ? 'border-red-500' : ''}
               ${notification.type === 'warning' ? 'border-yellow-500' : ''}
@@ -307,16 +308,23 @@ Continue?`,
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h4 className="font-medium text-gray-900">
+                <h4
+                  style={{ color: 'var(--text-primary)' }}
+                  className="font-medium"
+                >
                   {notification.title}
                 </h4>
-                <p className="mt-1 text-sm text-gray-600">
+                <p
+                  style={{ color: 'var(--text-secondary)' }}
+                  className="mt-1 text-sm"
+                >
                   {notification.message}
                 </p>
               </div>
               <button
                 type="button"
-                className="ml-2 text-gray-400 hover:text-gray-600"
+                style={{ color: 'var(--text-tertiary)' }}
+                className="ml-2 hover:opacity-80"
                 onClick={() => removeNotification(notification.id)}
               >
                 ✕
@@ -327,7 +335,13 @@ Continue?`,
       </div>
 
       {/* Event Status Card */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div
+        style={{
+          backgroundColor: 'var(--bg-primary)',
+          borderColor: 'var(--border-primary)',
+        }}
+        className="rounded-lg border p-6"
+      >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <span
@@ -337,21 +351,33 @@ Continue?`,
             </span>
 
             {hasUnsavedChanges && event.status === EventStatus.Draft && (
-              <span className="text-sm text-amber-600 flex items-center gap-1">
-                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+              <span
+                style={{ color: 'var(--warning-text)' }}
+                className="text-sm flex items-center gap-1"
+              >
+                <div
+                  style={{ backgroundColor: 'var(--warning-text)' }}
+                  className="w-2 h-2 rounded-full animate-pulse"
+                />
                 Unsaved changes
               </span>
             )}
 
             {lastSaved && !hasUnsavedChanges && (
-              <span className="text-sm text-green-600 flex items-center gap-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full" />
+              <span
+                style={{ color: 'var(--success-text)' }}
+                className="text-sm flex items-center gap-1"
+              >
+                <div
+                  style={{ backgroundColor: 'var(--success-text)' }}
+                  className="w-2 h-2 rounded-full"
+                />
                 Saved {lastSaved.toLocaleTimeString()}
               </span>
             )}
           </div>
 
-          <div className="text-sm text-gray-600">
+          <div style={{ color: 'var(--text-secondary)' }} className="text-sm">
             <strong>
               {event.roster.filledSlots}/{event.roster.totalSlots}
             </strong>{' '}
@@ -364,14 +390,15 @@ Continue?`,
           {canPublish && (
             <button
               type="button"
-              className={`
-                px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2
-                ${
+              style={{
+                backgroundColor:
                   loading === 'publish'
-                    ? 'bg-blue-400 cursor-wait'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                } text-white
-              `}
+                    ? 'var(--bg-tertiary)'
+                    : 'var(--bg-accent)',
+                color: 'var(--text-inverse)',
+                cursor: loading === 'publish' ? 'wait' : 'pointer',
+              }}
+              className="px-6 py-3 rounded-lg font-medium transition-opacity flex items-center gap-2 hover:opacity-90"
               onClick={handlePublishEvent}
               disabled={loading !== null}
             >
@@ -394,20 +421,24 @@ Continue?`,
           {canUnpublish && (
             <button
               type="button"
-              className={`
-                px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2
-                ${
+              style={{
+                backgroundColor:
                   loading === 'unpublish'
-                    ? 'bg-gray-300 cursor-wait'
-                    : 'bg-gray-100 hover:bg-gray-200'
-                } text-gray-700
-              `}
+                    ? 'var(--bg-tertiary)'
+                    : 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                cursor: loading === 'unpublish' ? 'wait' : 'pointer',
+              }}
+              className="px-6 py-3 rounded-lg font-medium transition-opacity flex items-center gap-2 hover:opacity-80"
               onClick={handleUnpublishEvent}
               disabled={loading !== null}
             >
               {loading === 'unpublish' ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600" />
+                  <div
+                    style={{ borderColor: 'var(--text-primary)' }}
+                    className="animate-spin rounded-full h-4 w-4 border-b-2"
+                  />
                   Unpublishing...
                 </>
               ) : (
@@ -419,16 +450,25 @@ Continue?`,
           {canSave && (
             <button
               type="button"
-              className={`
-                px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2
-                ${
+              style={{
+                backgroundColor:
                   loading === 'save'
-                    ? 'bg-gray-300 cursor-wait'
+                    ? 'var(--bg-tertiary)'
                     : hasUnsavedChanges
-                      ? 'bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300'
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                }
-              `}
+                      ? 'var(--warning-bg)'
+                      : 'var(--bg-secondary)',
+                color:
+                  loading === 'save'
+                    ? 'var(--text-secondary)'
+                    : hasUnsavedChanges
+                      ? 'var(--warning-text)'
+                      : 'var(--text-primary)',
+                borderColor: hasUnsavedChanges
+                  ? 'var(--warning-border)'
+                  : 'transparent',
+                cursor: loading === 'save' ? 'wait' : 'pointer',
+              }}
+              className="px-6 py-3 rounded-lg font-medium transition-opacity flex items-center gap-2 border hover:opacity-80"
               onClick={handleSaveAsDraft}
               disabled={loading !== null}
             >
@@ -446,20 +486,24 @@ Continue?`,
           {canCancel && (
             <button
               type="button"
-              className={`
-                px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2
-                ${
+              style={{
+                backgroundColor:
                   loading === 'cancel'
-                    ? 'bg-red-300 cursor-wait'
-                    : 'bg-red-100 hover:bg-red-200'
-                } text-red-700
-              `}
+                    ? 'rgba(239, 68, 68, 0.3)'
+                    : 'rgba(239, 68, 68, 0.1)',
+                color: '#ef4444',
+                cursor: loading === 'cancel' ? 'wait' : 'pointer',
+              }}
+              className="px-6 py-3 rounded-lg font-medium transition-opacity flex items-center gap-2 hover:opacity-80"
               onClick={handleCancelEvent}
               disabled={loading !== null}
             >
               {loading === 'cancel' ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600" />
+                  <div
+                    style={{ borderColor: '#ef4444' }}
+                    className="animate-spin rounded-full h-4 w-4 border-b-2"
+                  />
                   Cancelling...
                 </>
               ) : (
@@ -470,8 +514,14 @@ Continue?`,
         </div>
 
         {/* Event Details */}
-        <div className="mt-6 pt-4 border-t border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+        <div
+          style={{ borderColor: 'var(--border-primary)' }}
+          className="mt-6 pt-4 border-t"
+        >
+          <div
+            style={{ color: 'var(--text-secondary)' }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm"
+          >
             <div>
               <strong>Created:</strong>{' '}
               {new Date(event.createdAt).toLocaleString()}

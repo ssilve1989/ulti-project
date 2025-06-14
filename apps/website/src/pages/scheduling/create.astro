@@ -25,24 +25,25 @@ const defaultDuration = {
         <div class="flex items-center gap-4 mb-4">
           <a 
             href="/scheduling"
-            class="text-blue-600 hover:text-blue-700 flex items-center gap-2"
+            style="color: var(--text-accent);"
+            class="hover:opacity-80 flex items-center gap-2 transition-opacity"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg style="color: var(--text-accent);" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
             Back to Events
           </a>
         </div>
         
-        <h1 class="text-3xl font-bold text-gray-900">Create New Event</h1>
-        <p class="text-gray-600 mt-2">Set up a new Ultimate raid event</p>
+        <h1 style="color: var(--text-primary);" class="text-3xl font-bold">Create New Event</h1>
+        <p style="color: var(--text-secondary);" class="mt-2">Set up a new Ultimate raid event</p>
       </div>
 
       <!-- Form -->
       <form id="create-event-form" class="space-y-6">
         <!-- Event Name -->
         <div>
-          <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+          <label for="name" style="color: var(--text-primary);" class="block text-sm font-medium mb-2">
             Event Name
           </label>
           <input
@@ -51,20 +52,22 @@ const defaultDuration = {
             name="name"
             required
             placeholder="e.g., FRU Prog Session, TOP Clear Run"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            style="background-color: var(--bg-primary); border-color: var(--border-primary); color: var(--text-primary);"
+            class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
           />
         </div>
 
         <!-- Encounter -->
         <div>
-          <label for="encounter" class="block text-sm font-medium text-gray-700 mb-2">
+          <label for="encounter" style="color: var(--text-primary);" class="block text-sm font-medium mb-2">
             Encounter
           </label>
           <select
             id="encounter"
             name="encounter"
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            style="background-color: var(--bg-primary); border-color: var(--border-primary); color: var(--text-primary);"
+            class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select an encounter</option>
             {encounters.map((encounter) => (
@@ -76,7 +79,7 @@ const defaultDuration = {
         <!-- Date and Time -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label for="date" class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="date" style="color: var(--text-primary);" class="block text-sm font-medium mb-2">
               Date
             </label>
             <input
@@ -85,12 +88,13 @@ const defaultDuration = {
               name="date"
               required
               min={new Date().toISOString().split('T')[0]}
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              style="background-color: var(--bg-primary); border-color: var(--border-primary); color: var(--text-primary);"
+              class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label for="time" class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="time" style="color: var(--text-primary);" class="block text-sm font-medium mb-2">
               Start Time
             </label>
             <input
@@ -98,14 +102,15 @@ const defaultDuration = {
               id="time"
               name="time"
               required
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              style="background-color: var(--bg-primary); border-color: var(--border-primary); color: var(--text-primary);"
+              class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
 
         <!-- Duration -->
         <div>
-          <label for="duration" class="block text-sm font-medium text-gray-700 mb-2">
+          <label for="duration" style="color: var(--text-primary);" class="block text-sm font-medium mb-2">
             Duration (minutes)
           </label>
           <input
@@ -117,9 +122,10 @@ const defaultDuration = {
             max="300"
             step="15"
             placeholder="120"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            style="background-color: var(--bg-primary); border-color: var(--border-primary); color: var(--text-primary);"
+            class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
           />
-          <p class="text-sm text-gray-500 mt-1">
+          <p style="color: var(--text-secondary);" class="text-sm mt-1">
             Typical durations: Clear parties (20-120 min), Prog parties (60-180 min)
           </p>
         </div>
@@ -128,14 +134,16 @@ const defaultDuration = {
         <div class="flex gap-4 pt-6">
           <button
             type="submit"
-            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            style="background-color: var(--bg-accent); color: var(--text-inverse);"
+            class="flex-1 hover:opacity-90 px-6 py-3 rounded-lg font-medium transition-opacity"
           >
             Create Event
           </button>
           
           <a
             href="/scheduling"
-            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium text-center transition-colors"
+            style="background-color: var(--bg-secondary); color: var(--text-primary);"
+            class="flex-1 hover:opacity-80 px-6 py-3 rounded-lg font-medium text-center transition-opacity"
           >
             Cancel
           </a>
@@ -144,8 +152,8 @@ const defaultDuration = {
 
       <!-- Loading State -->
       <div id="loading" class="hidden text-center py-8">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <p class="text-gray-600 mt-2">Creating event...</p>
+        <div style="border-color: var(--bg-accent);" class="inline-block animate-spin rounded-full h-8 w-8 border-b-2"></div>
+        <p style="color: var(--text-secondary);" class="mt-2">Creating event...</p>
       </div>
     </div>
   </div>
