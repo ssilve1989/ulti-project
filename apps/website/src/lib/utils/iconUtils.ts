@@ -3,19 +3,53 @@ import { Job, Role } from '@ulti-project/shared';
 // Icon path utilities for FFXIV job and role icons
 export const ICON_BASE_PATH = '/icons';
 
-// Role icon paths
-export const getRoleIconPath = (role: Role): string => {
+// Preload critical icons on page load
+export const CRITICAL_ICONS = ['TankRole.png', 'HealerRole.png', 'DPSRole.png'];
+
+// Regex for file extension replacement
+const FILE_EXTENSION_REGEX = /\.[^.]+$/;
+
+// Get icon format based on browser support
+export const getOptimalIconFormat = (basePath: string, hasWebP = true) => {
+  // In a production environment, you might want to detect WebP support
+  // For now, we'll assume modern browser support
+  if (basePath.endsWith('.png')) {
+    return hasWebP ? basePath.replace(FILE_EXTENSION_REGEX, '.webp') : basePath;
+  }
+  return basePath;
+};
+
+// Enhanced role icon paths with format optimization
+export const getRoleIconPath = (role: Role, preferWebP = true) => {
   const roleMap = {
     [Role.Tank]: 'TankRole.png',
     [Role.Healer]: 'HealerRole.png',
     [Role.DPS]: 'DPSRole.png',
   };
 
-  return `${ICON_BASE_PATH}/00_ROLE/${roleMap[role]}`;
+  const basePath = `${ICON_BASE_PATH}/00_ROLE/${roleMap[role]}`;
+  return preferWebP ? getOptimalIconFormat(basePath) : basePath;
+};
+
+// Get icon dimensions for better CLS (Cumulative Layout Shift) prevention
+export const getIconDimensions = (type: 'role' | 'job') => {
+  return type === 'role'
+    ? { width: 20, height: 20 }
+    : { width: 24, height: 24 };
+};
+
+// Generate preload links for critical icons
+export const generateIconPreloads = (icons: string[]) => {
+  return icons.map((icon) => ({
+    rel: 'preload',
+    as: 'image',
+    href: `${ICON_BASE_PATH}/00_ROLE/${icon}`,
+    type: 'image/png',
+  }));
 };
 
 // Job icon paths
-export const getJobIconPath = (job: Job): string => {
+export const getJobIconPath = (job: Job, preferWebP = true) => {
   // Tank jobs
   const tankJobs = {
     Paladin: '01_TANK/Job/Paladin.png',
@@ -56,15 +90,16 @@ export const getJobIconPath = (job: Job): string => {
     console.warn(`No icon found for job: ${job}`);
     // Fallback to a generic role icon based on job name
     if (Object.keys(tankJobs).includes(job)) {
-      return getRoleIconPath(Role.Tank);
+      return getRoleIconPath(Role.Tank, preferWebP);
     }
     if (Object.keys(healerJobs).includes(job)) {
-      return getRoleIconPath(Role.Healer);
+      return getRoleIconPath(Role.Healer, preferWebP);
     }
-    return getRoleIconPath(Role.DPS);
+    return getRoleIconPath(Role.DPS, preferWebP);
   }
 
-  return `${ICON_BASE_PATH}/${iconPath}`;
+  const basePath = `${ICON_BASE_PATH}/${iconPath}`;
+  return preferWebP ? getOptimalIconFormat(basePath) : basePath;
 };
 
 // Job to role mapping utility
@@ -75,4 +110,21 @@ export const getJobRole = (job: Job): Role => {
   if (tankJobs.includes(job)) return Role.Tank;
   if (healerJobs.includes(job)) return Role.Healer;
   return Role.DPS;
+};
+
+// Helper functions for React components to easily get optimized icon props
+export const getJobIconProps = (job: Job, preferWebP = true) => {
+  return {
+    iconPath: getJobIconPath(job, preferWebP),
+    alt: `${job} job`,
+    type: 'job' as const,
+  };
+};
+
+export const getRoleIconProps = (role: Role, preferWebP = true) => {
+  return {
+    iconPath: getRoleIconPath(role, preferWebP),
+    alt: `${role} role`,
+    type: 'role' as const,
+  };
 };

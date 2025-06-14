@@ -13,8 +13,12 @@ import {
   releaseLock,
   unassignParticipant,
 } from '../../lib/schedulingApi.js';
-import { getJobIconPath, getRoleIconPath } from '../../lib/utils/iconUtils.js';
+import {
+  getJobIconProps,
+  getRoleIconProps,
+} from '../../lib/utils/iconUtils.js';
 import { getJobRole } from '../../lib/utils/jobUtils.js';
+import OptimizedIcon from '../OptimizedIcon.js';
 
 interface RosterBuilderProps {
   event: ScheduledEvent;
@@ -224,20 +228,7 @@ export default function RosterBuilder({
   };
 
   const getRoleIcon = (role: Role) => {
-    const iconPath = getRoleIconPath(role);
-    return (
-      <img
-        src={iconPath}
-        alt={`${role} role`}
-        className="w-5 h-5"
-        onError={(e) => {
-          // Fallback to emoji if icon fails to load
-          const target = e.target as HTMLImageElement;
-          target.style.display = 'none';
-          target.nextElementSibling?.classList.remove('hidden');
-        }}
-      />
-    );
+    return <OptimizedIcon {...getRoleIconProps(role)} className="w-5 h-5" />;
   };
 
   const getRoleIconFallback = (role: Role) => {
@@ -385,15 +376,9 @@ export default function RosterBuilder({
                       {slot.assignedParticipant ? (
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <img
-                              src={getJobIconPath(slot.assignedParticipant.job)}
-                              alt={`${slot.assignedParticipant.job} job`}
+                            <OptimizedIcon
+                              {...getJobIconProps(slot.assignedParticipant.job)}
                               className="w-6 h-6"
-                              onError={(e) => {
-                                // Hide if icon fails to load
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
                             />
                             <div className="font-medium text-sm truncate">
                               {slot.assignedParticipant.name}
@@ -451,15 +436,9 @@ export default function RosterBuilder({
                   className="flex items-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={() => jobSelectionModal.onConfirm(job)}
                 >
-                  <img
-                    src={getJobIconPath(job)}
-                    alt={`${job} job`}
+                  <OptimizedIcon
+                    {...getJobIconProps(job)}
                     className="w-6 h-6"
-                    onError={(e) => {
-                      // Hide if icon fails to load
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                    }}
                   />
                   <span className="text-sm">{job}</span>
                 </button>

@@ -19,7 +19,7 @@ export async function getStaticPaths() {
 const { event } = Astro.props;
 ---
 
-<Layout title={`${event.name} - Roster Management`}>
+<Layout title={`${event.name} - Roster Management`} preloadCriticalIcons={true}>
   <div class="min-h-screen grid grid-cols-[1fr_min(1200px,100%)_1fr] px-4 py-8">
     <div class="col-start-2">
       <!-- Header -->

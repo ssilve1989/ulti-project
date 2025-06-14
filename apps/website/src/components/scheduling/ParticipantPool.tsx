@@ -15,9 +15,10 @@ import {
   getHelpers,
   isHelperAvailableForEvent,
 } from '../../lib/schedulingApi.js';
-import { getJobIconPath } from '../../lib/utils/iconUtils.js';
+import { getJobIconProps } from '../../lib/utils/iconUtils.js';
 import { getJobRole } from '../../lib/utils/jobUtils.js';
 import { getParticipantStatusColor } from '../../lib/utils/statusUtils.js';
+import OptimizedIcon from '../OptimizedIcon.js';
 
 interface ParticipantPoolProps {
   event: ScheduledEvent;
@@ -525,16 +526,9 @@ export default function ParticipantPool({
                                   key={`${helperJob.job}-${index}`}
                                   className="flex items-center gap-1 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded whitespace-nowrap"
                                 >
-                                  <img
-                                    src={getJobIconPath(helperJob.job)}
-                                    alt={`${helperJob.job} job`}
+                                  <OptimizedIcon
+                                    {...getJobIconProps(helperJob.job)}
                                     className="w-3 h-3"
-                                    onError={(e) => {
-                                      // Hide if icon fails to load
-                                      const target =
-                                        e.target as HTMLImageElement;
-                                      target.style.display = 'none';
-                                    }}
                                   />
                                   <span>{helperJob.job}</span>
                                 </div>
@@ -549,15 +543,9 @@ export default function ParticipantPool({
                       ) : (
                         <div className="mb-1">
                           <div className="flex items-center gap-1">
-                            <img
-                              src={getJobIconPath(participant.job)}
-                              alt={`${participant.job} job`}
+                            <OptimizedIcon
+                              {...getJobIconProps(participant.job)}
                               className="w-4 h-4"
-                              onError={(e) => {
-                                // Hide if icon fails to load
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
                             />
                             <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-800 rounded">
                               {participant.job}
