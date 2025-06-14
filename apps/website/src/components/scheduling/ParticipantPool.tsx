@@ -15,6 +15,7 @@ import {
   getHelpers,
   isHelperAvailableForEvent,
 } from '../../lib/schedulingApi.js';
+import { getJobIconPath } from '../../lib/utils/iconUtils.js';
 import { getJobRole } from '../../lib/utils/jobUtils.js';
 import { getParticipantStatusColor } from '../../lib/utils/statusUtils.js';
 
@@ -180,7 +181,6 @@ export default function ParticipantPool({
             id: helper.id,
             discordId: helper.discordId,
             name: helper.name,
-            characterName: undefined,
             job: helper.availableJobs?.[0]?.job || 'Paladin',
             encounter: undefined,
             progPoint: undefined,
@@ -209,10 +209,7 @@ export default function ParticipantPool({
             const matchesName = participant.name
               ?.toLowerCase()
               .includes(searchLower);
-            const matchesCharacter = participant.characterName
-              ?.toLowerCase()
-              .includes(searchLower);
-            if (!matchesName && !matchesCharacter) return false;
+            if (!matchesName) return false;
           }
 
           // Type filter
@@ -516,12 +513,6 @@ export default function ParticipantPool({
                         </h3>
                       </div>
 
-                      {participant.characterName && (
-                        <p className="text-xs text-gray-600 truncate mb-1">
-                          {participant.characterName}
-                        </p>
-                      )}
-
                       {/* Job display - different for helpers vs proggers */}
                       {participant.type === 'helper' &&
                       (participant as any).availableJobs ? (
@@ -530,12 +521,23 @@ export default function ParticipantPool({
                             {(participant as any).availableJobs
                               .slice(0, 3)
                               .map((helperJob: any, index: number) => (
-                                <span
+                                <div
                                   key={`${helperJob.job}-${index}`}
-                                  className="inline-block px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded whitespace-nowrap"
+                                  className="flex items-center gap-1 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded whitespace-nowrap"
                                 >
-                                  {helperJob.job}
-                                </span>
+                                  <img
+                                    src={getJobIconPath(helperJob.job)}
+                                    alt={`${helperJob.job} job`}
+                                    className="w-3 h-3"
+                                    onError={(e) => {
+                                      // Hide if icon fails to load
+                                      const target =
+                                        e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                    }}
+                                  />
+                                  <span>{helperJob.job}</span>
+                                </div>
                               ))}
                             {(participant as any).availableJobs.length > 3 && (
                               <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
@@ -546,9 +548,21 @@ export default function ParticipantPool({
                         </div>
                       ) : (
                         <div className="mb-1">
-                          <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-800 rounded">
-                            {participant.job}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <img
+                              src={getJobIconPath(participant.job)}
+                              alt={`${participant.job} job`}
+                              className="w-4 h-4"
+                              onError={(e) => {
+                                // Hide if icon fails to load
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                            <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-800 rounded">
+                              {participant.job}
+                            </span>
+                          </div>
                           {participant.type === ParticipantType.Progger &&
                             participant.encounter &&
                             participant.progPoint && (

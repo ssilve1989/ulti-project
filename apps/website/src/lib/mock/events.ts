@@ -57,10 +57,9 @@ function createPartiallyFilledRoster(): EventRoster {
       isHelperSlot: true,
       assignedParticipant: {
         type: ParticipantType.Helper,
-        id: 'helper-tank-1',
-        discordId: '123456789',
-        name: 'TankMaster',
-        characterName: 'Tank Master',
+        id: 'helper-1',
+        discordId: '123456789012345678',
+        name: 'Aether Defender',
         job: Job.Paladin,
         encounter: Encounter.FRU,
         isConfirmed: true,
@@ -72,12 +71,11 @@ function createPartiallyFilledRoster(): EventRoster {
       isHelperSlot: false,
       assignedParticipant: {
         type: ParticipantType.Progger,
-        id: 'progger-tank-1',
-        discordId: '987654321',
-        name: 'NewTank',
-        characterName: 'New Tank',
+        id: 'progger-7',
+        discordId: '777777777777777777',
+        name: 'Storm Breaker',
         job: Job.Warrior,
-        encounter: Encounter.FRU,
+        encounter: Encounter.UWU,
         isConfirmed: false,
       },
     },
@@ -88,10 +86,9 @@ function createPartiallyFilledRoster(): EventRoster {
       isHelperSlot: true,
       assignedParticipant: {
         type: ParticipantType.Helper,
-        id: 'helper-healer-1',
-        discordId: '456789123',
-        name: 'HealBot',
-        characterName: 'Heal Bot',
+        id: 'helper-2',
+        discordId: '234567890123456789',
+        name: 'Lunar Sanctuary',
         job: Job.WhiteMage,
         encounter: Encounter.FRU,
         isConfirmed: true,
@@ -106,7 +103,6 @@ function createPartiallyFilledRoster(): EventRoster {
         id: 'progger-healer-1',
         discordId: '789123456',
         name: 'LearningHealer',
-        characterName: 'Learning Healer',
         job: Job.Scholar,
         encounter: Encounter.FRU,
         isConfirmed: true,
@@ -123,6 +119,133 @@ function createPartiallyFilledRoster(): EventRoster {
     party: slots,
     totalSlots: 8,
     filledSlots: 4,
+  };
+}
+
+// Helper function to create fully filled roster for testing
+function createFullyFilledRoster(): EventRoster {
+  const slots: PartySlot[] = [
+    // Tank slots
+    {
+      id: 'slot-1',
+      role: Role.Tank,
+      isHelperSlot: true,
+      assignedParticipant: {
+        type: ParticipantType.Helper,
+        id: 'helper-1',
+        discordId: '123456789012345678',
+        name: 'TankMaster',
+        job: Job.Paladin,
+        encounter: Encounter.FRU,
+        isConfirmed: true,
+      },
+    },
+    {
+      id: 'slot-2',
+      role: Role.Tank,
+      isHelperSlot: false,
+      assignedParticipant: {
+        type: ParticipantType.Helper,
+        id: 'helper-7',
+        discordId: '789012345678901234',
+        name: 'MainTank',
+        job: Job.Gunbreaker,
+        encounter: Encounter.FRU,
+        isConfirmed: true,
+      },
+    },
+    // Healer slots
+    {
+      id: 'slot-3',
+      role: Role.Healer,
+      isHelperSlot: true,
+      assignedParticipant: {
+        type: ParticipantType.Helper,
+        id: 'helper-2',
+        discordId: '234567890123456789',
+        name: 'HealBot',
+        job: Job.WhiteMage,
+        encounter: Encounter.FRU,
+        isConfirmed: true,
+      },
+    },
+    {
+      id: 'slot-4',
+      role: Role.Healer,
+      isHelperSlot: false,
+      assignedParticipant: {
+        type: ParticipantType.Helper,
+        id: 'helper-8',
+        discordId: '890123456789012345',
+        name: 'HealerPro',
+        job: Job.Astrologian,
+        encounter: Encounter.FRU,
+        isConfirmed: true,
+      },
+    },
+    // DPS slots
+    {
+      id: 'slot-5',
+      role: Role.DPS,
+      isHelperSlot: true,
+      assignedParticipant: {
+        type: ParticipantType.Helper,
+        id: 'helper-3',
+        discordId: '345678901234567890',
+        name: 'DPSGod',
+        job: Job.BlackMage,
+        encounter: Encounter.FRU,
+        isConfirmed: true,
+      },
+    },
+    {
+      id: 'slot-6',
+      role: Role.DPS,
+      isHelperSlot: false,
+      assignedParticipant: {
+        type: ParticipantType.Helper,
+        id: 'helper-5',
+        discordId: '567890123456789012',
+        name: 'RangedExpert',
+        job: Job.Bard,
+        encounter: Encounter.FRU,
+        isConfirmed: true,
+      },
+    },
+    {
+      id: 'slot-7',
+      role: Role.DPS,
+      isHelperSlot: true,
+      assignedParticipant: {
+        type: ParticipantType.Helper,
+        id: 'helper-6',
+        discordId: '678901234567890123',
+        name: 'MeleeMain',
+        job: Job.Ninja,
+        encounter: Encounter.FRU,
+        isConfirmed: true,
+      },
+    },
+    {
+      id: 'slot-8',
+      role: Role.DPS,
+      isHelperSlot: false,
+      assignedParticipant: {
+        type: ParticipantType.Helper,
+        id: 'helper-12',
+        discordId: '234561098765432109',
+        name: 'UtilityDPS',
+        job: Job.Reaper,
+        encounter: Encounter.FRU,
+        isConfirmed: true,
+      },
+    },
+  ];
+
+  return {
+    party: slots,
+    totalSlots: 8,
+    filledSlots: 8,
   };
 }
 
@@ -157,6 +280,21 @@ const sampleEvents: ScheduledEvent[] = [
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
     lastModified: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
     version: 3,
+  } as ScheduledEvent,
+  {
+    id: 'event-3',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+    name: 'DSR Full Clear',
+    encounter: Encounter.DSR,
+    scheduledTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+    duration: 240, // 4 hours
+    teamLeaderId: 'leader-3',
+    teamLeaderName: 'TeamGamma',
+    status: EventStatus.Draft,
+    roster: createFullyFilledRoster(), // Full roster ready to publish
+    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
+    lastModified: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
+    version: 2,
   } as ScheduledEvent,
 ];
 

@@ -13,7 +13,7 @@ const mockHelpers: HelperData[] = [
     id: 'helper-1',
     guildId: MOCK_CONFIG.guild.defaultGuildId,
     discordId: '123456789012345678',
-    name: 'TankMaster',
+    name: 'Aether Defender',
     availableJobs: [
       { job: 'Paladin' as Job, role: 'Tank' as Role },
       { job: 'Warrior' as Job, role: 'Tank' as Role },
@@ -39,7 +39,7 @@ const mockHelpers: HelperData[] = [
     id: 'helper-2',
     guildId: MOCK_CONFIG.guild.defaultGuildId,
     discordId: '234567890123456789',
-    name: 'HealBot',
+    name: 'Lunar Sanctuary',
     availableJobs: [
       { job: 'White Mage' as Job, role: 'Healer' as Role },
       { job: 'Scholar' as Job, role: 'Healer' as Role },
@@ -52,7 +52,7 @@ const mockHelpers: HelperData[] = [
     id: 'helper-3',
     guildId: MOCK_CONFIG.guild.defaultGuildId,
     discordId: '345678901234567890',
-    name: 'DPSGod',
+    name: 'Chaos Weaver',
     availableJobs: [
       { job: 'Black Mage' as Job, role: 'DPS' as Role },
       { job: 'Summoner' as Job, role: 'DPS' as Role },
@@ -69,7 +69,7 @@ const mockHelpers: HelperData[] = [
     id: 'helper-4',
     guildId: MOCK_CONFIG.guild.defaultGuildId,
     discordId: '456789012345678901',
-    name: 'FlexPlayer',
+    name: 'Versatile Strike',
     availableJobs: [
       { job: 'Gunbreaker' as Job, role: 'Tank' as Role },
       { job: 'Sage' as Job, role: 'Healer' as Role },
@@ -82,7 +82,7 @@ const mockHelpers: HelperData[] = [
     id: 'helper-5',
     guildId: MOCK_CONFIG.guild.defaultGuildId,
     discordId: '567890123456789012',
-    name: 'RangedExpert',
+    name: 'Wind Archer',
     availableJobs: [
       { job: 'Bard' as Job, role: 'DPS' as Role },
       { job: 'Machinist' as Job, role: 'DPS' as Role },
@@ -107,6 +107,206 @@ const mockHelpers: HelperData[] = [
       { job: 'Reaper' as Job, role: 'DPS' as Role },
     ],
     // No weeklyAvailability - defaults to always available
+  } as HelperData,
+  // Additional helpers to ensure we can fill all 8 slots
+  {
+    id: 'helper-7',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+    discordId: '789012345678901234',
+    name: 'MainTank',
+    availableJobs: [
+      { job: 'Paladin' as Job, role: 'Tank' as Role },
+      { job: 'Gunbreaker' as Job, role: 'Tank' as Role },
+    ],
+    weeklyAvailability: [
+      // Available most evenings
+      { dayOfWeek: 1, timeRanges: [{ start: '18:00', end: '24:00' }] },
+      { dayOfWeek: 2, timeRanges: [{ start: '18:00', end: '24:00' }] },
+      { dayOfWeek: 3, timeRanges: [{ start: '18:00', end: '24:00' }] },
+      { dayOfWeek: 4, timeRanges: [{ start: '18:00', end: '24:00' }] },
+      { dayOfWeek: 5, timeRanges: [{ start: '19:00', end: '24:00' }] },
+    ],
+  } as HelperData,
+  {
+    id: 'helper-8',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+    discordId: '890123456789012345',
+    name: 'HealerPro',
+    availableJobs: [
+      { job: 'White Mage' as Job, role: 'Healer' as Role },
+      { job: 'Astrologian' as Job, role: 'Healer' as Role },
+    ],
+    weeklyAvailability: [
+      // Available Tuesday through Friday evenings
+      { dayOfWeek: 2, timeRanges: [{ start: '19:00', end: '23:00' }] },
+      { dayOfWeek: 3, timeRanges: [{ start: '19:00', end: '23:00' }] },
+      { dayOfWeek: 4, timeRanges: [{ start: '19:00', end: '23:00' }] },
+      { dayOfWeek: 5, timeRanges: [{ start: '19:00', end: '23:00' }] },
+    ],
+  } as HelperData,
+  {
+    id: 'helper-9',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+    discordId: '901234567890123456',
+    name: 'CasterDPS',
+    availableJobs: [
+      { job: 'Black Mage' as Job, role: 'DPS' as Role },
+      { job: 'Summoner' as Job, role: 'DPS' as Role },
+      { job: 'Red Mage' as Job, role: 'DPS' as Role },
+    ],
+    // Always available
+  } as HelperData,
+  {
+    id: 'helper-10',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+    discordId: '012345678901234567',
+    name: 'PhysRanged',
+    availableJobs: [
+      { job: 'Bard' as Job, role: 'DPS' as Role },
+      { job: 'Machinist' as Job, role: 'DPS' as Role },
+    ],
+    weeklyAvailability: [
+      // Available most days
+      { dayOfWeek: 1, timeRanges: [{ start: '17:00', end: '22:00' }] },
+      { dayOfWeek: 2, timeRanges: [{ start: '17:00', end: '22:00' }] },
+      { dayOfWeek: 3, timeRanges: [{ start: '17:00', end: '22:00' }] },
+      { dayOfWeek: 6, timeRanges: [{ start: '14:00', end: '20:00' }] },
+      { dayOfWeek: 0, timeRanges: [{ start: '14:00', end: '20:00' }] },
+    ],
+  } as HelperData,
+  {
+    id: 'helper-11',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+    discordId: '123450987654321098',
+    name: 'NinjaMain',
+    availableJobs: [
+      { job: 'Ninja' as Job, role: 'DPS' as Role },
+      { job: 'Monk' as Job, role: 'DPS' as Role },
+    ],
+    weeklyAvailability: [
+      // Evening player
+      { dayOfWeek: 1, timeRanges: [{ start: '20:00', end: '24:00' }] },
+      { dayOfWeek: 2, timeRanges: [{ start: '20:00', end: '24:00' }] },
+      { dayOfWeek: 3, timeRanges: [{ start: '20:00', end: '24:00' }] },
+      { dayOfWeek: 4, timeRanges: [{ start: '20:00', end: '24:00' }] },
+    ],
+  } as HelperData,
+  {
+    id: 'helper-12',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+    discordId: '234561098765432109',
+    name: 'UtilityDPS',
+    availableJobs: [
+      { job: 'Reaper' as Job, role: 'DPS' as Role },
+      { job: 'Samurai' as Job, role: 'DPS' as Role },
+      { job: 'Dragoon' as Job, role: 'DPS' as Role },
+    ],
+    // Always available - very dedicated player
+  } as HelperData,
+  // Extra helpers for redundancy and scheduling flexibility
+  {
+    id: 'helper-13',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+    discordId: '345672109876543210',
+    name: 'OffTank',
+    availableJobs: [
+      { job: 'Warrior' as Job, role: 'Tank' as Role },
+      { job: 'Dark Knight' as Job, role: 'Tank' as Role },
+    ],
+    weeklyAvailability: [
+      // Weekends mostly
+      { dayOfWeek: 5, timeRanges: [{ start: '18:00', end: '24:00' }] },
+      { dayOfWeek: 6, timeRanges: [{ start: '12:00', end: '24:00' }] },
+      { dayOfWeek: 0, timeRanges: [{ start: '12:00', end: '20:00' }] },
+    ],
+  } as HelperData,
+  {
+    id: 'helper-14',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+    discordId: '456783210987654321',
+    name: 'ShieldHealer',
+    availableJobs: [
+      { job: 'Scholar' as Job, role: 'Healer' as Role },
+      { job: 'Sage' as Job, role: 'Healer' as Role },
+    ],
+    weeklyAvailability: [
+      // Available Wednesday through Sunday
+      { dayOfWeek: 3, timeRanges: [{ start: '19:00', end: '23:00' }] },
+      { dayOfWeek: 4, timeRanges: [{ start: '19:00', end: '23:00' }] },
+      { dayOfWeek: 5, timeRanges: [{ start: '19:00', end: '24:00' }] },
+      { dayOfWeek: 6, timeRanges: [{ start: '15:00', end: '22:00' }] },
+      { dayOfWeek: 0, timeRanges: [{ start: '15:00', end: '21:00' }] },
+    ],
+  } as HelperData,
+  // Additional tank helpers to ensure adequate tank coverage
+  {
+    id: 'helper-15',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+    discordId: '567894321098765432',
+    name: 'TankVeteran',
+    availableJobs: [
+      { job: 'Paladin' as Job, role: 'Tank' as Role },
+      { job: 'Warrior' as Job, role: 'Tank' as Role },
+      { job: 'Gunbreaker' as Job, role: 'Tank' as Role },
+      { job: 'Dark Knight' as Job, role: 'Tank' as Role },
+    ],
+    weeklyAvailability: [
+      // Very available tank main
+      { dayOfWeek: 1, timeRanges: [{ start: '18:00', end: '24:00' }] },
+      { dayOfWeek: 2, timeRanges: [{ start: '18:00', end: '24:00' }] },
+      { dayOfWeek: 3, timeRanges: [{ start: '18:00', end: '24:00' }] },
+      { dayOfWeek: 4, timeRanges: [{ start: '18:00', end: '24:00' }] },
+      { dayOfWeek: 5, timeRanges: [{ start: '19:00', end: '24:00' }] },
+      { dayOfWeek: 6, timeRanges: [{ start: '14:00', end: '24:00' }] },
+      { dayOfWeek: 0, timeRanges: [{ start: '14:00', end: '22:00' }] },
+    ],
+  } as HelperData,
+  {
+    id: 'helper-16',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+    discordId: '678905432109876543',
+    name: 'GuardianMain',
+    availableJobs: [
+      { job: 'Gunbreaker' as Job, role: 'Tank' as Role },
+      { job: 'Dark Knight' as Job, role: 'Tank' as Role },
+    ],
+    weeklyAvailability: [
+      // Evening tank player
+      { dayOfWeek: 2, timeRanges: [{ start: '20:00', end: '24:00' }] },
+      { dayOfWeek: 3, timeRanges: [{ start: '20:00', end: '24:00' }] },
+      { dayOfWeek: 4, timeRanges: [{ start: '20:00', end: '24:00' }] },
+      { dayOfWeek: 6, timeRanges: [{ start: '16:00', end: '23:00' }] },
+      { dayOfWeek: 0, timeRanges: [{ start: '16:00', end: '22:00' }] },
+    ],
+  } as HelperData,
+  {
+    id: 'helper-17',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+    discordId: '789016543210987654',
+    name: 'PaladinExpert',
+    availableJobs: [
+      { job: 'Paladin' as Job, role: 'Tank' as Role },
+      { job: 'Warrior' as Job, role: 'Tank' as Role },
+    ],
+    weeklyAvailability: [
+      // Consistent schedule tank
+      { dayOfWeek: 1, timeRanges: [{ start: '19:00', end: '23:00' }] },
+      { dayOfWeek: 3, timeRanges: [{ start: '19:00', end: '23:00' }] },
+      { dayOfWeek: 5, timeRanges: [{ start: '19:00', end: '24:00' }] },
+      { dayOfWeek: 0, timeRanges: [{ start: '17:00', end: '21:00' }] },
+    ],
+  } as HelperData,
+  {
+    id: 'helper-18',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+    discordId: '890127654321098765',
+    name: 'FlexTank',
+    availableJobs: [
+      { job: 'Warrior' as Job, role: 'Tank' as Role },
+      { job: 'Dark Knight' as Job, role: 'Tank' as Role },
+      { job: 'Gunbreaker' as Job, role: 'Tank' as Role },
+    ],
+    // Always available - very dedicated tank
   } as HelperData,
 ];
 

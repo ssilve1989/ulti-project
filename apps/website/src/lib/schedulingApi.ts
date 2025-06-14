@@ -343,6 +343,17 @@ export async function assignParticipant(
       throw new Error('Event not found');
     }
 
+    // Get the actual participant data
+    const { getParticipant } = await import('./mock/participants.js');
+    const participant = await getParticipant(
+      request.participantId,
+      request.participantType as 'helper' | 'progger',
+    );
+
+    if (!participant) {
+      throw new Error('Participant not found');
+    }
+
     // Create a copy of the roster and update the specific slot
     const updatedRoster = {
       ...currentEvent.roster,
@@ -351,12 +362,8 @@ export async function assignParticipant(
           return {
             ...slot,
             assignedParticipant: {
-              id: request.participantId,
-              type: request.participantType as any,
-              discordId: `${request.participantId}-discord`,
-              name: `Participant ${request.participantId}`,
-              characterName: `Character ${request.participantId}`,
-              job: (request.selectedJob as any) || 'Paladin',
+              ...participant,
+              job: (request.selectedJob as any) || participant.job,
               encounter: currentEvent.encounter,
               isConfirmed: false,
             },

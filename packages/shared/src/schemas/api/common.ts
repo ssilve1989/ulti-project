@@ -99,7 +99,6 @@ export const ParticipantSchema = z.object({
   id: z.string(),
   discordId: z.string(),
   name: z.string(),
-  characterName: z.string().optional(),
   job: JobSchema,
   encounter: EncounterSchema.optional(),
   progPoint: z.string().optional(),
