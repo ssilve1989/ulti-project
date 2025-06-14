@@ -1,6 +1,6 @@
 # Copilot Instructions
 
-This project is a pnpm workspaces reppository.
+This project is a pnpm workspaces repository.
 
 - TypeScript is configured to expect ESM modules.
 - Never use npm always use pnpm

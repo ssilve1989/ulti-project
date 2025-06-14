@@ -70,12 +70,12 @@ export default function EventManagement({
   };
 
   const handlePublishEvent = async () => {
-    // Validation
-    if (event.roster.filledSlots === 0) {
+    // Validation - require all 8 slots to be filled
+    if (event.roster.filledSlots < 8) {
       addNotification({
         type: 'error',
         title: 'Cannot Publish Event',
-        message: 'At least one participant must be assigned before publishing.',
+        message: `All 8 slots must be filled before publishing. Currently ${event.roster.filledSlots}/8 slots are filled.`,
       });
       return;
     }
@@ -258,16 +258,23 @@ Continue?`,
       }
     }
 
-    if (roleCounts.Tank === 0) {
+    // Validate exact role requirements for Ultimate raids
+    if (roleCounts.Tank !== 2) {
       return {
         isValid: false,
-        message: 'At least 1 Tank is required to publish the event.',
+        message: `Exactly 2 Tanks are required (currently ${roleCounts.Tank}/2).`,
       };
     }
-    if (roleCounts.Healer === 0) {
+    if (roleCounts.Healer !== 2) {
       return {
         isValid: false,
-        message: 'At least 1 Healer is required to publish the event.',
+        message: `Exactly 2 Healers are required (currently ${roleCounts.Healer}/2).`,
+      };
+    }
+    if (roleCounts.DPS !== 4) {
+      return {
+        isValid: false,
+        message: `Exactly 4 DPS are required (currently ${roleCounts.DPS}/4).`,
       };
     }
 
@@ -276,7 +283,7 @@ Continue?`,
 
   const statusInfo = getEventStatusInfo(event.status);
   const canPublish =
-    event.status === EventStatus.Draft && event.roster.filledSlots > 0;
+    event.status === EventStatus.Draft && event.roster.filledSlots === 8;
   const canSave = event.status === EventStatus.Draft;
   const canUnpublish = event.status === EventStatus.Published;
   const canCancel = [EventStatus.Draft, EventStatus.Published].includes(

@@ -4,9 +4,20 @@
 
 This document outlines the REST API endpoints and real-time features needed for the Ulti Project scheduling system, based on the comprehensive mock implementation. The API supports multi-tenancy through guild-based data isolation, as the Discord bot operates across multiple Discord servers (guilds).
 
-## Implementation Status
+## Implementati#### **DELETE /events/:eventId/locks/team-leader/:teamLeaderId** ✅
 
-This specification tracks the current implementation status of each endpoint:
+Release all locks held by a specific team leader for an event
+
+```typescript
+Query Parameters:
+- guildId: string (required)
+
+Response: { success: true }
+```
+
+---
+
+### 5. Real-time Updates (Server-Sent Events)s specification tracks the current implementation status of each endpoint
 
 - ✅ **Implemented** - Endpoint is fully implemented and tested
 - 🚧 **In Progress** - Implementation started but not complete  
@@ -328,42 +339,9 @@ Response: HelperAbsence
 
 ---
 
-### 4. Roster Management
+### 4. Draft Lock Management
 
-#### **POST /events/:eventId/roster/assign** ❌
-
-Assign a participant to a roster slot
-
-```typescript
-Query Parameters:
-- guildId: string (required)
-- teamLeaderId: string
-
-Request Body: {
-  participantId: string;
-  participantType: 'helper' | 'progger';
-  slotId: string;
-  selectedJob: Job;
-}
-
-Response: ScheduledEvent
-```
-
-#### **DELETE /events/:eventId/roster/slots/:slotId** ❌
-
-Unassign a participant from a roster slot
-
-```typescript
-Query Parameters:
-- guildId: string (required)
-- teamLeaderId: string
-
-Response: ScheduledEvent
-```
-
----
-
-### 5. Draft Lock Management
+The draft lock system allows team leaders to temporarily "reserve" participants while building their roster. This prevents conflicts when multiple team leaders are drafting simultaneously. The actual roster assignments happen through the event update endpoint when publishing a complete draft.
 
 #### **GET /events/:eventId/locks** ✅
 
@@ -498,14 +476,14 @@ Content-Type: text/event-stream
 
 ## Implementation Summary
 
-### ✅ Completed Endpoints (11/19)
+### ✅ Completed Endpoints (13/15)
 
 **Events Management (5/5)**
 
 - ✅ GET /events
 - ✅ GET /events/:eventId  
 - ✅ POST /events
-- ✅ PUT /events/:eventId
+- ✅ PUT /events/:eventId (includes roster management via draft publish)
 - ✅ DELETE /events/:eventId
 
 **Participants Management (1/3)**
@@ -527,25 +505,34 @@ Content-Type: text/event-stream
 - ✅ GET /participants/stream
 - ✅ GET /events/:eventId/locks/stream
 
-### ❌ Remaining Endpoints (8/19)
+### ❌ Remaining Endpoints (2/15)
 
-**Helper Availability (0/4)**
+**Helper Availability (0/4)** - *Not yet prioritized*
 
 - ❌ GET /helpers/:helperId/availability
 - ❌ POST /helpers/:helperId/availability
 - ❌ GET /helpers/:helperId/absences
 - ❌ POST /helpers/:helperId/absences
 
-**Roster Management (0/2)**
-
-- ❌ POST /events/:eventId/roster/assign
-- ❌ DELETE /events/:eventId/roster/slots/:slotId
-
 **Additional Missing (2)**
 
 - ❌ GET /helpers
 - ❌ GET /helpers/:helperId
 - ❌ GET /events/:eventId/stream
+
+### Roster Management Strategy
+
+**Draft-Based Workflow**: Instead of individual slot assignment endpoints, roster management is handled through:
+
+1. **Local Draft Building**: Team leaders build rosters locally using session storage
+2. **Conflict Prevention**: Draft locks prevent multiple leaders from selecting the same participants  
+3. **Atomic Publishing**: Complete roster is submitted via `PUT /events/:eventId` when ready
+4. **Real-time Updates**: Other users see published changes via event streams
+
+This approach eliminates the need for:
+
+- ❌ ~~POST /events/:eventId/roster/assign~~
+- ❌ ~~DELETE /events/:eventId/roster/slots/:slotId~~
 
 ### Key Features Implemented
 

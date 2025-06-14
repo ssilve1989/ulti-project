@@ -23,6 +23,7 @@ import { Encounter } from './encounters.js';
 // Core scheduling types
 export interface ScheduledEvent {
   id: string;
+  guildId: string; // Multi-tenant support
   name: string;
   encounter: Encounter;
   scheduledTime: Date;
@@ -67,6 +68,7 @@ export interface Participant {
 
 export interface HelperData {
   id: string;
+  guildId: string; // Multi-tenant support
   discordId: string;
   name: string;
   availableJobs: HelperJob[];
@@ -110,6 +112,7 @@ export interface DraftLock {
 
 // API Request/Response types
 export interface CreateEventRequest {
+  guildId: string; // Required for multi-tenant support
   name: string;
   encounter: Encounter;
   scheduledTime: Date;

@@ -81,13 +81,15 @@ export default function EventHeader({
   }, [hasUnsavedChanges, event.status, handleSaveAsDraft]);
 
   const handlePublishEvent = async () => {
-    // Enhanced validation
-    if (event.roster.filledSlots === 0) {
-      setError('Cannot publish an event with no participants assigned');
+    // Enhanced validation - require all 8 slots to be filled
+    if (event.roster.filledSlots < 8) {
+      setError(
+        `Cannot publish: All 8 slots must be filled (currently ${event.roster.filledSlots}/8)`,
+      );
       return;
     }
 
-    // Check if all required roles are filled (at least 1 tank, 1 healer)
+    // Check if all required roles are filled (2 tanks, 2 healers, 4 DPS)
     const roleCheck = validateRosterRoles();
     if (!roleCheck.isValid) {
       setError(`Cannot publish: ${roleCheck.message}`);
@@ -160,17 +162,30 @@ This action cannot be undone.`,
       }
     }
 
-    if (roleCounts.Tank === 0) {
-      return { isValid: false, message: 'At least 1 Tank is required' };
+    // Validate exact role requirements for Ultimate raids
+    if (roleCounts.Tank !== 2) {
+      return {
+        isValid: false,
+        message: `Exactly 2 Tanks required (${roleCounts.Tank}/2)`,
+      };
     }
-    if (roleCounts.Healer === 0) {
-      return { isValid: false, message: 'At least 1 Healer is required' };
+    if (roleCounts.Healer !== 2) {
+      return {
+        isValid: false,
+        message: `Exactly 2 Healers required (${roleCounts.Healer}/2)`,
+      };
+    }
+    if (roleCounts.DPS !== 4) {
+      return {
+        isValid: false,
+        message: `Exactly 4 DPS required (${roleCounts.DPS}/4)`,
+      };
     }
 
     return { isValid: true, message: '' };
   };
 
-  const canPublish = event.status === 'draft' && event.roster.filledSlots > 0;
+  const canPublish = event.status === 'draft' && event.roster.filledSlots === 8;
   const canSave = event.status === 'draft';
   const canCancel = ['draft', 'published'].includes(event.status);
 

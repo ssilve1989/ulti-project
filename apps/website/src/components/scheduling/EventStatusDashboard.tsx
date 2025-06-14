@@ -66,9 +66,10 @@ export default function EventStatusDashboard({
   }, [event.roster]);
 
   const isReadyToPublish =
-    stats.filledSlots > 0 &&
-    stats.roleBreakdown.Tank.filled > 0 &&
-    stats.roleBreakdown.Healer.filled > 0;
+    stats.filledSlots === 8 &&
+    stats.roleBreakdown.Tank.filled === 2 &&
+    stats.roleBreakdown.Healer.filled === 2 &&
+    stats.roleBreakdown.DPS.filled === 4;
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">

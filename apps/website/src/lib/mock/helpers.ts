@@ -11,6 +11,7 @@ import { MOCK_CONFIG, delay } from './config.js';
 const mockHelpers: HelperData[] = [
   {
     id: 'helper-1',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
     discordId: '123456789012345678',
     name: 'TankMaster',
     availableJobs: [
@@ -33,9 +34,10 @@ const mockHelpers: HelperData[] = [
       },
       { dayOfWeek: 0, timeRanges: [{ start: '12:00', end: '18:00' }] },
     ],
-  },
+  } as HelperData,
   {
     id: 'helper-2',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
     discordId: '234567890123456789',
     name: 'HealBot',
     availableJobs: [
@@ -45,9 +47,10 @@ const mockHelpers: HelperData[] = [
       { job: 'Sage' as Job, role: 'Healer' as Role },
     ],
     // No weeklyAvailability - defaults to always available
-  },
+  } as HelperData,
   {
     id: 'helper-3',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
     discordId: '345678901234567890',
     name: 'DPSGod',
     availableJobs: [
@@ -61,9 +64,10 @@ const mockHelpers: HelperData[] = [
       { dayOfWeek: 2, timeRanges: [{ start: '20:00', end: '24:00' }] },
       { dayOfWeek: 4, timeRanges: [{ start: '20:00', end: '24:00' }] },
     ],
-  },
+  } as HelperData,
   {
     id: 'helper-4',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
     discordId: '456789012345678901',
     name: 'FlexPlayer',
     availableJobs: [
@@ -73,9 +77,10 @@ const mockHelpers: HelperData[] = [
       { job: 'Dancer' as Job, role: 'DPS' as Role },
     ],
     // No weeklyAvailability - defaults to always available (very flexible player)
-  },
+  } as HelperData,
   {
     id: 'helper-5',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
     discordId: '567890123456789012',
     name: 'RangedExpert',
     availableJobs: [
@@ -88,9 +93,10 @@ const mockHelpers: HelperData[] = [
       { dayOfWeek: 6, timeRanges: [{ start: '15:00', end: '19:00' }] },
       { dayOfWeek: 0, timeRanges: [{ start: '15:00', end: '19:00' }] },
     ],
-  },
+  } as HelperData,
   {
     id: 'helper-6',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
     discordId: '678901234567890123',
     name: 'MeleeMain',
     availableJobs: [
@@ -101,7 +107,7 @@ const mockHelpers: HelperData[] = [
       { job: 'Reaper' as Job, role: 'DPS' as Role },
     ],
     // No weeklyAvailability - defaults to always available
-  },
+  } as HelperData,
 ];
 
 const mockAbsences: HelperAbsence[] = [
@@ -128,7 +134,10 @@ const absenceConnections: Set<(event: MessageEvent) => void> = new Set();
 // API Functions
 export async function getHelpers(): Promise<HelperData[]> {
   await delay(MOCK_CONFIG.delays.medium);
-  return [...mockHelpers];
+  // Filter helpers by current guild
+  return mockHelpers.filter(
+    (h: any) => h.guildId === MOCK_CONFIG.guild.defaultGuildId,
+  );
 }
 
 export async function getHelper(id: string): Promise<HelperData | null> {

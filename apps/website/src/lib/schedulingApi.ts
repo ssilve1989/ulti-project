@@ -3,7 +3,6 @@
 
 import { ParticipantType } from '@ulti-project/shared';
 import type {
-  AssignParticipantRequest,
   CreateEventRequest,
   DraftLock,
   EventFilters,
@@ -19,7 +18,6 @@ export type {
   ScheduledEvent,
   CreateEventRequest,
   UpdateEventRequest,
-  AssignParticipantRequest,
   EventFilters,
   HelperData,
   Participant,
@@ -83,37 +81,6 @@ export async function deleteEvent(
   if (USE_MOCK_DATA) {
     const { deleteEvent: mockDeleteEvent } = await import('./mock/events.js');
     return mockDeleteEvent(id, teamLeaderId);
-  }
-
-  throw new Error('Real API not implemented yet');
-}
-
-// Participant Management API
-export async function assignParticipant(
-  eventId: string,
-  teamLeaderId: string,
-  request: AssignParticipantRequest,
-): Promise<ScheduledEvent> {
-  if (USE_MOCK_DATA) {
-    const { assignParticipant: mockAssignParticipant } = await import(
-      './mock/events.js'
-    );
-    return mockAssignParticipant(eventId, teamLeaderId, request);
-  }
-
-  throw new Error('Real API not implemented yet');
-}
-
-export async function unassignParticipant(
-  eventId: string,
-  teamLeaderId: string,
-  slotId: string,
-): Promise<ScheduledEvent> {
-  if (USE_MOCK_DATA) {
-    const { unassignParticipant: mockUnassignParticipant } = await import(
-      './mock/events.js'
-    );
-    return mockUnassignParticipant(eventId, teamLeaderId, slotId);
   }
 
   throw new Error('Real API not implemented yet');
@@ -352,6 +319,101 @@ export function createDraftLocksEventSource(eventId: string): EventSource {
   }
 
   throw new Error('Real SSE not implemented yet');
+}
+
+// Backward compatibility functions for the draft-based workflow
+// These provide the old API while using the new draft-based approach under the hood
+
+export async function assignParticipant(
+  eventId: string,
+  teamLeaderId: string,
+  request: {
+    participantId: string;
+    participantType: string;
+    slotId: string;
+    selectedJob?: string;
+  },
+): Promise<ScheduledEvent> {
+  if (USE_MOCK_DATA) {
+    // Get current event
+    const { getEvent: mockGetEvent, updateEvent: mockUpdateEvent } =
+      await import('./mock/events.js');
+    const currentEvent = await mockGetEvent(eventId);
+    if (!currentEvent) {
+      throw new Error('Event not found');
+    }
+
+    // Create a copy of the roster and update the specific slot
+    const updatedRoster = {
+      ...currentEvent.roster,
+      party: currentEvent.roster.party.map((slot) => {
+        if (slot.id === request.slotId) {
+          return {
+            ...slot,
+            assignedParticipant: {
+              id: request.participantId,
+              type: request.participantType as any,
+              discordId: `${request.participantId}-discord`,
+              name: `Participant ${request.participantId}`,
+              characterName: `Character ${request.participantId}`,
+              job: (request.selectedJob as any) || 'Paladin',
+              encounter: currentEvent.encounter,
+              isConfirmed: false,
+            },
+          };
+        }
+        return slot;
+      }),
+    };
+
+    // Update filled slots count
+    updatedRoster.filledSlots = updatedRoster.party.filter(
+      (slot: any) => slot.assignedParticipant,
+    ).length;
+
+    // Use updateEvent to apply the changes
+    return mockUpdateEvent(eventId, { roster: updatedRoster });
+  }
+
+  throw new Error('Real API not implemented yet');
+}
+
+export async function unassignParticipant(
+  eventId: string,
+  teamLeaderId: string,
+  slotId: string,
+): Promise<ScheduledEvent> {
+  if (USE_MOCK_DATA) {
+    // Get current event
+    const { getEvent: mockGetEvent, updateEvent: mockUpdateEvent } =
+      await import('./mock/events.js');
+    const currentEvent = await mockGetEvent(eventId);
+    if (!currentEvent) {
+      throw new Error('Event not found');
+    }
+
+    // Create a copy of the roster and clear the specific slot
+    const updatedRoster = {
+      ...currentEvent.roster,
+      party: currentEvent.roster.party.map((slot) => {
+        if (slot.id === slotId) {
+          const { assignedParticipant, ...slotWithoutParticipant } = slot;
+          return slotWithoutParticipant;
+        }
+        return slot;
+      }),
+    };
+
+    // Update filled slots count
+    updatedRoster.filledSlots = updatedRoster.party.filter(
+      (slot: any) => slot.assignedParticipant,
+    ).length;
+
+    // Use updateEvent to apply the changes
+    return mockUpdateEvent(eventId, { roster: updatedRoster });
+  }
+
+  throw new Error('Real API not implemented yet');
 }
 
 // Utility functions for development

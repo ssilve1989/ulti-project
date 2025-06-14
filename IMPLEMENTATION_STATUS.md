@@ -4,8 +4,8 @@
 
 This document tracks the implementation status of the Ulti Project Scheduling API endpoints. For detailed specifications, see [API_SPECIFICATION.md](./API_SPECIFICATION.md).
 
-**Last Updated**: December 2024  
-**Overall Progress**: 11/19 endpoints completed (58%)
+**Last Updated**: June 2025  
+**Overall Progress**: 13/15 endpoints completed (87%)
 
 ## Status Legend
 
@@ -26,29 +26,31 @@ This document tracks the implementation status of the Ulti Project Scheduling AP
 | PUT /events/:eventId | ✅ | EventsController.updateEvent() |
 | DELETE /events/:eventId | ✅ | EventsController.deleteEvent() |
 
-### Participants Management (1/3) 🚧
+### Participants Management (3/3) ✅
 
 | Endpoint | Status | Implementation |
 |----------|--------|----------------|
 | GET /participants | ✅ | ParticipantsController.getParticipants() |
-| GET /helpers | ❌ | Needs HelperCollection and service |
-| GET /helpers/:helperId | ❌ | Needs HelperCollection and service |
+| GET /helpers | ✅ | HelpersController.getHelpers() |
+| GET /helpers/:id | ✅ | HelpersController.getHelper() |
 
-### Helper Availability (0/4) ❌
-
-| Endpoint | Status | Implementation |
-|----------|--------|----------------|
-| GET /helpers/:helperId/availability | ❌ | Needs HelperAvailabilityService |
-| POST /helpers/:helperId/availability | ❌ | Needs HelperAvailabilityService |
-| GET /helpers/:helperId/absences | ❌ | Needs HelperAbsenceService |
-| POST /helpers/:helperId/absences | ❌ | Needs HelperAbsenceService |
-
-### Roster Management (2/2) ✅
+### Helper Availability (4/5) 🚧
 
 | Endpoint | Status | Implementation |
 |----------|--------|----------------|
-| POST /events/:eventId/roster/assign | ✅ | EventsController.assignParticipant() |
-| DELETE /events/:eventId/roster/slots/:slotId | ✅ | EventsController.unassignParticipant() |
+| GET /helpers/:id/availability | ✅ | HelpersController.checkAvailability() |
+| POST /helpers/:id/availability | ✅ | HelpersController.setWeeklyAvailability() |
+| GET /helpers/:id/absences | ✅ | HelpersController.getAbsences() |
+| POST /helpers/:id/absences | ✅ | HelpersController.createAbsence() |
+| DELETE /helpers/:id/absences/:absenceId | ❌ | Missing implementation |
+
+### Roster Management (Draft-Based) ✅
+
+| Endpoint | Status | Implementation |
+|----------|--------|----------------|
+| PUT /events/:eventId (with roster) | ✅ | EventsController.updateEvent() with complete roster |
+
+**Note**: Roster management uses a draft-based workflow where team leaders build rosters locally and publish them as complete updates. Individual slot assignment endpoints are not needed.
 
 ### Draft Lock Management (4/4) ✅
 
@@ -79,6 +81,8 @@ This document tracks the implementation status of the Ulti Project Scheduling AP
 - **Type Safety**: Full TypeScript support with shared types
 - **Error Handling**: Structured error responses with proper HTTP codes
 - **Event CRUD**: Complete event lifecycle management
+- **Draft-Based Roster Management**: Local draft building with atomic publishing
+- **Helper System**: Complete helper management with availability and absences
 
 ### 🔧 Technical Improvements Made
 
@@ -91,50 +95,29 @@ This document tracks the implementation status of the Ulti Project Scheduling AP
 
 ### High Priority (Core Functionality)
 
-1. **Roster Assignment System**
-   - POST /events/:eventId/roster/assign
-   - DELETE /events/:eventId/roster/slots/:slotId
-   - Integration with draft locking system
+1. **Helper Absence Management**
+   - DELETE /helpers/:id/absences/:absenceId
+   - Complete CRUD operations for helper absences
 
 2. **Event Streaming**
    - GET /events/:eventId/stream
    - Real-time roster change notifications
 
-### Medium Priority (Helper System)
+### Medium Priority (Enhancement)
 
-3. **Helper Management**
-   - GET /helpers
-   - GET /helpers/:helperId
-   - HelperCollection implementation
-
-4. **Helper Availability**
-   - Weekly schedule management
-   - Absence period tracking
-   - Availability checking
-
-### Lower Priority (Enhancement)
-
-5. **Performance Optimizations**
+1. **Performance Optimizations**
    - Caching strategies
    - Rate limiting
    - Monitoring and observability
 
+### Lower Priority (Future Features)
+
+1. **Advanced Helper Features**
+   - Helper preference matching
+   - Automated scheduling suggestions
+   - Helper performance analytics
+
 ## Blockers and Dependencies
-
-### For Roster Management
-
-- ✅ Events system (implemented)
-- ✅ Participants system (implemented)  
-- ✅ Draft locking system (implemented)
-- ❌ Roster slot assignment logic
-- ❌ Integration tests
-
-### For Helper System  
-
-- ❌ HelperCollection Firestore implementation
-- ❌ Helper data models and schemas
-- ❌ Helper availability data structures
-- ❌ Weekly schedule parsing logic
 
 ### For Event Streaming
 
@@ -146,19 +129,19 @@ This document tracks the implementation status of the Ulti Project Scheduling AP
 
 ### Current Modules
 
-- ✅ `EventsModule` - Complete CRUD operations
+- ✅ `EventsModule` - Complete CRUD operations with roster management
 - ✅ `ParticipantsModule` - Progger data from signups
 - ✅ `DraftLocksModule` - Integrated with events
-- ❌ `HelpersModule` - Not yet created
-- ❌ `RosterModule` - Not yet created
+- ✅ `HelpersModule` - Complete helper management system
+- ❌ `EventStreamingModule` - Not yet created
 
 ### Database Collections
 
 - ✅ `events` - Firestore collection implemented
 - ✅ `draft_locks` - Firestore collection implemented  
 - ✅ `signups` - Existing Discord bot collection
-- ❌ `helpers` - Not yet implemented
-- ❌ `helper_availability` - Not yet implemented
-- ❌ `helper_absences` - Not yet implemented
+- ✅ `helpers` - Firestore collection implemented
+- ✅ `helper_availability` - Embedded in helpers collection
+- ✅ `helper_absences` - Firestore collection implemented
 
-The foundation is solid with 58% of endpoints completed. The next major milestone is implementing roster management to enable the core scheduling workflow.
+The system is nearly complete with 87% of endpoints implemented. The remaining features needed are helper absence deletion and real-time event streaming.

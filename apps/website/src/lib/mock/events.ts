@@ -6,7 +6,6 @@ import {
   Role,
 } from '@ulti-project/shared';
 import type {
-  AssignParticipantRequest,
   CreateEventRequest,
   EventFilters,
   EventRoster,
@@ -14,11 +13,7 @@ import type {
   ScheduledEvent,
   UpdateEventRequest,
 } from '@ulti-project/shared';
-import { getJobRole } from '../utils/jobUtils.js';
 import { MOCK_CONFIG, delay } from './config.js';
-import { isParticipantLocked, releaseLock } from './drafts.js';
-import { isHelperAvailable } from './helpers.js';
-import { getParticipant } from './participants.js';
 
 // In-memory events storage
 const mockEvents = new Map<string, ScheduledEvent>();
@@ -135,6 +130,7 @@ function createPartiallyFilledRoster(): EventRoster {
 const sampleEvents: ScheduledEvent[] = [
   {
     id: 'event-1',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
     name: 'FRU Prog Session',
     encounter: Encounter.FRU,
     scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
@@ -146,9 +142,10 @@ const sampleEvents: ScheduledEvent[] = [
     createdAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
     lastModified: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
     version: 1,
-  },
+  } as ScheduledEvent,
   {
     id: 'event-2',
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
     name: 'TOP Clear Run',
     encounter: Encounter.TOP,
     scheduledTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Day after tomorrow
@@ -160,7 +157,7 @@ const sampleEvents: ScheduledEvent[] = [
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
     lastModified: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
     version: 3,
-  },
+  } as ScheduledEvent,
 ];
 
 // Initialize data
@@ -316,6 +313,7 @@ export async function createEvent(
 
   const event: ScheduledEvent = {
     id: `event-${eventIdCounter++}`,
+    guildId: request.guildId,
     name: request.name,
     encounter: request.encounter,
     scheduledTime: request.scheduledTime,
@@ -327,7 +325,7 @@ export async function createEvent(
     createdAt: new Date(),
     lastModified: new Date(),
     version: 1,
-  };
+  } as ScheduledEvent;
 
   mockEvents.set(event.id, event);
   saveEventsToStorage();
@@ -346,6 +344,11 @@ export async function getEvents(
   await delay(MOCK_CONFIG.delays.medium);
 
   let events = Array.from(mockEvents.values());
+
+  // Always filter by current guild
+  events = events.filter(
+    (e: any) => e.guildId === MOCK_CONFIG.guild.defaultGuildId,
+  );
 
   if (filters?.teamLeaderId) {
     events = events.filter((e) => e.teamLeaderId === filters.teamLeaderId);
@@ -428,205 +431,6 @@ export async function deleteEvent(
   // Release all locks for this event
   const { releaseAllLocksForTeamLeader } = await import('./drafts.js');
   await releaseAllLocksForTeamLeader(teamLeaderId, id);
-}
-
-export async function assignParticipant(
-  eventId: string,
-  teamLeaderId: string,
-  request: AssignParticipantRequest,
-): Promise<ScheduledEvent> {
-  await delay(MOCK_CONFIG.delays.medium);
-
-  const event = mockEvents.get(eventId);
-  if (!event) {
-    throw new Error('Event not found');
-  }
-
-  // Authentication should handle access control at the route level
-  // No need to validate team leader here
-
-  // Find the slot
-  const targetSlot = event.roster.party.find(
-    (slot) => slot.id === request.slotId,
-  );
-
-  if (!targetSlot) {
-    throw new Error('Slot not found');
-  }
-
-  // Check if slot is already filled
-  if (targetSlot.assignedParticipant) {
-    throw new Error('Slot is already filled');
-  }
-
-  // Check if participant is locked by another team leader
-  const isLockedByOther = await isParticipantLocked(
-    request.participantId,
-    request.participantType,
-    teamLeaderId, // exclude this team leader
-  );
-
-  if (isLockedByOther) {
-    throw new Error('Participant is locked by another team leader');
-  }
-
-  // Get participant details
-  const participant = await getParticipant(
-    request.participantId,
-    request.participantType,
-  );
-  if (!participant) {
-    throw new Error('Participant not found');
-  }
-
-  // Validate role compatibility
-  const participantRole = getJobRole(request.selectedJob);
-  if (targetSlot.role !== participantRole) {
-    throw new Error(
-      `Cannot assign ${request.selectedJob} (${participantRole}) to ${targetSlot.role} slot`,
-    );
-  }
-
-  // Check job restrictions (if any)
-  if (
-    targetSlot.jobRestriction &&
-    targetSlot.jobRestriction !== request.selectedJob
-  ) {
-    throw new Error(`Slot is restricted to ${targetSlot.jobRestriction} only`);
-  }
-
-  // Check availability for helpers
-  if (request.participantType === ParticipantType.Helper) {
-    const endTime = new Date(
-      event.scheduledTime.getTime() + event.duration * 60 * 1000,
-    );
-    const available = await isHelperAvailable(
-      request.participantId,
-      event.scheduledTime,
-      endTime,
-    );
-    if (!available) {
-      throw new Error('Helper is not available at this time');
-    }
-  }
-
-  // Check if slot was empty before assignment
-  const wasEmpty = !targetSlot.assignedParticipant;
-
-  // Assign participant to slot
-  targetSlot.assignedParticipant = {
-    type: participant.type,
-    id: participant.id,
-    discordId: participant.discordId,
-    name: participant.name,
-    characterName: participant.characterName,
-    job: request.selectedJob,
-    encounter: participant.encounter,
-    progPoint: participant.progPoint,
-    availability: participant.availability,
-    isConfirmed: participant.isConfirmed || false,
-  };
-
-  // Update roster stats
-  if (wasEmpty) {
-    event.roster.filledSlots++;
-  }
-
-  event.lastModified = new Date();
-  event.version++;
-
-  mockEvents.set(eventId, event);
-  saveEventsToStorage();
-
-  // Release the lock since participant is now assigned
-  await releaseLock(
-    eventId,
-    teamLeaderId,
-    request.participantId,
-    request.participantType,
-  );
-
-  // Broadcast assignment
-  const connections = eventConnections.get(eventId);
-  if (connections) {
-    const message = new MessageEvent('message', {
-      data: JSON.stringify({
-        type: 'participant_assigned',
-        data: {
-          eventId,
-          slotId: request.slotId,
-          participant: targetSlot.assignedParticipant,
-          assignedBy: teamLeaderId,
-        },
-        timestamp: new Date(),
-      }),
-    });
-
-    for (const callback of connections) {
-      callback(message);
-    }
-  }
-
-  return event;
-}
-
-export async function unassignParticipant(
-  eventId: string,
-  teamLeaderId: string,
-  slotId: string,
-): Promise<ScheduledEvent> {
-  await delay(MOCK_CONFIG.delays.medium);
-
-  const event = mockEvents.get(eventId);
-  if (!event) {
-    throw new Error('Event not found');
-  }
-
-  // Authentication should handle access control at the route level
-  // No need to validate team leader here
-
-  // Find the slot
-  const targetSlot = event.roster.party.find((slot) => slot.id === slotId);
-
-  if (!targetSlot) {
-    throw new Error('Slot not found');
-  }
-
-  if (!targetSlot.assignedParticipant) {
-    throw new Error('Slot is already empty');
-  }
-
-  // Remove participant
-  targetSlot.assignedParticipant = undefined;
-  event.roster.filledSlots--;
-
-  event.lastModified = new Date();
-  event.version++;
-
-  mockEvents.set(eventId, event);
-  saveEventsToStorage();
-
-  // Broadcast unassignment
-  const connections = eventConnections.get(eventId);
-  if (connections) {
-    const message = new MessageEvent('message', {
-      data: JSON.stringify({
-        type: 'participant_unassigned',
-        data: {
-          eventId,
-          slotId,
-          assignedBy: teamLeaderId,
-        },
-        timestamp: new Date(),
-      }),
-    });
-
-    for (const callback of connections) {
-      callback(message);
-    }
-  }
-
-  return event;
 }
 
 // SSE Stream for event updates

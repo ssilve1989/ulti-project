@@ -1,5 +1,12 @@
 // Mock API configuration
 export const MOCK_CONFIG = {
+  // Guild configuration
+  guild: {
+    // Default guild ID - can be overridden by Vite env vars
+    defaultGuildId: import.meta.env.VITE_GUILD_ID || 'guild-12345-demo',
+    name: 'Demo Ultimate Raid Static',
+  },
+
   // Delays to simulate network latency
   delays: {
     fast: 20, // Quick operations like locks

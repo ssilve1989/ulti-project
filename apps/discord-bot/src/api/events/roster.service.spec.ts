@@ -2,8 +2,8 @@ import { Test } from '@nestjs/testing';
 import { Role } from '@ulti-project/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
-import { DraftLocksService } from './draft-locks.service.js';
 import { ParticipantsService } from '../participants/participants.service.js';
+import { DraftLocksService } from './draft-locks.service.js';
 import { RosterService } from './roster.service.js';
 
 describe('RosterService', () => {
@@ -55,12 +55,12 @@ describe('RosterService', () => {
       expect(dpsSlots).toHaveLength(4);
 
       // Verify all slots are empty and properly initialized
-      roster.forEach((slot) => {
+      for (const slot of roster) {
         expect(slot.id).toBeDefined();
         expect(slot.assignedParticipant).toBeUndefined();
         expect(slot.isHelperSlot).toBe(false);
         expect(slot.role).toBeOneOf([Role.Tank, Role.Healer, Role.DPS]);
-      });
+      }
 
       // Verify all slot IDs are unique
       const slotIds = roster.map((slot) => slot.id);
