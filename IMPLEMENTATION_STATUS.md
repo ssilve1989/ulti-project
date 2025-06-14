@@ -26,22 +26,24 @@ This document tracks the implementation status of the Ulti Project Scheduling AP
 | PUT /events/:eventId | ✅ | EventsController.updateEvent() |
 | DELETE /events/:eventId | ✅ | EventsController.deleteEvent() |
 
-### Participants Management (1/3) 🚧
+### Participants Management (3/3) ✅
 
 | Endpoint | Status | Implementation |
 |----------|--------|----------------|
 | GET /participants | ✅ | ParticipantsController.getParticipants() |
-| GET /helpers | ❌ | Needs HelperCollection and service |
-| GET /helpers/:helperId | ❌ | Needs HelperCollection and service |
+| GET /helpers | ✅ | HelpersController.getHelpers() |
+| GET /helpers/:helperId | ✅ | HelpersController.getHelper() |
 
-### Helper Availability (0/4) ❌
+### Helper Availability (6/6) ✅
 
 | Endpoint | Status | Implementation |
 |----------|--------|----------------|
-| GET /helpers/:helperId/availability | ❌ | Needs HelperAvailabilityService |
-| POST /helpers/:helperId/availability | ❌ | Needs HelperAvailabilityService |
-| GET /helpers/:helperId/absences | ❌ | Needs HelperAbsenceService |
-| POST /helpers/:helperId/absences | ❌ | Needs HelperAbsenceService |
+| GET /helpers/:helperId/availability | ✅ | HelpersController.checkAvailability() |
+| POST /helpers/:helperId/availability | ✅ | HelpersController.setWeeklyAvailability() |
+| GET /helpers/:helperId/absences | ✅ | HelpersController.getAbsences() |
+| POST /helpers/:helperId/absences | ✅ | HelpersController.createAbsence() |
+| PUT /helpers/:helperId/absences/:absenceId | ✅ | HelpersService via HelperAbsenceCollection |
+| DELETE /helpers/:helperId/absences/:absenceId | ✅ | HelpersService via HelperAbsenceCollection |
 
 ### Roster Management (2/2) ✅
 
@@ -100,24 +102,19 @@ This document tracks the implementation status of the Ulti Project Scheduling AP
    - GET /events/:eventId/stream
    - Real-time roster change notifications
 
-### Medium Priority (Helper System)
+### Medium Priority (Enhancement)
 
-3. **Helper Management**
-   - GET /helpers
-   - GET /helpers/:helperId
-   - HelperCollection implementation
-
-4. **Helper Availability**
-   - Weekly schedule management
-   - Absence period tracking
-   - Availability checking
-
-### Lower Priority (Enhancement)
-
-5. **Performance Optimizations**
+1. **Performance Optimizations**
    - Caching strategies
    - Rate limiting
    - Monitoring and observability
+
+### Lower Priority (Future Features)
+
+2. **Advanced Helper Features**
+   - Helper preference matching
+   - Automated scheduling suggestions
+   - Helper performance analytics
 
 ## Blockers and Dependencies
 
@@ -131,7 +128,11 @@ This document tracks the implementation status of the Ulti Project Scheduling AP
 
 ### For Helper System  
 
-- ❌ HelperCollection Firestore implementation
+- ✅ HelperCollection Firestore implementation
+- ✅ HelperAbsenceCollection Firestore implementation  
+- ✅ Helper availability logic
+- ✅ Helper data models and validation
+- ✅ API endpoints for helper management
 - ❌ Helper data models and schemas
 - ❌ Helper availability data structures
 - ❌ Weekly schedule parsing logic

@@ -7,6 +7,8 @@ import type { AppConfig } from '../app.config.js';
 import { BlacklistCollection } from './collections/blacklist-collection.js';
 import { DraftLocksCollection } from './collections/draft-locks.collection.js';
 import { EventsCollection } from './collections/events.collection.js';
+import { HelperAbsenceCollection } from './collections/helper-absence.collection.js';
+import { HelperCollection } from './collections/helper.collection.js';
 import { JobCollection } from './collections/job/job.collection.js';
 import { SettingsCollection } from './collections/settings-collection.js';
 import { SignupCollection } from './collections/signup.collection.js';
@@ -61,6 +63,8 @@ import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
     SignupDocumentCache,
     EventsCollection,
     DraftLocksCollection,
+    HelperCollection,
+    HelperAbsenceCollection,
   ],
   exports: [
     FIRESTORE,
@@ -71,6 +75,8 @@ import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
     SignupDocumentCache,
     EventsCollection,
     DraftLocksCollection,
+    HelperCollection,
+    HelperAbsenceCollection,
   ],
 })
 export class FirebaseModule {}
