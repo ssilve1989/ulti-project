@@ -18,7 +18,7 @@ export default defineConfig({
       entrypoint: 'astro/assets/services/sharp',
       config: {
         limitInputPixels: false,
-      }
+      },
     },
     // Add some common sizes for your icons
     domains: [],
@@ -35,8 +35,8 @@ export default defineConfig({
           target: 'http://localhost:3000',
           changeOrigin: true,
           secure: false,
-        }
-      }
+        },
+      },
     },
     // Optimize asset handling
     build: {
@@ -54,5 +54,5 @@ export default defineConfig({
         },
       },
     },
-  }
-}); 
+  },
+});

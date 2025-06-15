@@ -1,7 +1,10 @@
 ---
 import DevToggleLoader from '../components/DevToggleLoader.astro';
 import { AuthenticatedHeader } from '../components/Header/AuthenticatedHeader.js';
-import { CRITICAL_ICONS, generateIconPreloads } from '../lib/utils/iconUtils.js';
+import {
+  CRITICAL_ICONS,
+  generateIconPreloads,
+} from '../lib/utils/iconUtils.js';
 
 export interface Props {
   title: string;
@@ -9,14 +12,16 @@ export interface Props {
   preloadCriticalIcons?: boolean;
 }
 
-const { 
-  title, 
-  description = "A FFXIV opportunity for NA players to progress thru ENDGAME CONTENT and achieve their 1st-time clears!",
-  preloadCriticalIcons = false
+const {
+  title,
+  description = 'A FFXIV opportunity for NA players to progress thru ENDGAME CONTENT and achieve their 1st-time clears!',
+  preloadCriticalIcons = false,
 } = Astro.props;
 
 // Generate preload links for critical icons if requested
-const iconPreloads = preloadCriticalIcons ? generateIconPreloads(CRITICAL_ICONS) : [];
+const iconPreloads = preloadCriticalIcons
+  ? generateIconPreloads(CRITICAL_ICONS)
+  : [];
 ---
 
 <!doctype html>

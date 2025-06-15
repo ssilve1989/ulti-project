@@ -11,14 +11,14 @@ interface Props {
   sizes?: string;
 }
 
-const { 
-  src, 
-  alt, 
-  width = 24, 
-  height = 24, 
+const {
+  src,
+  alt,
+  width = 24,
+  height = 24,
   class: className = '',
   loading = 'lazy',
-  sizes
+  sizes,
 } = Astro.props;
 
 // For icons in the public directory, we need to use regular img tags

@@ -403,21 +403,24 @@ export default function RosterBuilder({
                           <div className="flex items-center">
                             {slot.assignedParticipant ? (
                               <OptimizedIcon
-                                {...getJobIconProps(slot.assignedParticipant.job)}
+                                {...getJobIconProps(
+                                  slot.assignedParticipant.job,
+                                )}
                                 className="w-5 h-5"
                               />
                             ) : (
                               getRoleIcon(slot.role)
                             )}
                             <span className="text-lg hidden">
-                              {slot.assignedParticipant ? 
-                                slot.assignedParticipant.job : 
-                                getRoleIconFallback(slot.role)
-                              }
+                              {slot.assignedParticipant
+                                ? slot.assignedParticipant.job
+                                : getRoleIconFallback(slot.role)}
                             </span>
                           </div>
                           <span className="text-xs font-medium">
-                            {slot.assignedParticipant ? slot.assignedParticipant.job : slot.role}
+                            {slot.assignedParticipant
+                              ? slot.assignedParticipant.job
+                              : slot.role}
                           </span>
                         </div>
                       </div>

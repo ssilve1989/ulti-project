@@ -10,7 +10,13 @@ export interface Props {
 
 const { currentPage, totalPages, pageSize, baseUrl = '/signups' } = Astro.props;
 
-const { pages: pageNumbers, hasPrevious, hasNext, showFirstEllipsis, showLastEllipsis } = getPaginationState(currentPage, totalPages);
+const {
+  pages: pageNumbers,
+  hasPrevious,
+  hasNext,
+  showFirstEllipsis,
+  showLastEllipsis,
+} = getPaginationState(currentPage, totalPages);
 ---
 
 <div class="pagination-controls">

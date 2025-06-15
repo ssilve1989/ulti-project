@@ -11,12 +11,8 @@
     "moduleResolution": "NodeNext",
     "baseUrl": ".",
     "paths": {
-      "@ulti-project/shared": [
-        "../../packages/shared/src/index.ts"
-      ],
-      "@ulti-project/shared/*": [
-        "../../packages/shared/src/*"
-      ]
+      "@ulti-project/shared": ["../../packages/shared/src/index.ts"],
+      "@ulti-project/shared/*": ["../../packages/shared/src/*"]
     }
   },
   "references": [
@@ -24,11 +20,6 @@
       "path": "../../packages/shared"
     }
   ],
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

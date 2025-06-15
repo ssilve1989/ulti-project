@@ -6,11 +6,6 @@
     "outDir": "./dist",
     "sourceRoot": "./"
   },
-  "exclude": [
-    "node_modules",
-    "**/*.spec.ts"
-  ],
-  "include": [
-    "src/**/*.ts"
-  ]
+  "exclude": ["node_modules", "**/*.spec.ts"],
+  "include": ["src/**/*.ts"]
 }
