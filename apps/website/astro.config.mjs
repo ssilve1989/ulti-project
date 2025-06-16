@@ -30,8 +30,8 @@ export default defineConfig({
     },
     server: {
       proxy: {
-        // Proxy API calls to your backend server
-        '/api': {
+        // Proxy API calls to your backend server - be more specific to avoid conflicts
+        '/api/': {
           target: 'http://localhost:3000',
           changeOrigin: true,
           secure: false,

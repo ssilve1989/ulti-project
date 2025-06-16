@@ -15,7 +15,7 @@ export const EventUpdatedEventSchema = z.object({
     event: ScheduledEventSchema,
     changes: ScheduledEventSchema.partial(),
   }),
-  timestamp: z.coerce.date(),
+  timestamp: z.iso.datetime({ offset: true }),
 });
 
 export const ParticipantAssignedEventSchema = z.object({
@@ -26,7 +26,7 @@ export const ParticipantAssignedEventSchema = z.object({
     participant: ParticipantSchema,
     assignedBy: z.string(),
   }),
-  timestamp: z.coerce.date(),
+  timestamp: z.iso.datetime({ offset: true }),
 });
 
 export const ParticipantUnassignedEventSchema = z.object({
@@ -36,13 +36,13 @@ export const ParticipantUnassignedEventSchema = z.object({
     slotId: z.string(),
     assignedBy: z.string(),
   }),
-  timestamp: z.coerce.date(),
+  timestamp: z.iso.datetime({ offset: true }),
 });
 
 export const HelpersUpdatedEventSchema = z.object({
   type: z.literal('helpers_updated'),
   data: z.array(HelperDataSchema),
-  timestamp: z.coerce.date(),
+  timestamp: z.iso.datetime({ offset: true }),
 });
 
 export const HelperAvailabilityChangedEventSchema = z.object({
@@ -51,7 +51,7 @@ export const HelperAvailabilityChangedEventSchema = z.object({
     helperId: z.string(),
     availability: z.array(HelperWeeklyAvailabilitySchema),
   }),
-  timestamp: z.coerce.date(),
+  timestamp: z.iso.datetime({ offset: true }),
 });
 
 export const DraftLockCreatedEventSchema = z.object({
@@ -60,7 +60,7 @@ export const DraftLockCreatedEventSchema = z.object({
     eventId: z.string(),
     lock: DraftLockSchema,
   }),
-  timestamp: z.coerce.date(),
+  timestamp: z.iso.datetime({ offset: true }),
 });
 
 export const DraftLockReleasedEventSchema = z.object({
@@ -69,7 +69,7 @@ export const DraftLockReleasedEventSchema = z.object({
     eventId: z.string(),
     lock: DraftLockSchema,
   }),
-  timestamp: z.coerce.date(),
+  timestamp: z.iso.datetime({ offset: true }),
 });
 
 export const DraftLockExpiredEventSchema = z.object({
@@ -78,7 +78,7 @@ export const DraftLockExpiredEventSchema = z.object({
     eventId: z.string(),
     lock: DraftLockSchema,
   }),
-  timestamp: z.coerce.date(),
+  timestamp: z.iso.datetime({ offset: true }),
 });
 
 // Discriminated unions for each SSE stream

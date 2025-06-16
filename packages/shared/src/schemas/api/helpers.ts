@@ -45,8 +45,8 @@ export const CheckHelperAvailabilityParamsSchema = z.object({
 
 export const CheckHelperAvailabilityQuerySchema = z.object({
   guildId: z.string(),
-  startTime: z.coerce.date(),
-  endTime: z.coerce.date(),
+  startTime: z.iso.datetime({ offset: true }),
+  endTime: z.iso.datetime({ offset: true }),
 });
 
 export const CheckHelperAvailabilityResponseSchema = z.object({
@@ -78,8 +78,8 @@ export const GetHelperAbsencesParamsSchema = z.object({
 
 export const GetHelperAbsencesQuerySchema = z.object({
   guildId: z.string(),
-  startDate: z.coerce.date().optional(),
-  endDate: z.coerce.date().optional(),
+  startDate: z.iso.datetime({ offset: true }).optional(),
+  endDate: z.iso.datetime({ offset: true }).optional(),
 });
 
 export const GetHelperAbsencesResponseSchema = z.array(
@@ -99,12 +99,12 @@ export const CreateHelperAbsenceQuerySchema = z.object({
 
 export const CreateHelperAbsenceRequestSchema = z
   .object({
-    startDate: z.coerce.date(),
-    endDate: z.coerce.date(),
+    startDate: z.iso.datetime({ offset: true }),
+    endDate: z.iso.datetime({ offset: true }),
     reason: z.string().optional(),
   })
   .refine(
-    (data) => data.startDate <= data.endDate,
+    (data) => new Date(data.startDate) <= new Date(data.endDate),
     'Start date must be before or equal to end date',
   );
 

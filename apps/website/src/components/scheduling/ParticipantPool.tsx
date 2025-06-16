@@ -90,7 +90,7 @@ export default function ParticipantPool({
       if (helpers.length === 0) return;
 
       const eventEnd = new Date(
-        event.scheduledTime.getTime() + event.duration * 60 * 1000,
+        new Date(event.scheduledTime).getTime() + event.duration * 60 * 1000,
       );
       const availabilityMap = new Map();
 
@@ -99,7 +99,7 @@ export default function ParticipantPool({
         const availabilityPromises = helpers.map(async (helper) => {
           const result = await isHelperAvailableForEvent(
             helper.id,
-            event.scheduledTime,
+            new Date(event.scheduledTime),
             eventEnd,
           );
           return { helperId: helper.id, ...result };
@@ -307,7 +307,8 @@ export default function ParticipantPool({
       if (lock) {
         const timeLeft = Math.max(
           0,
-          (lock.expiresAt?.getTime() || 0) - Date.now(),
+          (lock.expiresAt ? new Date(lock.expiresAt).getTime() : 0) -
+            Date.now(),
         );
         const minutesLeft = Math.ceil(timeLeft / (1000 * 60));
         return {

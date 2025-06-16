@@ -29,6 +29,64 @@ export type {
 const isDevelopment = import.meta.env.DEV;
 const USE_MOCK_DATA = true; // Always use mock data for now
 
+// Helper function to convert API date strings to Date objects for internal compatibility
+function convertApiEventToInternal(apiEvent: any): ScheduledEvent {
+  return {
+    ...apiEvent,
+    scheduledTime:
+      typeof apiEvent.scheduledTime === 'string'
+        ? new Date(apiEvent.scheduledTime)
+        : apiEvent.scheduledTime,
+    createdAt:
+      typeof apiEvent.createdAt === 'string'
+        ? new Date(apiEvent.createdAt)
+        : apiEvent.createdAt,
+    lastModified:
+      typeof apiEvent.lastModified === 'string'
+        ? new Date(apiEvent.lastModified)
+        : apiEvent.lastModified,
+    roster: {
+      ...apiEvent.roster,
+      party: apiEvent.roster.party.map((slot: any) => ({
+        ...slot,
+        draftedAt:
+          slot.draftedAt && typeof slot.draftedAt === 'string'
+            ? new Date(slot.draftedAt)
+            : slot.draftedAt,
+      })),
+    },
+  };
+}
+
+// Helper function to convert internal data to API format
+function convertInternalEventToApi(internalEvent: ScheduledEvent): any {
+  return {
+    ...internalEvent,
+    scheduledTime:
+      (internalEvent.scheduledTime as any) instanceof Date
+        ? (internalEvent.scheduledTime as any).toISOString()
+        : internalEvent.scheduledTime,
+    createdAt:
+      (internalEvent.createdAt as any) instanceof Date
+        ? (internalEvent.createdAt as any).toISOString()
+        : internalEvent.createdAt,
+    lastModified:
+      (internalEvent.lastModified as any) instanceof Date
+        ? (internalEvent.lastModified as any).toISOString()
+        : internalEvent.lastModified,
+    roster: {
+      ...internalEvent.roster,
+      party: internalEvent.roster.party.map((slot) => ({
+        ...slot,
+        draftedAt:
+          (slot.draftedAt as any) instanceof Date
+            ? (slot.draftedAt as any).toISOString()
+            : slot.draftedAt,
+      })),
+    },
+  };
+}
+
 // Event Management API
 export async function createEvent(
   request: CreateEventRequest,
@@ -379,7 +437,7 @@ export async function assignParticipant(
     ).length;
 
     // Use updateEvent to apply the changes
-    return mockUpdateEvent(eventId, { roster: updatedRoster });
+    return mockUpdateEvent(eventId, { roster: updatedRoster as any });
   }
 
   throw new Error('Real API not implemented yet');
@@ -417,7 +475,7 @@ export async function unassignParticipant(
     ).length;
 
     // Use updateEvent to apply the changes
-    return mockUpdateEvent(eventId, { roster: updatedRoster });
+    return mockUpdateEvent(eventId, { roster: updatedRoster as any });
   }
 
   throw new Error('Real API not implemented yet');

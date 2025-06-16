@@ -253,47 +253,44 @@ function createFullyFilledRoster(): EventRoster {
 const sampleEvents: ScheduledEvent[] = [
   {
     id: 'event-1',
-    guildId: MOCK_CONFIG.guild.defaultGuildId,
     name: 'FRU Prog Session',
     encounter: Encounter.FRU,
-    scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+    scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
     duration: 120, // 2 hours
     teamLeaderId: 'leader-1',
     teamLeaderName: 'TeamAlpha',
     status: EventStatus.Draft,
     roster: createPartiallyFilledRoster(), // Partially filled for testing
-    createdAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
-    lastModified: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+    createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // 1 hour ago
+    lastModified: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
     version: 1,
-  } as ScheduledEvent,
+  },
   {
     id: 'event-2',
-    guildId: MOCK_CONFIG.guild.defaultGuildId,
     name: 'TOP Clear Run',
     encounter: Encounter.TOP,
-    scheduledTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Day after tomorrow
+    scheduledTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // Day after tomorrow
     duration: 180, // 3 hours
     teamLeaderId: 'leader-2',
     teamLeaderName: 'TeamBeta',
     status: EventStatus.Published,
     roster: createEmptyRoster(), // Keep this one empty for testing empty state
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-    lastModified: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+    lastModified: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
     version: 3,
   } as ScheduledEvent,
   {
     id: 'event-3',
-    guildId: MOCK_CONFIG.guild.defaultGuildId,
     name: 'DSR Full Clear',
     encounter: Encounter.DSR,
-    scheduledTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+    scheduledTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
     duration: 240, // 4 hours
     teamLeaderId: 'leader-3',
     teamLeaderName: 'TeamGamma',
     status: EventStatus.Draft,
     roster: createFullyFilledRoster(), // Full roster ready to publish
-    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
-    lastModified: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
+    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
+    lastModified: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
     version: 2,
   } as ScheduledEvent,
 ];
@@ -346,13 +343,13 @@ function loadEventsFromStorage(): void {
       mockEvents.clear();
 
       for (const [id, event] of Object.entries(parsed)) {
-        // Convert date strings back to Date objects
+        // Keep date strings as ISO strings - no conversion needed
         const eventData = event as any;
         const restoredEvent: ScheduledEvent = {
           id: eventData.id,
           name: eventData.name,
           encounter: eventData.encounter,
-          scheduledTime: new Date(eventData.scheduledTime),
+          scheduledTime: eventData.scheduledTime, // Keep as ISO string
           duration: eventData.duration,
           teamLeaderId: eventData.teamLeaderId,
           teamLeaderName: eventData.teamLeaderName,
@@ -360,13 +357,13 @@ function loadEventsFromStorage(): void {
           roster: {
             party: eventData.roster.party.map((slot: any) => ({
               ...slot,
-              draftedAt: slot.draftedAt ? new Date(slot.draftedAt) : undefined,
+              draftedAt: slot.draftedAt, // Keep as ISO string if present
             })),
             totalSlots: eventData.roster.totalSlots,
             filledSlots: eventData.roster.filledSlots,
           },
-          createdAt: new Date(eventData.createdAt),
-          lastModified: new Date(eventData.lastModified),
+          createdAt: eventData.createdAt, // Keep as ISO string
+          lastModified: eventData.lastModified, // Keep as ISO string
           version: eventData.version,
         };
         mockEvents.set(id, restoredEvent);
@@ -451,17 +448,16 @@ export async function createEvent(
 
   const event: ScheduledEvent = {
     id: `event-${eventIdCounter++}`,
-    guildId: request.guildId,
     name: request.name,
     encounter: request.encounter,
-    scheduledTime: request.scheduledTime,
+    scheduledTime: request.scheduledTime, // Already an ISO string from the request
     duration: request.duration,
     teamLeaderId: request.teamLeaderId,
     teamLeaderName: `Leader-${request.teamLeaderId}`,
     status: EventStatus.Draft,
     roster: createEmptyRoster(),
-    createdAt: new Date(),
-    lastModified: new Date(),
+    createdAt: new Date().toISOString(),
+    lastModified: new Date().toISOString(),
     version: 1,
   } as ScheduledEvent;
 
@@ -508,8 +504,8 @@ export async function getEvents(
     events = events.filter((e) => e.scheduledTime <= filters.dateTo!);
   }
 
-  // Sort by scheduled time
-  events.sort((a, b) => a.scheduledTime.getTime() - b.scheduledTime.getTime());
+  // Sort by scheduled time (ISO strings can be compared directly)
+  events.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
 
   return events;
 }
@@ -529,10 +525,20 @@ export async function updateEvent(
     throw new Error('Cannot modify events that are in progress');
   }
 
+  // Handle potential Date objects in updates by converting to ISO strings
+  const sanitizedUpdates: any = { ...updates };
+  if (
+    sanitizedUpdates.scheduledTime &&
+    sanitizedUpdates.scheduledTime instanceof Date
+  ) {
+    sanitizedUpdates.scheduledTime =
+      sanitizedUpdates.scheduledTime.toISOString();
+  }
+
   const updatedEvent: ScheduledEvent = {
     ...event,
-    ...updates,
-    lastModified: new Date(),
+    ...sanitizedUpdates,
+    lastModified: new Date().toISOString(),
     version: event.version + 1,
   };
 
@@ -540,7 +546,11 @@ export async function updateEvent(
   saveEventsToStorage();
 
   // Broadcast update
-  broadcastEventUpdate(id, updatedEvent, updates);
+  broadcastEventUpdate(
+    id,
+    updatedEvent,
+    sanitizedUpdates as Partial<ScheduledEvent>,
+  );
 
   return updatedEvent;
 }
@@ -643,9 +653,9 @@ export function getEventsByStatus(
 }
 
 export function getUpcomingEvents(limit = 10): ScheduledEvent[] {
-  const now = new Date();
+  const now = new Date().toISOString();
   return Array.from(mockEvents.values())
     .filter((event) => event.scheduledTime > now)
-    .sort((a, b) => a.scheduledTime.getTime() - b.scheduledTime.getTime())
+    .sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime))
     .slice(0, limit);
 }

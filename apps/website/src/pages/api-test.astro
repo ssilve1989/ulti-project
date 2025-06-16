@@ -1,0 +1,16 @@
+---
+import EventsTestComponent from '../components/EventsTestComponent';
+import HelpersTestComponent from '../components/HelpersTestComponent';
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="API Test">
+  <main>
+    <h1>API Integration Test</h1>
+    <p>Testing the new API integration with React Query (Mock and Real APIs)</p>
+    
+    <EventsTestComponent client:load />
+    <hr style="margin: 2rem 0;" />
+    <HelpersTestComponent client:load />
+  </main>
+</Layout>

@@ -34,6 +34,15 @@ import type { HelperAbsenceDocument } from '../../firebase/models/helper.model.j
 import { ZodValidationPipe } from '../../utils/pipes/zod-validation.pipe.js';
 import { HelpersService } from './helpers.service.js';
 
+// Helper function to serialize absence dates to ISO strings
+function serializeAbsenceDates(absence: any): any {
+  return {
+    ...absence,
+    startDate: absence.startDate.toDate().toISOString(),
+    endDate: absence.endDate.toDate().toISOString(),
+  };
+}
+
 @Controller('helpers')
 export class HelpersController {
   constructor(private readonly helpersService: HelpersService) {}
@@ -69,8 +78,8 @@ export class HelpersController {
     return this.helpersService.checkAvailability(
       query.guildId,
       params.id,
-      query.startTime,
-      query.endTime,
+      new Date(query.startTime),
+      new Date(query.endTime),
     );
   }
 
@@ -97,7 +106,11 @@ export class HelpersController {
     @Query(new ZodValidationPipe(GetHelperAbsencesQuerySchema))
     query: GetHelperAbsencesQuery,
   ): Promise<HelperAbsenceDocument[]> {
-    return this.helpersService.getAbsences(query.guildId, params.id);
+    const absences = await this.helpersService.getAbsences(
+      query.guildId,
+      params.id,
+    );
+    return absences.map(serializeAbsenceDates);
   }
 
   @Post(':id/absences')
@@ -109,10 +122,15 @@ export class HelpersController {
     @Body(new ZodValidationPipe(CreateHelperAbsenceRequestSchema))
     body: CreateHelperAbsenceRequest,
   ): Promise<HelperAbsenceDocument> {
-    return this.helpersService.createAbsence(query.guildId, params.id, {
-      startDate: body.startDate,
-      endDate: body.endDate,
-      reason: body.reason,
-    });
+    const absence = await this.helpersService.createAbsence(
+      query.guildId,
+      params.id,
+      {
+        startDate: new Date(body.startDate),
+        endDate: new Date(body.endDate),
+        reason: body.reason,
+      },
+    );
+    return serializeAbsenceDates(absence);
   }
 }

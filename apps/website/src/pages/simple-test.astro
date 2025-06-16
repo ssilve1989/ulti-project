@@ -1,0 +1,16 @@
+---
+import Layout from '../layouts/Layout.astro';
+export const prerender = false;
+---
+
+<Layout title="Simple API Test">
+  <main>
+    <h1>Simple API Test</h1>
+    <p>This page should load without any React components.</p>
+    <p>Environment check:</p>
+    <ul>
+      <li>VITE_API_BASE_URL: {import.meta.env.VITE_API_BASE_URL || 'not set'}</li>
+      <li>VITE_USE_MOCK_API: {import.meta.env.VITE_USE_MOCK_API || 'not set'}</li>
+    </ul>
+  </main>
+</Layout>

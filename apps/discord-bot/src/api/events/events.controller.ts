@@ -37,6 +37,25 @@ import { ZodValidationPipe } from '../../utils/pipes/zod-validation.pipe.js';
 import { EventsService } from './events.service.js';
 import { RosterService } from './roster.service.js';
 
+// Helper function to serialize event dates to ISO strings
+function serializeEventDates(event: any): any {
+  return {
+    ...event,
+    scheduledTime: event.scheduledTime.toDate().toISOString(),
+    createdAt: event.createdAt.toDate().toISOString(),
+    lastModified: event.lastModified.toDate().toISOString(),
+    roster: {
+      ...event.roster,
+      party: event.roster.party.map((slot: any) => ({
+        ...slot,
+        draftedAt: slot.draftedAt
+          ? slot.draftedAt.toDate().toISOString()
+          : undefined,
+      })),
+    },
+  };
+}
+
 @Controller('events')
 class EventsController {
   constructor(
@@ -45,11 +64,19 @@ class EventsController {
   ) {}
 
   @Get()
-  getEvents(
+  async getEvents(
     @Query(new ZodValidationPipe(GetEventsQuerySchema))
     query: GetEventsQuery,
   ): Promise<GetEventsResponse> {
-    return this.eventsService.getEvents(query);
+    const result = await this.eventsService.getEvents(query);
+
+    // Serialize dates to ISO strings
+    const serializedEvents = result.events.map(serializeEventDates);
+
+    return {
+      ...result,
+      events: serializedEvents,
+    };
   }
 
   @Get(':id')
@@ -61,7 +88,7 @@ class EventsController {
     if (!event) {
       throw new NotFoundException(`Event with id ${id} not found`);
     }
-    return event;
+    return serializeEventDates(event);
   }
 
   @Post()
@@ -69,7 +96,11 @@ class EventsController {
     @Body(new ZodValidationPipe(CreateEventRequestSchema))
     createRequest: CreateEventRequest,
   ): Promise<ScheduledEvent> {
-    return this.eventsService.createEvent(createRequest.guildId, createRequest);
+    const event = await this.eventsService.createEvent(
+      createRequest.guildId,
+      createRequest,
+    );
+    return serializeEventDates(event);
   }
 
   @Put(':id')
@@ -79,7 +110,12 @@ class EventsController {
     @Body(new ZodValidationPipe(UpdateEventRequestSchema))
     updateRequest: UpdateEventRequest,
   ): Promise<ScheduledEvent> {
-    return this.eventsService.updateEvent(guildId, id, updateRequest);
+    const event = await this.eventsService.updateEvent(
+      guildId,
+      id,
+      updateRequest,
+    );
+    return serializeEventDates(event);
   }
 
   @Delete(':id')
@@ -104,12 +140,13 @@ class EventsController {
     @Body(new ZodValidationPipe(AssignParticipantRequestSchema))
     request: AssignParticipantRequest,
   ): Promise<ScheduledEvent> {
-    return this.rosterService.assignParticipant(
+    const event = await this.rosterService.assignParticipant(
       query.guildId,
       params.eventId,
       query.teamLeaderId,
       request,
     );
+    return serializeEventDates(event);
   }
 
   @Delete(':eventId/roster/slots/:slotId')
@@ -119,12 +156,13 @@ class EventsController {
     @Query(new ZodValidationPipe(UnassignParticipantQuerySchema))
     query: UnassignParticipantQuery,
   ): Promise<ScheduledEvent> {
-    return this.rosterService.unassignParticipant(
+    const event = await this.rosterService.unassignParticipant(
       query.guildId,
       params.eventId,
       params.slotId,
       query.teamLeaderId,
     );
+    return serializeEventDates(event);
   }
 }
 

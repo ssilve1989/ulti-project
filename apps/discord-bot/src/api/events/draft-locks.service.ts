@@ -83,8 +83,8 @@ export class DraftLocksService {
       participantType: request.participantType as ParticipantType,
       lockedBy: teamLeaderId,
       lockedByName: teamLeaderName,
-      lockedAt: now,
-      expiresAt,
+      lockedAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
     };
 
     return this.draftLocksCollection.createLock(guildId, lock);
@@ -121,7 +121,7 @@ export class DraftLocksService {
     }
 
     // Check if lock is expired
-    if (lock.expiresAt <= new Date()) {
+    if (new Date(lock.expiresAt) <= new Date()) {
       throw new BadRequestException({
         message: 'Draft lock has expired',
         code: 'LOCK_EXPIRED',
