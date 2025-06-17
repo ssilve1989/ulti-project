@@ -89,8 +89,9 @@ export default function ParticipantPool({
     const checkHelperAvailability = async () => {
       if (helpers.length === 0) return;
 
+      const scheduledTimeDate = new Date(event.scheduledTime);
       const eventEnd = new Date(
-        event.scheduledTime.getTime() + event.duration * 60 * 1000,
+        scheduledTimeDate.getTime() + event.duration * 60 * 1000,
       );
       const availabilityMap = new Map();
 
@@ -99,7 +100,7 @@ export default function ParticipantPool({
         const availabilityPromises = helpers.map(async (helper) => {
           const result = await isHelperAvailableForEvent(
             helper.id,
-            event.scheduledTime,
+            scheduledTimeDate,
             eventEnd,
           );
           return { helperId: helper.id, ...result };
@@ -173,29 +174,22 @@ export default function ParticipantPool({
   }, [event.id]);
 
   // Convert helpers to participants
-  const helperParticipants = useMemo(() => {
-    try {
-      return helpers.map(
-        (helper) =>
-          ({
-            type: ParticipantType.Helper,
-            id: helper.id,
-            discordId: helper.discordId,
-            name: helper.name,
-            job: helper.availableJobs?.[0]?.job || 'Paladin',
-            encounter: undefined,
-            progPoint: undefined,
-            availability: undefined,
-            isConfirmed: false,
-            // Store availableJobs as a custom property for helpers
-            availableJobs: helper.availableJobs || [],
-          }) as Participant & { availableJobs: any[] },
-      );
-    } catch (err) {
-      console.warn('Error converting helpers to participants:', err);
-      return [];
-    }
-  }, [helpers]);
+  const helperParticipants = helpers.map(
+    (helper) =>
+      ({
+        type: ParticipantType.Helper,
+        id: helper.id,
+        discordId: helper.discordId,
+        name: helper.name,
+        job: helper.availableJobs?.[0]?.job || 'Paladin',
+        encounter: undefined,
+        progPoint: undefined,
+        availability: undefined,
+        isConfirmed: false,
+        // Store availableJobs as a custom property for helpers
+        availableJobs: helper.availableJobs || [],
+      }) as Participant & { availableJobs: any[] },
+  );
 
   // Combine and filter participants
   const filteredParticipants = useMemo(() => {
@@ -305,9 +299,10 @@ export default function ParticipantPool({
       );
 
       if (lock) {
+        const expiresAtDate = new Date(lock.expiresAt);
         const timeLeft = Math.max(
           0,
-          (lock.expiresAt?.getTime() || 0) - Date.now(),
+          (expiresAtDate.getTime() || 0) - Date.now(),
         );
         const minutesLeft = Math.ceil(timeLeft / (1000 * 60));
         return {
