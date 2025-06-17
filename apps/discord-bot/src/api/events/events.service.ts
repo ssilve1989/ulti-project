@@ -67,8 +67,8 @@ class EventsService {
         totalSlots: 8, // FFXIV party always has 8 slots
         filledSlots: 0,
       },
-      createdAt: new Date(),
-      lastModified: new Date(),
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
       version: 1,
     };
 
@@ -93,7 +93,27 @@ class EventsService {
     const updatedEvent: ScheduledEvent = {
       ...existingEvent,
       ...updateRequest,
-      lastModified: new Date(),
+      // Ensure scheduledTime is always an ISO string
+      scheduledTime: updateRequest.scheduledTime
+        ? typeof updateRequest.scheduledTime === 'string'
+          ? updateRequest.scheduledTime
+          : new Date(updateRequest.scheduledTime).toISOString()
+        : existingEvent.scheduledTime,
+      // Ensure roster party slots have ISO string draftedAt
+      roster: updateRequest.roster
+        ? {
+            ...updateRequest.roster,
+            party: updateRequest.roster.party.map((slot) => ({
+              ...slot,
+              draftedAt: slot.draftedAt
+                ? typeof slot.draftedAt === 'string'
+                  ? slot.draftedAt
+                  : slot.draftedAt.toISOString()
+                : undefined,
+            })),
+          }
+        : existingEvent.roster,
+      lastModified: new Date().toISOString(),
       version: existingEvent.version + 1, // Increment version for optimistic locking
     };
 

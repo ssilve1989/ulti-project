@@ -11,7 +11,7 @@ export const CreateEventRequestSchema = z.object({
   guildId: z.string(),
   name: z.string().min(1, 'Event name is required'),
   encounter: EncounterSchema,
-  scheduledTime: z.coerce.date(),
+  scheduledTime: z.iso.datetime({ offset: true }),
   duration: z.number().positive('Duration must be positive'),
   teamLeaderId: z.string(),
 });
@@ -39,8 +39,8 @@ export const GetEventsQuerySchema = z.object({
   teamLeaderId: z.string().optional(),
   status: EventStatusSchema.optional(),
   encounter: EncounterSchema.optional(),
-  dateFrom: z.coerce.date().optional(),
-  dateTo: z.coerce.date().optional(),
+  dateFrom: z.iso.datetime({ offset: true }).optional(),
+  dateTo: z.iso.datetime({ offset: true }).optional(),
   limit: z.coerce.number().positive().max(100).default(50),
   cursor: z.string().optional(),
 });
@@ -63,7 +63,7 @@ export const UpdateEventQuerySchema = z.object({
 export const UpdateEventRequestSchema = z
   .object({
     name: z.string().min(1).optional(),
-    scheduledTime: z.coerce.date().optional(),
+    scheduledTime: z.iso.datetime({ offset: true }).optional(),
     duration: z.number().positive().optional(),
     status: EventStatusSchema.optional(),
     roster: EventRosterSchema.optional(),

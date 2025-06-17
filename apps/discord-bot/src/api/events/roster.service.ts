@@ -92,7 +92,7 @@ export class RosterService {
         job: request.selectedJob, // Use the selected job for this assignment
       },
       draftedBy: teamLeaderId,
-      draftedAt: new Date(),
+      draftedAt: new Date().toISOString(),
     };
 
     // Update the roster
@@ -110,7 +110,7 @@ export class RosterService {
     const updatedEvent: ScheduledEvent = {
       ...event,
       roster: updatedRoster,
-      lastModified: new Date(),
+      lastModified: new Date().toISOString(),
       version: event.version + 1,
     };
 
@@ -188,7 +188,7 @@ export class RosterService {
     const updatedEvent: ScheduledEvent = {
       ...event,
       roster: updatedRoster,
-      lastModified: new Date(),
+      lastModified: new Date().toISOString(),
       version: event.version + 1,
     };
 

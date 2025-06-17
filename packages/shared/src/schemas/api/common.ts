@@ -76,8 +76,8 @@ export const HelperWeeklyAvailabilitySchema = z.object({
 export const HelperAbsenceSchema = z.object({
   id: z.string(),
   helperId: z.string(),
-  startDate: z.coerce.date(),
-  endDate: z.coerce.date(),
+  startDate: z.iso.datetime({ offset: true }),
+  endDate: z.iso.datetime({ offset: true }),
   reason: z.string().optional(),
 });
 
@@ -113,7 +113,7 @@ export const PartySlotSchema = z.object({
   assignedParticipant: ParticipantSchema.optional(),
   isHelperSlot: z.boolean(),
   draftedBy: z.string().optional(),
-  draftedAt: z.coerce.date().optional(),
+  draftedAt: z.iso.datetime({ offset: true }).optional(),
 });
 
 export const EventRosterSchema = z.object({
@@ -126,14 +126,14 @@ export const ScheduledEventSchema = z.object({
   id: z.string(),
   name: z.string(),
   encounter: EncounterSchema,
-  scheduledTime: z.coerce.date(),
+  scheduledTime: z.iso.datetime({ offset: true }),
   duration: z.number().positive(),
   teamLeaderId: z.string(),
   teamLeaderName: z.string(),
   status: EventStatusSchema,
   roster: EventRosterSchema,
-  createdAt: z.coerce.date(),
-  lastModified: z.coerce.date(),
+  createdAt: z.iso.datetime({ offset: true }),
+  lastModified: z.iso.datetime({ offset: true }),
   version: z.number(),
 });
 
@@ -144,8 +144,8 @@ export const DraftLockSchema = z.object({
   participantType: ParticipantTypeSchema,
   lockedBy: z.string(),
   lockedByName: z.string(),
-  lockedAt: z.coerce.date(),
-  expiresAt: z.coerce.date(),
+  lockedAt: z.iso.datetime({ offset: true }),
+  expiresAt: z.iso.datetime({ offset: true }),
 });
 
 // Additional API request schemas
@@ -159,8 +159,8 @@ export const EventFiltersSchema = z.object({
   teamLeaderId: z.string().optional(),
   status: EventStatusSchema.optional(),
   encounter: EncounterSchema.optional(),
-  dateFrom: z.coerce.date().optional(),
-  dateTo: z.coerce.date().optional(),
+  dateFrom: z.iso.datetime({ offset: true }).optional(),
+  dateTo: z.iso.datetime({ offset: true }).optional(),
 });
 
 // Inferred types for complex objects (not enums)

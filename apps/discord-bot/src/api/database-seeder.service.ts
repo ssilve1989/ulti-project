@@ -315,16 +315,24 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
       {
         helperId: 'helper-1',
         absence: {
-          startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 2 weeks from now
-          endDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000), // 3 weeks from now
+          startDate: new Date(
+            Date.now() + 14 * 24 * 60 * 60 * 1000,
+          ).toISOString(), // 2 weeks from now
+          endDate: new Date(
+            Date.now() + 21 * 24 * 60 * 60 * 1000,
+          ).toISOString(), // 3 weeks from now
           reason: 'Vacation - Going to Japan',
         },
       },
       {
         helperId: 'helper-3',
         absence: {
-          startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
-          endDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
+          startDate: new Date(
+            Date.now() + 7 * 24 * 60 * 60 * 1000,
+          ).toISOString(), // 1 week from now
+          endDate: new Date(
+            Date.now() + 10 * 24 * 60 * 60 * 1000,
+          ).toISOString(), // 10 days from now
           reason: 'Work conference',
         },
       },
@@ -562,42 +570,50 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
         id: `event-${baseId}-1`,
         name: 'FRU Weekly Prog - P2 Light Rampant Practice',
         encounter: Encounter.FRU,
-        scheduledTime: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+        scheduledTime: new Date(
+          now.getTime() + 2 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 2 days from now
         duration: 180, // 3 hours
         teamLeaderId: 'team-leader-1',
         teamLeaderName: 'RaidLeader',
         status: EventStatus.Published,
         roster: this.createEmptyRoster(),
-        createdAt: now,
-        lastModified: now,
+        createdAt: now.toISOString(),
+        lastModified: now.toISOString(),
         version: 1,
       },
       {
         id: `event-${baseId}-2`,
         name: 'FRU Clear Party - P3 Diamond Dust',
         encounter: Encounter.FRU,
-        scheduledTime: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
+        scheduledTime: new Date(
+          now.getTime() + 5 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 5 days from now
         duration: 240, // 4 hours
         teamLeaderId: 'team-leader-2',
         teamLeaderName: 'ClearMaster',
         status: EventStatus.Published,
         roster: this.createPartiallyFilledRoster(),
-        createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000), // 1 day ago
-        lastModified: now,
+        createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+        lastModified: now.toISOString(),
         version: 2,
       },
       {
         id: `event-${baseId}-3`,
         name: 'FRU Learning Party - P1 Burnished Glory',
         encounter: Encounter.FRU,
-        scheduledTime: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
+        scheduledTime: new Date(
+          now.getTime() + 1 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 1 day from now
         duration: 150, // 2.5 hours
         teamLeaderId: 'team-leader-3',
         teamLeaderName: 'NewbieHelper',
         status: EventStatus.Draft,
         roster: this.createEmptyRoster(),
-        createdAt: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
-        lastModified: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
+        createdAt: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+        lastModified: new Date(
+          now.getTime() - 1 * 60 * 60 * 1000,
+        ).toISOString(), // 1 hour ago
         version: 1,
       },
       // TOP Events
@@ -605,28 +621,38 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
         id: `event-${baseId}-4`,
         name: 'TOP Reclear - All Phases Review',
         encounter: Encounter.TOP,
-        scheduledTime: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
+        scheduledTime: new Date(
+          now.getTime() + 7 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 1 week from now
         duration: 300, // 5 hours
         teamLeaderId: 'team-leader-1',
         teamLeaderName: 'RaidLeader',
         status: EventStatus.Published,
         roster: this.createEmptyRoster(),
-        createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-        lastModified: new Date(now.getTime() - 12 * 60 * 60 * 1000), // 12 hours ago
+        createdAt: new Date(
+          now.getTime() - 2 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 2 days ago
+        lastModified: new Date(
+          now.getTime() - 12 * 60 * 60 * 1000,
+        ).toISOString(), // 12 hours ago
         version: 1,
       },
       {
         id: `event-${baseId}-5`,
         name: 'TOP P3 Hello World Practice',
         encounter: Encounter.TOP,
-        scheduledTime: new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000), // 4 days from now
+        scheduledTime: new Date(
+          now.getTime() + 4 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 4 days from now
         duration: 210, // 3.5 hours
         teamLeaderId: 'team-leader-4',
         teamLeaderName: 'HelloWorldMaster',
         status: EventStatus.Published,
         roster: this.createEmptyRoster(),
-        createdAt: new Date(now.getTime() - 18 * 60 * 60 * 1000), // 18 hours ago
-        lastModified: new Date(now.getTime() - 6 * 60 * 60 * 1000), // 6 hours ago
+        createdAt: new Date(now.getTime() - 18 * 60 * 60 * 1000).toISOString(), // 18 hours ago
+        lastModified: new Date(
+          now.getTime() - 6 * 60 * 60 * 1000,
+        ).toISOString(), // 6 hours ago
         version: 1,
       },
       // DSR Events
@@ -634,14 +660,18 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
         id: `event-${baseId}-6`,
         name: 'DSR Learning Party - P1-P3 Overview',
         encounter: Encounter.DSR,
-        scheduledTime: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+        scheduledTime: new Date(
+          now.getTime() + 3 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 3 days from now
         duration: 210, // 3.5 hours
         teamLeaderId: 'team-leader-3',
         teamLeaderName: 'DragonSlayer',
         status: EventStatus.Draft,
         roster: this.createEmptyRoster(),
-        createdAt: new Date(now.getTime() - 6 * 60 * 60 * 1000), // 6 hours ago
-        lastModified: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
+        createdAt: new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
+        lastModified: new Date(
+          now.getTime() - 1 * 60 * 60 * 1000,
+        ).toISOString(), // 1 hour ago
         version: 3,
       },
       // Past event (completed)
@@ -649,14 +679,20 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
         id: `event-${baseId}-7`,
         name: 'TEA Farm Session - Weekly Clear',
         encounter: Encounter.TEA,
-        scheduledTime: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+        scheduledTime: new Date(
+          now.getTime() - 2 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 2 days ago
         duration: 180,
         teamLeaderId: 'team-leader-2',
         teamLeaderName: 'ClearMaster',
         status: EventStatus.Completed,
         roster: this.createFullyFilledRoster(),
-        createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-        lastModified: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+        createdAt: new Date(
+          now.getTime() - 5 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 5 days ago
+        lastModified: new Date(
+          now.getTime() - 2 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 2 days ago
         version: 1,
       },
       // Cancelled event
@@ -664,14 +700,20 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
         id: `event-${baseId}-8`,
         name: 'UCOB Practice - Cancelled Due to Patch',
         encounter: Encounter.UCOB,
-        scheduledTime: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
+        scheduledTime: new Date(
+          now.getTime() + 1 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 1 day from now
         duration: 240,
         teamLeaderId: 'team-leader-3',
         teamLeaderName: 'DragonSlayer',
         status: EventStatus.Cancelled,
         roster: this.createEmptyRoster(),
-        createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-        lastModified: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+        createdAt: new Date(
+          now.getTime() - 3 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 3 days ago
+        lastModified: new Date(
+          now.getTime() - 1 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 1 day ago
         version: 2,
       },
       // In-progress event
@@ -679,14 +721,20 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
         id: `event-${baseId}-9`,
         name: 'FRU Marathon Session - Currently Live!',
         encounter: Encounter.FRU,
-        scheduledTime: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
+        scheduledTime: new Date(
+          now.getTime() - 1 * 60 * 60 * 1000,
+        ).toISOString(), // 1 hour ago
         duration: 360, // 6 hours
         teamLeaderId: 'team-leader-1',
         teamLeaderName: 'RaidLeader',
         status: EventStatus.InProgress,
         roster: this.createFullyFilledRoster(),
-        createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-        lastModified: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
+        createdAt: new Date(
+          now.getTime() - 3 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 3 days ago
+        lastModified: new Date(
+          now.getTime() - 1 * 60 * 60 * 1000,
+        ).toISOString(), // 1 hour ago
         version: 4,
       },
     ];

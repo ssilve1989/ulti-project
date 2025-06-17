@@ -43,7 +43,7 @@ export const ConflictErrorSchema = APIErrorSchema.extend({
   ]),
   conflictDetails: z.object({
     currentHolder: z.string().optional(),
-    lockExpiresAt: z.coerce.date().optional(),
+    lockExpiresAt: z.iso.datetime({ offset: true }).optional(),
     conflictingEventId: z.string().optional(),
   }),
 });

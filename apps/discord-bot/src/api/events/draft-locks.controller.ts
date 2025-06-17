@@ -34,6 +34,21 @@ import { map } from 'rxjs/operators';
 import { ZodValidationPipe } from '../../utils/pipes/zod-validation.pipe.js';
 import { DraftLocksService } from './draft-locks.service.js';
 
+// Helper function to serialize draft lock dates to ISO strings
+function serializeLockDates(lock: any): DraftLock {
+  return {
+    ...lock,
+    lockedAt:
+      typeof lock.lockedAt === 'string'
+        ? lock.lockedAt
+        : lock.lockedAt.toDate().toISOString(),
+    expiresAt:
+      typeof lock.expiresAt === 'string'
+        ? lock.expiresAt
+        : lock.expiresAt.toDate().toISOString(),
+  };
+}
+
 @Controller('events')
 export class DraftLocksController {
   constructor(private readonly draftLocksService: DraftLocksService) {}
@@ -45,7 +60,11 @@ export class DraftLocksController {
     @Query(new ZodValidationPipe(GetActiveLocksQuerySchema))
     query: GetActiveLocksQuery,
   ): Promise<DraftLock[]> {
-    return this.draftLocksService.getEventLocks(query.guildId, params.eventId);
+    const locks = await this.draftLocksService.getEventLocks(
+      query.guildId,
+      params.eventId,
+    );
+    return locks.map(serializeLockDates);
   }
 
   @Post(':eventId/locks')
@@ -60,13 +79,14 @@ export class DraftLocksController {
     // TODO: Get team leader name from Discord API or user service
     const teamLeaderName = `Team Leader ${query.teamLeaderId}`;
 
-    return this.draftLocksService.createLock(
+    const lock = await this.draftLocksService.createLock(
       query.guildId,
       params.eventId,
       query.teamLeaderId,
       teamLeaderName,
       body,
     );
+    return serializeLockDates(lock);
   }
 
   @Delete(':eventId/locks/:participantType/:participantId')
@@ -112,10 +132,10 @@ export class DraftLocksController {
     return this.draftLocksService
       .getEventLocksStream(query.guildId, params.eventId)
       .pipe(
-        map((locks: DraftLock[]) => ({
+        map((locks: any[]) => ({
           data: {
             type: 'locks_updated',
-            data: locks,
+            data: locks.map(serializeLockDates),
           },
         })),
       );
