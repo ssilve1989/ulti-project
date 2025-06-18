@@ -147,9 +147,34 @@ export default function ParticipantPool({
 
       locksSource.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
-          if (Array.isArray(data)) {
-            setDraftLocks(data);
+          const messageData = JSON.parse(event.data);
+
+          // Handle initial data dump (if it's just an array)
+          if (Array.isArray(messageData)) {
+            setDraftLocks(messageData);
+            return;
+          }
+
+          // Handle structured event messages
+          if (messageData.type === 'draft_lock_created') {
+            const newLock = messageData.data.lock as DraftLock;
+            setDraftLocks((prevLocks) => {
+              // Avoid duplicates
+              if (prevLocks.some((lock) => lock.id === newLock.id)) {
+                return prevLocks;
+              }
+              return [...prevLocks, newLock];
+            });
+          } else if (messageData.type === 'draft_lock_released') {
+            const releasedLock = messageData.data.lock as DraftLock;
+            setDraftLocks((prevLocks) =>
+              prevLocks.filter((lock) => lock.id !== releasedLock.id),
+            );
+          } else if (messageData.type === 'draft_lock_expired') {
+            const expiredLock = messageData.data.lock as DraftLock;
+            setDraftLocks((prevLocks) =>
+              prevLocks.filter((lock) => lock.id !== expiredLock.id),
+            );
           }
         } catch (err) {
           console.warn('Failed to parse locks SSE data:', err);
@@ -173,22 +198,26 @@ export default function ParticipantPool({
     };
   }, [event.id]);
 
-  // Convert helpers to participants
-  const helperParticipants = helpers.map(
-    (helper) =>
-      ({
-        type: ParticipantType.Helper,
-        id: helper.id,
-        discordId: helper.discordId,
-        name: helper.name,
-        job: helper.availableJobs?.[0]?.job || 'Paladin',
-        encounter: undefined,
-        progPoint: undefined,
-        availability: undefined,
-        isConfirmed: false,
-        // Store availableJobs as a custom property for helpers
-        availableJobs: helper.availableJobs || [],
-      }) as Participant & { availableJobs: any[] },
+  // Convert helpers to participants, memoized to prevent re-renders
+  const helperParticipants = useMemo(
+    () =>
+      helpers.map(
+        (helper) =>
+          ({
+            type: ParticipantType.Helper,
+            id: helper.id,
+            discordId: helper.discordId,
+            name: helper.name,
+            job: helper.availableJobs?.[0]?.job || 'Paladin', // Default job
+            encounter: undefined,
+            progPoint: undefined,
+            availability: undefined,
+            isConfirmed: false,
+            // Store availableJobs as a custom property for helpers
+            availableJobs: helper.availableJobs || [],
+          }) as Participant & { availableJobs: any[] },
+      ),
+    [helpers],
   );
 
   // Combine and filter participants
@@ -572,147 +601,62 @@ export default function ParticipantPool({
             style={{ borderColor: 'var(--border-primary)' }}
             className="divide-y"
           >
-            {filteredParticipants.map((participant) => {
-              const status = getParticipantStatus(participant);
-              const canSelect = status.type === 'available';
-              const isPending =
-                pendingParticipant &&
-                pendingParticipant.type === participant.type &&
-                pendingParticipant.id === participant.id;
+            <ul style={{ color: 'var(--text-primary)' }} className="divide-y">
+              {filteredParticipants.map((participant) => {
+                const status = getParticipantStatus(participant);
+                const key = `${participant.type}-${participant.id}`;
+                const canSelect = status.type === 'available';
+                const isPending =
+                  pendingParticipant?.id === participant.id &&
+                  pendingParticipant?.type === participant.type;
 
-              return (
-                <button
-                  key={`${participant.type}-${participant.id}`}
-                  type="button"
-                  className={`w-full text-left p-4 transition-colors min-h-[5rem] flex items-start ${
-                    isPending
-                      ? 'bg-blue-100 border-l-4 border-blue-500'
-                      : canSelect
-                        ? 'cursor-pointer hover:bg-opacity-50'
-                        : 'cursor-not-allowed opacity-60'
-                  }`}
-                  style={{
-                    backgroundColor: isPending
-                      ? 'rgba(59, 130, 246, 0.1)'
-                      : canSelect
-                        ? 'transparent'
-                        : 'var(--bg-primary)',
-                    borderLeftColor: isPending ? '#3b82f6' : 'transparent',
-                    borderLeftWidth: isPending ? '4px' : '0',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (canSelect && !isPending) {
-                      e.currentTarget.style.backgroundColor =
-                        'var(--bg-secondary)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (canSelect && !isPending) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }
-                  }}
-                  onClick={() => canSelect && onParticipantSelect(participant)}
-                  disabled={!canSelect}
-                >
-                  <div className="flex items-start justify-between w-full min-w-0 gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3
-                          style={{ color: 'var(--text-primary)' }}
-                          className="font-medium truncate text-sm"
-                        >
-                          {participant.name}
-                        </h3>
+                return (
+                  <li key={key}>
+                    <button
+                      type="button"
+                      disabled={!canSelect}
+                      onClick={() =>
+                        canSelect && onParticipantSelect(participant)
+                      }
+                      className={`w-full text-left p-4 transition-colors min-h-[5rem] flex items-start ${
+                        isPending
+                          ? 'bg-blue-100 dark:bg-blue-900/30'
+                          : canSelect
+                            ? 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                            : 'opacity-50 cursor-not-allowed'
+                      }`}
+                    >
+                      <div className="flex-shrink-0 mr-4 pt-1">
+                        <OptimizedIcon
+                          {...getJobIconProps(
+                            (participant as any).job ||
+                              (participant as any).availableJobs?.[0]?.job,
+                          )}
+                          className="w-8 h-8"
+                        />
                       </div>
-
-                      {/* Job display - different for helpers vs proggers */}
-                      {participant.type === 'helper' &&
-                      (participant as any).availableJobs ? (
-                        <div className="mb-1">
-                          <div className="flex flex-wrap gap-1">
-                            {(participant as any).availableJobs
-                              .slice(0, 3)
-                              .map((helperJob: any, index: number) => (
-                                <div
-                                  key={`${helperJob.job}-${index}`}
-                                  className="flex items-center gap-1 px-1.5 py-0.5 text-xs rounded whitespace-nowrap"
-                                  style={{
-                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                    color: 'var(--text-accent)',
-                                  }}
-                                >
-                                  <OptimizedIcon
-                                    {...getJobIconProps(helperJob.job)}
-                                    className="w-3 h-3"
-                                  />
-                                  <span>{helperJob.job}</span>
-                                </div>
-                              ))}
-                            {(participant as any).availableJobs.length > 3 && (
-                              <span
-                                className="inline-block px-1.5 py-0.5 text-xs rounded whitespace-nowrap"
-                                style={{
-                                  backgroundColor: 'var(--bg-secondary)',
-                                  color: 'var(--text-secondary)',
-                                }}
-                              >
-                                +{(participant as any).availableJobs.length - 3}
-                              </span>
-                            )}
-                          </div>
+                      <div className="flex-grow">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium">{participant.name}</h4>
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${getParticipantStatusColor(status.type)}`}
+                          >
+                            {status.label}
+                          </span>
                         </div>
-                      ) : (
-                        <div className="mb-1">
-                          <div className="flex items-center gap-1">
-                            <OptimizedIcon
-                              {...getJobIconProps(participant.job)}
-                              className="w-4 h-4"
-                            />
-                            <span
-                              className="inline-block px-1.5 py-0.5 text-xs rounded"
-                              style={{
-                                backgroundColor: 'var(--bg-secondary)',
-                                color: 'var(--text-primary)',
-                              }}
-                            >
-                              {participant.job}
-                            </span>
-                          </div>
-                          {participant.type === ParticipantType.Progger &&
-                            participant.encounter &&
-                            participant.progPoint && (
-                              <div
-                                style={{ color: 'var(--text-tertiary)' }}
-                                className="text-xs mt-1 truncate"
-                              >
-                                {participant.encounter} •{' '}
-                                {participant.progPoint}
-                              </div>
-                            )}
-                        </div>
-                      )}
-
-                      {participant.availability && (
-                        <p
-                          style={{ color: 'var(--text-secondary)' }}
-                          className="text-xs leading-relaxed line-clamp-2"
-                        >
-                          {participant.availability}
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {participant.type === 'helper'
+                            ? (participant as any).availableJobs
+                                .map((j: any) => j.job)
+                                .join(', ')
+                            : `${participant.job} - ${participant.progPoint}`}
                         </p>
-                      )}
-                    </div>
-
-                    <div className="flex-shrink-0 mt-1">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${status.color}`}
-                      >
-                        {status.label}
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
       </div>

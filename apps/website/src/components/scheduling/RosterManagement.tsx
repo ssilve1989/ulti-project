@@ -40,6 +40,21 @@ export default function RosterManagement({
   const [pendingParticipant, setPendingParticipant] =
     useState<Participant | null>(null);
 
+  // CRITICAL FIX: This hook ensures that the `selectedParticipants` set
+  // is always in sync with the current `event` state. This fixes the bug
+  // where the participant pool was not correctly reflecting the roster on initial load.
+  useEffect(() => {
+    const selected = new Set<string>();
+    for (const slot of event.roster.party) {
+      if (slot.assignedParticipant) {
+        selected.add(
+          `${slot.assignedParticipant.type}-${slot.assignedParticipant.id}`,
+        );
+      }
+    }
+    setSelectedParticipants(selected);
+  }, [event]);
+
   // Fetch fresh event data on mount to override stale static data
   useEffect(() => {
     const fetchFreshEventData = async () => {
@@ -60,42 +75,22 @@ export default function RosterManagement({
     fetchFreshEventData();
   }, [initialEvent.id]);
 
-  // Track selected participants from roster
-  const updateSelectedParticipants = useCallback(
-    (updatedEvent: ScheduledEvent) => {
-      console.log(
-        'updateSelectedParticipants called with onEventUpdate:',
+  // This callback is passed to children to notify of an update.
+  // It now only needs to update the event state, and the useEffect above
+  // will handle synchronizing the selected participants.
+  const handleEventUpdate = useCallback((updatedEvent: ScheduledEvent) => {
+    setEvent(updatedEvent);
+
+    if (typeof onEventUpdateRef.current === 'function') {
+      onEventUpdateRef.current(updatedEvent);
+    } else {
+      console.error(
+        'onEventUpdate is not a function:',
         typeof onEventUpdateRef.current,
         onEventUpdateRef.current,
       );
-
-      const selected = new Set<string>();
-
-      for (const slot of updatedEvent.roster.party) {
-        if (slot.assignedParticipant) {
-          selected.add(
-            `${slot.assignedParticipant.type}-${slot.assignedParticipant.id}`,
-          );
-        }
-      }
-
-      setSelectedParticipants(selected);
-
-      // Update the local event state
-      setEvent(updatedEvent);
-
-      if (typeof onEventUpdateRef.current === 'function') {
-        onEventUpdateRef.current(updatedEvent);
-      } else {
-        console.error(
-          'onEventUpdate is not a function:',
-          typeof onEventUpdateRef.current,
-          onEventUpdateRef.current,
-        );
-      }
-    },
-    [], // Remove onEventUpdate from dependencies since we use ref
-  );
+    }
+  }, []);
 
   const handleParticipantSelect = useCallback((participant: Participant) => {
     // Set the participant as pending assignment
@@ -138,7 +133,7 @@ export default function RosterManagement({
         <EventManagement
           event={event}
           teamLeaderId={teamLeaderId}
-          onEventUpdate={updateSelectedParticipants}
+          onEventUpdate={handleEventUpdate}
           onEventDeleted={handleEventDeleted}
         />
       </ErrorBoundary>
@@ -175,7 +170,7 @@ export default function RosterManagement({
             <RosterBuilder
               event={event}
               teamLeaderId={teamLeaderId}
-              onEventUpdate={updateSelectedParticipants}
+              onEventUpdate={handleEventUpdate}
               onParticipantSelect={handleParticipantSelect}
               pendingParticipant={pendingParticipant}
               onSlotSelect={handleSlotSelect}
@@ -201,7 +196,7 @@ export default function RosterManagement({
             <RosterBuilder
               event={event}
               teamLeaderId={teamLeaderId}
-              onEventUpdate={updateSelectedParticipants}
+              onEventUpdate={handleEventUpdate}
               onParticipantSelect={handleParticipantSelect}
               pendingParticipant={pendingParticipant}
               onSlotSelect={handleSlotSelect}

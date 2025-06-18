@@ -15,6 +15,7 @@ import type {
 } from '@ulti-project/shared';
 import { compareAsc, isAfter } from 'date-fns';
 import { MOCK_CONFIG, delay } from './config.js';
+import { getHelperById } from './helpers.js';
 
 // In-memory events storage
 const mockEvents = new Map<string, ScheduledEvent & { guildId: string }>();
@@ -50,21 +51,23 @@ function createEmptyRoster(): EventRoster {
 
 // Helper function to create partially filled roster for testing
 function createPartiallyFilledRoster(): EventRoster {
+  const aetherDefender = getHelperById('helper-1');
+  const lunarSanctuary = getHelperById('helper-2');
+
   const slots: PartySlot[] = [
     // Tank slots
     {
       id: 'slot-1',
       role: Role.Tank,
       isHelperSlot: true,
-      assignedParticipant: {
-        type: ParticipantType.Helper,
-        id: 'helper-1',
-        discordId: '123456789012345678',
-        name: 'Aether Defender',
-        job: Job.Paladin,
-        encounter: Encounter.FRU,
-        isConfirmed: true,
-      },
+      assignedParticipant: aetherDefender
+        ? {
+            ...aetherDefender,
+            type: ParticipantType.Helper,
+            job: Job.Paladin,
+            isConfirmed: false,
+          }
+        : undefined,
     },
     {
       id: 'slot-2',
@@ -85,15 +88,14 @@ function createPartiallyFilledRoster(): EventRoster {
       id: 'slot-3',
       role: Role.Healer,
       isHelperSlot: true,
-      assignedParticipant: {
-        type: ParticipantType.Helper,
-        id: 'helper-2',
-        discordId: '234567890123456789',
-        name: 'Lunar Sanctuary',
-        job: Job.WhiteMage,
-        encounter: Encounter.FRU,
-        isConfirmed: true,
-      },
+      assignedParticipant: lunarSanctuary
+        ? {
+            ...lunarSanctuary,
+            type: ParticipantType.Helper,
+            job: Job.WhiteMage,
+            isConfirmed: false,
+          }
+        : undefined,
     },
     {
       id: 'slot-4',
@@ -581,10 +583,6 @@ export async function deleteEvent(
 
   mockEvents.delete(id);
   saveEventsToStorage();
-
-  // Release all locks for this event
-  const { releaseAllLocksForTeamLeader } = await import('./drafts.js');
-  await releaseAllLocksForTeamLeader(teamLeaderId, id);
 }
 
 // SSE Stream for event updates

@@ -216,6 +216,8 @@ export default function RosterBuilder({
 
   const handleUnassignParticipant = async (slot: PartySlot) => {
     if (!slot.assignedParticipant) return;
+    const { id: participantId, type: participantType } =
+      slot.assignedParticipant;
 
     try {
       setLoading(slot.id);
