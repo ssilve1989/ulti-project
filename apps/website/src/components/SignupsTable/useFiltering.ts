@@ -1,4 +1,4 @@
-import type { SignupDisplayData } from '@ulti-project/shared/types';
+import type { SignupDisplayData } from '@ulti-project/shared';
 import { useMemo, useState } from 'react';
 
 export interface SignupFilters {

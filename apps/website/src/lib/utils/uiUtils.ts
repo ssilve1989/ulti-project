@@ -5,7 +5,11 @@
 /**
  * Format date for display in various contexts
  */
-export function formatEventDate(date: Date): string {
+export function formatEventDate(date: Date | string): string {
+  if (typeof date === 'string') {
+    date = new Date(date);
+  }
+
   return new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
     month: 'long',
@@ -19,7 +23,11 @@ export function formatEventDate(date: Date): string {
 /**
  * Format date for scheduling index page
  */
-export function formatSchedulingDate(date: Date): string {
+export function formatSchedulingDate(date: Date | string): string {
+  if(typeof date === 'string') {
+    date = new Date(date);
+  }
+
   return new Intl.DateTimeFormat('en-US', {
     weekday: 'short',
     month: 'short',

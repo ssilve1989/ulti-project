@@ -22,6 +22,7 @@
     "@ulti-project/shared": "workspace:*",
     "astro": "^5.9.0",
     "better-auth": "^1.2.8",
+    "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

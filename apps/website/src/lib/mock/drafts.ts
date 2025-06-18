@@ -4,6 +4,7 @@ import type {
   DraftLock,
   LockParticipantRequest,
 } from '@ulti-project/shared';
+import { isBefore } from 'date-fns';
 import { MOCK_CONFIG, delay } from './config.js';
 
 // In-memory draft locks storage
@@ -27,7 +28,7 @@ setInterval(() => {
   const expiredLocks: DraftLock[] = [];
 
   for (const [lockId, lock] of activeLocks.entries()) {
-    if (lock.expiresAt <= now) {
+    if (isBefore(new Date(lock.expiresAt), now)) {
       activeLocks.delete(lockId);
       expiredLocks.push(lock);
     }
@@ -88,7 +89,9 @@ export async function lockParticipant(
 
   // If same team leader, extend the lock
   if (existingLock && existingLock.lockedBy === teamLeaderId) {
-    existingLock.expiresAt = new Date(Date.now() + MOCK_CONFIG.draftTimeout);
+    existingLock.expiresAt = new Date(
+      Date.now() + MOCK_CONFIG.draftTimeout,
+    ).toISOString();
 
     broadcastLockEvent(eventId, {
       type: 'draft_lock_extended',
@@ -107,8 +110,8 @@ export async function lockParticipant(
     participantType: request.participantType,
     lockedBy: teamLeaderId,
     lockedByName: teamLeaderNames.get(teamLeaderId) || `Leader-${teamLeaderId}`,
-    lockedAt: new Date(),
-    expiresAt: new Date(Date.now() + MOCK_CONFIG.draftTimeout),
+    lockedAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + MOCK_CONFIG.draftTimeout).toISOString(),
   };
 
   activeLocks.set(lock.id, lock);

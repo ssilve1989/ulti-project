@@ -314,15 +314,15 @@ const mockAbsences: HelperAbsence[] = [
   {
     id: 'absence-1',
     helperId: 'helper-3',
-    startDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-    endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+    startDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
+    endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
     reason: 'Vacation',
   },
   {
     id: 'absence-2',
     helperId: 'helper-6',
-    startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next week
-    endDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
+    startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Next week
+    endDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days from now
     reason: 'Work trip',
   },
 ];
@@ -372,7 +372,7 @@ export async function isHelperAvailable(
   const conflicts = mockAbsences.filter(
     (absence) =>
       absence.helperId === helperId &&
-      !(endTime <= absence.startDate || startTime >= absence.endDate),
+      !(new Date(endTime) <= new Date(absence.startDate) || new Date(startTime) >= new Date(absence.endDate)),
   );
 
   if (conflicts.length > 0) return false;
@@ -410,7 +410,7 @@ export async function isHelperAvailableForEvent(
   const hasAbsence = mockAbsences.some(
     (absence) =>
       absence.helperId === helperId &&
-      !(eventEnd <= absence.startDate || eventStart >= absence.endDate),
+      !(new Date(eventEnd) <= new Date(absence.startDate) || new Date(eventStart) >= new Date(absence.endDate)),
   );
 
   if (hasAbsence) {

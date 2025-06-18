@@ -13,10 +13,11 @@ import type {
   ScheduledEvent,
   UpdateEventRequest,
 } from '@ulti-project/shared';
+import { compareAsc, isAfter } from 'date-fns';
 import { MOCK_CONFIG, delay } from './config.js';
 
 // In-memory events storage
-const mockEvents = new Map<string, ScheduledEvent>();
+const mockEvents = new Map<string, ScheduledEvent & { guildId: string }>();
 let eventIdCounter = 1;
 
 // Storage key for sessionStorage
@@ -250,52 +251,52 @@ function createFullyFilledRoster(): EventRoster {
 }
 
 // Initialize with some sample events
-const sampleEvents: ScheduledEvent[] = [
+const sampleEvents: (ScheduledEvent & { guildId: string })[] = [
   {
     id: 'event-1',
-    guildId: MOCK_CONFIG.guild.defaultGuildId,
     name: 'FRU Prog Session',
     encounter: Encounter.FRU,
-    scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+    scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
     duration: 120, // 2 hours
     teamLeaderId: 'leader-1',
     teamLeaderName: 'TeamAlpha',
     status: EventStatus.Draft,
     roster: createPartiallyFilledRoster(), // Partially filled for testing
-    createdAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
-    lastModified: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+    createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // 1 hour ago
+    lastModified: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
     version: 1,
-  } as ScheduledEvent,
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+  },
   {
     id: 'event-2',
-    guildId: MOCK_CONFIG.guild.defaultGuildId,
     name: 'TOP Clear Run',
     encounter: Encounter.TOP,
-    scheduledTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Day after tomorrow
+    scheduledTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // Day after tomorrow
     duration: 180, // 3 hours
     teamLeaderId: 'leader-2',
     teamLeaderName: 'TeamBeta',
     status: EventStatus.Published,
     roster: createEmptyRoster(), // Keep this one empty for testing empty state
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-    lastModified: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+    lastModified: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
     version: 3,
-  } as ScheduledEvent,
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+  },
   {
     id: 'event-3',
-    guildId: MOCK_CONFIG.guild.defaultGuildId,
     name: 'DSR Full Clear',
     encounter: Encounter.DSR,
-    scheduledTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+    scheduledTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
     duration: 240, // 4 hours
     teamLeaderId: 'leader-3',
     teamLeaderName: 'TeamGamma',
     status: EventStatus.Draft,
     roster: createFullyFilledRoster(), // Full roster ready to publish
-    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
-    lastModified: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
+    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
+    lastModified: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
     version: 2,
-  } as ScheduledEvent,
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+  },
 ];
 
 // Initialize data
@@ -348,11 +349,11 @@ function loadEventsFromStorage(): void {
       for (const [id, event] of Object.entries(parsed)) {
         // Convert date strings back to Date objects
         const eventData = event as any;
-        const restoredEvent: ScheduledEvent = {
+        const restoredEvent: ScheduledEvent & { guildId: string } = {
           id: eventData.id,
           name: eventData.name,
           encounter: eventData.encounter,
-          scheduledTime: new Date(eventData.scheduledTime),
+          scheduledTime: new Date(eventData.scheduledTime).toISOString(),
           duration: eventData.duration,
           teamLeaderId: eventData.teamLeaderId,
           teamLeaderName: eventData.teamLeaderName,
@@ -365,9 +366,10 @@ function loadEventsFromStorage(): void {
             totalSlots: eventData.roster.totalSlots,
             filledSlots: eventData.roster.filledSlots,
           },
-          createdAt: new Date(eventData.createdAt),
-          lastModified: new Date(eventData.lastModified),
+          createdAt: new Date(eventData.createdAt).toISOString(),
+          lastModified: new Date(eventData.lastModified).toISOString(),
           version: eventData.version,
+          guildId: eventData.guildId || MOCK_CONFIG.guild.defaultGuildId, // Fallback for old data
         };
         mockEvents.set(id, restoredEvent);
       }
@@ -449,9 +451,10 @@ export async function createEvent(
 ): Promise<ScheduledEvent> {
   await delay(MOCK_CONFIG.delays.slow);
 
-  const event: ScheduledEvent = {
+  const now = new Date().toISOString();
+
+  const event: ScheduledEvent & { guildId: string } = {
     id: `event-${eventIdCounter++}`,
-    guildId: request.guildId,
     name: request.name,
     encounter: request.encounter,
     scheduledTime: request.scheduledTime,
@@ -460,20 +463,28 @@ export async function createEvent(
     teamLeaderName: `Leader-${request.teamLeaderId}`,
     status: EventStatus.Draft,
     roster: createEmptyRoster(),
-    createdAt: new Date(),
-    lastModified: new Date(),
+    createdAt: now,
+    lastModified: now,
     version: 1,
-  } as ScheduledEvent;
+    guildId: MOCK_CONFIG.guild.defaultGuildId,
+  };
 
   mockEvents.set(event.id, event);
   saveEventsToStorage();
 
-  return event;
+  // Return the event without guildId to match the API contract
+  const { guildId, ...publicEvent } = event;
+  return publicEvent;
 }
 
 export async function getEvent(id: string): Promise<ScheduledEvent | null> {
   await delay(MOCK_CONFIG.delays.fast);
-  return mockEvents.get(id) || null;
+  const event = mockEvents.get(id);
+  if (!event) return null;
+
+  // Return the event without guildId to match the API contract
+  const { guildId, ...publicEvent } = event;
+  return publicEvent;
 }
 
 export async function getEvents(
@@ -509,9 +520,13 @@ export async function getEvents(
   }
 
   // Sort by scheduled time
-  events.sort((a, b) => a.scheduledTime.getTime() - b.scheduledTime.getTime());
+  events.sort(
+    (a, b) =>
+      new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime(),
+  );
 
-  return events;
+  // Return events without guildId to match the API contract
+  return events.map(({ guildId, ...publicEvent }) => publicEvent);
 }
 
 export async function updateEvent(
@@ -529,10 +544,10 @@ export async function updateEvent(
     throw new Error('Cannot modify events that are in progress');
   }
 
-  const updatedEvent: ScheduledEvent = {
+  const updatedEvent: ScheduledEvent & { guildId: string } = {
     ...event,
     ...updates,
-    lastModified: new Date(),
+    lastModified: new Date().toISOString(),
     version: event.version + 1,
   };
 
@@ -540,9 +555,10 @@ export async function updateEvent(
   saveEventsToStorage();
 
   // Broadcast update
-  broadcastEventUpdate(id, updatedEvent, updates);
+  const { guildId, ...publicEvent } = updatedEvent;
+  broadcastEventUpdate(id, publicEvent, updates);
 
-  return updatedEvent;
+  return publicEvent;
 }
 
 export async function deleteEvent(
@@ -645,7 +661,9 @@ export function getEventsByStatus(
 export function getUpcomingEvents(limit = 10): ScheduledEvent[] {
   const now = new Date();
   return Array.from(mockEvents.values())
-    .filter((event) => event.scheduledTime > now)
-    .sort((a, b) => a.scheduledTime.getTime() - b.scheduledTime.getTime())
+    .filter((event) => isAfter(new Date(event.scheduledTime), now))
+    .sort((a, b) =>
+      compareAsc(new Date(a.scheduledTime), new Date(b.scheduledTime)),
+    )
     .slice(0, limit);
 }

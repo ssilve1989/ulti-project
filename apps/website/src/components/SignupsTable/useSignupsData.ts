@@ -1,7 +1,4 @@
-import type {
-  EncounterInfo,
-  SignupDisplayData,
-} from '@ulti-project/shared/types';
+import type { EncounterInfo, SignupDisplayData } from '@ulti-project/shared';
 import { useCallback, useEffect, useState } from 'react';
 import {
   type SignupChangeEvent,

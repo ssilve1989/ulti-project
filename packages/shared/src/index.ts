@@ -25,22 +25,20 @@ export {
   PartyStatus,
 } from './types/signup.js';
 
-// Export specific scheduling types that don't conflict with schemas
-export type {
-  HelperAvailabilityResponse,
-  SetHelperAvailabilityRequest,
-  CreateAbsenceRequest,
-  UpdateEventRequest,
-  LockParticipantRequest,
-  AssignParticipantRequest,
-  SSEEvent,
-  EventUpdateEvent,
-  DraftLockEvent,
-  ParticipantAssignedEvent,
-  HelperAvailabilityChangedEvent,
-  HelpersUpdatedEvent,
-  SchedulingSSEEvent,
-} from './types/scheduling.js';
+// // Export specific scheduling types that don't conflict with schemas
+// export type {
+//   HelperAvailabilityResponse,
+//   SetHelperAvailabilityRequest,
+//   CreateAbsenceRequest,
+//   AssignParticipantRequest,
+//   SSEEvent,
+//   EventUpdateEvent,
+//   DraftLockEvent,
+//   ParticipantAssignedEvent,
+//   HelperAvailabilityChangedEvent,
+//   HelpersUpdatedEvent,
+//   SchedulingSSEEvent,
+// } from './types/scheduling.js';
 
 // Export all encounter types (includes Encounter enum)
 export * from './types/encounters.js';
@@ -52,6 +50,3 @@ export {
   EventStatus,
   ParticipantType,
 } from './schemas/api/common.js';
-
-// Utility functions can be added here in the future
-// export * from './utils/index.js';

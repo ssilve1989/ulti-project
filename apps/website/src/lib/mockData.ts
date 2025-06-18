@@ -1,7 +1,4 @@
-import {
-  ENCOUNTER_INFO,
-  type SignupDisplayData,
-} from '@ulti-project/shared/types';
+import { ENCOUNTER_INFO, type SignupDisplayData } from '@ulti-project/shared';
 
 export const mockEncounters = Object.values(ENCOUNTER_INFO);
 

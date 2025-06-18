@@ -359,8 +359,10 @@ export async function assignParticipant(
       ...currentEvent.roster,
       party: currentEvent.roster.party.map((slot) => {
         if (slot.id === request.slotId) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { draftedBy, draftedAt, ...rest } = slot;
           return {
-            ...slot,
+            ...rest,
             assignedParticipant: {
               ...participant,
               job: (request.selectedJob as any) || participant.job,
@@ -404,8 +406,9 @@ export async function unassignParticipant(
       ...currentEvent.roster,
       party: currentEvent.roster.party.map((slot) => {
         if (slot.id === slotId) {
-          const { assignedParticipant, ...slotWithoutParticipant } = slot;
-          return slotWithoutParticipant;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { assignedParticipant, draftedBy, draftedAt, ...rest } = slot;
+          return rest;
         }
         return slot;
       }),

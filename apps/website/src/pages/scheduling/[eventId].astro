@@ -1,9 +1,9 @@
 ---
-import RosterManagement from '../../components/scheduling/RosterManagement.js';
-import Layout from '../../layouts/Layout.astro';
-import { getEvent, getEvents } from '../../lib/schedulingApi.js';
-import { getEventStatusColor } from '../../lib/utils/statusUtils.js';
-import { formatEventDate } from '../../lib/utils/uiUtils.js';
+import RosterManagement from "../../components/scheduling/RosterManagement.js";
+import Layout from "../../layouts/Layout.astro";
+import { getEvents } from "../../lib/schedulingApi.js";
+import { getEventStatusColor } from "../../lib/utils/statusUtils.js";
+import { formatEventDate } from "../../lib/utils/uiUtils.js";
 
 // Generate static paths for all existing events
 export async function getStaticPaths() {
@@ -25,70 +25,152 @@ const { event } = Astro.props;
       <!-- Header -->
       <div class="mb-8">
         <div class="flex items-center gap-4 mb-4">
-          <a 
+          <a
             href="/scheduling"
             style="color: var(--text-accent);"
             class="hover:opacity-80 flex items-center gap-2 transition-opacity"
           >
-            <svg style="color: var(--text-accent);" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            <svg
+              style="color: var(--text-accent);"
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 19l-7-7 7-7"></path>
             </svg>
             Back to Events
           </a>
-          <span class={`px-3 py-1 rounded-full text-sm font-medium ${getEventStatusColor(event.status)}`}>
+          <span
+            class={`px-3 py-1 rounded-full text-sm font-medium ${getEventStatusColor(event.status)}`}
+          >
             {event.status}
           </span>
         </div>
-        
-        <h1 style="color: var(--text-primary);" class="text-3xl font-bold">{event.name}</h1>
-        <p style="color: var(--text-secondary);" class="mt-2">Roster management for {event.encounter}</p>
+
+        <h1 style="color: var(--text-primary);" class="text-3xl font-bold">
+          {event.name}
+        </h1>
+        <p style="color: var(--text-secondary);" class="mt-2">
+          Roster management for {event.encounter}
+        </p>
       </div>
 
       <!-- Event Details Card -->
-      <div style="background-color: var(--bg-primary); border-color: var(--border-primary);" class="rounded-lg border p-6 mb-8">
-        <h2 style="color: var(--text-primary);" class="text-xl font-semibold mb-4">Event Details</h2>
-        
+      <div
+        style="background-color: var(--bg-primary); border-color: var(--border-primary);"
+        class="rounded-lg border p-6 mb-8"
+      >
+        <h2
+          style="color: var(--text-primary);"
+          class="text-xl font-semibold mb-4"
+        >
+          Event Details
+        </h2>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <h3 style="color: var(--text-secondary);" class="text-sm font-medium mb-1">Encounter</h3>
-            <p style="color: var(--text-primary);" class="text-lg font-semibold">{event.encounter}</p>
+            <h3
+              style="color: var(--text-secondary);"
+              class="text-sm font-medium mb-1"
+            >
+              Encounter
+            </h3>
+            <p
+              style="color: var(--text-primary);"
+              class="text-lg font-semibold"
+            >
+              {event.encounter}
+            </p>
           </div>
-          
+
           <div>
-            <h3 style="color: var(--text-secondary);" class="text-sm font-medium mb-1">Scheduled Time</h3>
-            <p style="color: var(--text-primary);" class="text-lg font-semibold">{formatEventDate(event.scheduledTime)}</p>
+            <h3
+              style="color: var(--text-secondary);"
+              class="text-sm font-medium mb-1"
+            >
+              Scheduled Time
+            </h3>
+            <p
+              style="color: var(--text-primary);"
+              class="text-lg font-semibold"
+            >
+              {formatEventDate(event.scheduledTime)}
+            </p>
           </div>
-          
+
           <div>
-            <h3 style="color: var(--text-secondary);" class="text-sm font-medium mb-1">Duration</h3>
-            <p style="color: var(--text-primary);" class="text-lg font-semibold">{event.duration} minutes</p>
+            <h3
+              style="color: var(--text-secondary);"
+              class="text-sm font-medium mb-1"
+            >
+              Duration
+            </h3>
+            <p
+              style="color: var(--text-primary);"
+              class="text-lg font-semibold"
+            >
+              {event.duration} minutes
+            </p>
           </div>
-          
+
           <div>
-            <h3 style="color: var(--text-secondary);" class="text-sm font-medium mb-1">Team Leader</h3>
-            <p style="color: var(--text-primary);" class="text-lg font-semibold">{event.teamLeaderName}</p>
+            <h3
+              style="color: var(--text-secondary);"
+              class="text-sm font-medium mb-1"
+            >
+              Team Leader
+            </h3>
+            <p
+              style="color: var(--text-primary);"
+              class="text-lg font-semibold"
+            >
+              {event.teamLeaderName}
+            </p>
           </div>
-          
+
           <div>
-            <h3 style="color: var(--text-secondary);" class="text-sm font-medium mb-1">Roster Progress</h3>
-            <p style="color: var(--text-primary);" class="text-lg font-semibold">
+            <h3
+              style="color: var(--text-secondary);"
+              class="text-sm font-medium mb-1"
+            >
+              Roster Progress
+            </h3>
+            <p
+              style="color: var(--text-primary);"
+              class="text-lg font-semibold"
+            >
               {event.roster.filledSlots}/{event.roster.totalSlots} slots filled
             </p>
           </div>
-          
+
           <div>
-            <h3 style="color: var(--text-secondary);" class="text-sm font-medium mb-1">Party</h3>
-            <p style="color: var(--text-primary);" class="text-lg font-semibold">8 slots</p>
+            <h3
+              style="color: var(--text-secondary);"
+              class="text-sm font-medium mb-1"
+            >
+              Party
+            </h3>
+            <p
+              style="color: var(--text-primary);"
+              class="text-lg font-semibold"
+            >
+              8 slots
+            </p>
           </div>
         </div>
       </div>
 
       <!-- Interactive Roster Management -->
-      <RosterManagement 
+      <RosterManagement
         client:load
         event={event}
         teamLeaderId={event.teamLeaderId}
       />
     </div>
   </div>
-</Layout> 
+</Layout>

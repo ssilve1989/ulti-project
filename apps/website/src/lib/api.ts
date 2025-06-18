@@ -1,7 +1,4 @@
-import type {
-  CommunityStats,
-  SignupDisplayData,
-} from '@ulti-project/shared/types';
+import type { CommunityStats, SignupDisplayData } from '@ulti-project/shared';
 
 // Development mode detection and mock data toggle
 const isDevelopment = import.meta.env.DEV;
