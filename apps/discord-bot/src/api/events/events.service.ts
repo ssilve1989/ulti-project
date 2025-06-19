@@ -105,11 +105,7 @@ class EventsService {
             ...updateRequest.roster,
             party: updateRequest.roster.party.map((slot) => ({
               ...slot,
-              draftedAt: slot.draftedAt
-                ? typeof slot.draftedAt === 'string'
-                  ? slot.draftedAt
-                  : slot.draftedAt.toISOString()
-                : undefined,
+              draftedAt: slot.draftedAt,
             })),
           }
         : existingEvent.roster,

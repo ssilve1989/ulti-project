@@ -52,6 +52,8 @@ export class RosterService {
     const participants = await this.participantsService.getParticipants({
       guildId,
       type: request.participantType,
+      limit: 100, // Get enough participants to find the one we need
+      offset: 0,
     });
 
     const participant = participants.find(

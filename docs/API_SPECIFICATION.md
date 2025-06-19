@@ -427,7 +427,6 @@ Query Parameters:
 Events:
 - participants_updated: Participant[]
 - signup_approved: { participant: Participant }
-- signup_declined: { participantId: string }
 - helper_availability_changed: { helperId, availability }
 
 Content-Type: text/event-stream

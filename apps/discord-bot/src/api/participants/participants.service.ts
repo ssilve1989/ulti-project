@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Job, ParticipantType } from '@ulti-project/shared';
-import type {
-  GetParticipantsQuery,
-  Participant,
-  ParticipantsUpdatedEvent,
-} from '@ulti-project/shared/types';
+import type { GetParticipantsQuery, Participant } from '@ulti-project/shared';
+
+// Define the event type locally until it's properly exported
+interface ParticipantsUpdatedEvent {
+  type: 'participants_updated';
+  data: Participant[];
+  timestamp: Date;
+}
 import { map } from 'rxjs';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SignupDocumentCache } from '../../firebase/collections/utils/signup-document.cache.js';
@@ -96,11 +99,15 @@ export class ParticipantsService {
         const participantId = `${doc.discordId}-${doc.encounter}`;
 
         // Update participants map based on change type
-        if (type === 'removed' || doc.status !== SignupStatus.APPROVED) {
+        if (type === 'removed') {
+          // Only remove if the document is actually deleted
           allParticipants.delete(participantId);
         } else if (doc.status === SignupStatus.APPROVED) {
+          // Add/update participant when approved
           allParticipants.set(participantId, this.mapSignupToParticipant(doc));
         }
+        // Note: We don't remove participants when status changes to declined
+        // Once approved, they remain in the participants list
 
         return {
           type: 'participants_updated',
@@ -117,8 +124,7 @@ export class ParticipantsService {
       type: ParticipantType.Progger,
       id: `${signup.discordId}-${signup.encounter}`,
       discordId: signup.discordId,
-      name: signup.username,
-      characterName: signup.character,
+      name: signup.character,
       job: this.mapRoleToJob(signup.role),
       encounter: signup.encounter,
       progPoint: signup.progPoint || signup.progPointRequested,

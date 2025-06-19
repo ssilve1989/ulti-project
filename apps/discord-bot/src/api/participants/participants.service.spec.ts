@@ -41,6 +41,8 @@ describe('ParticipantsService', () => {
       const result = await service.getParticipants({
         guildId: 'test-guild',
         type: ParticipantType.Progger,
+        limit: 50,
+        offset: 0,
       });
 
       expect(result).toHaveLength(1);
@@ -48,8 +50,7 @@ describe('ParticipantsService', () => {
         type: ParticipantType.Progger,
         id: '123-DSR',
         discordId: '123',
-        name: 'TestUser',
-        characterName: 'Test Character',
+        name: 'Test Character',
         job: Job.Paladin,
         encounter: 'DSR',
         progPoint: 'Nidhogg',
@@ -84,6 +85,56 @@ describe('ParticipantsService', () => {
             expect(event.data.data).toHaveLength(1);
             expect(event.data.data[0].job).toBe(Job.Warrior);
             resolve();
+          },
+        });
+      });
+    });
+
+    it('should not remove participants when signup status changes to declined', async () => {
+      const approvedData = {
+        type: 'added' as const,
+        doc: {
+          discordId: '123',
+          username: 'TestUser',
+          character: 'Test Character',
+          role: 'pld',
+          encounter: 'DSR',
+          status: SignupStatus.APPROVED,
+        },
+      };
+
+      const declinedData = {
+        type: 'modified' as const,
+        doc: {
+          discordId: '123',
+          username: 'TestUser',
+          character: 'Test Character',
+          role: 'pld',
+          encounter: 'DSR',
+          status: SignupStatus.DECLINED,
+        },
+      };
+
+      // First emit approved, then declined
+      mockSignupCache.getStream.mockReturnValue(of(approvedData, declinedData));
+
+      const stream = service.getParticipantsStream('test-guild');
+      const events: any[] = [];
+
+      return new Promise<void>((resolve) => {
+        stream.subscribe({
+          next: (event) => {
+            events.push(event.data);
+            if (events.length === 2) {
+              // First event should add the participant
+              expect(events[0].data).toHaveLength(1);
+              expect(events[0].data[0].discordId).toBe('123');
+
+              // Second event should still have the participant (not removed)
+              expect(events[1].data).toHaveLength(1);
+              expect(events[1].data[0].discordId).toBe('123');
+              resolve();
+            }
           },
         });
       });
