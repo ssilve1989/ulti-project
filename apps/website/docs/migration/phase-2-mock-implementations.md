@@ -1,12 +1,796 @@
-# Phase 2: Mock API Classes
+# Phase 2: Mock Enhancement
 
 ## Overview
 
-**Duration**: 3-4 days  
-**Complexity**: High  
-**Goal**: Convert existing mock functions into class-based implementations that conform to Phase 1 interfaces
+**Duration**: 2-3 days  
+**Complexity**: Medium  
+**Goal**: Enhance existing mock functions to implement Phase 1 interfaces while preserving all current functionality
 
-This is the most complex phase, involving migration of rich mock data functionality into the new architecture while preserving all existing behavior.
+**Strategy**: **Evolutionary Enhancement** - Add guild parameters and interface wrappers to existing mock functions
+
+## 🔄 Implementation Tasks
+
+### Task Overview
+
+Phase 2 is broken down into **5 granular tasks** that must be completed sequentially:
+
+1. **Task 2.1**: Enhance Events mock functions
+2. **Task 2.2**: Create unified Participants mock functions  
+3. **Task 2.3**: Enhance Helpers mock functions
+4. **Task 2.4**: Update Locks mock functions
+5. **Task 2.5**: Create interface wrapper implementations
+
+Each task preserves existing functionality while adding interface compliance.
+
+---
+
+## Task 2.1: Enhance Events Mock Functions
+
+**Duration**: 45 minutes  
+**Complexity**: Medium  
+**Dependencies**: Phase 1 complete
+
+### Inputs
+
+- Phase 1 interface definitions (`IEventsApi`)
+- Existing `src/lib/mock/events.ts` file
+- Current function implementations to preserve
+
+### Outputs
+
+- Enhanced `src/lib/mock/events.ts` with guild parameters
+- Backward-compatible function signatures
+- New pagination support methods
+
+### Implementation
+
+**Step 2.1.1**: Add guild parameter support to existing functions
+
+**File**: `src/lib/mock/events.ts` (MODIFY existing functions)
+
+```typescript
+// Add guild-aware versions alongside existing functions
+import type {
+  ScheduledEvent,
+  CreateEventRequest,
+  UpdateEventRequest,
+  EventFilters,
+  EventStatus
+} from '@ulti-project/shared';
+
+// Enhanced function with guild parameter
+export async function createEventWithGuild(
+  guildId: string,
+  request: CreateEventRequest
+): Promise<ScheduledEvent> {
+  // Validate guild context
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  
+  // Use existing createEvent logic
+  return createEvent(request);
+}
+
+// Enhanced function with pagination
+export async function getEventsWithGuild(
+  guildId: string,
+  filters?: EventFilters
+): Promise<{ events: ScheduledEvent[]; total: number; hasMore: boolean }> {
+  // Validate guild context
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  
+  // Use existing getEvents logic
+  const events = await getEvents(filters);
+  
+  // Add pagination metadata
+  return {
+    events,
+    total: events.length,
+    hasMore: false
+  };
+}
+
+// Add remaining enhanced functions...
+export async function getEventWithGuild(guildId: string, eventId: string): Promise<ScheduledEvent | null> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  return getEvent(eventId);
+}
+
+export async function updateEventWithGuild(
+  guildId: string,
+  eventId: string,
+  updates: UpdateEventRequest
+): Promise<ScheduledEvent> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  return updateEvent(eventId, updates);
+}
+
+export async function deleteEventWithGuild(
+  guildId: string,
+  eventId: string,
+  teamLeaderId: string
+): Promise<void> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  return deleteEvent(eventId, teamLeaderId);
+}
+
+// Keep all existing functions unchanged for backward compatibility
+// ...existing code remains exactly the same...
+```
+
+### Acceptance Criteria
+
+- [ ] All existing functions remain unchanged and functional
+- [ ] New guild-aware functions added with validation
+- [ ] Pagination support added to events retrieval
+- [ ] Guild validation implemented consistently
+- [ ] TypeScript compilation passes: `pnpm --filter website run type-check`
+- [ ] All imports use `@ulti-project/shared` types only
+
+### Validation Commands
+
+```bash
+# Verify existing functionality preserved
+grep -n "export async function createEvent(" apps/website/src/lib/mock/events.ts
+
+# Verify new guild functions added
+grep -n "WithGuild" apps/website/src/lib/mock/events.ts
+
+# Verify TypeScript compilation
+pnpm --filter website run type-check
+```
+
+### File Operations
+
+- **MODIFY**: `src/lib/mock/events.ts` (add guild functions, preserve existing)
+- **NO CHANGES**: All other files remain unchanged
+
+---
+
+## Task 2.2: Create Unified Participants Mock Functions
+
+**Duration**: 30 minutes  
+**Complexity**: Low  
+**Dependencies**: Task 2.1 complete
+
+### Inputs
+
+- Existing `src/lib/mock/participants.ts` functions
+- Existing `src/lib/mock/helpers.ts` helper data
+- API specification requirements for unified participant access
+
+### Outputs
+
+- New unified `getParticipants` function with guild support
+- Preserved existing helper and progger functions
+
+### Implementation
+
+**Step 2.2.1**: Add unified participants function
+
+**File**: `src/lib/mock/participants.ts` (MODIFY to add new function)
+
+```typescript
+import type { Participant, ParticipantType, Job, Role } from '@ulti-project/shared';
+import { getHelpers } from './helpers.js';
+
+// New unified function for API specification compliance
+export async function getParticipantsWithGuild(
+  guildId: string,
+  filters?: {
+    encounter?: string;
+    type?: ParticipantType;
+    role?: Role;
+    job?: Job;
+  }
+): Promise<Participant[]> {
+  // Validate guild context
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  
+  let participants: Participant[] = [];
+  
+  // Get helpers if requested
+  if (!filters?.type || filters.type === 'helper') {
+    const helpers = await getHelpers();
+    const helperParticipants = helpers.map(helper => ({
+      ...helper,
+      type: 'helper' as const
+    }));
+    participants.push(...helperParticipants);
+  }
+  
+  // Get proggers if requested  
+  if (!filters?.type || filters.type === 'progger') {
+    const proggers = await getProggers(filters);
+    participants.push(...proggers);
+  }
+  
+  // Apply additional filters
+  if (filters?.encounter) {
+    participants = participants.filter(p => 
+      p.encounters?.includes(filters.encounter!)
+    );
+  }
+  
+  if (filters?.role) {
+    participants = participants.filter(p => p.role === filters.role);
+  }
+  
+  if (filters?.job) {
+    participants = participants.filter(p => p.job === filters.job);
+  }
+  
+  return participants;
+}
+
+// All existing functions remain unchanged
+// ...existing code preserved...
+```
+
+### Acceptance Criteria
+
+- [ ] New unified `getParticipantsWithGuild` function created
+- [ ] Function combines helpers and proggers correctly
+- [ ] All filtering logic implemented
+- [ ] Guild validation implemented
+- [ ] Existing functions remain unchanged
+- [ ] TypeScript compilation passes: `pnpm --filter website run type-check`
+
+### Validation Commands
+
+```bash
+# Verify new function added
+grep -n "getParticipantsWithGuild" apps/website/src/lib/mock/participants.ts
+
+# Verify existing functions preserved
+grep -n "export async function getProggers" apps/website/src/lib/mock/participants.ts
+
+# Test TypeScript compilation
+pnpm --filter website run type-check
+```
+
+### File Operations
+
+- **MODIFY**: `src/lib/mock/participants.ts` (add unified function)
+- **NO CHANGES**: All other mock files remain unchanged
+
+---
+
+## Task 2.3: Enhance Helpers Mock Functions
+
+**Duration**: 45 minutes  
+**Complexity**: Medium  
+**Dependencies**: Task 2.2 complete
+
+### Inputs
+
+- Existing `src/lib/mock/helpers.ts` functions
+- Phase 1 `IHelpersApi` interface requirements
+- Guild parameter patterns from previous tasks
+
+### Outputs
+
+- Enhanced helpers functions with guild support
+- New absence management functions
+
+### Implementation
+
+**Step 2.3.1**: Add guild-aware helper functions
+
+**File**: `src/lib/mock/helpers.ts` (MODIFY to add guild functions)
+
+```typescript
+import type {
+  HelperData,
+  HelperAbsence,
+  CheckHelperAvailabilityRequest,
+  HelperAvailabilityResponse,
+  CreateAbsenceRequest,
+  Job,
+  Role
+} from '@ulti-project/shared';
+
+// Guild-aware versions of existing functions
+export async function getHelpersWithGuild(guildId: string): Promise<HelperData[]> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  return getHelpers();
+}
+
+export async function getHelperWithGuild(guildId: string, helperId: string): Promise<HelperData | null> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  const helpers = await getHelpers();
+  return helpers.find(h => h.id === helperId) || null;
+}
+
+export async function checkHelperAvailabilityWithGuild(
+  guildId: string,
+  request: CheckHelperAvailabilityRequest
+): Promise<HelperAvailabilityResponse> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  
+  // Use existing availability checking logic
+  const available = await isHelperAvailableForEvent(
+    request.helperId,
+    request.startTime,
+    request.endTime
+  );
+  
+  return {
+    available: available.available,
+    reason: available.reason || 'available'
+  };
+}
+
+// New absence management functions
+export async function createAbsenceWithGuild(
+  guildId: string,
+  helperId: string,
+  absence: CreateAbsenceRequest
+): Promise<HelperAbsence> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  
+  const newAbsence: HelperAbsence = {
+    id: `absence_${Date.now()}`,
+    helperId,
+    startDate: absence.startDate,
+    endDate: absence.endDate,
+    reason: absence.reason,
+    createdAt: new Date()
+  };
+  
+  // Store in session storage for persistence
+  const storageKey = `helper_absences_${helperId}`;
+  const existing = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+  existing.push(newAbsence);
+  sessionStorage.setItem(storageKey, JSON.stringify(existing));
+  
+  return newAbsence;
+}
+
+export async function getAbsencesWithGuild(
+  guildId: string,
+  helperId: string,
+  startDate?: Date,
+  endDate?: Date
+): Promise<HelperAbsence[]> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  
+  const storageKey = `helper_absences_${helperId}`;
+  let absences: HelperAbsence[] = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+  
+  // Filter by date range if provided
+  if (startDate || endDate) {
+    absences = absences.filter(absence => {
+      const absenceStart = new Date(absence.startDate);
+      const absenceEnd = new Date(absence.endDate);
+      
+      if (startDate && absenceEnd < startDate) return false;
+      if (endDate && absenceStart > endDate) return false;
+      
+      return true;
+    });
+  }
+  
+  return absences;
+}
+
+// All existing functions remain unchanged
+// ...existing code preserved...
+```
+
+### Acceptance Criteria
+
+- [ ] Guild-aware helper functions added
+- [ ] New absence management functions implemented
+- [ ] Session storage used for absence persistence
+- [ ] All existing functions remain unchanged
+- [ ] Guild validation implemented consistently
+- [ ] TypeScript compilation passes: `pnpm --filter website run type-check`
+
+### Validation Commands
+
+```bash
+# Verify new guild functions
+grep -n "WithGuild" apps/website/src/lib/mock/helpers.ts
+
+# Verify absence functions
+grep -n "createAbsenceWithGuild\|getAbsencesWithGuild" apps/website/src/lib/mock/helpers.ts
+
+# Test compilation
+pnpm --filter website run type-check
+```
+
+### File Operations
+
+- **MODIFY**: `src/lib/mock/helpers.ts` (add guild and absence functions)
+- **NO CHANGES**: All other files remain unchanged
+
+---
+
+## Task 2.4: Update Locks Mock Functions
+
+**Duration**: 30 minutes  
+**Complexity**: Low  
+**Dependencies**: Task 2.3 complete
+
+### Inputs
+
+- Existing `src/lib/mock/drafts.ts` lock functions
+- Phase 1 `ILocksApi` interface requirements
+- Guild parameter patterns
+
+### Outputs
+
+- Enhanced lock functions with guild support
+- Participant-based lock release methods
+
+### Implementation
+
+**Step 2.4.1**: Add guild-aware lock functions
+
+**File**: `src/lib/mock/drafts.ts` (MODIFY to add guild functions)
+
+```typescript
+import type { DraftLock, LockParticipantRequest, ReleaseLockRequest } from '@ulti-project/shared';
+
+// Guild-aware lock functions
+export async function lockParticipantWithGuild(
+  guildId: string,
+  eventId: string,
+  request: LockParticipantRequest
+): Promise<DraftLock> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  
+  // Use existing lock logic
+  return lockParticipant(eventId, request.teamLeaderId, request);
+}
+
+export async function releaseLockWithGuild(
+  guildId: string,
+  eventId: string,
+  request: ReleaseLockRequest
+): Promise<void> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  
+  // Find and release lock by participant
+  const locks = await getActiveLocks(eventId);
+  const lock = locks.find(l => 
+    l.participantId === request.participantId && 
+    l.teamLeaderId === request.teamLeaderId
+  );
+  
+  if (lock) {
+    return releaseLock(eventId, request.teamLeaderId, lock.id);
+  }
+}
+
+export async function getActiveLocksWithGuild(
+  guildId: string,
+  eventId: string
+): Promise<DraftLock[]> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  
+  return getActiveLocks(eventId);
+}
+
+// All existing functions remain unchanged
+// ...existing code preserved...
+```
+
+### Acceptance Criteria
+
+- [ ] Guild-aware lock functions added
+- [ ] Participant-based lock release implemented
+- [ ] All existing lock logic preserved
+- [ ] Guild validation implemented
+- [ ] TypeScript compilation passes: `pnpm --filter website run type-check`
+
+### Validation Commands
+
+```bash
+# Verify guild lock functions
+grep -n "WithGuild" apps/website/src/lib/mock/drafts.ts
+
+# Verify participant-based release
+grep -n "releaseLockWithGuild" apps/website/src/lib/mock/drafts.ts
+
+# Test compilation
+pnpm --filter website run type-check
+```
+
+### File Operations
+
+- **MODIFY**: `src/lib/mock/drafts.ts` (add guild functions)
+- **NO CHANGES**: All other files remain unchanged
+
+---
+
+## Task 2.5: Create Interface Wrapper Implementations
+
+**Duration**: 60 minutes  
+**Complexity**: Medium  
+**Dependencies**: Tasks 2.1-2.4 complete
+
+### Inputs
+
+- All enhanced mock functions from previous tasks
+- Phase 1 interface definitions
+- Guild context patterns
+
+### Outputs
+
+- Complete interface wrapper implementations
+- Factory registration for mock implementations
+
+### Implementation
+
+**Step 2.5.1**: Create Events API implementation
+
+**File**: `src/lib/api/implementations/mock/EventsApi.ts` (CREATE NEW)
+
+```typescript
+import type { IEventsApi, IApiContext, IPaginatedResponse } from '../../interfaces/index.js';
+import type {
+  ScheduledEvent,
+  CreateEventRequest,
+  UpdateEventRequest,
+  EventFilters,
+  EventStatus
+} from '@ulti-project/shared';
+import {
+  createEventWithGuild,
+  getEventWithGuild,
+  getEventsWithGuild,
+  updateEventWithGuild,
+  deleteEventWithGuild
+} from '../../../mock/events.js';
+
+export class MockEventsApi implements IEventsApi {
+  constructor(public readonly context: IApiContext) {}
+
+  async createEvent(request: CreateEventRequest): Promise<ScheduledEvent> {
+    return createEventWithGuild(this.context.guildId, request);
+  }
+
+  async getEvent(eventId: string): Promise<ScheduledEvent | null> {
+    return getEventWithGuild(this.context.guildId, eventId);
+  }
+
+  async getEvents(filters?: EventFilters): Promise<IPaginatedResponse<ScheduledEvent>> {
+    return getEventsWithGuild(this.context.guildId, filters);
+  }
+
+  async updateEvent(eventId: string, updates: UpdateEventRequest): Promise<ScheduledEvent> {
+    return updateEventWithGuild(this.context.guildId, eventId, updates);
+  }
+
+  async deleteEvent(eventId: string, teamLeaderId: string): Promise<void> {
+    return deleteEventWithGuild(this.context.guildId, eventId, teamLeaderId);
+  }
+
+  async updateEventStatus(eventId: string, status: EventStatus): Promise<ScheduledEvent> {
+    const event = await this.getEvent(eventId);
+    if (!event) throw new Error(`Event ${eventId} not found`);
+    
+    return this.updateEvent(eventId, { status });
+  }
+
+  async getEventsByDateRange(startDate: Date, endDate: Date): Promise<ScheduledEvent[]> {
+    const response = await this.getEvents({
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    });
+    return response.events;
+  }
+}
+```
+
+**Step 2.5.2**: Create remaining API implementations
+
+**File**: `src/lib/api/implementations/mock/HelpersApi.ts` (CREATE NEW)
+
+```typescript
+import type { IHelpersApi, IApiContext } from '../../interfaces/index.js';
+import type {
+  HelperData,
+  HelperAbsence,
+  CheckHelperAvailabilityRequest,
+  HelperAvailabilityResponse,
+  CreateAbsenceRequest,
+  Job,
+  Role
+} from '@ulti-project/shared';
+import {
+  getHelpersWithGuild,
+  getHelperWithGuild,
+  checkHelperAvailabilityWithGuild,
+  createAbsenceWithGuild,
+  getAbsencesWithGuild
+} from '../../../mock/helpers.js';
+
+export class MockHelpersApi implements IHelpersApi {
+  constructor(public readonly context: IApiContext) {}
+
+  async getHelpers(): Promise<HelperData[]> {
+    return getHelpersWithGuild(this.context.guildId);
+  }
+
+  async getHelper(helperId: string): Promise<HelperData | null> {
+    return getHelperWithGuild(this.context.guildId, helperId);
+  }
+
+  async checkHelperAvailability(request: CheckHelperAvailabilityRequest): Promise<HelperAvailabilityResponse> {
+    return checkHelperAvailabilityWithGuild(this.context.guildId, request);
+  }
+
+  async getHelperAvailability(helperId: string, startDate: Date, endDate: Date): Promise<any[]> {
+    // Implementation using existing helper availability logic
+    const helper = await this.getHelper(helperId);
+    return helper?.weeklyAvailability || [];
+  }
+
+  async createAbsence(helperId: string, absence: CreateAbsenceRequest): Promise<HelperAbsence> {
+    return createAbsenceWithGuild(this.context.guildId, helperId, absence);
+  }
+
+  async getAbsences(helperId: string, startDate?: Date, endDate?: Date): Promise<HelperAbsence[]> {
+    return getAbsencesWithGuild(this.context.guildId, helperId, startDate, endDate);
+  }
+
+  async deleteAbsence(helperId: string, absenceId: string): Promise<void> {
+    // Implementation for absence deletion
+    const storageKey = `helper_absences_${helperId}`;
+    const absences = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+    const filtered = absences.filter((a: any) => a.id !== absenceId);
+    sessionStorage.setItem(storageKey, JSON.stringify(filtered));
+  }
+
+  async getHelpersByJobRole(jobs?: Job[], roles?: Role[]): Promise<HelperData[]> {
+    const helpers = await this.getHelpers();
+    return helpers.filter(helper => {
+      if (jobs && !jobs.includes(helper.job)) return false;
+      if (roles && !roles.includes(helper.role)) return false;
+      return true;
+    });
+  }
+}
+```
+
+**Step 2.5.3**: Create main mock implementation factory
+
+**File**: `src/lib/api/implementations/mock/index.ts` (CREATE NEW)
+
+```typescript
+import type { ISchedulingApi, IApiContext } from '../../interfaces/index.js';
+import { MockEventsApi } from './EventsApi.js';
+import { MockHelpersApi } from './HelpersApi.js';
+import { MockRosterApi } from './RosterApi.js';
+import { MockLocksApi } from './LocksApi.js';
+
+export class MockSchedulingApi implements ISchedulingApi {
+  public readonly events: MockEventsApi;
+  public readonly helpers: MockHelpersApi;
+  public readonly roster: MockRosterApi;
+  public readonly locks: MockLocksApi;
+
+  constructor(context: IApiContext) {
+    this.events = new MockEventsApi(context);
+    this.helpers = new MockHelpersApi(context);
+    this.roster = new MockRosterApi(context);
+    this.locks = new MockLocksApi(context);
+  }
+}
+
+export function createMockSchedulingApi(context: IApiContext): ISchedulingApi {
+  return new MockSchedulingApi(context);
+}
+```
+
+### Acceptance Criteria
+
+- [ ] All interface implementations created
+- [ ] Mock wrapper classes implement interfaces correctly
+- [ ] Enhanced mock functions properly called
+- [ ] Factory function exports main API
+- [ ] TypeScript compilation passes: `pnpm --filter website run type-check`
+- [ ] All existing mock functionality preserved
+
+### Validation Commands
+
+```bash
+# Verify implementation files created
+ls -la apps/website/src/lib/api/implementations/mock/
+
+# Verify interface compliance
+pnpm --filter website run type-check
+
+# Verify factory exports
+grep -n "createMockSchedulingApi" apps/website/src/lib/api/implementations/mock/index.ts
+```
+
+### File Operations
+
+- **CREATE**: `src/lib/api/implementations/mock/EventsApi.ts`
+- **CREATE**: `src/lib/api/implementations/mock/HelpersApi.ts`
+- **CREATE**: `src/lib/api/implementations/mock/RosterApi.ts`
+- **CREATE**: `src/lib/api/implementations/mock/LocksApi.ts`
+- **CREATE**: `src/lib/api/implementations/mock/index.ts`
+
+---
+
+## Phase 2 Completion Validation
+
+### Final Acceptance Criteria
+
+- [ ] All 5 tasks completed successfully
+- [ ] Enhanced mock functions preserve existing functionality
+- [ ] Interface wrapper implementations created
+- [ ] Guild parameter support added throughout
+- [ ] TypeScript compilation passes: `pnpm --filter website run type-check`
+- [ ] Existing SSE simulation continues working
+- [ ] Session storage persistence maintained
+
+### Final Validation Commands
+
+```bash
+# Comprehensive validation
+pnpm --filter website run type-check
+pnpm --filter website run build
+
+# Verify enhanced mock functions
+find apps/website/src/lib/mock -name "*.ts" -exec grep -l "WithGuild" {} \;
+
+# Verify interface implementations
+find apps/website/src/lib/api/implementations/mock -name "*.ts" | wc -l
+```
+
+### Files Created/Modified
+
+**Modified Files:**
+
+- `src/lib/mock/events.ts` - Added guild-aware functions
+- `src/lib/mock/participants.ts` - Added unified participants function
+- `src/lib/mock/helpers.ts` - Added guild and absence functions  
+- `src/lib/mock/drafts.ts` - Added guild-aware lock functions
+
+**New Files:**
+
+- `src/lib/api/implementations/mock/EventsApi.ts`
+- `src/lib/api/implementations/mock/HelpersApi.ts`
+- `src/lib/api/implementations/mock/RosterApi.ts`
+- `src/lib/api/implementations/mock/LocksApi.ts`
+- `src/lib/api/implementations/mock/index.ts`
+
+### Ready for Phase 3
+
+Enhanced mock system now ready for Phase 3 HTTP implementation creation.
 
 ## Dependencies
 
@@ -26,6 +810,15 @@ This is the most complex phase, involving migration of rich mock data functional
 
 ## Requirements
 
+### Enhancement Strategy
+
+Instead of creating new classes, we'll:
+
+1. **Enhance Existing Functions**: Add `guildId` parameters to existing mock functions
+2. **Add Missing Methods**: Implement functions needed for API specification compliance
+3. **Create Interface Wrappers**: Lightweight classes that wrap enhanced functions
+4. **Preserve All Logic**: Keep existing SSE simulation, data generation, and conflict handling
+
 ### Type Safety Requirements
 
 - **MUST** use types from `@ulti-project/shared` package only
@@ -40,6 +833,7 @@ This is the most complex phase, involving migration of rich mock data functional
 - **MUST** preserve session storage persistence
 - **MUST** maintain realistic data generation patterns
 - **MUST** preserve lock timeout behavior (30 minutes)
+- **MUST** maintain backward compatibility with existing function calls
 
 ### Data Consistency Requirements
 
@@ -49,56 +843,188 @@ This is the most complex phase, involving migration of rich mock data functional
 
 ## Implementation Tasks
 
-### Task 2.1: Create MockEventsApi Class
+### Task 2.1: Enhance Existing Mock Functions
 
-#### File: `lib/api/implementations/mock/MockEventsApi.ts`
+#### Update `lib/mock/events.ts`
+
+**Add Guild Parameter Support**:
 
 ```typescript
-import type {
-  CreateEventRequest,
-  ScheduledEvent,
-  EventFilters,
-  UpdateEventRequest,
-  EventRoster,
-  PartySlot
-} from '@ulti-project/shared';
-import { EventStatus, Job, Role, Encounter, ParticipantType } from '@ulti-project/shared';
-import type { IEventsApi } from '../../interfaces/IEventsApi.js';
+// Update existing function signatures
+export async function createEvent(
+  guildId: string, 
+  request: CreateEventRequest
+): Promise<ScheduledEvent> {
+  // Use guildId for validation and context
+  // ...existing logic preserved...
+}
 
-export class MockEventsApi implements IEventsApi {
-  private events = new Map<string, ScheduledEvent>();
-  private eventIdCounter = 1;
-  private readonly STORAGE_KEY = 'ulti-project-mock-events';
-  private readonly COUNTER_KEY = 'ulti-project-event-counter';
+export async function getEvents(
+  guildId: string, 
+  filters?: EventFilters
+): Promise<{ events: ScheduledEvent[]; total: number; hasMore: boolean }> {
+  // Enhanced return type with pagination metadata
+  const events = await getEventsLegacy(filters); // Call existing logic
+  return {
+    events,
+    total: events.length,
+    hasMore: false // Simplified for mock
+  };
+}
 
-  constructor() {
-    this.loadEventsFromStorage();
+// Keep existing function for backward compatibility
+async function getEventsLegacy(filters?: EventFilters): Promise<ScheduledEvent[]> {
+  // ...existing implementation unchanged...
+}
+```
+
+#### Update `lib/mock/participants.ts`
+
+**Add Unified Participants Method**:
+
+```typescript
+// Add new unified method
+export async function getParticipants(
+  guildId: string,
+  filters?: { encounter?: string; type?: 'helper' | 'progger' }
+): Promise<Participant[]> {
+  // Combine existing getProggers and getAllParticipants logic
+  if (filters?.type === 'helper') {
+    const { getHelpers } = await import('./helpers.js');
+    const helpers = await getHelpers();
+    return helpers.map(helper => ({ ...helper, type: 'helper' as const }));
   }
+  
+  if (filters?.type === 'progger') {
+    return getProggers(filters);
+  }
+  
+  // Return both types
+  return getAllParticipants(filters);
+}
 
-  async createEvent(request: CreateEventRequest): Promise<ScheduledEvent> {
-    // Simulate API delay
-    await this.delay(500);
+// Update existing functions to accept guildId (optional for compatibility)
+export async function getProggers(
+  filters?: { encounter?: string; role?: string; job?: string },
+  guildId?: string
+): Promise<Participant[]> {
+  // ...existing logic unchanged...
+}
+```
 
-    const event: ScheduledEvent = {
-      id: `event-${this.eventIdCounter++}`,
-      guildId: request.guildId,
-      name: request.name,
-      encounter: request.encounter,
-      scheduledTime: request.scheduledTime,
-      duration: request.duration,
-      teamLeaderId: request.teamLeaderId,
-      teamLeaderName: `Leader-${request.teamLeaderId}`,
-      status: EventStatus.Draft,
-      roster: this.createEmptyRoster(),
-      createdAt: new Date(),
-      lastModified: new Date(),
-      version: 1
-    };
+#### Update `lib/mock/helpers.ts`
 
-    this.events.set(event.id, event);
-    this.saveEventsToStorage();
+**Add Missing Helper Management Methods**:
 
-    return event;
+```typescript
+// Add new methods to match API specification
+export async function createHelperAbsence(
+  guildId: string,
+  helperId: string,
+  absence: CreateHelperAbsenceRequest
+): Promise<HelperAbsence> {
+  await delay(MOCK_CONFIG.delays.medium);
+  
+  // Implementation using existing absence logic
+  const newAbsence: HelperAbsence = {
+    id: `absence-${Date.now()}`,
+    helperId,
+    startDate: absence.startDate,
+    endDate: absence.endDate,
+    reason: absence.reason || 'Personal',
+    createdAt: new Date()
+  };
+  
+  // Use existing absence storage logic
+  // ...existing implementation...
+  
+  return newAbsence;
+}
+
+export async function updateHelperWeeklyAvailability(
+  guildId: string,
+  helperId: string,
+  availability: HelperWeeklyAvailability[]
+): Promise<HelperData> {
+  // Implementation using existing helper logic
+  const helper = await getHelper(helperId);
+  if (!helper) throw new Error('Helper not found');
+  
+  const updatedHelper = {
+    ...helper,
+    weeklyAvailability: availability
+  };
+  
+  // Update in storage using existing logic
+  // ...existing implementation...
+  
+  return updatedHelper;
+}
+
+// Update existing functions to accept guildId
+export async function getHelpers(guildId?: string): Promise<HelperData[]> {
+  // Filter by guildId if provided, otherwise use default
+  // ...existing logic with guild filtering...
+}
+```
+
+#### Update `lib/mock/drafts.ts`
+
+**Update Lock Management**:
+
+```typescript
+// Update existing functions to match API specification
+export async function releaseLock(
+  guildId: string,
+  eventId: string,
+  participantType: 'helper' | 'progger',
+  participantId: string,
+  teamLeaderId: string
+): Promise<void> {
+  // Use existing lock release logic but with participant-based parameters
+  // ...existing implementation adapted...
+}
+
+export async function releaseAllTeamLeaderLocks(
+  guildId: string,
+  eventId: string,
+  teamLeaderId: string
+): Promise<void> {
+  // Implementation using existing releaseAllLocksForTeamLeader logic
+  return releaseAllLocksForTeamLeader(eventId, teamLeaderId);
+}
+
+// Update existing functions to accept guildId
+export async function lockParticipant(
+  guildId: string, // Added parameter
+  eventId: string,
+  teamLeaderId: string,
+  request: { participantId: string; participantType: 'helper' | 'progger'; slotId?: string }
+): Promise<DraftLock> {
+  // Convert to existing LockParticipantRequest format
+  const legacyRequest: LockParticipantRequest = {
+    participantId: request.participantId,
+    participantType: request.participantType as ParticipantType,
+    slotId: request.slotId
+  };
+  
+  // Call existing implementation
+  return lockParticipantLegacy(eventId, teamLeaderId, legacyRequest);
+}
+
+// Rename existing function for backward compatibility
+async function lockParticipantLegacy(
+  eventId: string,
+  teamLeaderId: string,
+  request: LockParticipantRequest
+): Promise<DraftLock> {
+  // ...existing implementation unchanged...
+}
+```
+
+### Task 2.2: Create Interface Wrapper Classes
+
+After enhancing the existing mock functions, create lightweight wrapper classes that implement the interfaces:
   }
 
   async getEvent(id: string): Promise<ScheduledEvent | null> {
@@ -108,7 +1034,7 @@ export class MockEventsApi implements IEventsApi {
 
   async getEvents(filters?: EventFilters): Promise<ScheduledEvent[]> {
     await this.delay(300);
-    
+
     let events = Array.from(this.events.values());
 
     if (filters?.status) {
@@ -237,14 +1163,14 @@ export class MockEventsApi implements IEventsApi {
         guildId: 'guild-12345-demo',
         name: 'FRU Prog Session',
         encounter: Encounter.FRU,
-        scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        scheduledTime: new Date(Date.now() + 24 *60* 60 *1000),
         duration: 120,
         teamLeaderId: 'leader-1',
         teamLeaderName: 'TeamAlpha',
         status: EventStatus.Draft,
         roster: this.createPartiallyFilledRoster(),
-        createdAt: new Date(Date.now() - 60 * 60 * 1000),
-        lastModified: new Date(Date.now() - 30 * 60 * 1000),
+        createdAt: new Date(Date.now() - 60* 60 *1000),
+        lastModified: new Date(Date.now() - 30* 60 * 1000),
         version: 1
       }
     ];
@@ -266,6 +1192,7 @@ export class MockEventsApi implements IEventsApi {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
+
 ```
 
 ### Task 2.2: Create MockHelpersApi Class
@@ -622,16 +1549,20 @@ export async function createMockApiClient(): Promise<IApiClient> {
 
 ### Phase 2 Completion Checklist
 
-- [ ] All mock API classes implement their respective interfaces
-- [ ] All existing mock functionality is preserved
-- [ ] SSE simulation behavior matches existing implementation
-- [ ] Session storage persistence works for events
-- [ ] Lock timeout behavior (30 minutes) is maintained
-- [ ] Helper availability logic is preserved
-- [ ] Realistic data generation patterns continue working
-- [ ] All method signatures match interface contracts exactly
+- [ ] **Existing mock functions enhanced** with `guildId` parameters and API specification compliance
+- [ ] **Missing API methods added** to existing mock files (`getParticipants`, `createHelperAbsence`, etc.)
+- [ ] **Backward compatibility maintained** for existing function calls
+- [ ] All interface wrapper classes created and implement Phase 1 interfaces correctly
+- [ ] Mock implementation factory created (`createMockApiClient`)
+- [ ] All classes use types from `@ulti-project/shared` package only
 - [ ] No local type definitions exist
-- [ ] All imports use `@ulti-project/shared` types
+- [ ] **Existing SSE simulation preserved** and functional
+- [ ] **Session storage persistence maintained** for events
+- [ ] **Realistic data and conflict handling preserved**
+- [ ] **Lock timeout behavior (30 minutes) maintained**
+- [ ] **Helper availability logic preserved** and enhanced
+- [ ] All method signatures match interface contracts exactly
+- [ ] TypeScript compilation succeeds without errors
 
 ### Data Consistency Testing
 

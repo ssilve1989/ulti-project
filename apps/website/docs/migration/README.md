@@ -24,47 +24,79 @@ Create abstract TypeScript interfaces and dependency injection infrastructure.
 
 - **Input**: Current `schedulingApi.ts` and shared package types
 - **Output**: Interface definitions and factory pattern
-- **Status**: Ready to implement
+- **Status**: Updated to evolutionary approach
 
-### [Phase 2: Mock API Classes](./phase-2-mock-implementations.md) (3-4 days)
+### [Phase 2: Mock Enhancement](./phase-2-mock-implementations.md) (2-3 days)
 
-Convert existing mock functions into class-based implementations.
+Enhance existing mock functions to implement Phase 1 interfaces with guild context.
 
 - **Input**: Existing `lib/mock/*` files and Phase 1 interfaces
-- **Output**: Mock API classes implementing interfaces
+- **Output**: Enhanced mock functions with class wrappers implementing interfaces
 - **Dependencies**: Phase 1
+- **Strategy**: Evolutionary enhancement preserving existing functionality
 
-### [Phase 3: HTTP API Stubs](./phase-3-http-stubs.md) (1-2 days)
+### [Phase 3: HTTP API Implementation](./phase-3-http-stubs.md) (1-2 days)
 
-Create HTTP implementation skeletons for future backend integration.
+Create production-ready HTTP implementation for seamless backend integration.
 
-- **Input**: Phase 1 interfaces and backend API specification
-- **Output**: HTTP API classes with error stubs
-- **Dependencies**: Phase 1
+- **Input**: Phase 1 interfaces and enhanced mock architecture
+- **Output**: Production-ready HTTP API classes with full functionality
+- **Dependencies**: Phase 2
+- **Strategy**: Complete HTTP client with authentication, error handling, and retry logic
 
-### [Phase 4: API Client Update](./phase-4-client-integration.md) (1 day)
+### [Phase 4: API Client Integration](./phase-4-client-update.md) (1 day)
 
-Replace current `schedulingApi.ts` with dependency-injected client.
+Create unified client that integrates enhanced mock system with new architecture.
 
 - **Input**: Phases 1-3 implementations
-- **Output**: New API client with backward compatibility
+- **Output**: New API client with backward compatibility preserving enhanced mock features
 - **Dependencies**: Phases 1-3
+- **Strategy**: Gradual integration maintaining sophisticated mock capabilities
 
-### [Phase 5: Environment Configuration](./phase-5-environment-testing.md) (1-2 days)
+### [Phase 5: Environment & Testing](./phase-5-environment-testing.md) (1-2 days)
 
-Set up environment-based switching and comprehensive testing.
+Set up environment-based switching and comprehensive testing with enhanced mock validation.
 
-- **Input**: Phase 4 client and environment requirements
-- **Output**: Environment configuration and testing suite
+- **Input**: Phase 4 client and enhanced mock system
+- **Output**: Environment configuration and testing suite validating enhanced mock features
 - **Dependencies**: Phase 4
+- **Strategy**: Comprehensive testing of SSE, session persistence, and realistic data
 
-### [Phase 6: Legacy Cleanup](./phase-6-cleanup.md) (1 day)
+### [Phase 6: Integration Finalization](./phase-6-cleanup.md) (1 day)
 
-Remove old mock system and update documentation.
+Finalize integration and establish progressive migration path.
 
-- **Input**: Validated Phase 5 implementation
-- **Output**: Clean codebase with updated documentation
-- **Dependencies**: Phase 5
+- **Input**: Completed Phase 5 with environment testing
+- **Output**: Clean, production-ready API architecture with preserved mock features
+- **Dependencies**: All previous phases
+- **Strategy**: Progressive hook migration and cleanup of temporary artifacts
+
+## Migration Strategy: Evolutionary Enhancement
+
+**Key Change**: The migration plan has been updated to use an **evolutionary enhancement approach** instead of complete rebuilding.
+
+**Rationale**: The existing mock system is already sophisticated with:
+
+- Guild-aware infrastructure
+- Advanced SSE simulation and conflict handling
+- Comprehensive helper availability and absence management
+- Realistic data with sophisticated scheduling scenarios
+
+**Benefits**:
+
+- ✅ **Zero Regression Risk**: Preserve all existing functionality
+- ✅ **Faster Implementation**: Leverage proven mock logic and realistic data
+- ✅ **Reduced Complexity**: Enhance rather than rebuild sophisticated features
+- ✅ **Backward Compatibility**: Maintain existing API calls during transition
+
+**Updated Approach**:
+
+- **Phase 1**: Create interface layer matching API specification with guild multi-tenancy
+- **Phase 2**: Enhance existing mock functions with interface wrappers preserving sophisticated features
+- **Phase 3**: Create production-ready HTTP implementations that match the enhanced mock interfaces  
+- **Phase 4**: Integrate enhanced mock system with new unified client maintaining backward compatibility
+- **Phase 5**: Comprehensive testing validating enhanced mock features and environment switching
+- **Phase 6**: Progressive hook migration and cleanup while preserving all sophisticated functionality
 
 ## Key Principles
 

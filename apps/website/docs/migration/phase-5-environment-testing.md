@@ -1,36 +1,53 @@
-# Phase 5: Environment Configuration & Testing
+# Phase 5: Environment & Testing
 
 **Duration**: 1-2 days  
 **Complexity**: Medium  
-**Dependencies**: Phase 4 (API Client Update)
+**Dependencies**: Phase 4 (API Client Integration)
 
-## 🎯 Phase Goals
+## Overview
 
-Finalize environment-based configuration, implement comprehensive testing, and add enhanced development controls for seamless switching between mock and HTTP implementations.
+**Goal**: Set up comprehensive environment configuration, testing, and validation for the integrated API system.
 
-## 📋 Context
+**Strategy**: Configure environments for all deployment stages and validate that both mock and HTTP implementations work correctly.
 
-At this phase, we have:
+## � Implementation Tasks
 
-- ✅ API interfaces defined (Phase 1)
-- ✅ Mock implementations working (Phase 2)
-- ✅ HTTP stubs created (Phase 3)
-- ✅ New API client in place (Phase 4)
-- 🎯 Need comprehensive testing and environment configuration
+### Task Overview
 
-This phase will:
+Phase 5 is broken down into **4 granular tasks** that must be completed sequentially:
 
-- Configure environment variables for all deployment stages
-- Implement comprehensive testing suite
-- Add enhanced development controls
-- Validate performance and functionality
-- Prepare for production deployment
+1. **Task 5.1**: Configure environment variables and build setup
+2. **Task 5.2**: Create comprehensive test suite
+3. **Task 5.3**: Add development tools and controls
+4. **Task 5.4**: Performance testing and validation
 
-## 🔧 Implementation Steps
+Each task ensures production readiness.
 
-### 5.1 Environment Configuration
+---
 
-**File**: `astro.config.mjs` (update existing)
+## Task 5.1: Configure Environment Variables and Build Setup
+
+**Duration**: 45 minutes  
+**Complexity**: Medium  
+**Dependencies**: Phase 4 complete
+
+### Inputs
+
+- API client from Phase 4
+- Environment configuration requirements
+- Build system configuration
+
+### Outputs
+
+- Complete environment configuration
+- Build optimization for API implementations
+- Environment-specific settings
+
+### Implementation
+
+**Step 5.1.1**: Update Astro configuration
+
+**File**: `astro.config.mjs` (MODIFY existing)
 
 ```javascript
 import { defineConfig } from 'astro/config';
@@ -44,8 +61,8 @@ export default defineConfig({
     define: {
       // Ensure environment variables are available at build time
       'import.meta.env.VITE_USE_MOCK_API': JSON.stringify(process.env.VITE_USE_MOCK_API || 'true'),
-      'import.meta.env.VITE_ENABLE_API_HOTSWAP': JSON.stringify(process.env.VITE_ENABLE_API_HOTSWAP || 'false'),
       'import.meta.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL || 'http://localhost:3000'),
+      'import.meta.env.VITE_DEFAULT_GUILD_ID': JSON.stringify(process.env.VITE_DEFAULT_GUILD_ID || 'default-guild'),
     },
     
     // Optimize bundle splitting for API implementations
@@ -55,6 +72,7 @@ export default defineConfig({
           manualChunks: {
             'api-mock': ['./src/lib/api/implementations/mock'],
             'api-http': ['./src/lib/api/implementations/http'],
+            'mock-data': ['./src/lib/mock'],
           },
         },
       },
@@ -63,39 +81,712 @@ export default defineConfig({
 });
 ```
 
-**File**: `.env` (base environment file)
+**Step 5.1.2**: Create environment files
+
+**File**: `.env` (CREATE/UPDATE base environment)
 
 ```env
 # Default values for all environments
 VITE_USE_MOCK_API=true
-VITE_ENABLE_API_HOTSWAP=false
 VITE_API_BASE_URL=http://localhost:3000
+VITE_DEFAULT_GUILD_ID=default-guild
 VITE_API_TIMEOUT=10000
 ```
 
-**File**: `.env.development`
+**File**: `.env.development` (CREATE NEW)
 
 ```env
 # Development environment
 VITE_USE_MOCK_API=true
-VITE_ENABLE_API_HOTSWAP=true
 VITE_API_BASE_URL=http://localhost:3000
+VITE_DEFAULT_GUILD_ID=dev-guild
 VITE_API_TIMEOUT=5000
 VITE_LOG_LEVEL=debug
 ```
 
-**File**: `.env.production`
+**File**: `.env.production` (CREATE NEW)
 
 ```env
 # Production environment
 VITE_USE_MOCK_API=false
-VITE_ENABLE_API_HOTSWAP=false
 VITE_API_TIMEOUT=30000
 VITE_LOG_LEVEL=error
-# VITE_API_BASE_URL and VITE_API_TOKEN will be set by deployment system
+# VITE_API_BASE_URL and VITE_API_TOKEN set by deployment system
 ```
 
-**File**: `.env.test`
+### Acceptance Criteria
+
+- [ ] Astro config updated with environment variables
+- [ ] Bundle splitting configured for API implementations
+- [ ] Environment files created for all stages
+- [ ] Build optimization implemented
+- [ ] Build succeeds: `pnpm --filter website run build`
+
+### Validation Commands
+
+```bash
+# Test build with environment
+VITE_USE_MOCK_API=true pnpm --filter website run build
+
+# Test build for production
+VITE_USE_MOCK_API=false pnpm --filter website run build
+
+# Verify environment files
+ls -la apps/website/.env*
+```
+
+### File Operations
+
+- **MODIFY**: `astro.config.mjs`
+- **CREATE/UPDATE**: `.env`
+- **CREATE**: `.env.development`
+- **CREATE**: `.env.production`
+
+---
+
+## Task 5.2: Create Comprehensive Test Suite
+
+**Duration**: 60 minutes  
+**Complexity**: High  
+**Dependencies**: Task 5.1 complete
+
+### Inputs
+
+- Configured environment from Task 5.1
+- API implementations from Phases 2-4
+- Testing requirements for mock and HTTP systems
+
+### Outputs
+
+- Complete test suite for API functionality
+- Integration tests for environment switching
+- Mock implementation validation tests
+
+### Implementation
+
+**Step 5.2.1**: Create API integration tests
+
+**File**: `src/lib/api/__tests__/integration.test.ts` (CREATE NEW)
+
+```typescript
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { ApiFactory, createDefaultConfig } from '../factory.js';
+import type { ISchedulingApi } from '../interfaces/index.js';
+
+// Mock environment variables
+vi.mock('import.meta.env', () => ({
+  VITE_USE_MOCK_API: 'true',
+  VITE_API_BASE_URL: 'http://localhost:3000',
+  VITE_DEFAULT_GUILD_ID: 'test-guild',
+  DEV: true
+}));
+
+describe('API Integration Tests', () => {
+  let factory: ApiFactory;
+  let mockApi: ISchedulingApi;
+  
+  beforeEach(() => {
+    // Reset factory instance
+    (ApiFactory as any).instance = null;
+    
+    const config = createDefaultConfig();
+    factory = ApiFactory.getInstance(config);
+    mockApi = factory.createSchedulingApi('test-guild');
+  });
+
+  describe('Factory Pattern', () => {
+    it('should create singleton factory instance', () => {
+      const factory1 = ApiFactory.getInstance();
+      const factory2 = ApiFactory.getInstance();
+      expect(factory1).toBe(factory2);
+    });
+
+    it('should create mock API when configured', () => {
+      expect(mockApi).toBeDefined();
+      expect(mockApi.events).toBeDefined();
+      expect(mockApi.helpers).toBeDefined();
+      expect(mockApi.roster).toBeDefined();
+      expect(mockApi.locks).toBeDefined();
+    });
+
+    it('should use correct guild context', () => {
+      expect(mockApi.events.context.guildId).toBe('test-guild');
+      expect(mockApi.helpers.context.guildId).toBe('test-guild');
+    });
+  });
+
+  describe('Events API', () => {
+    it('should create and retrieve events', async () => {
+      const createRequest = {
+        title: 'Test Event',
+        description: 'Test Description',
+        encounter: 'ultimate-coil',
+        scheduledFor: new Date().toISOString(),
+        durationMinutes: 180
+      };
+
+      const created = await mockApi.events.createEvent(createRequest);
+      expect(created).toBeDefined();
+      expect(created.title).toBe('Test Event');
+
+      const retrieved = await mockApi.events.getEvent(created.id);
+      expect(retrieved).toBeDefined();
+      expect(retrieved?.id).toBe(created.id);
+    });
+
+    it('should list events with pagination', async () => {
+      const response = await mockApi.events.getEvents();
+      expect(response).toBeDefined();
+      expect(response.data).toBeInstanceOf(Array);
+      expect(typeof response.total).toBe('number');
+      expect(typeof response.hasMore).toBe('boolean');
+    });
+  });
+
+  describe('Helpers API', () => {
+    it('should get helpers list', async () => {
+      const helpers = await mockApi.helpers.getHelpers();
+      expect(helpers).toBeInstanceOf(Array);
+      expect(helpers.length).toBeGreaterThan(0);
+      
+      const helper = helpers[0];
+      expect(helper.id).toBeDefined();
+      expect(helper.discordId).toBeDefined();
+      expect(helper.job).toBeDefined();
+    });
+
+    it('should check helper availability', async () => {
+      const helpers = await mockApi.helpers.getHelpers();
+      const helper = helpers[0];
+      
+      const availability = await mockApi.helpers.checkHelperAvailability({
+        helperId: helper.id,
+        startTime: new Date(),
+        endTime: new Date(Date.now() + 3600000) // 1 hour later
+      });
+      
+      expect(availability).toBeDefined();
+      expect(typeof availability.available).toBe('boolean');
+    });
+  });
+});
+```
+
+**Step 5.2.2**: Create environment switching tests
+
+**File**: `src/lib/api/__tests__/environment.test.ts` (CREATE NEW)
+
+```typescript
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { createDefaultConfig } from '../factory.js';
+
+describe('Environment Configuration Tests', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should default to mock API in development', () => {
+    vi.mock('import.meta.env', () => ({
+      VITE_USE_MOCK_API: undefined,
+      DEV: true
+    }));
+
+    const config = createDefaultConfig();
+    expect(config.useMockData).toBe(true);
+  });
+
+  it('should use HTTP API when explicitly configured', () => {
+    vi.mock('import.meta.env', () => ({
+      VITE_USE_MOCK_API: 'false',
+      VITE_API_BASE_URL: 'https://api.example.com'
+    }));
+
+    const config = createDefaultConfig();
+    expect(config.useMockData).toBe(false);
+    expect(config.apiBaseUrl).toBe('https://api.example.com');
+  });
+
+  it('should use environment defaults', () => {
+    vi.mock('import.meta.env', () => ({
+      VITE_DEFAULT_GUILD_ID: 'custom-guild'
+    }));
+
+    const config = createDefaultConfig();
+    expect(config.defaultGuildId).toBe('custom-guild');
+  });
+});
+```
+
+**Step 5.2.3**: Update test configuration
+
+**File**: `vitest.config.ts` (MODIFY existing)
+
+```typescript
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    // Test API implementations
+    include: [
+      'src/**/*.test.ts',
+      'src/**/*.spec.ts'
+    ],
+    // Enable environment variable mocking
+    env: {
+      VITE_USE_MOCK_API: 'true',
+      VITE_DEFAULT_GUILD_ID: 'test-guild'
+    }
+  }
+});
+```
+
+### Acceptance Criteria
+
+- [ ] Comprehensive API integration tests created
+- [ ] Environment switching tests implemented
+- [ ] Test configuration updated
+- [ ] All tests pass: `pnpm --filter website test --run`
+- [ ] Mock API functionality validated
+
+### Validation Commands
+
+```bash
+# Run API tests
+pnpm --filter website test --run src/lib/api
+
+# Run all tests
+pnpm --filter website test --run
+
+# Test with different environments
+VITE_USE_MOCK_API=false pnpm --filter website test --run src/lib/api/__tests__/environment.test.ts
+```
+
+### File Operations
+
+- **CREATE**: `src/lib/api/__tests__/integration.test.ts`
+- **CREATE**: `src/lib/api/__tests__/environment.test.ts`
+- **MODIFY**: `vitest.config.ts`
+
+---
+
+## Task 5.3: Add Development Tools and Controls
+
+**Duration**: 30 minutes  
+**Complexity**: Low  
+**Dependencies**: Task 5.2 complete
+
+### Inputs
+
+- API system from previous tasks
+- Development control requirements
+- Browser-based debugging needs
+
+### Outputs
+
+- Enhanced development controls
+- Browser console utilities
+- API implementation switching tools
+
+### Implementation
+
+**Step 5.3.1**: Create development dashboard component
+
+**File**: `src/components/dev/ApiDevTools.tsx` (CREATE NEW)
+
+```tsx
+import { useState, useEffect } from 'react';
+import { developmentControls } from '../../lib/api/factory.js';
+
+export function ApiDevTools() {
+  const [currentImpl, setCurrentImpl] = useState<'mock' | 'http'>('mock');
+  const [config, setConfig] = useState<any>(null);
+
+  useEffect(() => {
+    if (developmentControls) {
+      setCurrentImpl(developmentControls.getCurrentImplementation());
+      setConfig(developmentControls.getConfig());
+    }
+  }, []);
+
+  const handleSwitchImplementation = (type: 'mock' | 'http') => {
+    if (developmentControls) {
+      developmentControls.setImplementation(type);
+      setCurrentImpl(type);
+      // Force page reload to reinitialize API client
+      window.location.reload();
+    }
+  };
+
+  if (!import.meta.env.DEV || !developmentControls) {
+    return null;
+  }
+
+  return (
+    <div className="fixed bottom-4 right-4 bg-gray-800 text-white p-4 rounded shadow-lg">
+      <h3 className="text-sm font-bold mb-2">API Dev Tools</h3>
+      
+      <div className="space-y-2">
+        <div>
+          <span className="text-xs">Current Implementation:</span>
+          <span className="ml-2 font-mono text-yellow-400">
+            {currentImpl === 'mock' ? '🎭 Mock' : '🌐 HTTP'}
+          </span>
+        </div>
+        
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleSwitchImplementation('mock')}
+            className={`px-2 py-1 text-xs rounded ${
+              currentImpl === 'mock' 
+                ? 'bg-blue-600' 
+                : 'bg-gray-600 hover:bg-gray-500'
+            }`}
+          >
+            Mock
+          </button>
+          <button
+            onClick={() => handleSwitchImplementation('http')}
+            className={`px-2 py-1 text-xs rounded ${
+              currentImpl === 'http' 
+                ? 'bg-blue-600' 
+                : 'bg-gray-600 hover:bg-gray-500'
+            }`}
+          >
+            HTTP
+          </button>
+        </div>
+        
+        {config && (
+          <div className="text-xs">
+            <div>Base URL: {config.apiBaseUrl}</div>
+            <div>Guild: {config.defaultGuildId}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+**Step 5.3.2**: Add console utilities
+
+**File**: `src/lib/api/dev-utils.ts` (CREATE NEW)
+
+```typescript
+import { ApiFactory } from './factory.js';
+import { developmentUtils } from './client.js';
+
+// Make API utilities available in browser console
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  (window as any).__ultiApi = {
+    factory: ApiFactory,
+    utils: developmentUtils,
+    
+    // Quick test functions
+    async testMockApi() {
+      console.log('🎭 Testing Mock API...');
+      try {
+        const api = ApiFactory.getInstance().createSchedulingApi();
+        const events = await api.events.getEvents();
+        console.log('✅ Mock API working:', events);
+        return events;
+      } catch (error) {
+        console.error('❌ Mock API failed:', error);
+        throw error;
+      }
+    },
+    
+    async testHttpApi() {
+      console.log('🌐 Testing HTTP API...');
+      try {
+        // Temporarily switch to HTTP for testing
+        const factory = ApiFactory.getInstance();
+        factory.updateConfig({ useMockData: false });
+        
+        const api = factory.createSchedulingApi();
+        const events = await api.events.getEvents();
+        console.log('✅ HTTP API working:', events);
+        return events;
+      } catch (error) {
+        console.error('❌ HTTP API failed:', error);
+        throw error;
+      }
+    }
+  };
+
+  console.log('🛠️ API Dev Utils available at window.__ultiApi');
+}
+```
+
+### Acceptance Criteria
+
+- [ ] Development tools component created
+- [ ] Browser console utilities implemented
+- [ ] API switching functionality working
+- [ ] Development tools only available in dev mode
+- [ ] TypeScript compilation passes: `pnpm --filter website run type-check`
+
+### Validation Commands
+
+```bash
+# Test development mode
+pnpm --filter website run dev
+
+# Verify dev tools in browser console
+# Open browser dev tools and check for window.__ultiApi
+
+# Test component compilation
+pnpm --filter website run type-check
+```
+
+### File Operations
+
+- **CREATE**: `src/components/dev/ApiDevTools.tsx`
+- **CREATE**: `src/lib/api/dev-utils.ts`
+
+---
+
+## Task 5.4: Performance Testing and Validation
+
+**Duration**: 45 minutes  
+**Complexity**: Medium  
+**Dependencies**: Task 5.3 complete
+
+### Inputs
+
+- Complete API system
+- Performance requirements
+- Load testing scenarios
+
+### Outputs
+
+- Performance benchmarks
+- Load testing results
+- Optimization recommendations
+
+### Implementation
+
+**Step 5.4.1**: Create performance tests
+
+**File**: `src/lib/api/__tests__/performance.test.ts` (CREATE NEW)
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ApiFactory, createDefaultConfig } from '../factory.js';
+import type { ISchedulingApi } from '../interfaces/index.js';
+
+describe('API Performance Tests', () => {
+  let api: ISchedulingApi;
+  
+  beforeEach(() => {
+    (ApiFactory as any).instance = null;
+    const config = createDefaultConfig();
+    const factory = ApiFactory.getInstance(config);
+    api = factory.createSchedulingApi('test-guild');
+  });
+
+  it('should handle concurrent requests efficiently', async () => {
+    const startTime = performance.now();
+    
+    // Create 10 concurrent requests
+    const promises = Array.from({ length: 10 }, () => 
+      api.events.getEvents()
+    );
+    
+    const results = await Promise.all(promises);
+    const endTime = performance.now();
+    
+    expect(results).toHaveLength(10);
+    expect(endTime - startTime).toBeLessThan(1000); // Should complete within 1 second
+  });
+
+  it('should cache repeated requests', async () => {
+    // First request
+    const startTime1 = performance.now();
+    await api.helpers.getHelpers();
+    const endTime1 = performance.now();
+    const firstRequestTime = endTime1 - startTime1;
+    
+    // Second request (should be faster due to caching in mock)
+    const startTime2 = performance.now();
+    await api.helpers.getHelpers();
+    const endTime2 = performance.now();
+    const secondRequestTime = endTime2 - startTime2;
+    
+    // Second request should be faster or similar
+    expect(secondRequestTime).toBeLessThanOrEqual(firstRequestTime * 1.5);
+  });
+
+  it('should handle large data sets efficiently', async () => {
+    const startTime = performance.now();
+    
+    // Get all participants (potentially large dataset)
+    const participants = await api.roster.getParticipants();
+    
+    const endTime = performance.now();
+    
+    expect(participants).toBeInstanceOf(Array);
+    expect(endTime - startTime).toBeLessThan(500); // Should complete within 500ms
+  });
+});
+```
+
+**Step 5.4.2**: Create validation script
+
+**File**: `scripts/validate-api.js` (CREATE NEW)
+
+```javascript
+#!/usr/bin/env node
+
+import { performance } from 'perf_hooks';
+
+console.log('🔍 Validating API Implementation...\n');
+
+// Test environment switching
+async function testEnvironmentSwitching() {
+  console.log('Testing environment switching...');
+  
+  try {
+    // Test mock environment
+    process.env.VITE_USE_MOCK_API = 'true';
+    const { createDefaultConfig } = await import('../apps/website/src/lib/api/factory.js');
+    
+    const mockConfig = createDefaultConfig();
+    console.log('✅ Mock config:', mockConfig.useMockData ? 'Mock' : 'HTTP');
+    
+    // Test HTTP environment
+    process.env.VITE_USE_MOCK_API = 'false';
+    process.env.VITE_API_BASE_URL = 'https://api.example.com';
+    
+    const httpConfig = createDefaultConfig();
+    console.log('✅ HTTP config:', httpConfig.useMockData ? 'Mock' : 'HTTP');
+    console.log('✅ Environment switching working\n');
+    
+  } catch (error) {
+    console.error('❌ Environment switching failed:', error);
+    process.exit(1);
+  }
+}
+
+// Test API factory
+async function testApiFactory() {
+  console.log('Testing API factory...');
+  
+  try {
+    process.env.VITE_USE_MOCK_API = 'true';
+    const { ApiFactory, createDefaultConfig } = await import('../apps/website/src/lib/api/factory.js');
+    
+    const config = createDefaultConfig();
+    const factory = ApiFactory.getInstance(config);
+    const api = factory.createSchedulingApi('test-guild');
+    
+    console.log('✅ API factory created successfully');
+    console.log('✅ Mock API instance created');
+    console.log('✅ Guild context set to:', api.events.context.guildId, '\n');
+    
+  } catch (error) {
+    console.error('❌ API factory failed:', error);
+    process.exit(1);
+  }
+}
+
+// Run validation
+async function runValidation() {
+  const startTime = performance.now();
+  
+  await testEnvironmentSwitching();
+  await testApiFactory();
+  
+  const endTime = performance.now();
+  console.log(`🎉 Validation completed in ${Math.round(endTime - startTime)}ms`);
+  console.log('✅ All systems operational');
+}
+
+runValidation().catch(error => {
+  console.error('❌ Validation failed:', error);
+  process.exit(1);
+});
+```
+
+### Acceptance Criteria
+
+- [ ] Performance tests validate response times
+- [ ] Concurrent request handling tested
+- [ ] Validation script confirms all functionality
+- [ ] Performance benchmarks established
+- [ ] All tests pass: `pnpm --filter website test --run`
+
+### Validation Commands
+
+```bash
+# Run performance tests
+pnpm --filter website test --run src/lib/api/__tests__/performance.test.ts
+
+# Run validation script
+node scripts/validate-api.js
+
+# Full test suite
+pnpm --filter website test --run
+```
+
+### File Operations
+
+- **CREATE**: `src/lib/api/__tests__/performance.test.ts`
+- **CREATE**: `scripts/validate-api.js`
+
+---
+
+## Phase 5 Completion Validation
+
+### Final Acceptance Criteria
+
+- [ ] All 4 tasks completed successfully
+- [ ] Environment configuration complete for all stages
+- [ ] Comprehensive test suite validates functionality
+- [ ] Development tools enable easy debugging
+- [ ] Performance benchmarks established
+- [ ] Build succeeds in all environments: `pnpm --filter website run build`
+- [ ] All tests pass: `pnpm --filter website test --run`
+
+### Final Validation Commands
+
+```bash
+# Test all environments
+VITE_USE_MOCK_API=true pnpm --filter website run build
+VITE_USE_MOCK_API=false pnpm --filter website run build
+
+# Run complete test suite
+pnpm --filter website test --run
+
+# Validate API system
+node scripts/validate-api.js
+```
+
+### Files Created/Modified
+
+**New Files:**
+
+- `.env.development`
+- `.env.production`
+- `src/lib/api/__tests__/integration.test.ts`
+- `src/lib/api/__tests__/environment.test.ts`
+- `src/lib/api/__tests__/performance.test.ts`
+- `src/components/dev/ApiDevTools.tsx`
+- `src/lib/api/dev-utils.ts`
+- `scripts/validate-api.js`
+
+**Modified Files:**
+
+- `astro.config.mjs`
+- `.env`
+- `vitest.config.ts`
+
+### Ready for Phase 6
+
+Environment and testing complete, ready for Phase 6 final integration and cleanup.
 
 ```env
 # Test environment
@@ -182,15 +873,20 @@ class DevControls implements DevControlsInterface {
       throw new Error('Cannot reset mock data - currently using HTTP implementation');
     }
 
-    // Clear session storage
+    // Reset session storage that enhanced mock system uses
     sessionStorage.clear();
     
-    // Reset API client to reinitialize mock data
+    // Clear any cached data in the enhanced mock system
+    localStorage.removeItem('ulti-mock-events');
+    localStorage.removeItem('ulti-mock-participants');
+    localStorage.removeItem('ulti-mock-locks');
+    
+    // Reset API client to reinitialize enhanced mock data
     this.apiClientInstance = null;
     
-    console.log('🔄 Mock data reset');
+    console.log('🔄 Enhanced mock data reset');
     
-    // Notify listeners
+    // Notify listeners about the reset
     window.dispatchEvent(new CustomEvent('mock-data-reset'));
   }
 
@@ -371,15 +1067,19 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { ScheduledEvent, CreateEventRequest } from '@ulti-project/shared';
 import * as client from '../client.js';
 
-describe('API Integration Tests', () => {
+describe('API Integration Tests - Enhanced Mock System', () => {
   beforeEach(() => {
-    // Reset to mock implementation
+    // Reset to enhanced mock implementation
     vi.stubGlobal('import.meta.env.VITE_USE_MOCK_API', 'true');
+    // Clear any cached data
+    sessionStorage.clear();
+    localStorage.clear();
   });
 
-  describe('Event Management', () => {
-    it('should create and retrieve events', async () => {
+  describe('Event Management with Enhanced Mock', () => {
+    it('should create and retrieve events using enhanced mock data', async () => {
       const eventRequest: CreateEventRequest = {
+        guildId: 'guild-123',
         name: 'Test Event',
         description: 'Integration test event',
         startTime: new Date().toISOString(),
@@ -391,77 +1091,85 @@ describe('API Integration Tests', () => {
       const createdEvent = await client.createEvent(eventRequest);
       expect(createdEvent).toBeDefined();
       expect(createdEvent.name).toBe(eventRequest.name);
+      expect(createdEvent.guildId).toBe(eventRequest.guildId);
 
-      const retrievedEvent = await client.getEvent(createdEvent.id);
+      const retrievedEvent = await client.getEvent(createdEvent.guildId, createdEvent.id);
       expect(retrievedEvent).toEqual(createdEvent);
     });
 
-    it('should list events with filters', async () => {
-      const events = await client.getEvents();
+    it('should list events with realistic mock data', async () => {
+      const guildId = 'guild-123';
+      const events = await client.getEvents(guildId);
       expect(Array.isArray(events)).toBe(true);
+      expect(events.length).toBeGreaterThan(0); // Enhanced mock should have realistic data
 
-      const filteredEvents = await client.getEvents({ 
+      const filteredEvents = await client.getEvents(guildId, { 
         status: 'draft' 
       });
       expect(Array.isArray(filteredEvents)).toBe(true);
     });
+
+    it('should support SSE streams from enhanced mock', async () => {
+      const guildId = 'guild-123';
+      const eventSource = client.createEventStream(guildId, 'event-1');
+      
+      expect(eventSource).toBeDefined();
+      expect(eventSource.constructor.name).toBe('EventSource');
+      
+      eventSource.close(); // Clean up
+    });
   });
 
-  describe('Helper Management', () => {
-    it('should retrieve helpers and their data', async () => {
-      const helpers = await client.getHelpers();
+  describe('Helper Management with Enhanced Data', () => {
+    it('should retrieve realistic helper data', async () => {
+      const guildId = 'guild-123';
+      const helpers = await client.getHelpers(guildId);
       expect(Array.isArray(helpers)).toBe(true);
+      expect(helpers.length).toBeGreaterThan(0); // Enhanced mock has realistic data
 
       if (helpers.length > 0) {
-        const helper = await client.getHelper(helpers[0].id);
+        const helper = await client.getHelper(guildId, helpers[0].id);
         expect(helper).toBeDefined();
         expect(helper?.id).toBe(helpers[0].id);
+        expect(helper?.jobs).toBeDefined(); // Enhanced mock includes job data
+      }
+    });
+
+    it('should handle helper absences with enhanced logic', async () => {
+      const guildId = 'guild-123';
+      const helpers = await client.getHelpers(guildId);
+      
+      if (helpers.length > 0) {
+        const absences = await client.getHelperAbsences(guildId, helpers[0].id);
+        expect(Array.isArray(absences)).toBe(true);
       }
     });
   });
 
-  describe('Roster Management', () => {
-    it('should manage participant assignments', async () => {
-      const events = await client.getEvents();
-      const helpers = await client.getHelpers();
+  describe('Session Persistence', () => {
+    it('should persist data across client recreations', async () => {
+      const guildId = 'guild-123';
+      
+      // Create an event
+      const eventRequest: CreateEventRequest = {
+        guildId,
+        name: 'Persistent Test Event',
+        description: 'Should persist',
+        startTime: new Date().toISOString(),
+        duration: 120,
+        teamLeaderId: 'team-leader-1',
+        encounterId: 'encounter-1',
+      };
 
-      if (events.length > 0 && helpers.length > 0) {
-        const assignRequest = {
-          eventId: events[0].id,
-          helperId: helpers[0].id,
-          role: 'Tank' as const,
-          teamLeaderId: 'team-leader-1',
-        };
-
-        const participant = await client.assignParticipant(assignRequest);
-        expect(participant.eventId).toBe(assignRequest.eventId);
-        expect(participant.helperId).toBe(assignRequest.helperId);
-
-        const participants = await client.getEventParticipants(events[0].id);
-        expect(participants.some(p => p.id === participant.id)).toBe(true);
-      }
-    });
-  });
-
-  describe('Lock Management', () => {
-    it('should create and manage draft locks', async () => {
-      const events = await client.getEvents();
-      const helpers = await client.getHelpers();
-
-      if (events.length > 0 && helpers.length > 0) {
-        const lockRequest = {
-          eventId: events[0].id,
-          helperId: helpers[0].id,
-          teamLeaderId: 'team-leader-1',
-        };
-
-        const lock = await client.lockParticipant(lockRequest);
-        expect(lock.eventId).toBe(lockRequest.eventId);
-        expect(lock.helperId).toBe(lockRequest.helperId);
-
-        const locks = await client.getEventLocks(events[0].id);
-        expect(locks.some(l => l.id === lock.id)).toBe(true);
-      }
+      const createdEvent = await client.createEvent(eventRequest);
+      
+      // Force new client creation (simulates page reload)
+      (client as any).apiClientInstance = null;
+      
+      // Verify event still exists
+      const retrievedEvent = await client.getEvent(guildId, createdEvent.id);
+      expect(retrievedEvent).toBeDefined();
+      expect(retrievedEvent?.name).toBe(eventRequest.name);
     });
   });
 });
@@ -478,11 +1186,12 @@ describe('Environment Configuration', () => {
     vi.resetModules();
   });
 
-  it('should use mock implementation when VITE_USE_MOCK_API=true', () => {
+  it('should use enhanced mock implementation when VITE_USE_MOCK_API=true', () => {
     vi.stubGlobal('import.meta.env.VITE_USE_MOCK_API', 'true');
     
     const client = createApiClient();
     expect(client.events.constructor.name).toContain('Mock');
+    // Should be using the enhanced mock implementation
   });
 
   it('should use HTTP implementation when VITE_USE_MOCK_API=false', () => {
@@ -505,7 +1214,7 @@ describe('Environment Configuration', () => {
 });
 ```
 
-### 5.5 Performance Testing
+### 5.5 Performance Testing with Enhanced Mock System
 
 **File**: `src/lib/api/__tests__/performance.test.ts`
 
@@ -513,31 +1222,36 @@ describe('Environment Configuration', () => {
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as client from '../client.js';
 
-describe('Performance Tests', () => {
+describe('Performance Tests - Enhanced Mock System', () => {
   beforeEach(() => {
     vi.stubGlobal('import.meta.env.VITE_USE_MOCK_API', 'true');
+    sessionStorage.clear();
+    localStorage.clear();
   });
 
-  it('should handle concurrent API calls efficiently', async () => {
+  it('should handle concurrent API calls efficiently with enhanced mock', async () => {
+    const guildId = 'guild-123';
     const startTime = performance.now();
     
     const promises = Array.from({ length: 10 }, () => 
-      client.getEvents()
+      client.getEvents(guildId)
     );
     
     const results = await Promise.all(promises);
     const endTime = performance.now();
     
     expect(results).toHaveLength(10);
+    expect(results[0].length).toBeGreaterThan(0); // Enhanced mock has realistic data
     expect(endTime - startTime).toBeLessThan(1000); // Should complete within 1 second
   });
 
-  it('should maintain consistent response times', async () => {
+  it('should maintain consistent response times with enhanced mock', async () => {
+    const guildId = 'guild-123';
     const responseTimes: number[] = [];
     
     for (let i = 0; i < 5; i++) {
       const start = performance.now();
-      await client.getEvents();
+      await client.getEvents(guildId);
       const end = performance.now();
       responseTimes.push(end - start);
     }
@@ -547,6 +1261,37 @@ describe('Performance Tests', () => {
     
     expect(avgResponseTime).toBeLessThan(100); // Average under 100ms
     expect(maxResponseTime).toBeLessThan(200); // Max under 200ms
+  });
+
+  it('should handle SSE connections efficiently', (done) => {
+    const guildId = 'guild-123';
+    let eventCount = 0;
+    
+    const eventSource = client.createEventStream(guildId, 'event-1');
+    
+    eventSource.onmessage = () => {
+      eventCount++;
+      if (eventCount >= 2) { // Enhanced mock should send multiple updates
+        eventSource.close();
+        expect(eventCount).toBeGreaterThanOrEqual(2);
+        done();
+      }
+    };
+    
+    eventSource.onerror = () => {
+      eventSource.close();
+      done(new Error('SSE connection failed'));
+    };
+    
+    // Timeout after 2 seconds
+    setTimeout(() => {
+      eventSource.close();
+      if (eventCount === 0) {
+        done(new Error('No SSE events received'));
+      } else {
+        done();
+      }
+    }, 2000);
   });
 });
 ```
@@ -625,11 +1370,14 @@ analyzeBundles().catch(console.error);
 
 - [ ] Environment variables configured for all deployment stages
 - [ ] Development controls working and accessible
-- [ ] Comprehensive test suite covering all API operations
-- [ ] Performance tests validating response times and concurrency
+- [ ] Comprehensive test suite covering all API operations with enhanced mock
+- [ ] Performance tests validating response times and concurrency with enhanced mock
+- [ ] SSE functionality tested and working with enhanced mock system
 - [ ] Bundle size analysis showing minimal impact
 - [ ] Hot-swapping working in development environment
-- [ ] All tests passing in both mock and HTTP modes (where applicable)
+- [ ] Session persistence validated with enhanced mock system
+- [ ] All sophisticated mock features preserved and tested
+- [ ] All tests passing in both enhanced mock and HTTP modes (where applicable)
 
 ### Environment Validation
 
@@ -666,19 +1414,23 @@ After completing this phase:
 
 1. **Validate all environment configurations work correctly**
 2. **Ensure all tests pass in CI/CD pipeline**
-3. **Verify performance meets or exceeds current implementation**
-4. **Test development controls thoroughly**
-5. **Proceed to [Phase 6: Legacy Cleanup](./phase-6-cleanup.md)**
+3. **Verify performance meets or exceeds current enhanced mock system**
+4. **Test all sophisticated mock features (SSE, session persistence, realistic data)**
+5. **Test development controls thoroughly**
+6. **Proceed to [Phase 6: Integration Finalization](./phase-6-cleanup.md)**
 
 ## ⚠️ Important Notes
 
 - **Test in all environments** - development, staging, production configurations
-- **Performance regression testing** - ensure new system doesn't slow down the application
+- **Performance regression testing** - ensure enhanced mock system performs well
 - **Bundle size monitoring** - tree shaking should eliminate unused implementations
 - **Development controls security** - ensure they're completely disabled in production
 - **Environment variable validation** - missing variables should fail gracefully with clear errors
+- **SSE testing critical** - ensure enhanced mock SSE simulation continues working
+- **Session persistence validation** - critical enhanced mock feature must be preserved
+- **Realistic data integrity** - enhanced mock's sophisticated data must remain intact
 
 ---
 
-**Phase Dependencies**: ✅ Phase 4 (API Client Update)  
-**Next Phase**: [Phase 6: Legacy Cleanup](./phase-6-cleanup.md)
+**Phase Dependencies**: ✅ Phase 4 (API Client Integration)  
+**Next Phase**: [Phase 6: Integration Finalization](./phase-6-cleanup.md)
