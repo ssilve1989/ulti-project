@@ -43,7 +43,9 @@ export function OptimizedIcon({
   onError,
   preferWebP = true,
 }: OptimizedIconProps) {
-  const [imageSrc, setImageSrc] = useState<string>('');
+  // Calculate the optimal image source immediately to avoid empty src
+  const optimalSrc = getOptimalIconFormat(iconPath, preferWebP);
+  const [imageSrc, setImageSrc] = useState<string>(optimalSrc);
   const [hasError, setHasError] = useState(false);
 
   // Determine dimensions
@@ -54,9 +56,9 @@ export function OptimizedIcon({
   const finalHeight = height || dimensions.height;
 
   useEffect(() => {
-    // Get the optimal format (WebP with PNG fallback)
-    const optimalSrc = getOptimalIconFormat(iconPath, preferWebP);
-    setImageSrc(optimalSrc);
+    // Update image source when props change
+    const newOptimalSrc = getOptimalIconFormat(iconPath, preferWebP);
+    setImageSrc(newOptimalSrc);
     setHasError(false);
   }, [iconPath, preferWebP]);
 
