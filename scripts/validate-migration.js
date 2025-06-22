@@ -124,12 +124,12 @@ function validateAll() {
     console.log('\n📋 All phases validated successfully');
     console.log('🚀 System ready for production!');
     return true;
-  } else {
-    console.log(`\n📊 Migration Status: ${completedPhases}/6 phases complete`);
-    console.log(`🎯 Next: Resume from Phase ${nextPhase}`);
-    console.log(`� Load: /docs/migration/phase-${nextPhase}-*.md`);
-    return false;
   }
+  
+  console.log(`\n📊 Migration Status: ${completedPhases}/6 phases complete`);
+  console.log(`🎯 Next: Resume from Phase ${nextPhase}`);
+  console.log(`📖 Load: /apps/website/docs/migration/phase-${nextPhase}-*.md`);
+  return false;
 }
 
 function checkStatus() {
@@ -150,9 +150,10 @@ function checkStatus() {
     const keyFile = phaseFiles[i];
     if (existsSync(keyFile)) {
       console.log(`✅ Phase ${i}: ${phases[i].name} - Complete`);
+      nextPhase = i + 1; // Fixed: Update to next phase when current is complete
     } else {
       console.log(`⏳ Phase ${i}: ${phases[i].name} - Pending`);
-      if (nextPhase === i) nextPhase = i;
+      nextPhase = i; // Fixed: Current phase needs to be completed
       break;
     }
   }
@@ -161,7 +162,7 @@ function checkStatus() {
     console.log('\n🎉 All phases appear complete - run "all" for full validation');
   } else {
     console.log(`\n🎯 Next: Phase ${nextPhase}`);
-    console.log(`📖 Load: /docs/migration/phase-${nextPhase}-*.md`);
+    console.log(`📖 Load: /apps/website/docs/migration/phase-${nextPhase}-*.md`); // Fixed: Correct path
   }
 }
 
