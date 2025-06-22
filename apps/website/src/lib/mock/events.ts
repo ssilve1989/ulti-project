@@ -641,6 +641,75 @@ export function createEventEventSource(eventId: string): EventSource {
   return mockEventSource;
 }
 
+// Enhanced guild-aware functions for Phase 1 interface compliance
+
+export async function createEventWithGuild(
+  guildId: string,
+  request: CreateEventRequest,
+): Promise<ScheduledEvent> {
+  // Validate guild context
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+
+  // Use existing createEvent logic
+  return createEvent(request);
+}
+
+export async function getEventsWithGuild(
+  guildId: string,
+  filters?: EventFilters,
+): Promise<{ events: ScheduledEvent[]; total: number; hasMore: boolean }> {
+  // Validate guild context
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+
+  // Use existing getEvents logic
+  const events = await getEvents(filters);
+
+  // Add pagination metadata
+  return {
+    events,
+    total: events.length,
+    hasMore: false,
+  };
+}
+
+export async function getEventWithGuild(
+  guildId: string,
+  eventId: string,
+): Promise<ScheduledEvent | null> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  return getEvent(eventId);
+}
+
+export async function updateEventWithGuild(
+  guildId: string,
+  eventId: string,
+  updates: UpdateEventRequest,
+): Promise<ScheduledEvent> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  return updateEvent(eventId, updates);
+}
+
+export async function deleteEventWithGuild(
+  guildId: string,
+  eventId: string,
+  teamLeaderId: string,
+): Promise<void> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  return deleteEvent(eventId, teamLeaderId);
+}
+
+// All existing functions remain unchanged below this line
+
 // Utility functions
 export function getEventsByTeamLeader(teamLeaderId: string): ScheduledEvent[] {
   return Array.from(mockEvents.values()).filter(

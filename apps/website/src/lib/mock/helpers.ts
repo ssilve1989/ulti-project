@@ -372,7 +372,10 @@ export async function isHelperAvailable(
   const conflicts = mockAbsences.filter(
     (absence) =>
       absence.helperId === helperId &&
-      !(new Date(endTime) <= new Date(absence.startDate) || new Date(startTime) >= new Date(absence.endDate)),
+      !(
+        new Date(endTime) <= new Date(absence.startDate) ||
+        new Date(startTime) >= new Date(absence.endDate)
+      ),
   );
 
   if (conflicts.length > 0) return false;
@@ -410,7 +413,10 @@ export async function isHelperAvailableForEvent(
   const hasAbsence = mockAbsences.some(
     (absence) =>
       absence.helperId === helperId &&
-      !(new Date(eventEnd) <= new Date(absence.startDate) || new Date(eventStart) >= new Date(absence.endDate)),
+      !(
+        new Date(eventEnd) <= new Date(absence.startDate) ||
+        new Date(eventStart) >= new Date(absence.endDate)
+      ),
   );
 
   if (hasAbsence) {
@@ -473,6 +479,106 @@ function isWithinWeeklyAvailability(
 function timeStringToMinutes(timeString: string): number {
   const [hours, minutes] = timeString.split(':').map(Number);
   return hours * 60 + minutes;
+}
+
+// Guild-aware versions of existing functions
+export async function getHelpersWithGuild(
+  guildId: string,
+): Promise<HelperData[]> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  return getHelpers();
+}
+
+export async function getHelperWithGuild(
+  guildId: string,
+  helperId: string,
+): Promise<HelperData | null> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+  const helpers = await getHelpers();
+  return helpers.find((h) => h.id === helperId) || null;
+}
+
+export async function checkHelperAvailabilityWithGuild(
+  guildId: string,
+  request: { helperId: string; startTime: string; endTime: string },
+): Promise<{ available: boolean; reason: string }> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+
+  // Use existing availability checking logic
+  const available = await isHelperAvailableForEvent(
+    request.helperId,
+    new Date(request.startTime),
+    new Date(request.endTime),
+  );
+
+  return {
+    available: available.available,
+    reason: available.reason || 'available',
+  };
+}
+
+// New absence management functions
+export async function createAbsenceWithGuild(
+  guildId: string,
+  helperId: string,
+  absence: { startDate: string; endDate: string; reason: string },
+): Promise<HelperAbsence> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+
+  const newAbsence: HelperAbsence = {
+    id: `absence_${Date.now()}`,
+    helperId,
+    startDate: absence.startDate,
+    endDate: absence.endDate,
+    reason: absence.reason,
+  };
+
+  // Store in session storage for persistence
+  const storageKey = `helper_absences_${helperId}`;
+  const existing = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+  existing.push(newAbsence);
+  sessionStorage.setItem(storageKey, JSON.stringify(existing));
+
+  return newAbsence;
+}
+
+export async function getAbsencesWithGuild(
+  guildId: string,
+  helperId: string,
+  startDate?: Date,
+  endDate?: Date,
+): Promise<HelperAbsence[]> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+
+  const storageKey = `helper_absences_${helperId}`;
+  let absences: HelperAbsence[] = JSON.parse(
+    sessionStorage.getItem(storageKey) || '[]',
+  );
+
+  // Filter by date range if provided
+  if (startDate || endDate) {
+    absences = absences.filter((absence) => {
+      const absenceStart = new Date(absence.startDate);
+      const absenceEnd = new Date(absence.endDate);
+
+      if (startDate && absenceEnd < startDate) return false;
+      if (endDate && absenceStart > endDate) return false;
+
+      return true;
+    });
+  }
+
+  return absences;
 }
 
 // SSE Stream simulation

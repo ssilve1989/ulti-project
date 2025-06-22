@@ -1,7 +1,8 @@
 import { Encounter, ParticipantType } from '@ulti-project/shared';
-import type { Job, Participant } from '@ulti-project/shared';
+import type { Job, Participant, Role } from '@ulti-project/shared';
 import { MOCK_CONFIG, delay } from './config.js';
 import { getHelperById } from './helpers.js';
+import { getHelpers } from './helpers.js';
 
 // Import existing signup data - we'll need to adapt this to work with the existing mockData
 // For now, creating some mock proggers that match the scheduling system requirements
@@ -290,6 +291,75 @@ export async function getAllParticipants(filters?: {
         }
       }
     }
+  }
+
+  return participants;
+}
+
+// New unified function for API specification compliance
+export async function getParticipantsWithGuild(
+  guildId: string,
+  filters?: {
+    encounter?: string;
+    type?: ParticipantType;
+    role?: Role;
+    job?: Job;
+  },
+): Promise<Participant[]> {
+  // Validate guild context
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+
+  let participants: Participant[] = [];
+
+  // Get helpers if requested
+  if (!filters?.type || filters.type === ParticipantType.Helper) {
+    const helpers = await getHelpers();
+    const helperParticipants = helpers.map((helper) => ({
+      type: ParticipantType.Helper,
+      id: helper.id,
+      discordId: helper.discordId,
+      name: helper.name,
+      job: helper.availableJobs[0]?.job || ('Paladin' as Job),
+      isConfirmed: false,
+    }));
+    participants.push(...helperParticipants);
+  }
+
+  // Get proggers if requested
+  if (!filters?.type || filters.type === ParticipantType.Progger) {
+    const proggers = await getProggers(filters);
+    participants.push(...proggers);
+  }
+
+  // Apply additional filters
+  if (filters?.encounter) {
+    participants = participants.filter(
+      (p) => p.encounter === filters.encounter,
+    );
+  }
+
+  if (filters?.role) {
+    // Filter helpers by role
+    if (filters.type === ParticipantType.Helper || !filters.type) {
+      const helperParticipants = participants.filter(
+        (p) => p.type === ParticipantType.Helper,
+      );
+      for (const participant of helperParticipants) {
+        const helper = await getHelperById(participant.id);
+        if (!helper?.availableJobs.some((job) => job.role === filters.role)) {
+          participants = participants.filter((p) => p.id !== participant.id);
+        }
+      }
+    }
+    // For proggers, we need to derive role from job
+    // This is a simplified approach - in a real implementation,
+    // you'd have a job-to-role mapping
+  }
+
+  if (filters?.job) {
+    participants = participants.filter((p) => p.job === filters.job);
   }
 
   return participants;

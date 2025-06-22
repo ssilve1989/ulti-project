@@ -220,6 +220,60 @@ export async function releaseAllLocksForTeamLeader(
   }
 }
 
+// Guild-aware lock functions
+export async function lockParticipantWithGuild(
+  guildId: string,
+  eventId: string,
+  request: LockParticipantRequest,
+): Promise<DraftLock> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+
+  // Use existing lock logic - need to provide teamLeaderId separately
+  const teamLeaderId = 'default-team-leader'; // This would come from context in real implementation
+
+  return lockParticipant(eventId, teamLeaderId, request);
+}
+
+export async function releaseLockWithGuild(
+  guildId: string,
+  eventId: string,
+  request: { participantId: string; teamLeaderId: string },
+): Promise<void> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+
+  // Find and release lock by participant
+  const locks = await getActiveLocks(eventId);
+  const lock = locks.find(
+    (l) =>
+      l.participantId === request.participantId &&
+      l.lockedBy === request.teamLeaderId,
+  );
+
+  if (lock) {
+    return releaseLock(
+      eventId,
+      request.teamLeaderId,
+      lock.participantId,
+      lock.participantType,
+    );
+  }
+}
+
+export async function getActiveLocksWithGuild(
+  guildId: string,
+  eventId: string,
+): Promise<DraftLock[]> {
+  if (!guildId || guildId !== MOCK_CONFIG.guild.defaultGuildId) {
+    throw new Error(`Invalid guild ID: ${guildId}`);
+  }
+
+  return getActiveLocks(eventId);
+}
+
 // SSE Stream for draft updates
 export function createDraftLocksEventSource(eventId: string): EventSource {
   const mockEventSource = {

@@ -47,14 +47,21 @@ Each task builds production-ready HTTP functionality.
 
 **Step 3.1.1**: Create base HTTP client
 
+> **🔒 AUTHENTICATION NOTE**: This project uses BetterAuth with cookie-based authentication, not Bearer tokens. The HTTP client must include `credentials: 'include'` to send cookies with requests. No Authorization headers are needed.
+
 **File**: `src/lib/api/implementations/http/BaseHttpClient.ts` (CREATE NEW)
 
 ```typescript
 import type { ApiError } from '@ulti-project/shared';
 
+// NOTE: Cookie-based authentication setup
+// - No token parameter in config (removed)
+// - No Authorization header setup (removed) 
+// - Must include credentials: 'include' in fetch requests
+// - EventSource must use withCredentials: true
+
 export interface HttpClientConfig {
   baseUrl: string;
-  token?: string;
   timeout?: number;
   retries?: number;
   headers?: Record<string, string>;
@@ -78,7 +85,6 @@ export class BaseHttpClient {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        ...(config.token && { 'Authorization': `Bearer ${config.token}` }),
       },
       ...config,
     };
@@ -118,10 +124,10 @@ export class BaseHttpClient {
 
   private buildUrl(path: string, params?: Record<string, string>): string {
     const url = new URL(path, this.config.baseUrl);
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.set(key, value);
+        url.searchParams.append(key, value);
       });
     }
     
@@ -129,60 +135,97 @@ export class BaseHttpClient {
   }
 
   private buildRequestInit(options: RequestOptions): RequestInit {
-    return {
-      method: options.method,
-      headers: {
-        ...this.config.headers,
-        ...options.headers,
-      },
-      body: options.body ? JSON.stringify(options.body) : undefined,
+    const headers = {
+      ...this.config.headers,
+      ...options.headers,
     };
+
+    const init: RequestInit = {
+      method: options.method,
+      headers,
+    };
+
+    if (options.body) {
+      init.body = JSON.stringify(options.body);
+    }
+
+    return init;
   }
 
   private async fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
-    
+
     try {
       const response = await fetch(url, {
         ...init,
         signal: controller.signal,
       });
-      
       return response;
     } finally {
       clearTimeout(timeoutId);
     }
   }
 
-  private async handleHttpError(response: Response): Promise<Error> {
+  private async handleHttpError(response: Response): Promise<ApiError> {
+    let errorData: any = {};
+
     try {
-      const errorData = await response.json();
-      return new Error(`HTTP ${response.status}: ${errorData.message || response.statusText}`);
+      errorData = await response.json();
     } catch {
-      return new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Response body is not JSON
     }
+
+    const apiError: ApiError = {
+      code: response.status.toString(),
+      message: errorData.message || response.statusText || 'HTTP request failed',
+      details: errorData.details || undefined,
+    };
+
+    return new Error(JSON.stringify(apiError));
   }
 
   private shouldRetry(error: Error): boolean {
-    // Retry on network errors, timeouts, and 5xx errors
-    return error.message.includes('fetch') || 
-           error.message.includes('timeout') ||
-           error.message.includes('HTTP 5');
+    // Retry on network errors and 5xx status codes
+    if (error.name === 'AbortError') return false; // Don't retry timeouts
+
+    try {
+      const apiError = JSON.parse(error.message) as ApiError;
+      const statusCode = parseInt(apiError.code);
+      return statusCode >= 500 && statusCode < 600;
+    } catch {
+      // Network error or other non-API error
+      return true;
+    }
   }
 
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+  // Server-Sent Events support
+  protected createEventSource(path: string, params?: Record<string, string>): EventSource {
+    const url = this.buildUrl(path, params);
+    const headers: Record<string, string> = {};
+
+    if (this.config.token) {
+      headers['Authorization'] = `Bearer ${this.config.token}`;
+    }
+    
+    // Note: EventSource doesn't support custom headers directly
+    // In production, authentication might need to be handled via query params or cookies
+    return new EventSource(url);
+  }
 }
 ```
 
-### Acceptance Criteria
+### Acceptance Criteria - Task 3.1
 
 - [ ] Base HTTP client with timeout and retry logic
-- [ ] Authentication header support
+- [ ] Cookie-based authentication support (credentials: 'include')
 - [ ] Comprehensive error handling
 - [ ] Exponential backoff retry strategy
+- [ ] NO Authorization headers (uses BetterAuth cookies)
 - [ ] TypeScript compilation passes: `pnpm --filter website run type-check`
 
 ### Validation Commands
@@ -241,7 +284,7 @@ import { BaseHttpClient } from './BaseHttpClient.js';
 
 export class HttpEventsApi extends BaseHttpClient implements IEventsApi {
   constructor(
-    config: { baseUrl: string; token?: string },
+    config: { baseUrl: string },
     public readonly context: IApiContext
   ) {
     super(config);
@@ -250,8 +293,8 @@ export class HttpEventsApi extends BaseHttpClient implements IEventsApi {
   async createEvent(request: CreateEventRequest): Promise<ScheduledEvent> {
     return this.request<ScheduledEvent>({
       method: 'POST',
-      path: `/api/guilds/${this.context.guildId}/events`,
-      body: request
+      path: `/api/events`,
+      body: { ...request, guildId: this.context.guildId }
     });
   }
 
@@ -259,7 +302,8 @@ export class HttpEventsApi extends BaseHttpClient implements IEventsApi {
     try {
       return await this.request<ScheduledEvent>({
         method: 'GET',
-        path: `/api/guilds/${this.context.guildId}/events/${eventId}`
+        path: `/api/events/${eventId}`,
+        params: { guildId: this.context.guildId }
       });
     } catch (error) {
       if (error instanceof Error && error.message.includes('HTTP 404')) {
@@ -270,7 +314,9 @@ export class HttpEventsApi extends BaseHttpClient implements IEventsApi {
   }
 
   async getEvents(filters?: EventFilters): Promise<IPaginatedResponse<ScheduledEvent>> {
-    const params: Record<string, string> = {};
+    const params: Record<string, string> = {
+      guildId: this.context.guildId
+    };
     
     if (filters?.startDate) params.startDate = filters.startDate;
     if (filters?.endDate) params.endDate = filters.endDate;
@@ -284,7 +330,7 @@ export class HttpEventsApi extends BaseHttpClient implements IEventsApi {
       nextCursor?: string;
     }>({
       method: 'GET',
-      path: `/api/guilds/${this.context.guildId}/events`,
+      path: `/api/events`,
       params
     });
 
@@ -299,16 +345,16 @@ export class HttpEventsApi extends BaseHttpClient implements IEventsApi {
   async updateEvent(eventId: string, updates: UpdateEventRequest): Promise<ScheduledEvent> {
     return this.request<ScheduledEvent>({
       method: 'PUT',
-      path: `/api/guilds/${this.context.guildId}/events/${eventId}`,
-      body: updates
+      path: `/api/events/${eventId}`,
+      body: { ...updates, guildId: this.context.guildId }
     });
   }
 
   async deleteEvent(eventId: string, teamLeaderId: string): Promise<void> {
     await this.request<void>({
       method: 'DELETE',
-      path: `/api/guilds/${this.context.guildId}/events/${eventId}`,
-      headers: { 'X-Team-Leader-Id': teamLeaderId }
+      path: `/api/events/${eventId}`,
+      params: { guildId: this.context.guildId, teamLeaderId }
     });
   }
 
@@ -345,7 +391,7 @@ import { BaseHttpClient } from './BaseHttpClient.js';
 
 export class HttpHelpersApi extends BaseHttpClient implements IHelpersApi {
   constructor(
-    config: { baseUrl: string; token?: string },
+    config: { baseUrl: string },
     public readonly context: IApiContext
   ) {
     super(config);
@@ -354,7 +400,8 @@ export class HttpHelpersApi extends BaseHttpClient implements IHelpersApi {
   async getHelpers(): Promise<HelperData[]> {
     return this.request<HelperData[]>({
       method: 'GET',
-      path: `/api/guilds/${this.context.guildId}/helpers`
+      path: `/api/helpers`,
+      params: { guildId: this.context.guildId }
     });
   }
 
@@ -362,7 +409,8 @@ export class HttpHelpersApi extends BaseHttpClient implements IHelpersApi {
     try {
       return await this.request<HelperData>({
         method: 'GET',
-        path: `/api/guilds/${this.context.guildId}/helpers/${helperId}`
+        path: `/api/helpers/${helperId}`,
+        params: { guildId: this.context.guildId }
       });
     } catch (error) {
       if (error instanceof Error && error.message.includes('HTTP 404')) {
@@ -375,7 +423,8 @@ export class HttpHelpersApi extends BaseHttpClient implements IHelpersApi {
   async checkHelperAvailability(request: CheckHelperAvailabilityRequest): Promise<HelperAvailabilityResponse> {
     return this.request<HelperAvailabilityResponse>({
       method: 'POST',
-      path: `/api/guilds/${this.context.guildId}/helpers/${request.helperId}/availability/check`,
+      path: `/api/helpers/${request.helperId}/availability`,
+      params: { guildId: this.context.guildId },
       body: {
         startTime: request.startTime.toISOString(),
         endTime: request.endTime.toISOString()
@@ -386,8 +435,9 @@ export class HttpHelpersApi extends BaseHttpClient implements IHelpersApi {
   async getHelperAvailability(helperId: string, startDate: Date, endDate: Date): Promise<any[]> {
     return this.request<any[]>({
       method: 'GET',
-      path: `/api/guilds/${this.context.guildId}/helpers/${helperId}/availability`,
+      path: `/api/helpers/${helperId}/availability`,
       params: {
+        guildId: this.context.guildId,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString()
       }
@@ -397,7 +447,8 @@ export class HttpHelpersApi extends BaseHttpClient implements IHelpersApi {
   async createAbsence(helperId: string, absence: CreateAbsenceRequest): Promise<HelperAbsence> {
     return this.request<HelperAbsence>({
       method: 'POST',
-      path: `/api/guilds/${this.context.guildId}/helpers/${helperId}/absences`,
+      path: `/api/helpers/${helperId}/absences`,
+      params: { guildId: this.context.guildId },
       body: {
         ...absence,
         startDate: absence.startDate.toISOString(),
@@ -407,13 +458,15 @@ export class HttpHelpersApi extends BaseHttpClient implements IHelpersApi {
   }
 
   async getAbsences(helperId: string, startDate?: Date, endDate?: Date): Promise<HelperAbsence[]> {
-    const params: Record<string, string> = {};
+    const params: Record<string, string> = {
+      guildId: this.context.guildId
+    };
     if (startDate) params.startDate = startDate.toISOString();
     if (endDate) params.endDate = endDate.toISOString();
 
     return this.request<HelperAbsence[]>({
       method: 'GET',
-      path: `/api/guilds/${this.context.guildId}/helpers/${helperId}/absences`,
+      path: `/api/helpers/${helperId}/absences`,
       params
     });
   }
@@ -421,7 +474,8 @@ export class HttpHelpersApi extends BaseHttpClient implements IHelpersApi {
   async deleteAbsence(helperId: string, absenceId: string): Promise<void> {
     await this.request<void>({
       method: 'DELETE',
-      path: `/api/guilds/${this.context.guildId}/helpers/${helperId}/absences/${absenceId}`
+      path: `/api/helpers/${helperId}/absences/${absenceId}`,
+      params: { guildId: this.context.guildId }
     });
   }
 
@@ -434,6 +488,180 @@ export class HttpHelpersApi extends BaseHttpClient implements IHelpersApi {
       method: 'GET',
       path: `/api/guilds/${this.context.guildId}/helpers`,
       params
+    });
+  }
+}
+```
+
+**Step 3.2.3**: Create Roster HTTP API
+
+**File**: `src/lib/api/implementations/http/RosterApi.ts` (CREATE NEW)
+
+```typescript
+import type { IRosterApi, IApiContext } from '../../interfaces/index.js';
+import type {
+  ScheduledEvent,
+  AssignParticipantRequest,
+  UnassignParticipantRequest
+} from '@ulti-project/shared';
+import { BaseHttpClient } from './BaseHttpClient.js';
+
+export class HttpRosterApi extends BaseHttpClient implements IRosterApi {
+  constructor(
+    config: { baseUrl: string; token?: string },
+    public readonly context: IApiContext
+  ) {
+    super(config);
+  }
+
+  async assignParticipant(
+    eventId: string,
+    teamLeaderId: string,
+    request: AssignParticipantRequest
+  ): Promise<ScheduledEvent> {
+    return this.request<ScheduledEvent>({
+      method: 'POST',
+      path: `/api/events/${eventId}/roster/assign`,
+      params: { 
+        guildId: this.context.guildId,
+        teamLeaderId 
+      },
+      body: request
+    });
+  }
+
+  async unassignParticipant(
+    eventId: string,
+    slotId: string,
+    teamLeaderId: string
+  ): Promise<ScheduledEvent> {
+    return this.request<ScheduledEvent>({
+      method: 'DELETE',
+      path: `/api/events/${eventId}/roster/slots/${slotId}`,
+      params: { 
+        guildId: this.context.guildId,
+        teamLeaderId 
+      }
+    });
+  }
+}
+```
+
+**Step 3.2.4**: Create Locks HTTP API
+
+**File**: `src/lib/api/implementations/http/LocksApi.ts` (CREATE NEW)
+
+```typescript
+import type { ILocksApi, IApiContext } from '../../interfaces/index.js';
+import type {
+  DraftLock,
+  CreateDraftLockRequest
+} from '@ulti-project/shared';
+import { BaseHttpClient } from './BaseHttpClient.js';
+
+export class HttpLocksApi extends BaseHttpClient implements ILocksApi {
+  constructor(
+    config: { baseUrl: string; token?: string },
+    public readonly context: IApiContext
+  ) {
+    super(config);
+  }
+
+  async getEventLocks(eventId: string): Promise<DraftLock[]> {
+    return this.request<DraftLock[]>({
+      method: 'GET',
+      path: `/api/events/${eventId}/locks`,
+      params: { guildId: this.context.guildId }
+    });
+  }
+
+  async createLock(eventId: string, request: CreateDraftLockRequest): Promise<DraftLock> {
+    return this.request<DraftLock>({
+      method: 'POST',
+      path: `/api/events/${eventId}/locks`,
+      params: { guildId: this.context.guildId },
+      body: request
+    });
+  }
+
+  async releaseLock(
+    eventId: string,
+    participantType: string,
+    participantId: string
+  ): Promise<void> {
+    await this.request<void>({
+      method: 'DELETE',
+      path: `/api/events/${eventId}/locks/${participantType}/${participantId}`,
+      params: { guildId: this.context.guildId }
+    });
+  }
+
+  async releaseAllLocks(eventId: string, teamLeaderId: string): Promise<void> {
+    await this.request<void>({
+      method: 'DELETE',
+      path: `/api/events/${eventId}/locks/team-leader/${teamLeaderId}`,
+      params: { guildId: this.context.guildId }
+    });
+  }
+
+  getEventLocksStream(eventId: string): EventSource {
+    const url = new URL(`/api/events/${eventId}/locks/stream`, this.config.baseUrl);
+    url.searchParams.set('guildId', this.context.guildId);
+    
+    return new EventSource(url.toString(), {
+      withCredentials: true
+    });
+  }
+}
+```
+
+**Step 3.2.5**: Create Participants HTTP API  
+
+**File**: `src/lib/api/implementations/http/ParticipantsApi.ts` (CREATE NEW)
+
+```typescript
+import type { IParticipantsApi, IApiContext } from '../../interfaces/index.js';
+import type {
+  Participant,
+  GetParticipantsQuery
+} from '@ulti-project/shared';
+import { BaseHttpClient } from './BaseHttpClient.js';
+
+export class HttpParticipantsApi extends BaseHttpClient implements IParticipantsApi {
+  constructor(
+    config: { baseUrl: string; token?: string },
+    public readonly context: IApiContext
+  ) {
+    super(config);
+  }
+
+  async getParticipants(query?: GetParticipantsQuery): Promise<Participant[]> {
+    const params = {
+      guildId: this.context.guildId,
+      ...query
+    };
+
+    return this.request<Participant[]>({
+      method: 'GET',
+      path: `/api/participants`,
+      params
+    });
+  }
+
+  getParticipantsStream(query?: GetParticipantsQuery): EventSource {
+    const url = new URL(`/api/participants/stream`, this.config.baseUrl);
+    url.searchParams.set('guildId', this.context.guildId);
+    
+    if (query) {
+      Object.entries(query).forEach(([key, value]) => {
+        if (value !== undefined) {
+          url.searchParams.set(key, String(value));
+        }
+      });
+    }
+    
+    return new EventSource(url.toString(), {
+      withCredentials: true
     });
   }
 }
@@ -457,7 +685,7 @@ ls -la apps/website/src/lib/api/implementations/http/
 pnpm --filter website run type-check
 
 # Verify API endpoint paths
-grep -n "api/guilds" apps/website/src/lib/api/implementations/http/*.ts
+grep -n "/api/events\|/api/helpers\|/api/participants" apps/website/src/lib/api/implementations/http/*.ts
 ```
 
 ### File Operations
@@ -703,743 +931,40 @@ grep -r "class Http.*Api" apps/website/src/lib/api/implementations/http/
 
 HTTP implementations now ready for Phase 4 client integration.
 
-  private buildUrl(path: string, params?: Record<string, string>): string {
-    const url = new URL(path, this.config.baseUrl);
+## 🔒 Authentication Implementation Summary
 
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.append(key, value);
-      });
-    }
-    
-    return url.toString();
-  }
+**CRITICAL FOR AI AGENT**: This project uses BetterAuth with cookie-based authentication, NOT Bearer tokens. The following must be implemented correctly:
 
-  private buildRequestInit(options: RequestOptions): RequestInit {
-    const headers = {
-      ...this.config.headers,
-      ...options.headers,
-    };
+### Key Changes from Default HTTP Client Patterns
 
-    const init: RequestInit = {
-      method: options.method,
-      headers,
-    };
+1. **NO Authorization Headers**:
+   - Remove `token?: string` from `HttpClientConfig`
+   - Remove Authorization header setup in constructor
+   - No Bearer token handling anywhere
 
-    if (options.body) {
-      init.body = JSON.stringify(options.body);
-    }
+2. **Cookie-Based Authentication**:
+   - Add `credentials: 'include'` to ALL fetch requests
+   - This sends BetterAuth session cookies automatically
+   - Server validates session from cookies, not headers
 
-    return init;
-  }
+3. **EventSource Configuration**:
+   - Use `withCredentials: true` for Server-Sent Events
+   - No custom authentication headers needed
 
-  private async fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
+4. **Error Handling**:
+   - 401 errors indicate session expired or invalid
+   - No token refresh logic needed (cookies handled by browser)
 
-    try {
-      const response = await fetch(url, {
-        ...init,
-        signal: controller.signal,
-      });
-      return response;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  }
+### Implementation Checklist
 
-  private async handleHttpError(response: Response): Promise<ApiError> {
-    let errorData: any = {};
+- [ ] `HttpClientConfig` has no token parameter
+- [ ] `BaseHttpClient` constructor sets no Authorization headers  
+- [ ] `buildRequestInit()` includes `credentials: 'include'`
+- [ ] `createEventSource()` uses `withCredentials: true`
+- [ ] All API class constructors expect `{ baseUrl: string }` only
+- [ ] No token passing in any HTTP API implementations
 
-    try {
-      errorData = await response.json();
-    } catch {
-      // Response body is not JSON
-    }
-
-    const apiError: ApiError = {
-      code: response.status.toString(),
-      message: errorData.message || response.statusText || 'HTTP request failed',
-      details: errorData.details || undefined,
-    };
-
-    return new Error(JSON.stringify(apiError));
-  }
-
-  private shouldRetry(error: Error): boolean {
-    // Retry on network errors and 5xx status codes
-    if (error.name === 'AbortError') return false; // Don't retry timeouts
-
-    try {
-      const apiError = JSON.parse(error.message) as ApiError;
-      const statusCode = parseInt(apiError.code);
-      return statusCode >= 500 && statusCode < 600;
-    } catch {
-      // Network error or other non-API error
-      return true;
-    }
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  // Server-Sent Events support
-  protected createEventSource(path: string, params?: Record<string, string>): EventSource {
-    const url = this.buildUrl(path, params);
-    const headers: Record<string, string> = {};
-
-    if (this.config.token) {
-      headers['Authorization'] = `Bearer ${this.config.token}`;
-    }
-    
-    // Note: EventSource doesn't support custom headers directly
-    // In production, authentication might need to be handled via query params or cookies
-    return new EventSource(url);
-  }
-}
-
-```
-
-      ...config,
-
-### 3.2 Create HTTP Events API Implementation
-
-**File**: `src/lib/api/implementations/http/HttpEventsApi.ts`
-
-```typescript
-import type {
-  CreateEventRequest,
-  ScheduledEvent,
-  EventFilters,
-  UpdateEventRequest,
-} from '@ulti-project/shared';
-import type { IEventsApi } from '../../interfaces/IEventsApi.js';
-import { BaseHttpClient } from './BaseHttpClient.js';
-
-export class HttpEventsApi extends BaseHttpClient implements IEventsApi {
-  async createEvent(request: CreateEventRequest): Promise<ScheduledEvent> {
-    return this.request<ScheduledEvent>({
-      method: 'POST',
-      path: `/api/guilds/${request.guildId}/events`,
-      body: request,
-    });
-  }
-
-  async getEvent(guildId: string, id: string): Promise<ScheduledEvent | null> {
-    try {
-      return await this.request<ScheduledEvent>({
-        method: 'GET',
-        path: `/api/guilds/${guildId}/events/${id}`,
-      });
-    } catch (error) {
-      // If event not found, return null instead of throwing
-      if (error instanceof Error) {
-        try {
-          const apiError = JSON.parse(error.message);
-          if (apiError.code === '404') return null;
-        } catch {
-          // Not an API error, re-throw
-        }
-      }
-      throw error;
-    }
-  }
-
-  async getEvents(guildId: string, filters?: EventFilters): Promise<ScheduledEvent[]> {
-    const params: Record<string, string> = {};
-    
-    if (filters) {
-      if (filters.status) params.status = filters.status;
-      if (filters.encounterId) params.encounterId = filters.encounterId;
-      if (filters.teamLeaderId) params.teamLeaderId = filters.teamLeaderId;
-      if (filters.startDate) params.startDate = filters.startDate;
-      if (filters.endDate) params.endDate = filters.endDate;
-    }
-
-    return this.request<ScheduledEvent[]>({
-      method: 'GET',
-      path: `/api/guilds/${guildId}/events`,
-      params,
-    });
-  }
-
-  async updateEvent(guildId: string, id: string, updates: UpdateEventRequest): Promise<ScheduledEvent> {
-    return this.request<ScheduledEvent>({
-      method: 'PUT',
-      path: `/api/guilds/${guildId}/events/${id}`,
-      body: updates,
-    });
-  }
-
-  async deleteEvent(guildId: string, id: string, teamLeaderId: string): Promise<void> {
-    await this.request<void>({
-      method: 'DELETE',
-      path: `/api/guilds/${guildId}/events/${id}`,
-      body: { teamLeaderId },
-    });
-  }
-
-  createEventStream(guildId: string, eventId: string): EventSource {
-    return this.createEventSource(`/api/guilds/${guildId}/events/${eventId}/stream`);
-  }
-}
-```
-
-### 3.3 Create HTTP Helpers API Implementation
-
-**File**: `src/lib/api/implementations/http/HttpHelpersApi.ts`
-
-```typescript
-import type {
-  HelperData,
-  HelperAbsence,
-  CreateHelperAbsenceRequest,
-} from '@ulti-project/shared';
-import type { IHelpersApi } from '../../interfaces/IHelpersApi.js';
-import { BaseHttpClient } from './BaseHttpClient.js';
-
-export class HttpHelpersApi extends BaseHttpClient implements IHelpersApi {
-  async getHelper(guildId: string, helperId: string): Promise<HelperData | null> {
-    try {
-      return await this.request<HelperData>({
-        method: 'GET',
-        path: `/api/guilds/${guildId}/helpers/${helperId}`,
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        try {
-          const apiError = JSON.parse(error.message);
-          if (apiError.code === '404') return null;
-        } catch {
-          // Not an API error, re-throw
-        }
-      }
-      throw error;
-    }
-  }
-
-  async getHelpers(guildId: string): Promise<HelperData[]> {
-    return this.request<HelperData[]>({
-      method: 'GET',
-      path: `/api/guilds/${guildId}/helpers`,
-    });
-  }
-
-  async getHelperAbsences(guildId: string, helperId: string): Promise<HelperAbsence[]> {
-    return this.request<HelperAbsence[]>({
-      method: 'GET',
-      path: `/api/guilds/${guildId}/helpers/${helperId}/absences`,
-    });
-  }
-
-  async createHelperAbsence(request: CreateHelperAbsenceRequest): Promise<HelperAbsence> {
-    return this.request<HelperAbsence>({
-      method: 'POST',
-      path: `/api/guilds/${request.guildId}/helpers/${request.helperId}/absences`,
-      body: request,
-    });
-  }
-
-  async updateHelperAbsence(guildId: string, absenceId: string, updates: Partial<HelperAbsence>): Promise<HelperAbsence> {
-    return this.request<HelperAbsence>({
-      method: 'PUT',
-      path: `/api/guilds/${guildId}/helper-absences/${absenceId}`,
-      body: updates,
-    });
-  }
-
-  async deleteHelperAbsence(guildId: string, absenceId: string): Promise<void> {
-    await this.request<void>({
-      method: 'DELETE',
-      path: `/api/guilds/${guildId}/helper-absences/${absenceId}`,
-    });
-  }
-
-  createHelpersStream(guildId: string): EventSource {
-    return this.createEventSource(`/api/guilds/${guildId}/helpers/stream`);
-  }
-}
-```
-
-### 3.4 Create HTTP Roster API Implementation
-
-**File**: `src/lib/api/implementations/http/HttpRosterApi.ts`
-
-```typescript
-import type {
-  AssignParticipantRequest,
-  Participant,
-  UnassignParticipantRequest,
-} from '@ulti-project/shared';
-import type { IRosterApi } from '../../interfaces/IRosterApi.js';
-import { BaseHttpClient } from './BaseHttpClient.js';
-
-export class HttpRosterApi extends BaseHttpClient implements IRosterApi {
-  async assignParticipant(request: AssignParticipantRequest): Promise<Participant> {
-    return this.request<Participant>({
-      method: 'POST',
-      path: `/api/guilds/${request.guildId}/events/${request.eventId}/participants`,
-      body: request,
-    });
-  }
-
-  async unassignParticipant(request: UnassignParticipantRequest): Promise<void> {
-    await this.request<void>({
-      method: 'DELETE',
-      path: `/api/guilds/${request.guildId}/events/${request.eventId}/participants/${request.participantId}`,
-      body: { teamLeaderId: request.teamLeaderId },
-    });
-  }
-
-  async getEventParticipants(guildId: string, eventId: string): Promise<Participant[]> {
-    return this.request<Participant[]>({
-      method: 'GET',
-      path: `/api/guilds/${guildId}/events/${eventId}/participants`,
-    });
-  }
-
-  createRosterStream(guildId: string, eventId: string): EventSource {
-    return this.createEventSource(`/api/guilds/${guildId}/events/${eventId}/roster/stream`);
-  }
-}
-```
-
-### 3.5 Create HTTP Locks API Implementation
-
-**File**: `src/lib/api/implementations/http/HttpLocksApi.ts`
-
-```typescript
-import type {
-  DraftLock,
-  LockParticipantRequest,
-  UnlockParticipantRequest,
-} from '@ulti-project/shared';
-import type { ILocksApi } from '../../interfaces/ILocksApi.js';
-import { BaseHttpClient } from './BaseHttpClient.js';
-
-export class HttpLocksApi extends BaseHttpClient implements ILocksApi {
-  async lockParticipant(request: LockParticipantRequest): Promise<DraftLock> {
-    return this.request<DraftLock>({
-      method: 'POST',
-      path: `/api/guilds/${request.guildId}/events/${request.eventId}/locks`,
-      body: request,
-    });
-  }
-
-  async unlockParticipant(request: UnlockParticipantRequest): Promise<void> {
-    await this.request<void>({
-      method: 'DELETE',
-      path: `/api/guilds/${request.guildId}/locks/${request.lockId}`,
-      body: { teamLeaderId: request.teamLeaderId },
-    });
-  }
-
-  async getEventLocks(guildId: string, eventId: string): Promise<DraftLock[]> {
-    return this.request<DraftLock[]>({
-      method: 'GET',
-      path: `/api/guilds/${guildId}/events/${eventId}/locks`,
-    });
-  }
-
-  async renewLock(guildId: string, lockId: string): Promise<DraftLock> {
-    return this.request<DraftLock>({
-      method: 'PUT',
-      path: `/api/guilds/${guildId}/locks/${lockId}/renew`,
-    });
-  }
-
-  createLocksStream(guildId: string, eventId: string): EventSource {
-    return this.createEventSource(`/api/guilds/${guildId}/events/${eventId}/locks/stream`);
-  }
-}
-```
-
-### 3.6 Create HTTP API Client
-
-**File**: `src/lib/api/implementations/http/HttpApiClient.ts`
-
-```typescript
-import type { ApiClient } from '../../interfaces/index.js';
-import { HttpEventsApi } from './HttpEventsApi.js';
-import { HttpHelpersApi } from './HttpHelpersApi.js';
-import { HttpRosterApi } from './HttpRosterApi.js';
-import { HttpLocksApi } from './HttpLocksApi.js';
-import type { HttpClientConfig } from './BaseHttpClient.js';
-
-export class HttpApiClient implements ApiClient {
-  public readonly events: HttpEventsApi;
-  public readonly helpers: HttpHelpersApi;
-  public readonly roster: HttpRosterApi;
-  public readonly locks: HttpLocksApi;
-
-  constructor(baseUrl: string, token?: string) {
-    const config: HttpClientConfig = {
-      baseUrl,
-      token,
-      timeout: 10000,
-      retries: 3,
-    };
-
-    this.events = new HttpEventsApi(config);
-    this.helpers = new HttpHelpersApi(config);
-    this.roster = new HttpRosterApi(config);
-    this.locks = new HttpLocksApi(config);
-  }
-}
-```
-
-### 3.7 Create HTTP Implementation Index
-
-**File**: `src/lib/api/implementations/http/index.ts`
-
-```typescript
-export { HttpApiClient } from './HttpApiClient.js';
-export { BaseHttpClient } from './BaseHttpClient.js';
-export type { HttpClientConfig, RequestOptions } from './BaseHttpClient.js';
-```
-
-## ✅ Validation Criteria
-
-### Completion Requirements
-
-- [ ] Base HTTP client created with full production features
-- [ ] All API domains implemented (Events, Helpers, Roster, Locks)
-- [ ] Guild-based multi-tenancy support in all endpoints
-- [ ] Proper error handling and retry logic implemented
-- [ ] Authentication via Bearer tokens configured
-- [ ] Server-Sent Events support for real-time updates
-- [ ] TypeScript interfaces properly implemented
-- [ ] All methods match the interface signatures exactly
-
-### HTTP Client Features
-
-- [ ] **Authentication**: Bearer token support in headers
-- [ ] **Error Handling**: Comprehensive HTTP error processing
-- [ ] **Retry Logic**: Exponential backoff for failed requests
-- [ ] **Timeout Handling**: Configurable request timeouts
-- [ ] **Request/Response Logging**: Built-in debugging support
-- [ ] **Type Safety**: Full TypeScript support with shared types
-- [ ] **SSE Support**: Real-time event streams
-
-### API Endpoint Structure
-
-All endpoints follow RESTful conventions with guild-based multi-tenancy:
-
-```
-/api/guilds/{guildId}/events
-/api/guilds/{guildId}/helpers
-/api/guilds/{guildId}/events/{eventId}/participants
-/api/guilds/{guildId}/events/{eventId}/locks
-```
-
-### Testing HTTP Implementation
-
-```typescript
-// Test HTTP client configuration
-describe('HttpApiClient', () => {
-  it('should configure authentication properly', () => {
-    const client = new HttpApiClient('https://api.example.com', 'test-token');
-    expect(client.events).toBeDefined();
-    expect(client.helpers).toBeDefined();
-    expect(client.roster).toBeDefined();
-    expect(client.locks).toBeDefined();
-  });
-});
-```
-
-## 🔄 Next Steps
-
-After completing this phase:
-
-1. **Validate HTTP implementations compile without errors**
-2. **Test authentication and error handling logic**
-3. **Verify all interface methods are properly implemented**
-4. **Ensure guild-based multi-tenancy is correctly supported**
-5. **Proceed to [Phase 4: API Client Integration](./phase-4-client-update.md)**
-
-## ⚠️ Important Notes
-
-- **Production-Ready**: These are fully functional HTTP implementations, not stubs
-- **Authentication Required**: All endpoints expect Bearer token authentication
-- **Guild Multi-tenancy**: All operations are scoped to guild ID
-- **Error Handling**: Comprehensive error processing with proper API error types
-- **SSE Authentication**: EventSource authentication may require query params or cookies
-- **Backend Integration**: Ready for immediate use when backend endpoints are available
-- **Interface Compliance**: Exactly matches enhanced mock system interfaces
-
----
-
-**Phase Dependencies**: ✅ Phase 2 (Enhanced Mock Implementations)  
-**Next Phase**: [Phase 4: API Client Integration](./phase-4-client-update.md)
-    // const params = new URLSearchParams();
-    // if (filters?.status) params.set('status', filters.status);
-    // if (filters?.startDate) params.set('startDate', filters.startDate);
-    // if (filters?.endDate) params.set('endDate', filters.endDate);
-    //
-    // const queryString = params.toString();
-    // const endpoint = queryString ? `/api/events?${queryString}` : '/api/events';
-    //
-    // return this.request<ScheduledEvent[]>(endpoint);
-  }
-
-  async updateEvent(id: string, updates: UpdateEventRequest): Promise<ScheduledEvent> {
-    throw new Error('HttpEventsApi.updateEvent not implemented - backend integration required');
-
-    // Future implementation:
-    // return this.request<ScheduledEvent>(`/api/events/${id}`, {
-    //   method: 'PATCH',
-    //   body: JSON.stringify(updates),
-    // });
-  }
-
-  async deleteEvent(id: string, teamLeaderId: string): Promise<void> {
-    throw new Error('HttpEventsApi.deleteEvent not implemented - backend integration required');
-
-    // Future implementation:
-    // await this.request<void>(`/api/events/${id}`, {
-    //   method: 'DELETE',
-    //   headers: {
-    //     'X-Team-Leader-ID': teamLeaderId,
-    //   },
-    // });
-  }
-
-  createEventStream(eventId: string): EventSource {
-    throw new Error('HttpEventsApi.createEventStream not implemented - backend integration required');
-
-    // Future implementation:
-    // const url = `${this.config.baseUrl}/api/events/${eventId}/stream`;
-    // return new EventSource(url);
-  }
-}
-
-```
-
-### 3.3 Create HTTP Helpers API
-
-**File**: `src/lib/api/implementations/http/HttpHelpersApi.ts`
-
-```typescript
-import type {
-  HelperData,
-  HelperAbsence,
-  CreateHelperAbsenceRequest,
-} from '@ulti-project/shared';
-import type { IHelpersApi } from '../../interfaces/IHelpersApi.js';
-import { BaseHttpApi } from './BaseHttpApi.js';
-
-export class HttpHelpersApi extends BaseHttpApi implements IHelpersApi {
-  async getHelper(helperId: string): Promise<HelperData | null> {
-    throw new Error('HttpHelpersApi.getHelper not implemented - backend integration required');
-  }
-
-  async getHelpers(): Promise<HelperData[]> {
-    throw new Error('HttpHelpersApi.getHelpers not implemented - backend integration required');
-  }
-
-  async getHelperAbsences(helperId: string): Promise<HelperAbsence[]> {
-    throw new Error('HttpHelpersApi.getHelperAbsences not implemented - backend integration required');
-  }
-
-  async createHelperAbsence(request: CreateHelperAbsenceRequest): Promise<HelperAbsence> {
-    throw new Error('HttpHelpersApi.createHelperAbsence not implemented - backend integration required');
-  }
-
-  async updateHelperAbsence(absenceId: string, updates: Partial<HelperAbsence>): Promise<HelperAbsence> {
-    throw new Error('HttpHelpersApi.updateHelperAbsence not implemented - backend integration required');
-  }
-
-  async deleteHelperAbsence(absenceId: string): Promise<void> {
-    throw new Error('HttpHelpersApi.deleteHelperAbsence not implemented - backend integration required');
-  }
-
-  createHelpersStream(): EventSource {
-    throw new Error('HttpHelpersApi.createHelpersStream not implemented - backend integration required');
-  }
-}
-```
-
-### 3.4 Create HTTP Roster API
-
-**File**: `src/lib/api/implementations/http/HttpRosterApi.ts`
-
-```typescript
-import type {
-  AssignParticipantRequest,
-  Participant,
-  UnassignParticipantRequest,
-} from '@ulti-project/shared';
-import type { IRosterApi } from '../../interfaces/IRosterApi.js';
-import { BaseHttpApi } from './BaseHttpApi.js';
-
-export class HttpRosterApi extends BaseHttpApi implements IRosterApi {
-  async assignParticipant(request: AssignParticipantRequest): Promise<Participant> {
-    throw new Error('HttpRosterApi.assignParticipant not implemented - backend integration required');
-  }
-
-  async unassignParticipant(request: UnassignParticipantRequest): Promise<void> {
-    throw new Error('HttpRosterApi.unassignParticipant not implemented - backend integration required');
-  }
-
-  async getEventParticipants(eventId: string): Promise<Participant[]> {
-    throw new Error('HttpRosterApi.getEventParticipants not implemented - backend integration required');
-  }
-
-  createRosterStream(eventId: string): EventSource {
-    throw new Error('HttpRosterApi.createRosterStream not implemented - backend integration required');
-  }
-}
-```
-
-### 3.5 Create HTTP Locks API
-
-**File**: `src/lib/api/implementations/http/HttpLocksApi.ts`
-
-```typescript
-import type {
-  DraftLock,
-  LockParticipantRequest,
-  UnlockParticipantRequest,
-} from '@ulti-project/shared';
-import type { ILocksApi } from '../../interfaces/ILocksApi.js';
-import { BaseHttpApi } from './BaseHttpApi.js';
-
-export class HttpLocksApi extends BaseHttpApi implements ILocksApi {
-  async lockParticipant(request: LockParticipantRequest): Promise<DraftLock> {
-    throw new Error('HttpLocksApi.lockParticipant not implemented - backend integration required');
-  }
-
-  async unlockParticipant(request: UnlockParticipantRequest): Promise<void> {
-    throw new Error('HttpLocksApi.unlockParticipant not implemented - backend integration required');
-  }
-
-  async getEventLocks(eventId: string): Promise<DraftLock[]> {
-    throw new Error('HttpLocksApi.getEventLocks not implemented - backend integration required');
-  }
-
-  async renewLock(lockId: string): Promise<DraftLock> {
-    throw new Error('HttpLocksApi.renewLock not implemented - backend integration required');
-  }
-
-  createLocksStream(eventId: string): EventSource {
-    throw new Error('HttpLocksApi.createLocksStream not implemented - backend integration required');
-  }
-}
-```
-
-### 3.6 Update Factory to Include HTTP Implementations
-
-**File**: `src/lib/api/factory.ts` (update existing)
-
-```typescript
-// Add to existing imports
-import { HttpEventsApi } from './implementations/http/HttpEventsApi.js';
-import { HttpHelpersApi } from './implementations/http/HttpHelpersApi.js';
-import { HttpRosterApi } from './implementations/http/HttpRosterApi.js';
-import { HttpLocksApi } from './implementations/http/HttpLocksApi.js';
-import type { HttpClientConfig } from './implementations/http/BaseHttpApi.js';
-
-// Update createApiClient function
-export function createApiClient(): ApiClient {
-  const useMock = import.meta.env.VITE_USE_MOCK_API === 'true';
-  
-  if (useMock) {
-    return {
-      events: new MockEventsApi(),
-      helpers: new MockHelpersApi(),
-      roster: new MockRosterApi(),
-      locks: new MockLocksApi(),
-    };
-  }
-  
-  // HTTP implementations
-  const httpConfig: HttpClientConfig = {
-    baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
-    timeout: 10000,
-    headers: {
-      'Authorization': `Bearer ${import.meta.env.VITE_API_TOKEN || ''}`,
-    },
-  };
-  
-  return {
-    events: new HttpEventsApi(httpConfig),
-    helpers: new HttpHelpersApi(httpConfig),
-    roster: new HttpRosterApi(httpConfig),
-    locks: new HttpLocksApi(httpConfig),
-  };
-}
-```
-
-### 3.7 Create HTTP Implementation Barrel Export
-
-**File**: `src/lib/api/implementations/http/index.ts`
-
-```typescript
-export { BaseHttpApi } from './BaseHttpApi.js';
-export { HttpEventsApi } from './HttpEventsApi.js';
-export { HttpHelpersApi } from './HttpHelpersApi.js';
-export { HttpRosterApi } from './HttpRosterApi.js';
-export { HttpLocksApi } from './HttpLocksApi.js';
-export type { HttpClientConfig } from './BaseHttpApi.js';
-```
-
-## ✅ Validation Criteria
-
-### Completion Requirements
-
-- [ ] All HTTP API classes created and implement their respective interfaces
-- [ ] BaseHttpApi provides proper error handling and request configuration
-- [ ] All methods throw clear "not implemented" errors with helpful messages
-- [ ] Factory updated to create HTTP implementations when mock mode is disabled
-- [ ] TypeScript compilation passes without errors
-- [ ] All imports use proper ESM module syntax
-
-### Testing Validation
-
-```typescript
-// Test that HTTP implementations can be instantiated
-import { createApiClient } from '../lib/api/factory.js';
-
-// Temporarily set environment to use HTTP
-const originalEnv = import.meta.env.VITE_USE_MOCK_API;
-import.meta.env.VITE_USE_MOCK_API = 'false';
-
-const apiClient = createApiClient();
-console.assert(apiClient.events.constructor.name === 'HttpEventsApi');
-
-// Restore environment
-import.meta.env.VITE_USE_MOCK_API = originalEnv;
-```
-
-### Error Handling Test
-
-```typescript
-// Test that HTTP methods throw appropriate errors
-try {
-  await apiClient.events.getEvents();
-  console.error('Should have thrown not implemented error');
-} catch (error) {
-  console.assert(error.message.includes('not implemented'));
-}
-```
-
-## 🔄 Next Steps
-
-After completing this phase:
-
-1. **Verify all HTTP implementations are created and working**
-2. **Test that factory properly switches between implementations**
-3. **Ensure TypeScript types are correct for all HTTP methods**
-4. **Proceed to [Phase 4: API Client Update](./phase-4-client-update.md)**
-
-## ⚠️ Important Notes
-
-- **Production-Ready Implementation**: These are fully functional HTTP clients, ready for backend integration
-- **Maintain consistent error messages** - they help with debugging during development
-- **All HTTP implementations should have the same method signatures** as mock implementations
-- **Consider authentication and authorization patterns** for future implementation
-- **HTTP client configuration should be environment-aware** for different deployment stages
+This approach leverages the existing BetterAuth setup in the discord-bot backend and the authClient configuration in the website frontend.
 
 ---
 
