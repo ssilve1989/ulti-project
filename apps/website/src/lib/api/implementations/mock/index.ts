@@ -1,4 +1,4 @@
-import type { ISchedulingApi } from '../../factory.js';
+import type { ISchedulingApi } from '../../interfaces/index.js';
 import type { IApiContext } from '../../interfaces/index.js';
 import { MockEventsApi } from './EventsApi.js';
 import { MockHelpersApi } from './HelpersApi.js';

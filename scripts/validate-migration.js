@@ -12,40 +12,60 @@ const phases = {
       'apps/website/src/lib/api/interfaces/helpers.ts',
       'apps/website/src/lib/api/interfaces/roster.ts',
       'apps/website/src/lib/api/interfaces/locks.ts',
+      'apps/website/src/lib/api/interfaces/index.ts',
       'apps/website/src/lib/api/factory.ts',
-      'apps/website/src/lib/api/interfaces/index.ts'
+      'apps/website/src/lib/api/index.ts'
     ]
   },
   2: {
     name: 'Mock Enhancement',
     files: [
+      'apps/website/src/lib/api/implementations/mock/EventsApi.ts',
+      'apps/website/src/lib/api/implementations/mock/HelpersApi.ts',
+      'apps/website/src/lib/api/implementations/mock/RosterApi.ts',
+      'apps/website/src/lib/api/implementations/mock/LocksApi.ts',
       'apps/website/src/lib/api/implementations/mock/index.ts'
-    ],
-    backupCheck: 'apps/website/src/lib/mock/events.ts.backup'
+    ]
   },
   3: {
     name: 'HTTP Implementation', 
     files: [
+      'apps/website/src/lib/api/implementations/http/BaseHttpClient.ts',
+      'apps/website/src/lib/api/implementations/http/EventsApi.ts',
+      'apps/website/src/lib/api/implementations/http/HelpersApi.ts',
+      'apps/website/src/lib/api/implementations/http/RosterApi.ts',
+      'apps/website/src/lib/api/implementations/http/LocksApi.ts',
+      'apps/website/src/lib/api/implementations/http/ParticipantsApi.ts',
+      'apps/website/src/lib/api/implementations/http/errors.ts',
       'apps/website/src/lib/api/implementations/http/index.ts'
     ]
   },
   4: {
-    name: 'Client Integration',
-    files: [
-      'apps/website/src/lib/api/client.ts'
+    name: 'Factory Integration & Export Cleanup',
+    modifiedFiles: [
+      'apps/website/src/lib/api/factory.ts',
+      'apps/website/src/lib/api/index.ts',
+      'apps/website/src/env.d.ts'
     ]
   },
   5: {
     name: 'Environment & Testing',
     files: [
       'apps/website/.env.development',
-      'apps/website/src/lib/api/__tests__/integration.test.ts'
+      'apps/website/.env.production',
+      'apps/website/src/lib/api/__tests__/factory-integration.test.ts',
+      'apps/website/src/lib/api/__tests__/usage-patterns.test.ts'
     ]
   },
   6: {
-    name: 'Finalization',
+    name: 'Integration Finalization',
     files: [
-      'scripts/migration-complete.js'
+      'apps/website/src/lib/api/client.ts',
+      'apps/website/src/hooks/queries/useEventsQuery.ts',
+      'apps/website/src/hooks/queries/useHelpersQuery.ts',
+      'apps/website/src/hooks/queries/__tests__/api-integration.test.ts',
+      'apps/website/docs/API_USAGE.md',
+      'scripts/validate-migration.js'
     ]
   }
 };
@@ -60,12 +80,23 @@ function validatePhase(phaseNum) {
   console.log(`🔍 Validating Phase ${phaseNum}: ${phase.name}`);
 
   // Check required files exist
-  for (const file of phase.files) {
+  const filesToCheck = phase.files || [];
+  const modifiedFilesToCheck = phase.modifiedFiles || [];
+  
+  for (const file of filesToCheck) {
     if (!existsSync(file)) {
       console.error(`❌ Missing required file: ${file}`);
       return false;
     }
     console.log(`✅ ${file}`);
+  }
+  
+  for (const file of modifiedFilesToCheck) {
+    if (!existsSync(file)) {
+      console.error(`❌ Missing modified file: ${file}`);
+      return false;
+    }
+    console.log(`✅ ${file} (modified)`);
   }
 
   // TypeScript validation
@@ -139,9 +170,9 @@ function checkStatus() {
     1: 'apps/website/src/lib/api/interfaces/index.ts',
     2: 'apps/website/src/lib/api/implementations/mock/index.ts', 
     3: 'apps/website/src/lib/api/implementations/http/index.ts',
-    4: 'apps/website/src/lib/api/client.ts',
+    4: 'apps/website/src/lib/api/factory.ts', // Phase 4 only modifies existing files
     5: 'apps/website/.env.development',
-    6: 'scripts/migration-complete.js'
+    6: 'apps/website/src/lib/api/client.ts'
   };
 
   let nextPhase = 1;

@@ -1,5 +1,5 @@
 import type { IApiContext } from '../../interfaces/index.js';
-import type { ISchedulingApi } from '../../factory.js';
+import type { ISchedulingApi } from '../../interfaces/index.js';
 import { HttpEventsApi } from './EventsApi.js';
 import { HttpHelpersApi } from './HelpersApi.js';
 import { HttpRosterApi } from './RosterApi.js';

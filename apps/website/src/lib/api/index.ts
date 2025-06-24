@@ -10,11 +10,8 @@ export type {
   IRosterApi,
   ILocksApi,
   IPaginatedResponse,
-  ApiFactory as ApiFactoryType,
+  ISchedulingApi,
 } from './interfaces/index.js';
-
-// Export factory and main API interface
-export type { ISchedulingApi } from './factory.js';
 export { ApiFactory, createDefaultConfig } from './factory.js';
 
 export const createSchedulingApi = (guildId?: string) => {

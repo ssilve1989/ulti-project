@@ -37,3 +37,13 @@ export interface IPaginatedResponse<T> {
   readonly hasMore: boolean;
   readonly nextCursor?: string;
 }
+
+/**
+ * Combined API interface that includes all domain APIs
+ */
+export interface ISchedulingApi {
+  readonly events: import('./events.js').IEventsApi;
+  readonly helpers: import('./helpers.js').IHelpersApi;
+  readonly roster: import('./roster.js').IRosterApi;
+  readonly locks: import('./locks.js').ILocksApi;
+}

@@ -5,6 +5,7 @@ export type {
   IApiConfig,
   ApiFactory,
   IPaginatedResponse,
+  ISchedulingApi,
 } from './base.js';
 
 // Domain interfaces

@@ -1,21 +1,7 @@
-import type {
-  IApiConfig,
-  IApiContext,
-  IEventsApi,
-  IHelpersApi,
-  ILocksApi,
-  IRosterApi,
-} from './interfaces/index.js';
+import type { ISchedulingApi, IApiContext, IApiConfig } from './interfaces/index.js';
+import { createMockSchedulingApi } from './implementations/mock/index.js';
+import { HttpSchedulingApi } from './implementations/http/index.js';
 
-/**
- * Combined API interface that includes all domain APIs
- */
-export interface ISchedulingApi {
-  readonly events: IEventsApi;
-  readonly helpers: IHelpersApi;
-  readonly roster: IRosterApi;
-  readonly locks: ILocksApi;
-}
 
 /**
  * API factory that creates the appropriate implementation based on configuration
@@ -56,24 +42,15 @@ export class ApiFactory {
     return this.createHttpApi(context);
   }
 
-  /**
-   * Create mock implementation (to be implemented in Phase 2)
-   */
   private createMockApi(context: IApiContext): ISchedulingApi {
-    // Placeholder - will be implemented in Phase 2
-    throw new Error(
-      'Mock API implementation not yet available - implement in Phase 2',
-    );
+    return createMockSchedulingApi(context);
   }
 
-  /**
-   * Create HTTP implementation (to be implemented in Phase 3)
-   */
   private createHttpApi(context: IApiContext): ISchedulingApi {
-    // Placeholder - will be implemented in Phase 3
-    throw new Error(
-      'HTTP API implementation not yet available - implement in Phase 3',
-    );
+    if (!this.config.apiBaseUrl) {
+      throw new Error('API base URL required for HTTP implementation');
+    }
+    return new HttpSchedulingApi(this.config.apiBaseUrl, context);
   }
 
   /**
@@ -91,13 +68,8 @@ export class ApiFactory {
   }
 }
 
-/**
- * Default configuration based on environment
- */
 export const createDefaultConfig = (): IApiConfig => ({
-  useMockData:
-    process.env.NODE_ENV === 'development' ||
-    process.env.USE_MOCK_DATA === 'true',
-  apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:3000',
-  defaultGuildId: process.env.DEFAULT_GUILD_ID || 'default-guild',
+  useMockData: import.meta.env.VITE_USE_MOCK_API !== 'false',
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  defaultGuildId: import.meta.env.VITE_DEFAULT_GUILD_ID || 'default-guild'
 });
