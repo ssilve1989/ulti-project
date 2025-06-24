@@ -73,7 +73,7 @@ export class ApiFactory {
 }
 
 export const createDefaultConfig = (): IApiConfig => ({
-  useMockData: import.meta.env.VITE_USE_MOCK_API !== 'false',
+  useMockData: false,
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
   defaultGuildId:
     import.meta.env.VITE_DEFAULT_GUILD_ID || MOCK_CONFIG.guild.defaultGuildId,

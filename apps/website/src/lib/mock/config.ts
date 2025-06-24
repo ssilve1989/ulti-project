@@ -3,7 +3,7 @@ export const MOCK_CONFIG = {
   // Guild configuration
   guild: {
     // Default guild ID - can be overridden by Vite env vars
-    defaultGuildId: import.meta.env.VITE_GUILD_ID || 'guild-12345-demo',
+    defaultGuildId: import.meta.env.VITE_GUILD_ID || '913492538516717578',
     name: 'Demo Ultimate Raid Static',
   },
 

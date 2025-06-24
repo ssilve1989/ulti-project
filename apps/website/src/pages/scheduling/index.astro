@@ -1,19 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { getEvents } from '../../lib/schedulingApi.js';
-import { getEventStatusColor } from '../../lib/utils/statusUtils.js';
-import { formatSchedulingDate } from '../../lib/utils/uiUtils.js';
-
-// Fetch events on the server
-const events = await getEvents();
-
-// Group events by status for better organization
-const eventsByStatus = {
-  draft: events.filter((e) => e.status === 'draft'),
-  published: events.filter((e) => e.status === 'published'),
-  'in-progress': events.filter((e) => e.status === 'in-progress'),
-  completed: events.filter((e) => e.status === 'completed'),
-};
+import { EventsListWithProvider } from '../../components/scheduling/EventsListWithProvider.tsx';
 ---
 
 <Layout title="Event Scheduling">
@@ -34,112 +21,8 @@ const eventsByStatus = {
         </a>
       </div>
 
-      <!-- Events by Status -->
-      {Object.entries(eventsByStatus).map(([status, statusEvents]) => (
-        statusEvents.length > 0 && (
-          <div class="mb-8">
-            <h2 style="color: var(--text-primary);" class="text-xl font-semibold mb-4 capitalize">
-              {status.replace('-', ' ')} Events ({statusEvents.length})
-            </h2>
-            
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {statusEvents.map((event) => (
-                <div style="background-color: var(--bg-primary); border-color: var(--border-primary);" class="rounded-lg border p-6 hover:shadow-md transition-shadow">
-                  <!-- Event Header -->
-                  <div class="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 style="color: var(--text-primary);" class="font-semibold text-lg">{event.name}</h3>
-                      <p style="color: var(--text-secondary);" class="text-sm">{event.encounter}</p>
-                    </div>
-                    <span class={`px-2 py-1 rounded-full text-xs font-medium ${getEventStatusColor(event.status)}`}>
-                      {event.status}
-                    </span>
-                  </div>
-
-                  <!-- Event Details -->
-                  <div class="space-y-2 mb-4">
-                    <div style="color: var(--text-secondary);" class="flex items-center text-sm">
-                      <svg style="color: var(--text-secondary);" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                      </svg>
-                      {formatSchedulingDate(event.scheduledTime)}
-                    </div>
-                    
-                    <div style="color: var(--text-secondary);" class="flex items-center text-sm">
-                      <svg style="color: var(--text-secondary);" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                      {event.duration} minutes
-                    </div>
-
-                    <div style="color: var(--text-secondary);" class="flex items-center text-sm">
-                      <svg style="color: var(--text-secondary);" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                      </svg>
-                      {event.teamLeaderName}
-                    </div>
-                  </div>
-
-                  <!-- Roster Progress -->
-                  <div class="mb-4">
-                    <div style="color: var(--text-secondary);" class="flex justify-between text-sm mb-1">
-                      <span>Roster Progress</span>
-                      <span>{event.roster.filledSlots}/{event.roster.totalSlots}</span>
-                    </div>
-                    <div style="background-color: var(--bg-tertiary);" class="w-full rounded-full h-2">
-                      <div 
-                        class="h-2 rounded-full transition-all"
-                        style={`background-color: var(--bg-accent); width: ${(event.roster.filledSlots / event.roster.totalSlots) * 100}%`}
-                      ></div>
-                    </div>
-                  </div>
-
-                  <!-- Actions -->
-                  <div class="flex gap-2">
-                    <a 
-                      href={`/scheduling/${event.id}`}
-                      style="background-color: var(--bg-secondary); color: var(--text-primary);"
-                      class="flex-1 hover:opacity-80 px-4 py-2 rounded text-center text-sm font-medium transition-opacity"
-                    >
-                      {event.status === 'draft' ? 'Edit Roster' : 'View Details'}
-                    </a>
-                    
-                    {event.status === 'draft' && (
-                      <button 
-                        style="background-color: var(--bg-accent); color: var(--text-inverse);"
-                        class="hover:opacity-90 px-4 py-2 rounded text-sm font-medium transition-opacity"
-                        onclick={`publishEvent('${event.id}')`}
-                      >
-                        Publish
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )
-      ))}
-
-      <!-- Empty State -->
-      {events.length === 0 && (
-        <div class="text-center py-12">
-          <svg style="color: var(--text-tertiary);" class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-          </svg>
-          <h3 style="color: var(--text-primary);" class="mt-2 text-sm font-medium">No events scheduled</h3>
-          <p style="color: var(--text-secondary);" class="mt-1 text-sm">Get started by creating your first event.</p>
-          <div class="mt-6">
-            <a 
-              href="/scheduling/create"
-              style="background-color: var(--bg-accent); color: var(--text-inverse);"
-              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md hover:opacity-90 transition-opacity"
-            >
-              Create New Event
-            </a>
-          </div>
-        </div>
-      )}
+      <!-- Events List - Client-side rendered -->
+      <EventsListWithProvider client:load />
     </div>
   </div>
 </Layout> 
