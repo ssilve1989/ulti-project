@@ -1,5 +1,5 @@
 ---
-import RosterManagement from "../../components/scheduling/RosterManagement.js";
+import RosterManagementWithProvider from "../../components/scheduling/RosterManagementWithProvider.js";
 import Layout from "../../layouts/Layout.astro";
 import { getEvents } from "../../lib/schedulingApi.js";
 import { getEventStatusColor } from "../../lib/utils/statusUtils.js";
@@ -166,7 +166,7 @@ const { event } = Astro.props;
       </div>
 
       <!-- Interactive Roster Management -->
-      <RosterManagement
+      <RosterManagementWithProvider
         client:load
         event={event}
         teamLeaderId={event.teamLeaderId}

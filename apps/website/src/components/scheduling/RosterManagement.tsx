@@ -1,6 +1,6 @@
 import type { Participant, ScheduledEvent } from '@ulti-project/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getEvent } from '../../lib/schedulingApi.js';
+import { useEventQuery } from '../../hooks/queries/useEventsQuery.js';
 import ErrorBoundary from './ErrorBoundary.js';
 import EventManagement from './EventManagement.js';
 import ParticipantPool from './ParticipantPool.js';
@@ -29,9 +29,11 @@ export default function RosterManagement({
   const onEventUpdateRef = useRef(onEventUpdate);
   onEventUpdateRef.current = onEventUpdate;
 
-  // State for the current event (starts with static data, then fetches fresh data)
-  const [event, setEvent] = useState<ScheduledEvent>(initialEvent);
-  const [isLoadingFreshData, setIsLoadingFreshData] = useState(true);
+  // React Query to fetch fresh event data
+  const { data: freshEvent, isLoading: isLoadingFreshData } = useEventQuery(initialEvent.id);
+  
+  // Use fresh event data if available, otherwise fall back to initial event
+  const event = freshEvent || initialEvent;
 
   const [selectedParticipants, setSelectedParticipants] = useState<Set<string>>(
     new Set(),
@@ -55,32 +57,10 @@ export default function RosterManagement({
     setSelectedParticipants(selected);
   }, [event]);
 
-  // Fetch fresh event data on mount to override stale static data
-  useEffect(() => {
-    const fetchFreshEventData = async () => {
-      try {
-        const freshEvent = await getEvent(initialEvent.id);
-        if (freshEvent) {
-          setEvent(freshEvent);
-          console.log('Loaded fresh event data:', freshEvent);
-        }
-      } catch (error) {
-        console.error('Failed to fetch fresh event data:', error);
-        // Keep using the initial static data if fetch fails
-      } finally {
-        setIsLoadingFreshData(false);
-      }
-    };
-
-    fetchFreshEventData();
-  }, [initialEvent.id]);
 
   // This callback is passed to children to notify of an update.
-  // It now only needs to update the event state, and the useEffect above
-  // will handle synchronizing the selected participants.
+  // React Query mutations will automatically update the cache, so we just need to notify the parent
   const handleEventUpdate = useCallback((updatedEvent: ScheduledEvent) => {
-    setEvent(updatedEvent);
-
     if (typeof onEventUpdateRef.current === 'function') {
       onEventUpdateRef.current(updatedEvent);
     } else {

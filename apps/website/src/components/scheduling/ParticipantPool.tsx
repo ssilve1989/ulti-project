@@ -7,14 +7,8 @@ import type {
   ScheduledEvent,
 } from '@ulti-project/shared';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  createDraftLocksEventSource,
-  createHelpersEventSource,
-  getActiveLocks,
-  getAllParticipants,
-  getHelpers,
-  isHelperAvailableForEvent,
-} from '../../lib/schedulingApi.js';
+import { useHelpersQuery, useParticipantsQuery, useActiveLocksQuery } from '../../hooks/queries/useHelpersQuery.js';
+import { api } from '../../lib/api/client.js';
 import { getJobIconProps } from '../../lib/utils/iconUtils.js';
 import { getJobRole } from '../../lib/utils/jobUtils.js';
 import { getParticipantStatusColor } from '../../lib/utils/statusUtils.js';
@@ -42,14 +36,23 @@ export default function ParticipantPool({
   selectedParticipants,
   pendingParticipant,
 }: ParticipantPoolProps) {
-  const [helpers, setHelpers] = useState<HelperData[]>([]);
-  const [proggers, setProggers] = useState<Participant[]>([]);
-  const [draftLocks, setDraftLocks] = useState<DraftLock[]>([]);
+  // React Query hooks for data fetching
+  const { data: helpers = [], isLoading: helpersLoading, error: helpersError } = useHelpersQuery();
+  const { data: allParticipants = [], isLoading: participantsLoading, error: participantsError } = useParticipantsQuery({ encounter });
+  const { data: draftLocks = [], isLoading: locksLoading, error: locksError } = useActiveLocksQuery(event.id);
+
+  // Filter proggers from all participants
+  const proggers = useMemo(() => allParticipants.filter(p => p.type === 'progger'), [allParticipants]);
+
+  // Combine loading states
+  const loading = helpersLoading || participantsLoading || locksLoading;
+  
+  // Combine error states
+  const error = helpersError?.message || participantsError?.message || locksError?.message || null;
+
   const [helperAvailability, setHelperAvailability] = useState<
     Map<string, { available: boolean; reason?: string }>
   >(new Map());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<FilterState>({
     search: '',
@@ -58,31 +61,7 @@ export default function ParticipantPool({
     availability: 'all',
   });
 
-  // Load initial data
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [helpersData, proggersData, locksData] = await Promise.all([
-          getHelpers(),
-          getAllParticipants({ encounter }),
-          getActiveLocks(event.id),
-        ]);
-
-        setHelpers(helpersData);
-        setProggers(proggersData.filter((p) => p.type === 'progger'));
-        setDraftLocks(locksData);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to load participants',
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [event.id, encounter]);
+  // Data is now loaded automatically by React Query hooks
 
   // Check helper availability for the event time
   useEffect(() => {
@@ -98,7 +77,7 @@ export default function ParticipantPool({
       try {
         // Check availability for all helpers
         const availabilityPromises = helpers.map(async (helper) => {
-          const result = await isHelperAvailableForEvent(
+          const result = await api.helpers.checkHelperAvailability(
             helper.id,
             scheduledTimeDate,
             eventEnd,
@@ -121,82 +100,8 @@ export default function ParticipantPool({
     checkHelperAvailability();
   }, [helpers, event.scheduledTime, event.duration]);
 
-  // Set up real-time updates
-  useEffect(() => {
-    let helpersSource: EventSource | null = null;
-    let locksSource: EventSource | null = null;
-
-    try {
-      helpersSource = createHelpersEventSource();
-      locksSource = createDraftLocksEventSource(event.id);
-
-      helpersSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (Array.isArray(data)) {
-            setHelpers(data);
-          }
-        } catch (err) {
-          console.warn('Failed to parse helpers SSE data:', err);
-        }
-      };
-
-      helpersSource.onerror = (error) => {
-        console.warn('Helpers SSE connection error:', error);
-      };
-
-      locksSource.onmessage = (event) => {
-        try {
-          const messageData = JSON.parse(event.data);
-
-          // Handle initial data dump (if it's just an array)
-          if (Array.isArray(messageData)) {
-            setDraftLocks(messageData);
-            return;
-          }
-
-          // Handle structured event messages
-          if (messageData.type === 'draft_lock_created') {
-            const newLock = messageData.data.lock as DraftLock;
-            setDraftLocks((prevLocks) => {
-              // Avoid duplicates
-              if (prevLocks.some((lock) => lock.id === newLock.id)) {
-                return prevLocks;
-              }
-              return [...prevLocks, newLock];
-            });
-          } else if (messageData.type === 'draft_lock_released') {
-            const releasedLock = messageData.data.lock as DraftLock;
-            setDraftLocks((prevLocks) =>
-              prevLocks.filter((lock) => lock.id !== releasedLock.id),
-            );
-          } else if (messageData.type === 'draft_lock_expired') {
-            const expiredLock = messageData.data.lock as DraftLock;
-            setDraftLocks((prevLocks) =>
-              prevLocks.filter((lock) => lock.id !== expiredLock.id),
-            );
-          }
-        } catch (err) {
-          console.warn('Failed to parse locks SSE data:', err);
-        }
-      };
-
-      locksSource.onerror = (error) => {
-        console.warn('Locks SSE connection error:', error);
-      };
-    } catch (err) {
-      console.warn('Failed to create SSE connections:', err);
-    }
-
-    return () => {
-      try {
-        helpersSource?.close();
-        locksSource?.close();
-      } catch (err) {
-        console.warn('Error closing SSE connections:', err);
-      }
-    };
-  }, [event.id]);
+  // Real-time updates are now handled by React Query's background refetching
+  // TODO: Implement real-time updates through WebSocket or SSE via the API client
 
   // Convert helpers to participants, memoized to prevent re-renders
   const helperParticipants = useMemo(

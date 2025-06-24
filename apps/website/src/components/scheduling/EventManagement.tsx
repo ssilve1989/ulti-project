@@ -1,7 +1,10 @@
 import { EventStatus } from '@ulti-project/shared';
 import type { ScheduledEvent } from '@ulti-project/shared';
 import { useEffect, useState } from 'react';
-import { deleteEvent, updateEvent } from '../../lib/schedulingApi.js';
+import {
+  useDeleteEventMutation,
+  useUpdateEventMutation,
+} from '../../hooks/queries/useEventsQuery.js';
 import { getEventStatusInfo } from '../../lib/utils/statusUtils.js';
 import { getLoadingSpinnerClasses } from '../../lib/utils/uiUtils.js';
 
@@ -30,6 +33,18 @@ export default function EventManagement({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Notification type styling lookup
+  const notificationStyles = {
+    success: 'border-green-500',
+    error: 'border-red-500',
+    warning: 'border-yellow-500',
+    info: 'border-blue-500',
+  } as const;
+
+  // React Query mutations
+  const updateEventMutation = useUpdateEventMutation();
+  const deleteEventMutation = useDeleteEventMutation();
 
   // Auto-save functionality
   useEffect(() => {
@@ -104,67 +119,82 @@ Current roster: ${event.roster.filledSlots}/${event.roster.totalSlots} slots fil
 
     if (!confirmed) return;
 
-    try {
-      setLoading('publish');
-      const updatedEvent = await updateEvent(event.id, {
-        status: EventStatus.Published,
-      });
+    setLoading('publish');
 
-      onEventUpdate(updatedEvent);
-      setHasUnsavedChanges(false);
-      setLastSaved(new Date());
+    updateEventMutation.mutate(
+      {
+        eventId: event.id,
+        updates: {
+          status: EventStatus.Published,
+        },
+      },
+      {
+        onSuccess: (updatedEvent) => {
+          onEventUpdate(updatedEvent);
+          setHasUnsavedChanges(false);
+          setLastSaved(new Date());
 
-      addNotification({
-        type: 'success',
-        title: 'Event Published',
-        message: `"${event.name}" has been published successfully. Participants will be notified.`,
-        duration: 7000,
-      });
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        title: 'Publish Failed',
-        message:
-          error instanceof Error ? error.message : 'Failed to publish event',
-      });
-    } finally {
-      setLoading(null);
-    }
+          addNotification({
+            type: 'success',
+            title: 'Event Published',
+            message: `"${event.name}" has been published successfully. Participants will be notified.`,
+            duration: 7000,
+          });
+          setLoading(null);
+        },
+        onError: (error) => {
+          addNotification({
+            type: 'error',
+            title: 'Publish Failed',
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Failed to publish event',
+          });
+          setLoading(null);
+        },
+      },
+    );
   };
 
   const handleSaveAsDraft = async () => {
-    try {
-      setLoading('save');
+    setLoading('save');
 
-      // Actually save the draft by updating the lastModified timestamp
-      // This ensures the event is marked as saved in the backend
-      const updatedEvent = await updateEvent(event.id, {
-        // Update lastModified timestamp to mark as saved
-        // The roster state is already persisted through assign/unassign operations
-      });
+    updateEventMutation.mutate(
+      {
+        eventId: event.id,
+        updates: {
+          // Update lastModified timestamp to mark as saved
+          // The roster state is already persisted through assign/unassign operations
+        },
+      },
+      {
+        onSuccess: (updatedEvent) => {
+          // Update the parent component with the fresh event data
+          onEventUpdate(updatedEvent);
 
-      // Update the parent component with the fresh event data
-      onEventUpdate(updatedEvent);
+          setHasUnsavedChanges(false);
+          setLastSaved(new Date());
 
-      setHasUnsavedChanges(false);
-      setLastSaved(new Date());
-
-      addNotification({
-        type: 'success',
-        title: 'Draft Saved',
-        message: 'Your changes have been saved successfully.',
-        duration: 3000,
-      });
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        title: 'Save Failed',
-        message:
-          error instanceof Error ? error.message : 'Failed to save draft',
-      });
-    } finally {
-      setLoading(null);
-    }
+          addNotification({
+            type: 'success',
+            title: 'Draft Saved',
+            message: 'Your changes have been saved successfully.',
+            duration: 3000,
+          });
+          setLoading(null);
+        },
+        onError: (error) => {
+          addNotification({
+            type: 'error',
+            title: 'Save Failed',
+            message:
+              error instanceof Error ? error.message : 'Failed to save draft',
+          });
+          setLoading(null);
+        },
+      },
+    );
   };
 
   const handleCancelEvent = async () => {
@@ -181,30 +211,38 @@ This action cannot be undone.`,
 
     if (!confirmed) return;
 
-    try {
-      setLoading('cancel');
-      await deleteEvent(event.id, teamLeaderId);
+    setLoading('cancel');
 
-      addNotification({
-        type: 'info',
-        title: 'Event Cancelled',
-        message: `"${event.name}" has been cancelled and all participants have been notified.`,
-        duration: 5000,
-      });
+    deleteEventMutation.mutate(
+      {
+        eventId: event.id,
+        teamLeaderId,
+      },
+      {
+        onSuccess: () => {
+          addNotification({
+            type: 'info',
+            title: 'Event Cancelled',
+            message: `"${event.name}" has been cancelled and all participants have been notified.`,
+            duration: 5000,
+          });
 
-      // Delay navigation to show notification
-      setTimeout(() => {
-        onEventDeleted();
-      }, 1000);
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        title: 'Cancellation Failed',
-        message:
-          error instanceof Error ? error.message : 'Failed to cancel event',
-      });
-      setLoading(null);
-    }
+          // Delay navigation to show notification
+          setTimeout(() => {
+            onEventDeleted();
+          }, 1000);
+        },
+        onError: (error) => {
+          addNotification({
+            type: 'error',
+            title: 'Cancellation Failed',
+            message:
+              error instanceof Error ? error.message : 'Failed to cancel event',
+          });
+          setLoading(null);
+        },
+      },
+    );
   };
 
   const handleUnpublishEvent = async () => {
@@ -221,32 +259,42 @@ Continue?`,
 
     if (!confirmed) return;
 
-    try {
-      setLoading('unpublish');
-      const updatedEvent = await updateEvent(event.id, {
-        status: EventStatus.Draft,
-      });
+    setLoading('unpublish');
 
-      onEventUpdate(updatedEvent);
-      setHasUnsavedChanges(false);
-      setLastSaved(new Date());
+    updateEventMutation.mutate(
+      {
+        eventId: event.id,
+        updates: {
+          status: EventStatus.Draft,
+        },
+      },
+      {
+        onSuccess: (updatedEvent) => {
+          onEventUpdate(updatedEvent);
+          setHasUnsavedChanges(false);
+          setLastSaved(new Date());
 
-      addNotification({
-        type: 'success',
-        title: 'Event Unpublished',
-        message: `"${event.name}" has been moved back to draft status.`,
-        duration: 5000,
-      });
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        title: 'Unpublish Failed',
-        message:
-          error instanceof Error ? error.message : 'Failed to unpublish event',
-      });
-    } finally {
-      setLoading(null);
-    }
+          addNotification({
+            type: 'success',
+            title: 'Event Unpublished',
+            message: `"${event.name}" has been moved back to draft status.`,
+            duration: 5000,
+          });
+          setLoading(null);
+        },
+        onError: (error) => {
+          addNotification({
+            type: 'error',
+            title: 'Unpublish Failed',
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Failed to unpublish event',
+          });
+          setLoading(null);
+        },
+      },
+    );
   };
 
   const validateRosterRoles = () => {
@@ -298,13 +346,7 @@ Continue?`,
           <div
             key={notification.id}
             style={{ backgroundColor: 'var(--bg-primary)' }}
-            className={`
-              max-w-sm p-4 rounded-lg shadow-lg border-l-4
-              ${notification.type === 'success' ? 'border-green-500' : ''}
-              ${notification.type === 'error' ? 'border-red-500' : ''}
-              ${notification.type === 'warning' ? 'border-yellow-500' : ''}
-              ${notification.type === 'info' ? 'border-blue-500' : ''}
-            `}
+            className={`max-w-sm p-4 rounded-lg shadow-lg border-l-4 ${notificationStyles[notification.type]}`}
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">

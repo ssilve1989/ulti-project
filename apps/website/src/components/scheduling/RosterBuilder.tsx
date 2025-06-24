@@ -6,13 +6,12 @@ import type {
   ScheduledEvent,
 } from '@ulti-project/shared';
 import { useEffect, useState } from 'react';
-import {
-  assignParticipant,
-  createEventEventSource,
-  lockParticipant,
-  releaseLock,
-  unassignParticipant,
-} from '../../lib/schedulingApi.js';
+import { 
+  useAssignParticipantMutation, 
+  useUnassignParticipantMutation, 
+  useLockParticipantMutation, 
+  useReleaseLockMutation 
+} from '../../hooks/queries/useEventsQuery.js';
 import {
   getJobIconProps,
   getRoleIconProps,
@@ -53,6 +52,12 @@ export default function RosterBuilder({
   const [loading, setLoading] = useState<string | null>(null); // slotId being processed
   const [error, setError] = useState<string | null>(null);
 
+  // React Query mutations
+  const assignParticipantMutation = useAssignParticipantMutation();
+  const unassignParticipantMutation = useUnassignParticipantMutation();
+  const lockParticipantMutation = useLockParticipantMutation();
+  const releaseLockMutation = useReleaseLockMutation();
+
   // Update local state when prop changes
   useEffect(() => {
     setCurrentEvent(event);
@@ -60,23 +65,11 @@ export default function RosterBuilder({
 
   // Set up real-time event updates
   useEffect(() => {
-    const eventSource = createEventEventSource(event.id);
-
-    eventSource.onmessage = (eventData) => {
-      try {
-        const data = JSON.parse(eventData.data);
-        if (data.type === 'event_updated' && data.data.event) {
-          setCurrentEvent(data.data.event);
-          onEventUpdate(data.data.event);
-        }
-      } catch (err) {
-        console.warn('Failed to parse event SSE data:', err);
-      }
-    };
-
-    return () => {
-      eventSource.close();
-    };
+    // TODO: Implement real-time updates through the new API
+    // For now, we'll rely on React Query's automatic cache invalidation
+    // This could be enhanced with WebSocket or SSE through the API client
+    
+    console.log('Real-time updates will be handled by React Query cache invalidation');
   }, [event.id, onEventUpdate]);
 
   const handleSlotClick = (slot: PartySlot) => {
@@ -167,39 +160,63 @@ export default function RosterBuilder({
     try {
       // First lock the participant
       console.log('Attempting to lock participant...');
-      await lockParticipant(event.id, teamLeaderId, {
-        participantId: participant.id,
-        participantType: participant.type,
-        slotId: slot.id,
+      await new Promise((resolve, reject) => {
+        lockParticipantMutation.mutate(
+          {
+            eventId: event.id,
+            request: {
+              participantId: participant.id,
+              participantType: participant.type,
+              slotId: slot.id,
+            },
+          },
+          {
+            onSuccess: () => {
+              console.log('Lock created successfully');
+              lockCreated = true;
+              resolve(undefined);
+            },
+            onError: reject,
+          }
+        );
       });
-      console.log('Lock created successfully');
-      lockCreated = true;
 
       // Then assign to slot
       console.log('Attempting to assign participant to slot...');
-      const updatedEvent = await assignParticipant(event.id, teamLeaderId, {
-        participantId: participant.id,
-        participantType: participant.type,
-        slotId: slot.id,
-        selectedJob,
+      await new Promise((resolve, reject) => {
+        assignParticipantMutation.mutate(
+          {
+            eventId: event.id,
+            request: {
+              participantId: participant.id,
+              participantType: participant.type,
+              slotId: slot.id,
+              selectedJob,
+            },
+          },
+          {
+            onSuccess: (updatedEvent) => {
+              console.log('Assignment successful, updating state...');
+              setCurrentEvent(updatedEvent);
+              onEventUpdate(updatedEvent);
+              console.log('Assignment completed successfully');
+              resolve(undefined);
+            },
+            onError: reject,
+          }
+        );
       });
-      console.log('Assignment successful, updating state...');
-
-      setCurrentEvent(updatedEvent);
-      onEventUpdate(updatedEvent);
-      console.log('Assignment completed successfully');
     } catch (err) {
       console.error('Assignment failed:', err);
 
       // Only try to release lock if it was successfully created
       if (lockCreated) {
         try {
-          await releaseLock(
-            event.id,
-            teamLeaderId,
-            participant.id,
-            participant.type,
-          );
+          releaseLockMutation.mutate({
+            eventId: event.id,
+            participantType: participant.type as any, // Convert string to enum
+            participantId: participant.id,
+          });
         } catch (releaseErr) {
           console.warn(
             'Failed to release lock after assignment failure:',
@@ -216,25 +233,43 @@ export default function RosterBuilder({
 
   const handleUnassignParticipant = async (slot: PartySlot) => {
     if (!slot.assignedParticipant) return;
-    const { id: participantId, type: participantType } =
-      slot.assignedParticipant;
+
+    const participant = slot.assignedParticipant;
 
     try {
       setLoading(slot.id);
       setError(null);
 
-      const updatedEvent = await unassignParticipant(
-        event.id,
-        teamLeaderId,
-        slot.id,
-      );
-      setCurrentEvent(updatedEvent);
-      onEventUpdate(updatedEvent);
+      // First unassign the participant from the slot
+      await new Promise((resolve, reject) => {
+        unassignParticipantMutation.mutate(
+          {
+            eventId: event.id,
+            slotId: slot.id,
+          },
+          {
+            onSuccess: (updatedEvent) => {
+              setCurrentEvent(updatedEvent);
+              onEventUpdate(updatedEvent);
+              resolve(undefined);
+            },
+            onError: reject,
+          }
+        );
+      });
+
+      // Then release their draft lock
+      releaseLockMutation.mutate({
+        eventId: event.id,
+        participantType: participant.type as any,
+        participantId: participant.id,
+      });
+
+      setLoading(null);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to unassign participant',
       );
-    } finally {
       setLoading(null);
     }
   };

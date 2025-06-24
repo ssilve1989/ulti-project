@@ -1,7 +1,11 @@
-import type { ISchedulingApi, IApiContext, IApiConfig } from './interfaces/index.js';
-import { createMockSchedulingApi } from './implementations/mock/index.js';
+import { MOCK_CONFIG } from '../mock/config.js';
 import { HttpSchedulingApi } from './implementations/http/index.js';
-
+import { createMockSchedulingApi } from './implementations/mock/index.js';
+import type {
+  IApiConfig,
+  IApiContext,
+  ISchedulingApi,
+} from './interfaces/index.js';
 
 /**
  * API factory that creates the appropriate implementation based on configuration
@@ -71,5 +75,6 @@ export class ApiFactory {
 export const createDefaultConfig = (): IApiConfig => ({
   useMockData: import.meta.env.VITE_USE_MOCK_API !== 'false',
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
-  defaultGuildId: import.meta.env.VITE_DEFAULT_GUILD_ID || 'default-guild'
+  defaultGuildId:
+    import.meta.env.VITE_DEFAULT_GUILD_ID || MOCK_CONFIG.guild.defaultGuildId,
 });

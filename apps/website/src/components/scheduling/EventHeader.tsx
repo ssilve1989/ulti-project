@@ -1,7 +1,7 @@
 import { EventStatus } from '@ulti-project/shared';
 import type { ScheduledEvent } from '@ulti-project/shared';
 import { useCallback, useEffect, useState } from 'react';
-import { deleteEvent, updateEvent } from '../../lib/schedulingApi.js';
+import { useUpdateEventMutation, useDeleteEventMutation } from '../../hooks/queries/useEventsQuery.js';
 import { getEventStatusColorDashboard } from '../../lib/utils/statusUtils.js';
 import { getLoadingSpinnerClasses } from '../../lib/utils/uiUtils.js';
 
@@ -24,6 +24,10 @@ export default function EventHeader({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastEventVersion, setLastEventVersion] = useState(event.version);
 
+  // React Query mutations
+  const updateEventMutation = useUpdateEventMutation();
+  const deleteEventMutation = useDeleteEventMutation();
+
   // Track when the event is updated to detect unsaved changes
   useEffect(() => {
     if (event.version !== lastEventVersion) {
@@ -34,39 +38,44 @@ export default function EventHeader({
 
   const handleSaveAsDraft = useCallback(
     async (silent = false) => {
-      try {
-        if (!silent) {
-          setLoading('save');
-          setError(null);
-        }
-
-        // Actually save the draft by updating the lastModified timestamp
-        // This ensures the event is marked as saved in the backend
-        const updatedEvent = await updateEvent(event.id, {
-          // Update lastModified timestamp to mark as saved
-          // The roster state is already persisted through assign/unassign operations
-        });
-
-        // Update the parent component with the fresh event data
-        onEventUpdate(updatedEvent);
-
-        if (!silent) {
-          console.log('Draft saved successfully');
-        }
-
-        setHasUnsavedChanges(false);
-        setLastSaved(new Date());
-      } catch (err) {
-        if (!silent) {
-          setError(err instanceof Error ? err.message : 'Failed to save draft');
-        }
-      } finally {
-        if (!silent) {
-          setLoading(null);
-        }
+      if (!silent) {
+        setLoading('save');
+        setError(null);
       }
+
+      updateEventMutation.mutate(
+        {
+          eventId: event.id,
+          updates: {
+            // Update lastModified timestamp to mark as saved
+            // The roster state is already persisted through assign/unassign operations
+          },
+        },
+        {
+          onSuccess: (updatedEvent) => {
+            // Update the parent component with the fresh event data
+            onEventUpdate(updatedEvent);
+
+            if (!silent) {
+              console.log('Draft saved successfully');
+            }
+
+            setHasUnsavedChanges(false);
+            setLastSaved(new Date());
+            if (!silent) {
+              setLoading(null);
+            }
+          },
+          onError: (err) => {
+            if (!silent) {
+              setError(err instanceof Error ? err.message : 'Failed to save draft');
+              setLoading(null);
+            }
+          },
+        },
+      );
     },
-    [event.id, onEventUpdate],
+    [event.id, onEventUpdate, updateEventMutation],
   );
 
   // Auto-save functionality (every 30 seconds if there are changes)
@@ -109,21 +118,29 @@ Roster: ${event.roster.filledSlots}/${event.roster.totalSlots} slots filled`,
 
     if (!confirmed) return;
 
-    try {
-      setLoading('publish');
-      setError(null);
+    setLoading('publish');
+    setError(null);
 
-      const updatedEvent = await updateEvent(event.id, {
-        status: EventStatus.Published,
-      });
-      onEventUpdate(updatedEvent);
-      setHasUnsavedChanges(false);
-      setLastSaved(new Date());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to publish event');
-    } finally {
-      setLoading(null);
-    }
+    updateEventMutation.mutate(
+      {
+        eventId: event.id,
+        updates: {
+          status: EventStatus.Published,
+        },
+      },
+      {
+        onSuccess: (updatedEvent) => {
+          onEventUpdate(updatedEvent);
+          setHasUnsavedChanges(false);
+          setLastSaved(new Date());
+          setLoading(null);
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : 'Failed to publish event');
+          setLoading(null);
+        },
+      },
+    );
   };
 
   const handleCancelEvent = async () => {
@@ -140,17 +157,25 @@ This action cannot be undone.`,
 
     if (!confirmed) return;
 
-    try {
-      setLoading('cancel');
-      setError(null);
+    setLoading('cancel');
+    setError(null);
 
-      await deleteEvent(event.id, teamLeaderId);
-      onEventDeleted();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to cancel event');
-    } finally {
-      setLoading(null);
-    }
+    deleteEventMutation.mutate(
+      {
+        eventId: event.id,
+        teamLeaderId,
+      },
+      {
+        onSuccess: () => {
+          onEventDeleted();
+          setLoading(null);
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : 'Failed to cancel event');
+          setLoading(null);
+        },
+      },
+    );
   };
 
   const validateRosterRoles = () => {

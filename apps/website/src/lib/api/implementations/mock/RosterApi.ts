@@ -6,8 +6,8 @@ import type {
   Role,
   ScheduledEvent,
 } from '@ulti-project/shared';
-import { getEventWithGuild } from '../../../mock/events.js';
-import { getParticipantsWithGuild } from '../../../mock/participants.js';
+import { getEventWithGuild, updateEventWithGuild } from '../../../mock/events.js';
+import { getParticipantsWithGuild, getParticipant } from '../../../mock/participants.js';
 import type { IApiContext, IRosterApi } from '../../interfaces/index.js';
 
 export class MockRosterApi implements IRosterApi {
@@ -40,21 +40,82 @@ export class MockRosterApi implements IRosterApi {
     eventId: string,
     request: AssignParticipantRequest,
   ): Promise<ScheduledEvent> {
-    // This would use the existing roster assignment logic
-    // For now, throw an error as this is complex mock logic
-    throw new Error(
-      'assignParticipant not implemented in mock - would require complex roster management',
+    // Get current event
+    const currentEvent = await getEventWithGuild(this.context.guildId, eventId);
+    if (!currentEvent) {
+      throw new Error('Event not found');
+    }
+
+    // Get the actual participant data
+    const participant = await getParticipant(
+      request.participantId,
+      request.participantType,
     );
+
+    if (!participant) {
+      throw new Error('Participant not found');
+    }
+
+    // Create a copy of the roster and update the specific slot
+    const updatedRoster = {
+      ...currentEvent.roster,
+      party: currentEvent.roster.party.map((slot) => {
+        if (slot.id === request.slotId) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { draftedBy, draftedAt, ...rest } = slot;
+          return {
+            ...rest,
+            assignedParticipant: {
+              ...participant,
+              job: request.selectedJob || participant.job,
+              encounter: currentEvent.encounter,
+              isConfirmed: false,
+            },
+          };
+        }
+        return slot;
+      }),
+    };
+
+    // Update filled slots count
+    updatedRoster.filledSlots = updatedRoster.party.filter(
+      (slot: any) => slot.assignedParticipant,
+    ).length;
+
+    // Use updateEvent to apply the changes
+    return updateEventWithGuild(this.context.guildId, eventId, { roster: updatedRoster });
   }
 
   async unassignParticipant(
     eventId: string,
     slotId: string,
   ): Promise<ScheduledEvent> {
-    // This would use the existing roster unassignment logic
-    throw new Error(
-      'unassignParticipant not implemented in mock - would require complex roster management',
-    );
+    // Get current event
+    const currentEvent = await getEventWithGuild(this.context.guildId, eventId);
+    if (!currentEvent) {
+      throw new Error('Event not found');
+    }
+
+    // Create a copy of the roster and clear the specific slot
+    const updatedRoster = {
+      ...currentEvent.roster,
+      party: currentEvent.roster.party.map((slot) => {
+        if (slot.id === slotId) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { assignedParticipant, draftedBy, draftedAt, ...rest } = slot;
+          return rest;
+        }
+        return slot;
+      }),
+    };
+
+    // Update filled slots count
+    updatedRoster.filledSlots = updatedRoster.party.filter(
+      (slot: any) => slot.assignedParticipant,
+    ).length;
+
+    // Use updateEvent to apply the changes
+    return updateEventWithGuild(this.context.guildId, eventId, { roster: updatedRoster });
   }
 
   async getEventRoster(eventId: string): Promise<ScheduledEvent> {

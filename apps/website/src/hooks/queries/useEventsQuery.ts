@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { EventFilters, CreateEventRequest, UpdateEventRequest } from '@ulti-project/shared';
+import type { EventFilters, CreateEventRequest, UpdateEventRequest, AssignParticipantRequest, CreateDraftLockRequest, ParticipantType } from '@ulti-project/shared';
 import { api } from '../../lib/api/client.js';
+import { helpersQueryKeys, participantsQueryKeys, locksQueryKeys } from './useHelpersQuery.js';
 
 // Query keys
 export const eventsQueryKeys = {
@@ -69,6 +70,71 @@ export function useDeleteEventMutation() {
     onSuccess: (_, { eventId }) => {
       queryClient.removeQueries({ queryKey: eventsQueryKeys.detail(eventId) });
       queryClient.invalidateQueries({ queryKey: eventsQueryKeys.lists() });
+    },
+  });
+}
+
+// Roster management mutations
+export function useAssignParticipantMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ eventId, request }: { eventId: string; request: AssignParticipantRequest }) =>
+      api.roster.assignParticipant(eventId, request),
+    onSuccess: (updatedEvent, { eventId }) => {
+      // Update the specific event
+      queryClient.setQueryData(eventsQueryKeys.detail(eventId), updatedEvent);
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: eventsQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: participantsQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: locksQueryKeys.event(eventId) });
+    },
+  });
+}
+
+export function useUnassignParticipantMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ eventId, slotId }: { eventId: string; slotId: string }) =>
+      api.roster.unassignParticipant(eventId, slotId),
+    onSuccess: (updatedEvent, { eventId }) => {
+      // Update the specific event
+      queryClient.setQueryData(eventsQueryKeys.detail(eventId), updatedEvent);
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: eventsQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: participantsQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: locksQueryKeys.event(eventId) });
+    },
+  });
+}
+
+export function useLockParticipantMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ eventId, request }: { eventId: string; request: CreateDraftLockRequest }) =>
+      api.locks.lockParticipant(eventId, request),
+    onSuccess: (_, { eventId }) => {
+      // Invalidate locks query to show new lock
+      queryClient.invalidateQueries({ queryKey: locksQueryKeys.event(eventId) });
+    },
+  });
+}
+
+export function useReleaseLockMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ eventId, participantType, participantId }: { 
+      eventId: string; 
+      participantType: ParticipantType; 
+      participantId: string 
+    }) =>
+      api.locks.releaseLock(eventId, participantType, participantId),
+    onSuccess: (_, { eventId }) => {
+      // Invalidate locks query to remove released lock
+      queryClient.invalidateQueries({ queryKey: locksQueryKeys.event(eventId) });
     },
   });
 }
