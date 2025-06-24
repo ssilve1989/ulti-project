@@ -285,7 +285,7 @@ function EventCard({ event, onPublish }: EventCardProps) {
       {/* Actions */}
       <div className="flex gap-2">
         <a
-          href={`/scheduling/${event.id}`}
+          href={`/scheduling/event?eventId=${event.id}`}
           style={{
             backgroundColor: 'var(--bg-secondary)',
             color: 'var(--text-primary)',

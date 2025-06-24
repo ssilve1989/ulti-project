@@ -1,0 +1,8 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import EventPageContentWithProvider from "../../components/scheduling/EventPageContentWithProvider.tsx";
+---
+
+<Layout title="Event - Roster Management" preloadCriticalIcons={true}>
+  <EventPageContentWithProvider client:load />
+</Layout>

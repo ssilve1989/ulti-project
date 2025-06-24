@@ -116,8 +116,9 @@ class EventsController {
       createRequest.guildId,
       createRequest,
     );
+
     return {
-      ...serializeEventDates(event),
+      ...event,
       guildId: createRequest.guildId,
     };
   }
