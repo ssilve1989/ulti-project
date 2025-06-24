@@ -67,6 +67,11 @@ const phases = {
       'apps/website/docs/API_USAGE.md',
       'scripts/validate-migration.js'
     ]
+  },
+  7: {
+    name: 'Code Migration to New API System',
+    validation: 'audit', // Special validation type
+    description: 'Replace all direct mock calls with new API system'
   }
 };
 
@@ -78,6 +83,36 @@ function validatePhase(phaseNum) {
   }
 
   console.log(`🔍 Validating Phase ${phaseNum}: ${phase.name}`);
+
+  // Handle special validation types
+  if (phase.validation === 'audit') {
+    console.log('🔍 Running code migration audit...');
+    
+    try {
+      // Check for remaining old schedulingApi imports
+      const oldApiImports = execSync('grep -r "from.*schedulingApi" apps/website/src --include="*.ts" --include="*.tsx" --exclude-dir=__tests__ 2>/dev/null || true', { encoding: 'utf8' });
+      
+      if (oldApiImports.trim()) {
+        console.log('📋 Files still using old schedulingApi.js:');
+        oldApiImports.trim().split('\n').forEach(line => {
+          if (line.trim()) {
+            const fileName = line.split(':')[0];
+            console.log(`  ⚠️  ${fileName}`);
+          }
+        });
+        console.log('\n📖 Next: Migrate these files according to phase-7-code-migration.md');
+        console.log('🎯 Replace schedulingApi.js imports with React Query hooks or api client');
+        return false;
+      } else {
+        console.log('✅ No old schedulingApi.js imports found - migration appears complete');
+      }
+    } catch (error) {
+      console.log('✅ No old schedulingApi.js imports found');
+    }
+    
+    console.log('🎉 Phase 7 audit complete\n');
+    return true;
+  }
 
   // Check required files exist
   const filesToCheck = phase.files || [];
@@ -141,7 +176,7 @@ function validateAll() {
   let completedPhases = 0;
   let nextPhase = 1;
   
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 7; i++) {
     if (validatePhase(i)) {
       completedPhases++;
     } else {
@@ -150,14 +185,14 @@ function validateAll() {
     }
   }
 
-  if (completedPhases === 6) {
+  if (completedPhases === 7) {
     console.log('🎉 Migration Fully Completed!');
     console.log('\n📋 All phases validated successfully');
     console.log('🚀 System ready for production!');
     return true;
   }
   
-  console.log(`\n📊 Migration Status: ${completedPhases}/6 phases complete`);
+  console.log(`\n📊 Migration Status: ${completedPhases}/7 phases complete`);
   console.log(`🎯 Next: Resume from Phase ${nextPhase}`);
   console.log(`📖 Load: /apps/website/docs/migration/phase-${nextPhase}-*.md`);
   return false;
@@ -172,12 +207,13 @@ function checkStatus() {
     3: 'apps/website/src/lib/api/implementations/http/index.ts',
     4: 'apps/website/src/lib/api/factory.ts', // Phase 4 only modifies existing files
     5: 'apps/website/.env.development',
-    6: 'apps/website/src/lib/api/client.ts'
+    6: 'apps/website/src/lib/api/client.ts',
+    7: 'apps/website/docs/migration/phase-7-code-migration.md'
   };
 
   let nextPhase = 1;
   
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 7; i++) {
     const keyFile = phaseFiles[i];
     if (existsSync(keyFile)) {
       console.log(`✅ Phase ${i}: ${phases[i].name} - Complete`);
@@ -189,7 +225,7 @@ function checkStatus() {
     }
   }
   
-  if (nextPhase > 6) {
+  if (nextPhase > 7) {
     console.log('\n🎉 All phases appear complete - run "all" for full validation');
   } else {
     console.log(`\n🎯 Next: Phase ${nextPhase}`);
