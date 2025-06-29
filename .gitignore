@@ -41,3 +41,6 @@ NOTES.md
 .sentryclirc
 .private
 pr-description.md
+
+*.db
+*.astro
