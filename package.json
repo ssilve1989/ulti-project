@@ -31,7 +31,7 @@
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org ulti-project --project ulti-project-bot ./dist && sentry-cli sourcemaps upload --org ulti-project --project ulti-project-bot ./dist"
   },
   "dependencies": {
-    "@googleapis/sheets": "^9.8.0",
+    "@googleapis/sheets": "^10.0.1",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.1.3",
     "@nestjs/config": "^4.0.2",
@@ -45,7 +45,7 @@
     "dayjs": "^1.11.13",
     "discord.js": "^14.20.0",
     "firebase-admin": "^13.4.0",
-    "google-auth-library": "^9.15.1",
+    "google-auth-library": "^10.1.0",
     "graphql-request": "^7.2.0",
     "nestjs-pino": "^4.4.0",
     "pino-http": "^10.5.0",
