@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.33.0](https://github.com/ssilve1989/ulti-project/compare/v1.32.1...v1.33.0) (2025-06-30)
+
+
+### Features
+
+* implement dynamic encounter management system ([02aa798](https://github.com/ssilve1989/ulti-project/commit/02aa798dc619f1b9b7665675ff528bdb2cdb3276))
+
 ## [1.32.1](https://github.com/ssilve1989/ulti-project/compare/v1.32.0...v1.32.1) (2025-05-06)
 
 
