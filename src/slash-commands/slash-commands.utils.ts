@@ -6,6 +6,8 @@ import {
   BlacklistRemoveCommand,
 } from './blacklist/blacklist.commands.js';
 import { BlacklistSlashCommand } from './blacklist/blacklist.slash-command.js';
+import { EncountersCommand } from './encounters/commands/encounters.commands.js';
+import { EncountersSlashCommand } from './encounters/encounters.slash-command.js';
 import { FINAL_PUSH_SLASH_COMMAND_NAME } from './finalpush/final-push-signup.slash-command.js';
 import { LookupCommand } from './lookup/lookup.command.js';
 import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
@@ -50,6 +52,7 @@ export function getCommandForInteraction(
         .with('display', () => new BlacklistDisplayCommand(interaction))
         .run();
     })
+    .with(EncountersSlashCommand.name, () => new EncountersCommand(interaction))
     .with(LookupSlashCommand.name, () => new LookupCommand(interaction))
     .with(SIGNUP_SLASH_COMMAND_NAME, () => new SignupCommand(interaction))
     .with(StatusSlashCommand.name, () => new StatusCommand(interaction))

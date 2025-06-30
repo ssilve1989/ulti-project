@@ -6,14 +6,13 @@ import {
 } from 'discord.js';
 import type { ApplicationModeConfig } from '../../app.config.js';
 import {
-  Encounter,
-  EncounterProgPoints,
+  type ProgPointOption,
   getEncounterChoicesForMode,
 } from '../../encounters/encounters.consts.js';
 
-export const ENCOUNTER_SELECT_ID = 'searchEncounterSelect';
-export const PROG_POINT_SELECT_ID = 'searchProgPointSelect';
-export const RESET_BUTTON_ID = 'searchResetButton';
+export const SEARCH_ENCOUNTER_SELECTOR_ID = 'searchEncounterSelect';
+export const SEARCH_PROG_POINT_SELECT_ID = 'searchProgPointSelect';
+export const SEARCH_RESET_BUTTON_ID = 'searchResetButton';
 
 // Create select menu options for encounters based on application mode
 export const getEncounterOptions = (
@@ -29,20 +28,23 @@ export const getEncounterOptions = (
 // Create the encounter select menu with application mode filtering
 export const createEncounterSelectMenu = (mode: ApplicationModeConfig) =>
   new StringSelectMenuBuilder()
-    .setCustomId(ENCOUNTER_SELECT_ID)
+    .setCustomId(SEARCH_ENCOUNTER_SELECTOR_ID)
     .setPlaceholder('Select an encounter')
     .addOptions(getEncounterOptions(mode));
 
 // Create the prog point select menu for a specific encounter
-export const createProgPointSelectMenu = (encounter: Encounter) => {
-  const progPoints = EncounterProgPoints[encounter];
-  const options = Object.entries(progPoints).map(([value, { label }]) => ({
-    label,
-    value,
-  }));
+export const createProgPointSelectMenu = (
+  progPointOptions: Record<string, ProgPointOption>,
+) => {
+  const options = Object.entries(progPointOptions).map(
+    ([value, { label }]) => ({
+      label,
+      value,
+    }),
+  );
 
   return new StringSelectMenuBuilder()
-    .setCustomId(PROG_POINT_SELECT_ID)
+    .setCustomId(SEARCH_PROG_POINT_SELECT_ID)
     .setPlaceholder('Select a prog point')
     .addOptions(options);
 };
@@ -50,6 +52,6 @@ export const createProgPointSelectMenu = (encounter: Encounter) => {
 // Create reset button
 export const createResetButton = () =>
   new ButtonBuilder()
-    .setCustomId(RESET_BUTTON_ID)
+    .setCustomId(SEARCH_RESET_BUTTON_ID)
     .setLabel('Reset Search')
     .setStyle(ButtonStyle.Secondary);

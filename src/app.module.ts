@@ -10,34 +10,16 @@ import { DiscordModule } from './discord/discord.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
 import { SheetsModule } from './sheets/sheets.module.js';
-import { BlacklistModule } from './slash-commands/blacklist/blacklist.module.js';
-import { LookupModule } from './slash-commands/lookup/lookup.module.js';
-import { RemoveRoleModule } from './slash-commands/remove-role/remove-role.module.js';
-import { RetireModule } from './slash-commands/retire/retire.module.js';
-import { SearchModule } from './slash-commands/search/search.module.js';
-import { SettingsModule } from './slash-commands/settings/settings.module.js';
-import { SignupModule } from './slash-commands/signup/signup.module.js';
 import { SlashCommandsModule } from './slash-commands/slash-commands.module.js';
-import { StatusModule } from './slash-commands/status/status.module.js';
-import { TurboProgModule } from './slash-commands/turboprog/turbo-prog.module.js';
 
 @Module({
   imports: [
-    BlacklistModule,
-    RemoveRoleModule,
     CqrsModule,
     DiscordModule,
     FirebaseModule,
-    LookupModule,
-    RetireModule,
-    SearchModule,
-    SettingsModule,
     SheetsModule,
-    SignupModule,
     SlashCommandsModule,
-    StatusModule,
     JobsModule,
-    TurboProgModule,
     ConfigModule.forRoot({
       cache: true,
       envFilePath: ['.env', '.env.development'],

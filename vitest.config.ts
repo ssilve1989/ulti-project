@@ -15,7 +15,10 @@ export default defineConfig({
     globals: true,
     coverage: {
       include: ['src/**/*.ts'],
-      exclude: ['src/slash-commands/**/*-command.ts'],
+      exclude: [
+        'src/slash-commands/**/*{-command.ts,.command.ts}',
+        '**/*.module.ts',
+      ],
       provider: 'v8',
     },
     chaiConfig: {

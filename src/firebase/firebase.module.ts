@@ -5,6 +5,7 @@ import { type App, cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import type { AppConfig } from '../app.config.js';
 import { BlacklistCollection } from './collections/blacklist-collection.js';
+import { EncountersCollection } from './collections/encounters-collection.js';
 import { JobCollection } from './collections/job/job.collection.js';
 import { SettingsCollection } from './collections/settings-collection.js';
 import { SignupCollection } from './collections/signup.collection.js';
@@ -48,6 +49,7 @@ import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
     SettingsCollection,
     BlacklistCollection,
     JobCollection,
+    EncountersCollection,
   ],
   exports: [
     FIRESTORE,
@@ -55,6 +57,7 @@ import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
     SettingsCollection,
     BlacklistCollection,
     JobCollection,
+    EncountersCollection,
   ],
 })
 export class FirebaseModule {}

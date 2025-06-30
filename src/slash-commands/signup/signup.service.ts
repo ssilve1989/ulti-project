@@ -34,14 +34,10 @@ import { isSameUserFilter } from '../../common/collection-filters.js';
 import { getMessageLink } from '../../discord/discord.consts.js';
 import { hydrateReaction, hydrateUser } from '../../discord/discord.helpers.js';
 import { DiscordService } from '../../discord/discord.service.js';
-import {
-  EncounterProgMenus,
-  PROG_POINT_SELECT_ID,
-} from '../../encounters/encounters.components.js';
-import {
-  Encounter,
-  EncounterProgPoints,
-} from '../../encounters/encounters.consts.js';
+import { EncountersComponentsService } from '../../encounters/encounters-components.service.js';
+import { PROG_POINT_SELECT_ID } from '../../encounters/encounters.components.js';
+import { Encounter } from '../../encounters/encounters.consts.js';
+import { EncountersService } from '../../encounters/encounters.service.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { DocumentNotFoundException } from '../../firebase/firebase.exceptions.js';
@@ -74,6 +70,8 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
     private readonly eventBus: EventBus,
+    private readonly encountersService: EncountersService,
+    private readonly encountersComponentsService: EncountersComponentsService,
   ) {}
 
   onApplicationBootstrap() {
@@ -240,7 +238,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     );
 
     const partyStatus = progPoint
-      ? this.getPartyStatus(signup.encounter, progPoint)
+      ? await this.getPartyStatus(signup.encounter, progPoint)
       : undefined;
 
     const confirmedSignup: SignupDocument = {
@@ -325,7 +323,10 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     sourceEmbed: Embed,
     user: User,
   ): Promise<string | undefined> {
-    const menu = EncounterProgMenus[signup.encounter];
+    const menu =
+      await this.encountersComponentsService.createProgPointSelectMenu(
+        signup.encounter,
+      );
     const row = new ActionRowBuilder().addComponents(menu);
 
     const embed = signup.progPoint
@@ -365,10 +366,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     }
   }
 
-  private getPartyStatus(encounter: Encounter, progPoint: string) {
-    return progPoint === PartyStatus.Cleared
-      ? PartyStatus.Cleared
-      : EncounterProgPoints[encounter][progPoint]?.partyStatus;
+  private async getPartyStatus(encounter: Encounter, progPoint: string) {
+    if (progPoint === PartyStatus.Cleared) {
+      return PartyStatus.Cleared;
+    }
+
+    return await this.encountersService.getPartyStatusForProgPoint(
+      encounter,
+      progPoint,
+    );
   }
 }
 

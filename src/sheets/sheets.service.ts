@@ -6,10 +6,8 @@ import * as Sentry from '@sentry/nestjs';
 import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
-import {
-  Encounter,
-  EncounterProgPoints,
-} from '../encounters/encounters.consts.js';
+import { Encounter } from '../encounters/encounters.consts.js';
+import { EncountersService } from '../encounters/encounters.service.js';
 import {
   PartyStatus,
   type SignupDocument,
@@ -48,19 +46,11 @@ class SheetsService {
   // Separate queues for regular signups and TurboProg operations
   private readonly signupQueue = new AsyncQueue();
   private readonly turboProgQueue = new AsyncQueue();
-  private readonly progEncounters = new Set([
-    Encounter.DSR,
-    Encounter.TEA,
-    Encounter.TOP,
-    Encounter.UCOB,
-    Encounter.UWU,
-    Encounter.FRU,
-  ]);
-
   constructor(
     @InjectSheetsClient() private readonly client: sheets_v4.Sheets,
     @Inject(sheetsConfig.KEY)
     private readonly config: ConfigType<typeof sheetsConfig>,
+    private readonly encountersService: EncountersService,
   ) {}
 
   // Regular signup methods
@@ -178,7 +168,7 @@ class SheetsService {
     spreadsheetId: string,
     partyTypes?: PartyTypes,
   ) {
-    const types = partyTypes || this.getDefaultPartyTypes(encounter);
+    const types = partyTypes || (await this.getDefaultPartyTypes(encounter));
     const ranges = types.map((range) => SheetRanges[range]);
 
     const requests = await Promise.all(
@@ -457,10 +447,8 @@ class SheetsService {
     const { encounter, character, world } = signup;
     const cellValues = this.getCellValues(signup);
 
-    if (
-      this.progEncounters.has(encounter) &&
-      partyStatus === PartyStatus.ClearParty
-    ) {
+    const isProgEncounter = await this.isProgEncounter(encounter);
+    if (isProgEncounter && partyStatus === PartyStatus.ClearParty) {
       // if its a clear party we need to check if we are moving them from prog to clear
       await this.removeSignup(signup, spreadsheetId, [PartyStatus.ProgParty]);
     }
@@ -524,14 +512,29 @@ class SheetsService {
     return [titleCase(character), titleCase(world), role, progPoint];
   }
 
-  private getDefaultPartyTypes(
+  private async isProgEncounter(encounter: Encounter): Promise<boolean> {
+    try {
+      const progPoints = await this.encountersService.getProgPoints(encounter);
+      // An encounter is considered a "prog encounter" if it has multiple prog points
+      // indicating different stages of progression
+      return progPoints.length > 1;
+    } catch {
+      // If we can't get prog points, fall back to conservative behavior
+      return false;
+    }
+  }
+
+  private async getDefaultPartyTypes(
     encounter: Encounter,
-  ): (
-    | PartyStatus.ClearParty
-    | PartyStatus.ProgParty
-    | PartyStatus.EarlyProgParty
-  )[] {
-    return this.progEncounters.has(encounter)
+  ): Promise<
+    (
+      | PartyStatus.ClearParty
+      | PartyStatus.ProgParty
+      | PartyStatus.EarlyProgParty
+    )[]
+  > {
+    const isProgEncounter = await this.isProgEncounter(encounter);
+    return isProgEncounter
       ? [PartyStatus.ProgParty, PartyStatus.ClearParty]
       : [PartyStatus.ClearParty];
   }
@@ -571,7 +574,11 @@ class SheetsService {
         row.values.some((cell) => cell),
       );
 
-      const progPoints = Object.keys(EncounterProgPoints[encounter]);
+      const progPointsFromDB =
+        await this.encountersService.getProgPoints(encounter);
+      const progPoints = progPointsFromDB
+        .sort((a, b) => a.order - b.order)
+        .map((p) => p.id);
       const progPointIndex = (value: string) =>
         progPoints.indexOf(value) !== -1
           ? progPoints.indexOf(value)
