@@ -2,6 +2,7 @@ import { sheets_v4 } from '@googleapis/sheets';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { Encounter } from '../encounters/encounters.consts.js';
+import { EncountersService } from '../encounters/encounters.service.js';
 import { PartyStatus } from '../firebase/models/signup.model.js';
 import { sheetsConfig } from './sheets.config.js';
 import { SHEETS_CLIENT } from './sheets.consts.js';
@@ -29,6 +30,8 @@ vi.mock('@googleapis/sheets', () => ({
 describe('Sheets Service', () => {
   let service: SheetsService;
   let client: sheets_v4.Sheets;
+  let mockEncountersService: any;
+
   const mockConfigService = {
     get: vi.fn((key) => {
       if (key === 'sheets') {
@@ -42,11 +45,20 @@ describe('Sheets Service', () => {
   beforeEach(async () => {
     const { sheets } = await import('@googleapis/sheets');
 
+    // Create mock for EncountersService
+    mockEncountersService = {
+      getProgPoints: vi.fn().mockResolvedValue([
+        { id: 'p1', label: 'Phase 1', order: 0 },
+        { id: 'p2', label: 'Phase 2', order: 1 },
+      ]),
+    };
+
     const fixture = await Test.createTestingModule({
       providers: [
         SheetsService,
         { provide: SHEETS_CLIENT, useValue: sheets },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: EncountersService, useValue: mockEncountersService },
         {
           provide: sheetsConfig.KEY,
           useValue: { TURBO_PROG_SHEET_NAME: 'TurboProg' },

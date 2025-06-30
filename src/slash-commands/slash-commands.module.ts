@@ -3,10 +3,34 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import type { AppConfig } from '../app.config.js';
 import { DiscordModule } from '../discord/discord.module.js';
+import { BlacklistModule } from './blacklist/blacklist.module.js';
+import { EncountersSlashCommandModule } from './encounters/encounters.module.js';
+import { LookupModule } from './lookup/lookup.module.js';
+import { RemoveRoleModule } from './remove-role/remove-role.module.js';
+import { RetireModule } from './retire/retire.module.js';
+import { SearchModule } from './search/search.module.js';
+import { SettingsModule } from './settings/settings.module.js';
+import { SignupModule } from './signup/signup.module.js';
 import { SlashCommandsService } from './slash-commands.service.js';
+import { StatusModule } from './status/status.module.js';
+import { TurboProgModule } from './turboprog/turbo-prog.module.js';
 
 @Module({
-  imports: [DiscordModule, ConfigModule, CqrsModule],
+  imports: [
+    DiscordModule,
+    ConfigModule,
+    CqrsModule,
+    BlacklistModule,
+    EncountersSlashCommandModule,
+    LookupModule,
+    RemoveRoleModule,
+    RetireModule,
+    SearchModule,
+    SettingsModule,
+    SignupModule,
+    StatusModule,
+    TurboProgModule,
+  ],
   providers: [SlashCommandsService],
 })
 export class SlashCommandsModule implements OnApplicationBootstrap {
