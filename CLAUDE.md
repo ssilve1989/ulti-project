@@ -18,6 +18,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm format` - Format code with Biome
 - `pnpm typecheck` - TypeScript type checking (must pass)
 
+**Note:** When running linting with biome, use `biome check --fix` to also apply formatting fixes automatically.
+
 **Testing:**
 
 - `pnpm test` - Run tests in watch mode
