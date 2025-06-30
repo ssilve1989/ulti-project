@@ -9,19 +9,21 @@ import {
   StringSelectMenuInteraction,
 } from 'discord.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
+import { EncountersService } from '../../encounters/encounters.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SearchCommandHandler } from './search.command-handler.js';
 import { SearchCommand } from './search.command.js';
 import {
-  ENCOUNTER_SELECT_ID,
-  PROG_POINT_SELECT_ID,
-  RESET_BUTTON_ID,
+  SEARCH_ENCOUNTER_SELECTOR_ID,
+  SEARCH_PROG_POINT_SELECT_ID,
+  SEARCH_RESET_BUTTON_ID,
 } from './search.components.js';
 
 describe('SearchCommandHandler', () => {
   let handler: SearchCommandHandler;
   let mockSignupsCollection: DeepMocked<SignupCollection>;
   let mockConfigService: DeepMocked<ConfigService>;
+  let mockEncountersService: DeepMocked<EncountersService>;
   let mockInteraction: DeepMocked<ChatInputCommandInteraction>;
   let mockCollector: any; // Using 'any' to avoid complex typing issues
   let mockReplyMessage: any;
@@ -29,6 +31,7 @@ describe('SearchCommandHandler', () => {
   beforeEach(async () => {
     mockSignupsCollection = createMock<SignupCollection>();
     mockConfigService = createMock<ConfigService>();
+    mockEncountersService = createMock<EncountersService>();
     mockInteraction = createMock<ChatInputCommandInteraction>();
 
     // Configure config service to return application mode
@@ -58,11 +61,23 @@ describe('SearchCommandHandler', () => {
     mockInteraction.user = { id: 'user123', username: 'testuser' } as any;
     mockInteraction.guildId = 'guild123';
 
+    // Mock EncountersService methods
+    mockEncountersService.getProgPoints.mockResolvedValue([
+      {
+        id: 'P6 Enrage',
+        label: 'P6 Enrage',
+        partyStatus: 'ProgParty',
+        order: 1,
+        active: true,
+      },
+    ]);
+
     const module = await Test.createTestingModule({
       providers: [
         SearchCommandHandler,
         { provide: SignupCollection, useValue: mockSignupsCollection },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: EncountersService, useValue: mockEncountersService },
       ],
     }).compile();
 
@@ -143,7 +158,7 @@ describe('SearchCommandHandler', () => {
 
     // Create a mock select menu interaction for encounter selection
     const mockSelectInteraction = createMock<StringSelectMenuInteraction>();
-    mockSelectInteraction.customId = ENCOUNTER_SELECT_ID;
+    mockSelectInteraction.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
     mockSelectInteraction.values = [Encounter.TOP];
     mockSelectInteraction.isStringSelectMenu.mockReturnValue(true);
 
@@ -220,7 +235,7 @@ describe('SearchCommandHandler', () => {
 
     // First, simulate encounter selection
     const mockEncounterSelect = createMock<StringSelectMenuInteraction>();
-    mockEncounterSelect.customId = ENCOUNTER_SELECT_ID;
+    mockEncounterSelect.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
     mockEncounterSelect.values = [Encounter.TOP];
     mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
 
@@ -243,7 +258,7 @@ describe('SearchCommandHandler', () => {
 
     // Then, simulate prog point selection
     const mockProgPointSelect = createMock<StringSelectMenuInteraction>();
-    mockProgPointSelect.customId = PROG_POINT_SELECT_ID;
+    mockProgPointSelect.customId = SEARCH_PROG_POINT_SELECT_ID;
     mockProgPointSelect.values = ['P6 Enrage'];
     mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);
 
@@ -341,14 +356,14 @@ describe('SearchCommandHandler', () => {
 
     // First, simulate encounter selection
     const mockEncounterSelect = createMock<StringSelectMenuInteraction>();
-    mockEncounterSelect.customId = ENCOUNTER_SELECT_ID;
+    mockEncounterSelect.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
     mockEncounterSelect.values = [Encounter.TOP];
     mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
     await collectorCallback!(mockEncounterSelect);
 
     // Then, simulate prog point selection
     const mockProgPointSelect = createMock<StringSelectMenuInteraction>();
-    mockProgPointSelect.customId = PROG_POINT_SELECT_ID;
+    mockProgPointSelect.customId = SEARCH_PROG_POINT_SELECT_ID;
     mockProgPointSelect.values = ['P6 Enrage'];
     mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);
 
@@ -416,7 +431,7 @@ describe('SearchCommandHandler', () => {
 
     // Simulate reset button click
     const mockButtonInteraction = createMock<ButtonInteraction>();
-    mockButtonInteraction.customId = RESET_BUTTON_ID;
+    mockButtonInteraction.customId = SEARCH_RESET_BUTTON_ID;
 
     mockButtonInteraction.editReply.mockImplementation(() => {
       return Promise.resolve({
