@@ -14,12 +14,13 @@ import type { AppConfig, ApplicationModeConfig } from '../../app.config.js';
 import { isSameUserFilter } from '../../common/collection-filters.js';
 import { characterField } from '../../common/components/fields.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
+import { EncountersService } from '../../encounters/encounters.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SearchCommand } from './search.command.js';
 import {
-  ENCOUNTER_SELECT_ID,
-  PROG_POINT_SELECT_ID,
-  RESET_BUTTON_ID,
+  SEARCH_ENCOUNTER_SELECTOR_ID,
+  SEARCH_PROG_POINT_SELECT_ID,
+  SEARCH_RESET_BUTTON_ID,
   createEncounterSelectMenu,
   createProgPointSelectMenu,
   createResetButton,
@@ -33,6 +34,7 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
   constructor(
     private readonly signupsCollection: SignupCollection,
     private readonly configService: ConfigService<AppConfig, true>,
+    private readonly encountersService: EncountersService,
   ) {
     this.applicationMode =
       this.configService.get<ApplicationModeConfig>('APPLICATION_MODE');
@@ -71,7 +73,10 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
     collector.on('collect', async (i) => {
       await i.deferUpdate();
 
-      if (i.customId === ENCOUNTER_SELECT_ID && i.isStringSelectMenu()) {
+      if (
+        i.customId === SEARCH_ENCOUNTER_SELECTOR_ID &&
+        i.isStringSelectMenu()
+      ) {
         // User selected an encounter
         selectedEncounter = i.values[0] as Encounter;
         selectedProgPoint = null;
@@ -84,9 +89,16 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
           .setColor(Colors.Blue);
 
         // Create a row with the prog point selection menu
+        const progPointOptions =
+          await this.encountersService.getProgPointsAsOptions(
+            selectedEncounter,
+          );
+
+        const progPointSelectMenu = createProgPointSelectMenu(progPointOptions);
+
         const progPointRow =
           new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-            createProgPointSelectMenu(selectedEncounter),
+            progPointSelectMenu,
           );
 
         // Create a row with the reset button
@@ -99,7 +111,7 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
           components: [progPointRow, resetRow],
         });
       } else if (
-        i.customId === PROG_POINT_SELECT_ID &&
+        i.customId === SEARCH_PROG_POINT_SELECT_ID &&
         i.isStringSelectMenu()
       ) {
         // User selected a prog point
@@ -127,7 +139,7 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
           embeds: embeds,
           components: [resetRow],
         });
-      } else if (i.customId === RESET_BUTTON_ID) {
+      } else if (i.customId === SEARCH_RESET_BUTTON_ID) {
         // Reset the selections
         selectedEncounter = null;
         selectedProgPoint = null;

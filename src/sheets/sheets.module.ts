@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Compute, GoogleAuth } from 'google-auth-library';
 import type { AppConfig } from '../app.config.js';
+import { EncountersModule } from '../encounters/encounters.module.js';
 import { type SheetsConfig, sheetsConfig } from './sheets.config.js';
 import { SHEETS_CLIENT } from './sheets.consts.js';
 import { SheetsService } from './sheets.service.js';
@@ -10,7 +11,7 @@ import { SheetsService } from './sheets.service.js';
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
 @Module({
-  imports: [ConfigModule.forFeature(sheetsConfig)],
+  imports: [ConfigModule.forFeature(sheetsConfig), EncountersModule],
   providers: [
     SheetsService,
     {
