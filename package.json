@@ -1,7 +1,7 @@
 {
   "name": "ulti-project",
   "packageManager": "pnpm@10.11.1",
-  "version": "1.32.1",
+  "version": "1.33.0",
   "description": "Ulti-Project Discord Bot",
   "author": "",
   "type": "module",
@@ -99,6 +99,8 @@
       "esbuild",
       "nestjs-pino"
     ],
-    "ignoredBuiltDependencies": ["protobufjs"]
+    "ignoredBuiltDependencies": [
+      "protobufjs"
+    ]
   }
 }
