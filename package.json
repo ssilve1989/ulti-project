@@ -40,7 +40,7 @@
     "@sentry/cli": "^2.45.0",
     "@sentry/nestjs": "^9.33.0",
     "@sentry/profiling-node": "^9.33.0",
-    "cache-manager": "^6.4.3",
+    "cache-manager": "^7.0.1",
     "cron": "^4.3.0",
     "dayjs": "^1.11.13",
     "discord.js": "^14.21.0",
