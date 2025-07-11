@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
-import { Colors, EmbedBuilder } from 'discord.js';
+import { Colors, EmbedBuilder, MessageFlags } from 'discord.js';
 import {
   Encounter,
   EncounterFriendlyDescription,
@@ -23,7 +23,7 @@ export class ViewEncounterCommandHandler
     interaction,
     encounterId,
   }: ViewEncounterCommand): Promise<void> {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
       if (encounterId) {
