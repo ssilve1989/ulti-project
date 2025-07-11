@@ -456,11 +456,12 @@ export class ManageProgPointsCommandHandler
               newProgPointIds,
             );
 
-            await statusInteraction.editReply({
-              content: `✅ Successfully added prog point: **${longName}** (ID: ${progPointId}) at position ${insertPosition + 1} with status **${selectedStatus}**`,
-              embeds: [],
-              components: [],
-            });
+            await this.showSuccessWithReturnOption(
+              statusInteraction,
+              `✅ Successfully added prog point: **${longName}** (ID: ${progPointId}) at position ${insertPosition + 1} with status **${selectedStatus}**`,
+              encounterId,
+              interaction.user.id,
+            );
           } else {
             // Add at the end (default behavior)
             await this.encountersService.addProgPoint(encounterId, {
@@ -469,91 +470,34 @@ export class ManageProgPointsCommandHandler
               partyStatus: selectedStatus,
             });
 
-            await statusInteraction.editReply({
-              content: `✅ Successfully added prog point: **${longName}** (ID: ${progPointId}) with status **${selectedStatus}**`,
-              embeds: [],
-              components: [],
-            });
+            await this.showSuccessWithReturnOption(
+              statusInteraction,
+              `✅ Successfully added prog point: **${longName}** (ID: ${progPointId}) with status **${selectedStatus}**`,
+              encounterId,
+              interaction.user.id,
+            );
           }
 
           this.logger.log(
             `User ${interaction.user.id} added prog point ${progPointId} to encounter ${encounterId}`,
           );
         } else {
-          // Handle edit case - need to handle potential ID changes
-          const originalProgPointId = statusInteraction.customId
-            .split('-')
-            .pop();
+          // Handle edit case - ID is always unchanged now, so simple update
+          await this.encountersService.updateProgPoint(
+            encounterId,
+            progPointId,
+            {
+              label: longName,
+              partyStatus: selectedStatus,
+            },
+          );
 
-          if (progPointId !== originalProgPointId) {
-            // ID changed - need to replace the prog point while maintaining order
-            const existingProgPoints =
-              await this.encountersService.getProgPoints(encounterId);
-            const originalProgPoint = existingProgPoints.find(
-              (p) => p.id === originalProgPointId,
-            );
-
-            if (originalProgPoint) {
-              const originalOrder = originalProgPoint.order;
-
-              // Remove the old prog point
-              await this.encountersService.removeProgPoint(
-                encounterId,
-                originalProgPointId,
-              );
-
-              // Add the new prog point (it will get added at the end)
-              await this.encountersService.addProgPoint(encounterId, {
-                id: progPointId,
-                label: longName,
-                partyStatus: selectedStatus,
-              });
-
-              // Reorder to put the new prog point in the correct position
-              const updatedProgPoints =
-                await this.encountersService.getProgPoints(encounterId);
-              const sortedProgPoints = [...updatedProgPoints].sort(
-                (a, b) => a.order - b.order,
-              );
-
-              // Find the new prog point and move it to the original position
-              const newProgPointIndex = sortedProgPoints.findIndex(
-                (p) => p.id === progPointId,
-              );
-              if (newProgPointIndex !== -1) {
-                // Remove the new prog point from its current position
-                const [movedProgPoint] = sortedProgPoints.splice(
-                  newProgPointIndex,
-                  1,
-                );
-                // Insert it at the original position
-                sortedProgPoints.splice(originalOrder, 0, movedProgPoint);
-
-                // Create new order array
-                const newOrder = sortedProgPoints.map((p) => p.id);
-                await this.encountersService.reorderProgPoints(
-                  encounterId,
-                  newOrder,
-                );
-              }
-            }
-          } else {
-            // ID unchanged - simple update
-            await this.encountersService.updateProgPoint(
-              encounterId,
-              progPointId,
-              {
-                label: longName,
-                partyStatus: selectedStatus,
-              },
-            );
-          }
-
-          await statusInteraction.editReply({
-            content: `✅ Successfully updated prog point: **${longName}** (ID: ${progPointId}) with status **${selectedStatus}**`,
-            embeds: [],
-            components: [],
-          });
+          await this.showSuccessWithReturnOption(
+            statusInteraction,
+            `✅ Successfully updated prog point: **${longName}** (ID: ${progPointId}) with status **${selectedStatus}**`,
+            encounterId,
+            interaction.user.id,
+          );
 
           this.logger.log(
             `User ${interaction.user.id} updated prog point ${progPointId} in encounter ${encounterId}`,
@@ -632,17 +576,18 @@ export class ManageProgPointsCommandHandler
         return;
       }
 
-      // Step 1: Show modal for both short name and long name input (pre-filled with current values)
+      // Step 1: Show modal for long name input only (short name/ID cannot be changed)
       const modal = new ModalBuilder()
         .setCustomId(`edit-prog-point-modal-${progPointId}`)
         .setTitle(`Edit: ${progPoint.label}`);
 
-      const shortNameInput = new TextInputBuilder()
-        .setCustomId('short-name')
-        .setLabel('Short Name (ID for Google Sheets)')
+      const idDisplayInput = new TextInputBuilder()
+        .setCustomId('id-display')
+        .setLabel('Short Name (ID) - READ ONLY')
+        .setPlaceholder('This field cannot be modified')
         .setValue(progPoint.id)
         .setStyle(TextInputStyle.Short)
-        .setRequired(true)
+        .setRequired(false)
         .setMaxLength(50);
 
       const longNameInput = new TextInputBuilder()
@@ -654,7 +599,7 @@ export class ManageProgPointsCommandHandler
         .setMaxLength(100);
 
       modal.addComponents(
-        new ActionRowBuilder<TextInputBuilder>().addComponents(shortNameInput),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(idDisplayInput),
         new ActionRowBuilder<TextInputBuilder>().addComponents(longNameInput),
       );
 
@@ -670,32 +615,14 @@ export class ManageProgPointsCommandHandler
 
         await modalSubmission.deferReply({ ephemeral: true });
 
-        const newShortName =
-          modalSubmission.fields.getTextInputValue('short-name');
         const newLongName =
           modalSubmission.fields.getTextInputValue('long-name');
-
-        // Generate new ID from short name (after cleaning it)
-        const newProgPointId = this.generateProgPointId(newShortName);
-
-        // Check if ID changed and if new ID already exists
-        if (newProgPointId !== progPointId) {
-          const existingProgPoints =
-            await this.encountersService.getProgPoints(encounterId);
-          if (existingProgPoints.some((p) => p.id === newProgPointId)) {
-            await modalSubmission.editReply({
-              content:
-                '❌ A prog point with a similar short name already exists. Please use a different short name.',
-            });
-            return;
-          }
-        }
 
         // Step 2: Show party status select menu with current status selected
         await this.showPartyStatusSelect(
           modalSubmission,
           encounterId,
-          newProgPointId,
+          progPointId, // Keep the original ID - no changes allowed
           newLongName,
           'edit',
           progPoint.partyStatus as PartyStatus,
@@ -809,11 +736,12 @@ export class ManageProgPointsCommandHandler
               progPointId,
             );
 
-            await confirmInteraction.editReply({
-              content: `✅ Successfully removed prog point: **${progPoint.label}**`,
-              embeds: [],
-              components: [],
-            });
+            await this.showSuccessWithReturnOption(
+              confirmInteraction,
+              `✅ Successfully removed prog point: **${progPoint.label}**`,
+              encounterId,
+              interaction.user.id,
+            );
 
             this.logger.log(
               `User ${interaction.user.id} removed prog point ${progPointId} from encounter ${encounterId}`,
@@ -1011,9 +939,42 @@ export class ManageProgPointsCommandHandler
               inline: false,
             });
 
+          const returnButton =
+            new ActionRowBuilder<ButtonBuilder>().addComponents(
+              new ButtonBuilder()
+                .setCustomId(`return-to-main-reorder-${encounterId}`)
+                .setLabel('Back to Main Menu')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('🔙'),
+            );
+
           await positionInteraction.editReply({
             embeds: [successEmbed],
-            components: [],
+            components: [returnButton],
+          });
+
+          // Handle return button interaction
+          const returnCollector =
+            positionInteraction.channel?.createMessageComponentCollector({
+              componentType: ComponentType.Button,
+              filter: (i: any) =>
+                i.customId === `return-to-main-reorder-${encounterId}` &&
+                i.user.id === interaction.user.id,
+              time: 60_000,
+            });
+
+          returnCollector?.on('collect', async (returnInteraction: any) => {
+            await returnInteraction.deferUpdate();
+            await this.showMainEncounterView(returnInteraction, encounterId);
+          });
+
+          returnCollector?.on('end', (collected: any, reason: any) => {
+            if (reason === 'time' && collected.size === 0) {
+              positionInteraction.editReply({
+                embeds: [successEmbed],
+                components: [],
+              });
+            }
           });
 
           this.logger.log(
@@ -1049,6 +1010,159 @@ export class ManageProgPointsCommandHandler
         });
       }
     });
+  }
+
+  private async showSuccessWithReturnOption(
+    interaction: any,
+    successMessage: string,
+    encounterId: string,
+    userId: string,
+  ): Promise<void> {
+    const returnButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`return-to-main-${encounterId}`)
+        .setLabel('Back to Main Menu')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🔙'),
+    );
+
+    await interaction.editReply({
+      content: successMessage,
+      embeds: [],
+      components: [returnButton],
+    });
+
+    // Handle return button interaction
+    const returnCollector =
+      interaction.channel?.createMessageComponentCollector({
+        componentType: ComponentType.Button,
+        filter: (i: any) =>
+          i.customId === `return-to-main-${encounterId}` &&
+          i.user.id === userId,
+        time: 60_000,
+      });
+
+    returnCollector?.on('collect', async (returnInteraction: any) => {
+      await returnInteraction.deferUpdate();
+      await this.showMainEncounterView(returnInteraction, encounterId);
+    });
+
+    returnCollector?.on('end', (collected: any, reason: any) => {
+      if (reason === 'time' && collected.size === 0) {
+        // Remove the button after timeout to prevent stale interactions
+        interaction.editReply({
+          content: successMessage,
+          components: [],
+        });
+      }
+    });
+  }
+
+  private async showMainEncounterView(
+    interaction: any,
+    encounterId: string,
+  ): Promise<void> {
+    try {
+      const [encounter, progPoints] = await Promise.all([
+        this.encountersService.getEncounter(encounterId),
+        this.encountersService.getProgPoints(encounterId),
+      ]);
+
+      if (!encounter) {
+        await interaction.editReply({
+          content: `❌ Encounter ${encounterId} not found.`,
+          embeds: [],
+          components: [],
+        });
+        return;
+      }
+
+      // Group prog points by party status
+      const groupedProgPoints = progPoints.reduce(
+        (acc, progPoint) => {
+          if (!acc[progPoint.partyStatus]) {
+            acc[progPoint.partyStatus] = [];
+          }
+          acc[progPoint.partyStatus].push(progPoint);
+          return acc;
+        },
+        {} as Record<PartyStatus, typeof progPoints>,
+      );
+
+      // Find threshold prog points
+      const progThresholdPoint = progPoints.find(
+        (p) => p.id === encounter.progPartyThreshold,
+      );
+      const clearThresholdPoint = progPoints.find(
+        (p) => p.id === encounter.clearPartyThreshold,
+      );
+
+      const embed = new EmbedBuilder()
+        .setTitle(`${encounter.name} Configuration`)
+        .setColor(Colors.Blue)
+        .setDescription(`Total prog points: ${progPoints.length}`)
+        .addFields(
+          {
+            name: '📈 Prog Party Threshold',
+            value: progThresholdPoint
+              ? `${progThresholdPoint.label} (${progThresholdPoint.id})`
+              : 'Not set',
+          },
+          {
+            name: '🎯 Clear Party Threshold',
+            value: clearThresholdPoint
+              ? `${clearThresholdPoint.label} (${clearThresholdPoint.id})`
+              : 'Not set',
+          },
+        );
+
+      // Add prog points by status
+      for (const [status, points] of Object.entries(groupedProgPoints)) {
+        if (points.length > 0) {
+          const statusEmoji = this.getStatusEmoji(status as PartyStatus);
+          const pointsList = points
+            .map((p) => `• ${p.label} (${p.id})`)
+            .join('\n');
+
+          embed.addFields({
+            name: `${statusEmoji} ${status} (${points.length})`,
+            value:
+              pointsList.length > 1024
+                ? `${pointsList.substring(0, 1020)}...`
+                : pointsList,
+            inline: false,
+          });
+        }
+      }
+
+      await interaction.editReply({
+        content: '',
+        embeds: [embed],
+        components: [],
+      });
+    } catch (error) {
+      this.logger.error(error, 'Error showing main encounter view');
+      await interaction.editReply({
+        content: '❌ An error occurred while loading the main view.',
+        embeds: [],
+        components: [],
+      });
+    }
+  }
+
+  private getStatusEmoji(status: PartyStatus): string {
+    switch (status) {
+      case PartyStatus.EarlyProgParty:
+        return '🟡';
+      case PartyStatus.ProgParty:
+        return '🟠';
+      case PartyStatus.ClearParty:
+        return '🔵';
+      case PartyStatus.Cleared:
+        return '🟢';
+      default:
+        return '⚪';
+    }
   }
 
   private generateProgPointId(label: string): string {
