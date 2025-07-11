@@ -6,6 +6,7 @@ import {
   Colors,
   ComponentType,
   EmbedBuilder,
+  MessageFlags,
   StringSelectMenuBuilder,
 } from 'discord.js';
 import { isSameUserFilter } from '../../../../common/collection-filters.js';
@@ -26,7 +27,7 @@ export class SetThresholdsCommandHandler
     interaction,
     encounterId,
   }: SetThresholdsCommand): Promise<void> {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
       // Get current encounter data

@@ -21,7 +21,7 @@
     "g:slash-command": "hygen slash-command new",
     "graphql:codegen": "graphql-codegen --config codegen.ts",
     "lint": "biome lint --diagnostic-level=error src",
-    "lint:ci": "biome ci src",
+    "lint:ci": "biome ci --diagnostic-level=error src",
     "prepare": "node scripts/prepare.js",
     "start:debug": "nest start --debug --watch",
     "start:dev:sentry": "NODE_OPTIONS=\"--import=./instrumentation.mjs\" nest start --watch",
@@ -102,8 +102,6 @@
       "esbuild",
       "nestjs-pino"
     ],
-    "ignoredBuiltDependencies": [
-      "protobufjs"
-    ]
+    "ignoredBuiltDependencies": ["protobufjs"]
   }
 }
