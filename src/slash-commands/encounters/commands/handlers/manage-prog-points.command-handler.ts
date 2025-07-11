@@ -579,27 +579,18 @@ export class ManageProgPointsCommandHandler
       // Step 1: Show modal for long name input only (short name/ID cannot be changed)
       const modal = new ModalBuilder()
         .setCustomId(`edit-prog-point-modal-${progPointId}`)
-        .setTitle(`Edit: ${progPoint.label}`);
-
-      const idDisplayInput = new TextInputBuilder()
-        .setCustomId('id-display')
-        .setLabel('Short Name (ID) - READ ONLY')
-        .setPlaceholder('This field cannot be modified')
-        .setValue(progPoint.id)
-        .setStyle(TextInputStyle.Short)
-        .setRequired(false)
-        .setMaxLength(50);
+        .setTitle(`Edit Prog Point: ${progPoint.id}`);
 
       const longNameInput = new TextInputBuilder()
         .setCustomId('long-name')
         .setLabel('Long Name (Discord display)')
+        .setPlaceholder('e.g., Phase 2: Strength of the Ward')
         .setValue(progPoint.label)
         .setStyle(TextInputStyle.Short)
         .setRequired(true)
         .setMaxLength(100);
 
       modal.addComponents(
-        new ActionRowBuilder<TextInputBuilder>().addComponents(idDisplayInput),
         new ActionRowBuilder<TextInputBuilder>().addComponents(longNameInput),
       );
 
