@@ -1,5 +1,5 @@
 import { registerAs } from '@nestjs/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const schema = z.object({
   FIRESTORE_DATABASE_ID: z.string().optional(),

@@ -1,5 +1,5 @@
 import { registerAs } from '@nestjs/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const schema = z.object({
   // https://github.com/googleapis/google-api-nodejs-client/issues/3187
