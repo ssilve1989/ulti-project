@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { CommandBus, CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
+import { MessageFlags } from 'discord.js';
 import {
   EncountersCommand,
   ManageProgPointsCommand,
@@ -49,7 +50,7 @@ export class EncountersCommandHandler
         default:
           await interaction.reply({
             content: `❌ Unknown subcommand: ${subcommand}`,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
           break;
       }
@@ -63,7 +64,7 @@ export class EncountersCommandHandler
         await interaction.reply({
           content:
             '❌ An error occurred while processing your request. Please try again.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       } else {
         await interaction.editReply({

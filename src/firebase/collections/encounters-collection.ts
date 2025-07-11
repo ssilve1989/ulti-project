@@ -23,24 +23,26 @@ class EncountersCollection {
   }
 
   @SentryTraced()
-  public async getEncounter(
+  async getEncounter(
     encounterId: string,
   ): Promise<EncounterDocument | undefined> {
     const cacheKey = this.encounterCacheKey(encounterId);
     const cached = await this.cacheManager.get<EncounterDocument>(cacheKey);
 
     if (cached) {
-      return cached;
+      return { ...cached, id: encounterId };
     }
 
     const doc = await this.collection.doc(encounterId).get();
     const data = doc.data();
 
     if (data) {
-      await this.cacheManager.set(cacheKey, data);
+      const encounterWithId = { ...data, id: doc.id };
+      await this.cacheManager.set(cacheKey, encounterWithId);
+      return encounterWithId;
     }
 
-    return data;
+    return undefined;
   }
 
   @SentryTraced()
@@ -159,7 +161,7 @@ class EncountersCollection {
       const doc = await this.collection.doc(encounterId).get();
       const data = doc.data();
       if (data) {
-        await this.cacheManager.set(cacheKey, data);
+        await this.cacheManager.set(cacheKey, { ...data, id: doc.id });
       }
     } catch (error) {
       this.logger.warn(
