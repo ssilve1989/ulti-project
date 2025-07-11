@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const APPLICATION_MODES = ['savage', 'ultimate', 'legacy'] as const;
 export type ApplicationMode = (typeof APPLICATION_MODES)[number];

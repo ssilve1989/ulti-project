@@ -13,7 +13,7 @@ import {
 } from 'discord.js';
 import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
-import type { ZodError } from 'zod/v4';
+import type { ZodError } from 'zod';
 import { isSameUserFilter } from '../../../../common/collection-filters.js';
 import {
   CancelButton,

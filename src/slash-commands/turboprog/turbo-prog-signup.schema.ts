@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import type { SignupDocument } from '../../firebase/models/signup.model.js';
 
