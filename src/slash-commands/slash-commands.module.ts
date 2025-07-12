@@ -5,6 +5,7 @@ import type { AppConfig } from '../app.config.js';
 import { DiscordModule } from '../discord/discord.module.js';
 import { BlacklistModule } from './blacklist/blacklist.module.js';
 import { EncountersSlashCommandModule } from './encounters/encounters.module.js';
+import { HelpModule } from './help/help.module.js';
 import { LookupModule } from './lookup/lookup.module.js';
 import { RemoveRoleModule } from './remove-role/remove-role.module.js';
 import { RetireModule } from './retire/retire.module.js';
@@ -22,6 +23,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     CqrsModule,
     BlacklistModule,
     EncountersSlashCommandModule,
+    HelpModule,
     LookupModule,
     RemoveRoleModule,
     RetireModule,

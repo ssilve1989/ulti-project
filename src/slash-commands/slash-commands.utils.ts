@@ -9,6 +9,8 @@ import { BlacklistSlashCommand } from './blacklist/blacklist.slash-command.js';
 import { EncountersCommand } from './encounters/commands/encounters.commands.js';
 import { EncountersSlashCommand } from './encounters/encounters.slash-command.js';
 import { FINAL_PUSH_SLASH_COMMAND_NAME } from './finalpush/final-push-signup.slash-command.js';
+import { HelpCommand } from './help/help.command.js';
+import { HelpSlashCommand } from './help/help.slash-command.js';
 import { LookupCommand } from './lookup/lookup.command.js';
 import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
 import { RemoveRoleCommand } from './remove-role/remove-role.command.js';
@@ -53,6 +55,7 @@ export function getCommandForInteraction(
         .run();
     })
     .with(EncountersSlashCommand.name, () => new EncountersCommand(interaction))
+    .with(HelpSlashCommand.name, () => new HelpCommand(interaction))
     .with(LookupSlashCommand.name, () => new LookupCommand(interaction))
     .with(SIGNUP_SLASH_COMMAND_NAME, () => new SignupCommand(interaction))
     .with(StatusSlashCommand.name, () => new StatusCommand(interaction))
@@ -81,7 +84,6 @@ export function getCommandForInteraction(
       FINAL_PUSH_SLASH_COMMAND_NAME,
       () => new TurboProgCommand(interaction),
     )
-
     .with(RemoveRoleSlashCommand.name, () => new RemoveRoleCommand(interaction))
     .otherwise(() => undefined);
 }
