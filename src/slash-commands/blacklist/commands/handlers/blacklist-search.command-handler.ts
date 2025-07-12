@@ -24,7 +24,7 @@ class BlacklistSearchCommandHandler
   async execute({ signup, guildId }: BlacklistSearchCommand) {
     const settings = await this.settingsCollection.getSettings(guildId);
     if (!settings?.modChannelId) {
-      this.logger.warn('No mod channel set for guild ${guildId}');
+      this.logger.warn(`No mod channel set for guild ${guildId}`);
       return;
     }
 

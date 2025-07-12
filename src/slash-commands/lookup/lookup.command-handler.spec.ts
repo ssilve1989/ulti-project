@@ -1,4 +1,4 @@
-import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
+import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import {
   ChatInputCommandInteraction,
@@ -10,8 +10,8 @@ import { Encounter } from '../../encounters/encounters.consts.js';
 import { BlacklistCollection } from '../../firebase/collections/blacklist-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../firebase/models/signup.model.js';
-import { LookupCommandHandler } from './lookup.command-handler.js';
 import { LookupCommand } from './lookup.command.js';
+import { LookupCommandHandler } from './lookup.command-handler.js';
 
 describe('LookupCommandHandler', () => {
   let handler: LookupCommandHandler;

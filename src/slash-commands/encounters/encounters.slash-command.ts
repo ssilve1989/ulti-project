@@ -1,5 +1,8 @@
-import { PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
-import { SlashCommandSubcommandBuilder } from 'discord.js';
+import {
+  PermissionFlagsBits,
+  SlashCommandBuilder,
+  SlashCommandSubcommandBuilder,
+} from 'discord.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 
 export const SetThresholdsSubcommand = new SlashCommandSubcommandBuilder()

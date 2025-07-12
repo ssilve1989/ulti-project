@@ -1,29 +1,40 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "organizeImports": {
-    "enabled": true
-  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "vcs": {
     "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": true
+    "useIgnoreFile": true,
+    "defaultBranch": "master"
   },
   "linter": {
-    "ignore": ["src/fflogs/graphql/*.ts"],
+    "includes": ["**", "!**/src/fflogs/graphql/**/*.ts"],
     "enabled": true,
     "rules": {
-      "correctness": {
-        "noUnusedImports": "error"
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "error",
+        "noForEach": "error"
       },
-      "performance": {
-        "all": true
+      "correctness": {
+        "noUndeclaredVariables": "error",
+        "noUnusedImports": { "fix": "safe", "level": "error" }
       },
       "style": {
-        "noNonNullAssertion": "off",
-        "useImportType": "off"
+        "noCommonJs": "error",
+        "useImportType": "off",
+        "useAsConstAssertion": "error",
+        "useDefaultParameterLast": "error",
+        "useSelfClosingElements": "error",
+        "useSingleVarDeclarator": "error",
+        "noUnusedTemplateLiteral": "error",
+        "useNumberNamespace": "error",
+        "noInferrableTypes": "error",
+        "noUselessElse": "error"
       },
       "suspicious": {
-        "noExplicitAny": "warn"
+        "noExplicitAny": "warn",
+        "noEvolvingTypes": "error",
+        "useAwait": "error"
       },
       "nursery": {}
     }
@@ -31,7 +42,11 @@
   "formatter": {
     "indentStyle": "space",
     "indentWidth": 2,
-    "ignore": ["src/fflogs/graphql/*.ts", "src/fflogs/graphql/*.graphql"]
+    "includes": [
+      "**",
+      "!**/src/fflogs/graphql/**/*.ts",
+      "!**/src/fflogs/graphql/**/*.graphql"
+    ]
   },
   "javascript": {
     "parser": {
@@ -52,7 +67,7 @@
   },
   "overrides": [
     {
-      "include": ["**/*.spec.ts"],
+      "includes": ["**/*.spec.ts"],
       "linter": {
         "rules": {
           "complexity": {
@@ -60,6 +75,9 @@
           },
           "suspicious": {
             "noExplicitAny": "off"
+          },
+          "style": {
+            "noNonNullAssertion": "off"
           }
         }
       }

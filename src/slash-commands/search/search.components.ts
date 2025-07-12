@@ -6,8 +6,8 @@ import {
 } from 'discord.js';
 import type { ApplicationModeConfig } from '../../app.config.js';
 import {
-  type ProgPointOption,
   getEncounterChoicesForMode,
+  type ProgPointOption,
 } from '../../encounters/encounters.consts.js';
 
 export const SEARCH_ENCOUNTER_SELECTOR_ID = 'searchEncounterSelect';

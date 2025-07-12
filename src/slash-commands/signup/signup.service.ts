@@ -5,8 +5,8 @@ import {
   type OnModuleDestroy,
 } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
-import { SentryTraced } from '@sentry/nestjs';
 import * as Sentry from '@sentry/nestjs';
+import { SentryTraced } from '@sentry/nestjs';
 import {
   ActionRowBuilder,
   DiscordjsErrorCodes,
@@ -22,22 +22,22 @@ import {
   User,
 } from 'discord.js';
 import {
-  Subscription,
   concatMap,
   debounceTime,
   fromEvent,
   groupBy,
   mergeMap,
+  Subscription,
 } from 'rxjs';
-import { P, match } from 'ts-pattern';
+import { match, P } from 'ts-pattern';
 import { isSameUserFilter } from '../../common/collection-filters.js';
 import { getMessageLink } from '../../discord/discord.consts.js';
 import { hydrateReaction, hydrateUser } from '../../discord/discord.helpers.js';
 import { DiscordService } from '../../discord/discord.service.js';
-import { EncountersComponentsService } from '../../encounters/encounters-components.service.js';
 import { PROG_POINT_SELECT_ID } from '../../encounters/encounters.components.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { EncountersService } from '../../encounters/encounters.service.js';
+import { EncountersComponentsService } from '../../encounters/encounters-components.service.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { DocumentNotFoundException } from '../../firebase/firebase.exceptions.js';
@@ -342,6 +342,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     const message = await this.discordService.sendDirectMessage(user.id, {
       content: 'Please confirm the prog point of the following signup',
       embeds: [embed],
+      // biome-ignore lint/suspicious/noExplicitAny: need to figure out proper typings for this
       components: [row as any],
     });
 

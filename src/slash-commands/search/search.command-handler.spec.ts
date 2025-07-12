@@ -1,5 +1,5 @@
-import { createMock } from '@golevelup/ts-vitest';
 import type { DeepMocked } from '@golevelup/ts-vitest';
+import { createMock } from '@golevelup/ts-vitest';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import {
@@ -11,8 +11,8 @@ import {
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { EncountersService } from '../../encounters/encounters.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import { SearchCommandHandler } from './search.command-handler.js';
 import { SearchCommand } from './search.command.js';
+import { SearchCommandHandler } from './search.command-handler.js';
 import {
   SEARCH_ENCOUNTER_SELECTOR_ID,
   SEARCH_PROG_POINT_SELECT_ID,

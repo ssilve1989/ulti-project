@@ -1,4 +1,4 @@
-import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
+import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, Role } from 'discord.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
@@ -37,7 +37,7 @@ describe('Edit Reviewer Command Handler', () => {
       interaction: createMock<ChatInputCommandInteraction<'raw' | 'cached'>>({
         guildId,
         options: {
-          getRole: (name: string, required?: boolean) =>
+          getRole: (name: string, _required?: boolean) =>
             name === 'reviewer-role'
               ? createMock<Role>({
                   id: roleId,
@@ -67,7 +67,7 @@ describe('Edit Reviewer Command Handler', () => {
     >({
       guildId: '12345',
       options: {
-        getRole: (name: string, required?: boolean) =>
+        getRole: (_: string, __?: boolean) =>
           createMock<Role>({
             id: '67890',
             toString: () => '<@&67890>',

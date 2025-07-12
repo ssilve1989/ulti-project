@@ -24,10 +24,6 @@ interface CleanupStats {
   failedCleanups: number;
 }
 
-interface DeleteResult {
-  success: boolean;
-}
-
 @Injectable()
 class InviteCleanerJob
   implements OnApplicationBootstrap, OnApplicationShutdown

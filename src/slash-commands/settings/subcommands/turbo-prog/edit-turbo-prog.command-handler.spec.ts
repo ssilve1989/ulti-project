@@ -1,4 +1,4 @@
-import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
+import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction } from 'discord.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
@@ -39,7 +39,7 @@ describe('Edit Turbo Prog Command Handler', () => {
       interaction: createMock<ChatInputCommandInteraction<'raw' | 'cached'>>({
         guildId,
         options: {
-          getBoolean: (name: string, required?: boolean) =>
+          getBoolean: (name: string, _required?: boolean) =>
             name === 'active' ? active : null,
           getString: (name: string) =>
             name === 'spreadsheet-id' ? spreadsheetId : null,
@@ -72,7 +72,7 @@ describe('Edit Turbo Prog Command Handler', () => {
       interaction: createMock<ChatInputCommandInteraction<'raw' | 'cached'>>({
         guildId,
         options: {
-          getBoolean: (name: string, required?: boolean) =>
+          getBoolean: (name: string, _required?: boolean) =>
             name === 'active' ? active : null,
           getString: () => null,
         },
@@ -98,8 +98,8 @@ describe('Edit Turbo Prog Command Handler', () => {
     >({
       guildId: '12345',
       options: {
-        getBoolean: (name: string, required?: boolean) => true,
-        getString: (name: string) => 'test-spreadsheet-id',
+        getBoolean: (_: string, __?: boolean) => true,
+        getString: (_: string) => 'test-spreadsheet-id',
       },
       valueOf: () => '',
     });

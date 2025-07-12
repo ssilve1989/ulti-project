@@ -1,4 +1,4 @@
-import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
+import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction } from 'discord.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
@@ -37,7 +37,7 @@ describe('Edit Spreadsheet Command Handler', () => {
       interaction: createMock<ChatInputCommandInteraction<'raw' | 'cached'>>({
         guildId,
         options: {
-          getString: (name: string, required?: boolean) =>
+          getString: (name: string, _required?: boolean) =>
             name === 'spreadsheet-id' ? spreadsheetId : null,
         },
         valueOf: () => '',
@@ -61,7 +61,8 @@ describe('Edit Spreadsheet Command Handler', () => {
     >({
       guildId: '12345',
       options: {
-        getString: (name: string, required?: boolean) => 'test-spreadsheet-id',
+        getString: (_name: string, _requiredd?: boolean) =>
+          'test-spreadsheet-id',
       },
       valueOf: () => '',
     });

@@ -1,8 +1,8 @@
 import { CommandHandler } from '@nestjs/cqrs';
-import { SentryTraced } from '@sentry/nestjs';
 import * as Sentry from '@sentry/nestjs';
+import { SentryTraced } from '@sentry/nestjs';
 import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
-import { P, match } from 'ts-pattern';
+import { match, P } from 'ts-pattern';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
 import {
@@ -11,11 +11,11 @@ import {
   SignupStatus,
 } from '../../../../firebase/models/signup.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
+import type { TurboProgEntry } from '../../turbo-prog.interfaces.js';
 import {
   type TurboProgSignupSchema,
   turboProgSignupSchema,
 } from '../../turbo-prog-signup.schema.js';
-import type { TurboProgEntry } from '../../turbo-prog.interfaces.js';
 import {
   TURBO_PROG_INACTIVE,
   TURBO_PROG_MISSING_SIGNUPS_SHEETS,
@@ -95,11 +95,11 @@ class TurboProgCommandHandler {
     return await interaction.editReply(TURBO_PROG_MISSING_SIGNUPS_SHEETS);
   }
 
-  public async isProggerAllowed(
+  public isProggerAllowed(
     options: TurboProgSignupSchema,
     spreadsheetId: string,
     signup?: SignupDocument,
-  ): Promise<ProggerAllowedResponse> {
+  ): Promise<ProggerAllowedResponse> | ProggerAllowedResponse {
     const scope = Sentry.getCurrentScope();
     // if the progger has an entry already in the database we can check its status
     if (signup) {

@@ -15,9 +15,7 @@ export class EncountersService {
   constructor(private readonly encountersCollection: EncountersCollection) {}
 
   @SentryTraced()
-  public async getProgPoints(
-    encounterId: string,
-  ): Promise<ProgPointDocument[]> {
+  public getProgPoints(encounterId: string): Promise<ProgPointDocument[]> {
     return this.encountersCollection.getProgPoints(encounterId);
   }
 
@@ -40,7 +38,7 @@ export class EncountersService {
   }
 
   @SentryTraced()
-  public async getEncounter(
+  public getEncounter(
     encounterId: string,
   ): Promise<EncounterDocument | undefined> {
     return this.encountersCollection.getEncounter(encounterId);

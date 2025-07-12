@@ -16,14 +16,15 @@ import { characterField } from '../../common/components/fields.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { EncountersService } from '../../encounters/encounters.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import type { SignupDocument } from '../../firebase/models/signup.model.js';
 import { SearchCommand } from './search.command.js';
 import {
-  SEARCH_ENCOUNTER_SELECTOR_ID,
-  SEARCH_PROG_POINT_SELECT_ID,
-  SEARCH_RESET_BUTTON_ID,
   createEncounterSelectMenu,
   createProgPointSelectMenu,
   createResetButton,
+  SEARCH_ENCOUNTER_SELECTOR_ID,
+  SEARCH_PROG_POINT_SELECT_ID,
+  SEARCH_RESET_BUTTON_ID,
 } from './search.components.js';
 
 @CommandHandler(SearchCommand)
@@ -124,7 +125,7 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
         );
 
         // Format the results
-        const embeds = await this.createResultsEmbed(
+        const embeds = this.createResultsEmbed(
           selectedEncounter as Encounter,
           selectedProgPoint,
           searchResults,
@@ -169,7 +170,7 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
   /**
    * Search for signups matching the encounter and prog point
    */
-  private async searchSignups(encounter: Encounter, progPoint: string) {
+  private searchSignups(encounter: Encounter, progPoint: string) {
     return this.signupsCollection.findAll({
       encounter,
       progPoint,
@@ -179,11 +180,11 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
   /**
    * Create an embed with the search results
    */
-  private async createResultsEmbed(
+  private createResultsEmbed(
     encounter: Encounter,
     progPoint: string,
-    signups: any[],
-  ): Promise<EmbedBuilder[]> {
+    signups: SignupDocument[],
+  ): EmbedBuilder[] {
     // If no results found
     if (signups.length === 0) {
       return [

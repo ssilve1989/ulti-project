@@ -1,6 +1,6 @@
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
-import { SentryTraced } from '@sentry/nestjs';
 import * as Sentry from '@sentry/nestjs';
+import { SentryTraced } from '@sentry/nestjs';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { TurboProgRemoveSignupCommand } from '../turbo-prog.commands.js';

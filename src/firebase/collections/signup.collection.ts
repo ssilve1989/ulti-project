@@ -63,6 +63,7 @@ class SignupCollection {
     }
 
     const update = await this.collection.doc(key).get();
+    // biome-ignore lint/style/noNonNullAssertion: we know its not null because we just succeeded
     return update.data()!;
   }
 

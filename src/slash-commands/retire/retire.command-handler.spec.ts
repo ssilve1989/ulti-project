@@ -2,8 +2,8 @@ import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, Colors } from 'discord.js';
 import { DiscordService } from '../../discord/discord.service.js';
-import { RetireCommandHandler } from './retire.command-handler.js';
 import { RetireCommand } from './retire.command.js';
+import { RetireCommandHandler } from './retire.command-handler.js';
 
 describe('RetireCommandHandler', () => {
   let handler: RetireCommandHandler;

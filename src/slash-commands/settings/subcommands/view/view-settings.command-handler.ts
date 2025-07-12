@@ -1,9 +1,9 @@
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
+  channelMention,
   EmbedBuilder,
   MessageFlags,
-  channelMention,
   roleMention,
 } from 'discord.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';

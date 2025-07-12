@@ -18,6 +18,7 @@ export function RequiresRole(
   roleKey: string,
   { disallowAdmin = false }: Options = {},
 ) {
+  // biome-ignore lint/suspicious/noExplicitAny: decorator
   return <T extends { new (...args: any[]): ICommandHandler<DiscordCommand> }>(
     target: T,
   ) => {

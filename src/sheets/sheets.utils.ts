@@ -6,8 +6,8 @@ type GetSheetValuesProps = {
   range: string;
 };
 
-type FindCharacterRowProps = GetSheetValuesProps & {
-  predicate: (values: Set<any>) => boolean;
+type FindCharacterRowProps<T = unknown> = GetSheetValuesProps & {
+  predicate: (values: Set<T>) => boolean;
 };
 
 type SheetValues = string[][] | null | undefined;
@@ -65,7 +65,7 @@ export function updateSheet(
 export function batchUpdate(
   client: sheets_v4.Sheets,
   spreadsheetId: string,
-  requests: any[],
+  requests: sheets_v4.Schema$Request[],
 ) {
   return client.spreadsheets.batchUpdate(
     {

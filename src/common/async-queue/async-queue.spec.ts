@@ -37,7 +37,7 @@ describe('Async Queue', () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       return 'task1';
     };
-    const task2 = async () => {
+    const task2 = () => {
       throw new Error('task2 error');
     };
 

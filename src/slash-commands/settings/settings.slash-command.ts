@@ -1,6 +1,9 @@
-import { ChannelType, SlashCommandBuilder } from 'discord.js';
-import { PermissionFlagsBits } from 'discord.js';
-import { SlashCommandSubcommandBuilder } from 'discord.js';
+import {
+  ChannelType,
+  PermissionFlagsBits,
+  SlashCommandBuilder,
+  SlashCommandSubcommandBuilder,
+} from 'discord.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 
 export const EditChannelsSubcommand = new SlashCommandSubcommandBuilder()

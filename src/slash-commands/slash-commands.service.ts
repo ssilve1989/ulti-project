@@ -10,9 +10,9 @@ import {
   Routes,
 } from 'discord.js';
 import {
-  EMPTY,
   catchError,
   defer,
+  EMPTY,
   forkJoin,
   lastValueFrom,
   retry,
@@ -47,7 +47,7 @@ class SlashCommandsService {
   ) {}
 
   listenToCommands() {
-    this.client.on(Events.InteractionCreate, async (interaction) => {
+    this.client.on(Events.InteractionCreate, (interaction) => {
       if (!(interaction.isChatInputCommand() && interaction.inGuild())) {
         return;
       }

@@ -1,4 +1,4 @@
-import { type DeepMocked, createMock } from '@golevelup/ts-vitest';
+import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
@@ -50,7 +50,7 @@ const searchableCases: Pick<SignupDocument, 'status' | 'partyStatus'>[] = [
 
 describe('TurboProgCommandHandler', () => {
   let handler: TurboProgCommandHandler;
-  let collection: DeepMocked<SignupCollection>;
+  let _collection: DeepMocked<SignupCollection>;
   let sheetsService: DeepMocked<SheetsService>;
 
   beforeEach(async () => {
@@ -61,7 +61,7 @@ describe('TurboProgCommandHandler', () => {
       .compile();
 
     handler = fixture.get(TurboProgCommandHandler);
-    collection = fixture.get(SignupCollection);
+    _collection = fixture.get(SignupCollection);
     sheetsService = fixture.get(SheetsService);
   });
 
@@ -273,7 +273,6 @@ describe('TurboProgCommandHandler', () => {
         mockSignup,
       ),
     ).rejects.toThrow(
-      // biome-ignore lint/performance/useTopLevelRegex: <explanation>
       /Data found on Google Sheet is not in the correct format/,
     );
   });

@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import {
   Client,
-  DMChannel,
   DiscordAPIError,
+  DMChannel,
   GuildEmoji,
   type GuildMember,
 } from 'discord.js';
@@ -23,7 +23,10 @@ class DiscordService {
   public async getGuildMember({
     memberId,
     guildId,
-  }: { memberId: string; guildId: string }): Promise<GuildMember | undefined> {
+  }: {
+    memberId: string;
+    guildId: string;
+  }): Promise<GuildMember | undefined> {
     try {
       const member = await this.client.guilds.cache
         .get(guildId)
@@ -51,7 +54,10 @@ class DiscordService {
   public async getTextChannel({
     guildId,
     channelId,
-  }: { guildId: string; channelId: string }) {
+  }: {
+    guildId: string;
+    channelId: string;
+  }) {
     const guild = await this.client.guilds.fetch(guildId);
     const channel = await guild.channels.fetch(channelId);
     return channel?.isTextBased() ? channel : null;
@@ -65,7 +71,10 @@ class DiscordService {
   public async getDisplayName({
     userId,
     guildId,
-  }: { guildId: string; userId: string }) {
+  }: {
+    guildId: string;
+    userId: string;
+  }) {
     const guild = await this.client.guilds.fetch(guildId);
     const member = await guild.members.fetch(userId);
     return member.displayName;
@@ -75,7 +84,11 @@ class DiscordService {
     userId,
     guildId,
     roleId,
-  }: { guildId: string; userId: string; roleId: string }) {
+  }: {
+    guildId: string;
+    userId: string;
+    roleId: string;
+  }) {
     const guild = await this.client.guilds.fetch(guildId);
     const member = await guild.members.fetch(userId);
     return member.roles.cache.has(roleId);
@@ -86,7 +99,7 @@ class DiscordService {
     return hasEmoji ? `<:_:${emojiId}>` : '';
   }
 
-  public async getEmojis(emojiNames: string[]) {
+  public getEmojis(emojiNames: string[]) {
     return emojiNames.reduce((emojis, name) => {
       const emoji = this.client.emojis.cache.find((e) => e.name === name);
       if (emoji) {

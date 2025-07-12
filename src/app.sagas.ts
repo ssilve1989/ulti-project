@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { type ICommand, Saga, ofType } from '@nestjs/cqrs';
-import { Observable, filter, map, mergeMap } from 'rxjs';
+import { type ICommand, type IEvent, ofType, Saga } from '@nestjs/cqrs';
+import { filter, map, mergeMap, Observable } from 'rxjs';
 import { BlacklistSearchCommand } from './slash-commands/blacklist/blacklist.commands.js';
 import { RemoveRolesCommand } from './slash-commands/signup/commands/signup.commands.js';
 import {
@@ -22,7 +22,7 @@ class AppSagas {
    * @returns
    */
   @Saga()
-  handleSignupCreated = (event$: Observable<any>): Observable<ICommand> =>
+  handleSignupCreated = (event$: Observable<IEvent>): Observable<ICommand> =>
     event$.pipe(
       ofType(SignupCreatedEvent),
       map(
@@ -37,7 +37,7 @@ class AppSagas {
    * @returns
    */
   @Saga()
-  handleClearedSignup = (event$: Observable<any>): Observable<ICommand> =>
+  handleClearedSignup = (event$: Observable<IEvent>): Observable<ICommand> =>
     event$.pipe(
       ofType(SignupApprovedEvent),
       filter(({ signup }) => hasClearedStatus(signup)),
@@ -63,7 +63,7 @@ class AppSagas {
    * @returns
    */
   @Saga()
-  handleSignupRemoved = (event$: Observable<any>): Observable<ICommand> =>
+  handleSignupRemoved = (event$: Observable<IEvent>): Observable<ICommand> =>
     event$.pipe(
       ofType(RemoveSignupEvent),
       mergeMap(
@@ -76,7 +76,9 @@ class AppSagas {
     );
 
   @Saga()
-  handleSignupApprovalSend = (event$: Observable<any>): Observable<ICommand> =>
+  handleSignupApprovalSend = (
+    event$: Observable<IEvent>,
+  ): Observable<ICommand> =>
     event$.pipe(
       ofType(SignupApprovalSentEvent),
       map(({ guildId, signup }) => new BlacklistSearchCommand(signup, guildId)),
