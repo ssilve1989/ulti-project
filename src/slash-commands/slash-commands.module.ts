@@ -12,6 +12,7 @@ import { RetireModule } from './retire/retire.module.js';
 import { SearchModule } from './search/search.module.js';
 import { SettingsModule } from './settings/settings.module.js';
 import { SignupModule } from './signup/signup.module.js';
+import { SlashCommandsProvider } from './slash-commands.provider.js';
 import { SlashCommandsService } from './slash-commands.service.js';
 import { StatusModule } from './status/status.module.js';
 import { TurboProgModule } from './turboprog/turbo-prog.module.js';
@@ -33,7 +34,8 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     StatusModule,
     TurboProgModule,
   ],
-  providers: [SlashCommandsService],
+  providers: [SlashCommandsService, SlashCommandsProvider],
+  exports: [SlashCommandsProvider],
 })
 export class SlashCommandsModule implements OnApplicationBootstrap {
   constructor(

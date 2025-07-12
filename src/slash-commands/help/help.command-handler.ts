@@ -1,3 +1,4 @@
+import { Inject } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
@@ -6,6 +7,10 @@ import {
   MessageFlags,
   PermissionsBitField,
 } from 'discord.js';
+import {
+  SLASH_COMMANDS_TOKEN,
+  type SlashCommands,
+} from '../slash-commands.provider.js';
 import { HelpCommand } from './help.command.js';
 import {
   type CommandInfo,
@@ -15,6 +20,10 @@ import {
 
 @CommandHandler(HelpCommand)
 class HelpCommandHandler implements ICommandHandler<HelpCommand> {
+  constructor(
+    @Inject(SLASH_COMMANDS_TOKEN) private readonly slashCommands: SlashCommands,
+  ) {}
+
   @SentryTraced()
   async execute({ interaction }: HelpCommand): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -28,7 +37,7 @@ class HelpCommandHandler implements ICommandHandler<HelpCommand> {
         PermissionsBitField.Flags.ManageGuild,
       ) ?? false;
 
-    const allCommands = getAvailableCommands();
+    const allCommands = getAvailableCommands(this.slashCommands);
     const availableCommands = filterCommandsByPermissions(
       allCommands,
       isAdmin,
