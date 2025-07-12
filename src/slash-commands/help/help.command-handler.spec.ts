@@ -31,20 +31,17 @@ describe('HelpCommandHandler', () => {
       const deferReply = vi.fn().mockResolvedValue(undefined);
       const editReply = vi.fn().mockResolvedValue(undefined);
 
-      const mockData: any = {
-        deferReply,
-        editReply,
-      };
+      const interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>();
+      interaction.deferReply = deferReply;
+      interaction.editReply = editReply;
+      
+      // Handle the readonly property correctly
+      Object.defineProperty(interaction, 'memberPermissions', {
+        value: hasPermissions ? new PermissionsBitField(permissions) : null,
+        writable: false,
+      });
 
-      if (hasPermissions) {
-        mockData.memberPermissions = new PermissionsBitField(permissions);
-      } else {
-        mockData.memberPermissions = null;
-      }
-
-      return createMock<ChatInputCommandInteraction<'cached' | 'raw'>>(
-        mockData,
-      );
+      return interaction;
     };
 
     it('should show only public commands for regular users', async () => {
