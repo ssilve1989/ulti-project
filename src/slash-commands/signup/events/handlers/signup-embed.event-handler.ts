@@ -1,7 +1,7 @@
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { Colors, EmbedBuilder, userMention } from 'discord.js';
-import { P, match } from 'ts-pattern';
+import { match, P } from 'ts-pattern';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { SignupApprovedEvent, SignupDeclinedEvent } from '../signup.events.js';

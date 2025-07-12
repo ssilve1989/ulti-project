@@ -8,7 +8,9 @@ export enum SignupStatus {
   UPDATE_PENDING = 'UPDATE_PENDING',
 }
 
-export type SignupStatusValues = keyof { [K in SignupStatus]: any };
+export type SignupStatusValues = keyof {
+  [K in SignupStatus]: keyof (typeof SignupStatus)[K];
+};
 
 export enum PartyStatus {
   EarlyProgParty = 'Early Prog Party',

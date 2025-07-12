@@ -32,7 +32,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
   ) {}
 
   @SentryTraced()
-  async execute({ interaction }: LookupCommand): Promise<any> {
+  async execute({ interaction }: LookupCommand): Promise<void> {
     const { options, guildId } = interaction;
 
     const dto = this.getLookupRequest(options);

@@ -1,9 +1,9 @@
 import { Test } from '@nestjs/testing';
 import { PartyStatus } from '../firebase/models/signup.model.js';
-import { EncountersComponentsService } from './encounters-components.service.js';
 import { CLEARED_OPTION } from './encounters.components.js';
 import { Encounter } from './encounters.consts.js';
 import { EncountersService } from './encounters.service.js';
+import { EncountersComponentsService } from './encounters-components.service.js';
 
 describe('EncountersComponentsService', () => {
   let service: EncountersComponentsService;

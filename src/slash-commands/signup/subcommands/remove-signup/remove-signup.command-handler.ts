@@ -1,6 +1,6 @@
 import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
-import { SentryTraced } from '@sentry/nestjs';
 import * as Sentry from '@sentry/nestjs';
+import { SentryTraced } from '@sentry/nestjs';
 import {
   type APIUser,
   ChatInputCommandInteraction,
@@ -9,7 +9,7 @@ import {
   MessageFlags,
   User,
 } from 'discord.js';
-import { P, match } from 'ts-pattern';
+import { match, P } from 'ts-pattern';
 import {
   characterField,
   encounterField,
@@ -59,7 +59,7 @@ class RemoveSignupCommandHandler
   ) {}
 
   @SentryTraced()
-  async execute({ interaction }: RemoveSignupCommand): Promise<any> {
+  async execute({ interaction }: RemoveSignupCommand) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const scope = Sentry.getCurrentScope();

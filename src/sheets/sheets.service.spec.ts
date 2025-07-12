@@ -148,9 +148,9 @@ describe('Sheets Service', () => {
 
       // Return a non-empty array of requests
       const mockRequest = { updateCells: { range: { sheetId: 123 } } };
-      const getRemoveRequestsForRangeSpy = vi
-        .spyOn(service as any, 'getRemoveRequestsForRange')
-        .mockResolvedValue([mockRequest]);
+      vi.spyOn(service as any, 'getRemoveRequestsForRange').mockResolvedValue([
+        mockRequest,
+      ]);
 
       const testSignups = [{ character: 'TestChar', world: 'TestWorld' }];
 

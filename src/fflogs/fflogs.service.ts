@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import {
-  EmptyError,
-  type Observable,
   catchError,
+  EmptyError,
   first,
   from,
   mergeMap,
+  type Observable,
   of,
 } from 'rxjs';
 import type { Encounter } from '../encounters/encounters.consts.js';

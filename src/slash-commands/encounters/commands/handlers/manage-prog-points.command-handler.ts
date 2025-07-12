@@ -277,8 +277,8 @@ export class ManageProgPointsCommandHandler
       value: (index + 1).toString(),
       description:
         index < sortedProgPoints.length - 1
-          ? `After: ${sortedProgPoints[index].label}, Before: ${sortedProgPoints[index + 1].label}`
-          : `After: ${sortedProgPoints[index].label} (At the end)`,
+          ? `After: ${p.label}, Before: ${sortedProgPoints[index + 1].label}`
+          : `After: ${p.label} (At the end)`,
     }));
 
     positionOptions.unshift({
@@ -722,7 +722,7 @@ export class ManageProgPointsCommandHandler
           newLongName,
           'edit',
         );
-      } catch (error) {
+      } catch (_error) {
         // Modal was cancelled or timed out - don't stop the collector
         // User can try again with the same prog point
         this.logger.debug('Modal cancelled or timed out, user can try again');

@@ -1,5 +1,5 @@
-import { createMock } from '@golevelup/ts-vitest';
 import type { DeepMocked } from '@golevelup/ts-vitest';
+import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { EncountersCollection } from '../firebase/collections/encounters-collection.js';
 import type {
