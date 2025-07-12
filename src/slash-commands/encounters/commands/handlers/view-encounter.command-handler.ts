@@ -1,7 +1,12 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
-import { Colors, EmbedBuilder, MessageFlags } from 'discord.js';
+import {
+  type ChatInputCommandInteraction,
+  Colors,
+  EmbedBuilder,
+  MessageFlags,
+} from 'discord.js';
 import {
   Encounter,
   EncounterFriendlyDescription,
@@ -43,7 +48,7 @@ export class ViewEncounterCommandHandler
   }
 
   private async showSingleEncounter(
-    interaction: any,
+    interaction: ChatInputCommandInteraction,
     encounterId: string,
   ): Promise<void> {
     const [encounter, progPoints] = await Promise.all([
@@ -119,7 +124,9 @@ export class ViewEncounterCommandHandler
     await interaction.editReply({ embeds: [embed] });
   }
 
-  private async showAllEncounters(interaction: any): Promise<void> {
+  private async showAllEncounters(
+    interaction: ChatInputCommandInteraction,
+  ): Promise<void> {
     const embed = new EmbedBuilder()
       .setTitle('All Encounters Overview')
       .setColor(Colors.Blue)

@@ -46,7 +46,7 @@ class SheetCleanerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     this.job.stop();
   }
 
-  private async cleanSheet() {
+  private cleanSheet() {
     this.logger.log('starting sheet cleaner job');
 
     const guilds = this.discordService.getGuilds();

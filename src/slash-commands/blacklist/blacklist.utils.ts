@@ -5,7 +5,6 @@ import {
   userMention,
 } from 'discord.js';
 import { titleCase } from 'title-case';
-import {} from 'ts-pattern';
 import type { DiscordService } from '../../discord/discord.service.js';
 import type { BlacklistDocument } from '../../firebase/models/blacklist.model.js';
 

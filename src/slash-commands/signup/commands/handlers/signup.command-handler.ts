@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
-import { SentryTraced } from '@sentry/nestjs';
 import * as Sentry from '@sentry/nestjs';
+import { SentryTraced } from '@sentry/nestjs';
 import {
   ActionRowBuilder,
   ChatInputCommandInteraction,
@@ -101,7 +101,8 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     );
 
     const confirmationInteraction = await interaction.editReply({
-      components: [confirmationRow as any], // the typings are wrong here? annoying af
+      // biome-ignore lint/suspicious/noExplicitAny: need to figure out proper typings for this
+      components: [confirmationRow as any],
       embeds: [embed],
     });
 

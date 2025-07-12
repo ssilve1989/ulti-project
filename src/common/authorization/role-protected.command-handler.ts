@@ -5,5 +5,5 @@ import type { DiscordCommand } from '../../slash-commands/slash-commands.interfa
 export abstract class RoleProtectedHandler<T extends DiscordCommand> {
   @Inject() protected readonly roleManagerService: RoleManagerService;
 
-  abstract execute(command: T): Promise<any>;
+  abstract execute(command: T): Promise<unknown>;
 }

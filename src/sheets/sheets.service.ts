@@ -1,8 +1,8 @@
 import { sheets_v4 } from '@googleapis/sheets';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { SentryTraced } from '@sentry/nestjs';
 import * as Sentry from '@sentry/nestjs';
+import { SentryTraced } from '@sentry/nestjs';
 import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
@@ -62,7 +62,7 @@ class SheetsService {
    * @returns
    */
   @SentryTraced()
-  public async upsertSignup(
+  public upsertSignup(
     { partyStatus, ...signup }: SignupDocument,
     spreadsheetId: string,
   ) {
@@ -108,7 +108,7 @@ class SheetsService {
    * @param spreadsheetId The ID of the spreadsheet
    */
   @SentryTraced()
-  public async removeTurboProgEntry(
+  public removeTurboProgEntry(
     { encounter, character }: Pick<TurboProgEntry, 'encounter' | 'character'>,
     spreadsheetId: string,
   ) {
@@ -490,8 +490,8 @@ class SheetsService {
    */
   @SentryTraced()
   private findCharacterRowIndex(
-    values: any[][] | undefined | null,
-    predicate: (values: Set<any>) => boolean,
+    values: string[][] | undefined | null,
+    predicate: (values: Set<string>) => boolean,
   ): number {
     if (!values) {
       return -1;
@@ -543,7 +543,10 @@ class SheetsService {
   public async cleanSheet({
     spreadsheetId,
     encounter,
-  }: { spreadsheetId: string; encounter: Encounter }): Promise<void> {
+  }: {
+    spreadsheetId: string;
+    encounter: Encounter;
+  }): Promise<void> {
     const ranges = [
       SheetRanges[PartyStatus.ClearParty],
       SheetRanges[PartyStatus.ProgParty],
