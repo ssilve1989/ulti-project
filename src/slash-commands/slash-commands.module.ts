@@ -11,6 +11,7 @@ import { RemoveRoleModule } from './remove-role/remove-role.module.js';
 import { RetireModule } from './retire/retire.module.js';
 import { SearchModule } from './search/search.module.js';
 import { SettingsModule } from './settings/settings.module.js';
+import { SlashCommandsSharedModule } from './shared/slash-commands-shared.module.js';
 import { SignupModule } from './signup/signup.module.js';
 import { SlashCommandsService } from './slash-commands.service.js';
 import { StatusModule } from './status/status.module.js';
@@ -21,6 +22,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     DiscordModule,
     ConfigModule,
     CqrsModule,
+    SlashCommandsSharedModule,
     BlacklistModule,
     EncountersSlashCommandModule,
     HelpModule,

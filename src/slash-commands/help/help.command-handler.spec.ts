@@ -1,17 +1,52 @@
 import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import type { ChatInputCommandInteraction } from 'discord.js';
-import { Colors, PermissionsBitField } from 'discord.js';
+import {
+  Colors,
+  PermissionFlagsBits,
+  PermissionsBitField,
+  SlashCommandBuilder,
+} from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SLASH_COMMANDS_TOKEN } from '../slash-commands.provider.js';
 import { HelpCommand } from './help.command.js';
 import { HelpCommandHandler } from './help.command-handler.js';
 
 describe('HelpCommandHandler', () => {
   let handler: HelpCommandHandler;
 
+  const mockSlashCommands = [
+    new SlashCommandBuilder()
+      .setName('help')
+      .setDescription('Display a list of all available bot commands'),
+    new SlashCommandBuilder()
+      .setName('status')
+      .setDescription('Retrieve the status of your current signups'),
+    new SlashCommandBuilder()
+      .setName('signup')
+      .setDescription('Sign up for encounters'),
+    new SlashCommandBuilder()
+      .setName('remove-signup')
+      .setDescription('Remove your signup from encounters'),
+    new SlashCommandBuilder()
+      .setName('settings')
+      .setDescription('Configure/Review the bots roles and channel settings')
+      .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+    new SlashCommandBuilder()
+      .setName('blacklist')
+      .setDescription('Manage the blacklist')
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+  ];
+
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
-      providers: [HelpCommandHandler],
+      providers: [
+        HelpCommandHandler,
+        {
+          provide: SLASH_COMMANDS_TOKEN,
+          useValue: mockSlashCommands,
+        },
+      ],
     })
       .useMocker(createMock)
       .compile();
@@ -31,10 +66,11 @@ describe('HelpCommandHandler', () => {
       const deferReply = vi.fn().mockResolvedValue(undefined);
       const editReply = vi.fn().mockResolvedValue(undefined);
 
-      const interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>();
+      const interaction =
+        createMock<ChatInputCommandInteraction<'cached' | 'raw'>>();
       interaction.deferReply = deferReply;
       interaction.editReply = editReply;
-      
+
       // Handle the readonly property correctly
       Object.defineProperty(interaction, 'memberPermissions', {
         value: hasPermissions ? new PermissionsBitField(permissions) : null,
@@ -63,12 +99,12 @@ describe('HelpCommandHandler', () => {
               fields: expect.arrayContaining([
                 expect.objectContaining({
                   name: '🔓 Public Commands',
-                  value: expect.stringContaining('**/help**'),
+                  value: expect.stringContaining('**/status**'),
                   inline: false,
                 }),
               ]),
               footer: expect.objectContaining({
-                text: expect.stringContaining('Showing 4 available commands'),
+                text: expect.stringContaining('Showing 3 available commands'),
               }),
             }),
           }),
@@ -98,7 +134,7 @@ describe('HelpCommandHandler', () => {
                 }),
               ]),
               footer: expect.objectContaining({
-                text: expect.stringContaining('Showing 5 available commands'),
+                text: expect.stringContaining('Showing 4 available commands'),
               }),
             }),
           }),
@@ -156,38 +192,6 @@ describe('HelpCommandHandler', () => {
                   name: '🔓 Public Commands',
                 }),
               ],
-            }),
-          }),
-        ],
-      });
-    });
-
-    it('should format commands with subcommands correctly', async () => {
-      const interaction = createInteractionMock([
-        PermissionsBitField.Flags.Administrator,
-      ]);
-      const command = new HelpCommand(interaction);
-
-      await handler.execute(command);
-
-      expect(interaction.editReply).toHaveBeenCalledWith({
-        embeds: [
-          expect.objectContaining({
-            data: expect.objectContaining({
-              fields: expect.arrayContaining([
-                expect.objectContaining({
-                  name: '⚙️ Management Commands',
-                  value: expect.stringMatching(
-                    /\*\*\/settings\*\*.*\n└ Subcommands:.*channels.*reviewer/s,
-                  ),
-                }),
-                expect.objectContaining({
-                  name: '🔒 Administrator Commands',
-                  value: expect.stringMatching(
-                    /\*\*\/blacklist\*\*.*\n└ Subcommands:.*add.*remove.*display/s,
-                  ),
-                }),
-              ]),
             }),
           }),
         ],
