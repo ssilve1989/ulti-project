@@ -1,4 +1,9 @@
-import { PermissionFlagsBits, PermissionsBitField } from 'discord.js';
+import {
+  ApplicationCommandOptionType,
+  PermissionFlagsBits,
+  PermissionsBitField,
+} from 'discord.js';
+import type { SlashCommands } from '../slash-commands.provider.js';
 
 export interface CommandInfo {
   name: string;
@@ -8,13 +13,13 @@ export interface CommandInfo {
 }
 
 export function getCommandPermissionLevel(
-  defaultMemberPermissions: bigint | null,
+  defaultMemberPermissions: string | null | undefined,
 ): 'public' | 'manageGuild' | 'administrator' {
   if (!defaultMemberPermissions) {
     return 'public';
   }
 
-  const permissions = new PermissionsBitField(defaultMemberPermissions);
+  const permissions = new PermissionsBitField(BigInt(defaultMemberPermissions));
 
   if (permissions.has(PermissionFlagsBits.Administrator)) {
     return 'administrator';
@@ -27,90 +32,40 @@ export function getCommandPermissionLevel(
   return 'public';
 }
 
-export function getAvailableCommands(): CommandInfo[] {
-  return [
-    // Public commands
-    {
-      name: 'help',
-      description: 'Display a list of all available bot commands',
-      permissionLevel: 'public',
-    },
-    {
-      name: 'status',
-      description: 'Retrieve the status of your current signups',
-      permissionLevel: 'public',
-    },
-    {
-      name: 'signup',
-      description: 'Sign up for encounters',
-      permissionLevel: 'public',
-    },
-    {
-      name: 'remove-signup',
-      description: 'Remove your signup from encounters',
-      permissionLevel: 'public',
-    },
+function extractSubcommands(
+  command: ReturnType<SlashCommands[0]['toJSON']>,
+): string[] {
+  const subcommands: string[] = [];
 
-    // Manage Guild commands
-    {
-      name: 'settings',
-      description: 'Configure/Review the bots roles and channel settings',
-      permissionLevel: 'manageGuild',
-      subcommands: [
-        'channels',
-        'reviewer',
-        'encounter-roles',
-        'spreadsheet',
-        'turbo-prog',
-        'view',
-      ],
-    },
+  if (command.options) {
+    for (const option of command.options) {
+      if (option.type === ApplicationCommandOptionType.Subcommand) {
+        subcommands.push(option.name);
+      }
+    }
+  }
 
-    // Administrator commands
-    {
-      name: 'blacklist',
-      description: 'Manage the blacklist',
-      permissionLevel: 'administrator',
-      subcommands: ['add', 'remove', 'display'],
-    },
-    {
-      name: 'encounters',
-      description: 'Manage encounter prog points and thresholds',
-      permissionLevel: 'administrator',
-      subcommands: ['set-thresholds', 'manage-prog-points', 'view'],
-    },
-    {
-      name: 'final-push',
-      description: 'Signup for the final push event',
-      permissionLevel: 'administrator',
-    },
-    {
-      name: 'lookup',
-      description:
-        'Lookup a players signup information, including availability, encounters, etc.',
-      permissionLevel: 'administrator',
-    },
-    {
-      name: 'remove-role',
-      description: 'Remove the selected role from all guild members',
-      permissionLevel: 'administrator',
-    },
-    {
-      name: 'retire',
-      description: 'Retire all members of the current helper role',
-      permissionLevel: 'administrator',
-    },
-    {
-      name: 'search',
-      description: 'Search for users by encounter and prog point',
-      permissionLevel: 'administrator',
-    },
-    {
-      name: 'turbo-prog',
-      description: 'Signup for the current turbo prog event',
-      permissionLevel: 'administrator',
-    },
-  ];
+  return subcommands;
+}
+
+export function getAvailableCommands(
+  slashCommands: SlashCommands,
+): CommandInfo[] {
+  return slashCommands
+    .filter((command) => command.name !== 'help') // Exclude help command itself
+    .map((command) => {
+      const commandData = command.toJSON();
+      const subcommands = extractSubcommands(commandData);
+
+      return {
+        name: commandData.name,
+        description: commandData.description,
+        subcommands: subcommands.length > 0 ? subcommands : undefined,
+        permissionLevel: getCommandPermissionLevel(
+          commandData.default_member_permissions,
+        ),
+      };
+    });
 }
 
 export function filterCommandsByPermissions(
