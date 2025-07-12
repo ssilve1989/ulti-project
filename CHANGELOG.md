@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.34.0](https://github.com/ssilve1989/ulti-project/compare/v1.33.0...v1.34.0) (2025-07-12)
+
+
+### Features
+
+* improve prog points management UX and fix edit functionality ([c90af35](https://github.com/ssilve1989/ulti-project/commit/c90af350dc2f3c9bd7659999432d9b4767501b32))
+* **slash-commands:** add /help command with permission-aware filtering ([51b50c2](https://github.com/ssilve1989/ulti-project/commit/51b50c267edd476163274b688e8fa27f5ac1fa1a))
+
+
+### Bug Fixes
+
+* improve edit modal UX by removing confusing read-only input ([068a43b](https://github.com/ssilve1989/ulti-project/commit/068a43b7857b899fd38b072e28fa880040486919))
+* improve prog points navigation and editing UX ([7d2061b](https://github.com/ssilve1989/ulti-project/commit/7d2061bcc186985e42f138f4ad5722b5708902ef))
+* **tests:** remove any type from help command tests ([c63a032](https://github.com/ssilve1989/ulti-project/commit/c63a0322b5dd023f15be87138c3d98946604a21b))
+
 ## [1.33.0](https://github.com/ssilve1989/ulti-project/compare/v1.32.1...v1.33.0) (2025-06-30)
 
 
