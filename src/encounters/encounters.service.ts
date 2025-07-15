@@ -158,68 +158,25 @@ export class EncountersService {
   public async getPartyStatusForProgPoint(
     encounterId: string,
     progPointId: string,
-  ): Promise<PartyStatus | undefined> {
-    const [encounter, progPoints] = await Promise.all([
-      this.getEncounter(encounterId),
-      this.getProgPoints(encounterId),
-    ]);
+  ): Promise<PartyStatus> {
+    const progPoints = await this.getProgPoints(encounterId);
 
     const progPoint = progPoints.find((p) => p.id === progPointId);
     if (!progPoint) {
-      return undefined;
+      throw new Error(
+        `Prog point not found: ${progPointId} for encounter: ${encounterId}`,
+      );
     }
 
-    // If no encounter configuration exists, fall back to the prog point's individual party status
-    if (
-      !encounter ||
-      (!encounter.progPartyThreshold && !encounter.clearPartyThreshold)
-    ) {
-      return progPoint.partyStatus;
+    if (!progPoint.partyStatus) {
+      throw new Error(
+        `Party status not defined for prog point: ${progPointId} in encounter: ${encounterId}`,
+      );
     }
 
-    // Use threshold-based determination
-    return this.determinePartyStatusByThresholds(
-      encounter,
-      progPoint,
-      progPoints,
-    );
-  }
-
-  @SentryTraced()
-  private determinePartyStatusByThresholds(
-    encounter: EncounterDocument,
-    progPoint: ProgPointDocument,
-    allProgPoints: ProgPointDocument[],
-  ): PartyStatus {
-    // Sort prog points by order to determine progression
-    const sortedProgPoints = allProgPoints.sort((a, b) => a.order - b.order);
-
-    const progPointIndex = sortedProgPoints.findIndex(
-      (p) => p.id === progPoint.id,
-    );
-
-    // Find threshold indices
-    const progThresholdIndex = encounter.progPartyThreshold
-      ? sortedProgPoints.findIndex((p) => p.id === encounter.progPartyThreshold)
-      : -1;
-
-    const clearThresholdIndex = encounter.clearPartyThreshold
-      ? sortedProgPoints.findIndex(
-          (p) => p.id === encounter.clearPartyThreshold,
-        )
-      : -1;
-
-    // Determine party status based on thresholds
-    if (clearThresholdIndex !== -1 && progPointIndex >= clearThresholdIndex) {
-      return PartyStatus.ClearParty;
-    }
-
-    if (progThresholdIndex !== -1 && progPointIndex >= progThresholdIndex) {
-      return PartyStatus.ProgParty;
-    }
-
-    // Default to early prog party if below both thresholds
-    return PartyStatus.EarlyProgParty;
+    // Always use the prog point's direct party status when available
+    // This represents the intended party type for the specific progression milestone
+    return progPoint.partyStatus;
   }
 
   @SentryTraced()

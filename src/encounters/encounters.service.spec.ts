@@ -76,16 +76,14 @@ describe('EncountersService', () => {
       },
     ];
 
-    it('should return undefined for non-existent prog point', async () => {
-      mockEncountersCollection.getEncounter.mockResolvedValue(undefined);
+    it('should throw error for non-existent prog point', async () => {
       mockEncountersCollection.getProgPoints.mockResolvedValue([]);
 
-      const result = await service.getPartyStatusForProgPoint(
-        'test-encounter',
-        'non-existent',
+      await expect(
+        service.getPartyStatusForProgPoint('test-encounter', 'non-existent'),
+      ).rejects.toThrow(
+        'Prog point not found: non-existent for encounter: test-encounter',
       );
-
-      expect(result).toBeUndefined();
     });
 
     it('should fall back to prog point party status when no thresholds are configured', async () => {
@@ -167,65 +165,22 @@ describe('EncountersService', () => {
       expect(clearResult2).toBe(PartyStatus.ClearParty);
     });
 
-    it('should handle only prog threshold configured', async () => {
-      const mockEncounter: EncounterDocument = {
-        name: 'Test Encounter',
-        description: 'Test Description',
-        active: true,
-        progPartyThreshold: 'prog1', // order: 2
-        // No clear threshold
-      };
-
-      mockEncountersCollection.getEncounter.mockResolvedValue(mockEncounter);
+    it('should return prog point direct party status', async () => {
       mockEncountersCollection.getProgPoints.mockResolvedValue(mockProgPoints);
 
-      // Before prog threshold should be early prog
+      // Should return the direct party status from each prog point
       const earlyResult = await service.getPartyStatusForProgPoint(
         'test-encounter',
         'early1',
       );
       expect(earlyResult).toBe(PartyStatus.EarlyProgParty);
 
-      // At and after prog threshold should be prog party
       const progResult = await service.getPartyStatusForProgPoint(
         'test-encounter',
         'prog1',
       );
       expect(progResult).toBe(PartyStatus.ProgParty);
 
-      const laterProgResult = await service.getPartyStatusForProgPoint(
-        'test-encounter',
-        'clear1',
-      );
-      expect(laterProgResult).toBe(PartyStatus.ProgParty);
-    });
-
-    it('should handle only clear threshold configured', async () => {
-      const mockEncounter: EncounterDocument = {
-        name: 'Test Encounter',
-        description: 'Test Description',
-        active: true,
-        // No prog threshold
-        clearPartyThreshold: 'clear1', // order: 4
-      };
-
-      mockEncountersCollection.getEncounter.mockResolvedValue(mockEncounter);
-      mockEncountersCollection.getProgPoints.mockResolvedValue(mockProgPoints);
-
-      // Before clear threshold should be early prog
-      const earlyResult = await service.getPartyStatusForProgPoint(
-        'test-encounter',
-        'early1',
-      );
-      expect(earlyResult).toBe(PartyStatus.EarlyProgParty);
-
-      const progResult = await service.getPartyStatusForProgPoint(
-        'test-encounter',
-        'prog1',
-      );
-      expect(progResult).toBe(PartyStatus.EarlyProgParty);
-
-      // At and after clear threshold should be clear party
       const clearResult = await service.getPartyStatusForProgPoint(
         'test-encounter',
         'clear1',
@@ -233,7 +188,30 @@ describe('EncountersService', () => {
       expect(clearResult).toBe(PartyStatus.ClearParty);
     });
 
-    it('should handle unsorted prog points correctly', async () => {
+    it('should return prog point direct party status regardless of thresholds', async () => {
+      mockEncountersCollection.getProgPoints.mockResolvedValue(mockProgPoints);
+
+      // Should return the direct party status from each prog point
+      const earlyResult = await service.getPartyStatusForProgPoint(
+        'test-encounter',
+        'early1',
+      );
+      expect(earlyResult).toBe(PartyStatus.EarlyProgParty);
+
+      const progResult = await service.getPartyStatusForProgPoint(
+        'test-encounter',
+        'prog1',
+      );
+      expect(progResult).toBe(PartyStatus.ProgParty);
+
+      const clearResult = await service.getPartyStatusForProgPoint(
+        'test-encounter',
+        'clear1',
+      );
+      expect(clearResult).toBe(PartyStatus.ClearParty);
+    });
+
+    it('should return direct party status from unsorted prog points', async () => {
       const unsortedProgPoints: ProgPointDocument[] = [
         {
           id: 'point3',
@@ -258,20 +236,11 @@ describe('EncountersService', () => {
         },
       ];
 
-      const mockEncounter: EncounterDocument = {
-        name: 'Test Encounter',
-        description: 'Test Description',
-        active: true,
-        progPartyThreshold: 'point2', // order: 1
-        clearPartyThreshold: 'point3', // order: 2
-      };
-
-      mockEncountersCollection.getEncounter.mockResolvedValue(mockEncounter);
       mockEncountersCollection.getProgPoints.mockResolvedValue(
         unsortedProgPoints,
       );
 
-      // Test that ordering works correctly
+      // Should return the direct party status from each prog point
       const earlyResult = await service.getPartyStatusForProgPoint(
         'test-encounter',
         'point1',
@@ -282,13 +251,13 @@ describe('EncountersService', () => {
         'test-encounter',
         'point2',
       );
-      expect(progResult).toBe(PartyStatus.ProgParty);
+      expect(progResult).toBe(PartyStatus.EarlyProgParty);
 
       const clearResult = await service.getPartyStatusForProgPoint(
         'test-encounter',
         'point3',
       );
-      expect(clearResult).toBe(PartyStatus.ClearParty);
+      expect(clearResult).toBe(PartyStatus.ProgParty);
     });
   });
 
