@@ -33,6 +33,15 @@ export class SignupDeclinedEvent {
   ) {}
 }
 
+export class SignupDeclineReasonCollectedEvent {
+  constructor(
+    public readonly signup: SignupDocument,
+    public readonly reviewedBy: User,
+    public readonly message: Message<true>,
+    public readonly declineReason?: string,
+  ) {}
+}
+
 export class SignupApprovalSentEvent {
   constructor(
     public readonly signup: Pick<

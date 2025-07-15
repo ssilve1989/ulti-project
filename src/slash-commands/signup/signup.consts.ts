@@ -60,3 +60,46 @@ export const WHITELIST_VALIDATION_ERROR = `A link must be from one of these doma
 ${PROG_PROOF_HOSTS_WHITELIST.map((v) => v.source.replaceAll('/', '')).join(
   '\n',
 )}`;
+
+// Predefined decline reasons for signup reviews
+export const SIGNUP_DECLINE_REASONS_CONFIG: ReadonlyArray<{
+  readonly reason: string;
+  readonly permanent: boolean;
+  readonly followupMessage: string;
+}> = [
+  {
+    reason: 'Signup lacks valid proof of requested prog point',
+    permanent: false,
+    followupMessage:
+      "Please review the feedback above and feel free to submit a new signup once you've addressed the concerns. Thank you for your understanding! 🙏",
+  },
+  {
+    reason: 'The encounter has already been cleared',
+    permanent: true,
+    followupMessage:
+      "Since you've already cleared this encounter, you won't be able to sign up for it again. Congratulations on your clear! 🎉",
+  },
+  {
+    reason:
+      'Mechanics prior to the requested prog point have not been performed cleanly',
+    permanent: false,
+    followupMessage:
+      "Please review the feedback above and feel free to submit a new signup once you've addressed the concerns. Thank you for your understanding! 🙏",
+  },
+];
+
+// Extract just the reason strings for backwards compatibility
+export const SIGNUP_DECLINE_REASONS: string[] =
+  SIGNUP_DECLINE_REASONS_CONFIG.map((config) => config.reason);
+
+// Default followup messages for cases without predefined messages
+export const DEFAULT_DECLINE_FOLLOWUP_MESSAGES = {
+  permanent:
+    'This decline reason indicates a permanent condition that cannot be changed.',
+  nonPermanent:
+    "Please review the feedback above and feel free to submit a new signup once you've addressed the concerns. Thank you for your understanding! 🙏",
+} as const;
+
+// Custom reason option for select menu
+export const CUSTOM_DECLINE_REASON_VALUE = 'custom_reason';
+export const CUSTOM_DECLINE_REASON_LABEL = 'Other - provide custom reason';

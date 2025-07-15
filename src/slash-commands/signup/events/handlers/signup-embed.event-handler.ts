@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/nestjs';
 import { Colors, EmbedBuilder, userMention } from 'discord.js';
 import { match, P } from 'ts-pattern';
 import { DiscordService } from '../../../../discord/discord.service.js';
-import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { SignupApprovedEvent, SignupDeclinedEvent } from '../signup.events.js';
 
 @EventsHandler(SignupApprovedEvent, SignupDeclinedEvent)
@@ -65,13 +64,7 @@ class SignupEmbedEventHandler
       .setColor(Colors.Red)
       .setTimestamp(new Date());
 
-    await Promise.all([
-      message.edit({ content, embeds: [embed] }),
-      this.discordService.sendDirectMessage(signup.discordId, {
-        content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_DENIED,
-        embeds: [EmbedBuilder.from(embed).setTitle('Signup Declined')],
-      }),
-    ]);
+    await message.edit({ content, embeds: [embed] });
   }
 }
 
