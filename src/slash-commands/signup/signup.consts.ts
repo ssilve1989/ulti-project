@@ -70,7 +70,7 @@ export const SIGNUP_DECLINE_REASONS = [
   'Reason 1',
   'Reason 2',
   'Reason 3',
-] as const;
+];
 
 // Custom reason option for select menu
 export const CUSTOM_DECLINE_REASON_VALUE = 'custom_reason';
