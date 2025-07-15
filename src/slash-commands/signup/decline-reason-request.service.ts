@@ -9,6 +9,7 @@ import {
   DiscordjsErrorCodes,
   type InteractionResponse,
   type Message,
+  MessageFlags,
   type ModalSubmitInteraction,
   type StringSelectMenuInteraction,
   type User,
@@ -166,7 +167,7 @@ export class DeclineReasonRequestService {
       );
       await interaction.reply({
         content: `✅ Decline reason recorded: "${selectedValue}"`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   }
@@ -189,7 +190,7 @@ export class DeclineReasonRequestService {
     );
     await interaction.reply({
       content: `✅ Custom decline reason recorded: "${customReason}"`,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 
