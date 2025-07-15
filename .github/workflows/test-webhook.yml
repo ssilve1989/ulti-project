@@ -1,0 +1,73 @@
+name: Test Discord Webhook
+
+on:
+  push:
+    branches:
+      - test/deployment-webhook
+
+jobs:
+  test-webhook:
+    name: Test Discord Webhook
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test webhook sending
+        id: send-test
+        continue-on-error: true
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_DEPLOYMENT_WEBHOOK_URL }}
+        run: |
+          if [ -n "$WEBHOOK_URL" ]; then
+            PAYLOAD=$(cat <<EOF
+          {
+            "content": "🔧 **Bot Update in Progress**\n\nI'm currently deploying a patch with some improvements and fixes. I'll be briefly unavailable while the update is applied.\n\n**Status:** 🟡 Deployment in progress..."
+          }
+          EOF
+          )
+            echo "Sending test message to webhook..."
+            RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST "$WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD")
+            
+            HTTP_STATUS=$(echo "$RESPONSE" | grep -o "HTTPSTATUS:[0-9]*" | cut -d: -f2)
+            RESPONSE_BODY=$(echo "$RESPONSE" | sed -E 's/HTTPSTATUS:[0-9]*$//')
+            
+            if [ "$HTTP_STATUS" -eq 200 ] || [ "$HTTP_STATUS" -eq 204 ]; then
+              echo "✅ Test message sent successfully"
+            else
+              echo "❌ Failed to send test message (HTTP $HTTP_STATUS)"
+              echo "Response: $RESPONSE_BODY"
+              exit 1
+            fi
+          else
+            echo "❌ DISCORD_DEPLOYMENT_WEBHOOK_URL not configured"
+            exit 1
+          fi
+
+      - name: Test completion notification
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_DEPLOYMENT_WEBHOOK_URL }}
+        run: |
+          PAYLOAD=$(cat <<EOF
+          {
+            "content": "🔧 **Bot Update Complete**\n\n~~I'm currently deploying a patch with some improvements and fixes. I'll be briefly unavailable while the update is applied.~~\n\n**Status:** ✅ Successfully updated and ready to go!"
+          }
+          EOF
+          )
+          echo "Sending test completion message..."
+          RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+          
+          HTTP_STATUS=$(echo "$RESPONSE" | grep -o "HTTPSTATUS:[0-9]*" | cut -d: -f2)
+          
+          if [ "$HTTP_STATUS" -eq 200 ] || [ "$HTTP_STATUS" -eq 204 ]; then
+            echo "✅ Test completion message sent successfully"
+          else
+            echo "❌ Failed to send completion message (HTTP $HTTP_STATUS)"
+          fi
+
+      - name: Test results
+        run: |
+          echo "🎯 Test completed!"
+          echo "If both steps above show ✅, the webhook is working correctly."
+          echo "You can now implement this in your deployment workflow."
