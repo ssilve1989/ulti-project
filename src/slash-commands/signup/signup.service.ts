@@ -48,6 +48,7 @@ import {
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
+import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
@@ -72,6 +73,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     private readonly eventBus: EventBus,
     private readonly encountersService: EncountersService,
     private readonly encountersComponentsService: EncountersComponentsService,
+    private readonly declineReasonRequestService: DeclineReasonRequestService,
   ) {}
 
   onApplicationBootstrap() {
@@ -278,11 +280,22 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     message: Message<true>,
     user: User,
   ): Promise<SignupDeclinedEvent> {
+    // Update signup status immediately (non-blocking)
     await this.repository.updateSignupStatus(
       SignupStatus.DECLINED,
       signup,
       user.username,
     );
+
+    // Fire decline reason request in parallel (non-blocking)
+    this.declineReasonRequestService
+      .requestDeclineReason(signup, user.id)
+      .catch((error) => {
+        this.logger.error(
+          error,
+          `Failed to request decline reason for signup ${signup.discordId}-${signup.encounter}`,
+        );
+      });
 
     return new SignupDeclinedEvent(signup, user, message);
   }
