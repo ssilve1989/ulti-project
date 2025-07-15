@@ -12,6 +12,7 @@ import { UpdateApprovalEmbedEventHandler } from './events/handlers/signup-embed.
 import { SignupService } from './signup.service.js';
 import { RemoveSignupCommandHandler } from './subcommands/remove-signup/remove-signup.command-handler.js';
 import { SendSignupReviewCommandHandler } from './subcommands/send-signup-review/send-signup-review.command-handler.js';
+import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SendSignupReviewCommandHandler } from './subcommands/send-signup-review
   ],
   providers: [
     AssignRolesEventHandler,
+    DeclineReasonRequestService,
     RemoveRolesCommandHandler,
     RemoveSignupCommandHandler,
     SendApprovedMessageEventHandler,
