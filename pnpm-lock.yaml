@@ -39,8 +39,8 @@ importers:
         specifier: ^6.4.3
         version: 6.4.3
       cron:
-        specifier: ^4.3.0
-        version: 4.3.1
+        specifier: ^4.3.2
+        version: 4.3.2
       dayjs:
         specifier: ^1.11.13
         version: 1.11.13
@@ -2660,8 +2660,8 @@ packages:
       typescript:
         optional: true
 
-  cron@4.3.1:
-    resolution: {integrity: sha512-7x7DoEOxV11t3OPWWMjj1xrL1PGkTV5RV+/54IJTZD7gStiaMploY43EkeBSkDZTLRbUwk+OISbQ0TR133oXyA==}
+  cron@4.3.2:
+    resolution: {integrity: sha512-JxBBnf5zRz+NhW9XcP16gwUKAKIimy2G0QCCQu8kk5XwM4aCGwMt+nntouAfXF9A57965XzB6hitBlJAz5Ts6w==}
     engines: {node: '>=18.x'}
 
   cross-fetch@3.2.0:
@@ -3774,8 +3774,8 @@ packages:
   lru-memoizer@2.3.0:
     resolution: {integrity: sha512-GXn7gyHAMhO13WSKrIiNfztwxodVsP8IoZ3XfrJV4yH2x0/OeTO/FIaAHTY5YekdGgW94njfuKmyyt1E0mR6Ug==}
 
-  luxon@3.6.1:
-    resolution: {integrity: sha512-tJLxrKJhO2ukZ5z0gyjY1zPh3Rh88Ej9P7jNrZiHMUXHae1yvI2imgOZtL1TO8TW6biMMKfTtAOoEJANgtWBMQ==}
+  luxon@3.7.1:
+    resolution: {integrity: sha512-RkRWjA926cTvz5rAb1BqyWkKbbjzCGchDUIKMCUvNi17j6f6j8uHGDV82Aqcqtzd+icoYpELmG3ksgGiFNNcNg==}
     engines: {node: '>=12'}
 
   magic-bytes.js@1.12.1:
@@ -8130,10 +8130,10 @@ snapshots:
     optionalDependencies:
       typescript: 5.8.3
 
-  cron@4.3.1:
+  cron@4.3.2:
     dependencies:
       '@types/luxon': 3.6.2
-      luxon: 3.6.1
+      luxon: 3.7.1
 
   cross-fetch@3.2.0:
     dependencies:
@@ -9427,7 +9427,7 @@ snapshots:
       lodash.clonedeep: 4.5.0
       lru-cache: 6.0.0
 
-  luxon@3.6.1: {}
+  luxon@3.7.1: {}
 
   magic-bytes.js@1.12.1: {}
 
