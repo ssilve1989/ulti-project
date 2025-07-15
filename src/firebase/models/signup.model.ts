@@ -47,12 +47,14 @@ export interface SignupDocument {
   status: SignupStatus;
   // user characters home world
   world: string;
+  // reason provided by reviewer when declining a signup
+  declineReason?: string;
   expiresAt: Timestamp;
 }
 
 export type CreateSignupDocumentProps = Omit<
   SignupDocument,
-  'status' | 'expiresAt'
+  'status' | 'expiresAt' | 'declineReason'
 >;
 
 export type SignupCompositeKeyProps = Pick<
