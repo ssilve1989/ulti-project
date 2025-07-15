@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.35.0](https://github.com/ssilve1989/ulti-project/compare/v1.34.1...v1.35.0) (2025-07-15)
+
+
+### Features
+
+* **signups:** allow reviewers to provide signup decline reason ([#852](https://github.com/ssilve1989/ulti-project/issues/852)) ([1edae29](https://github.com/ssilve1989/ulti-project/commit/1edae29879b63d49458d3984f9ef5fa29b7bd9b4))
+
 ## [1.34.1](https://github.com/ssilve1989/ulti-project/compare/v1.34.0...v1.34.1) (2025-07-15)
 
 
