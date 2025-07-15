@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EventBus } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
   ActionRowBuilder,
@@ -22,6 +23,7 @@ import {
   createDeclineReasonSelectMenu,
 } from './decline-reason.components.js';
 import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
+import { SignupDeclinedEvent } from './events/signup.events.js';
 
 @Injectable()
 export class DeclineReasonRequestService {
@@ -30,12 +32,14 @@ export class DeclineReasonRequestService {
   constructor(
     private readonly discordService: DiscordService,
     private readonly signupCollection: SignupCollection,
+    private readonly eventBus: EventBus,
   ) {}
 
   @SentryTraced()
   async requestDeclineReason(
     signup: SignupDocument,
-    reviewerId: string,
+    reviewer: User,
+    reviewMessage: Message<true>,
   ): Promise<void> {
     try {
       const signupId = `${signup.discordId}-${signup.encounter}`;
@@ -49,15 +53,14 @@ export class DeclineReasonRequestService {
       );
 
       const dmMessage = await this.discordService.sendDirectMessage(
-        reviewerId,
+        reviewer.id,
         {
           embeds: [embed],
           components: [actionRow],
         },
       );
 
-      const reviewerUser = await this.discordService.client.users.fetch(reviewerId);
-      await this.handleDeclineReasonInteractions(dmMessage, signup, reviewerUser);
+      await this.handleDeclineReasonInteractions(dmMessage, signup, reviewer, reviewMessage);
     } catch (error) {
       this.logger.error(
         error,
@@ -69,14 +72,15 @@ export class DeclineReasonRequestService {
   private async handleDeclineReasonInteractions(
     dmMessage: Message<false> | InteractionResponse<false>,
     signup: SignupDocument,
-    reviewerUser: User,
+    reviewer: User,
+    reviewMessage: Message<true>,
   ): Promise<void> {
     const signupId = `${signup.discordId}-${signup.encounter}`;
     const timeout = 5 * 60 * 1000; // 5 minutes
 
     try {
       const selectInteraction = await dmMessage.awaitMessageComponent({
-        filter: isSameUserFilter(reviewerUser),
+        filter: isSameUserFilter(reviewer),
         componentType: ComponentType.StringSelect,
         time: timeout,
       });
@@ -86,12 +90,16 @@ export class DeclineReasonRequestService {
           selectInteraction as StringSelectMenuInteraction,
           signup,
           signupId,
+          reviewer,
+          reviewMessage,
         );
       }
     } catch (error) {
       this.logger.warn(
         `Decline reason request timed out for signup ${signupId}`,
       );
+      // Dispatch event on timeout with no decline reason
+      this.dispatchDeclineEvent(signup, reviewer, reviewMessage);
     }
   }
 
@@ -99,6 +107,8 @@ export class DeclineReasonRequestService {
     interaction: StringSelectMenuInteraction,
     signup: SignupDocument,
     signupId: string,
+    reviewer: User,
+    reviewMessage: Message<true>,
   ): Promise<void> {
     const selectedValue = interaction.values[0];
 
@@ -114,16 +124,18 @@ export class DeclineReasonRequestService {
         });
 
         if (modalInteraction.customId === `${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupId}`) {
-          await this.handleCustomReasonSubmit(modalInteraction, signup);
+          await this.handleCustomReasonSubmit(modalInteraction, signup, reviewer, reviewMessage);
         }
       } catch (error) {
         this.logger.warn(
           `Custom decline reason modal timed out for signup ${signupId}`,
         );
+        // Dispatch event on timeout with no decline reason
+        this.dispatchDeclineEvent(signup, reviewer, reviewMessage);
       }
     } else {
       // Use predefined reason
-      await this.updateSignupWithDeclineReason(signup, selectedValue);
+      await this.updateSignupWithDeclineReason(signup, selectedValue, reviewer, reviewMessage);
       await interaction.reply({
         content: `✅ Decline reason recorded: "${selectedValue}"`,
         ephemeral: true,
@@ -134,12 +146,14 @@ export class DeclineReasonRequestService {
   private async handleCustomReasonSubmit(
     interaction: ModalSubmitInteraction,
     signup: SignupDocument,
+    reviewer: User,
+    reviewMessage: Message<true>,
   ): Promise<void> {
     const customReason = interaction.fields.getTextInputValue(
       CUSTOM_DECLINE_REASON_INPUT_ID,
     );
 
-    await this.updateSignupWithDeclineReason(signup, customReason);
+    await this.updateSignupWithDeclineReason(signup, customReason, reviewer, reviewMessage);
     await interaction.reply({
       content: `✅ Custom decline reason recorded: "${customReason}"`,
       ephemeral: true,
@@ -149,6 +163,8 @@ export class DeclineReasonRequestService {
   private async updateSignupWithDeclineReason(
     signup: SignupDocument,
     declineReason: string,
+    reviewer: User,
+    reviewMessage: Message<true>,
   ): Promise<void> {
     try {
       await this.signupCollection.updateDeclineReason(
@@ -156,16 +172,36 @@ export class DeclineReasonRequestService {
         declineReason,
       );
 
-      // TODO: In later commit, update the user's DM with the specific reason
-      // TODO: In later commit, update the review embed with the reason
-      
       this.logger.log(
         `Updated signup ${signup.discordId}-${signup.encounter} with decline reason: ${declineReason}`,
       );
+
+      // Dispatch the decline event now that we have the reason
+      this.dispatchDeclineEvent(signup, reviewer, reviewMessage);
     } catch (error) {
       this.logger.error(
         error,
         `Failed to update signup ${signup.discordId}-${signup.encounter} with decline reason`,
+      );
+    }
+  }
+
+  private dispatchDeclineEvent(
+    signup: SignupDocument,
+    reviewer: User,
+    reviewMessage: Message<true>,
+  ): void {
+    try {
+      const declineEvent = new SignupDeclinedEvent(signup, reviewer, reviewMessage);
+      this.eventBus.publish(declineEvent);
+      
+      this.logger.log(
+        `Dispatched SignupDeclinedEvent for signup ${signup.discordId}-${signup.encounter}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        error,
+        `Failed to dispatch SignupDeclinedEvent for signup ${signup.discordId}-${signup.encounter}`,
       );
     }
   }
