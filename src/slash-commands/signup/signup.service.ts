@@ -51,6 +51,7 @@ import { SheetsService } from '../../sheets/sheets.service.js';
 import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import {
   SignupApprovedEvent,
+  SignupDeclinedEvent,
 } from './events/signup.events.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 
@@ -183,10 +184,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       .with(SIGNUP_REVIEW_REACTIONS.APPROVED, () =>
         this.handleApprovedReaction(signup, message, user, settings),
       )
-      .with(SIGNUP_REVIEW_REACTIONS.DECLINED, async () => {
-        await this.handleDeclinedReaction(signup, message, user);
-        return undefined; // Event will be dispatched later by DeclineReasonRequestService
-      })
+      .with(SIGNUP_REVIEW_REACTIONS.DECLINED, () =>
+        this.handleDeclinedReaction(signup, message, user),
+      )
       .otherwise(() => undefined);
 
     event && this.eventBus.publish(event);
@@ -279,15 +279,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     signup: SignupDocument,
     message: Message<true>,
     user: User,
-  ): Promise<void> {
-    // Update signup status immediately (non-blocking)
+  ): Promise<SignupDeclinedEvent> {
+    // Update signup status immediately (for sequential reaction processing)
     await this.repository.updateSignupStatus(
       SignupStatus.DECLINED,
       signup,
       user.username,
     );
 
-    // Fire decline reason request with event dispatch context
+    // Fire decline reason request with event dispatch context (non-blocking)
     this.declineReasonRequestService
       .requestDeclineReason(signup, user, message)
       .catch((error) => {
@@ -297,7 +297,8 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         );
       });
 
-    // Event will be dispatched after decline reason is collected or times out
+    // Return event immediately for embed footer update
+    return new SignupDeclinedEvent(signup, user, message);
   }
 
   private async handleError(

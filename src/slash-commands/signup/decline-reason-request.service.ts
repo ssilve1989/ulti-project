@@ -1,9 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
+import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
   ActionRowBuilder,
   ComponentType,
+  DiscordjsError,
+  DiscordjsErrorCodes,
   type InteractionResponse,
   type Message,
   type ModalSubmitInteraction,
@@ -17,13 +20,13 @@ import type { SignupDocument } from '../../firebase/models/signup.model.js';
 import {
   CUSTOM_DECLINE_REASON_INPUT_ID,
   CUSTOM_DECLINE_REASON_MODAL_ID,
-  DECLINE_REASON_SELECT_ID,
   createCustomDeclineReasonModal,
   createDeclineReasonRequestEmbed,
   createDeclineReasonSelectMenu,
+  DECLINE_REASON_SELECT_ID,
 } from './decline-reason.components.js';
+import { SignupDeclineReasonCollectedEvent } from './events/signup.events.js';
 import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
-import { SignupDeclinedEvent } from './events/signup.events.js';
 
 @Injectable()
 export class DeclineReasonRequestService {
@@ -60,8 +63,14 @@ export class DeclineReasonRequestService {
         },
       );
 
-      await this.handleDeclineReasonInteractions(dmMessage, signup, reviewer, reviewMessage);
+      await this.handleDeclineReasonInteractions(
+        dmMessage,
+        signup,
+        reviewer,
+        reviewMessage,
+      );
     } catch (error) {
+      this.reportError(error, { signup, reviewer });
       this.logger.error(
         error,
         `Failed to request decline reason for signup ${signup.discordId}-${signup.encounter}`,
@@ -85,7 +94,9 @@ export class DeclineReasonRequestService {
         time: timeout,
       });
 
-      if (selectInteraction.customId === `${DECLINE_REASON_SELECT_ID}-${signupId}`) {
+      if (
+        selectInteraction.customId === `${DECLINE_REASON_SELECT_ID}-${signupId}`
+      ) {
         await this.handleReasonSelection(
           selectInteraction as StringSelectMenuInteraction,
           signup,
@@ -95,11 +106,13 @@ export class DeclineReasonRequestService {
         );
       }
     } catch (error) {
-      this.logger.warn(
+      this.handleTimeoutError(
+        error,
+        signup,
+        reviewer,
+        reviewMessage,
         `Decline reason request timed out for signup ${signupId}`,
       );
-      // Dispatch event on timeout with no decline reason
-      this.dispatchDeclineEvent(signup, reviewer, reviewMessage);
     }
   }
 
@@ -123,19 +136,34 @@ export class DeclineReasonRequestService {
           time: 5 * 60 * 1000, // 5 minutes
         });
 
-        if (modalInteraction.customId === `${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupId}`) {
-          await this.handleCustomReasonSubmit(modalInteraction, signup, reviewer, reviewMessage);
+        if (
+          modalInteraction.customId ===
+          `${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupId}`
+        ) {
+          await this.handleCustomReasonSubmit(
+            modalInteraction,
+            signup,
+            reviewer,
+            reviewMessage,
+          );
         }
       } catch (error) {
-        this.logger.warn(
+        this.handleTimeoutError(
+          error,
+          signup,
+          reviewer,
+          reviewMessage,
           `Custom decline reason modal timed out for signup ${signupId}`,
         );
-        // Dispatch event on timeout with no decline reason
-        this.dispatchDeclineEvent(signup, reviewer, reviewMessage);
       }
     } else {
       // Use predefined reason
-      await this.updateSignupWithDeclineReason(signup, selectedValue, reviewer, reviewMessage);
+      await this.updateSignupWithDeclineReason(
+        signup,
+        selectedValue,
+        reviewer,
+        reviewMessage,
+      );
       await interaction.reply({
         content: `✅ Decline reason recorded: "${selectedValue}"`,
         ephemeral: true,
@@ -153,7 +181,12 @@ export class DeclineReasonRequestService {
       CUSTOM_DECLINE_REASON_INPUT_ID,
     );
 
-    await this.updateSignupWithDeclineReason(signup, customReason, reviewer, reviewMessage);
+    await this.updateSignupWithDeclineReason(
+      signup,
+      customReason,
+      reviewer,
+      reviewMessage,
+    );
     await interaction.reply({
       content: `✅ Custom decline reason recorded: "${customReason}"`,
       ephemeral: true,
@@ -176,9 +209,15 @@ export class DeclineReasonRequestService {
         `Updated signup ${signup.discordId}-${signup.encounter} with decline reason: ${declineReason}`,
       );
 
-      // Dispatch the decline event now that we have the reason
-      this.dispatchDeclineEvent(signup, reviewer, reviewMessage);
+      // Dispatch the decline reason event with the collected reason
+      this.dispatchDeclineReasonEvent(
+        signup,
+        reviewer,
+        reviewMessage,
+        declineReason,
+      );
     } catch (error) {
+      this.reportError(error, { signup, reviewer });
       this.logger.error(
         error,
         `Failed to update signup ${signup.discordId}-${signup.encounter} with decline reason`,
@@ -186,23 +225,65 @@ export class DeclineReasonRequestService {
     }
   }
 
-  private dispatchDeclineEvent(
+  private dispatchDeclineReasonEvent(
     signup: SignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
+    declineReason?: string,
   ): void {
     try {
-      const declineEvent = new SignupDeclinedEvent(signup, reviewer, reviewMessage);
+      const declineEvent = new SignupDeclineReasonCollectedEvent(
+        signup,
+        reviewer,
+        reviewMessage,
+        declineReason,
+      );
       this.eventBus.publish(declineEvent);
-      
+
       this.logger.log(
-        `Dispatched SignupDeclinedEvent for signup ${signup.discordId}-${signup.encounter}`,
+        `Dispatched SignupDeclineReasonCollectedEvent for signup ${signup.discordId}-${signup.encounter}${
+          declineReason
+            ? ` with reason: ${declineReason}`
+            : ' (no specific reason)'
+        }`,
       );
     } catch (error) {
+      this.reportError(error, { signup, reviewer });
       this.logger.error(
         error,
-        `Failed to dispatch SignupDeclinedEvent for signup ${signup.discordId}-${signup.encounter}`,
+        `Failed to dispatch SignupDeclineReasonCollectedEvent for signup ${signup.discordId}-${signup.encounter}`,
       );
     }
+  }
+
+  private handleTimeoutError(
+    error: unknown,
+    signup: SignupDocument,
+    reviewer: User,
+    reviewMessage: Message<true>,
+    context: string,
+  ): void {
+    if (
+      error instanceof DiscordjsError &&
+      error.code === DiscordjsErrorCodes.InteractionCollectorError
+    ) {
+      this.logger.warn(context);
+      // Dispatch event on timeout with no decline reason
+      this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
+    } else {
+      // Re-throw non-timeout errors
+      this.reportError(error, { signup, reviewer });
+      throw error;
+    }
+  }
+
+  private reportError(
+    error: unknown,
+    context: { signup: SignupDocument; reviewer: User },
+  ): void {
+    const scope = Sentry.getCurrentScope();
+    scope.setExtra('signup', context.signup);
+    scope.setExtra('reviewer', context.reviewer);
+    scope.captureException(error);
   }
 }

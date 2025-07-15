@@ -1,16 +1,16 @@
 import {
   ActionRowBuilder,
+  Colors,
   EmbedBuilder,
   ModalBuilder,
   StringSelectMenuBuilder,
   TextInputBuilder,
   TextInputStyle,
-  Colors,
 } from 'discord.js';
 import {
-  SIGNUP_DECLINE_REASONS,
-  CUSTOM_DECLINE_REASON_VALUE,
   CUSTOM_DECLINE_REASON_LABEL,
+  CUSTOM_DECLINE_REASON_VALUE,
+  SIGNUP_DECLINE_REASONS,
 } from './signup.consts.js';
 
 // Component IDs
@@ -70,7 +70,8 @@ export const createDeclineReasonRequestEmbed = (
     )
     .addFields({
       name: 'Next Steps',
-      value: 'Please select a reason for declining this signup from the dropdown below. This will help provide better feedback to the user.',
+      value:
+        'Please select a reason for declining this signup from the dropdown below. This will help provide better feedback to the user.',
     })
     .setColor(Colors.Orange)
     .setFooter({

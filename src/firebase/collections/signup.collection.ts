@@ -154,7 +154,10 @@ class SignupCollection {
   }
 
   @SentryTraced()
-  public updateDeclineReason(signup: SignupCompositeKey, declineReason: string) {
+  public updateDeclineReason(
+    signup: SignupCompositeKey,
+    declineReason: string,
+  ) {
     const key = SignupCollection.getKeyForSignup(signup);
 
     return this.collection.doc(key).update({
