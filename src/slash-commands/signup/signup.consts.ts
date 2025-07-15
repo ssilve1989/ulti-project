@@ -60,3 +60,18 @@ export const WHITELIST_VALIDATION_ERROR = `A link must be from one of these doma
 ${PROG_PROOF_HOSTS_WHITELIST.map((v) => v.source.replaceAll('/', '')).join(
   '\n',
 )}`;
+
+// Predefined decline reasons for signup reviews
+export const SIGNUP_DECLINE_REASONS = [
+  'Signup doesn\'t meet new qualifications',
+  'Signup lacks valid proof of requested prog point',
+  'You already cleared the encounter you signed-up for',
+  'Mechanics prior to the requested prog point not performed cleanly',
+  'Reason 1',
+  'Reason 2',
+  'Reason 3',
+] as const;
+
+// Custom reason option for select menu
+export const CUSTOM_DECLINE_REASON_VALUE = 'custom_reason';
+export const CUSTOM_DECLINE_REASON_LABEL = 'Other - provide custom reason';
