@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.34.1](https://github.com/ssilve1989/ulti-project/compare/v1.34.0...v1.34.1) (2025-07-15)
+
+
+### Bug Fixes
+
+* **signups:** fixes prog point assignment ([985c295](https://github.com/ssilve1989/ulti-project/commit/985c2952efbbf929ecc840c3e67a5cf8f51e58a8))
+
 ## [1.34.0](https://github.com/ssilve1989/ulti-project/compare/v1.33.0...v1.34.0) (2025-07-12)
 
 
