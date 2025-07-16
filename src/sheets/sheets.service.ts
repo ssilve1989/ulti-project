@@ -547,6 +547,8 @@ class SheetsService {
     spreadsheetId: string;
     encounter: Encounter;
   }): Promise<void> {
+    this.logger.log(`Cleaning sheet: ${encounter}`);
+
     const ranges = [
       SheetRanges[PartyStatus.ClearParty],
       SheetRanges[PartyStatus.ProgParty],
