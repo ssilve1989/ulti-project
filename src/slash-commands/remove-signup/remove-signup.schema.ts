@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { Encounter } from '../../../../encounters/encounters.consts.js';
-import { NorthAmericanWorlds } from '../../../../worlds/consts.js';
+import { Encounter } from '../../encounters/encounters.consts.js';
+import { NorthAmericanWorlds } from '../../worlds/consts.js';
 
 export const removeSignupSchema = z.object({
   character: z

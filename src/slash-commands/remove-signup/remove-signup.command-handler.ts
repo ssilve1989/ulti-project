@@ -15,18 +15,18 @@ import {
   characterField,
   encounterField,
   worldField,
-} from '../../../../common/components/fields.js';
-import { DiscordService } from '../../../../discord/discord.service.js';
-import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
-import { DocumentNotFoundException } from '../../../../firebase/firebase.exceptions.js';
+} from '../../common/components/fields.js';
+import { DiscordService } from '../../discord/discord.service.js';
+import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
+import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import { DocumentNotFoundException } from '../../firebase/firebase.exceptions.js';
 import {
   type SignupDocument,
   SignupStatus,
-} from '../../../../firebase/models/signup.model.js';
-import { SheetsService } from '../../../../sheets/sheets.service.js';
-import { SIGNUP_MESSAGES } from '../../signup.consts.js';
-import { shouldDeleteReviewMessageForSignup } from '../../signup.utils.js';
+} from '../../firebase/models/signup.model.js';
+import { SheetsService } from '../../sheets/sheets.service.js';
+import { SIGNUP_MESSAGES } from '../signup/signup.consts.js';
+import { shouldDeleteReviewMessageForSignup } from '../signup/signup.utils.js';
 import { RemoveSignupCommand } from './remove-signup.command.js';
 import {
   REMOVAL_MISSING_PERMISSIONS,

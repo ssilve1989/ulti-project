@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { type ICommand, type IEvent, ofType, Saga } from '@nestjs/cqrs';
 import { filter, map, mergeMap, Observable } from 'rxjs';
 import { BlacklistSearchCommand } from './slash-commands/blacklist/blacklist.commands.js';
+import { RemoveSignupEvent } from './slash-commands/remove-signup/remove-signup.events.js';
 import { RemoveRolesCommand } from './slash-commands/signup/commands/signup.commands.js';
 import {
   SignupApprovalSentEvent,
@@ -9,7 +10,6 @@ import {
   SignupCreatedEvent,
 } from './slash-commands/signup/events/signup.events.js';
 import { hasClearedStatus } from './slash-commands/signup/signup.utils.js';
-import { RemoveSignupEvent } from './slash-commands/signup/subcommands/remove-signup/remove-signup.events.js';
 import { SendSignupReviewCommand } from './slash-commands/signup/subcommands/send-signup-review/send-signup-review.command.js';
 import { TurboProgRemoveSignupCommand } from './slash-commands/turboprog/commands/turbo-prog.commands.js';
 

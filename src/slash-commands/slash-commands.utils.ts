@@ -15,6 +15,8 @@ import { LookupCommand } from './lookup/lookup.command.js';
 import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
 import { RemoveRoleCommand } from './remove-role/remove-role.command.js';
 import { RemoveRoleSlashCommand } from './remove-role/remove-role.slash-command.js';
+import { RemoveSignupCommand } from './remove-signup/remove-signup.command.js';
+import { REMOVE_SIGNUP_SLASH_COMMAND_NAME } from './remove-signup/remove-signup.slash-command.js';
 import { RetireCommand } from './retire/retire.command.js';
 import { RetireSlashCommand } from './retire/retire.slash-command.js';
 import { SearchCommand } from './search/search.command.js';
@@ -28,8 +30,6 @@ import { EditTurboProgCommand } from './settings/subcommands/turbo-prog/edit-tur
 import { ViewSettingsCommand } from './settings/subcommands/view/view-settings.command.js';
 import { SignupCommand } from './signup/commands/signup.commands.js';
 import { SIGNUP_SLASH_COMMAND_NAME } from './signup/signup.slash-command.js';
-import { RemoveSignupCommand } from './signup/subcommands/remove-signup/remove-signup.command.js';
-import { REMOVE_SIGNUP_SLASH_COMMAND_NAME } from './signup/subcommands/remove-signup/remove-signup.slash-command.js';
 import type { DiscordCommand } from './slash-commands.interfaces.js';
 import { StatusCommand } from './status/status.command.js';
 import { StatusSlashCommand } from './status/status.slash-command.js';
