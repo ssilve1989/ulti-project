@@ -26,7 +26,7 @@
 
 **Git & Commits:**
 
-- `pnpm commit` - Use commitizen for conventional commits (required)
+- Follow conventional commits structure for commits.
 
 ## Architecture Overview
 
