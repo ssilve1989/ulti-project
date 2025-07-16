@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.35.3](https://github.com/ssilve1989/ulti-project/compare/v1.35.2...v1.35.3) (2025-07-16)
+
+
+### Bug Fixes
+
+* **clear-checker:** fixes clear-checker to run on all active encounters ([f3b2a7f](https://github.com/ssilve1989/ulti-project/commit/f3b2a7f7cef0f570cd9406bd7b6186b211b10160))
+
 ## [1.35.2](https://github.com/ssilve1989/ulti-project/compare/v1.35.1...v1.35.2) (2025-07-16)
 
 
