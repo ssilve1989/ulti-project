@@ -7,6 +7,7 @@ import {
   ChatInputCommandInteraction,
   Colors,
   ComponentType,
+  channelLink,
   DiscordjsErrorCodes,
   EmbedBuilder,
   MessageFlags,
@@ -240,7 +241,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       // display a warning that their name does not match. it could be a spelling mistake
       embed.addFields({
         name: '⚠️ Name Mismatch Warning',
-        value: `Your Discord display name \`${displayName}\` doesn't match your submitted character name \`${titleCase(character)}\`. Please be sure this is correct before confirming.`,
+        value: `Your Discord display name \`${displayName}\` doesn't match your submitted character name \`${titleCase(character)}\`. Please be sure this is correct before confirming.\n\nNames can be updated by visting the ${channelLink('1264643007848906884')} channel. Please refer to the pinned FAQ for more information.`,
         inline: false,
       });
     }
