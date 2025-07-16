@@ -8,6 +8,7 @@ import {
   MessageFlags,
 } from 'discord.js';
 import { titleCase } from 'title-case';
+import { z } from 'zod';
 import { encounterField } from '../../common/components/fields.js';
 import { createFields } from '../../common/embed-helpers.js';
 import { BlacklistCollection } from '../../firebase/collections/blacklist-collection.js';
@@ -35,7 +36,18 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
   async execute({ interaction }: LookupCommand): Promise<void> {
     const { options, guildId } = interaction;
 
-    const dto = this.getLookupRequest(options);
+    const lookupResult = this.getLookupRequest(options);
+
+    if (!lookupResult.success) {
+      const errorEmbed = this.createValidationErrorEmbed(lookupResult.error);
+      await interaction.reply({
+        embeds: [errorEmbed],
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    const dto = lookupResult.data;
     const results = await this.signupsCollection.findAll(dto);
 
     const withBlacklistInfo = await Promise.all(
@@ -107,7 +119,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
             value: availability,
             inline: true,
           },
-          { name: 'Blacklisted', value: blacklistStatus, inline: true },
+          { name: 'Blacklisted', value: blacklistStatus, inline: !!notes },
           {
             name: 'Notes',
             value: notes,
@@ -129,6 +141,32 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
     return embeds;
   }
 
+  private createValidationErrorEmbed(
+    error: z.ZodError<LookupSchema>,
+  ): EmbedBuilder {
+    const tree = z.treeifyError(error);
+    const errorMessages: string[] = [];
+
+    if (tree.properties?.world) {
+      errorMessages.push(
+        `**World**: ${tree.properties.world.errors.join(', ')}`,
+      );
+    }
+    if (tree.properties?.character) {
+      errorMessages.push(
+        `**Character**: ${tree.properties.character.errors.join(', ')}`,
+      );
+    }
+
+    const description =
+      errorMessages.length > 0 ? errorMessages.join('\n') : 'Validation failed';
+
+    return new EmbedBuilder()
+      .setTitle('Validation Error')
+      .setDescription(description)
+      .setColor(Colors.Red);
+  }
+
   private getLookupRequest(
     options: Omit<
       CommandInteractionOptionResolver<'cached' | 'raw'>,
@@ -138,7 +176,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
     const character = options.getString('character', true);
     const world = options.getString('world');
 
-    return lookupSchema.parse({ character, world });
+    return lookupSchema.safeParse({ character, world });
   }
 }
 
