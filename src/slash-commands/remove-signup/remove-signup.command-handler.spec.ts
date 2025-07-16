@@ -204,4 +204,46 @@ describe('Remove Signup Command Handler', () => {
     await handler.execute({ interaction });
     expect(sheetsService.removeSignup).not.toHaveBeenCalled();
   });
+
+  it('responds with validation error when invalid world is provided', async () => {
+    const invalidWorldInteraction = createMock<
+      ChatInputCommandInteraction<'cached' | 'raw'>
+    >({
+      user: createMock<User>({
+        id: '1',
+        toString: () => '<@1>',
+        valueOf: () => '',
+      }),
+      options: {
+        getString: (key: string) => {
+          switch (key) {
+            case 'character':
+              return 'Test Character';
+            case 'encounter':
+              return Encounter.DSR;
+            case 'world':
+              return 'InvalidWorld';
+            default:
+              return '';
+          }
+        },
+      },
+      valueOf: () => '',
+    });
+
+    await handler.execute({ interaction: invalidWorldInteraction });
+
+    expect(invalidWorldInteraction.editReply).toHaveBeenCalledWith({
+      embeds: [
+        {
+          data: {
+            title: 'Remove Signup - Validation Error',
+            color: Colors.Red,
+            description:
+              '**World**: Invalid World. Please check the spelling and make sure it is a valid world in the NA Region',
+          },
+        },
+      ],
+    });
+  });
 });
