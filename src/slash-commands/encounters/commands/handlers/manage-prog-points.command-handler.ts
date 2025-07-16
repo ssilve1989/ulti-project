@@ -1139,6 +1139,7 @@ export class ManageProgPointsCommandHandler
 
           returnCollector.on('collect', async (returnInteraction) => {
             await returnInteraction.deferUpdate();
+            returnCollector.stop();
             const progPoints = await this.encountersService.getProgPoints(encounter.id);
             await this.showProgPointsManagement(returnInteraction, encounter, progPoints);
           });
@@ -1221,6 +1222,7 @@ export class ManageProgPointsCommandHandler
 
     returnCollector.on('collect', async (returnInteraction) => {
       await returnInteraction.deferUpdate();
+      returnCollector.stop();
       const progPoints = await this.encountersService.getProgPoints(encounter.id);
       await this.showProgPointsManagement(returnInteraction, encounter, progPoints);
     });
