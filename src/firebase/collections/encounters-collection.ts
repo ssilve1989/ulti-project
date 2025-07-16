@@ -23,6 +23,12 @@ class EncountersCollection {
   }
 
   @SentryTraced()
+  async getActiveEncounters(): Promise<(EncounterDocument & { id: string })[]> {
+    const snapshot = await this.collection.where('active', '==', true).get();
+    return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+  }
+
+  @SentryTraced()
   async getEncounter(
     encounterId: string,
   ): Promise<EncounterDocument | undefined> {

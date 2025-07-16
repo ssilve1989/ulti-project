@@ -4,11 +4,21 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import type { CronJob } from 'cron';
-import { filter, from, lastValueFrom, mergeMap } from 'rxjs';
+import {
+  concatMap,
+  EMPTY,
+  filter,
+  finalize,
+  from,
+  lastValueFrom,
+  mergeMap,
+} from 'rxjs';
 import { CronTime } from '../../common/cron.js';
 import { DiscordService } from '../../discord/discord.service.js';
-import { Encounter } from '../../encounters/encounters.consts.js';
+import type { Encounter } from '../../encounters/encounters.consts.js';
+import { EncountersCollection } from '../../firebase/collections/encounters-collection.js';
 import { JobCollection } from '../../firebase/collections/job/job.collection.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
@@ -26,6 +36,7 @@ class SheetCleanerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     private readonly jobsCollection: JobCollection,
     private readonly sheetsService: SheetsService,
     private readonly settingsCollection: SettingsCollection,
+    private readonly encountersCollection: EncountersCollection,
   ) {
     this.job = createJob('sheet-cleaner', {
       cronTime: CronTime.everyDay().at(4),
@@ -58,15 +69,36 @@ class SheetCleanerJob implements OnApplicationBootstrap, OnApplicationShutdown {
           .then((job) => [guild, job] as const),
       ),
       filter(([_, job]) => !!job?.enabled),
-      mergeMap(async ([guild]) => {
-        const settings = await this.settingsCollection.getSettings(guild);
+      mergeMap(([guild]) => {
+        return from(this.settingsCollection.getSettings(guild)).pipe(
+          mergeMap((settings) => {
+            if (!settings?.spreadsheetId) return EMPTY;
 
-        if (!settings?.spreadsheetId) return;
+            const spreadsheetId = settings.spreadsheetId;
 
-        return this.sheetsService.cleanSheet({
-          spreadsheetId: settings.spreadsheetId,
-          encounter: Encounter.FRU,
-        });
+            // NOTE: This uses the active encounters from the database
+            // but nothing else uses that right now. Encounters in the signup slash command
+            // are still hardcoded. They ideally should be managed dynamically as well, but require runtime
+            // changes to update the slash command.
+            return from(this.encountersCollection.getActiveEncounters()).pipe(
+              mergeMap((encounters) => encounters),
+              concatMap((encounter) =>
+                this.sheetsService
+                  .cleanSheet({
+                    spreadsheetId,
+                    encounter: encounter.id as Encounter,
+                  })
+                  .catch((err) => {
+                    Sentry.getCurrentScope().captureException(err);
+                    return EMPTY;
+                  }),
+              ),
+            );
+          }),
+        );
+      }),
+      finalize(() => {
+        this.logger.log('sheet cleaner job completed');
       }),
     );
 
