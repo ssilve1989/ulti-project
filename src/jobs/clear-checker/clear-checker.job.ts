@@ -14,6 +14,7 @@ import {
   EMPTY,
   filter,
   firstValueFrom,
+  forkJoin,
   from,
   lastValueFrom,
   mergeMap,
@@ -25,6 +26,7 @@ import { CronTime } from '../../common/cron.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { FFLogsService } from '../../fflogs/fflogs.service.js';
+import { EncountersCollection } from '../../firebase/collections/encounters-collection.js';
 import { JobCollection } from '../../firebase/collections/job/job.collection.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
@@ -40,27 +42,27 @@ import { clearCheckerConfig } from './clear-checker.config.js';
 
 @Injectable()
 class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
-  // TODO: checkable encounters should be a job config thats stored in the DB probably
-  private readonly checkableEncounters = new Set([Encounter.FRU]);
   private readonly logger = new Logger(ClearCheckerJob.name);
   private readonly job: CronJob;
 
   constructor(
+    @Inject(clearCheckerConfig.KEY)
+    private readonly config: ConfigType<typeof clearCheckerConfig>,
     private readonly discordService: DiscordService,
+    private readonly encountersCollection: EncountersCollection,
+    private readonly eventBus: EventBus,
     private readonly fflogsService: FFLogsService,
     private readonly jobCollection: JobCollection,
     private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
     private readonly signupsCollection: SignupCollection,
-    @Inject(clearCheckerConfig.KEY)
-    private readonly config: ConfigType<typeof clearCheckerConfig>,
-    private readonly eventBus: EventBus,
   ) {
     this.job = createJob('clear-checker', {
       cronTime: CronTime.everyDay().at(3),
       onTick: () => {
         this.checkClears();
       },
+      runOnInit: true,
     });
   }
 
@@ -95,12 +97,22 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
   }
 
   private processGuild(guildId: string) {
-    return from(this.signupsCollection.findAll({})).pipe(
-      mergeMap((signups) => signups),
-      mergeMap(
-        (signup, index) => this.processSignup(signup, index),
-        this.config.CLEAR_CHECKER_CONCURRENCY,
-      ),
+    return forkJoin({
+      signups: this.signupsCollection.findAll({}),
+      encounters: this.encountersCollection.getActiveEncounters(),
+    }).pipe(
+      mergeMap(({ signups, encounters }) => {
+        const encounterIds = new Set<Encounter>(
+          encounters.map((encounter) => encounter.id as Encounter),
+        );
+
+        return from(signups).pipe(
+          mergeMap(
+            (signup, index) => this.processSignup(signup, encounterIds, index),
+            this.config.CLEAR_CHECKER_CONCURRENCY,
+          ),
+        );
+      }),
       filter((signup) => !!signup),
       toArray(),
       mergeMap(async (results) => {
@@ -119,9 +131,10 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
    */
   private async processSignup(
     signup: SignupDocument,
+    encounterIds: Set<Encounter>,
     index: number,
   ): Promise<SignupDocument | undefined> {
-    if (!this.checkableEncounters.has(signup.encounter)) return;
+    if (!encounterIds.has(signup.encounter)) return;
 
     Sentry.getCurrentScope().setExtras({ signup, index });
     this.logger.debug(`[${index}] checking signup for ${signup.character}`);
@@ -199,7 +212,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
 
     const embed = new EmbedBuilder()
       .setTitle(':broom: Clear Checker :broom:')
-      .setDescription(`${results.length} players have been removed!`)
+      .setDescription(`${results.length} signups have been removed!`)
       .setTimestamp();
 
     const channel = await this.discordService.getTextChannel({

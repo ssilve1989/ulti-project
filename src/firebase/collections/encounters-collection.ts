@@ -24,6 +24,7 @@ class EncountersCollection {
 
   @SentryTraced()
   async getActiveEncounters(): Promise<(EncounterDocument & { id: string })[]> {
+    // TODO: strengthen this type to be use the typesafe Encounters somehow?
     const snapshot = await this.collection.where('active', '==', true).get();
     return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
   }
