@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.35.1](https://github.com/ssilve1989/ulti-project/compare/v1.35.0...v1.35.1) (2025-07-16)
+
+
+### Bug Fixes
+
+* **lookup:** fixes layout of embed when there are no notes ([1b8733c](https://github.com/ssilve1989/ulti-project/commit/1b8733c124ac033d45164c56fb31081c1df8704d))
+* **lookup:** fixes validation done during lookup command ([73bbcdc](https://github.com/ssilve1989/ulti-project/commit/73bbcdc41a605c48f976e9c4e4ac9459186db912))
+* **sheet-cleaner:** fixes sheet cleaner job for all encounters ([25c3e63](https://github.com/ssilve1989/ulti-project/commit/25c3e63ddc9939822abcb6c5dc251cddccaf14cb))
+
 ## [1.35.0](https://github.com/ssilve1989/ulti-project/compare/v1.34.1...v1.35.0) (2025-07-15)
 
 
