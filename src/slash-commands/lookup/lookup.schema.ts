@@ -14,15 +14,11 @@ export const lookupSchema = z.object({
 
   world: z
     .string()
-    .optional()
+    .nullish()
     .transform((str) => str?.toLowerCase())
-    .pipe(
-      z
-        .string()
-        .refine(
-          (val) => !val || NorthAmericanWorlds.has(val),
-          'Invalid World. Please check the spelling and make sure it is a valid world in the NA Region',
-        ),
+    .refine(
+      (val) => !val || NorthAmericanWorlds.has(val),
+      'Invalid World. Please check the spelling and make sure it is a valid world in the NA Region',
     ),
 }) satisfies z.Schema<LookupFields>;
 
