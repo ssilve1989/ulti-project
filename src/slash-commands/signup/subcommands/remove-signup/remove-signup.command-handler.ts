@@ -10,6 +10,7 @@ import {
   User,
 } from 'discord.js';
 import { match, P } from 'ts-pattern';
+import { z } from 'zod';
 import {
   characterField,
   encounterField,
@@ -63,8 +64,15 @@ class RemoveSignupCommandHandler
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const scope = Sentry.getCurrentScope();
-    const options = this.getOptions(interaction);
+    const optionsResult = this.getOptions(interaction);
 
+    if (!optionsResult.success) {
+      const errorEmbed = this.createValidationErrorEmbed(optionsResult.error);
+      await interaction.editReply({ embeds: [errorEmbed] });
+      return;
+    }
+
+    const options = optionsResult.data;
     scope.setExtra('options', options);
 
     const embed = new EmbedBuilder()
@@ -187,8 +195,40 @@ class RemoveSignupCommandHandler
     return description;
   }
 
+  private createValidationErrorEmbed(error: z.ZodError): EmbedBuilder {
+    const treeified = z.treeifyError(error) as {
+      errors: string[];
+      properties: Record<string, { errors: string[] }>;
+    };
+    const errorMessages: string[] = [];
+
+    if (treeified.properties.character) {
+      errorMessages.push(
+        `**Character**: ${treeified.properties.character.errors.join(', ')}`,
+      );
+    }
+    if (treeified.properties.world) {
+      errorMessages.push(
+        `**World**: ${treeified.properties.world.errors.join(', ')}`,
+      );
+    }
+    if (treeified.properties.encounter) {
+      errorMessages.push(
+        `**Encounter**: ${treeified.properties.encounter.errors.join(', ')}`,
+      );
+    }
+
+    const description =
+      errorMessages.length > 0 ? errorMessages.join('\n') : 'Validation failed';
+
+    return new EmbedBuilder()
+      .setTitle('Remove Signup - Validation Error')
+      .setDescription(description)
+      .setColor(Colors.Red);
+  }
+
   private getOptions({ options }: ChatInputCommandInteraction) {
-    return removeSignupSchema.parse({
+    return removeSignupSchema.safeParse({
       character: options.getString('character', true),
       world: options.getString('world', true),
       encounter: options.getString('encounter', true),
