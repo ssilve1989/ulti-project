@@ -2,20 +2,20 @@ import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { EventBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, Colors, User } from 'discord.js';
-import { DiscordService } from '../../../../discord/discord.service.js';
+import { DiscordService } from '../../discord/discord.service.js';
 import {
   Encounter,
   EncounterFriendlyDescription,
-} from '../../../../encounters/encounters.consts.js';
-import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
-import { DocumentNotFoundException } from '../../../../firebase/firebase.exceptions.js';
+} from '../../encounters/encounters.consts.js';
+import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
+import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import { DocumentNotFoundException } from '../../firebase/firebase.exceptions.js';
 import {
   type SignupDocument,
   SignupStatus,
-} from '../../../../firebase/models/signup.model.js';
-import { SheetsService } from '../../../../sheets/sheets.service.js';
-import { SIGNUP_MESSAGES } from '../../signup.consts.js';
+} from '../../firebase/models/signup.model.js';
+import { SheetsService } from '../../sheets/sheets.service.js';
+import { SIGNUP_MESSAGES } from '../signup/signup.consts.js';
 import { RemoveSignupCommandHandler } from './remove-signup.command-handler.js';
 import {
   REMOVAL_MISSING_PERMISSIONS,

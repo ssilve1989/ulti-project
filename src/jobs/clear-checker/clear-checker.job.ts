@@ -34,7 +34,7 @@ import {
 } from '../../firebase/models/signup.model.js';
 import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
-import { RemoveSignupEvent } from '../../slash-commands/signup/subcommands/remove-signup/remove-signup.events.js';
+import { RemoveSignupEvent } from '../../slash-commands/remove-signup/remove-signup.events.js';
 import { createJob, jobDateFormatter } from '../jobs.consts.js';
 import { clearCheckerConfig } from './clear-checker.config.js';
 
