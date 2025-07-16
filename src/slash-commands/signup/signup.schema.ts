@@ -27,7 +27,7 @@ export const signupSchema = z
 
     progPointRequested: z.string().min(1),
 
-    encounter: z.nativeEnum(Encounter),
+    encounter: z.enum(Encounter),
 
     notes: z.string().nullish(),
 
