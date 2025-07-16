@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.35.2](https://github.com/ssilve1989/ulti-project/compare/v1.35.1...v1.35.2) (2025-07-16)
+
+
+### Bug Fixes
+
+* **remove-signup:** show validation error instead of generic error ([be4d924](https://github.com/ssilve1989/ulti-project/commit/be4d92477c61ce5208c3b3ba625f385c5b20cc99))
+
 ## [1.35.1](https://github.com/ssilve1989/ulti-project/compare/v1.35.0...v1.35.1) (2025-07-16)
 
 
