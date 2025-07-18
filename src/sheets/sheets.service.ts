@@ -667,7 +667,9 @@ class SheetsService {
           });
         }
 
-        await batchUpdate(this.client, spreadsheetId, requests);
+        await batchUpdate(this.client, spreadsheetId, requests, {
+          timeout: 60_000,
+        });
       }
     }
 
