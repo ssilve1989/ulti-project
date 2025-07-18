@@ -62,7 +62,6 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
       onTick: () => {
         this.checkClears();
       },
-      runOnInit: true,
     });
   }
 
