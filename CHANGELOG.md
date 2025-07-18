@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.35.4](https://github.com/ssilve1989/ulti-project/compare/v1.35.3...v1.35.4) (2025-07-18)
+
+
+### Bug Fixes
+
+* remove runOnInit for clear-checker ([8e3baea](https://github.com/ssilve1989/ulti-project/commit/8e3baeae8add2df3e6bac7779ae9aa5d7aa8efde))
+
 ## [1.35.3](https://github.com/ssilve1989/ulti-project/compare/v1.35.2...v1.35.3) (2025-07-16)
 
 
