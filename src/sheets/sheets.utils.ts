@@ -1,4 +1,4 @@
-import { sheets_v4 } from '@googleapis/sheets';
+import { type MethodOptions, sheets_v4 } from '@googleapis/sheets';
 import * as Sentry from '@sentry/nestjs';
 
 type GetSheetValuesProps = {
@@ -47,6 +47,7 @@ export async function getSheetValues(
 export function updateSheet(
   client: sheets_v4.Sheets,
   { spreadsheetId, type, values, range }: UpdateSheetProps,
+  options?: MethodOptions,
 ) {
   const payload = {
     spreadsheetId,
@@ -58,14 +59,15 @@ export function updateSheet(
   };
 
   return type === 'update'
-    ? client.spreadsheets.values.update(payload)
-    : client.spreadsheets.values.append(payload);
+    ? client.spreadsheets.values.update(payload, options)
+    : client.spreadsheets.values.append(payload, options);
 }
 
 export function batchUpdate(
   client: sheets_v4.Sheets,
   spreadsheetId: string,
   requests: sheets_v4.Schema$Request[],
+  options: MethodOptions = { timeout: 30_000 },
 ) {
   return client.spreadsheets.batchUpdate(
     {
@@ -74,7 +76,7 @@ export function batchUpdate(
         requests,
       },
     },
-    { timeout: 30_000 },
+    options,
   );
 }
 
