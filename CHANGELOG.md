@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.35.5](https://github.com/ssilve1989/ulti-project/compare/v1.35.4...v1.35.5) (2025-07-19)
+
+
+### Bug Fixes
+
+* **clear-checker:** improve logging for signup removal ([501efb3](https://github.com/ssilve1989/ulti-project/commit/501efb3fbbb8e8888e4cd0100c13a1dcf6476912))
+* **clear-checker:** use correct encounter for sheet removal ([e423bb4](https://github.com/ssilve1989/ulti-project/commit/e423bb40b8f03c86278f530f10b66d8d9ca59269))
+
 ## [1.35.4](https://github.com/ssilve1989/ulti-project/compare/v1.35.3...v1.35.4) (2025-07-18)
 
 
