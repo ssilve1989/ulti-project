@@ -164,40 +164,71 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     const settings = await this.settingsCollection.getSettings(guildId);
 
     if (settings?.spreadsheetId) {
-      await this.sheetsService.batchRemoveClearedSignups(signups, {
-        // TODO: need to provide encounter, hard-assigning here it doesn't scale well
-        encounter: Encounter.FRU,
-        spreadsheetId: settings.spreadsheetId,
-        partyTypes: [PartyStatus.ClearParty, PartyStatus.ProgParty],
-      });
+      // Group signups by encounter since each call to batchRemoveClearedSignups handles one encounter
+      const signupsByEncounter = Object.groupBy(
+        signups,
+        (signup) => signup.encounter,
+      );
+
+      // Process each encounter group separately
+      for (const [encounter, encounterSignups] of Object.entries(
+        signupsByEncounter,
+      )) {
+        await this.sheetsService.batchRemoveClearedSignups(encounterSignups, {
+          encounter: encounter as Encounter,
+          spreadsheetId: settings.spreadsheetId,
+          partyTypes: [PartyStatus.ClearParty, PartyStatus.ProgParty],
+        });
+      }
     }
 
     for (const signup of signups) {
-      if (settings?.reviewChannel && signup.reviewMessageId) {
-        await this.discordService
-          .deleteMessage(
-            guildId,
-            settings.reviewChannel,
-            signup.reviewMessageId,
-          )
-          .catch((err) => {
-            sentryReport(err);
-          });
-      }
-
-      await this.signupsCollection
-        .removeSignup({
+      await Promise.all([
+        this.removeSignupFromDiscord({
+          guildId,
+          reviewChannel: settings?.reviewChannel,
+          reviewMessageId: signup.reviewMessageId,
           character: signup.character,
-          world: signup.world,
-          encounter: signup.encounter,
-        })
-        .catch((err) => {
-          this.logger.warn(`error removing signup for ${signup.character}`);
-          sentryReport(err);
-        });
+        }),
+        this.removeSignupFromDatabase(signup),
+      ]);
 
       this.logger.log(`signup removal complete for ${signup.character}`);
     }
+  }
+
+  private removeSignupFromDiscord({
+    guildId,
+    reviewChannel,
+    reviewMessageId,
+    character,
+  }: {
+    guildId: string;
+    reviewChannel?: string;
+    reviewMessageId?: string;
+    character: string;
+  }) {
+    if (!reviewChannel || !reviewMessageId) return;
+
+    return this.discordService
+      .deleteMessage(guildId, reviewChannel, reviewMessageId)
+      .catch((err) => {
+        this.logger.warn(`error removing signup for ${character}`);
+        sentryReport(err);
+      });
+  }
+
+  private removeSignupFromDatabase(signup: SignupDocument) {
+    return this.signupsCollection
+      .removeSignup({
+        character: signup.character,
+        world: signup.world,
+        encounter: signup.encounter,
+      })
+      .catch((err) => {
+        this.logger.warn(`error removing signup for ${signup.character}`);
+        sentryReport(err);
+      });
   }
 
   private async publishResults(results: SignupDocument[], guildId: string) {
