@@ -193,7 +193,9 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
         this.removeSignupFromDatabase(signup),
       ]);
 
-      this.logger.log(`signup removal complete for ${signup.character}`);
+      this.logger.log(
+        `successfully removed signup ${signup.character} - ${signup.encounter}`,
+      );
     }
   }
 
