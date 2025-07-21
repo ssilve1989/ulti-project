@@ -23,12 +23,12 @@ class BlacklistSearchCommandHandler
 
   async execute({ signup, guildId }: BlacklistSearchCommand) {
     const settings = await this.settingsCollection.getSettings(guildId);
-    if (!settings?.modChannelId) {
-      this.logger.warn(`No mod channel set for guild ${guildId}`);
+    if (!settings?.autoModChannelId) {
+      this.logger.warn(`No auto-mod channel set for guild ${guildId}`);
       return;
     }
 
-    const { modChannelId, reviewChannel } = settings;
+    const { autoModChannelId, reviewChannel } = settings;
 
     // search to see if the signup is in the blacklist
     const match = await this.blacklistCollection.search({
@@ -41,7 +41,7 @@ class BlacklistSearchCommandHandler
 
     const channel = await this.discordService.getTextChannel({
       guildId,
-      channelId: modChannelId,
+      channelId: autoModChannelId,
     });
 
     const embed = await this.createBlacklistEmbed(match, signup, {

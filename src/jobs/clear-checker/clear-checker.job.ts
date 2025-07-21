@@ -238,7 +238,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
 
     const settings = await this.settingsCollection.getSettings(guildId);
 
-    if (!settings?.modChannelId) {
+    if (!settings?.autoModChannelId) {
       return;
     }
 
@@ -249,7 +249,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
 
     const channel = await this.discordService.getTextChannel({
       guildId,
-      channelId: settings.modChannelId,
+      channelId: settings.autoModChannelId,
     });
 
     return await channel?.send({ embeds: [embed] });

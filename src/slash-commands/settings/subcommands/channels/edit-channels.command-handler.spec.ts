@@ -27,12 +27,12 @@ describe('Edit Channels Command Handler', () => {
     const guildId = '12345';
     const reviewChannelId = '67890';
     const signupChannelId = '09876';
-    const modChannelId = '54321';
+    const autoModChannelId = '54321';
 
     const existingSettings = {
       reviewChannel: 'old-review',
       signupChannel: 'old-signup',
-      modChannelId: 'old-mod',
+      autoModChannelId: 'old-mod',
     };
 
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
@@ -48,7 +48,7 @@ describe('Edit Channels Command Handler', () => {
               case 'signup-public-channel':
                 return createMock({ id: signupChannelId });
               case 'moderation-channel':
-                return createMock({ id: modChannelId });
+                return createMock({ id: autoModChannelId });
               default:
                 return null;
             }
@@ -63,7 +63,7 @@ describe('Edit Channels Command Handler', () => {
       expect.objectContaining({
         reviewChannel: reviewChannelId,
         signupChannel: signupChannelId,
-        modChannelId: modChannelId,
+        autoModChannelId: autoModChannelId,
       }),
     );
   });

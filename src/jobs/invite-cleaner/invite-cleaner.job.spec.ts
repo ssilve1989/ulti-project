@@ -60,7 +60,7 @@ describe('InviteCleanerJob', () => {
       vi.spyOn(discordService, 'getGuilds').mockReturnValue([mockGuildId]);
       vi.spyOn(jobCollection, 'getJob').mockResolvedValue({ enabled: true });
       vi.spyOn(settingsCollection, 'getSettings').mockResolvedValue({
-        modChannelId: 'mod-channel',
+        autoModChannelId: 'mod-channel',
       });
       vi.spyOn(discordService, 'getTextChannel').mockResolvedValue({
         send: vi.fn().mockResolvedValue(undefined),

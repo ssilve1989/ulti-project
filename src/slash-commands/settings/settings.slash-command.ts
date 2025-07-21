@@ -28,7 +28,7 @@ export const EditChannelsSubcommand = new SlashCommandSubcommandBuilder()
   .addChannelOption((option) =>
     option
       .setName('moderation-channel')
-      .setDescription('The channel to send moderation messages to')
+      .setDescription('The channel to send automatic moderation messages to')
       .addChannelTypes(ChannelType.GuildText)
       .setRequired(false),
   );

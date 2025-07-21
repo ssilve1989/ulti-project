@@ -55,7 +55,7 @@ class ViewSettingsCommandHandler
     }
 
     const {
-      modChannelId,
+      autoModChannelId,
       progRoles,
       clearRoles,
       reviewChannel,
@@ -71,8 +71,8 @@ class ViewSettingsCommandHandler
 
     const fields = [
       {
-        name: 'Moderation Channel',
-        value: formatChannel(modChannelId),
+        name: 'Auto-Moderation Channel',
+        value: formatChannel(autoModChannelId),
         inline: true,
       },
       {
