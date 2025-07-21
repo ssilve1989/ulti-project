@@ -25,7 +25,8 @@ export class EditChannelsCommandHandler
       const signupChannel = interaction.options.getChannel(
         'signup-public-channel',
       );
-      const modChannelId = interaction.options.getChannel('moderation-channel');
+      const autoModChannelId =
+        interaction.options.getChannel('moderation-channel');
 
       const settings = await this.settingsCollection.getSettings(
         interaction.guildId,
@@ -35,7 +36,7 @@ export class EditChannelsCommandHandler
         ...settings,
         reviewChannel: reviewChannel?.id,
         signupChannel: signupChannel?.id,
-        modChannelId: modChannelId?.id,
+        autoModChannelId: autoModChannelId?.id,
       });
 
       await interaction.editReply('Channel settings updated!');
