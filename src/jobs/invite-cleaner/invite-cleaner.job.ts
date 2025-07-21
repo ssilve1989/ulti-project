@@ -143,7 +143,7 @@ class InviteCleanerJob
     if (stats.cleanedInvites === 0 && stats.failedCleanups === 0) return;
 
     const settings = await this.settingsCollection.getSettings(guildId);
-    if (!settings?.modChannelId) return;
+    if (!settings?.autoModChannelId) return;
 
     const embed = new EmbedBuilder()
       .setTitle(':broom: Invite Cleanup :broom:')
@@ -162,7 +162,7 @@ class InviteCleanerJob
 
     const channel = await this.discordService.getTextChannel({
       guildId,
-      channelId: settings.modChannelId,
+      channelId: settings.autoModChannelId,
     });
 
     return await channel?.send({ embeds: [embed] });

@@ -20,11 +20,11 @@ class BlacklistUpdatedEventHandler
   }: BlacklistUpdatedEvent) {
     const settings = await this.settingsCollection.getSettings(guildId);
 
-    if (!settings?.modChannelId) {
+    if (!settings?.autoModChannelId) {
       return;
     }
 
-    const { modChannelId } = settings;
+    const { autoModChannelId } = settings;
 
     const toFrom = type === 'added' ? 'to' : 'from';
     const displayName = await getDisplayName(this.discordService, {
@@ -66,7 +66,7 @@ class BlacklistUpdatedEventHandler
       .addFields(fields);
 
     const channel = await this.discordService.getTextChannel({
-      channelId: modChannelId,
+      channelId: autoModChannelId,
       guildId,
     });
 
