@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.35.6](https://github.com/ssilve1989/ulti-project/compare/v1.35.5...v1.35.6) (2025-07-22)
+
+
+### Reverts
+
+* **release-please:** undo attempts at adding more commit types ([788f62f](https://github.com/ssilve1989/ulti-project/commit/788f62f68ec65871909e2524eaf3adc6623d3b2e))
+
 ## [1.35.5](https://github.com/ssilve1989/ulti-project/compare/v1.35.4...v1.35.5) (2025-07-19)
 
 
