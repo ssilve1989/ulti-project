@@ -25,6 +25,7 @@ export const getEncounterOptions = (
   }));
 };
 
+// TODO: This should use the active encounters from the encounters collection.
 // Create the encounter select menu with application mode filtering
 export const createEncounterSelectMenu = (mode: ApplicationModeConfig) =>
   new StringSelectMenuBuilder()
