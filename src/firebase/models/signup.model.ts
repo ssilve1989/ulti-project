@@ -19,6 +19,7 @@ export enum PartyStatus {
   Cleared = 'Cleared',
 }
 
+// TODO: Some fields here _will_ be defined depending on the value of `status`. So we should improve the types to reflect this.
 export interface SignupDocument {
   availability: string;
   character: string;

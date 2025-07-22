@@ -64,10 +64,24 @@ describe('SearchCommandHandler', () => {
     // Mock EncountersService methods
     mockEncountersService.getProgPoints.mockResolvedValue([
       {
+        id: 'P5 Phase 1',
+        label: 'P5 Phase 1',
+        partyStatus: 'ProgParty',
+        order: 0,
+        active: true,
+      },
+      {
         id: 'P6 Enrage',
         label: 'P6 Enrage',
         partyStatus: 'ProgParty',
         order: 1,
+        active: true,
+      },
+      {
+        id: 'Clear',
+        label: 'Clear',
+        partyStatus: 'ClearParty',
+        order: 2,
         active: true,
       },
     ]);
@@ -206,6 +220,7 @@ describe('SearchCommandHandler', () => {
         discordId: 'user123',
         notes: 'Test notes',
         username: 'testuser',
+        progPoint: 'P6 Enrage',
       },
     ];
     mockSignupsCollection.findAll.mockResolvedValue(mockSignups);
@@ -267,42 +282,42 @@ describe('SearchCommandHandler', () => {
         embeds: [
           {
             title: 'Search Results',
-            description: `Found ${mockSignups.length} player(s) for **${Encounter.TOP}** at prog point: **P6 Enrage**\nPage 1/2`,
+            description: `Found ${mockSignups.length} player(s) for **${Encounter.TOP}** at prog point: **P6 Enrage or beyond**\nPage 1/2`,
             fields: mockSignups.slice(0, 8).flatMap((signup) => [
               {
                 name: 'Character',
-                value: signup.character,
-                inline: true,
-              },
-              {
-                name: 'Discord',
-                value: `<@${signup.discordId}> (${signup.username})`,
+                value: `${signup.character} (<@${signup.discordId}>)`,
                 inline: true,
               },
               {
                 name: 'Role',
                 value: signup.role,
+                inline: true,
+              },
+              {
+                name: 'Prog Point',
+                value: signup.progPoint!,
                 inline: true,
               },
             ]),
           },
           {
             title: 'Search Results',
-            description: `Found ${mockSignups.length} player(s) for **${Encounter.TOP}** at prog point: **P6 Enrage**\nPage 2/2`,
+            description: `Found ${mockSignups.length} player(s) for **${Encounter.TOP}** at prog point: **P6 Enrage or beyond**\nPage 2/2`,
             fields: mockSignups.slice(8).flatMap((signup) => [
               {
                 name: 'Character',
-                value: signup.character,
-                inline: true,
-              },
-              {
-                name: 'Discord',
-                value: `<@${signup.discordId}> (${signup.username})`,
+                value: `${signup.character} (<@${signup.discordId}>)`,
                 inline: true,
               },
               {
                 name: 'Role',
                 value: signup.role,
+                inline: true,
+              },
+              {
+                name: 'Prog Point',
+                value: signup.progPoint!,
                 inline: true,
               },
             ]),
@@ -314,11 +329,16 @@ describe('SearchCommandHandler', () => {
 
     await collectorCallback!(mockProgPointSelect);
 
-    // Verify the search was performed
+    // Verify the search was performed for at least the selected prog point
     expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
       encounter: Encounter.TOP,
       progPoint: 'P6 Enrage',
     });
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
+      encounter: Encounter.TOP,
+      progPoint: 'Clear',
+    });
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledTimes(2);
 
     // Verify the response
     expect(mockProgPointSelect.editReply).toHaveBeenCalled();
@@ -334,17 +354,42 @@ describe('SearchCommandHandler', () => {
       return mockCollector;
     });
 
-    // Create 10 mock signups (which should create 2 pages)
-    const mockSignups = Array.from({ length: 10 }, (_, i) => ({
-      character: `TestChar${i + 1}`,
+    // Create different signups for different prog points to simulate real behavior
+    // where each user can only have one signup per encounter
+    const p6SignupsMock = Array.from({ length: 5 }, (_, i) => ({
+      character: `P6Char${i + 1}`,
       world: 'TestWorld',
       role: 'Tank',
       availability: 'Weekends',
-      discordId: `user${i + 1}`,
+      discordId: `p6user${i + 1}`,
       notes: 'Test notes',
-      username: `testuser${i + 1}`,
+      username: `p6testuser${i + 1}`,
+      progPoint: 'P6 Enrage',
     }));
-    mockSignupsCollection.findAll.mockResolvedValue(mockSignups);
+
+    const clearSignupsMock = Array.from({ length: 5 }, (_, i) => ({
+      character: `ClearChar${i + 1}`,
+      world: 'TestWorld',
+      role: 'DPS',
+      availability: 'Evenings',
+      discordId: `clearuser${i + 1}`,
+      notes: 'Test notes',
+      username: `cleartestuser${i + 1}`,
+      progPoint: 'Clear',
+    }));
+
+    // Mock findAll to return different signups based on prog point
+    mockSignupsCollection.findAll.mockImplementation(
+      ({ progPoint }: { progPoint?: string }) => {
+        if (progPoint === 'P6 Enrage') {
+          return Promise.resolve(p6SignupsMock);
+        }
+        if (progPoint === 'Clear') {
+          return Promise.resolve(clearSignupsMock);
+        }
+        return Promise.resolve([]);
+      },
+    );
 
     // Execute the command
     const command = new SearchCommand(
@@ -369,11 +414,16 @@ describe('SearchCommandHandler', () => {
 
     await collectorCallback!(mockProgPointSelect);
 
-    // Verify the search was performed
+    // Verify the search was performed for at least the selected prog point
     expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
       encounter: Encounter.TOP,
       progPoint: 'P6 Enrage',
     });
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
+      encounter: Encounter.TOP,
+      progPoint: 'Clear',
+    });
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledTimes(2);
 
     // Verify the response contains multiple embeds
     expect(mockProgPointSelect.editReply).toHaveBeenCalled();
@@ -479,5 +529,174 @@ describe('SearchCommandHandler', () => {
         'Search session has expired. Please run the command again if needed.',
       components: [],
     });
+  });
+
+  it('should search for signups at least at selected prog point', async () => {
+    // Setup the collector
+    let collectorCallback: (i: any) => Promise<void>;
+    mockCollector.on.mockImplementation((event: string, callback: any) => {
+      if (event === 'collect') {
+        collectorCallback = callback;
+      }
+      return mockCollector;
+    });
+
+    // Mock search results for multiple prog points
+    const p6Signups = [
+      {
+        character: 'P6Player',
+        world: 'TestWorld',
+        role: 'Tank',
+        availability: 'Weekends',
+        discordId: 'user1',
+        notes: 'P6 prog',
+        username: 'p6user',
+        progPoint: 'P6 Enrage',
+      },
+    ];
+    const clearSignups = [
+      {
+        character: 'ClearPlayer',
+        world: 'TestWorld',
+        role: 'DPS',
+        availability: 'Weekends',
+        discordId: 'user2',
+        notes: 'Clear prog',
+        username: 'clearuser',
+        progPoint: 'Clear',
+      },
+    ];
+
+    // Mock findAll to return different results for different prog points
+    mockSignupsCollection.findAll.mockImplementation(
+      ({ progPoint }: { progPoint: string }) => {
+        if (progPoint === 'P6 Enrage') return Promise.resolve(p6Signups);
+        if (progPoint === 'Clear') return Promise.resolve(clearSignups);
+        return Promise.resolve([]);
+      },
+    );
+
+    // Execute the command
+    const command = new SearchCommand(
+      mockInteraction as unknown as ChatInputCommandInteraction<
+        'cached' | 'raw'
+      >,
+    );
+    await handler.execute(command);
+
+    // First, simulate encounter selection
+    const mockEncounterSelect = createMock<StringSelectMenuInteraction>();
+    mockEncounterSelect.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
+    mockEncounterSelect.values = [Encounter.TOP];
+    mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
+    await collectorCallback!(mockEncounterSelect);
+
+    // Then, simulate prog point selection (selecting P6 Enrage should include P6 Enrage and Clear)
+    const mockProgPointSelect = createMock<StringSelectMenuInteraction>();
+    mockProgPointSelect.customId = SEARCH_PROG_POINT_SELECT_ID;
+    mockProgPointSelect.values = ['P6 Enrage'];
+    mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);
+
+    mockProgPointSelect.editReply.mockImplementation(() => {
+      return Promise.resolve({
+        embeds: [
+          {
+            title: 'Search Results',
+            description: `Found 2 player(s) for **${Encounter.TOP}** at prog point: **P6 Enrage or beyond**`,
+            fields: [
+              // P6Player fields
+              { name: 'Character', value: 'P6Player (<@user1>)', inline: true },
+              { name: 'Role', value: 'Tank', inline: true },
+              { name: 'Prog Point', value: 'P6 Enrage', inline: true },
+              // ClearPlayer fields
+              {
+                name: 'Character',
+                value: 'ClearPlayer (<@user2>)',
+                inline: true,
+              },
+              { name: 'Role', value: 'DPS', inline: true },
+              { name: 'Prog Point', value: 'Clear', inline: true },
+            ],
+          },
+        ],
+        components: [{ type: 1, components: [] }],
+      } as any);
+    });
+
+    await collectorCallback!(mockProgPointSelect);
+
+    // Verify the search was performed for all prog points >= P6 Enrage (order 1)
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
+      encounter: Encounter.TOP,
+      progPoint: 'P6 Enrage',
+    });
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
+      encounter: Encounter.TOP,
+      progPoint: 'Clear',
+    });
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledTimes(2);
+
+    // Verify the response
+    expect(mockProgPointSelect.editReply).toHaveBeenCalled();
+  });
+
+  it('should search only for selected prog point when it is the highest order', async () => {
+    // Setup the collector
+    let collectorCallback: (i: any) => Promise<void>;
+    mockCollector.on.mockImplementation((event: string, callback: any) => {
+      if (event === 'collect') {
+        collectorCallback = callback;
+      }
+      return mockCollector;
+    });
+
+    // Mock search results for Clear only
+    const clearSignups = [
+      {
+        character: 'ClearPlayer',
+        world: 'TestWorld',
+        role: 'Tank',
+        availability: 'Weekends',
+        discordId: 'user1',
+        notes: 'Clear prog',
+        username: 'clearuser',
+        progPoint: 'Clear',
+      },
+    ];
+
+    mockSignupsCollection.findAll.mockResolvedValue(clearSignups);
+
+    // Execute the command
+    const command = new SearchCommand(
+      mockInteraction as unknown as ChatInputCommandInteraction<
+        'cached' | 'raw'
+      >,
+    );
+    await handler.execute(command);
+
+    // First, simulate encounter selection
+    const mockEncounterSelect = createMock<StringSelectMenuInteraction>();
+    mockEncounterSelect.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
+    mockEncounterSelect.values = [Encounter.TOP];
+    mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
+    await collectorCallback!(mockEncounterSelect);
+
+    // Then, simulate prog point selection (selecting Clear should only include Clear)
+    const mockProgPointSelect = createMock<StringSelectMenuInteraction>();
+    mockProgPointSelect.customId = SEARCH_PROG_POINT_SELECT_ID;
+    mockProgPointSelect.values = ['Clear'];
+    mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);
+
+    await collectorCallback!(mockProgPointSelect);
+
+    // Verify the search was performed only for Clear (highest order)
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
+      encounter: Encounter.TOP,
+      progPoint: 'Clear',
+    });
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledTimes(1);
+
+    // Verify the response
+    expect(mockProgPointSelect.editReply).toHaveBeenCalled();
   });
 });

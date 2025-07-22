@@ -168,13 +168,45 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
   }
 
   /**
-   * Search for signups matching the encounter and prog point
+   * Search for signups matching the encounter and prog point (at least)
    */
-  private searchSignups(encounter: Encounter, progPoint: string) {
-    return this.signupsCollection.findAll({
-      encounter,
-      progPoint,
-    });
+  private async searchSignups(encounter: Encounter, progPoint: string) {
+    // Get all prog points for the encounter
+    const allProgPoints = await this.encountersService.getProgPoints(encounter);
+
+    // Find the order of the selected prog point
+    const selectedOrder = allProgPoints.find((p) => p.id === progPoint)?.order;
+    if (selectedOrder === undefined) {
+      // If prog point not found, return empty array
+      return [];
+    }
+
+    // Get all prog points with order >= selected prog point order
+    const eligibleProgPoints = allProgPoints.reduce((acc, p) => {
+      if (p.order >= selectedOrder) {
+        acc.push(p.id);
+      }
+      return acc;
+    }, [] as string[]);
+
+    // If no eligible prog points, return empty array
+    if (eligibleProgPoints.length === 0) {
+      return [];
+    }
+
+    // Query for signups with any of the eligible prog points
+    // Using multiple queries since Firestore has limitations on complex queries
+    const signupPromises = eligibleProgPoints.map((progPointId) =>
+      this.signupsCollection.findAll({
+        encounter,
+        progPoint: progPointId,
+      }),
+    );
+
+    const signupArrays = await Promise.all(signupPromises);
+
+    // Flatten the arrays (no deduplication needed since each user can only have one signup per encounter)
+    return signupArrays.flat();
   }
 
   /**
@@ -191,7 +223,7 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
         new EmbedBuilder()
           .setTitle('Search Results')
           .setDescription(
-            `No signups found for ${encounter} at prog point: ${progPoint}`,
+            `No signups found for ${encounter} at least at prog point: ${progPoint}`,
           )
           .setColor(Colors.Red),
       ];
@@ -211,7 +243,7 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
       const embed = new EmbedBuilder()
         .setTitle('Search Results')
         .setDescription(
-          `Found ${signups.length} player(s) for **${encounter}** at prog point: **${progPoint}**${
+          `Found ${signups.length} player(s) for **${encounter}** at prog point: **${progPoint} or beyond**${
             totalPages > 1 ? `\nPage ${pageIndex + 1}/${totalPages}` : ''
           }`,
         )
@@ -219,13 +251,10 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
 
       // Create fields for each player on this page using flatMap
       const fields = pageSignups.flatMap((signup) => [
-        characterField(signup.character),
-        {
-          name: 'Discord',
-          value: `<@${signup.discordId}> (${signup.username})`,
-          inline: true,
-        },
+        characterField(signup.character, { memberId: signup.discordId }),
         { name: 'Role', value: signup.role, inline: true },
+        // biome-ignore lint/style/noNonNullAssertion: prog point won't be undefined here but we should improve types of Signups to fix this kind of issue
+        { name: 'Prog Point', value: signup.progPoint!, inline: true },
       ]);
 
       return embed.addFields(fields);
