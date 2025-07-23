@@ -7,6 +7,7 @@ import type {
 } from 'discord.js';
 import type { AppConfig, ApplicationModeConfig } from '../app.config.js';
 import { BlacklistSlashCommand } from './blacklist/blacklist.slash-command.js';
+import { CleanRolesSlashCommand } from './clean-roles/clean-roles.slash-command.js';
 import { EncountersSlashCommand } from './encounters/encounters.slash-command.js';
 import { createFinalPushSlashCommand } from './finalpush/final-push-signup.slash-command.js';
 import { HelpSlashCommand } from './help/help.slash-command.js';
@@ -39,6 +40,7 @@ export const SlashCommandsProvider: Provider<SlashCommands> = {
 
     return [
       BlacklistSlashCommand,
+      CleanRolesSlashCommand,
       EncountersSlashCommand,
       createRemoveSignupSlashCommand(applicationModeConfig),
       createSignupSlashCommand(applicationModeConfig),
