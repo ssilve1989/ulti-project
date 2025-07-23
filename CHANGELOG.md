@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.37.0](https://github.com/ssilve1989/ulti-project/compare/v1.36.0...v1.37.0) (2025-07-23)
+
+
+### Features
+
+* **clean-roles:** add slash command to clean roles from inactive members ([354e4e2](https://github.com/ssilve1989/ulti-project/commit/354e4e23d75a95fa54a50372f7db708c82b952f3))
+
 ## [1.36.0](https://github.com/ssilve1989/ulti-project/compare/v1.35.5...v1.36.0) (2025-07-22)
 
 
