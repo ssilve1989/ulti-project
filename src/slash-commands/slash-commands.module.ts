@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import type { AppConfig } from '../app.config.js';
 import { DiscordModule } from '../discord/discord.module.js';
 import { BlacklistModule } from './blacklist/blacklist.module.js';
+import { CleanRolesModule } from './clean-roles/clean-roles.module.js';
 import { EncountersSlashCommandModule } from './encounters/encounters.module.js';
 import { HelpModule } from './help/help.module.js';
 import { LookupModule } from './lookup/lookup.module.js';
@@ -24,6 +25,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     CqrsModule,
     SlashCommandsSharedModule,
     BlacklistModule,
+    CleanRolesModule,
     EncountersSlashCommandModule,
     HelpModule,
     LookupModule,

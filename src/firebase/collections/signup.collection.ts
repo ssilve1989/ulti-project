@@ -103,6 +103,16 @@ class SignupCollection {
   }
 
   @SentryTraced()
+  public async findByStatusIn(
+    statuses: SignupStatus[],
+  ): Promise<SignupDocument[]> {
+    const snapshot = await this.collection
+      .where('status', 'in', statuses)
+      .get();
+    return snapshot.docs.map((doc) => doc.data() as SignupDocument);
+  }
+
+  @SentryTraced()
   public async findByReviewId(reviewMessageId: string) {
     const snapshot = await this.where({ reviewMessageId }).limit(1).get();
 
