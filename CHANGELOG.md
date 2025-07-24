@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/ssilve1989/ulti-project/compare/v1.37.0...v2.0.0) (2025-07-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **clean-roles:** None - public API remains unchanged
+
+### Code Refactoring
+
+* **clean-roles:** implement strategy pattern with type-safe architecture ([5051e04](https://github.com/ssilve1989/ulti-project/commit/5051e04f3dd18c70659c80381e2920d917b9d9b9))
+
 ## [1.37.0](https://github.com/ssilve1989/ulti-project/compare/v1.36.0...v1.37.0) (2025-07-23)
 
 
