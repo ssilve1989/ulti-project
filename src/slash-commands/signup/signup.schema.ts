@@ -41,7 +41,6 @@ export const signupSchema = z
       })
       .pipe(
         z
-          .string()
           .url()
           .refine(
             (url) =>
@@ -66,18 +65,19 @@ export const signupSchema = z
         'Invalid World. Please check the spelling and make sure it is a valid world in the NA Region',
       ),
   })
-  .superRefine((data, ctx) => {
-    const rawProofLink = data.proofOfProgLink;
-    const rawScreenshot = data.screenshot;
+  .check((ctx) => {
+    const rawProofLink = ctx.value.proofOfProgLink;
+    const rawScreenshot = ctx.value.screenshot;
 
     // Only require screenshot if no link was provided at all
     if (
       (rawProofLink === null || rawProofLink === undefined) &&
       !rawScreenshot
     ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+      ctx.issues.push({
+        code: 'custom',
         message: 'A screenshot must be attached if no link is provided',
+        input: ctx.value.screenshot,
         path: ['screenshot'],
       });
     }
