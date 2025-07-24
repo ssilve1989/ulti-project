@@ -2025,6 +2025,13 @@ export type EncounterRankingsQueryVariables = Exact<{
 
 export type EncounterRankingsQuery = { readonly __typename?: 'Query', readonly characterData?: { readonly __typename?: 'CharacterData', readonly character?: { readonly __typename?: 'Character', readonly id: number, readonly name: string, readonly encounterRankings?: any | null } | null } | null };
 
+export type ReportDataQueryVariables = Exact<{
+  code: Scalars['String']['input'];
+}>;
+
+
+export type ReportDataQuery = { readonly __typename?: 'Query', readonly reportData?: { readonly __typename?: 'ReportData', readonly report?: { readonly __typename?: 'Report', readonly code: string, readonly startTime: number, readonly endTime: number, readonly title: string } | null } | null };
+
 
 export const CharacterDataDocument = `
     query characterData($name: String, $server: String, $region: String) {
@@ -2057,6 +2064,18 @@ export const EncounterRankingsDocument = `
   }
 }
     `;
+export const ReportDataDocument = `
+    query reportData($code: String!) {
+  reportData {
+    report(code: $code) {
+      code
+      startTime
+      endTime
+      title
+    }
+  }
+}
+    `;
 
 export type SdkFunctionWrapper = <T>(action: (requestHeaders?:Record<string, string>) => Promise<T>, operationName: string, operationType?: string, variables?: any) => Promise<T>;
 
@@ -2070,6 +2089,9 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     },
     encounterRankings(variables?: EncounterRankingsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<EncounterRankingsQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<EncounterRankingsQuery>(EncounterRankingsDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'encounterRankings', 'query', variables);
+    },
+    reportData(variables: ReportDataQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<ReportDataQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<ReportDataQuery>(ReportDataDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'reportData', 'query', variables);
     }
   };
 }

@@ -11,6 +11,8 @@ import {
 import { UnhandledButtonInteractionException } from '../../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
+import { expiredReportError } from '../../../../fflogs/fflogs.consts.js';
+import { FFLogsService } from '../../../../fflogs/fflogs.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
 import {
@@ -29,6 +31,7 @@ describe('Signup Command Handler', () => {
   let settingsCollection: DeepMocked<SettingsCollection>;
   let discordServiceMock: DeepMocked<DiscordService>;
   let signupCollectionMock: DeepMocked<SignupCollection>;
+  let fflogsServiceMock: DeepMocked<FFLogsService>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
@@ -43,6 +46,7 @@ describe('Signup Command Handler', () => {
     handler = fixture.get(SignupCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
     signupCollectionMock = fixture.get(SignupCollection);
+    fflogsServiceMock = fixture.get(FFLogsService);
 
     interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
       user: {
@@ -242,5 +246,173 @@ describe('Signup Command Handler', () => {
     expect(interaction.editReply).toHaveBeenCalledWith(
       SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL,
     );
+  });
+
+  describe('FFLogs Validation', () => {
+    beforeEach(() => {
+      settingsCollection.getReviewChannel.mockResolvedValue('123456789');
+      // Set up default values for FFLogs tests
+      (interaction.options.getString as any) = (key: string) => {
+        switch (key) {
+          case 'availability':
+            return 'Available all day';
+          case 'character':
+            return 'Test Character';
+          case 'encounter':
+            return 'FRU';
+          case 'prog-proof-link':
+            return 'https://fflogs.com/reports/ABC123def456';
+          case 'prog-point':
+            return 'P1';
+          case 'job':
+            return 'DPS';
+          case 'world':
+            return 'Gilgamesh';
+          case 'notes':
+            return null;
+          default:
+            return null;
+        }
+      };
+    });
+
+    test('should fail validation for old FFLogs report', async () => {
+      fflogsServiceMock.validateReportAge.mockResolvedValue({
+        isValid: false,
+        errorMessage: expiredReportError(35, 28),
+      });
+
+      const command = new SignupCommand(interaction);
+      await handler.execute(command);
+
+      expect(fflogsServiceMock.validateReportAge).toHaveBeenCalledWith(
+        'ABC123def456',
+      );
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              data: expect.objectContaining({
+                title: '❌ FFLogs Check Failed',
+                description: expiredReportError(35, 28),
+              }),
+            }),
+          ]),
+        }),
+      );
+    });
+
+    test('should handle malformed FFLogs URLs', async () => {
+      (interaction.options.getString as any) = (key: string) => {
+        switch (key) {
+          case 'availability':
+            return 'Available all day';
+          case 'character':
+            return 'Test Character';
+          case 'encounter':
+            return 'FRU';
+          case 'prog-proof-link':
+            return 'https://fflogs.com/invalid-url';
+          case 'prog-point':
+            return 'P1';
+          case 'job':
+            return 'DPS';
+          case 'world':
+            return 'Gilgamesh';
+          case 'notes':
+            return null;
+          default:
+            return null;
+        }
+      };
+
+      const command = new SignupCommand(interaction);
+      await handler.execute(command);
+
+      expect(fflogsServiceMock.validateReportAge).not.toHaveBeenCalled();
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              data: expect.objectContaining({
+                title: '❌ FFLogs Check Failed',
+                description: expect.stringContaining(
+                  'Invalid FFLogs URL format. Please provide a valid link to a report.',
+                ),
+              }),
+            }),
+          ]),
+        }),
+      );
+    });
+
+    test('should proceed for valid FFLogs report', async () => {
+      fflogsServiceMock.validateReportAge.mockResolvedValue({
+        isValid: true,
+        reportDate: new Date(),
+      });
+
+      const command = new SignupCommand(interaction);
+      await handler.execute(command);
+
+      expect(fflogsServiceMock.validateReportAge).toHaveBeenCalledWith(
+        'ABC123def456',
+      );
+      expect(interaction.editReply).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              data: expect.objectContaining({
+                title: '❌ Signup Validation Failed',
+              }),
+            }),
+          ]),
+        }),
+      );
+    });
+
+    test('should skip FFLogs validation for non-FFLogs URLs', async () => {
+      (interaction.options.getString as any) = (key: string) => {
+        switch (key) {
+          case 'availability':
+            return 'Available all day';
+          case 'character':
+            return 'Test Character';
+          case 'encounter':
+            return 'FRU';
+          case 'prog-proof-link':
+            return 'https://youtube.com/watch?v=test';
+          case 'prog-point':
+            return 'P1';
+          case 'job':
+            return 'DPS';
+          case 'world':
+            return 'Gilgamesh';
+          case 'notes':
+            return null;
+          default:
+            return null;
+        }
+      };
+
+      const command = new SignupCommand(interaction);
+      await handler.execute(command);
+
+      expect(fflogsServiceMock.validateReportAge).not.toHaveBeenCalled();
+    });
+
+    test('should handle FFLogs service errors gracefully', async () => {
+      fflogsServiceMock.validateReportAge.mockRejectedValue(
+        new Error('API Error'),
+      );
+
+      const command = new SignupCommand(interaction);
+      await handler.execute(command);
+
+      expect(fflogsServiceMock.validateReportAge).toHaveBeenCalledWith(
+        'ABC123def456',
+      );
+      // Should proceed despite error (graceful degradation)
+    });
   });
 });

@@ -31,3 +31,16 @@ query encounterRankings($name: String, $server: String, $region: String, $encoun
         }
     }
 }`;
+
+export const ReportDataQuery = gql`
+  query reportData($code: String!) {
+    reportData {
+      report(code: $code) {
+        code
+        startTime
+        endTime
+        title
+      }
+    }
+  }
+`;

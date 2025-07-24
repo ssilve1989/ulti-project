@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { DiscordModule } from '../../discord/discord.module.js';
 import { EncountersModule } from '../../encounters/encounters.module.js';
+import { FfLogsModule } from '../../fflogs/fflogs.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
 import { RemoveSignupCommandHandler } from '../remove-signup/remove-signup.command-handler.js';
@@ -20,6 +21,7 @@ import { SendSignupReviewCommandHandler } from './subcommands/send-signup-review
     CqrsModule,
     DiscordModule,
     EncountersModule,
+    FfLogsModule,
     FirebaseModule,
     SheetsModule,
   ],

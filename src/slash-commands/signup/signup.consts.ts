@@ -103,3 +103,8 @@ export const DEFAULT_DECLINE_FOLLOWUP_MESSAGES = {
 // Custom reason option for select menu
 export const CUSTOM_DECLINE_REASON_VALUE = 'custom_reason';
 export const CUSTOM_DECLINE_REASON_LABEL = 'Other - provide custom reason';
+
+// FFLogs report validation constants
+export const FFLOGS_REPORT_MAX_AGE_DAYS = 28;
+export const FFLOGS_VALIDATION_ERROR_PREFIX =
+  'FFLogs report validation failed:';

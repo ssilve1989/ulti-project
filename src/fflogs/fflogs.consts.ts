@@ -11,3 +11,10 @@ export const EncounterIds = new Map<Encounter, number[]>([
   [Encounter.UCOB, [1060, 1073, 1047, 1039]],
   [Encounter.FRU, [1079]],
 ]);
+
+export function expiredReportError(
+  ageInDays: number,
+  maximumDaysAllowed: number,
+): string {
+  return `FFLogs reports must not be older than ${maximumDaysAllowed} days. The linked report is ${ageInDays} days old.`;
+}
