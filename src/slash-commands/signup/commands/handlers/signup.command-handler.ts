@@ -1,3 +1,4 @@
+import { URL } from 'node:url';
 import { Logger } from '@nestjs/common';
 import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
@@ -31,13 +32,18 @@ import {
   Encounter,
   EncounterFriendlyDescription,
 } from '../../../../encounters/encounters.consts.js';
+import { FFLogsService } from '../../../../fflogs/fflogs.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
 import { sentryReport } from '../../../../sentry/sentry.consts.js';
 import { SignupCreatedEvent } from '../../events/signup.events.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { type SignupSchema, signupSchema } from '../../signup.schema.js';
-import { shouldDeleteReviewMessageForSignup } from '../../signup.utils.js';
+import {
+  extractFflogsReportCode,
+  isFFLogsUrl,
+  shouldDeleteReviewMessageForSignup,
+} from '../../signup.utils.js';
 import { SignupCommand } from '../signup.commands.js';
 
 // reusable object to clear a messages emebed + button interaction
@@ -45,6 +51,14 @@ const CLEAR_EMBED = {
   embeds: [],
   components: [],
 };
+
+type FFLogsValidationResult =
+  | { success: true }
+  | {
+      success: false;
+      errorMessage: string;
+      errorType: 'format' | 'age' | 'api';
+    };
 
 @CommandHandler(SignupCommand)
 class SignupCommandHandler implements ICommandHandler<SignupCommand> {
@@ -56,6 +70,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     private readonly repository: SignupCollection,
     private readonly settingsService: SettingsCollection,
     private readonly discordService: DiscordService,
+    private readonly fflogsService: FFLogsService,
   ) {}
 
   @SentryTraced()
@@ -82,6 +97,22 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     if (validationErrors) {
       await interaction.editReply({
         embeds: [this.createValidationErrorsEmbed(validationErrors)],
+      });
+      return;
+    }
+
+    // Perform FFLogs validation if applicable
+    const fflogsValidationResult = await this.validateFFLogsUrl(
+      signupRequest.proofOfProgLink,
+    );
+
+    if (!fflogsValidationResult.success) {
+      await interaction.editReply({
+        embeds: [
+          this.createFFLogsValidationErrorEmbed(
+            fflogsValidationResult.errorMessage,
+          ),
+        ],
       });
       return;
     }
@@ -290,6 +321,81 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       .addFields(fields);
 
     return embed;
+  }
+
+  private createFFLogsValidationErrorEmbed(errorMessage: string) {
+    return new EmbedBuilder()
+      .setColor(Colors.Red)
+      .setTitle('❌ FFLogs Check Failed')
+      .setDescription(errorMessage)
+      .setTimestamp();
+  }
+
+  /**
+   * Validates an FFLogs URL for security and report age requirements.
+   *
+   * This method performs comprehensive validation of FFLogs URLs to prevent
+   * security vulnerabilities like URL spoofing while ensuring reports meet
+   * age requirements for competitive integrity.
+   *
+   * Security considerations:
+   * - Uses exact hostname matching to prevent subdomain spoofing attacks
+   * - Validates URL format before attempting report code extraction
+   * - Only accepts fflogs.com and www.fflogs.com as valid domains
+   *
+   * @param proofOfProgLink The URL string to validate, or null if none provided
+   * @returns Promise<FFLogsValidationResult> - Validation result with success status and error details
+   */
+  private async validateFFLogsUrl(
+    proofOfProgLink: string | null,
+  ): Promise<FFLogsValidationResult> {
+    if (!proofOfProgLink) {
+      return { success: true }; // No URL to validate
+    }
+
+    // TODO: Ahhh this is weird it creates new URL twice but idgaf right now
+    const url = new URL(proofOfProgLink);
+    const reportCode = extractFflogsReportCode(proofOfProgLink);
+
+    if (isFFLogsUrl(url) && !reportCode) {
+      return {
+        success: false,
+        errorMessage: `Invalid FFLogs URL format. Please provide a valid link to a report. Not a profile or any other fflogs link.
+          
+          Example: https://www.fflogs.com/reports/2XG7tZp1AjQcWTn9?fight=3&type=damage-done
+          `,
+        errorType: 'format',
+      };
+    }
+
+    if (reportCode) {
+      // Only proceed with FFLogs validation if we successfully extracted a report code
+      try {
+        const fflogsValidation =
+          await this.fflogsService.validateReportAge(reportCode);
+
+        if (!fflogsValidation.isValid) {
+          this.logger.log(fflogsValidation.errorMessage);
+
+          return {
+            success: false,
+            errorMessage:
+              fflogsValidation.errorMessage || 'FFLogs validation failed',
+            errorType: 'age',
+          };
+        }
+      } catch (error) {
+        this.logger.warn('Error validating FFLogs report age:', error);
+        return {
+          success: false,
+          errorMessage:
+            'Unable to validate report age due to API issues. Report will be reviewed manually.',
+          errorType: 'api',
+        };
+      }
+    }
+
+    return { success: true }; // Validation passed or no FFLogs URL provided
   }
 }
 
