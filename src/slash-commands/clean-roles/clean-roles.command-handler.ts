@@ -4,60 +4,25 @@ import { SentryTraced } from '@sentry/nestjs';
 import {
   EmbedBuilder,
   type Guild,
-  type GuildMember,
   MessageFlags,
-  type Role,
   userMention,
 } from 'discord.js';
-import { from, lastValueFrom, map, mergeMap } from 'rxjs';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SignupStatus } from '../../firebase/models/signup.model.js';
 import { sentryReport } from '../../sentry/sentry.consts.js';
 import { CleanRolesCommand } from './clean-roles.command.js';
-
-interface MemberToRemove {
-  id: string;
-  displayName: string;
-  username: string;
-}
-
-interface BaseRoleResult {
-  roleId: string;
-  roleName: string;
-  membersProcessed: number;
-  rolesRemoved: number;
-}
-
-interface DryRunRoleResult extends BaseRoleResult {
-  membersToRemove: MemberToRemove[];
-}
-
-interface NormalRoleResult extends BaseRoleResult {
-  // No additional properties needed for normal execution
-}
-
-interface BaseCleanRolesResult {
-  totalRolesProcessed: number;
-  totalMembersProcessed: number;
-  totalRolesRemoved: number;
-  totalActiveSignups: number;
-  uniqueMembersWithRoles: number;
-  uniqueMembersAfterRemoval: number;
-}
-
-interface DryRunResult extends BaseCleanRolesResult {
-  isDryRun: true;
-  processedRoles: DryRunRoleResult[];
-}
-
-interface NormalResult extends BaseCleanRolesResult {
-  isDryRun: false;
-  processedRoles: NormalRoleResult[];
-}
-
-type CleanRolesResult = DryRunResult | NormalResult;
+import type {
+  BaseRoleResult,
+  CleanRolesResult,
+  DryRunResult,
+  NormalResult,
+  ProcessingContext,
+  ProcessingStrategy,
+} from './clean-roles.interfaces.js';
+import { DryRunStrategy } from './dry-run.strategy.js';
+import { NormalStrategy } from './normal.strategy.js';
 
 @CommandHandler(CleanRolesCommand)
 class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
@@ -122,6 +87,22 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
     guildId: string,
     isDryRun: boolean,
   ): Promise<CleanRolesResult> {
+    const context = await this.prepareProcessingContext(guildId);
+
+    if (isDryRun) {
+      const strategy = new DryRunStrategy(this.logger);
+      const processedRoles = await this.processAllRoles(context, strategy);
+      return strategy.createResult(context, processedRoles);
+    }
+
+    const strategy = new NormalStrategy(this.logger);
+    const processedRoles = await this.processAllRoles(context, strategy);
+    return strategy.createResult(context, processedRoles);
+  }
+
+  private async prepareProcessingContext(
+    guildId: string,
+  ): Promise<ProcessingContext> {
     const settings = await this.settingsCollection.getSettings(guildId);
 
     if (!settings?.progRoles && !settings?.clearRoles) {
@@ -140,15 +121,13 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
     }
 
     const guild = await this.discordService.client.guilds.fetch(guildId);
-    await guild.members.fetch(); // Ensure member cache is up-to-date
+    await guild.members.fetch();
 
-    // Fetch all active signups (APPROVED and UPDATE_PENDING) in a single query
     const activeSignups = await this.signupCollection.findByStatusIn([
       SignupStatus.APPROVED,
       SignupStatus.UPDATE_PENDING,
     ]);
 
-    // Create a Set for O(1) lookup of Discord IDs with active signups
     const activeSignupDiscordIds = new Set(
       activeSignups.map((signup) => signup.discordId),
     );
@@ -157,90 +136,53 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
       `Found ${activeSignups.length} active signups for ${activeSignupDiscordIds.size} unique Discord users`,
     );
 
-    // Collect all unique members who currently have any of the roles
     const allMembersWithRoles = await this.collectMembersWithRoles(
       guild,
       allRoleIds,
     );
 
-    const baseResult: BaseCleanRolesResult = {
-      totalRolesProcessed: 0,
-      totalMembersProcessed: 0,
-      totalRolesRemoved: 0,
-      totalActiveSignups: activeSignups.length,
-      uniqueMembersWithRoles: allMembersWithRoles.size,
-      uniqueMembersAfterRemoval: 0, // Will be calculated after processing
-    };
-
-    const result: CleanRolesResult = isDryRun
-      ? { ...baseResult, isDryRun: true, processedRoles: [] }
-      : { ...baseResult, isDryRun: false, processedRoles: [] };
-
-    // Process each role sequentially to avoid overwhelming the system
-    await this.processAllRoles(
-      allRoleIds,
+    return {
       guild,
       guildId,
+      allRoleIds,
+      activeSignups,
       activeSignupDiscordIds,
-      result,
-    );
-
-    // Calculate unique members who will still have roles after removal
-    // These are members who currently have roles AND have active signups
-    const membersWhoWillKeepRoles = new Set<string>();
-    for (const memberId of allMembersWithRoles) {
-      if (activeSignupDiscordIds.has(memberId)) {
-        membersWhoWillKeepRoles.add(memberId);
-      }
-    }
-
-    result.uniqueMembersAfterRemoval = membersWhoWillKeepRoles.size;
-
-    return result;
+      allMembersWithRoles,
+    };
   }
 
-  private async processAllRoles(
-    allRoleIds: Set<string>,
-    guild: Guild,
-    guildId: string,
-    activeSignupDiscordIds: Set<string>,
-    result: CleanRolesResult,
-  ): Promise<void> {
-    for (const roleId of allRoleIds) {
+  private async processAllRoles<T extends BaseRoleResult>(
+    context: ProcessingContext,
+    strategy: ProcessingStrategy<T>,
+  ): Promise<T[]> {
+    const results: T[] = [];
+
+    for (const roleId of context.allRoleIds) {
       try {
-        const role = await guild.roles.fetch(roleId);
+        const role = await context.guild.roles.fetch(roleId);
         if (!role) {
-          this.logger.warn(`Role ${roleId} not found in guild ${guildId}`);
+          this.logger.warn(
+            `Role ${roleId} not found in guild ${context.guildId}`,
+          );
           continue;
         }
 
-        if (result.isDryRun) {
-          const roleResult = await this.processDryRunRoleMembers(
-            role,
-            activeSignupDiscordIds,
-          );
-          result.processedRoles.push(roleResult);
-        } else {
-          const roleResult = await this.processNormalRoleMembers(
-            role,
-            activeSignupDiscordIds,
-          );
-          result.processedRoles.push(roleResult);
-        }
-        const roleResult =
-          result.processedRoles[result.processedRoles.length - 1];
-        result.totalRolesProcessed++;
-        result.totalMembersProcessed += roleResult.membersProcessed;
-        result.totalRolesRemoved += roleResult.rolesRemoved;
+        const roleResult = await strategy.processRole(
+          role,
+          context.activeSignupDiscordIds,
+        );
+        results.push(roleResult);
 
         this.logger.log(
-          `Completed processing role ${role.name}: ${roleResult.rolesRemoved}/${roleResult.membersProcessed} roles removed`,
+          `Completed processing role ${role.name}: ${roleResult.rolesRemoved}/${roleResult.membersProcessed} roles ${roleResult.rolesRemoved > 0 ? 'processed' : 'processed'}`,
         );
       } catch (error) {
         this.logger.error(`Failed to process role ${roleId}:`, error);
         sentryReport(error);
       }
     }
+
+    return results;
   }
 
   private async collectMembersWithRoles(
@@ -257,135 +199,6 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
       }
     }
     return allMembersWithRoles;
-  }
-
-  private async processDryRunRoleMembers(
-    role: Role,
-    activeSignupDiscordIds: Set<string>,
-  ): Promise<DryRunRoleResult> {
-    this.logger.log(
-      `Processing role ${role.name} (${role.id}) with ${role.members.size} members`,
-    );
-
-    const roleResult: DryRunRoleResult = {
-      roleId: role.id,
-      roleName: role.name,
-      membersProcessed: role.members.size,
-      rolesRemoved: 0,
-      membersToRemove: [],
-    };
-
-    if (role.members.size === 0) {
-      return roleResult;
-    }
-
-    const memberProcessingTask$ = from(role.members.values()).pipe(
-      map((member: GuildMember) => {
-        this.processDryRunMember(
-          member,
-          role,
-          activeSignupDiscordIds,
-          roleResult,
-        );
-      }),
-    );
-
-    await lastValueFrom(memberProcessingTask$, { defaultValue: undefined });
-    return roleResult;
-  }
-
-  private async processNormalRoleMembers(
-    role: Role,
-    activeSignupDiscordIds: Set<string>,
-  ): Promise<NormalRoleResult> {
-    this.logger.log(
-      `Processing role ${role.name} (${role.id}) with ${role.members.size} members`,
-    );
-
-    const roleResult: NormalRoleResult = {
-      roleId: role.id,
-      roleName: role.name,
-      membersProcessed: role.members.size,
-      rolesRemoved: 0,
-    };
-
-    if (role.members.size === 0) {
-      return roleResult;
-    }
-
-    // Process members of this role with controlled concurrency
-    const memberProcessingTask$ = from(role.members.values()).pipe(
-      mergeMap(
-        (member: GuildMember) => {
-          return this.processNormalMember(
-            member,
-            role,
-            activeSignupDiscordIds,
-            roleResult,
-          );
-        },
-        5, // Process max 5 members concurrently to avoid rate limits
-      ),
-    );
-
-    await lastValueFrom(memberProcessingTask$, { defaultValue: undefined });
-    return roleResult;
-  }
-
-  private processDryRunMember(
-    member: GuildMember,
-    role: Role,
-    activeSignupDiscordIds: Set<string>,
-    roleResult: DryRunRoleResult,
-  ): void {
-    const hasActiveSignup = activeSignupDiscordIds.has(member.id);
-    if (hasActiveSignup) return;
-
-    try {
-      roleResult.membersToRemove.push({
-        id: member.id,
-        displayName: member.displayName,
-        username: member.user.username,
-      });
-      roleResult.rolesRemoved++;
-      this.logger.log(
-        `[DRY-RUN] Would remove role ${role.name} from ${member.displayName} (${member.id}) - no active signups`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to process member ${member.displayName} (${member.id}) for role ${role.name}:`,
-        error,
-      );
-      sentryReport(error);
-    }
-  }
-
-  private async processNormalMember(
-    member: GuildMember,
-    role: Role,
-    activeSignupDiscordIds: Set<string>,
-    roleResult: NormalRoleResult,
-  ): Promise<void> {
-    // Check if member has any active signups using in-memory lookup
-    const hasActiveSignup = activeSignupDiscordIds.has(member.id);
-    if (hasActiveSignup) return;
-
-    try {
-      await member.roles.remove(
-        role.id,
-        'Cleaned by clean-roles command - no active signups',
-      );
-      roleResult.rolesRemoved++;
-      this.logger.log(
-        `Removed role ${role.name} from ${member.displayName} (${member.id}) - no active signups`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to process member ${member.displayName} (${member.id}) for role ${role.name}:`,
-        error,
-      );
-      sentryReport(error);
-    }
   }
 
   private createSummaryMessage(result: NormalResult): string {
