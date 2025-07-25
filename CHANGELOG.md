@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.38.0](https://github.com/ssilve1989/ulti-project/compare/v1.37.0...v1.38.0) (2025-07-25)
+
+
+### Features
+
+* **signuos:** check fflogs date ([32f694b](https://github.com/ssilve1989/ulti-project/commit/32f694b903deb956e8fac01c4b8faef728ed0ca9))
+
 ## [1.37.0](https://github.com/ssilve1989/ulti-project/compare/v1.36.0...v1.37.0) (2025-07-23)
 
 
