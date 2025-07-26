@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
 import { Colors, EmbedBuilder, MessageFlags } from 'discord.js';
+import { getErrorMessage } from '../../common/error-guards.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { RetireCommand } from './retire.command.js';
 
@@ -82,8 +83,9 @@ class RetireCommandHandler implements ICommandHandler<RetireCommand> {
       this.logger.log(
         `Role retirement complete: ${result.successCount} successful, ${result.failCount} failed`,
       );
-    } catch (error) {
-      this.logger.error('Error during role retirement', error);
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
+      this.logger.error('Error during role retirement', errorMessage);
       await interaction.editReply({
         embeds: [
           new EmbedBuilder()

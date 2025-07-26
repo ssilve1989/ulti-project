@@ -5,6 +5,14 @@ declare global {
   } & {
     [P in Exclude<keyof T, K>]?: never; // Disallow any other properties
   };
+
+  interface ErrorConstructor {
+    /**
+     * Determines whether the passed value is an Error
+     * Available in Node.js 24+
+     */
+    isError(value: unknown): value is Error;
+  }
 }
 
 export {}; // Ensure this file is treated as a module
