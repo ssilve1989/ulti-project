@@ -1,12 +1,14 @@
 import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { ChatInputCommandInteraction } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { EditChannelsCommandHandler } from './edit-channels.command-handler.js';
 
 describe('Edit Channels Command Handler', () => {
   let handler: EditChannelsCommandHandler;
   let settingsCollection: DeepMocked<SettingsCollection>;
+  let errorService: DeepMocked<ErrorService>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
@@ -17,6 +19,7 @@ describe('Edit Channels Command Handler', () => {
 
     handler = fixture.get(EditChannelsCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
+    errorService = fixture.get(ErrorService);
   });
 
   it('should be defined', () => {
@@ -70,7 +73,10 @@ describe('Edit Channels Command Handler', () => {
 
   it('should handle errors gracefully', async () => {
     const error = new Error('Test error');
+    const mockErrorEmbed = createMock<EmbedBuilder>();
+
     settingsCollection.getSettings.mockRejectedValueOnce(error);
+    errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
 
     const interaction = createMock<
       ChatInputCommandInteraction<'raw' | 'cached'>
@@ -84,6 +90,12 @@ describe('Edit Channels Command Handler', () => {
 
     await handler.execute({ interaction });
 
-    expect(interaction.editReply).toHaveBeenCalledWith('Something went wrong!');
+    expect(errorService.handleCommandError).toHaveBeenCalledWith(
+      error,
+      interaction,
+    );
+    expect(interaction.editReply).toHaveBeenCalledWith({
+      embeds: [mockErrorEmbed],
+    });
   });
 });

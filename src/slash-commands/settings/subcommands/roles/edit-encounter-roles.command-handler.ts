@@ -1,27 +1,39 @@
-import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import { MessageFlags } from 'discord.js';
+import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { sentryReport } from '../../../../sentry/sentry.consts.js';
 import { EditEncounterRolesCommand } from './edit-encounter-roles.command.js';
 
 @CommandHandler(EditEncounterRolesCommand)
 export class EditEncounterRolesCommandHandler
   implements ICommandHandler<EditEncounterRolesCommand>
 {
-  private readonly logger = new Logger(EditEncounterRolesCommandHandler.name);
-
-  constructor(private readonly settingsCollection: SettingsCollection) {}
+  constructor(
+    private readonly settingsCollection: SettingsCollection,
+    private readonly errorService: ErrorService,
+  ) {}
 
   @SentryTraced()
   async execute({ interaction }: EditEncounterRolesCommand) {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const scope = Sentry.getCurrentScope();
 
     try {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
       const encounter = interaction.options.getString('encounter', true);
       const progRole = interaction.options.getRole('prog-role', true);
       const clearRole = interaction.options.getRole('clear-role', true);
+
+      // Add command-specific context
+      scope.setContext('encounter_roles_update', {
+        encounter,
+        progRoleId: progRole.id,
+        progRoleName: progRole.name,
+        clearRoleId: clearRole.id,
+        clearRoleName: clearRole.name,
+      });
 
       const settings = await this.settingsCollection.getSettings(
         interaction.guildId,
@@ -40,10 +52,12 @@ export class EditEncounterRolesCommandHandler
       });
 
       await interaction.editReply('Encounter roles updated!');
-    } catch (e: unknown) {
-      sentryReport(e);
-      this.logger.error(e);
-      return interaction.editReply('Something went wrong!');
+    } catch (error) {
+      const errorEmbed = this.errorService.handleCommandError(
+        error,
+        interaction,
+      );
+      await interaction.editReply({ embeds: [errorEmbed] });
     }
   }
 }
