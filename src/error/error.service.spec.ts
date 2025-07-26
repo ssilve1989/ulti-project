@@ -1,0 +1,113 @@
+import { Test } from '@nestjs/testing';
+import * as Sentry from '@sentry/nestjs';
+import { Colors, EmbedBuilder } from 'discord.js';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { ErrorService } from './error.service.js';
+
+// Mock Sentry
+vi.mock('@sentry/nestjs', () => ({
+  captureException: vi.fn(),
+}));
+
+// Mock Discord interaction
+const mockInteraction = {
+  commandName: 'test-command',
+  user: { id: 'user123' },
+  guildId: 'guild456',
+} as any;
+
+describe('ErrorService', () => {
+  let service: ErrorService;
+  let loggerErrorSpy: any;
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      providers: [ErrorService],
+    }).compile();
+
+    service = module.get<ErrorService>(ErrorService);
+
+    // Mock the logger to suppress console output during tests
+    loggerErrorSpy = vi
+      .spyOn(service['logger'], 'error')
+      .mockImplementation(() => {});
+
+    // Clear mock calls
+    vi.clearAllMocks();
+  });
+
+  describe('handleCommandError', () => {
+    test('should report error to Sentry', () => {
+      const error = new Error('Test error');
+
+      service.handleCommandError(error, mockInteraction);
+
+      expect(Sentry.captureException).toHaveBeenCalledWith(error);
+    });
+
+    test('should return error embed with default message', () => {
+      const error = new Error('Test error');
+
+      const result = service.handleCommandError(error, mockInteraction);
+
+      expect(result).toBeInstanceOf(EmbedBuilder);
+      expect(result.data.color).toBe(Colors.Red);
+      expect(result.data.title).toBe('Command Error');
+      expect(result.data.description).toBe(
+        'An unexpected error occurred. Please try again later.',
+      );
+      expect(result.data.timestamp).toBeDefined();
+    });
+
+    test('should return error embed with custom message', () => {
+      const error = new Error('Test error');
+      const customMessage = 'Custom error message for user';
+
+      const result = service.handleCommandError(
+        error,
+        mockInteraction,
+        customMessage,
+      );
+
+      expect(result).toBeInstanceOf(EmbedBuilder);
+      expect(result.data.description).toBe(customMessage);
+    });
+
+    test('should log error with structured context', () => {
+      const error = new Error('Test error');
+
+      service.handleCommandError(error, mockInteraction);
+
+      expect(loggerErrorSpy).toHaveBeenCalledWith('Command error: Test error', {
+        commandName: 'test-command',
+        userId: 'user123',
+        guildId: 'guild456',
+      });
+    });
+
+    test('should handle interaction without guild', () => {
+      const error = new Error('Test error');
+      const interactionWithoutGuild = {
+        ...mockInteraction,
+        guildId: null,
+      };
+
+      service.handleCommandError(error, interactionWithoutGuild);
+
+      expect(loggerErrorSpy).toHaveBeenCalledWith('Command error: Test error', {
+        commandName: 'test-command',
+        userId: 'user123',
+        guildId: null,
+      });
+    });
+
+    test('should handle unknown error types', () => {
+      const error = 'String error';
+
+      const result = service.handleCommandError(error, mockInteraction);
+
+      expect(Sentry.captureException).toHaveBeenCalledWith(error);
+      expect(result).toBeInstanceOf(EmbedBuilder);
+    });
+  });
+});
