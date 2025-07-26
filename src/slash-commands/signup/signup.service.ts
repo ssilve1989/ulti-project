@@ -318,7 +318,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       )
       .otherwise(() => SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR);
 
-    this.logger.log('capturing message');
     Sentry.captureMessage(reply, 'debug');
 
     // TODO: Improve error reporting to better inform user what happened
