@@ -14,12 +14,9 @@ export function shouldDeleteReviewMessageForSignup({ status }: SignupDocument) {
 }
 
 export function hasClearedStatus({
-  partyType,
   partyStatus,
-}: Pick<SignupDocument, 'partyStatus' | 'partyType'>) {
-  return (
-    partyType === PartyStatus.Cleared || partyStatus === PartyStatus.Cleared
-  );
+}: Pick<SignupDocument, 'partyStatus'>) {
+  return partyStatus === PartyStatus.Cleared;
 }
 
 /**

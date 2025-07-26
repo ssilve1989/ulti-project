@@ -61,16 +61,11 @@ describe('shouldDeleteReviewMessageForSignup', () => {
 
 describe('hasClearedStatus', () => {
   test.each([
-    [true, 'partyType is Cleared', PartyStatus.Cleared, PartyStatus.ProgParty],
-    [
-      true,
-      'partyStatus is Cleared',
-      PartyStatus.ProgParty,
-      PartyStatus.Cleared,
-    ],
-    [false, 'neither is Cleared', PartyStatus.ProgParty, PartyStatus.ProgParty],
-  ])('should return %s when %s', (expected, _, partyType, partyStatus) => {
-    const signup = { partyType, partyStatus };
+    [true, 'partyStatus is Cleared', PartyStatus.Cleared],
+    [false, 'partyStatus is not Cleared', PartyStatus.ProgParty],
+    [false, 'partyStatus is undefined', undefined],
+  ])('should return %s when %s', (expected, _, partyStatus) => {
+    const signup = { partyStatus };
     expect(hasClearedStatus(signup)).toBe(expected);
   });
 });

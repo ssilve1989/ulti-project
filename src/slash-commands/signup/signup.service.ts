@@ -9,7 +9,6 @@ import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
   ActionRowBuilder,
-  ButtonBuilder,
   DiscordjsErrorCodes,
   Embed,
   EmbedBuilder,
@@ -19,8 +18,8 @@ import {
   MessageReaction,
   type PartialMessage,
   type PartialMessageReaction,
-  StringSelectMenuBuilder,
   type PartialUser,
+  StringSelectMenuBuilder,
   User,
 } from 'discord.js';
 import {
