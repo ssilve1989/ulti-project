@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
   EmbedBuilder,
@@ -8,10 +9,10 @@ import {
   userMention,
 } from 'discord.js';
 import { DiscordService } from '../../discord/discord.service.js';
+import { ErrorService } from '../../error/error.service.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SignupStatus } from '../../firebase/models/signup.model.js';
-import { sentryReport } from '../../sentry/sentry.consts.js';
 import { CleanRolesCommand } from './clean-roles.command.js';
 import type {
   BaseRoleResult,
@@ -32,15 +33,23 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
     private readonly discordService: DiscordService,
     private readonly settingsCollection: SettingsCollection,
     private readonly signupCollection: SignupCollection,
+    private readonly errorService: ErrorService,
   ) {}
 
   @SentryTraced()
   async execute({ interaction }: CleanRolesCommand) {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const scope = Sentry.getCurrentScope();
 
     try {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
       const { guildId, options } = interaction;
       const isDryRun = options.getBoolean('dry-run') ?? false;
+
+      // Add command-specific context
+      scope.setContext('clean_roles_operation', {
+        isDryRun,
+      });
 
       this.logger.log(
         `Starting clean-roles operation for guild ${guildId} (dry-run: ${isDryRun})`,
@@ -48,6 +57,15 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
 
       if (isDryRun) {
         const result = await this.processCleanRolesCore(guildId, true);
+
+        // Add context about dry run results
+        scope.setContext('dry_run_results', {
+          totalRolesProcessed: result.totalRolesProcessed,
+          totalMembersProcessed: result.totalMembersProcessed,
+          totalRolesRemoved: result.totalRolesRemoved,
+          uniqueMembersWithRoles: result.uniqueMembersWithRoles,
+        });
+
         const embed = this.createDryRunEmbed(result);
         await interaction.editReply({ embeds: [embed] });
         this.logger.log(
@@ -55,6 +73,14 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
         );
       } else {
         const result = await this.processCleanRolesCore(guildId, false);
+
+        // Add context about operation results
+        scope.setContext('operation_results', {
+          totalRolesProcessed: result.totalRolesProcessed,
+          totalMembersProcessed: result.totalMembersProcessed,
+          totalRolesRemoved: result.totalRolesRemoved,
+        });
+
         const summary = this.createSummaryMessage(result);
         await interaction.editReply(summary);
         this.logger.log(
@@ -62,16 +88,11 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
         );
       }
     } catch (error) {
-      sentryReport(error);
-      this.logger.error(error);
-
-      // Check if it's a user-facing error message
-      const errorMessage =
-        error instanceof Error && error.message.includes('settings')
-          ? error.message
-          : 'An error occurred while cleaning roles. Please try again later.';
-
-      await interaction.editReply(errorMessage);
+      const errorEmbed = this.errorService.handleCommandError(
+        error,
+        interaction,
+      );
+      await interaction.editReply({ embeds: [errorEmbed] });
     }
   }
 
@@ -178,7 +199,8 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
         );
       } catch (error) {
         this.logger.error(`Failed to process role ${roleId}:`, error);
-        sentryReport(error);
+        // Report role processing error but don't fail the entire operation
+        Sentry.captureException(error);
       }
     }
 

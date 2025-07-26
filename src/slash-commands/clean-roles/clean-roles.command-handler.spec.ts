@@ -10,6 +10,7 @@ import {
   User,
 } from 'discord.js';
 import { DiscordService } from '../../discord/discord.service.js';
+import { ErrorService } from '../../error/error.service.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SignupStatus } from '../../firebase/models/signup.model.js';
@@ -21,6 +22,7 @@ describe('CleanRolesCommandHandler', () => {
   let discordService: DiscordService;
   let settingsCollection: SettingsCollection;
   let signupCollection: SignupCollection;
+  let errorService: ErrorService;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
@@ -33,6 +35,7 @@ describe('CleanRolesCommandHandler', () => {
     discordService = fixture.get(DiscordService);
     settingsCollection = fixture.get(SettingsCollection);
     signupCollection = fixture.get(SignupCollection);
+    errorService = fixture.get(ErrorService);
   });
 
   it('should be defined', () => {
@@ -137,28 +140,40 @@ describe('CleanRolesCommandHandler', () => {
     });
 
     it('should handle settings with no roles configured', async () => {
+      const mockErrorEmbed = createMock<EmbedBuilder>();
+
       settingsCollection.getSettings = vi.fn().mockResolvedValue({});
+      errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);
+
       const { mock, editReply } = createInteractionMock();
 
       await handler.execute(new CleanRolesCommand(mock));
 
-      expect(editReply).toHaveBeenCalledWith(
-        'No clear/prog roles configured in settings. Use `/settings roles` to configure roles first.',
+      expect(errorService.handleCommandError).toHaveBeenCalledWith(
+        expect.any(Error),
+        mock,
       );
+      expect(editReply).toHaveBeenCalledWith({ embeds: [mockErrorEmbed] });
     });
 
     it('should handle empty role configuration', async () => {
+      const mockErrorEmbed = createMock<EmbedBuilder>();
+
       settingsCollection.getSettings = vi.fn().mockResolvedValue({
         progRoles: {},
         clearRoles: {},
       });
+      errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);
+
       const { mock, editReply } = createInteractionMock();
 
       await handler.execute(new CleanRolesCommand(mock));
 
-      expect(editReply).toHaveBeenCalledWith(
-        'No clear/prog roles found in settings to clean.',
+      expect(errorService.handleCommandError).toHaveBeenCalledWith(
+        expect.any(Error),
+        mock,
       );
+      expect(editReply).toHaveBeenCalledWith({ embeds: [mockErrorEmbed] });
     });
 
     it('should execute in normal mode and remove roles', async () => {
@@ -197,30 +212,30 @@ describe('CleanRolesCommandHandler', () => {
 
     it('should handle errors gracefully', async () => {
       const { mock, editReply } = createInteractionMock();
-      settingsCollection.getSettings = vi
-        .fn()
-        .mockRejectedValue(new Error('Database error'));
+      const error = new Error('Database error');
+      const mockErrorEmbed = createMock<EmbedBuilder>();
+
+      settingsCollection.getSettings = vi.fn().mockRejectedValue(error);
+      errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);
 
       await handler.execute(new CleanRolesCommand(mock));
 
-      expect(editReply).toHaveBeenCalledWith(
-        'An error occurred while cleaning roles. Please try again later.',
-      );
+      expect(errorService.handleCommandError).toHaveBeenCalledWith(error, mock);
+      expect(editReply).toHaveBeenCalledWith({ embeds: [mockErrorEmbed] });
     });
 
     it('should handle settings-related errors with specific message', async () => {
       const { mock, editReply } = createInteractionMock();
-      settingsCollection.getSettings = vi
-        .fn()
-        .mockRejectedValue(
-          new Error('No clear/prog roles configured in settings'),
-        );
+      const error = new Error('No clear/prog roles configured in settings');
+      const mockErrorEmbed = createMock<EmbedBuilder>();
+
+      settingsCollection.getSettings = vi.fn().mockRejectedValue(error);
+      errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);
 
       await handler.execute(new CleanRolesCommand(mock));
 
-      expect(editReply).toHaveBeenCalledWith(
-        'No clear/prog roles configured in settings',
-      );
+      expect(errorService.handleCommandError).toHaveBeenCalledWith(error, mock);
+      expect(editReply).toHaveBeenCalledWith({ embeds: [mockErrorEmbed] });
     });
   });
 
