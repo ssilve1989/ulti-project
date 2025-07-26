@@ -11,12 +11,12 @@ import {
 } from 'rxjs';
 import { getErrorMessage } from '../common/error-guards.js';
 import type { Encounter } from '../encounters/encounters.consts.js';
-import { isEncounterRankings } from './types.js';
 import { FFLOGS_REPORT_MAX_AGE_DAYS } from '../slash-commands/signup/signup.consts.js';
 import { EncounterIds, expiredReportError } from './fflogs.consts.js';
 import { InjectFFLogsSDKClient } from './fflogs.decorators.js';
 import type { FFLogsSDKClient } from './fflogs.interfaces.js';
 import type { EncounterRankingsQueryVariables } from './graphql/sdk.js';
+import { isEncounterRankings } from './types.js';
 
 @Injectable()
 class FFLogsService {

@@ -1,7 +1,6 @@
 import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
-import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
 import {
   PartyStatus,
   type SignupDocument,
@@ -50,7 +49,6 @@ const searchableCases: Pick<SignupDocument, 'status' | 'partyStatus'>[] = [
 
 describe('TurboProgCommandHandler', () => {
   let handler: TurboProgCommandHandler;
-  let _collection: DeepMocked<SignupCollection>;
   let sheetsService: DeepMocked<SheetsService>;
 
   beforeEach(async () => {
@@ -61,7 +59,6 @@ describe('TurboProgCommandHandler', () => {
       .compile();
 
     handler = fixture.get(TurboProgCommandHandler);
-    _collection = fixture.get(SignupCollection);
     sheetsService = fixture.get(SheetsService);
   });
 
@@ -75,7 +72,6 @@ describe('TurboProgCommandHandler', () => {
       // Include role in the mock to ensure it's used properly in mapSignupToRowData
       const mockSignup = createMock<SignupDocument>({
         ...signup,
-        partyType: undefined,
         role: 'TestRole',
         progPoint: 'TestProgPoint',
         character: 'TestCharacter',
@@ -111,7 +107,6 @@ describe('TurboProgCommandHandler', () => {
     async (signup) => {
       const mockSignup = createMock<SignupDocument>({
         ...signup,
-        partyType: undefined,
         encounter: Encounter.DSR,
         discordId: 'testDiscordId',
       });
@@ -140,7 +135,6 @@ describe('TurboProgCommandHandler', () => {
     async (signup) => {
       const mockSignup = createMock<SignupDocument>({
         ...signup,
-        partyType: undefined,
         encounter: Encounter.DSR,
         discordId: 'testDiscordId',
         character: 'TestCharacter',

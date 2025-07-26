@@ -60,9 +60,7 @@ class SendApprovedMessageEventHandler
       return;
     }
 
-    const hasCleared =
-      signup.partyStatus === PartyStatus.Cleared ||
-      signup.partyType === PartyStatus.Cleared;
+    const hasCleared = signup.partyStatus === PartyStatus.Cleared;
 
     const content = this.getMessageContent(hasCleared, signup.encounter);
 

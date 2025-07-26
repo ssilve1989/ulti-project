@@ -35,8 +35,6 @@ export interface SignupDocument {
   progPointRequested: string;
   // the party type we determined they should be
   partyStatus?: PartyStatus;
-  /** @deprecated */
-  partyType?: PartyStatus;
   // discordId of the user that reviewed this signup
   reviewedBy?: string | null;
   // the message id of the review message posted to discord
