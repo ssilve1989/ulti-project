@@ -2,10 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import {
   Client,
+  Collection,
   DiscordAPIError,
   DMChannel,
   GuildEmoji,
   type GuildMember,
+  Invite,
+  Message,
+  PartialGroupDMChannel,
+  type TextBasedChannel,
 } from 'discord.js';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { InjectDiscordClient } from './discord.decorators.js';
@@ -45,7 +50,7 @@ class DiscordService {
   public async sendDirectMessage(
     userId: string,
     message: Parameters<DMChannel['send']>[0],
-  ) {
+  ): Promise<Message<false>> {
     const user = await this.client.users.fetch(userId);
     const dm = await user.createDM();
     return dm.send(message);
@@ -57,7 +62,7 @@ class DiscordService {
   }: {
     guildId: string;
     channelId: string;
-  }) {
+  }): Promise<Exclude<TextBasedChannel, PartialGroupDMChannel> | null> {
     const guild = await this.client.guilds.fetch(guildId);
     const channel = await guild.channels.fetch(channelId);
     return channel?.isTextBased() ? channel : null;
@@ -74,7 +79,7 @@ class DiscordService {
   }: {
     guildId: string;
     userId: string;
-  }) {
+  }): Promise<string> {
     const guild = await this.client.guilds.fetch(guildId);
     const member = await guild.members.fetch(userId);
     return member.displayName;
@@ -88,18 +93,18 @@ class DiscordService {
     guildId: string;
     userId: string;
     roleId: string;
-  }) {
+  }): Promise<boolean> {
     const guild = await this.client.guilds.fetch(guildId);
     const member = await guild.members.fetch(userId);
     return member.roles.cache.has(roleId);
   }
 
-  public getEmojiString(emojiId: string) {
+  public getEmojiString(emojiId: string): string {
     const hasEmoji = this.client.emojis.cache.has(emojiId);
     return hasEmoji ? `<:_:${emojiId}>` : '';
   }
 
-  public getEmojis(emojiNames: string[]) {
+  public getEmojis(emojiNames: string[]): GuildEmoji[] {
     return emojiNames.reduce((emojis, name) => {
       const emoji = this.client.emojis.cache.find((e) => e.name === name);
       if (emoji) {
@@ -113,7 +118,7 @@ class DiscordService {
     guildId: string,
     channelId: string,
     messageId: string,
-  ) {
+  ): Promise<Message | undefined> {
     const channel = await this.getTextChannel({ guildId, channelId });
     const message = await channel?.messages.fetch(messageId);
     return message?.delete();
@@ -123,7 +128,7 @@ class DiscordService {
    * Removes the role from all members in the guild
    * @param roleId
    */
-  public async removeRole(guildId: string, roleId: string) {
+  public async removeRole(guildId: string, roleId: string): Promise<number> {
     const guild = await this.client.guilds.fetch(guildId);
     // we need to update the cache of guild members because `roles.members` only returns currently cached members
     await guild.members.fetch();
@@ -167,7 +172,11 @@ class DiscordService {
     guildId: string,
     fromRoleId: string,
     toRoleId: string,
-  ) {
+  ): Promise<{
+    totalMembers: number;
+    successCount: number;
+    failCount: number;
+  }> {
     const guild = await this.client.guilds.fetch(guildId);
     await guild.members.fetch(); // Make sure our cache is up-to-date
     const role = await guild.roles.fetch(fromRoleId);
@@ -222,7 +231,9 @@ class DiscordService {
     };
   }
 
-  public async getGuildInvites(guildId: string) {
+  public async getGuildInvites(
+    guildId: string,
+  ): Promise<Collection<string, Invite>> {
     const guild = await this.client.guilds.fetch(guildId);
     return guild.invites.fetch();
   }
