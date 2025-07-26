@@ -1,5 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
   Colors,
@@ -7,6 +8,7 @@ import {
   MessageFlags,
   PermissionsBitField,
 } from 'discord.js';
+import { ErrorService } from '../../error/error.service.js';
 import {
   SLASH_COMMANDS_TOKEN,
   type SlashCommands,
@@ -22,35 +24,66 @@ import {
 class HelpCommandHandler implements ICommandHandler<HelpCommand> {
   constructor(
     @Inject(SLASH_COMMANDS_TOKEN) private readonly slashCommands: SlashCommands,
+    private readonly errorService: ErrorService,
   ) {}
 
   @SentryTraced()
   async execute({ interaction }: HelpCommand): Promise<void> {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    // Add command-specific Sentry context
+    const scope = Sentry.getCurrentScope();
+    scope.setContext('help_command', {
+      guildId: interaction.guildId,
+      userId: interaction.user.id,
+      hasAdminPerms:
+        interaction.memberPermissions?.has(
+          PermissionsBitField.Flags.Administrator,
+        ) ?? false,
+      hasManageGuildPerms:
+        interaction.memberPermissions?.has(
+          PermissionsBitField.Flags.ManageGuild,
+        ) ?? false,
+    });
 
-    const isAdmin =
-      interaction.memberPermissions?.has(
-        PermissionsBitField.Flags.Administrator,
-      ) ?? false;
-    const canManageGuild =
-      interaction.memberPermissions?.has(
-        PermissionsBitField.Flags.ManageGuild,
-      ) ?? false;
+    try {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const allCommands = getAvailableCommands(this.slashCommands);
-    const availableCommands = filterCommandsByPermissions(
-      allCommands,
-      isAdmin,
-      canManageGuild,
-    );
+      const isAdmin =
+        interaction.memberPermissions?.has(
+          PermissionsBitField.Flags.Administrator,
+        ) ?? false;
+      const canManageGuild =
+        interaction.memberPermissions?.has(
+          PermissionsBitField.Flags.ManageGuild,
+        ) ?? false;
 
-    const embed = this.createHelpEmbed(
-      availableCommands,
-      isAdmin,
-      canManageGuild,
-    );
+      const allCommands = getAvailableCommands(this.slashCommands);
+      const availableCommands = filterCommandsByPermissions(
+        allCommands,
+        isAdmin,
+        canManageGuild,
+      );
 
-    await interaction.editReply({ embeds: [embed] });
+      // Add context about the processed commands
+      scope.setContext('help_processing', {
+        totalCommands: allCommands.length,
+        availableCommands: availableCommands.length,
+      });
+
+      const embed = this.createHelpEmbed(
+        availableCommands,
+        isAdmin,
+        canManageGuild,
+      );
+
+      await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+      const errorEmbed = this.errorService.handleCommandError(
+        error,
+        interaction,
+        'Unable to load help information. Please try again.',
+      );
+      await interaction.editReply({ embeds: [errorEmbed] });
+    }
   }
 
   private createHelpEmbed(
