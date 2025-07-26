@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
+import { ErrorModule } from '../../error/error.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { StatusCommandHandler } from './status.command-handler.js';
 import { StatusService } from './status.service.js';
 
 @Module({
-  imports: [FirebaseModule],
+  imports: [ErrorModule, FirebaseModule],
   providers: [StatusService, StatusCommandHandler],
 })
 export class StatusModule {}
