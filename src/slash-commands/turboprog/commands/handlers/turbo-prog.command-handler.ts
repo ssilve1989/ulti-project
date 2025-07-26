@@ -48,8 +48,7 @@ class TurboProgCommandHandler {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const options = this.getOptions(interaction);
-    const scope = Sentry.getCurrentScope();
-    scope.setExtra('options', options);
+    Sentry.setExtra('options', options);
 
     const settings = await this.settingsCollection.getSettings(
       interaction.guildId,
@@ -84,12 +83,12 @@ class TurboProgCommandHandler {
         return await interaction.editReply(validation.error);
       }
 
-      scope.setExtra('validation', validation);
+      Sentry.setExtra('validation', validation);
       throw new Error('Unexpected turbo prog validation error');
     }
 
-    scope.setExtra('settings', settings);
-    scope.captureMessage(
+    Sentry.setExtra('settings', settings);
+    Sentry.captureMessage(
       'one or more spreadsheet IDs are missing for turbo prog',
     );
     return await interaction.editReply(TURBO_PROG_MISSING_SIGNUPS_SHEETS);
@@ -100,7 +99,6 @@ class TurboProgCommandHandler {
     spreadsheetId: string,
     signup?: SignupDocument,
   ): Promise<ProggerAllowedResponse> | ProggerAllowedResponse {
-    const scope = Sentry.getCurrentScope();
     // if the progger has an entry already in the database we can check its status
     if (signup) {
       return (
@@ -119,8 +117,8 @@ class TurboProgCommandHandler {
             [SignupStatus.APPROVED, PartyStatus.EarlyProgParty],
             [P.any, PartyStatus.Cleared],
             () => {
-              scope.setExtra('options', options);
-              scope.captureMessage('Turbo Prog Signup Invalid', 'debug');
+              Sentry.setExtra('options', options);
+              Sentry.captureMessage('Turbo Prog Signup Invalid', 'debug');
               return {
                 error: TURBO_PROG_SIGNUP_INVALID,
                 allowed: undefined,
@@ -139,7 +137,7 @@ class TurboProgCommandHandler {
       );
     }
 
-    scope.captureMessage('No Signup Found for Turbo Prog', 'debug');
+    Sentry.captureMessage('No Signup Found for Turbo Prog', 'debug');
     return {
       allowed: undefined,
       error: TURBO_PROG_NO_SIGNUP_FOUND,
@@ -151,8 +149,6 @@ class TurboProgCommandHandler {
     spreadsheetId: string,
     signup: SignupDocument,
   ): Promise<ProggerAllowedResponse> {
-    const scope = Sentry.getCurrentScope();
-
     // Now we can use the character from the found signup
     const rowData = await this.sheetsService.findCharacterRowValues(
       { ...options, character: signup.character, world: signup.world },
@@ -166,8 +162,8 @@ class TurboProgCommandHandler {
       };
     }
 
-    scope.setExtra('options', options);
-    scope.captureMessage('No Signup Found for Turbo Prog', 'debug');
+    Sentry.setExtra('options', options);
+    Sentry.captureMessage('No Signup Found for Turbo Prog', 'debug');
     return {
       allowed: undefined,
       error: TURBO_PROG_NO_SIGNUP_FOUND,

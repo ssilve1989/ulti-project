@@ -63,7 +63,6 @@ class RemoveSignupCommandHandler
   async execute({ interaction }: RemoveSignupCommand) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const scope = Sentry.getCurrentScope();
     const optionsResult = this.getOptions(interaction);
 
     if (!optionsResult.success) {
@@ -73,7 +72,7 @@ class RemoveSignupCommandHandler
     }
 
     const options = optionsResult.data;
-    scope.setExtra('options', options);
+    Sentry.setExtra('options', options);
 
     const embed = new EmbedBuilder()
       .setTitle('Remove Signup')
@@ -152,7 +151,6 @@ class RemoveSignupCommandHandler
     spreadsheetId,
     signup,
   }: RemoveSignupProps): Promise<string> {
-    const scope = Sentry.getCurrentScope();
     let description = REMOVAL_SUCCESS;
     // If the signup exists and has been approved, we expect to find it on the sheet
     const validStatus =
@@ -186,8 +184,8 @@ class RemoveSignupCommandHandler
           );
         }
       } catch (e) {
-        scope.setExtra('signup', signup);
-        scope.captureException(e);
+        Sentry.setExtra('signup', signup);
+        Sentry.captureException(e);
       }
     }
 

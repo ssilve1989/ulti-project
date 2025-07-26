@@ -118,13 +118,11 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   async processEvent(event: ReactionEvent) {
-    const scope = Sentry.getCurrentScope();
-
     if (!event.reaction.message.inGuild()) {
       return;
     }
 
-    scope.setExtra('message', getMessageLink(event.reaction.message));
+    Sentry.setExtra('message', getMessageLink(event.reaction.message));
 
     try {
       const [reaction, user, settings] = await Promise.all([
@@ -133,7 +131,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         this.settingsCollection.getSettings(event.reaction.message.guildId),
       ]);
 
-      scope.setUser({
+      Sentry.setUser({
         id: user.id,
         username: user.username,
       });
@@ -149,7 +147,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
           settings,
         ));
 
-      scope.setExtra('shouldHandleReaction', shouldHandle);
+      Sentry.setExtra('shouldHandleReaction', shouldHandle);
 
       return shouldHandle
         ? await this.handleReaction(reaction, user, settings)
@@ -321,7 +319,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       .otherwise(() => SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR);
 
     this.logger.log('capturing message');
-    Sentry.getCurrentScope().captureMessage(reply, 'debug');
+    Sentry.captureMessage(reply, 'debug');
 
     // TODO: Improve error reporting to better inform user what happened
     await Promise.all([

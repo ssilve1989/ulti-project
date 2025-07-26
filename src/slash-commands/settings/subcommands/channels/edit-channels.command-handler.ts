@@ -17,8 +17,6 @@ export class EditChannelsCommandHandler
 
   @SentryTraced()
   async execute({ interaction }: EditChannelsCommand) {
-    const scope = Sentry.getCurrentScope();
-
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const reviewChannel = interaction.options.getChannel(
@@ -31,7 +29,7 @@ export class EditChannelsCommandHandler
         interaction.options.getChannel('moderation-channel');
 
       // Add command-specific context
-      scope.setContext('channel_update', {
+      Sentry.setContext('channel_update', {
         hasReviewChannel: !!reviewChannel,
         hasSignupChannel: !!signupChannel,
         hasAutoModChannel: !!autoModChannelId,

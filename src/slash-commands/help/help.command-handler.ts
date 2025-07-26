@@ -30,8 +30,7 @@ class HelpCommandHandler implements ICommandHandler<HelpCommand> {
   @SentryTraced()
   async execute({ interaction }: HelpCommand): Promise<void> {
     // Add command-specific Sentry context
-    const scope = Sentry.getCurrentScope();
-    scope.setContext('help_command', {
+    Sentry.setContext('help_command', {
       hasAdminPerms:
         interaction.memberPermissions?.has(
           PermissionsBitField.Flags.Administrator,
@@ -62,7 +61,7 @@ class HelpCommandHandler implements ICommandHandler<HelpCommand> {
       );
 
       // Add context about the processed commands
-      scope.setContext('help_processing', {
+      Sentry.setContext('help_processing', {
         totalCommands: allCommands.length,
         availableCommands: availableCommands.length,
       });
@@ -78,7 +77,6 @@ class HelpCommandHandler implements ICommandHandler<HelpCommand> {
       const errorEmbed = this.errorService.handleCommandError(
         error,
         interaction,
-        'Unable to load help information. Please try again.',
       );
       await interaction.editReply({ embeds: [errorEmbed] });
     }

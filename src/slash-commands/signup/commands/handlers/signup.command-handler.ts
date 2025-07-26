@@ -77,7 +77,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
   @SentryTraced()
   async execute({ interaction }: SignupCommand) {
-    const scope = Sentry.getCurrentScope();
     const { username } = interaction.user;
 
     this.logger.debug(`handling signup command for user: ${username}`);
@@ -105,7 +104,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     }
 
     // Add signup request context
-    scope.setContext('signup_request', {
+    Sentry.setContext('signup_request', {
       encounter: signupRequest.encounter,
       character: signupRequest.character,
       world: signupRequest.world,
@@ -118,7 +117,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     );
 
     // Add FFLogs validation context
-    scope.setContext('fflogs_validation', {
+    Sentry.setContext('fflogs_validation', {
       hasUrl: !!signupRequest.proofOfProgLink,
       validationResult: fflogsValidationResult.success
         ? 'success'

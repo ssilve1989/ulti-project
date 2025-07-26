@@ -21,15 +21,13 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
 
   @SentryTraced()
   async execute({ interaction }: StatusCommand) {
-    const scope = Sentry.getCurrentScope();
-
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const signups = await this.service.getSignups(interaction.user.id);
 
       // Add context about the results
-      scope.setContext('status_results', {
+      Sentry.setContext('status_results', {
         signupCount: signups.length,
         hasSignups: signups.length > 0,
         encounters: signups.map((s) => s.encounter),
@@ -41,7 +39,6 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
       const errorEmbed = this.errorService.handleCommandError(
         error,
         interaction,
-        'Unable to retrieve your signup status. Please try again.',
       );
       await interaction.editReply({ embeds: [errorEmbed] });
     }

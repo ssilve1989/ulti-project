@@ -115,7 +115,6 @@ export async function getSheetIdByName(
   spreadsheetId: string,
   label: string,
 ): Promise<number | null> {
-  const scope = Sentry.getCurrentScope();
   const response = await client.spreadsheets.get({
     spreadsheetId,
     includeGridData: false,
@@ -130,7 +129,7 @@ export async function getSheetIdByName(
 
   if (sheetId == null) {
     const msg = `sheet not found ${label}`;
-    scope.captureMessage(msg, 'warning');
+    Sentry.captureMessage(msg, 'warning');
     return null;
   }
 

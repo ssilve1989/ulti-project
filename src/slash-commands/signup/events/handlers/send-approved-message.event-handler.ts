@@ -28,12 +28,11 @@ class SendApprovedMessageEventHandler
   constructor(private readonly discordService: DiscordService) {}
 
   async handle(event: SignupApprovedEvent) {
-    const scope = Sentry.getCurrentScope();
     try {
       await this.sendApprovedMessage(event);
     } catch (error) {
-      scope.setExtra('event', event);
-      scope.captureException(error);
+      Sentry.setExtra('event', event);
+      Sentry.captureException(error);
     }
   }
 
@@ -43,8 +42,6 @@ class SendApprovedMessageEventHandler
     signup,
     reviewedBy: approvedBy,
   }: SignupApprovedEvent) {
-    const scope = Sentry.getCurrentScope();
-
     if (!signupChannel) {
       return;
     }
@@ -55,8 +52,8 @@ class SendApprovedMessageEventHandler
     });
 
     if (!channel) {
-      scope.setExtras({ signupChannel, guildId });
-      scope.captureMessage('Text Channel not found');
+      Sentry.setExtras({ signupChannel, guildId });
+      Sentry.captureMessage('Text Channel not found');
       return;
     }
 
@@ -157,7 +154,6 @@ class SendApprovedMessageEventHandler
   }
 
   private async addReactions(message: Message) {
-    const scope = Sentry.getCurrentScope();
     // fetch clear reactions and attach em to the embed
     try {
       const emojis = await this.discordService.getEmojis(ClearReactions);
@@ -166,13 +162,13 @@ class SendApprovedMessageEventHandler
         emojis.map((emoji) =>
           message.react(emoji).catch((err) => {
             this.logger.warn(err);
-            scope.captureException(err);
+            Sentry.captureException(err);
           }),
         ),
       );
     } catch (err) {
       this.logger.error(err);
-      scope.captureException(err);
+      Sentry.captureException(err);
     }
   }
 }

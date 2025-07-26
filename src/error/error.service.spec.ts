@@ -61,16 +61,14 @@ describe('ErrorService', () => {
 
     test('should return error embed with custom message', () => {
       const error = new Error('Test error');
-      const customMessage = 'Custom error message for user';
+      const message = 'Custom error message for user';
 
-      const result = service.handleCommandError(
-        error,
-        mockInteraction,
-        customMessage,
-      );
+      const result = service.handleCommandError(error, mockInteraction, {
+        message,
+      });
 
       expect(result).toBeInstanceOf(EmbedBuilder);
-      expect(result.data.description).toBe(customMessage);
+      expect(result.data.description).toBe(message);
     });
 
     test('should log error with structured context', () => {
@@ -108,6 +106,74 @@ describe('ErrorService', () => {
 
       expect(Sentry.captureException).toHaveBeenCalledWith(error);
       expect(result).toBeInstanceOf(EmbedBuilder);
+    });
+
+    test('should skip Sentry capture when capture option is false', () => {
+      const error = new Error('Test error');
+
+      service.handleCommandError(error, mockInteraction, { capture: false });
+
+      expect(Sentry.captureException).not.toHaveBeenCalled();
+    });
+
+    test('should skip logging when log option is false', () => {
+      const error = new Error('Test error');
+
+      service.handleCommandError(error, mockInteraction, { log: false });
+
+      expect(loggerErrorSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('captureError', () => {
+    test('should report error to Sentry by default', () => {
+      const error = new Error('Test error');
+
+      service.captureError(error);
+
+      expect(Sentry.captureException).toHaveBeenCalledWith(error);
+    });
+
+    test('should log error by default', () => {
+      const error = new Error('Test error');
+
+      service.captureError(error);
+
+      expect(loggerErrorSpy).toHaveBeenCalledWith('Error: Test error');
+    });
+
+    test('should skip Sentry capture when capture option is false', () => {
+      const error = new Error('Test error');
+
+      service.captureError(error, { capture: false });
+
+      expect(Sentry.captureException).not.toHaveBeenCalled();
+    });
+
+    test('should skip logging when log option is false', () => {
+      const error = new Error('Test error');
+
+      service.captureError(error, { log: false });
+
+      expect(loggerErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('should handle unknown error types', () => {
+      const error = 'String error';
+
+      service.captureError(error);
+
+      expect(Sentry.captureException).toHaveBeenCalledWith(error);
+      expect(loggerErrorSpy).toHaveBeenCalledWith('Error: String error');
+    });
+
+    test('should handle both options set to false', () => {
+      const error = new Error('Test error');
+
+      service.captureError(error, { capture: false, log: false });
+
+      expect(Sentry.captureException).not.toHaveBeenCalled();
+      expect(loggerErrorSpy).not.toHaveBeenCalled();
     });
   });
 });
