@@ -17,8 +17,6 @@ export class EditEncounterRolesCommandHandler
 
   @SentryTraced()
   async execute({ interaction }: EditEncounterRolesCommand) {
-    const scope = Sentry.getCurrentScope();
-
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -27,7 +25,7 @@ export class EditEncounterRolesCommandHandler
       const clearRole = interaction.options.getRole('clear-role', true);
 
       // Add command-specific context
-      scope.setContext('encounter_roles_update', {
+      Sentry.setContext('encounter_roles_update', {
         encounter,
         progRoleId: progRole.id,
         progRoleName: progRole.name,

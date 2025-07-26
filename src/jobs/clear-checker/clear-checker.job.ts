@@ -135,7 +135,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
   ): Promise<SignupDocument | undefined> {
     if (!encounterIds.has(signup.encounter)) return;
 
-    Sentry.getCurrentScope().setExtras({ signup, index });
+    Sentry.setExtras({ signup, index });
     this.logger.debug(`[${index}] checking signup for ${signup.character}`);
 
     const { encounter, character, world } = signup;

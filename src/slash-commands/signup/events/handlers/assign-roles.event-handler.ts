@@ -25,7 +25,6 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
       settings: { progRoles, clearRoles },
       message: { guildId },
     } = event;
-    const scope = Sentry.getCurrentScope();
 
     const progRole = progRoles?.[encounter];
     const clearRole = clearRoles?.[encounter];
@@ -61,8 +60,8 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
         .with(PartyStatus.Cleared, P.nullish, () => undefined)
         .exhaustive();
     } catch (error) {
-      scope.setExtra('event', event);
-      scope.captureException(error);
+      Sentry.setExtra('event', event);
+      Sentry.captureException(error);
     }
   }
 

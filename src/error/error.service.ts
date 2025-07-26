@@ -7,6 +7,12 @@ import {
 } from 'discord.js';
 import { getErrorMessage } from '../common/error-guards.js';
 
+interface ErrorHandlingOptions {
+  log?: boolean;
+  capture?: boolean;
+  message?: string;
+}
+
 @Injectable()
 export class ErrorService {
   private readonly logger = new Logger(ErrorService.name);
@@ -15,22 +21,44 @@ export class ErrorService {
    * Handles command errors with consistent logging, Sentry reporting, and user response
    * @param error - The error that occurred
    * @param interaction - Discord interaction for user response
-   * @param userMessage - Optional custom user-friendly message
+   * @param options - Options for error handling and user message
    * @returns Formatted error embed for user response
    */
   handleCommandError(
     error: unknown,
     interaction: ChatInputCommandInteraction,
-    userMessage?: string,
+    options?: ErrorHandlingOptions,
   ): EmbedBuilder {
-    // 1. Report to Sentry (relies on context already set throughout execution)
-    Sentry.captureException(error);
+    this.processError(error, options);
 
-    // 2. Log error with structured context
-    this.logError(error, interaction);
+    // Additional interaction-specific logging with Discord context
+    if (options?.log ?? true) {
+      this.logError(error, interaction);
+    }
 
-    // 3. Create standardized user response
-    return this.createErrorEmbed(userMessage);
+    return this.createErrorEmbed(options?.message);
+  }
+
+  /**
+   * Captures errors for non-interaction contexts (background jobs, utilities, etc.)
+   * @param error - The error that occurred
+   * @param options - Options for logging and Sentry reporting
+   */
+  captureError(error: unknown, options?: ErrorHandlingOptions): void {
+    this.processError(error, options);
+  }
+
+  /**
+   * Shared error processing logic for Sentry reporting and basic logging
+   */
+  private processError(error: unknown, options?: ErrorHandlingOptions): void {
+    if (options?.capture ?? true) {
+      Sentry.captureException(error);
+    }
+
+    if (options?.log ?? true) {
+      this.logErrorWithoutInteraction(error);
+    }
   }
 
   private logError(
@@ -46,9 +74,14 @@ export class ErrorService {
     });
   }
 
-  private createErrorEmbed(customMessage?: string): EmbedBuilder {
+  private logErrorWithoutInteraction(error: unknown, message?: string): void {
+    const errorMessage = message ?? getErrorMessage(error);
+    this.logger.error(`Error: ${errorMessage}`);
+  }
+
+  private createErrorEmbed(message?: string): EmbedBuilder {
     const userMessage =
-      customMessage || 'An unexpected error occurred. Please try again later.';
+      message || 'An unexpected error occurred. Please try again later.';
 
     return new EmbedBuilder()
       .setColor(Colors.Red)

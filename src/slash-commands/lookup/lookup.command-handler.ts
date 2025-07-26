@@ -33,8 +33,6 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
 
   @SentryTraced()
   async execute({ interaction }: LookupCommand): Promise<void> {
-    const scope = Sentry.getCurrentScope();
-
     try {
       const { options, guildId } = interaction;
 
@@ -52,7 +50,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
       const dto = lookupResult.data;
 
       // Add command-specific context
-      scope.setContext('lookup_request', {
+      Sentry.setContext('lookup_request', {
         character: dto.character,
         world: dto.world,
       });
@@ -64,7 +62,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
       );
 
       // Add context about results
-      scope.setContext('lookup_results', {
+      Sentry.setContext('lookup_results', {
         signupCount: results.length,
         worlds: [...new Set(results.map((r) => r.world))],
       });
@@ -100,7 +98,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
       };
     } catch (err) {
       // Report blacklist lookup error but don't fail the entire lookup
-      Sentry.captureException(err);
+      this.errorService.captureError(err);
       return { ...signup, blacklistStatus: 'Unknown' };
     }
   }
