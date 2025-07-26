@@ -83,35 +83,15 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const hasReviewChannelConfigured =
-      !!(await this.settingsService.getReviewChannel(interaction.guildId));
+    // Configuration validation
+    const isValidConfig = await this.validateConfiguration(interaction);
+    if (!isValidConfig) return;
 
-    if (!hasReviewChannelConfigured) {
-      await interaction.editReply(
-        SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL,
-      );
-      return;
-    }
+    // Input validation
+    const signupRequest = await this.validateSignupRequest(interaction);
+    if (!signupRequest) return;
 
-    const [signupRequest, validationErrors] =
-      this.createSignupRequest(interaction);
-
-    if (validationErrors) {
-      await interaction.editReply({
-        embeds: [this.createValidationErrorsEmbed(validationErrors)],
-      });
-      return;
-    }
-
-    // Add signup request context
-    Sentry.setContext('signup_request', {
-      encounter: signupRequest.encounter,
-      character: signupRequest.character,
-      world: signupRequest.world,
-      progPointRequested: signupRequest.progPointRequested,
-    });
-
-    // Perform FFLogs validation if applicable
+    // FFLogs validation
     const fflogsValidationResult = await this.validateFFLogsUrl(
       signupRequest.proofOfProgLink,
     );
@@ -135,75 +115,8 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       return;
     }
 
-    const displayName = await this.discordService.getDisplayName({
-      userId: interaction.user.id,
-      guildId: interaction.guildId,
-    });
-
-    const embed = this.createSignupConfirmationEmbed(
-      signupRequest,
-      displayName,
-    );
-
-    const confirmationRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      ConfirmButton,
-      CancelButton,
-    );
-
-    const confirmationInteraction = await interaction.editReply({
-      components: [confirmationRow],
-      embeds: [embed],
-    });
-
-    try {
-      const response = await Sentry.startSpan(
-        { name: 'awaitConfirmationInteraction' },
-        () => {
-          return confirmationInteraction.awaitMessageComponent<ComponentType.Button>(
-            {
-              filter: isSameUserFilter(interaction.user),
-              time: SignupCommandHandler.SIGNUP_TIMEOUT,
-            },
-          );
-        },
-      );
-
-      const signup = await match(response)
-        .with({ customId: 'confirm' }, () =>
-          this.handleConfirm(signupRequest, interaction),
-        )
-        .with({ customId: 'cancel' }, () => this.handleCancel(interaction))
-        .otherwise(() => {
-          throw new UnhandledButtonInteractionException(response);
-        });
-
-      if (signup) {
-        this.eventBus.publish(
-          new SignupCreatedEvent(signup, interaction.guildId),
-        );
-      }
-    } catch (error: unknown) {
-      // Enhanced error handling with ErrorService
-      const errorEmbed = this.errorService.handleCommandError(
-        error,
-        interaction,
-      );
-
-      // Preserve Discord-specific error handling
-      if (error && typeof error === 'object' && 'code' in error) {
-        if (error.code === DiscordjsErrorCodes.InteractionCollectorError) {
-          await interaction.editReply({
-            content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
-            embeds: [],
-            components: [],
-          });
-          return;
-        }
-      }
-
-      // Default error response
-      await interaction.editReply({ embeds: [errorEmbed] });
-    }
+    // Handle confirmation flow
+    await this.handleConfirmationFlow(signupRequest, interaction);
   }
 
   private async handleConfirm(
@@ -409,6 +322,124 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     }
 
     return { success: true }; // Validation passed or no FFLogs URL provided
+  }
+
+  private async validateConfiguration(
+    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+  ): Promise<boolean> {
+    const hasReviewChannelConfigured =
+      !!(await this.settingsService.getReviewChannel(interaction.guildId));
+
+    if (!hasReviewChannelConfigured) {
+      await interaction.editReply(
+        SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL,
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  private async validateSignupRequest(
+    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+  ): Promise<SignupSchema | null> {
+    const [signupRequest, validationErrors] =
+      this.createSignupRequest(interaction);
+
+    if (validationErrors) {
+      await interaction.editReply({
+        embeds: [this.createValidationErrorsEmbed(validationErrors)],
+      });
+      return null;
+    }
+
+    // Add signup request context for Sentry
+    Sentry.setContext('signup_request', {
+      encounter: signupRequest.encounter,
+      character: signupRequest.character,
+      world: signupRequest.world,
+      progPointRequested: signupRequest.progPointRequested,
+    });
+
+    return signupRequest;
+  }
+
+  private async handleConfirmationFlow(
+    signupRequest: SignupSchema,
+    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+  ): Promise<void> {
+    const displayName = await this.discordService.getDisplayName({
+      userId: interaction.user.id,
+      guildId: interaction.guildId,
+    });
+
+    const embed = this.createSignupConfirmationEmbed(
+      signupRequest,
+      displayName,
+    );
+    const confirmationRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      ConfirmButton,
+      CancelButton,
+    );
+
+    const confirmationInteraction = await interaction.editReply({
+      components: [confirmationRow],
+      embeds: [embed],
+    });
+
+    try {
+      const response = await Sentry.startSpan(
+        { name: 'awaitConfirmationInteraction' },
+        () => {
+          return confirmationInteraction.awaitMessageComponent<ComponentType.Button>(
+            {
+              filter: isSameUserFilter(interaction.user),
+              time: SignupCommandHandler.SIGNUP_TIMEOUT,
+            },
+          );
+        },
+      );
+
+      const signup = await match(response)
+        .with({ customId: 'confirm' }, () =>
+          this.handleConfirm(signupRequest, interaction),
+        )
+        .with({ customId: 'cancel' }, () => this.handleCancel(interaction))
+        .otherwise(() => {
+          throw new UnhandledButtonInteractionException(response);
+        });
+
+      if (signup) {
+        this.eventBus.publish(
+          new SignupCreatedEvent(signup, interaction.guildId),
+        );
+      }
+    } catch (error: unknown) {
+      await this.handleConfirmationError(error, interaction);
+    }
+  }
+
+  private async handleConfirmationError(
+    error: unknown,
+    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+  ): Promise<void> {
+    // Enhanced error handling with ErrorService
+    const errorEmbed = this.errorService.handleCommandError(error, interaction);
+
+    // Preserve Discord-specific error handling
+    if (error && typeof error === 'object' && 'code' in error) {
+      if (error.code === DiscordjsErrorCodes.InteractionCollectorError) {
+        await interaction.editReply({
+          content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
+          embeds: [],
+          components: [],
+        });
+        return;
+      }
+    }
+
+    // Default error response
+    await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
 
