@@ -1,6 +1,6 @@
 import {
   type ChatInputCommandInteraction,
-  type MessagePayload,
+  type InteractionReplyOptions,
   MessageReaction,
   type PartialMessageReaction,
   type PartialUser,
@@ -36,6 +36,12 @@ export function CacheTime(value: number, unit: CacheTimeUnit) {
     .exhaustive();
 }
 
+// Type that works safely with reply(), editReply(), and followUp()
+type SafeReplyOptions = Pick<
+  InteractionReplyOptions,
+  'content' | 'embeds' | 'components' | 'files' | 'allowedMentions'
+>;
+
 /**
  * safely replies to an interaction based on its state
  * @param interaction
@@ -44,7 +50,7 @@ export function CacheTime(value: number, unit: CacheTimeUnit) {
  */
 export function safeReply(
   interaction: ChatInputCommandInteraction,
-  payload: string | MessagePayload,
+  payload: string | SafeReplyOptions,
 ) {
   if (interaction.deferred) {
     return interaction.editReply(payload);
