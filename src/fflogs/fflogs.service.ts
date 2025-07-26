@@ -9,6 +9,7 @@ import {
   type Observable,
   of,
 } from 'rxjs';
+import { getErrorMessage } from '../common/error-guards.js';
 import type { Encounter } from '../encounters/encounters.consts.js';
 import { FFLOGS_REPORT_MAX_AGE_DAYS } from '../slash-commands/signup/signup.consts.js';
 import { EncounterIds, expiredReportError } from './fflogs.consts.js';
@@ -100,9 +101,13 @@ class FFLogsService {
         isValid: true,
         reportDate,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       // Handle API errors gracefully - don't fail signup if FFLogs is down
-      this.logger.warn('FFLogs API error during report validation:', error);
+      const errorMessage = getErrorMessage(error);
+      this.logger.warn(
+        'FFLogs API error during report validation:',
+        errorMessage,
+      );
       return {
         isValid: true, // Allow signup to proceed if API is unavailable
         errorMessage:

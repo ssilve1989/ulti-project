@@ -83,7 +83,7 @@ describe('FFLogsService', () => {
       );
       expect(loggerSpy).toHaveBeenCalledWith(
         'FFLogs API error during report validation:',
-        expect.any(Error),
+        expect.any(String),
       );
 
       loggerSpy.mockRestore();
@@ -191,7 +191,7 @@ describe('FFLogsService', () => {
       );
       expect(loggerSpy).toHaveBeenCalledWith(
         'FFLogs API error during report validation:',
-        expect.any(Error),
+        expect.any(String),
       );
 
       loggerSpy.mockRestore();
