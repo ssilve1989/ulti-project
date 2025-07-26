@@ -353,9 +353,8 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       return { success: true }; // No URL to validate
     }
 
-    // TODO: Ahhh this is weird it creates new URL twice but idgaf right now
     const url = new URL(proofOfProgLink);
-    const reportCode = extractFflogsReportCode(proofOfProgLink);
+    const reportCode = extractFflogsReportCode(url);
 
     if (isFFLogsUrl(url) && !reportCode) {
       return {
