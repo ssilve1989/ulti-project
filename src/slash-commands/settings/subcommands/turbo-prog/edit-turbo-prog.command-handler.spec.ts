@@ -1,12 +1,14 @@
 import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { ChatInputCommandInteraction } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { EditTurboProgCommandHandler } from './edit-turbo-prog.command-handler.js';
 
 describe('Edit Turbo Prog Command Handler', () => {
   let handler: EditTurboProgCommandHandler;
   let settingsCollection: DeepMocked<SettingsCollection>;
+  let errorService: DeepMocked<ErrorService>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
@@ -17,6 +19,7 @@ describe('Edit Turbo Prog Command Handler', () => {
 
     handler = fixture.get(EditTurboProgCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
+    errorService = fixture.get(ErrorService);
   });
 
   it('should be defined', () => {
@@ -91,7 +94,10 @@ describe('Edit Turbo Prog Command Handler', () => {
 
   it('should handle errors gracefully', async () => {
     const error = new Error('Test error');
+    const mockErrorEmbed = createMock<EmbedBuilder>();
+
     settingsCollection.getSettings.mockRejectedValueOnce(error);
+    errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
 
     const interaction = createMock<
       ChatInputCommandInteraction<'raw' | 'cached'>
@@ -106,6 +112,12 @@ describe('Edit Turbo Prog Command Handler', () => {
 
     await handler.execute({ interaction });
 
-    expect(interaction.editReply).toHaveBeenCalledWith('Something went wrong!');
+    expect(errorService.handleCommandError).toHaveBeenCalledWith(
+      error,
+      interaction,
+    );
+    expect(interaction.editReply).toHaveBeenCalledWith({
+      embeds: [mockErrorEmbed],
+    });
   });
 });
