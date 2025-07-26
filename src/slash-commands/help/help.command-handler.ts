@@ -32,8 +32,6 @@ class HelpCommandHandler implements ICommandHandler<HelpCommand> {
     // Add command-specific Sentry context
     const scope = Sentry.getCurrentScope();
     scope.setContext('help_command', {
-      guildId: interaction.guildId,
-      userId: interaction.user.id,
       hasAdminPerms:
         interaction.memberPermissions?.has(
           PermissionsBitField.Flags.Administrator,

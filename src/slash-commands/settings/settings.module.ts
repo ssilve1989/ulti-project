@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ErrorModule } from '../../error/error.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
 import { EditChannelsCommandHandler } from './subcommands/channels/edit-channels.command-handler.js';
@@ -9,7 +10,7 @@ import { EditTurboProgCommandHandler } from './subcommands/turbo-prog/edit-turbo
 import { ViewSettingsCommandHandler } from './subcommands/view/view-settings.command-handler.js';
 
 @Module({
-  imports: [FirebaseModule, SheetsModule],
+  imports: [ErrorModule, FirebaseModule, SheetsModule],
   providers: [
     EditChannelsCommandHandler,
     EditEncounterRolesCommandHandler,
