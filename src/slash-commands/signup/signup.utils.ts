@@ -52,10 +52,10 @@ export function isFFLogsUrl(url: URL): boolean {
  * @param url FFLogs URL
  * @returns Report code or null if not found
  */
-export function extractFflogsReportCode(url: string): string | null {
+export function extractFflogsReportCode(url: string | URL): string | null {
   try {
     // Check if it's an FFLogs domain (exact match or www subdomain only)
-    const parsedUrl = new URL(url);
+    const parsedUrl = url instanceof URL ? url : new URL(url);
     if (!isFFLogsUrl(parsedUrl)) {
       return null;
     }
