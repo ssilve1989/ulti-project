@@ -250,7 +250,7 @@ class SheetsService {
       range: SheetRangeConfig;
       sheetId: number;
     },
-  ) {
+  ): Promise<sheets_v4.Schema$Request[]> {
     const sheetValues = await getSheetValues(this.client, {
       spreadsheetId,
       range: `${encounter}!${range.columnStart}:${range.columnEnd}`,
@@ -337,7 +337,7 @@ class SheetsService {
       ...signup
     }: Pick<SignupDocument, 'character' | 'world' | 'encounter'>,
     spreadsheetId: string,
-  ) {
+  ): Promise<string[] | undefined> {
     const { rowIndex, sheetValues } = await findCharacterRowIndex(this.client, {
       predicate: (values) => values.has(signup.character.toLowerCase()),
       spreadsheetId,
@@ -365,7 +365,9 @@ class SheetsService {
    * @returns
    */
   @SentryTraced()
-  public async getSheetMetadata(spreadsheetId: string) {
+  public async getSheetMetadata(
+    spreadsheetId: string,
+  ): Promise<{ title: string; url: string }> {
     // Generate a link to the sheet
     const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=0`;
 
@@ -508,7 +510,7 @@ class SheetsService {
     world,
     role,
     progPoint = '',
-  }: SignupDocument) {
+  }: SignupDocument): string[] {
     return [titleCase(character), titleCase(world), role, progPoint];
   }
 
