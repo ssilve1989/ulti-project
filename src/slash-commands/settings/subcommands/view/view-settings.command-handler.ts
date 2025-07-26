@@ -46,8 +46,6 @@ class ViewSettingsCommandHandler
 
   @SentryTraced()
   async execute({ interaction }: ViewSettingsCommand): Promise<void> {
-    const scope = Sentry.getCurrentScope();
-
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -61,7 +59,7 @@ class ViewSettingsCommandHandler
       }
 
       // Add context about the retrieved settings
-      scope.setContext('settings_data', {
+      Sentry.setContext('settings_data', {
         hasSpreadsheet: !!settings.spreadsheetId,
         hasTurboProgSpreadsheet: !!settings.turboProgSpreadsheetId,
         turboProgActive: settings.turboProgActive,
@@ -163,7 +161,6 @@ class ViewSettingsCommandHandler
       const errorEmbed = this.errorService.handleCommandError(
         error,
         interaction,
-        'Unable to load guild settings. Please try again.',
       );
       await interaction.editReply({ embeds: [errorEmbed] });
     }

@@ -20,8 +20,6 @@ export class RemoveRolesCommandHandler
 
   @SentryTraced()
   async execute({ encounter, userId, guildId }: RemoveRolesCommand) {
-    const scope = Sentry.getCurrentScope();
-
     try {
       const [member, settings] = await Promise.all([
         this.discordService.getGuildMember({
@@ -43,8 +41,8 @@ export class RemoveRolesCommandHandler
         );
       }
     } catch (error) {
-      scope.setExtras({ encounter, userId });
-      scope.captureException(error);
+      Sentry.setExtras({ encounter, userId });
+      Sentry.captureException(error);
     }
   }
 }

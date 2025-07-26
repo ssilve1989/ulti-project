@@ -38,8 +38,6 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
 
   @SentryTraced()
   async execute({ interaction }: CleanRolesCommand) {
-    const scope = Sentry.getCurrentScope();
-
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -47,7 +45,7 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
       const isDryRun = options.getBoolean('dry-run') ?? false;
 
       // Add command-specific context
-      scope.setContext('clean_roles_operation', {
+      Sentry.setContext('clean_roles_operation', {
         isDryRun,
       });
 
@@ -59,7 +57,7 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
         const result = await this.processCleanRolesCore(guildId, true);
 
         // Add context about dry run results
-        scope.setContext('dry_run_results', {
+        Sentry.setContext('dry_run_results', {
           totalRolesProcessed: result.totalRolesProcessed,
           totalMembersProcessed: result.totalMembersProcessed,
           totalRolesRemoved: result.totalRolesRemoved,
@@ -75,7 +73,7 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
         const result = await this.processCleanRolesCore(guildId, false);
 
         // Add context about operation results
-        scope.setContext('operation_results', {
+        Sentry.setContext('operation_results', {
           totalRolesProcessed: result.totalRolesProcessed,
           totalMembersProcessed: result.totalMembersProcessed,
           totalRolesRemoved: result.totalRolesRemoved,
@@ -198,9 +196,9 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
           `Completed processing role ${role.name}: ${roleResult.rolesRemoved}/${roleResult.membersProcessed} roles ${roleResult.rolesRemoved > 0 ? 'processed' : 'processed'}`,
         );
       } catch (error) {
-        this.logger.error(`Failed to process role ${roleId}:`, error);
-        // Report role processing error but don't fail the entire operation
-        Sentry.captureException(error);
+        this.errorService.captureError(error, {
+          message: `Failed to process role ${roleId}`,
+        });
       }
     }
 

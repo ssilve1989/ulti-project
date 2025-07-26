@@ -12,15 +12,14 @@ class SignupEmbedEventHandler
   constructor(private readonly discordService: DiscordService) {}
 
   async handle(event: SignupApprovedEvent | SignupDeclinedEvent) {
-    const scope = Sentry.getCurrentScope();
     try {
       await match(event)
         .with(P.instanceOf(SignupApprovedEvent), this.handleApproved.bind(this))
         .with(P.instanceOf(SignupDeclinedEvent), this.handleDeclined.bind(this))
         .run();
     } catch (error) {
-      scope.setExtra('signup', event.signup);
-      scope.captureException(error);
+      Sentry.setExtra('signup', event.signup);
+      Sentry.captureException(error);
     }
   }
 

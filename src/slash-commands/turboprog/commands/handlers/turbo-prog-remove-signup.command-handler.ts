@@ -16,7 +16,6 @@ class TurboProgRemoveSignupHandler
 
   @SentryTraced()
   async execute({ entry, guildId }: TurboProgRemoveSignupCommand) {
-    const scope = Sentry.getCurrentScope();
     const settings = await this.settingsCollection.getSettings(guildId);
     const spreadsheetId = settings?.turboProgSpreadsheetId;
 
@@ -25,8 +24,8 @@ class TurboProgRemoveSignupHandler
         await this.sheetsService.removeTurboProgEntry(entry, spreadsheetId);
       }
     } catch (error) {
-      scope.setExtra('entry', entry);
-      scope.captureException(error);
+      Sentry.setExtra('entry', entry);
+      Sentry.captureException(error);
     }
   }
 }

@@ -35,7 +35,7 @@ class DiscordService {
     } catch (error) {
       // Unknown Member error
       if (error instanceof DiscordAPIError && error.code === 10007) {
-        Sentry.getCurrentScope().captureMessage(error.message, 'debug');
+        Sentry.captureMessage(error.message, 'debug');
         return undefined;
       }
       throw error;
