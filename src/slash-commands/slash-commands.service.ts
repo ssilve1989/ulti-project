@@ -15,6 +15,7 @@ import {
   EMPTY,
   forkJoin,
   lastValueFrom,
+  Observable,
   retry,
   timer,
 } from 'rxjs';
@@ -80,7 +81,7 @@ class SlashCommandsService {
     });
   }
 
-  async registerCommands() {
+  async registerCommands(): Promise<void> {
     this.logger.log('refreshing slash commands');
 
     const clientId = this.configService.get<string>('CLIENT_ID');
@@ -104,7 +105,7 @@ class SlashCommandsService {
     clientId: string,
     guildId: string,
     rest: REST,
-  ) {
+  ): Observable<void> {
     return defer(async () => {
       await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
         body: this.slashCommands,
@@ -132,7 +133,7 @@ class SlashCommandsService {
   private async handleCommandError(
     err: unknown,
     interaction: ChatInputCommandInteraction,
-  ) {
+  ): Promise<void> {
     const errorEmbed = this.errorService.handleCommandError(err, interaction);
 
     try {

@@ -18,7 +18,7 @@ class AppService implements OnApplicationShutdown {
     });
   }
 
-  onApplicationShutdown() {
+  onApplicationShutdown(): void {
     this.subscription.unsubscribe();
   }
 }
