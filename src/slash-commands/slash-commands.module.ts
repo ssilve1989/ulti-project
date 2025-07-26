@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import type { AppConfig } from '../app.config.js';
 import { DiscordModule } from '../discord/discord.module.js';
+import { ErrorModule } from '../error/error.module.js';
 import { BlacklistModule } from './blacklist/blacklist.module.js';
 import { CleanRolesModule } from './clean-roles/clean-roles.module.js';
 import { EncountersSlashCommandModule } from './encounters/encounters.module.js';
@@ -21,6 +22,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
 @Module({
   imports: [
     DiscordModule,
+    ErrorModule,
     ConfigModule,
     CqrsModule,
     SlashCommandsSharedModule,
