@@ -9,6 +9,7 @@ import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
   ActionRowBuilder,
+  ButtonBuilder,
   DiscordjsErrorCodes,
   Embed,
   EmbedBuilder,
@@ -18,6 +19,7 @@ import {
   MessageReaction,
   type PartialMessage,
   type PartialMessageReaction,
+  StringSelectMenuBuilder,
   type PartialUser,
   User,
 } from 'discord.js';
@@ -341,7 +343,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       await this.encountersComponentsService.createProgPointSelectMenu(
         signup.encounter,
       );
-    const row = new ActionRowBuilder().addComponents(menu);
+    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+      menu,
+    );
 
     const embed = signup.progPoint
       ? EmbedBuilder.from(sourceEmbed).addFields([
@@ -356,8 +360,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     const message = await this.discordService.sendDirectMessage(user.id, {
       content: 'Please confirm the prog point of the following signup',
       embeds: [embed],
-      // biome-ignore lint/suspicious/noExplicitAny: need to figure out proper typings for this
-      components: [row as any],
+      components: [row],
     });
 
     try {

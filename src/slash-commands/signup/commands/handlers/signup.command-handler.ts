@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
   ActionRowBuilder,
+  ButtonBuilder,
   ChatInputCommandInteraction,
   Colors,
   ComponentType,
@@ -127,14 +128,13 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       displayName,
     );
 
-    const confirmationRow = new ActionRowBuilder().addComponents(
+    const confirmationRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
       ConfirmButton,
       CancelButton,
     );
 
     const confirmationInteraction = await interaction.editReply({
-      // biome-ignore lint/suspicious/noExplicitAny: need to figure out proper typings for this
-      components: [confirmationRow as any],
+      components: [confirmationRow],
       embeds: [embed],
     });
 
