@@ -1,5 +1,5 @@
-import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
   Colors,
@@ -11,10 +11,10 @@ import { titleCase } from 'title-case';
 import { z } from 'zod';
 import { encounterField } from '../../common/components/fields.js';
 import { createFields } from '../../common/embed-helpers.js';
+import { ErrorService } from '../../error/error.service.js';
 import { BlacklistCollection } from '../../firebase/collections/blacklist-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../firebase/models/signup.model.js';
-import { sentryReport } from '../../sentry/sentry.consts.js';
 import { LookupCommand } from './lookup.command.js';
 import { type LookupSchema, lookupSchema } from './lookup.schema.js';
 
@@ -25,60 +25,84 @@ type SignupWithBlacklistStatus = SignupDocument & {
 
 @CommandHandler(LookupCommand)
 class LookupCommandHandler implements ICommandHandler<LookupCommand> {
-  private readonly logger = new Logger(LookupCommandHandler.name);
-
   constructor(
     private readonly signupsCollection: SignupCollection,
     private readonly blacklistCollection: BlacklistCollection,
+    private readonly errorService: ErrorService,
   ) {}
 
   @SentryTraced()
   async execute({ interaction }: LookupCommand): Promise<void> {
-    const { options, guildId } = interaction;
+    const scope = Sentry.getCurrentScope();
 
-    const lookupResult = this.getLookupRequest(options);
+    try {
+      const { options, guildId } = interaction;
 
-    if (!lookupResult.success) {
-      const errorEmbed = this.createValidationErrorEmbed(lookupResult.error);
+      const lookupResult = this.getLookupRequest(options);
+
+      if (!lookupResult.success) {
+        const errorEmbed = this.createValidationErrorEmbed(lookupResult.error);
+        await interaction.reply({
+          embeds: [errorEmbed],
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+
+      const dto = lookupResult.data;
+
+      // Add command-specific context
+      scope.setContext('lookup_request', {
+        character: dto.character,
+        world: dto.world,
+      });
+
+      const results = await this.signupsCollection.findAll(dto);
+
+      const withBlacklistInfo = await Promise.all(
+        results.map((r) => this.mapBlacklistInfo(guildId, r)),
+      );
+
+      // Add context about results
+      scope.setContext('lookup_results', {
+        signupCount: results.length,
+        worlds: [...new Set(results.map((r) => r.world))],
+      });
+
+      const embeds = this.createLookupEmbeds(withBlacklistInfo, dto);
+      await interaction.reply({ embeds, flags: MessageFlags.Ephemeral });
+    } catch (error) {
+      const errorEmbed = this.errorService.handleCommandError(
+        error,
+        interaction,
+      );
       await interaction.reply({
         embeds: [errorEmbed],
         flags: MessageFlags.Ephemeral,
       });
-      return;
     }
-
-    const dto = lookupResult.data;
-    const results = await this.signupsCollection.findAll(dto);
-
-    const withBlacklistInfo = await Promise.all(
-      results.map((r) => this.mapBlacklistInfo(guildId, r)),
-    );
-
-    this.logger.debug(results);
-
-    const embeds = this.createLookupEmbeds(withBlacklistInfo, dto);
-    await interaction.reply({ embeds, flags: MessageFlags.Ephemeral });
   }
 
   private async mapBlacklistInfo(
     guildId: string,
     signup: SignupDocument,
   ): Promise<SignupWithBlacklistStatus> {
-    const match = await this.blacklistCollection
-      .search({
+    try {
+      const match = await this.blacklistCollection.search({
         characterName: signup.character,
         discordId: signup.discordId,
         guildId,
-      })
-      .catch((err) => {
-        sentryReport(err);
-        return { ...signup, blacklistStatus: 'Unknown' };
       });
 
-    return {
-      ...signup,
-      blacklistStatus: match ? 'Yes' : 'No',
-    };
+      return {
+        ...signup,
+        blacklistStatus: match ? 'Yes' : 'No',
+      };
+    } catch (err) {
+      // Report blacklist lookup error but don't fail the entire lookup
+      Sentry.captureException(err);
+      return { ...signup, blacklistStatus: 'Unknown' };
+    }
   }
 
   private createLookupEmbeds(
