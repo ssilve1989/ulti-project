@@ -11,6 +11,7 @@ import {
 } from 'rxjs';
 import { getErrorMessage } from '../common/error-guards.js';
 import type { Encounter } from '../encounters/encounters.consts.js';
+import { isEncounterRankings } from './types.js';
 import { FFLOGS_REPORT_MAX_AGE_DAYS } from '../slash-commands/signup/signup.consts.js';
 import { EncounterIds, expiredReportError } from './fflogs.consts.js';
 import { InjectFFLogsSDKClient } from './fflogs.decorators.js';
@@ -27,7 +28,7 @@ class FFLogsService {
 
   hasClearedEncounter(
     encounter: Encounter,
-    queryParams: EncounterRankingsQueryVariables,
+    queryParams: Omit<EncounterRankingsQueryVariables, 'encounterID'>,
   ): Observable<boolean> {
     const ids = EncounterIds.get(encounter);
 
@@ -42,8 +43,11 @@ class FFLogsService {
           encounterID: encounterId,
         });
 
+        const encounterRankings =
+          result.characterData?.character?.encounterRankings;
         const hasKills =
-          result.characterData?.character?.encounterRankings?.totalKills > 0;
+          isEncounterRankings(encounterRankings) &&
+          encounterRankings.totalKills > 0;
         return hasKills;
       }, 5),
       first((hasKilled) => hasKilled),
