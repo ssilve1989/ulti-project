@@ -33,10 +33,10 @@ import {
   Encounter,
   EncounterFriendlyDescription,
 } from '../../../../encounters/encounters.consts.js';
+import { ErrorService } from '../../../../error/error.service.js';
 import { FFLogsService } from '../../../../fflogs/fflogs.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
-import { sentryReport } from '../../../../sentry/sentry.consts.js';
 import { SignupCreatedEvent } from '../../events/signup.events.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { type SignupSchema, signupSchema } from '../../signup.schema.js';
@@ -72,10 +72,12 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     private readonly settingsService: SettingsCollection,
     private readonly discordService: DiscordService,
     private readonly fflogsService: FFLogsService,
+    private readonly errorService: ErrorService,
   ) {}
 
   @SentryTraced()
   async execute({ interaction }: SignupCommand) {
+    const scope = Sentry.getCurrentScope();
     const { username } = interaction.user;
 
     this.logger.debug(`handling signup command for user: ${username}`);
@@ -102,10 +104,26 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       return;
     }
 
+    // Add signup request context
+    scope.setContext('signup_request', {
+      encounter: signupRequest.encounter,
+      character: signupRequest.character,
+      world: signupRequest.world,
+      progPointRequested: signupRequest.progPointRequested,
+    });
+
     // Perform FFLogs validation if applicable
     const fflogsValidationResult = await this.validateFFLogsUrl(
       signupRequest.proofOfProgLink,
     );
+
+    // Add FFLogs validation context
+    scope.setContext('fflogs_validation', {
+      hasUrl: !!signupRequest.proofOfProgLink,
+      validationResult: fflogsValidationResult.success
+        ? 'success'
+        : fflogsValidationResult.errorType,
+    });
 
     if (!fflogsValidationResult.success) {
       await interaction.editReply({
@@ -165,8 +183,27 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
           new SignupCreatedEvent(signup, interaction.guildId),
         );
       }
-    } catch (e: unknown) {
-      await this.handleError(e, interaction);
+    } catch (error: unknown) {
+      // Enhanced error handling with ErrorService
+      const errorEmbed = this.errorService.handleCommandError(
+        error,
+        interaction,
+      );
+
+      // Preserve Discord-specific error handling
+      if (error && typeof error === 'object' && 'code' in error) {
+        if (error.code === DiscordjsErrorCodes.InteractionCollectorError) {
+          await interaction.editReply({
+            content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
+            embeds: [],
+            components: [],
+          });
+          return;
+        }
+      }
+
+      // Default error response
+      await interaction.editReply({ embeds: [errorEmbed] });
     }
   }
 
@@ -278,28 +315,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     }
 
     return screenshot ? embed.setImage(screenshot) : embed;
-  }
-
-  private handleError(
-    error: unknown,
-    interaction: ChatInputCommandInteraction,
-  ) {
-    sentryReport(error);
-    this.logger.error(error);
-
-    return match(error)
-      .with({ code: DiscordjsErrorCodes.InteractionCollectorError }, () =>
-        interaction.editReply({
-          content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
-          ...CLEAR_EMBED,
-        }),
-      )
-      .otherwise(() =>
-        interaction.editReply({
-          content: 'Sorry an unexpected error has occurred',
-          ...CLEAR_EMBED,
-        }),
-      );
   }
 
   private createValidationErrorsEmbed(error: ZodError) {

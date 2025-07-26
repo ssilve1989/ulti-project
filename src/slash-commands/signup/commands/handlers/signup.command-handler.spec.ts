@@ -5,12 +5,14 @@ import {
   ChatInputCommandInteraction,
   DiscordjsError,
   DiscordjsErrorCodes,
+  EmbedBuilder,
   Message,
   MessageFlags,
 } from 'discord.js';
 import { UnhandledButtonInteractionException } from '../../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
+import { ErrorService } from '../../../../error/error.service.js';
 import { expiredReportError } from '../../../../fflogs/fflogs.consts.js';
 import { FFLogsService } from '../../../../fflogs/fflogs.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
@@ -32,6 +34,7 @@ describe('Signup Command Handler', () => {
   let discordServiceMock: DeepMocked<DiscordService>;
   let signupCollectionMock: DeepMocked<SignupCollection>;
   let fflogsServiceMock: DeepMocked<FFLogsService>;
+  let errorService: DeepMocked<ErrorService>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
@@ -47,6 +50,7 @@ describe('Signup Command Handler', () => {
     settingsCollection = fixture.get(SettingsCollection);
     signupCollectionMock = fixture.get(SignupCollection);
     fflogsServiceMock = fixture.get(FFLogsService);
+    errorService = fixture.get(ErrorService);
 
     interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
       user: {
@@ -80,6 +84,7 @@ describe('Signup Command Handler', () => {
     });
 
     discordServiceMock.getDisplayName.mockResolvedValue('Test Character');
+    errorService.handleCommandError.mockReturnValue(createMock<EmbedBuilder>());
   });
 
   test('is defined', () => {
@@ -166,8 +171,9 @@ describe('Signup Command Handler', () => {
     },
   );
 
-  it('throws UnhandledButtonInteractionException if the interaction is unknown', async () => {
-    const spy = vi.spyOn(handler, 'handleError' as any);
+  it('handles UnhandledButtonInteractionException with ErrorService', async () => {
+    const mockErrorEmbed = createMock<EmbedBuilder>();
+    errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
 
     confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
       createMock<ChannelSelectMenuInteraction>({
@@ -180,10 +186,14 @@ describe('Signup Command Handler', () => {
 
     const command = new SignupCommand(interaction);
     await handler.execute(command);
-    expect(spy).toHaveBeenCalledWith(
+
+    expect(errorService.handleCommandError).toHaveBeenCalledWith(
       expect.any(UnhandledButtonInteractionException),
       interaction,
     );
+    expect(interaction.editReply).toHaveBeenCalledWith({
+      embeds: [mockErrorEmbed],
+    });
   });
 
   it('handles cancelling a signup', async () => {
@@ -251,6 +261,9 @@ describe('Signup Command Handler', () => {
   describe('FFLogs Validation', () => {
     beforeEach(() => {
       settingsCollection.getReviewChannel.mockResolvedValue('123456789');
+      errorService.handleCommandError.mockReturnValue(
+        createMock<EmbedBuilder>(),
+      );
       // Set up default values for FFLogs tests
       (interaction.options.getString as any) = (key: string) => {
         switch (key) {
@@ -412,7 +425,20 @@ describe('Signup Command Handler', () => {
       expect(fflogsServiceMock.validateReportAge).toHaveBeenCalledWith(
         'ABC123def456',
       );
-      // Should proceed despite error (graceful degradation)
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              data: expect.objectContaining({
+                title: '❌ FFLogs Check Failed',
+                description: expect.stringContaining(
+                  'Unable to validate report age due to API issues',
+                ),
+              }),
+            }),
+          ]),
+        }),
+      );
     });
   });
 });
