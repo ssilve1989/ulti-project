@@ -33,6 +33,13 @@ const config: CodegenConfig = {
         documentMode: 'string',
         immutableTypes: true,
         useTypeImports: true,
+        avoidOptionals: true,
+        strictScalars: true,
+        nonOptionalTypename: true,
+        arrayInputCoercion: false,
+        scalars: {
+          JSON: 'unknown',
+        },
       },
     },
   },

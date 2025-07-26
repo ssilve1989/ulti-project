@@ -1,10 +1,10 @@
 """Marks an element of a GraphQL schema as no longer supported."""
 directive @deprecated(
   """
-  Explains why this element was deprecated, usually also including a suggestion for how to access supported similar data. Formatted using the Markdown syntax (as specified by [CommonMark](https://commonmark.org/).
+  Explains why this element was deprecated, usually also including a suggestion for how to access supported similar data. Formatted using the Markdown syntax, as specified by [CommonMark](https://commonmark.org/).
   """
   reason: String = "No longer supported"
-) on ENUM_VALUE | FIELD_DEFINITION
+) on ARGUMENT_DEFINITION | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
 
 """
 Directs the executor to include this field or fragment only when the `if` argument is true.
@@ -237,8 +237,8 @@ type ArchonViewModels {
   characterPageContent(categorySlug: String!, characterSlug: String!, gameSlug: String!, userId: Int, zoneSlug: String): JSON
   cmsNavigation(currentSlug: String): JSON
   contactPage: JSON
-  fightPage(categorySlug: String!, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, reportSlug: String!, userId: Int): JSON
-  fightPageContent(categorySlug: String!, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, reportSlug: String!, userId: Int): JSON
+  fightPage(categorySlug: String!, cutoffSlug: Int, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, reportSlug: String!, throughputSlug: String, userId: Int): JSON
+  fightPageContent(categorySlug: String!, cutoffSlug: Int, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, reportSlug: String!, sectionComponentNames: [String!]!, throughputSlug: String, userId: Int): JSON
   footer: JSON
   game: JSON
   gamePage: JSON
@@ -250,12 +250,13 @@ type ArchonViewModels {
   pageOfArticlePreviews(articleCategorySlug: String, pageNumber: Int, siteName: String): JSON
   playwireAds: JSON
   privacyPolicyPage: JSON
-  reportPage(reportCode: String!, userId: Int): JSON
+  reportPage(gameSlug: String!, reportSlug: String!, userId: Int): JSON
   signInPage: JSON
   signOutPage: JSON
   snippets(snippetSlugs: [String]): JSON
   translations(keys: [String]): JSON
   user: JSON
+  userFromDesktopClientToken(desktopClientToken: String!): JSON
 }
 
 """
@@ -337,7 +338,7 @@ type Character {
     """
     Optional. The slug for a specific role. This allow you to only fetch ranks for the healing role, dps role or tank role.
     """
-    role: RoleType
+    role: RoleType = Any
     """
     Optional. Whether or not to filter rankings to a specific size. If omitted, the first valid raid size will be used.
     """
@@ -428,7 +429,7 @@ type Character {
     """
     Optional. The slug for a specific role. This allow you to only fetch ranks for the healing role, dps role or tank role.
     """
-    role: RoleType
+    role: RoleType = Any
     """
     Optional. Whether or not to filter rankings to a specific size. If omitted, the first valid raid size will be used.
     """
@@ -1581,10 +1582,12 @@ type Query {
   Obtain the rate limit data object to see how many points have been spent by this key.
   """
   rateLimitData: RateLimitData
+  reportComponentData: ReportComponentData
   """
   Obtain the report data object that allows the retrieval of individual reports or filtered collections of reports by guild or by user.
   """
   reportData: ReportData
+  systemReportComponentData: ReportComponentData
   """
   Obtain the user object that allows the retrieval of the authorized user's id and username.
   """
@@ -1647,7 +1650,7 @@ type Region {
   """The servers found within this region."""
   servers(
     """
-    Optional. The number of servers to retrieve per page. If omitted, defaults to 100. The maximum allowed value is 100, and minimum allowed value is 1.
+    Optional. The number of servers to retrieve per page. If omitted, defaults to 100. The maximum allowed value is 5000, and minimum allowed value is 1.
     """
     limit: Int = 100
     """
@@ -2156,12 +2159,141 @@ type ReportArchiveStatus {
   isArchived: Boolean!
 }
 
+type ReportComponent {
+  """The contents of the component script."""
+  contents: String
+  """Whether the component is currently protected from deletion."""
+  deletionProtected: Boolean!
+  """Evaluate a report component against report data, returning the result."""
+  evaluate(debug: Boolean, filter: ReportComponentFilter, reportCode: String!): ReportComponentResult
+  """The component's unique key."""
+  key: String!
+  """The human-readable name of the component"""
+  name: String!
+}
+
+type ReportComponentData {
+  """
+  Evaluate a report component script directly, without creating an object first.
+  """
+  evaluateScript(contents: String!, debug: Boolean, filter: ReportComponentFilter, reportCode: String!): ReportComponentResult
+  """Get a report component by its ID."""
+  get(
+    """The report component ID"""
+    key: String!
+  ): ReportComponent
+  """
+  List all report components attached to the user owning the current API key.
+  """
+  list: [ReportComponent!]!
+}
+
+"""
+A broad filter for a report component. This is primarily intended to allow callers to invoke a component on a single fight and/or actor without having to encode these values in their script. If multiple fields are specified, they are treated as ANDs (so a timestamp range with a fight ID includes only events within the timestamp range AND within the fight).
+"""
+input ReportComponentFilter {
+  """
+  Filter input events to those that include the `actorID` and their pets.
+  """
+  actorID: Int
+  """
+  Filter input events to only those prior to the `deathCutoff`-th death in each fight.
+                  ## Special Values
+                  - End after a Called Wipe: -1
+                  
+  """
+  deathCutoff: Int
+  """
+  Filter to fights that have the specified difficulty ID. Difficulty IDs are game- and sometimes zone-specific. Use the `difficulties` field of a `Zone` object to retrieve a list of all valid IDs. Trash does not have a difficulty.
+  """
+  difficulty: Int
+  """
+  Filter input events to those from fights having this encounter ID. 0 is used for trash fights and very short boss pulls (typically less than 20s).
+  """
+  encounterID: Int
+  """Filter input events to those from these fight IDs."""
+  fightIDs: [Int!]
+  """
+  Filter to only include kills, wipes, encounters, or trash. Note: if set to `Trash`, this will override `encounterID`.
+  """
+  killType: KillType = All
+  """
+  Filter input events to a specific phase index. Note that if multiple different encounters are included, the phase index will be applied to *each encounter separately* which is probably not what you want.
+  """
+  phase: Int
+  """Filter input events to those within this range."""
+  timestampRange: ReportComponentRangeFilter
+}
+
+type ReportComponentMutation {
+  """
+  Create a new (possibly empty) report component. If successful, the KEY of the new component will be returned.
+  """
+  create(
+    """
+    The (optional) initial contents of the component. Evaluating an empty component will produce an error.
+    """
+    contents: String
+    """A human-readable name for the component."""
+    name: String!
+  ): String
+  """
+  Delete a report component. Since this is an API call, there is NO CONFIRMATION. Protected components may not be deleted.
+  """
+  delete(key: String!): Boolean
+  """
+  Mark (or un-mark) a component as "deletion protected" to prevent accidental deletion. This is a quality of life feature to prevent oopsies, not a security feature.
+  """
+  setDeletionProtected(
+    key: String!
+    """Whether the component is protected from deletion. Default is `true`."""
+    protected: Boolean = true
+  ): Boolean
+  """
+  Update the script contents of a report component, replacing the old contents. True is returned on success, errors are thrown on failure.
+  """
+  updateContents(
+    """The new script contents, in JavaScript."""
+    contents: String!
+    key: String!
+  ): Boolean
+}
+
+"""
+Filter input events of a report component to a range of time within a report.
+"""
+input ReportComponentRangeFilter {
+  """The report-relative end time, in milliseconds."""
+  endTime: Int!
+  """The report-relative start time, in milliseconds."""
+  startTime: Int!
+}
+
+type ReportComponentResult {
+  """
+  The description of the exception the component threw (if it threw one). Note that component failures DO NOT produce standard GraphQL errors.
+  """
+  error: String
+  """
+  When evaluated with `debug: True`, this includes the `console.log` output as a string.
+  """
+  logs: String
+  """
+  The return value of the component as a JSON string. If the component throws an error, this will be null
+  """
+  output: JSON
+}
+
 """
 The ReportData object enables the retrieval of single reports or filtered collections of reports.
 """
 type ReportData {
   """Obtain a specific report by its code."""
   report(
+    """
+    Optional. Whether to allow viewing of unlisted logs. If you have a multi-user application where you cache codes, set this to true to avoid accidentally giving away unlisted codes to unauthorized users.
+    """
+    allowUnlisted: Boolean = true
     """Required. The code of a single report to retrieve."""
     code: String
   ): Report
@@ -2510,12 +2642,24 @@ type ReportPagination {
 
 """All the possible metrics."""
 enum ReportRankingMetricType {
+  """
+  Boss cDPS is unique to FFXIV and is damage done to the boss adjusted for raid-contributing buffs and debuffs.
+  """
+  bosscdps
   """Boss damage per second."""
   bossdps
+  """
+  Boss nDPS is unique to FFXIV and is damage done to the boss adjusted for raid-contributing buffs and debuffs.
+  """
+  bossndps
   """
   Boss rDPS is unique to FFXIV and is damage done to the boss adjusted for raid-contributing buffs and debuffs.
   """
   bossrdps
+  """
+  cDPS is unique to FFXIV and is damage done adjusted for raid-contributing buffs and debuffs.
+  """
+  cdps
   """
   Choose an appropriate default depending on the other selected parameters.
   """
@@ -2528,6 +2672,10 @@ enum ReportRankingMetricType {
   Survivability ranking for tanks. Deprecated. Only supported for some older WoW zones.
   """
   krsi
+  """
+  nDPS is unique to FFXIV and is damage done adjusted for raid-contributing buffs and debuffs.
+  """
+  ndps
   """Score. Used by WoW Mythic dungeons and by ESO trials."""
   playerscore
   """Speed. Not supported by every zone."""
@@ -2702,6 +2850,8 @@ enum TableDataType {
 A single user of the site. Most fields can only be accessed when authenticated as that user with the "view-user-profile" scope.
 """
 type User {
+  """The avatar of the user, typically the main character avatar."""
+  avatar: String!
   """
   The characters claimed by this user. Only accessible via user authentication when you have the "view-user-profile" scope.
   """
