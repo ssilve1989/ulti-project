@@ -117,7 +117,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     this.subscription?.unsubscribe();
   }
 
-  async processEvent(event: ReactionEvent) {
+  async processEvent(event: ReactionEvent): Promise<void> {
     if (!event.reaction.message.inGuild()) {
       return;
     }
@@ -195,7 +195,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     { message, emoji }: { message: Message<true>; emoji: Emoji },
     user: User,
     settings: SettingsDocument,
-  ) {
+  ): Promise<boolean> {
     const reviewChannelId = settings.reviewChannel;
 
     // Check that this event was the in the configured channel
@@ -304,7 +304,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     error: unknown,
     user: User | PartialUser,
     message: Message | PartialMessage,
-  ) {
+  ): Promise<void> {
     this.logger.error(error);
 
     const reply = match(error)
@@ -380,7 +380,10 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     }
   }
 
-  private async getPartyStatus(encounter: Encounter, progPoint: string) {
+  private async getPartyStatus(
+    encounter: Encounter,
+    progPoint: string,
+  ): Promise<PartyStatus> {
     if (progPoint === PartyStatus.Cleared) {
       return PartyStatus.Cleared;
     }
