@@ -1,10 +1,6 @@
 // Declare it globally in the TypeScript namespace
 declare global {
-  type ExactType<T, K extends keyof T> = {
-    [P in K]: T[P]; // Pick only the specified keys from T
-  } & {
-    [P in Exclude<keyof T, K>]?: never; // Disallow any other properties
-  };
+  type Exact<A, B> = A extends B ? (B extends A ? A : never) : never;
 
   interface ErrorConstructor {
     /**
