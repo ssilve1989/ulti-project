@@ -1,6 +1,6 @@
 import { PartyStatus } from '../firebase/models/signup.model.js';
 
-export const SHEETS_CLIENT = '@goolge/sheets-client';
+export const SHEETS_CLIENT = '@google/sheets-client';
 
 export interface SheetRangeConfig {
   columnStart: string;
