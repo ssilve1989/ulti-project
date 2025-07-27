@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { SentryTraced } from '@sentry/nestjs';
 import {
   type CollectionReference,
   type DocumentData,
@@ -79,6 +80,7 @@ class BlacklistCollection {
    * @param data
    * @returns
    */
+  @SentryTraced('blacklist.query')
   private async query(
     guildId: string,
     data: Partial<BlacklistDocumentKeys>,
