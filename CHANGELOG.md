@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.38.1](https://github.com/ssilve1989/ulti-project/compare/v1.38.0...v1.38.1) (2025-07-27)
+
+
+### Bug Fixes
+
+* **signup:** replace as any with proper ActionRowBuilder types ([f987fca](https://github.com/ssilve1989/ulti-project/commit/f987fcab8b1192b44a2802a15725959341804fe5))
+
 ## [1.38.0](https://github.com/ssilve1989/ulti-project/compare/v1.37.0...v1.38.0) (2025-07-25)
 
 
