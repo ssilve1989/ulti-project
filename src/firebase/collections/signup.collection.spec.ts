@@ -63,7 +63,7 @@ describe('Signup Repository', () => {
       createMock<DocumentSnapshot>({ exists: true }),
     );
 
-    await repository.upsert(signupRequest);
+    const result = await repository.upsert(signupRequest);
 
     expect(doc.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -74,6 +74,11 @@ describe('Signup Repository', () => {
     );
 
     expect(doc.create).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ...signupRequest,
+      status: SignupStatus.UPDATE_PENDING,
+      reviewedBy: null,
+    });
   });
 
   it('should call create if the document does not exist', async () => {
@@ -81,7 +86,7 @@ describe('Signup Repository', () => {
       createMock<DocumentSnapshot>({ exists: false }),
     );
 
-    await repository.upsert(signupRequest);
+    const result = await repository.upsert(signupRequest);
 
     expect(doc.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -91,6 +96,10 @@ describe('Signup Repository', () => {
     );
 
     expect(doc.update).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ...signupRequest,
+      status: SignupStatus.PENDING,
+    });
   });
 
   it('should call updateSignupStatus with the correct arguments', async () => {

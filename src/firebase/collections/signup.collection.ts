@@ -48,23 +48,22 @@ class SignupCollection {
     if (snapshot.exists) {
       // if there is already a signup, we move the status to be UPDATE_PENDING
       // to differentiate it from a new signup PENDING
-      await document.update({
+      const signupData = {
         ...signup,
         status: SignupStatus.UPDATE_PENDING,
         reviewedBy: null,
         expiresAt,
-      });
-    } else {
-      await document.create({
-        ...signup,
-        expiresAt,
-        status: SignupStatus.PENDING,
-      });
+      };
+      await document.update(signupData);
+      return signupData;
     }
-
-    const update = await this.collection.doc(key).get();
-    // biome-ignore lint/style/noNonNullAssertion: we know its not null because we just succeeded
-    return update.data()!;
+    const signupData = {
+      ...signup,
+      expiresAt,
+      status: SignupStatus.PENDING,
+    };
+    await document.create(signupData);
+    return signupData;
   }
 
   @SentryTraced()
