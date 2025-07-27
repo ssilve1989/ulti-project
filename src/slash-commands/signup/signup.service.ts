@@ -39,6 +39,7 @@ import { PROG_POINT_SELECT_ID } from '../../encounters/encounters.components.js'
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { EncountersService } from '../../encounters/encounters.service.js';
 import { EncountersComponentsService } from '../../encounters/encounters-components.service.js';
+import { ErrorService } from '../../error/error.service.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { DocumentNotFoundException } from '../../firebase/firebase.exceptions.js';
@@ -67,14 +68,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   private subscription?: Subscription;
 
   constructor(
-    private readonly repository: SignupCollection,
+    private readonly declineReasonRequestService: DeclineReasonRequestService,
     private readonly discordService: DiscordService,
+    private readonly encountersComponentsService: EncountersComponentsService,
+    private readonly encountersService: EncountersService,
+    private readonly eventBus: EventBus,
+    private readonly repository: SignupCollection,
     private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
-    private readonly eventBus: EventBus,
-    private readonly encountersService: EncountersService,
-    private readonly encountersComponentsService: EncountersComponentsService,
-    private readonly declineReasonRequestService: DeclineReasonRequestService,
+    private readonly errorService: ErrorService,
   ) {}
 
   onApplicationBootstrap() {
@@ -203,15 +205,17 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       return false;
     }
 
-    const isAllowedUser = settings?.reviewerRole
-      ? await this.discordService.userHasRole({
-          userId: user.id,
-          roleId: settings.reviewerRole,
-          guildId: message.guildId,
-        })
-      : // TODO: Why is this true? If the reviewerRole is not set we don't know if they have
-        // permission to do this, we shouldn't let it happen
-        true;
+    if (!settings?.reviewerRole) {
+      throw new Error(
+        `No reviewer role configured for guild: ${message.guildId}`,
+      );
+    }
+
+    const isAllowedUser = await this.discordService.userHasRole({
+      userId: user.id,
+      roleId: settings.reviewerRole,
+      guildId: message.guildId,
+    });
 
     const isExpectedReactionType =
       emoji.name === SIGNUP_REVIEW_REACTIONS.APPROVED ||
@@ -305,8 +309,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User | PartialUser,
     message: Message | PartialMessage,
   ): Promise<void> {
-    this.logger.error(error);
-
     const reply = match(error)
       .with(
         P.instanceOf(DocumentNotFoundException),
@@ -318,7 +320,8 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       )
       .otherwise(() => SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR);
 
-    Sentry.captureMessage(reply, 'debug');
+    Sentry.setContext('reply', { reply });
+    this.errorService.captureError(error);
 
     // TODO: Improve error reporting to better inform user what happened
     await Promise.all([
