@@ -37,6 +37,7 @@ import { ErrorService } from '../../../../error/error.service.js';
 import { FFLogsService } from '../../../../fflogs/fflogs.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
+import type { SignupDocument } from '../../../../firebase/models/signup.model.js';
 import { SignupCreatedEvent } from '../../events/signup.events.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { type SignupSchema, signupSchema } from '../../signup.schema.js';
@@ -47,11 +48,14 @@ import {
 } from '../../signup.utils.js';
 import { SignupCommand } from '../signup.commands.js';
 
-// reusable object to clear a messages emebed + button interaction
+// reusable object to clear a messages embed + button interaction
 const CLEAR_EMBED = {
   embeds: [],
   components: [],
-};
+} as const;
+
+// Channel ID for name update instructions
+const NAME_UPDATE_CHANNEL_ID = '1264643007848906884';
 
 type FFLogsValidationResult =
   | { success: true }
@@ -83,46 +87,18 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const hasReviewChannelConfigured =
-      !!(await this.settingsService.getReviewChannel(interaction.guildId));
+    // Configuration validation
+    const isValidConfig = await this.validateConfiguration(interaction);
+    if (!isValidConfig) return;
 
-    if (!hasReviewChannelConfigured) {
-      await interaction.editReply(
-        SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL,
-      );
-      return;
-    }
+    // Input validation
+    const signupRequest = await this.validateSignupRequest(interaction);
+    if (!signupRequest) return;
 
-    const [signupRequest, validationErrors] =
-      this.createSignupRequest(interaction);
-
-    if (validationErrors) {
-      await interaction.editReply({
-        embeds: [this.createValidationErrorsEmbed(validationErrors)],
-      });
-      return;
-    }
-
-    // Add signup request context
-    Sentry.setContext('signup_request', {
-      encounter: signupRequest.encounter,
-      character: signupRequest.character,
-      world: signupRequest.world,
-      progPointRequested: signupRequest.progPointRequested,
-    });
-
-    // Perform FFLogs validation if applicable
+    // FFLogs validation
     const fflogsValidationResult = await this.validateFFLogsUrl(
       signupRequest.proofOfProgLink,
     );
-
-    // Add FFLogs validation context
-    Sentry.setContext('fflogs_validation', {
-      hasUrl: !!signupRequest.proofOfProgLink,
-      validationResult: fflogsValidationResult.success
-        ? 'success'
-        : fflogsValidationResult.errorType,
-    });
 
     if (!fflogsValidationResult.success) {
       await interaction.editReply({
@@ -135,6 +111,305 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       return;
     }
 
+    // Handle confirmation flow
+    await this.handleConfirmationFlow(signupRequest, interaction);
+  }
+
+  private async handleConfirm(
+    request: SignupSchema,
+    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+  ): Promise<SignupDocument | undefined> {
+    const [existing, reviewChannelId] = await Promise.all([
+      this.repository.findById(SignupCollection.getKeyForSignup(request)),
+      this.settingsService.getReviewChannel(interaction.guildId),
+    ]);
+
+    // Delete prior signup approval message if it exists and should be removed
+    if (existing?.reviewMessageId && reviewChannelId) {
+      try {
+        if (shouldDeleteReviewMessageForSignup(existing)) {
+          await this.discordService.deleteMessage(
+            interaction.guildId,
+            reviewChannelId,
+            existing.reviewMessageId,
+          );
+        }
+      } catch (error: unknown) {
+        this.errorService.captureError(error, {
+          message: 'Failed to delete review message',
+        });
+      }
+    }
+
+    const signup = await this.repository.upsert(request);
+
+    await interaction.editReply({
+      content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED,
+      ...CLEAR_EMBED,
+    });
+
+    return signup;
+  }
+
+  private async handleCancel(
+    interaction: ChatInputCommandInteraction,
+  ): Promise<void> {
+    await interaction.editReply({
+      content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CANCELLED,
+      ...CLEAR_EMBED,
+    });
+  }
+
+  private createSignupRequest({
+    options,
+    user,
+  }: ChatInputCommandInteraction):
+    | [SignupSchema, undefined]
+    | [undefined, ZodError<SignupSchema>] {
+    const encounter = options.getString('encounter', true) as Encounter;
+
+    const request = {
+      availability: options.getString('availability', true),
+      character: options.getString('character', true),
+      discordId: user.id,
+      encounter,
+      notes: options.getString('notes'),
+      proofOfProgLink: options.getString('prog-proof-link'),
+      progPointRequested: options.getString('prog-point', true),
+      role: options.getString('job', true),
+      screenshot: options.getAttachment('screenshot')?.url,
+      username: user.username,
+      world: options.getString('world', true),
+    };
+
+    const result = signupSchema.safeParse(request);
+
+    if (!result.success) {
+      return [undefined, result.error];
+    }
+
+    return [result.data, undefined];
+  }
+
+  private createSignupConfirmationEmbed(
+    {
+      availability,
+      character,
+      encounter,
+      notes,
+      proofOfProgLink,
+      role,
+      screenshot,
+      world,
+      progPointRequested,
+    }: SignupSchema,
+    displayName: string,
+  ): EmbedBuilder {
+    const fields = createFields([
+      characterField(character),
+      worldField(world, 'Home World'),
+      { name: 'Job', value: role, inline: true },
+      { name: 'Prog Point', value: progPointRequested, inline: true },
+      { name: 'Availability', value: availability, inline: true },
+      { name: 'Prof Proof Link', value: proofOfProgLink, inline: true },
+      { name: 'Notes', value: notes, inline: false },
+    ]);
+
+    const embed = new EmbedBuilder()
+      .setTitle(EncounterFriendlyDescription[encounter])
+      .setDescription("Here's a summary of your signup request")
+      .addFields(fields);
+
+    if (displayName.toLowerCase().trim() !== character.trim()) {
+      // display a warning that their name does not match. it could be a spelling mistake
+      embed.addFields({
+        name: '⚠️ Name Mismatch Warning',
+        value: `Your Discord display name \`${displayName}\` doesn't match your submitted character name \`${titleCase(character)}\`. Please be sure this is correct before confirming.\n\nNames can be updated by visting the ${channelLink(NAME_UPDATE_CHANNEL_ID)} channel. Please refer to the pinned FAQ for more information.`,
+        inline: false,
+      });
+    }
+
+    return screenshot ? embed.setImage(screenshot) : embed;
+  }
+
+  private createValidationErrorsEmbed(error: ZodError): EmbedBuilder {
+    const fields = error.issues.flatMap((issue, index) => {
+      const { message } = issue;
+
+      return {
+        // The property names are ugly to present to the user. Alternatively we could use a dictionary to map the property names
+        // to friendly names
+        name: `Error #${index + 1}`,
+        value: message,
+      };
+    });
+
+    const embed = new EmbedBuilder()
+      .setTitle('Error')
+      .setColor(Colors.Red)
+      .setDescription('Please correct the following errors')
+      .addFields(fields);
+
+    return embed;
+  }
+
+  private createFFLogsValidationErrorEmbed(errorMessage: string): EmbedBuilder {
+    return new EmbedBuilder()
+      .setColor(Colors.Red)
+      .setTitle('❌ FFLogs Check Failed')
+      .setDescription(errorMessage)
+      .setTimestamp();
+  }
+
+  /**
+   * Validates an FFLogs URL for security and report age requirements.
+   *
+   * This method performs comprehensive validation of FFLogs URLs to prevent
+   * security vulnerabilities like URL spoofing while ensuring reports meet
+   * age requirements for competitive integrity.
+   *
+   * Security considerations:
+   * - Uses exact hostname matching to prevent subdomain spoofing attacks
+   * - Validates URL format before attempting report code extraction
+   * - Only accepts fflogs.com and www.fflogs.com as valid domains
+   *
+   * @param proofOfProgLink The URL string to validate, or null if none provided
+   * @returns Promise<FFLogsValidationResult> - Validation result with success status and error details
+   */
+  private async validateFFLogsUrl(
+    proofOfProgLink: string | null,
+  ): Promise<FFLogsValidationResult> {
+    if (!proofOfProgLink) {
+      // Add FFLogs validation context for Sentry
+      Sentry.setContext('fflogs_validation', {
+        hasUrl: false,
+        validationResult: 'success',
+      });
+      return { success: true }; // No URL to validate
+    }
+
+    try {
+      const url = new URL(proofOfProgLink);
+      const reportCode = extractFflogsReportCode(url);
+
+      if (isFFLogsUrl(url) && !reportCode) {
+        // Add FFLogs validation context for Sentry
+        Sentry.setContext('fflogs_validation', {
+          hasUrl: true,
+          validationResult: 'format',
+        });
+        return {
+          success: false,
+          errorMessage: `Invalid FFLogs URL format. Please provide a valid link to a report. Not a profile or any other fflogs link.
+            
+            Example: https://www.fflogs.com/reports/2XG7tZp1AjQcWTn9?fight=3&type=damage-done
+            `,
+          errorType: 'format',
+        };
+      }
+
+      if (reportCode) {
+        // Only proceed with FFLogs validation if we successfully extracted a report code
+        try {
+          const fflogsValidation =
+            await this.fflogsService.validateReportAge(reportCode);
+
+          if (!fflogsValidation.isValid) {
+            this.logger.log(fflogsValidation.errorMessage);
+
+            // Add FFLogs validation context for Sentry
+            Sentry.setContext('fflogs_validation', {
+              hasUrl: true,
+              validationResult: 'age',
+            });
+            return {
+              success: false,
+              errorMessage:
+                fflogsValidation.errorMessage || 'FFLogs validation failed',
+              errorType: 'age',
+            };
+          }
+        } catch (error: unknown) {
+          this.logger.warn('Error validating FFLogs report age:', error);
+          // Add FFLogs validation context for Sentry
+          Sentry.setContext('fflogs_validation', {
+            hasUrl: true,
+            validationResult: 'api',
+          });
+          return {
+            success: false,
+            errorMessage:
+              'Unable to validate report age due to API issues. Report will be reviewed manually.',
+            errorType: 'api',
+          };
+        }
+      }
+
+      // Add FFLogs validation context for Sentry (success case)
+      Sentry.setContext('fflogs_validation', {
+        hasUrl: true,
+        validationResult: 'success',
+      });
+      return { success: true }; // Validation passed or no FFLogs URL provided
+    } catch (_: unknown) {
+      // Handle URL parsing errors
+      // Add FFLogs validation context for Sentry
+      Sentry.setContext('fflogs_validation', {
+        hasUrl: true,
+        validationResult: 'format',
+      });
+      return {
+        success: false,
+        errorMessage: 'Invalid URL format. Please provide a valid URL.',
+        errorType: 'format',
+      };
+    }
+  }
+
+  private async validateConfiguration(
+    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+  ): Promise<boolean> {
+    const hasReviewChannelConfigured =
+      !!(await this.settingsService.getReviewChannel(interaction.guildId));
+
+    if (!hasReviewChannelConfigured) {
+      await interaction.editReply(
+        SIGNUP_MESSAGES.MISSING_SIGNUP_REVIEW_CHANNEL,
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  private async validateSignupRequest(
+    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+  ): Promise<SignupSchema | null> {
+    const [signupRequest, validationErrors] =
+      this.createSignupRequest(interaction);
+
+    if (validationErrors) {
+      await interaction.editReply({
+        embeds: [this.createValidationErrorsEmbed(validationErrors)],
+      });
+      return null;
+    }
+
+    // Add signup request context for Sentry
+    Sentry.setContext('signup_request', {
+      encounter: signupRequest.encounter,
+      character: signupRequest.character,
+      world: signupRequest.world,
+      progPointRequested: signupRequest.progPointRequested,
+    });
+
+    return signupRequest;
+  }
+
+  private async handleConfirmationFlow(
+    signupRequest: SignupSchema,
+    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+  ): Promise<void> {
     const displayName = await this.discordService.getDisplayName({
       userId: interaction.user.id,
       guildId: interaction.guildId,
@@ -144,7 +419,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       signupRequest,
       displayName,
     );
-
     const confirmationRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
       ConfirmButton,
       CancelButton,
@@ -183,232 +457,31 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
         );
       }
     } catch (error: unknown) {
-      // Enhanced error handling with ErrorService
-      const errorEmbed = this.errorService.handleCommandError(
-        error,
-        interaction,
-      );
-
-      // Preserve Discord-specific error handling
-      if (error && typeof error === 'object' && 'code' in error) {
-        if (error.code === DiscordjsErrorCodes.InteractionCollectorError) {
-          await interaction.editReply({
-            content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
-            embeds: [],
-            components: [],
-          });
-          return;
-        }
-      }
-
-      // Default error response
-      await interaction.editReply({ embeds: [errorEmbed] });
+      await this.handleConfirmationError(error, interaction);
     }
   }
 
-  private async handleConfirm(
-    request: SignupSchema,
+  private async handleConfirmationError(
+    error: unknown,
     interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
-  ) {
-    const [existing, reviewChannelId] = await Promise.all([
-      this.repository.findById(SignupCollection.getKeyForSignup(request)),
-      this.settingsService.getReviewChannel(interaction.guildId),
-    ]);
+  ): Promise<void> {
+    // Enhanced error handling with ErrorService
+    const errorEmbed = this.errorService.handleCommandError(error, interaction);
 
-    // quick and dirty way to delete the prior signup approval they might have had stored
-    if (existing?.reviewMessageId && reviewChannelId) {
-      try {
-        shouldDeleteReviewMessageForSignup(existing) &&
-          (await this.discordService.deleteMessage(
-            interaction.guildId,
-            reviewChannelId,
-            existing.reviewMessageId,
-          ));
-      } catch (e) {
-        this.logger.error(e);
+    // Preserve Discord-specific error handling
+    if (error && typeof error === 'object' && 'code' in error) {
+      if (error.code === DiscordjsErrorCodes.InteractionCollectorError) {
+        await interaction.editReply({
+          content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
+          embeds: [],
+          components: [],
+        });
+        return;
       }
     }
 
-    const signup = await this.repository.upsert(request);
-
-    await interaction.editReply({
-      content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED,
-      ...CLEAR_EMBED,
-    });
-
-    return signup;
-  }
-
-  private async handleCancel(interaction: ChatInputCommandInteraction) {
-    await interaction.editReply({
-      content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CANCELLED,
-      ...CLEAR_EMBED,
-    });
-  }
-
-  private createSignupRequest({
-    options,
-    user,
-  }: ChatInputCommandInteraction):
-    | [SignupSchema, undefined]
-    | [undefined, ZodError<SignupSchema>] {
-    const request = {
-      availability: options.getString('availability', true),
-      character: options.getString('character', true),
-      discordId: user.id,
-      encounter: options.getString('encounter', true) as Encounter,
-      notes: options.getString('notes'),
-      proofOfProgLink: options.getString('prog-proof-link'),
-      progPointRequested: options.getString('prog-point', true),
-      role: options.getString('job', true),
-      screenshot: options.getAttachment('screenshot')?.url,
-      username: user.username,
-      world: options.getString('world', true),
-    };
-
-    const result = signupSchema.safeParse(request);
-
-    if (!result.success) {
-      return [undefined, result.error];
-    }
-
-    return [result.data, undefined];
-  }
-
-  private createSignupConfirmationEmbed(
-    {
-      availability,
-      character,
-      encounter,
-      notes,
-      proofOfProgLink,
-      role,
-      screenshot,
-      world,
-      progPointRequested,
-    }: SignupSchema,
-    displayName: string,
-  ) {
-    const fields = createFields([
-      characterField(character),
-      worldField(world, 'Home World'),
-      { name: 'Job', value: role, inline: true },
-      { name: 'Prog Point', value: progPointRequested, inline: true },
-      { name: 'Availability', value: availability, inline: true },
-      { name: 'Prof Proof Link', value: proofOfProgLink, inline: true },
-      { name: 'Notes', value: notes, inline: false },
-    ]);
-
-    const embed = new EmbedBuilder()
-      .setTitle(EncounterFriendlyDescription[encounter])
-      .setDescription("Here's a summary of your signup request")
-      .addFields(fields);
-
-    if (displayName.toLowerCase().trim() !== character.trim()) {
-      // display a warning that their name does not match. it could be a spelling mistake
-      embed.addFields({
-        name: '⚠️ Name Mismatch Warning',
-        value: `Your Discord display name \`${displayName}\` doesn't match your submitted character name \`${titleCase(character)}\`. Please be sure this is correct before confirming.\n\nNames can be updated by visting the ${channelLink('1264643007848906884')} channel. Please refer to the pinned FAQ for more information.`,
-        inline: false,
-      });
-    }
-
-    return screenshot ? embed.setImage(screenshot) : embed;
-  }
-
-  private createValidationErrorsEmbed(error: ZodError) {
-    const fields = error.issues.flatMap((issue, index) => {
-      const { message } = issue;
-
-      return {
-        // The property names are ugly to present to the user. Alternatively we could use a dictionary to map the property names
-        // to friendly names
-        name: `Error #${index + 1}`,
-        value: message,
-      };
-    });
-
-    const embed = new EmbedBuilder()
-      .setTitle('Error')
-      .setColor(Colors.Red)
-      .setDescription('Please correct the following errors')
-      .addFields(fields);
-
-    return embed;
-  }
-
-  private createFFLogsValidationErrorEmbed(errorMessage: string) {
-    return new EmbedBuilder()
-      .setColor(Colors.Red)
-      .setTitle('❌ FFLogs Check Failed')
-      .setDescription(errorMessage)
-      .setTimestamp();
-  }
-
-  /**
-   * Validates an FFLogs URL for security and report age requirements.
-   *
-   * This method performs comprehensive validation of FFLogs URLs to prevent
-   * security vulnerabilities like URL spoofing while ensuring reports meet
-   * age requirements for competitive integrity.
-   *
-   * Security considerations:
-   * - Uses exact hostname matching to prevent subdomain spoofing attacks
-   * - Validates URL format before attempting report code extraction
-   * - Only accepts fflogs.com and www.fflogs.com as valid domains
-   *
-   * @param proofOfProgLink The URL string to validate, or null if none provided
-   * @returns Promise<FFLogsValidationResult> - Validation result with success status and error details
-   */
-  private async validateFFLogsUrl(
-    proofOfProgLink: string | null,
-  ): Promise<FFLogsValidationResult> {
-    if (!proofOfProgLink) {
-      return { success: true }; // No URL to validate
-    }
-
-    const url = new URL(proofOfProgLink);
-    const reportCode = extractFflogsReportCode(url);
-
-    if (isFFLogsUrl(url) && !reportCode) {
-      return {
-        success: false,
-        errorMessage: `Invalid FFLogs URL format. Please provide a valid link to a report. Not a profile or any other fflogs link.
-          
-          Example: https://www.fflogs.com/reports/2XG7tZp1AjQcWTn9?fight=3&type=damage-done
-          `,
-        errorType: 'format',
-      };
-    }
-
-    if (reportCode) {
-      // Only proceed with FFLogs validation if we successfully extracted a report code
-      try {
-        const fflogsValidation =
-          await this.fflogsService.validateReportAge(reportCode);
-
-        if (!fflogsValidation.isValid) {
-          this.logger.log(fflogsValidation.errorMessage);
-
-          return {
-            success: false,
-            errorMessage:
-              fflogsValidation.errorMessage || 'FFLogs validation failed',
-            errorType: 'age',
-          };
-        }
-      } catch (error) {
-        this.logger.warn('Error validating FFLogs report age:', error);
-        return {
-          success: false,
-          errorMessage:
-            'Unable to validate report age due to API issues. Report will be reviewed manually.',
-          errorType: 'api',
-        };
-      }
-    }
-
-    return { success: true }; // Validation passed or no FFLogs URL provided
+    // Default error response
+    await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
 
