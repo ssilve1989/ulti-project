@@ -176,13 +176,13 @@ class SignupCollection {
   }
 
   @SentryTraced()
-  public async removeSignup({
+  public async removeSignup<T>({
     character,
     world,
     encounter,
-  }: ExactType<SignupDocument, 'character' | 'encounter' | 'world'>) {
-    const doc = await this.where({ character, encounter, world }).get();
-    return Promise.all(doc.docs.map((doc) => doc.ref.delete()));
+  }: Exact<T, Pick<SignupDocument, 'character' | 'encounter' | 'world'>>) {
+    const snapshot = await this.where({ character, encounter, world }).get();
+    return Promise.all(snapshot.docs.map((doc) => doc.ref.delete()));
   }
 
   /**
