@@ -37,6 +37,7 @@ import { ErrorService } from '../../../../error/error.service.js';
 import { FFLogsService } from '../../../../fflogs/fflogs.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../../firebase/collections/signup.collection.js';
+import type { SignupDocument } from '../../../../firebase/models/signup.model.js';
 import { SignupCreatedEvent } from '../../events/signup.events.js';
 import { SIGNUP_MESSAGES } from '../../signup.consts.js';
 import { type SignupSchema, signupSchema } from '../../signup.schema.js';
@@ -47,11 +48,14 @@ import {
 } from '../../signup.utils.js';
 import { SignupCommand } from '../signup.commands.js';
 
-// reusable object to clear a messages emebed + button interaction
+// reusable object to clear a messages embed + button interaction
 const CLEAR_EMBED = {
   embeds: [],
   components: [],
-};
+} as const;
+
+// Channel ID for name update instructions
+const NAME_UPDATE_CHANNEL_ID = '1264643007848906884';
 
 type FFLogsValidationResult =
   | { success: true }
@@ -96,14 +100,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       signupRequest.proofOfProgLink,
     );
 
-    // Add FFLogs validation context
-    Sentry.setContext('fflogs_validation', {
-      hasUrl: !!signupRequest.proofOfProgLink,
-      validationResult: fflogsValidationResult.success
-        ? 'success'
-        : fflogsValidationResult.errorType,
-    });
-
     if (!fflogsValidationResult.success) {
       await interaction.editReply({
         embeds: [
@@ -122,23 +118,26 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   private async handleConfirm(
     request: SignupSchema,
     interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
-  ) {
+  ): Promise<SignupDocument | undefined> {
     const [existing, reviewChannelId] = await Promise.all([
       this.repository.findById(SignupCollection.getKeyForSignup(request)),
       this.settingsService.getReviewChannel(interaction.guildId),
     ]);
 
-    // quick and dirty way to delete the prior signup approval they might have had stored
+    // Delete prior signup approval message if it exists and should be removed
     if (existing?.reviewMessageId && reviewChannelId) {
       try {
-        shouldDeleteReviewMessageForSignup(existing) &&
-          (await this.discordService.deleteMessage(
+        if (shouldDeleteReviewMessageForSignup(existing)) {
+          await this.discordService.deleteMessage(
             interaction.guildId,
             reviewChannelId,
             existing.reviewMessageId,
-          ));
-      } catch (e) {
-        this.logger.error(e);
+          );
+        }
+      } catch (error: unknown) {
+        this.errorService.captureError(error, {
+          message: 'Failed to delete review message',
+        });
       }
     }
 
@@ -152,7 +151,9 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     return signup;
   }
 
-  private async handleCancel(interaction: ChatInputCommandInteraction) {
+  private async handleCancel(
+    interaction: ChatInputCommandInteraction,
+  ): Promise<void> {
     await interaction.editReply({
       content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CANCELLED,
       ...CLEAR_EMBED,
@@ -165,11 +166,13 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   }: ChatInputCommandInteraction):
     | [SignupSchema, undefined]
     | [undefined, ZodError<SignupSchema>] {
+    const encounter = options.getString('encounter', true) as Encounter;
+
     const request = {
       availability: options.getString('availability', true),
       character: options.getString('character', true),
       discordId: user.id,
-      encounter: options.getString('encounter', true) as Encounter,
+      encounter,
       notes: options.getString('notes'),
       proofOfProgLink: options.getString('prog-proof-link'),
       progPointRequested: options.getString('prog-point', true),
@@ -201,7 +204,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       progPointRequested,
     }: SignupSchema,
     displayName: string,
-  ) {
+  ): EmbedBuilder {
     const fields = createFields([
       characterField(character),
       worldField(world, 'Home World'),
@@ -221,7 +224,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       // display a warning that their name does not match. it could be a spelling mistake
       embed.addFields({
         name: '⚠️ Name Mismatch Warning',
-        value: `Your Discord display name \`${displayName}\` doesn't match your submitted character name \`${titleCase(character)}\`. Please be sure this is correct before confirming.\n\nNames can be updated by visting the ${channelLink('1264643007848906884')} channel. Please refer to the pinned FAQ for more information.`,
+        value: `Your Discord display name \`${displayName}\` doesn't match your submitted character name \`${titleCase(character)}\`. Please be sure this is correct before confirming.\n\nNames can be updated by visting the ${channelLink(NAME_UPDATE_CHANNEL_ID)} channel. Please refer to the pinned FAQ for more information.`,
         inline: false,
       });
     }
@@ -229,7 +232,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     return screenshot ? embed.setImage(screenshot) : embed;
   }
 
-  private createValidationErrorsEmbed(error: ZodError) {
+  private createValidationErrorsEmbed(error: ZodError): EmbedBuilder {
     const fields = error.issues.flatMap((issue, index) => {
       const { message } = issue;
 
@@ -250,7 +253,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     return embed;
   }
 
-  private createFFLogsValidationErrorEmbed(errorMessage: string) {
+  private createFFLogsValidationErrorEmbed(errorMessage: string): EmbedBuilder {
     return new EmbedBuilder()
       .setColor(Colors.Red)
       .setTitle('❌ FFLogs Check Failed')
@@ -277,51 +280,90 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     proofOfProgLink: string | null,
   ): Promise<FFLogsValidationResult> {
     if (!proofOfProgLink) {
+      // Add FFLogs validation context for Sentry
+      Sentry.setContext('fflogs_validation', {
+        hasUrl: false,
+        validationResult: 'success',
+      });
       return { success: true }; // No URL to validate
     }
 
-    const url = new URL(proofOfProgLink);
-    const reportCode = extractFflogsReportCode(url);
+    try {
+      const url = new URL(proofOfProgLink);
+      const reportCode = extractFflogsReportCode(url);
 
-    if (isFFLogsUrl(url) && !reportCode) {
-      return {
-        success: false,
-        errorMessage: `Invalid FFLogs URL format. Please provide a valid link to a report. Not a profile or any other fflogs link.
-          
-          Example: https://www.fflogs.com/reports/2XG7tZp1AjQcWTn9?fight=3&type=damage-done
-          `,
-        errorType: 'format',
-      };
-    }
+      if (isFFLogsUrl(url) && !reportCode) {
+        // Add FFLogs validation context for Sentry
+        Sentry.setContext('fflogs_validation', {
+          hasUrl: true,
+          validationResult: 'format',
+        });
+        return {
+          success: false,
+          errorMessage: `Invalid FFLogs URL format. Please provide a valid link to a report. Not a profile or any other fflogs link.
+            
+            Example: https://www.fflogs.com/reports/2XG7tZp1AjQcWTn9?fight=3&type=damage-done
+            `,
+          errorType: 'format',
+        };
+      }
 
-    if (reportCode) {
-      // Only proceed with FFLogs validation if we successfully extracted a report code
-      try {
-        const fflogsValidation =
-          await this.fflogsService.validateReportAge(reportCode);
+      if (reportCode) {
+        // Only proceed with FFLogs validation if we successfully extracted a report code
+        try {
+          const fflogsValidation =
+            await this.fflogsService.validateReportAge(reportCode);
 
-        if (!fflogsValidation.isValid) {
-          this.logger.log(fflogsValidation.errorMessage);
+          if (!fflogsValidation.isValid) {
+            this.logger.log(fflogsValidation.errorMessage);
 
+            // Add FFLogs validation context for Sentry
+            Sentry.setContext('fflogs_validation', {
+              hasUrl: true,
+              validationResult: 'age',
+            });
+            return {
+              success: false,
+              errorMessage:
+                fflogsValidation.errorMessage || 'FFLogs validation failed',
+              errorType: 'age',
+            };
+          }
+        } catch (error: unknown) {
+          this.logger.warn('Error validating FFLogs report age:', error);
+          // Add FFLogs validation context for Sentry
+          Sentry.setContext('fflogs_validation', {
+            hasUrl: true,
+            validationResult: 'api',
+          });
           return {
             success: false,
             errorMessage:
-              fflogsValidation.errorMessage || 'FFLogs validation failed',
-            errorType: 'age',
+              'Unable to validate report age due to API issues. Report will be reviewed manually.',
+            errorType: 'api',
           };
         }
-      } catch (error) {
-        this.logger.warn('Error validating FFLogs report age:', error);
-        return {
-          success: false,
-          errorMessage:
-            'Unable to validate report age due to API issues. Report will be reviewed manually.',
-          errorType: 'api',
-        };
       }
-    }
 
-    return { success: true }; // Validation passed or no FFLogs URL provided
+      // Add FFLogs validation context for Sentry (success case)
+      Sentry.setContext('fflogs_validation', {
+        hasUrl: true,
+        validationResult: 'success',
+      });
+      return { success: true }; // Validation passed or no FFLogs URL provided
+    } catch (_: unknown) {
+      // Handle URL parsing errors
+      // Add FFLogs validation context for Sentry
+      Sentry.setContext('fflogs_validation', {
+        hasUrl: true,
+        validationResult: 'format',
+      });
+      return {
+        success: false,
+        errorMessage: 'Invalid URL format. Please provide a valid URL.',
+        errorType: 'format',
+      };
+    }
   }
 
   private async validateConfiguration(
