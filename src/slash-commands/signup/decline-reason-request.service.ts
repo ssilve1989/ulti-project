@@ -240,14 +240,6 @@ export class DeclineReasonRequestService {
         declineReason,
       );
       this.eventBus.publish(declineEvent);
-
-      this.logger.log(
-        `Dispatched SignupDeclineReasonCollectedEvent for signup ${signup.discordId}-${signup.encounter}${
-          declineReason
-            ? ` with reason: ${declineReason}`
-            : ' (no specific reason)'
-        }`,
-      );
     } catch (error) {
       this.reportError(error, { signup, reviewer });
       this.logger.error(
