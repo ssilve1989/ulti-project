@@ -1,9 +1,13 @@
 import { URL } from 'node:url';
+import { DiscordjsErrorCodes, Embed, EmbedBuilder } from 'discord.js';
+import { match, P } from 'ts-pattern';
+import { DocumentNotFoundException } from '../../firebase/firebase.exceptions.js';
 import {
   PartyStatus,
   type SignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
+import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 
 export function shouldDeleteReviewMessageForSignup({ status }: SignupDocument) {
   // we don't want to remove approvals that were already handled since they
@@ -65,4 +69,62 @@ export function extractFflogsReportCode(url: string | URL): string | null {
     // Invalid URL
     return null;
   }
+}
+
+/**
+ * Checks if the reaction emoji is a valid signup review reaction
+ */
+export function isValidReactionEmoji(emojiName: string | null): boolean {
+  return (
+    emojiName === SIGNUP_REVIEW_REACTIONS.APPROVED ||
+    emojiName === SIGNUP_REVIEW_REACTIONS.DECLINED
+  );
+}
+
+/**
+ * Checks if the reaction is from a bot (same as message author)
+ */
+export function isBotReaction(
+  messageAuthorId: string,
+  userId: string,
+): boolean {
+  return messageAuthorId === userId;
+}
+
+/**
+ * Maps error types to appropriate user-facing messages
+ */
+export function getErrorReplyMessage(error: unknown): string {
+  return match(error)
+    .with(
+      P.instanceOf(DocumentNotFoundException),
+      () => SIGNUP_MESSAGES.SIGNUP_NOT_FOUND_FOR_REACTION,
+    )
+    .with(
+      { code: DiscordjsErrorCodes.InteractionCollectorError },
+      () => SIGNUP_MESSAGES.PROG_DM_TIMEOUT,
+    )
+    .otherwise(() => SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR);
+}
+
+/**
+ * Builds an embed for prog point confirmation, optionally showing existing prog point
+ */
+export function buildProgPointConfirmationEmbed(
+  sourceEmbed: Embed,
+  existingProgPoint?: string,
+): EmbedBuilder {
+  const embedBuilder = EmbedBuilder.from(sourceEmbed);
+
+  if (existingProgPoint) {
+    embedBuilder.addFields([
+      {
+        name: 'Previously Approved Prog Point',
+        value: existingProgPoint,
+        inline: true,
+      },
+    ]);
+  }
+
+  return embedBuilder;
 }
