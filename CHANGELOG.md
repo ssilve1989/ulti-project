@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.38.1](https://github.com/ssilve1989/ulti-project/compare/v1.38.0...v1.38.1) (2025-07-28)
+
+
+### Bug Fixes
+
+* **signup:** replace as any with proper ActionRowBuilder types ([f987fca](https://github.com/ssilve1989/ulti-project/commit/f987fcab8b1192b44a2802a15725959341804fe5))
+* **signups:** enforce reviewer role requirement and improve error handling ([#888](https://github.com/ssilve1989/ulti-project/issues/888)) ([e4a09db](https://github.com/ssilve1989/ulti-project/commit/e4a09dbbecc505126057cd7c1081464d021fa359))
+* **signups:** optimize upsert to preserve existing data and reduce db reads ([#889](https://github.com/ssilve1989/ulti-project/issues/889)) ([18fb74a](https://github.com/ssilve1989/ulti-project/commit/18fb74a390a4180bd9be1bef584fa94d7e662d45))
+
+
+### Performance Improvements
+
+* **signups:** optimize upsert method to reduce redundant reads ([#885](https://github.com/ssilve1989/ulti-project/issues/885)) ([dde5cc9](https://github.com/ssilve1989/ulti-project/commit/dde5cc946eb630a1439790c7b497f57140670f98))
+
 ## [1.38.0](https://github.com/ssilve1989/ulti-project/compare/v1.37.0...v1.38.0) (2025-07-25)
 
 
