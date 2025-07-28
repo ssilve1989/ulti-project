@@ -9,7 +9,6 @@ import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
   ActionRowBuilder,
-  DiscordjsErrorCodes,
   Embed,
   EmbedBuilder,
   type Emoji,
@@ -30,7 +29,7 @@ import {
   mergeMap,
   Subscription,
 } from 'rxjs';
-import { match, P } from 'ts-pattern';
+import { match } from 'ts-pattern';
 import { isSameUserFilter } from '../../common/collection-filters.js';
 import { getMessageLink } from '../../discord/discord.consts.js';
 import { hydrateReaction, hydrateUser } from '../../discord/discord.helpers.js';
@@ -42,7 +41,6 @@ import { EncountersComponentsService } from '../../encounters/encounters-compone
 import { ErrorService } from '../../error/error.service.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import { DocumentNotFoundException } from '../../firebase/firebase.exceptions.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import {
   PartyStatus,
@@ -55,7 +53,13 @@ import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
 } from './events/signup.events.js';
-import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
+import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
+import {
+  buildProgPointConfirmationEmbed,
+  getErrorReplyMessage,
+  isBotReaction,
+  isValidReactionEmoji,
+} from './signup.utils.js';
 
 type ReactionEvent = {
   reaction: MessageReaction | PartialMessageReaction;
@@ -127,10 +131,17 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     Sentry.setExtra('message', getMessageLink(event.reaction.message));
 
     try {
-      const [reaction, user, settings] = await Promise.all([
+      const settings = await this.settingsCollection.getSettings(
+        event.reaction.message.guildId,
+      );
+
+      if (!settings) {
+        return;
+      }
+
+      const [reaction, user] = await Promise.all([
         hydrateReaction(event.reaction),
         hydrateUser(event.user),
-        this.settingsCollection.getSettings(event.reaction.message.guildId),
       ]);
 
       Sentry.setUser({
@@ -138,22 +149,20 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         username: user.username,
       });
 
-      const shouldHandle =
-        !!settings &&
-        (await this.shouldHandleReaction(
-          {
-            message: event.reaction.message,
-            emoji: reaction.emoji,
-          },
-          user,
-          settings,
-        ));
+      const shouldHandle = await this.shouldHandleReaction(
+        {
+          message: event.reaction.message,
+          emoji: reaction.emoji,
+        },
+        user,
+        settings,
+      );
 
       Sentry.setExtra('shouldHandleReaction', shouldHandle);
 
-      return shouldHandle
-        ? await this.handleReaction(reaction, user, settings)
-        : undefined;
+      if (shouldHandle) {
+        await this.handleReaction(reaction, user, settings);
+      }
     } catch (error) {
       this.handleError(error, event.user, event.reaction.message);
     }
@@ -198,32 +207,33 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User,
     settings: SettingsDocument,
   ): Promise<boolean> {
-    const reviewChannelId = settings.reviewChannel;
-
-    // Check that this event was the in the configured channel
-    if (message.channelId !== reviewChannelId) {
+    // Check that this event was in the configured review channel
+    if (message.channelId !== settings.reviewChannel) {
       return false;
     }
 
-    if (!settings?.reviewerRole) {
+    if (!settings.reviewerRole) {
       throw new Error(
         `No reviewer role configured for guild: ${message.guildId}`,
       );
     }
 
-    const isAllowedUser = await this.discordService.userHasRole({
+    // Check if reaction is from the bot itself
+    if (isBotReaction(message.author?.id ?? '', user.id)) {
+      return false;
+    }
+
+    // Check if emoji is a valid review reaction
+    if (!isValidReactionEmoji(emoji.name)) {
+      return false;
+    }
+
+    // Check if user has reviewer role
+    return await this.discordService.userHasRole({
       userId: user.id,
       roleId: settings.reviewerRole,
       guildId: message.guildId,
     });
-
-    const isExpectedReactionType =
-      emoji.name === SIGNUP_REVIEW_REACTIONS.APPROVED ||
-      emoji.name === SIGNUP_REVIEW_REACTIONS.DECLINED;
-
-    const isBotReacting = message.author?.id === user.id;
-
-    return !isBotReacting && isAllowedUser && isExpectedReactionType;
   }
 
   private async handleApprovedReaction(
@@ -232,28 +242,45 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User,
     settings: SettingsDocument,
   ): Promise<SignupApprovedEvent> {
+    const progPoint = await this.confirmProgPoint(signup, message, user);
+    const confirmedSignup = await this.buildConfirmedSignup(signup, progPoint);
+    await this.persistApprovedSignup(confirmedSignup, settings, user);
+
+    return new SignupApprovedEvent(confirmedSignup, settings, user, message);
+  }
+
+  private async confirmProgPoint(
+    signup: SignupDocument,
+    message: Message<true>,
+    user: User,
+  ): Promise<string | undefined> {
     const {
       embeds: [sourceEmbed],
     } = message;
 
-    const progPoint = await this.requestProgPointConfirmation(
-      signup,
-      sourceEmbed,
-      user,
-    );
+    return await this.requestProgPointConfirmation(signup, sourceEmbed, user);
+  }
 
+  private async buildConfirmedSignup(
+    signup: SignupDocument,
+    progPoint: string | undefined,
+  ): Promise<SignupDocument> {
     const partyStatus = progPoint
       ? await this.getPartyStatus(signup.encounter, progPoint)
       : undefined;
 
-    const confirmedSignup: SignupDocument = {
+    return {
       ...signup,
       progPoint,
       partyStatus,
     };
+  }
 
-    const hasCleared = partyStatus === PartyStatus.Cleared;
-
+  private async persistApprovedSignup(
+    confirmedSignup: SignupDocument,
+    settings: SettingsDocument,
+    user: User,
+  ): Promise<void> {
     if (settings.spreadsheetId) {
       await this.sheetsService.upsertSignup(
         confirmedSignup,
@@ -261,11 +288,13 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       );
     }
 
+    const hasCleared = confirmedSignup.partyStatus === PartyStatus.Cleared;
+
     if (hasCleared) {
       await this.repository.removeSignup({
-        character: signup.character,
-        world: signup.world,
-        encounter: signup.encounter,
+        character: confirmedSignup.character,
+        world: confirmedSignup.world,
+        encounter: confirmedSignup.encounter,
       });
     } else {
       await this.repository.updateSignupStatus(
@@ -274,8 +303,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         user.username,
       );
     }
-
-    return new SignupApprovedEvent(confirmedSignup, settings, user, message);
   }
 
   private async handleDeclinedReaction(
@@ -309,16 +336,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User | PartialUser,
     message: Message | PartialMessage,
   ): Promise<void> {
-    const reply = match(error)
-      .with(
-        P.instanceOf(DocumentNotFoundException),
-        () => SIGNUP_MESSAGES.SIGNUP_NOT_FOUND_FOR_REACTION,
-      )
-      .with(
-        { code: DiscordjsErrorCodes.InteractionCollectorError },
-        () => SIGNUP_MESSAGES.PROG_DM_TIMEOUT,
-      )
-      .otherwise(() => SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR);
+    const reply = getErrorReplyMessage(error);
 
     Sentry.setContext('reply', { reply });
     this.errorService.captureError(error);
@@ -341,30 +359,47 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     sourceEmbed: Embed,
     user: User,
   ): Promise<string | undefined> {
-    const menu =
-      await this.encountersComponentsService.createProgPointSelectMenu(
-        signup.encounter,
-      );
-    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+    const menu = await this.createProgPointMenu(signup.encounter);
+    const embed = buildProgPointConfirmationEmbed(
+      sourceEmbed,
+      signup.progPoint,
+    );
+
+    const message = await this.sendProgPointConfirmationMessage(
+      user,
+      embed,
       menu,
     );
 
-    const embed = signup.progPoint
-      ? EmbedBuilder.from(sourceEmbed).addFields([
-          {
-            name: 'Previously Approved Prog Point',
-            value: signup.progPoint,
-            inline: true,
-          },
-        ])
-      : sourceEmbed;
+    return await this.collectProgPointResponse(message, user);
+  }
 
-    const message = await this.discordService.sendDirectMessage(user.id, {
+  private async createProgPointMenu(
+    encounter: Encounter,
+  ): Promise<ActionRowBuilder<StringSelectMenuBuilder>> {
+    const menu =
+      await this.encountersComponentsService.createProgPointSelectMenu(
+        encounter,
+      );
+    return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu);
+  }
+
+  private async sendProgPointConfirmationMessage(
+    user: User,
+    embed: Embed | EmbedBuilder,
+    row: ActionRowBuilder<StringSelectMenuBuilder>,
+  ): Promise<Message> {
+    return await this.discordService.sendDirectMessage(user.id, {
       content: 'Please confirm the prog point of the following signup',
       embeds: [embed],
       components: [row],
     });
+  }
 
+  private async collectProgPointResponse(
+    message: Message,
+    user: User,
+  ): Promise<string | undefined> {
     try {
       const reply = await message.awaitMessageComponent({
         time: 60_000 * 2, // 2 minutes
