@@ -119,19 +119,18 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     request: SignupSchema,
     interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
   ): Promise<SignupDocument | undefined> {
-    const [existing, reviewChannelId] = await Promise.all([
-      this.repository.findById(SignupCollection.getKeyForSignup(request)),
+    const [signup, reviewChannelId] = await Promise.all([
+      this.repository.upsert(request),
       this.settingsService.getReviewChannel(interaction.guildId),
     ]);
 
-    // Delete prior signup approval message if it exists and should be removed
-    if (existing?.reviewMessageId && reviewChannelId) {
+    if (signup?.reviewMessageId && reviewChannelId) {
       try {
-        if (shouldDeleteReviewMessageForSignup(existing)) {
+        if (shouldDeleteReviewMessageForSignup(signup)) {
           await this.discordService.deleteMessage(
             interaction.guildId,
             reviewChannelId,
-            existing.reviewMessageId,
+            signup.reviewMessageId,
           );
         }
       } catch (error: unknown) {
@@ -140,8 +139,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
         });
       }
     }
-
-    const signup = await this.repository.upsert(request);
 
     await interaction.editReply({
       content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED,

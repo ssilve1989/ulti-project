@@ -59,14 +59,23 @@ describe('Signup Repository', () => {
   });
 
   it('should call update if document exists', async () => {
+    const existingData = {
+      ...signupRequest,
+      status: SignupStatus.APPROVED,
+      reviewedBy: 'someReviewer',
+    };
     doc.get.mockResolvedValueOnce(
-      createMock<DocumentSnapshot>({ exists: true }),
+      createMock<DocumentSnapshot>({
+        exists: true,
+        data: () => existingData as any,
+      }),
     );
 
     const result = await repository.upsert(signupRequest);
 
     expect(doc.update).toHaveBeenCalledWith(
       expect.objectContaining({
+        ...existingData,
         ...signupRequest,
         status: SignupStatus.UPDATE_PENDING,
         reviewedBy: null,
@@ -75,15 +84,46 @@ describe('Signup Repository', () => {
 
     expect(doc.create).not.toHaveBeenCalled();
     expect(result).toMatchObject({
+      ...existingData,
       ...signupRequest,
       status: SignupStatus.UPDATE_PENDING,
       reviewedBy: null,
     });
   });
 
+  it('should preserve PENDING status when updating an existing PENDING signup', async () => {
+    const existingData = {
+      ...signupRequest,
+      status: SignupStatus.PENDING,
+      reviewedBy: null,
+    };
+    doc.get.mockResolvedValueOnce(
+      createMock<DocumentSnapshot>({
+        exists: true,
+        data: () => existingData as any,
+      }),
+    );
+
+    const result = await repository.upsert(signupRequest);
+
+    expect(doc.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...existingData,
+        ...signupRequest,
+        status: SignupStatus.PENDING, // Should remain PENDING
+        reviewedBy: null,
+      }),
+    );
+
+    expect(result.status).toBe(SignupStatus.PENDING);
+  });
+
   it('should call create if the document does not exist', async () => {
     doc.get.mockResolvedValueOnce(
-      createMock<DocumentSnapshot>({ exists: false }),
+      createMock<DocumentSnapshot>({
+        exists: false,
+        data: () => null as any,
+      }),
     );
 
     const result = await repository.upsert(signupRequest);
