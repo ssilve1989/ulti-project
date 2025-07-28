@@ -128,9 +128,10 @@ describe('Signup Command Handler', () => {
       );
 
       interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
-      signupCollectionMock.findById.mockResolvedValueOnce(
+      signupCollectionMock.upsert.mockResolvedValueOnce(
         createMock<SignupDocument>({
           status,
+          reviewMessageId: 'messageId123',
         }),
       );
 
@@ -149,23 +150,25 @@ describe('Signup Command Handler', () => {
 
   it.each([SignupStatus.APPROVED, SignupStatus.DECLINED])(
     'does not call delete if the prior approval has status %s',
-    (status) => {
+    async (status) => {
       confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
         createMock<ChannelSelectMenuInteraction>({
           customId: 'confirm',
           valueOf: () => '',
+          guildId: 'g123',
         }),
       );
 
       interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
-      signupCollectionMock.findById.mockResolvedValueOnce(
+      signupCollectionMock.upsert.mockResolvedValueOnce(
         createMock<SignupDocument>({
           status,
+          reviewMessageId: 'messageId123',
         }),
       );
 
       const command = new SignupCommand(interaction);
-      handler.execute(command);
+      await handler.execute(command);
 
       expect(discordServiceMock.deleteMessage).not.toHaveBeenCalled();
     },

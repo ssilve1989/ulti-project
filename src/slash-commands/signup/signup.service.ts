@@ -328,6 +328,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       message.reactions.cache
         .get(SIGNUP_REVIEW_REACTIONS.APPROVED)
         ?.users.remove(user.id),
+      message.reactions.cache
+        .get(SIGNUP_REVIEW_REACTIONS.DECLINED)
+        ?.users.remove(user.id),
       this.discordService.sendDirectMessage(user.id, reply),
     ]);
   }

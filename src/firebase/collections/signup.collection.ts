@@ -38,30 +38,37 @@ class SignupCollection {
    */
   @SentryTraced()
   public async upsert(
-    signup: CreateSignupDocumentProps,
+    props: CreateSignupDocumentProps,
   ): Promise<SignupDocument> {
-    const key = SignupCollection.getKeyForSignup(signup);
+    const key = SignupCollection.getKeyForSignup(props);
     const document = this.collection.doc(key);
     const expiresAt = Timestamp.fromDate(day().add(28, 'days').toDate());
     const snapshot = await document.get();
+    const existing = snapshot.data();
 
-    if (snapshot.exists) {
-      // if there is already a signup, we move the status to be UPDATE_PENDING
-      // to differentiate it from a new signup PENDING
+    if (existing) {
       const signupData = {
-        ...signup,
-        status: SignupStatus.UPDATE_PENDING,
+        ...existing,
+        ...props,
+        // if there is already a signup and it is still PENDING we do nothing, otherwise we move it to UPDATE_PENDING
+        status:
+          existing.status === SignupStatus.PENDING
+            ? SignupStatus.PENDING
+            : SignupStatus.UPDATE_PENDING,
+        // reset the reviewedBy field because it now has to be reviewed again
         reviewedBy: null,
         expiresAt,
       };
       await document.update(signupData);
       return signupData;
     }
+
     const signupData = {
-      ...signup,
+      ...props,
       expiresAt,
       status: SignupStatus.PENDING,
     };
+
     await document.create(signupData);
     return signupData;
   }
