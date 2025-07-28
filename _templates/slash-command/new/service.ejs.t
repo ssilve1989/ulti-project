@@ -1,5 +1,5 @@
 ---
-to: src/<%=name%>/<%=name%>.service.ts
+to: src/slash-commands/<%=name%>/<%=name%>.service.ts
 ---
 import { Injectable } from '@nestjs/common';
 

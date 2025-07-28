@@ -1,9 +1,10 @@
 ---
-to: src/<%=name%>/<%= name %>.command.ts
+to: src/slash-commands/<%=name%>/<%=name%>.command.ts
 ---
-import { Injectable } from '@nestjs/common';
+import type { ChatInputCommandInteraction } from 'discord.js';
 
-@Injectable()
-class <%= h.changeCase.pascal(name) %>Command {}
+class <%= h.changeCase.pascal(name) %>Command {
+  constructor(public readonly interaction: ChatInputCommandInteraction) {}
+}
 
 export { <%= h.changeCase.pascal(name) %>Command };

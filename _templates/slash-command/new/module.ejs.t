@@ -1,15 +1,16 @@
 ---
-to: src/<%=name%>/<%=name%>.module.ts
+to: src/slash-commands/<%=name%>/<%=name%>.module.ts
 ---
-
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
-import { <%= h.changeCase.pascal(name) %>Service } from './<%= name %>.service.js';
-import { <%= h.changeCase.pascal(name) %>CommandHandler } from './<%= h.changeCase.pascal(name) %>.command-handler.js';
+import { ErrorModule } from '../../error/error.module.js';
+import { SlashCommandsSharedModule } from '../shared/slash-commands-shared.module.js';
+import { <%= h.changeCase.pascal(name) %>CommandHandler } from './<%=name%>.command-handler.js';
 
 @Module({
-  imports: [CqrsModule],
-  providers: [<%= h.changeCase.pascal(name) %>Service, <%= h.changeCase.pascal(name) %>CommandHandler],
+  imports: [CqrsModule, ConfigModule, ErrorModule, SlashCommandsSharedModule],
+  providers: [<%= h.changeCase.pascal(name) %>CommandHandler],
 })
 class <%= h.changeCase.pascal(name) %>Module {}
 

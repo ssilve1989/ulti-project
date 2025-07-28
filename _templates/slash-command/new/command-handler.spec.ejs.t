@@ -1,11 +1,11 @@
 ---
-to: src/<%=name%>/<%=name%>.command-handler.spec.ts
+to: src/slash-commands/<%=name%>/<%=name%>.command-handler.spec.ts
 ---
 import { Test } from '@nestjs/testing';
 import { createMock } from '@golevelup/ts-vitest';
 import { <%= h.changeCase.pascal(name) %>CommandHandler } from './<%=name%>.command-handler.js';
 
-describe("<%=h.changeCase.pascal(name)%>CommandHandler", () => {
+describe('<%=h.changeCase.pascal(name)%>CommandHandler', () => {
   let handler: <%= h.changeCase.pascal(name) %>CommandHandler;
 
   beforeEach(async () => {
@@ -15,8 +15,8 @@ describe("<%=h.changeCase.pascal(name)%>CommandHandler", () => {
       .useMocker(() => createMock())
       .compile();
 
-    handler = fixture.get(<%= h.changeCase.pascal(name) %>CommandHandler);  
-  })
+    handler = fixture.get(<%= h.changeCase.pascal(name) %>CommandHandler);
+  });
 
   it('should be defined', () => {
     expect(handler).toBeDefined();
