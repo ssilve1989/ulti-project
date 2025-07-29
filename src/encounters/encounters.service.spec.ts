@@ -655,10 +655,10 @@ describe('EncountersService', () => {
       );
     });
 
-    it('should delegate removeProgPoint to collection', async () => {
-      await service.removeProgPoint('test-encounter', 'test-prog-point');
+    it('should delegate deactivateProgPoint to collection', async () => {
+      await service.deactivateProgPoint('test-encounter', 'test-prog-point');
 
-      expect(mockEncountersCollection.removeProgPoint).toHaveBeenCalledWith(
+      expect(mockEncountersCollection.deactivateProgPoint).toHaveBeenCalledWith(
         'test-encounter',
         'test-prog-point',
       );

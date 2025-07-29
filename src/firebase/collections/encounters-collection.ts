@@ -65,6 +65,14 @@ class EncountersCollection {
   public async getProgPoints(
     encounterId: string,
   ): Promise<ProgPointDocument[]> {
+    const allProgPoints = await this.getAllProgPoints(encounterId);
+    return allProgPoints.filter((p) => p.active);
+  }
+
+  @SentryTraced()
+  public async getAllProgPoints(
+    encounterId: string,
+  ): Promise<ProgPointDocument[]> {
     const cacheKey = this.progPointsCacheKey(encounterId);
     const cached = await this.cacheManager.get<ProgPointDocument[]>(cacheKey);
 
@@ -76,10 +84,7 @@ class EncountersCollection {
       .doc(encounterId)
       .collection('prog-points') as CollectionReference<ProgPointDocument>;
 
-    const snapshot = await progPointsCollection
-      .where('active', '==', true)
-      .orderBy('order')
-      .get();
+    const snapshot = await progPointsCollection.orderBy('order').get();
 
     const progPoints = snapshot.docs.map((doc) => doc.data());
 
@@ -116,11 +121,60 @@ class EncountersCollection {
   }
 
   @SentryTraced()
-  public async removeProgPoint(
+  public async deactivateProgPoint(
     encounterId: string,
     progPointId: string,
   ): Promise<void> {
     await this.updateProgPoint(encounterId, progPointId, { active: false });
+  }
+
+  @SentryTraced()
+  public async deleteProgPoint(
+    encounterId: string,
+    progPointId: string,
+  ): Promise<void> {
+    const progPointsCollection = this.collection
+      .doc(encounterId)
+      .collection('prog-points') as CollectionReference<ProgPointDocument>;
+
+    // Get the prog point to delete to find its order
+    const progPointDoc = await progPointsCollection.doc(progPointId).get();
+    const progPointToDelete = progPointDoc.data();
+
+    if (!progPointToDelete) {
+      throw new Error(`Prog point ${progPointId} not found`);
+    }
+
+    // Delete the document
+    await progPointsCollection.doc(progPointId).delete();
+
+    // Reorder remaining prog points to fill the gap
+    await this.reorderAfterDeletion(encounterId, progPointToDelete.order);
+
+    await this.updateProgPointsCache(encounterId);
+  }
+
+  @SentryTraced()
+  public async toggleProgPointActive(
+    encounterId: string,
+    progPointId: string,
+  ): Promise<void> {
+    const progPointsCollection = this.collection
+      .doc(encounterId)
+      .collection('prog-points') as CollectionReference<ProgPointDocument>;
+
+    const doc = await progPointsCollection.doc(progPointId).get();
+    const progPoint = doc.data();
+
+    if (!progPoint) {
+      throw new Error(`Prog point ${progPointId} not found`);
+    }
+
+    await progPointsCollection
+      .doc(progPointId)
+      .update({ active: !progPoint.active });
+
+    await this.updateProgPointsCache(encounterId);
   }
 
   @SentryTraced()
@@ -162,6 +216,35 @@ class EncountersCollection {
     return lastProgPoint.order + 1;
   }
 
+  @SentryTraced()
+  private async reorderAfterDeletion(
+    encounterId: string,
+    deletedOrder: number,
+  ): Promise<void> {
+    const progPointsCollection = this.collection
+      .doc(encounterId)
+      .collection('prog-points') as CollectionReference<ProgPointDocument>;
+
+    // Get all prog points with order greater than the deleted one
+    const snapshot = await progPointsCollection
+      .where('order', '>', deletedOrder)
+      .get();
+
+    if (snapshot.empty) {
+      return; // No reordering needed
+    }
+
+    const batch = this.firestore.batch();
+
+    // Decrease the order of all prog points after the deleted one by 1
+    for (const doc of snapshot.docs) {
+      const progPoint = doc.data();
+      batch.update(doc.ref, { order: progPoint.order - 1 });
+    }
+
+    await batch.commit();
+  }
+
   private async updateEncounterCache(encounterId: string): Promise<void> {
     const cacheKey = this.encounterCacheKey(encounterId);
     try {
@@ -189,10 +272,7 @@ class EncountersCollection {
         .doc(encounterId)
         .collection('prog-points') as CollectionReference<ProgPointDocument>;
 
-      const snapshot = await progPointsCollection
-        .where('active', '==', true)
-        .orderBy('order')
-        .get();
+      const snapshot = await progPointsCollection.orderBy('order').get();
 
       const progPoints = snapshot.docs.map((doc) => doc.data());
       await this.cacheManager.set(cacheKey, progPoints);
