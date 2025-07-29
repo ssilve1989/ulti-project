@@ -10,7 +10,6 @@ import {
   Colors,
   EmbedBuilder,
   type Interaction,
-  type InteractionCollector,
   MessageFlags,
   ModalBuilder,
   type ModalSubmitInteraction,
@@ -21,102 +20,25 @@ import {
 } from 'discord.js';
 import { isSameUserFilter } from '../../../../common/collection-filters.js';
 import { EncountersService } from '../../../../encounters/encounters.service.js';
+import { ErrorService } from '../../../../error/error.service.js';
 import type {
   EncounterDocument,
   ProgPointDocument,
 } from '../../../../firebase/models/encounter.model.js';
 import { PartyStatus } from '../../../../firebase/models/signup.model.js';
 import { ManageProgPointsCommand } from '../encounters.commands.js';
-
-enum ScreenState {
-  MAIN_MENU = 'main_menu',
-  TOGGLE_SELECTION = 'toggle_selection',
-  EDIT_SELECTION = 'edit_selection',
-  DELETE_SELECTION = 'delete_selection',
-  REORDER = 'reorder',
-  REORDER_POSITION = 'reorder_position',
-}
-
-// Type-safe interfaces for pending operations
-interface PendingAddOperation {
-  progPointId: string;
-  longName: string;
-  interaction: ModalSubmitInteraction;
-  insertPosition?: number;
-  action: 'add';
-}
-
-interface PendingPartyStatusOperation {
-  progPointId: string;
-  longName: string;
-  interaction?: ModalSubmitInteraction;
-  insertPosition?: number;
-  action: 'add' | 'edit';
-}
-
-interface PendingReorderOperation {
-  progPointToMove: string;
-  sortedProgPoints: ProgPointDocument[];
-}
-
-// Discord.js collector type - uses generic for MessageComponents
-type ProgPointCollector = InteractionCollector<any>;
-
-// Standard error type for consistency
-interface ProgPointError extends Error {
-  code?: string | number;
-  context?: Record<string, unknown>;
-}
-
-// Utility class for common UI patterns
-class ProgPointUIUtils {
-  /**
-   * Create a standardized back button
-   */
-  static createBackButton(
-    customId: string,
-    label = 'Back to Main Menu',
-  ): ButtonBuilder {
-    return new ButtonBuilder()
-      .setCustomId(customId)
-      .setLabel(label)
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('🔙');
-  }
-
-  /**
-   * Create a standardized action row with back button
-   */
-  static createBackButtonRow(
-    customId: string,
-    label?: string,
-  ): ActionRowBuilder<ButtonBuilder> {
-    return new ActionRowBuilder<ButtonBuilder>().addComponents(
-      this.createBackButton(customId, label),
-    );
-  }
-
-  /**
-   * Create a standardized success message with return option
-   */
-  static createSuccessWithReturnButton(message: string): {
-    content: string;
-    components: ActionRowBuilder<ButtonBuilder>[];
-  } {
-    const returnButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId('return-to-main')
-        .setLabel('Back to Main Menu')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji('🔙'),
-    );
-
-    return {
-      content: message,
-      components: [returnButton],
-    };
-  }
-}
+import {
+  type PendingAddOperation,
+  type PendingPartyStatusOperation,
+  type PendingReorderOperation,
+  type ProgPointCollector,
+  type ProgPointError,
+  ScreenState,
+} from './manage-prog-points.interfaces.js';
+import {
+  createBackButtonRow,
+  createSuccessWithReturnButton,
+} from './manage-prog-points.utils.js';
 
 /**
  * This handler was made by several different AI Models and could use some TLC.
@@ -141,7 +63,10 @@ export class ManageProgPointsCommandHandler
     null;
   private pendingReorderOperation: PendingReorderOperation | null = null;
 
-  constructor(private readonly encountersService: EncountersService) {}
+  constructor(
+    private readonly encountersService: EncountersService,
+    private readonly errorService: ErrorService,
+  ) {}
 
   @SentryTraced()
   async execute({
@@ -153,7 +78,7 @@ export class ManageProgPointsCommandHandler
     try {
       await this.initializeProgPointsManager(interaction, encounterId);
     } catch (error) {
-      this.logger.error(error, 'Failed to handle manage prog points command');
+      this.errorService.captureError(error);
       await interaction.editReply({
         content:
           '❌ An error occurred while loading prog points. Please try again.',
@@ -623,9 +548,7 @@ export class ManageProgPointsCommandHandler
 
     const selectRow =
       new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-    const buttonRow = ProgPointUIUtils.createBackButtonRow(
-      'back-to-main-toggle',
-    );
+    const buttonRow = createBackButtonRow('back-to-main-toggle');
 
     await this.updateMessage(
       'Select a prog point to toggle between active and inactive:',
@@ -643,7 +566,7 @@ export class ManageProgPointsCommandHandler
 
     const selectRow =
       new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-    const buttonRow = ProgPointUIUtils.createBackButtonRow('back-to-main');
+    const buttonRow = createBackButtonRow('back-to-main');
 
     await this.updateMessage(
       'Select a prog point to edit:',
@@ -661,9 +584,7 @@ export class ManageProgPointsCommandHandler
 
     const selectRow =
       new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-    const buttonRow = ProgPointUIUtils.createBackButtonRow(
-      'back-to-main-delete',
-    );
+    const buttonRow = createBackButtonRow('back-to-main-delete');
 
     await this.updateMessage(
       '⚠️ **WARNING**: Select a prog point to delete permanently. This action cannot be undone!',
@@ -806,7 +727,7 @@ export class ManageProgPointsCommandHandler
     successMessage: string,
   ): Promise<void> {
     const { content, components } =
-      ProgPointUIUtils.createSuccessWithReturnButton(successMessage);
+      createSuccessWithReturnButton(successMessage);
     await this.updateMessage(content, [], components);
   }
 
