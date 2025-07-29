@@ -53,7 +53,7 @@ export class ViewEncounterCommandHandler
   ): Promise<void> {
     const [encounter, progPoints] = await Promise.all([
       this.encountersService.getEncounter(encounterId),
-      this.encountersService.getProgPoints(encounterId),
+      this.encountersService.getAllProgPoints(encounterId),
     ]);
 
     if (!encounter) {
@@ -63,8 +63,11 @@ export class ViewEncounterCommandHandler
       return;
     }
 
+    // Sort prog points by order to maintain consistent display
+    const sortedProgPoints = [...progPoints].sort((a, b) => a.order - b.order);
+
     // Group prog points by party status
-    const groupedProgPoints = progPoints.reduce(
+    const groupedProgPoints = sortedProgPoints.reduce(
       (acc, progPoint) => {
         if (!acc[progPoint.partyStatus]) {
           acc[progPoint.partyStatus] = [];
@@ -107,7 +110,10 @@ export class ViewEncounterCommandHandler
       if (points.length > 0) {
         const statusEmoji = this.getStatusEmoji(status as PartyStatus);
         const pointsList = points
-          .map((p) => `• ${p.label} (${p.id})`)
+          .map((p) => {
+            const activeIcon = p.active ? '✅' : '❌';
+            return `• ${activeIcon} ${p.label} (${p.id})`;
+          })
           .join('\n');
 
         embed.addFields({
@@ -138,7 +144,7 @@ export class ViewEncounterCommandHandler
         try {
           const [encounter, progPoints] = await Promise.all([
             this.encountersService.getEncounter(encounterId),
-            this.encountersService.getProgPoints(encounterId),
+            this.encountersService.getAllProgPoints(encounterId),
           ]);
 
           return {
