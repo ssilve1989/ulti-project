@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SentryTraced } from '@sentry/nestjs';
 import { EncountersCollection } from '../firebase/collections/encounters-collection.js';
 import type {
   EncounterDocument,
@@ -14,12 +13,14 @@ export class EncountersService {
 
   constructor(private readonly encountersCollection: EncountersCollection) {}
 
-  @SentryTraced()
   public getProgPoints(encounterId: string): Promise<ProgPointDocument[]> {
     return this.encountersCollection.getProgPoints(encounterId);
   }
 
-  @SentryTraced()
+  public getAllProgPoints(encounterId: string): Promise<ProgPointDocument[]> {
+    return this.encountersCollection.getAllProgPoints(encounterId);
+  }
+
   public async getProgPointsAsOptions(
     encounterId: string,
   ): Promise<Record<string, ProgPointOption>> {
@@ -37,14 +38,12 @@ export class EncountersService {
     );
   }
 
-  @SentryTraced()
   public getEncounter(
     encounterId: string,
   ): Promise<EncounterDocument | undefined> {
     return this.encountersCollection.getEncounter(encounterId);
   }
 
-  @SentryTraced()
   public async addProgPoint(
     encounterId: string,
     progPointData: {
@@ -68,7 +67,6 @@ export class EncountersService {
     );
   }
 
-  @SentryTraced()
   public async updateProgPoint(
     encounterId: string,
     progPointId: string,
@@ -84,18 +82,86 @@ export class EncountersService {
     );
   }
 
-  @SentryTraced()
-  public async removeProgPoint(
+  public async deactivateProgPoint(
     encounterId: string,
     progPointId: string,
   ): Promise<void> {
-    await this.encountersCollection.removeProgPoint(encounterId, progPointId);
+    await this.encountersCollection.deactivateProgPoint(
+      encounterId,
+      progPointId,
+    );
     this.logger.log(
-      `Removed prog point ${progPointId} from encounter ${encounterId}`,
+      `Deactivated prog point ${progPointId} from encounter ${encounterId}`,
     );
   }
 
-  @SentryTraced()
+  public async deleteProgPoint(
+    encounterId: string,
+    progPointId: string,
+  ): Promise<void> {
+    // Enhanced validation for deletion - check threshold dependencies
+    const encounter = await this.encountersCollection.getEncounter(encounterId);
+    const allProgPoints = await this.getAllProgPoints(encounterId);
+    const progPoint = allProgPoints.find((p) => p.id === progPointId);
+
+    if (!progPoint) {
+      throw new Error(`Prog point ${progPointId} not found`);
+    }
+
+    // Check if prog point is used as a threshold - prevent deletion
+    if (encounter) {
+      if (
+        encounter.progPartyThreshold === progPointId ||
+        encounter.clearPartyThreshold === progPointId
+      ) {
+        throw new Error(
+          `Cannot delete prog point ${progPointId} as it is currently used as a threshold. Please update the thresholds first.`,
+        );
+      }
+    }
+
+    await this.encountersCollection.deleteProgPoint(encounterId, progPointId);
+    this.logger.log(
+      `Permanently deleted prog point ${progPointId} from encounter ${encounterId}`,
+    );
+  }
+
+  public async toggleProgPointActive(
+    encounterId: string,
+    progPointId: string,
+  ): Promise<void> {
+    // Check if prog point is used as a threshold before deactivating
+    const encounter = await this.encountersCollection.getEncounter(encounterId);
+    const allProgPoints = await this.getAllProgPoints(encounterId);
+    const progPoint = allProgPoints.find((p) => p.id === progPointId);
+
+    if (!progPoint) {
+      throw new Error(`Prog point ${progPointId} not found`);
+    }
+
+    // If we're trying to deactivate an active prog point, check threshold dependencies
+    if (progPoint.active && encounter) {
+      if (
+        encounter.progPartyThreshold === progPointId ||
+        encounter.clearPartyThreshold === progPointId
+      ) {
+        throw new Error(
+          `Cannot deactivate prog point ${progPointId} as it is currently used as a threshold. Please update the thresholds first.`,
+        );
+      }
+    }
+
+    await this.encountersCollection.toggleProgPointActive(
+      encounterId,
+      progPointId,
+    );
+
+    const action = progPoint.active ? 'deactivated' : 'activated';
+    this.logger.log(
+      `${action} prog point ${progPointId} in encounter ${encounterId}`,
+    );
+  }
+
   public async reorderProgPoints(
     encounterId: string,
     progPointIds: string[],
@@ -112,7 +178,6 @@ export class EncountersService {
     this.logger.log(`Reordered prog points for encounter ${encounterId}`);
   }
 
-  @SentryTraced()
   public async setProgPartyThreshold(
     encounterId: string,
     progPointId: string,
@@ -125,7 +190,6 @@ export class EncountersService {
     );
   }
 
-  @SentryTraced()
   public async setClearPartyThreshold(
     encounterId: string,
     progPointId: string,
@@ -138,7 +202,6 @@ export class EncountersService {
     );
   }
 
-  @SentryTraced()
   public async getProgPartyThreshold(
     encounterId: string,
   ): Promise<string | undefined> {
@@ -146,7 +209,6 @@ export class EncountersService {
     return encounter?.progPartyThreshold;
   }
 
-  @SentryTraced()
   public async getClearPartyThreshold(
     encounterId: string,
   ): Promise<string | undefined> {
@@ -154,7 +216,6 @@ export class EncountersService {
     return encounter?.clearPartyThreshold;
   }
 
-  @SentryTraced()
   public async getPartyStatusForProgPoint(
     encounterId: string,
     progPointId: string,
@@ -179,7 +240,6 @@ export class EncountersService {
     return progPoint.partyStatus;
   }
 
-  @SentryTraced()
   public async initializeEncounter(
     encounterId: string,
     encounterData: {

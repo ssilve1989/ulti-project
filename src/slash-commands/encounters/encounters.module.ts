@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { EncountersModule as CoreEncountersModule } from '../../encounters/encounters.module.js';
+import { ErrorModule } from '../../error/error.module.js';
 import { EncountersCommandHandler } from './commands/handlers/encounters.command-handler.js';
 import { ManageProgPointsCommandHandler } from './commands/handlers/manage-prog-points.command-handler.js';
 import { SetThresholdsCommandHandler } from './commands/handlers/set-thresholds.command-handler.js';
@@ -14,7 +15,7 @@ const CommandHandlers = [
 ];
 
 @Module({
-  imports: [CqrsModule, CoreEncountersModule],
+  imports: [CqrsModule, CoreEncountersModule, ErrorModule],
   providers: [...CommandHandlers],
   exports: [...CommandHandlers],
 })

@@ -8,8 +8,8 @@ import {
   ButtonStyle,
   type ChatInputCommandInteraction,
   Colors,
-  ComponentType,
   EmbedBuilder,
+  type Interaction,
   MessageFlags,
   ModalBuilder,
   type ModalSubmitInteraction,
@@ -20,12 +20,25 @@ import {
 } from 'discord.js';
 import { isSameUserFilter } from '../../../../common/collection-filters.js';
 import { EncountersService } from '../../../../encounters/encounters.service.js';
+import { ErrorService } from '../../../../error/error.service.js';
 import type {
   EncounterDocument,
   ProgPointDocument,
 } from '../../../../firebase/models/encounter.model.js';
 import { PartyStatus } from '../../../../firebase/models/signup.model.js';
 import { ManageProgPointsCommand } from '../encounters.commands.js';
+import {
+  type PendingAddOperation,
+  type PendingPartyStatusOperation,
+  type PendingReorderOperation,
+  type ProgPointCollector,
+  type ProgPointError,
+  ScreenState,
+} from './manage-prog-points.interfaces.js';
+import {
+  createBackButtonRow,
+  createSuccessWithReturnButton,
+} from './manage-prog-points.utils.js';
 
 /**
  * This handler was made by several different AI Models and could use some TLC.
@@ -36,7 +49,24 @@ export class ManageProgPointsCommandHandler
 {
   private readonly logger = new Logger(ManageProgPointsCommandHandler.name);
 
-  constructor(private readonly encountersService: EncountersService) {}
+  // State management for single collector architecture
+  private currentState: ScreenState = ScreenState.MAIN_MENU;
+  private collector: ProgPointCollector | null = null;
+  private originalInteraction: ChatInputCommandInteraction | null = null;
+  private currentEncounter: EncounterDocument | null = null;
+  private currentProgPoints: ProgPointDocument[] = [];
+
+  // Type-safe pending operation state for multi-step flows
+  private pendingAddOperation: PendingAddOperation | null = null;
+  private pendingEditOperation: PendingAddOperation | null = null;
+  private pendingPartyStatusOperation: PendingPartyStatusOperation | null =
+    null;
+  private pendingReorderOperation: PendingReorderOperation | null = null;
+
+  constructor(
+    private readonly encountersService: EncountersService,
+    private readonly errorService: ErrorService,
+  ) {}
 
   @SentryTraced()
   async execute({
@@ -46,21 +76,9 @@ export class ManageProgPointsCommandHandler
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
-      const [encounter, progPoints] = await Promise.all([
-        this.encountersService.getEncounter(encounterId),
-        this.encountersService.getProgPoints(encounterId),
-      ]);
-
-      if (!encounter) {
-        await interaction.editReply({
-          content: `❌ Encounter ${encounterId} not found.`,
-        });
-        return;
-      }
-
-      await this.showProgPointsManagement(interaction, encounter, progPoints);
+      await this.initializeProgPointsManager(interaction, encounterId);
     } catch (error) {
-      this.logger.error(error, 'Failed to handle manage prog points command');
+      this.errorService.captureError(error);
       await interaction.editReply({
         content:
           '❌ An error occurred while loading prog points. Please try again.',
@@ -68,26 +86,400 @@ export class ManageProgPointsCommandHandler
     }
   }
 
-  private async showProgPointsManagement(
-    interaction: ChatInputCommandInteraction | ButtonInteraction,
-    encounter: EncounterDocument,
-    progPoints: ProgPointDocument[],
+  private async initializeProgPointsManager(
+    interaction: ChatInputCommandInteraction,
+    encounterId: string,
   ): Promise<void> {
-    const embed = new EmbedBuilder()
-      .setTitle(`Manage Prog Points - ${encounter.name}`)
-      .setColor(Colors.Blue)
-      .setDescription(`Current prog points: ${progPoints.length}`)
-      .addFields({
-        name: 'Actions Available',
-        value:
-          '• Add new prog point\n• Edit existing prog point\n• Remove prog point\n• Reorder prog points',
-        inline: false,
+    this.originalInteraction = interaction;
+    this.currentState = ScreenState.MAIN_MENU;
+
+    const [encounter, progPoints] = await Promise.all([
+      this.encountersService.getEncounter(encounterId),
+      this.encountersService.getAllProgPoints(encounterId),
+    ]);
+
+    if (!encounter) {
+      await interaction.editReply({
+        content: `❌ Encounter ${encounterId} not found.`,
+      });
+      return;
+    }
+
+    this.currentEncounter = encounter;
+    this.currentProgPoints = progPoints;
+
+    await this.showMainMenu();
+    this.setupCollector();
+  }
+
+  private setupCollector(): void {
+    if (!this.originalInteraction) return;
+
+    const collectorInstance =
+      this.originalInteraction.channel?.createMessageComponentCollector({
+        filter: isSameUserFilter(this.originalInteraction.user),
+        time: 300_000, // 5 minutes
       });
 
+    if (!collectorInstance) return;
+
+    this.collector = collectorInstance;
+
+    // TypeScript: collector is definitely not null after assignment
+    const collector = this.collector;
+    collector.on('collect', async (componentInteraction: Interaction) => {
+      try {
+        await this.routeInteraction(componentInteraction);
+      } catch (error: unknown) {
+        this.logger.error(error, 'Error handling prog point action');
+
+        // If we get an expired interaction error, stop the collector immediately
+        const progPointError = error as ProgPointError;
+        if (progPointError?.code === 10062) {
+          this.logger.warn('Interaction expired, stopping collector');
+          collector.stop('expired');
+          return;
+        }
+
+        await this.handleCollectorError(progPointError, componentInteraction);
+      }
+    });
+
+    collector.on('end', (collected, reason) => {
+      if (reason === 'expired') {
+        // Handle expired interactions - don't try to edit the message
+        this.logger.log('Collector stopped due to expired interaction');
+        return;
+      }
+
+      if (reason === 'finished') {
+        // Handle user-initiated finish - message already updated by handleFinishInteraction
+        this.logger.log('Collector stopped - user finished interaction');
+        return;
+      }
+
+      if (
+        reason === 'time' &&
+        collected.size === 0 &&
+        this.originalInteraction
+      ) {
+        // Only try to edit if we have a valid original interaction
+        try {
+          this.originalInteraction.editReply({
+            content: '⏰ Prog point management timed out.',
+            components: [],
+            embeds: [],
+          });
+        } catch (error: unknown) {
+          const progPointError = error as ProgPointError;
+          this.logger.warn('Failed to edit reply on timeout', {
+            error: progPointError?.message,
+          });
+        }
+      }
+    });
+  }
+
+  private async routeInteraction(interaction: Interaction): Promise<void> {
+    if (!interaction.isMessageComponent()) return;
+
+    // Validate interaction before processing
+    if (!this.validateAndHandleExpiredInteraction(interaction)) {
+      return;
+    }
+
+    // Try global interaction routing first
+    if (await this.handleGlobalInteractions(interaction)) {
+      return;
+    }
+
+    // Handle custom ID-specific interactions
+    if (await this.handleCustomIdInteractions(interaction)) {
+      return;
+    }
+
+    // Handle state-specific interactions
+    await this.handleStateSpecificInteractions(interaction);
+  }
+
+  /**
+   * Validates interaction and handles expired interactions
+   * @returns true if interaction is valid, false if expired/invalid
+   */
+  private validateAndHandleExpiredInteraction(
+    interaction: Interaction,
+  ): boolean {
+    if (!this.isValidInteraction(interaction)) {
+      const messageComponent = interaction as
+        | ButtonInteraction
+        | StringSelectMenuInteraction;
+      this.logger.warn('Attempting to process invalid/expired interaction', {
+        customId: messageComponent.customId,
+        replied: messageComponent.replied,
+        deferred: messageComponent.deferred,
+        age: Date.now() - interaction.createdTimestamp,
+      });
+
+      // If the interaction is expired, stop the collector
+      const interactionAge = Date.now() - interaction.createdTimestamp;
+      if (interactionAge > 15 * 60 * 1000) {
+        this.logger.warn('Stopping collector due to expired interaction');
+        this.collector?.stop('expired');
+      }
+
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Handle global interactions that work from any screen
+   * @returns true if interaction was handled
+   */
+  private async handleGlobalInteractions(
+    interaction: Interaction,
+  ): Promise<boolean> {
+    const messageComponent = interaction as
+      | ButtonInteraction
+      | StringSelectMenuInteraction;
+    const customId = messageComponent.customId;
+
+    // Handle return to main menu from any screen
+    if (
+      customId.includes('return-to-main') ||
+      customId.includes('back-to-main')
+    ) {
+      await this.returnToMainMenu(interaction);
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Handle specific custom ID patterns
+   * @returns true if interaction was handled
+   */
+  private async handleCustomIdInteractions(
+    interaction: Interaction,
+  ): Promise<boolean> {
+    const messageComponent = interaction as
+      | ButtonInteraction
+      | StringSelectMenuInteraction;
+    const customId = messageComponent.customId;
+
+    // Handle position selection for add flow
+    if (customId.startsWith('select-position-')) {
+      await this.handlePositionSelection(
+        interaction as StringSelectMenuInteraction,
+      );
+      return true;
+    }
+
+    // Handle party status selection
+    if (customId.startsWith('party-status-select-')) {
+      await this.handlePartyStatusSelection(
+        interaction as StringSelectMenuInteraction,
+      );
+      return true;
+    }
+
+    // Handle reorder point selection
+    if (customId === 'select-prog-point-to-move') {
+      await this.handleReorderProgPointSelection(
+        interaction as StringSelectMenuInteraction,
+      );
+      return true;
+    }
+
+    // Handle reorder position selection
+    if (customId.startsWith('select-new-position-')) {
+      await this.handleReorderPositionSelection(
+        interaction as StringSelectMenuInteraction,
+      );
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Handle state-specific interactions based on current screen state
+   */
+  private async handleStateSpecificInteractions(
+    interaction: Interaction,
+  ): Promise<void> {
+    switch (this.currentState) {
+      case ScreenState.MAIN_MENU:
+        await this.handleMainMenuInteraction(interaction);
+        break;
+      case ScreenState.TOGGLE_SELECTION:
+        await this.handleToggleSelectionInteraction(interaction);
+        break;
+      case ScreenState.EDIT_SELECTION:
+        await this.handleEditSelectionInteraction(interaction);
+        break;
+      case ScreenState.DELETE_SELECTION:
+        await this.handleDeleteSelectionInteraction(interaction);
+        break;
+      case ScreenState.REORDER:
+        await this.handleReorderInteraction(interaction);
+        break;
+      case ScreenState.REORDER_POSITION:
+        // Position selection is handled by custom ID routing above
+        break;
+    }
+  }
+
+  private async handleMainMenuInteraction(
+    interaction: Interaction,
+  ): Promise<void> {
+    if (!interaction.isButton()) return;
+
+    switch (interaction.customId) {
+      case 'add-prog-point':
+        // Don't defer - modal needs to be shown first
+        await this.handleAddProgPoint(interaction);
+        break;
+      case 'edit-prog-point':
+        await this.safelyDeferUpdate(interaction);
+        this.currentState = ScreenState.EDIT_SELECTION;
+        await this.showEditSelection();
+        break;
+      case 'toggle-prog-point':
+        await this.safelyDeferUpdate(interaction);
+        this.currentState = ScreenState.TOGGLE_SELECTION;
+        await this.showToggleSelection();
+        break;
+      case 'delete-prog-point':
+        await this.safelyDeferUpdate(interaction);
+        this.currentState = ScreenState.DELETE_SELECTION;
+        await this.showDeleteSelection();
+        break;
+      case 'reorder-prog-points':
+        await this.safelyDeferUpdate(interaction);
+        this.currentState = ScreenState.REORDER;
+        await this.showReorderSelection();
+        break;
+      case 'finish-interaction':
+        await this.handleFinishInteraction(interaction);
+        break;
+    }
+  }
+
+  private async handleToggleSelectionInteraction(
+    interaction: Interaction,
+  ): Promise<void> {
+    if (
+      interaction.isStringSelectMenu() &&
+      interaction.customId === 'select-prog-point-toggle'
+    ) {
+      await this.safelyDeferUpdate(interaction);
+      const progPointId = interaction.values[0];
+      const progPoint = this.currentProgPoints.find(
+        (p) => p.id === progPointId,
+      );
+
+      if (!progPoint) {
+        await this.updateMessage('❌ Prog point not found.', [], []);
+        return;
+      }
+
+      await this.executeToggle(progPoint);
+    }
+  }
+
+  private async handleEditSelectionInteraction(
+    interaction: Interaction,
+  ): Promise<void> {
+    if (
+      interaction.isStringSelectMenu() &&
+      interaction.customId === 'select-prog-point-edit'
+    ) {
+      const progPointId = interaction.values[0];
+      const progPoint = this.currentProgPoints.find(
+        (p) => p.id === progPointId,
+      );
+
+      if (!progPoint) {
+        await interaction.reply({
+          content: '❌ Prog point not found.',
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+
+      // Don't defer - modal needs to be shown first
+      await this.showEditModal(interaction, progPoint);
+    }
+  }
+
+  private async handleDeleteSelectionInteraction(
+    interaction: Interaction,
+  ): Promise<void> {
+    if (
+      interaction.isStringSelectMenu() &&
+      interaction.customId === 'select-prog-point-delete'
+    ) {
+      await this.safelyDeferUpdate(interaction);
+      const progPointId = interaction.values[0];
+      const progPoint = this.currentProgPoints.find(
+        (p) => p.id === progPointId,
+      );
+
+      if (!progPoint) {
+        await this.updateMessage('❌ Prog point not found.', [], []);
+        return;
+      }
+
+      await this.showDeleteConfirmation(progPoint);
+    } else if (
+      interaction.isButton() &&
+      interaction.customId.startsWith('confirm-delete-')
+    ) {
+      await this.safelyDeferUpdate(interaction);
+      const progPointId = interaction.customId.replace('confirm-delete-', '');
+      const progPoint = this.currentProgPoints.find(
+        (p) => p.id === progPointId,
+      );
+
+      if (progPoint) {
+        await this.executeDelete(progPoint);
+      }
+    } else if (
+      interaction.isButton() &&
+      interaction.customId === 'cancel-delete'
+    ) {
+      await this.safelyDeferUpdate(interaction);
+      this.currentState = ScreenState.DELETE_SELECTION;
+      await this.showDeleteSelection();
+    }
+  }
+
+  private async handleReorderInteraction(
+    interaction: Interaction,
+  ): Promise<void> {
+    // Stub for reorder functionality
+    if (interaction.isMessageComponent()) {
+      await this.safelyDeferUpdate(interaction);
+    }
+    await this.updateMessage('🚧 Reorder functionality coming soon!', [], []);
+  }
+
+  private async showMainMenu(): Promise<void> {
+    if (!this.currentEncounter || !this.originalInteraction) return;
+
+    const embed = new EmbedBuilder()
+      .setTitle(`Manage Prog Points - ${this.currentEncounter.name}`)
+      .setColor(Colors.Blue);
+
     // Add current prog points list
-    if (progPoints.length > 0) {
-      const progPointsList = progPoints
-        .map((p, index) => `${index + 1}. **${p.label}** (${p.partyStatus})`)
+    if (this.currentProgPoints.length > 0) {
+      const progPointsList = this.currentProgPoints
+        .map((p, index) => {
+          const statusIcon = p.active ? '✅' : '❌';
+          return `${index + 1}. ${statusIcon} **${p.label}** (${p.partyStatus})`;
+        })
         .join('\n');
 
       embed.addFields({
@@ -112,90 +504,290 @@ export class ManageProgPointsCommandHandler
         .setLabel('Edit Prog Point')
         .setStyle(ButtonStyle.Secondary)
         .setEmoji('✏️')
-        .setDisabled(progPoints.length === 0),
+        .setDisabled(this.currentProgPoints.length === 0),
       new ButtonBuilder()
-        .setCustomId('remove-prog-point')
-        .setLabel('Remove Prog Point')
-        .setStyle(ButtonStyle.Danger)
-        .setEmoji('🗑️')
-        .setDisabled(progPoints.length === 0),
+        .setCustomId('toggle-prog-point')
+        .setLabel('Toggle Active/Inactive')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🔄')
+        .setDisabled(this.currentProgPoints.length === 0),
     );
 
     const actionButtons2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId('delete-prog-point')
+        .setLabel('Delete Prog Point')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('🗑️')
+        .setDisabled(this.currentProgPoints.length === 0),
       new ButtonBuilder()
         .setCustomId('reorder-prog-points')
         .setLabel('Reorder Prog Points')
         .setStyle(ButtonStyle.Secondary)
         .setEmoji('🔄')
-        .setDisabled(progPoints.length < 2),
+        .setDisabled(this.currentProgPoints.length < 2),
+      new ButtonBuilder()
+        .setCustomId('finish-interaction')
+        .setLabel('Finished')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('✅'),
     );
 
-    const response = await interaction.editReply({
+    await this.originalInteraction.editReply({
       embeds: [embed],
       components: [actionButtons1, actionButtons2],
     });
+  }
 
-    // Handle button interactions
-    const collector = response.createMessageComponentCollector({
-      filter: isSameUserFilter(interaction.user),
-      time: 300_000, // 5 minutes
+  private async showToggleSelection(): Promise<void> {
+    const selectOptions = this.createProgPointSelectionOptions();
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId('select-prog-point-toggle')
+      .setPlaceholder('Choose a prog point to toggle...')
+      .addOptions(selectOptions);
+
+    const selectRow =
+      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+    const buttonRow = createBackButtonRow('back-to-main-toggle');
+
+    await this.updateMessage(
+      'Select a prog point to toggle between active and inactive:',
+      [],
+      [selectRow, buttonRow],
+    );
+  }
+
+  private async showEditSelection(): Promise<void> {
+    const selectOptions = this.createProgPointSelectionOptions();
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId('select-prog-point-edit')
+      .setPlaceholder('Choose a prog point to edit...')
+      .addOptions(selectOptions);
+
+    const selectRow =
+      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+    const buttonRow = createBackButtonRow('back-to-main');
+
+    await this.updateMessage(
+      'Select a prog point to edit:',
+      [],
+      [selectRow, buttonRow],
+    );
+  }
+
+  private async showDeleteSelection(): Promise<void> {
+    const selectOptions = this.createProgPointSelectionOptions();
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId('select-prog-point-delete')
+      .setPlaceholder('Choose a prog point to delete permanently...')
+      .addOptions(selectOptions);
+
+    const selectRow =
+      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+    const buttonRow = createBackButtonRow('back-to-main-delete');
+
+    await this.updateMessage(
+      '⚠️ **WARNING**: Select a prog point to delete permanently. This action cannot be undone!',
+      [],
+      [selectRow, buttonRow],
+    );
+  }
+
+  private async showReorderSelection(): Promise<void> {
+    if (!this.currentEncounter) return;
+
+    // Show ALL prog points for reordering (both active and inactive can be moved)
+    const sortedProgPoints = this.getAllProgPointsSorted();
+
+    const embed = new EmbedBuilder()
+      .setTitle('Reorder Prog Points')
+      .setColor(Colors.Blue)
+      .setDescription(
+        'Select a prog point to move, then choose its new position:',
+      )
+      .addFields({
+        name: 'Current Order (All Prog Points)',
+        value: this.formatProgPointsForDisplay(sortedProgPoints),
+        inline: false,
+      });
+
+    // Create select menu using centralized method
+    const selectOptions = this.createProgPointSelectionOptions();
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId('select-prog-point-to-move')
+      .setPlaceholder('Choose a prog point to move...')
+      .addOptions(selectOptions);
+
+    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+      selectMenu,
+    );
+
+    const backButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId('back-to-main-reorder')
+        .setLabel('Back to Main Menu')
+        .setStyle(ButtonStyle.Secondary),
+    );
+
+    await this.updateMessage('', [embed], [row, backButton]);
+  }
+
+  private async showDeleteConfirmation(
+    progPoint: ProgPointDocument,
+  ): Promise<void> {
+    const confirmEmbed = new EmbedBuilder()
+      .setTitle('🚨 PERMANENT DELETION WARNING')
+      .setColor(Colors.Red)
+      .setDescription(
+        '**This action cannot be undone!**\n\nDeleting this prog point will:\n• Permanently remove it from the database\n• Remove it from all existing signups\n• Reorder remaining prog points automatically\n\n**Are you absolutely sure?**',
+      )
+      .addFields(
+        { name: 'Prog Point to Delete', value: progPoint.label, inline: true },
+        {
+          name: 'Current Status',
+          value: progPoint.active ? 'Active ✅' : 'Inactive ❌',
+          inline: true,
+        },
+        { name: 'Party Status', value: progPoint.partyStatus, inline: true },
+        {
+          name: 'Order Position',
+          value: (progPoint.order + 1).toString(),
+          inline: true,
+        },
+      );
+
+    const confirmButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`confirm-delete-${progPoint.id}`)
+        .setLabel('YES, DELETE PERMANENTLY')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId('cancel-delete')
+        .setLabel('Cancel')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('back-to-main-from-delete')
+        .setLabel('Back to Main Menu')
+        .setStyle(ButtonStyle.Secondary),
+    );
+
+    await this.updateMessage('', [confirmEmbed], [confirmButtons]);
+  }
+
+  private async executeToggle(progPoint: ProgPointDocument): Promise<void> {
+    if (!this.currentEncounter) return;
+
+    try {
+      await this.encountersService.toggleProgPointActive(
+        this.currentEncounter.id,
+        progPoint.id,
+      );
+
+      const finalStatus = progPoint.active ? 'deactivated' : 'activated';
+      await this.showSuccessWithReturnOption(
+        `✅ Successfully ${finalStatus} prog point: **${progPoint.label}**`,
+      );
+
+      this.logger.log(
+        `User ${this.originalInteraction?.user.id} ${finalStatus} prog point ${progPoint.id} in encounter ${this.currentEncounter.id}`,
+      );
+    } catch (error) {
+      this.logger.error(error, 'Failed to toggle prog point');
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      await this.updateMessage(`❌ ${errorMessage}`, [], []);
+    }
+  }
+
+  private async executeDelete(progPoint: ProgPointDocument): Promise<void> {
+    if (!this.currentEncounter) return;
+
+    try {
+      await this.encountersService.deleteProgPoint(
+        this.currentEncounter.id,
+        progPoint.id,
+      );
+
+      await this.showSuccessWithReturnOption(
+        `🗑️ Successfully deleted prog point: **${progPoint.label}**\n\n⚠️ This prog point has been permanently removed from the database.`,
+      );
+
+      this.logger.log(
+        `User ${this.originalInteraction?.user.id} permanently deleted prog point ${progPoint.id} from encounter ${this.currentEncounter.id}`,
+      );
+    } catch (error) {
+      this.logger.error(error, 'Failed to delete prog point');
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      await this.updateMessage(`❌ ${errorMessage}`, [], []);
+    }
+  }
+
+  private async showSuccessWithReturnOption(
+    successMessage: string,
+  ): Promise<void> {
+    const { content, components } =
+      createSuccessWithReturnButton(successMessage);
+    await this.updateMessage(content, [], components);
+  }
+
+  private async returnToMainMenu(interaction: Interaction): Promise<void> {
+    if (!interaction.isMessageComponent()) return;
+
+    await this.safelyDeferUpdate(interaction);
+
+    // Refresh data and return to main menu
+    if (this.currentEncounter) {
+      this.currentProgPoints = await this.encountersService.getAllProgPoints(
+        this.currentEncounter.id,
+      );
+      this.currentState = ScreenState.MAIN_MENU;
+      await this.showMainMenu();
+    }
+  }
+
+  private async handleFinishInteraction(
+    interaction: ButtonInteraction,
+  ): Promise<void> {
+    await this.safelyDeferUpdate(interaction);
+
+    // Stop the collector cleanly
+    this.collector?.stop('finished');
+
+    // Update the message to show completion
+    await this.originalInteraction?.editReply({
+      content: '✅ Prog point management completed.',
+      embeds: [],
+      components: [],
     });
 
-    collector.on('collect', async (buttonInteraction: ButtonInteraction) => {
-      try {
-        switch (buttonInteraction.customId) {
-          case 'add-prog-point':
-            await this.handleAddProgPoint(buttonInteraction, encounter);
-            break;
-          case 'edit-prog-point':
-            await this.handleEditProgPoint(
-              buttonInteraction,
-              encounter,
-              progPoints,
-            );
-            break;
-          case 'remove-prog-point':
-            await this.handleRemoveProgPoint(
-              buttonInteraction,
-              encounter,
-              progPoints,
-            );
-            break;
-          case 'reorder-prog-points':
-            await this.handleReorderProgPoints(
-              buttonInteraction,
-              encounter,
-              progPoints,
-            );
-            break;
-        }
-      } catch (error) {
-        this.logger.error(error, 'Error handling prog point action');
-        await buttonInteraction.followUp({
-          content: '❌ An error occurred. Please try again.',
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-    });
+    this.logger.log(
+      `User ${this.originalInteraction?.user.id} finished prog point management for encounter ${this.currentEncounter?.id}`,
+    );
+  }
 
-    collector.on('end', (collected, reason) => {
-      if (reason === 'time' && collected.size === 0) {
-        interaction.editReply({
-          content: '⏰ Prog point management timed out.',
-          components: [],
-          embeds: [],
-        });
-      }
+  private async updateMessage(
+    content: string,
+    embeds: EmbedBuilder[],
+    components: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[],
+  ): Promise<void> {
+    if (!this.originalInteraction) return;
+
+    await this.originalInteraction.editReply({
+      content,
+      embeds,
+      components,
     });
   }
 
   private async handleAddProgPoint(
     interaction: ButtonInteraction,
-    encounter: EncounterDocument,
   ): Promise<void> {
+    if (!this.currentEncounter) return;
+
     // Step 1: Show modal for label input
     const modal = new ModalBuilder()
-      .setCustomId(`add-prog-point-modal-${encounter.id}`)
+      .setCustomId(`add-prog-point-modal-${this.currentEncounter.id}`)
       .setTitle('Add New Prog Point');
 
     const shortNameInput = new TextInputBuilder()
@@ -226,10 +818,11 @@ export class ManageProgPointsCommandHandler
       const modalSubmission = await interaction.awaitModalSubmit({
         time: 300_000,
         filter: (i: ModalSubmitInteraction) =>
-          i.customId === `add-prog-point-modal-${encounter.id}`,
+          i.customId === `add-prog-point-modal-${this.currentEncounter?.id}`,
       });
 
-      await modalSubmission.deferReply({ flags: MessageFlags.Ephemeral });
+      // Defer the modal submission to acknowledge it
+      await modalSubmission.deferUpdate();
 
       const shortName = modalSubmission.fields.getTextInputValue('short-name');
       const longName = modalSubmission.fields.getTextInputValue('long-name');
@@ -237,20 +830,20 @@ export class ManageProgPointsCommandHandler
       // Use short name as ID (after cleaning it)
       const progPointId = this.generateProgPointId(shortName);
       const existingProgPoints = await this.encountersService.getProgPoints(
-        encounter.id,
+        this.currentEncounter.id,
       );
       if (existingProgPoints.some((p) => p.id === progPointId)) {
-        await modalSubmission.editReply({
-          content:
-            '❌ A prog point with a similar short name already exists. Please use a different short name.',
-        });
+        await this.updateMessage(
+          '❌ A prog point with a similar short name already exists. Please use a different short name.',
+          [],
+          [],
+        );
         return;
       }
 
-      // Step 2: Show position selection for new prog point
+      // Step 2: Show position selection for new prog point on main message
       await this.showPositionSelect(
         modalSubmission,
-        encounter,
         progPointId,
         longName,
         existingProgPoints,
@@ -262,24 +855,29 @@ export class ManageProgPointsCommandHandler
 
   private async showPositionSelect(
     interaction: ModalSubmitInteraction,
-    encounter: EncounterDocument,
     progPointId: string,
     longName: string,
     existingProgPoints: ProgPointDocument[],
   ): Promise<void> {
-    // Sort existing prog points by order
-    const sortedProgPoints = [...existingProgPoints].sort(
-      (a, b) => a.order - b.order,
-    );
+    if (!this.currentEncounter) return;
 
-    const positionOptions = sortedProgPoints.map((p, index) => ({
-      label: `Position ${index + 2}`,
-      value: (index + 1).toString(),
-      description:
-        index < sortedProgPoints.length - 1
-          ? `After: ${p.label}, Before: ${sortedProgPoints[index + 1].label}`
-          : `After: ${p.label} (At the end)`,
-    }));
+    // Use ALL prog points (active and inactive) for accurate position numbering
+    const sortedProgPoints = this.getAllProgPointsSorted();
+
+    const positionOptions = sortedProgPoints.map((p, index) => {
+      const statusText = p.active ? '' : ' (inactive)';
+      const nextProgPoint = sortedProgPoints[index + 1];
+      const nextStatusText = nextProgPoint?.active ? '' : ' (inactive)';
+
+      return {
+        label: `Position ${index + 2}`,
+        value: (index + 1).toString(),
+        description:
+          index < sortedProgPoints.length - 1
+            ? `After: ${p.label}${statusText}, Before: ${nextProgPoint.label}${nextStatusText}`
+            : `After: ${p.label}${statusText} (At the end)`,
+      };
+    });
 
     positionOptions.unshift({
       label: 'Position 1 (At the beginning)',
@@ -302,7 +900,7 @@ export class ManageProgPointsCommandHandler
     // Add back button for navigation
     const backButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
-        .setCustomId(`back-to-main-position-${encounter.id}`)
+        .setCustomId('back-to-main-position')
         .setLabel('Back to Main Menu')
         .setStyle(ButtonStyle.Secondary)
         .setEmoji('🔙'),
@@ -319,100 +917,31 @@ export class ManageProgPointsCommandHandler
 
     if (sortedProgPoints.length > 0) {
       embed.addFields({
-        name: 'Current Order',
-        value: sortedProgPoints
-          .map((p, index) => `${index + 1}. ${p.label}`)
-          .join('\n'),
+        name: 'Current Order (All Prog Points)',
+        value: this.formatProgPointsForDisplay(sortedProgPoints),
         inline: false,
       });
     }
 
-    await interaction.editReply({
-      embeds: [embed],
-      components: [row, backButton],
-    });
+    // Store current add operation state
+    this.pendingAddOperation = {
+      progPointId,
+      longName,
+      interaction,
+      action: 'add',
+    };
 
-    // Handle position selection
-    const positionCollector =
-      interaction.channel?.createMessageComponentCollector({
-        componentType: ComponentType.StringSelect,
-        filter: (i: StringSelectMenuInteraction) =>
-          i.customId === `select-position-${progPointId}` &&
-          i.user.id === interaction.user.id,
-        time: 300_000,
-      });
-
-    // Handle back button for position selection
-    const positionBackCollector =
-      interaction.channel?.createMessageComponentCollector({
-        componentType: ComponentType.Button,
-        filter: (i: ButtonInteraction) =>
-          i.customId === `back-to-main-position-${encounter.id}` &&
-          i.user.id === interaction.user.id,
-        time: 300_000,
-      });
-
-    if (!positionBackCollector) return;
-
-    positionBackCollector.on(
-      'collect',
-      async (backInteraction: ButtonInteraction) => {
-        await backInteraction.deferUpdate();
-        const progPoints = await this.encountersService.getProgPoints(
-          encounter.id,
-        );
-        await this.showProgPointsManagement(
-          backInteraction,
-          encounter,
-          progPoints,
-        );
-        positionCollector?.stop();
-        positionBackCollector.stop();
-      },
-    );
-
-    if (!positionCollector) return;
-
-    positionCollector.on(
-      'collect',
-      async (positionInteraction: StringSelectMenuInteraction) => {
-        await positionInteraction.deferUpdate();
-        positionBackCollector.stop(); // Stop back collector when user makes a selection
-
-        const selectedPosition = Number.parseInt(positionInteraction.values[0]);
-
-        // Step 3: Show party status select menu
-        await this.showPartyStatusSelect(
-          positionInteraction,
-          encounter,
-          progPointId,
-          longName,
-          'add',
-          selectedPosition,
-        );
-      },
-    );
-
-    positionCollector.on('end', (collected, reason) => {
-      positionBackCollector.stop();
-      if (reason === 'time' && collected.size === 0) {
-        interaction.editReply({
-          content: '⏰ Position selection timed out.',
-          embeds: [],
-          components: [],
-        });
-      }
-    });
+    await this.updateMessage('', [embed], [row, backButton]);
   }
 
   private async showPartyStatusSelect(
-    interaction: StringSelectMenuInteraction | ModalSubmitInteraction,
-    encounter: EncounterDocument,
     progPointId: string,
     longName: string,
     action: 'add' | 'edit',
     insertPosition?: number,
   ): Promise<void> {
+    if (!this.currentEncounter) return;
+
     const partyStatusSelect = new StringSelectMenuBuilder()
       .setCustomId(`party-status-select-${action}-${progPointId}`)
       .setPlaceholder('Choose party status...')
@@ -446,7 +975,7 @@ export class ManageProgPointsCommandHandler
     // Add back button for navigation
     const backButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
-        .setCustomId(`back-to-main-${encounter.id}`)
+        .setCustomId('back-to-main')
         .setLabel('Back to Main Menu')
         .setStyle(ButtonStyle.Secondary)
         .setEmoji('🔙'),
@@ -461,875 +990,528 @@ export class ManageProgPointsCommandHandler
       )
       .setDescription('Select the party status for this prog point:');
 
-    await interaction.editReply({
-      embeds: [embed],
-      components: [row, backButton],
-    });
+    // Store current operation state
+    this.pendingPartyStatusOperation = {
+      progPointId,
+      longName,
+      action,
+      insertPosition,
+    };
 
-    // Handle party status selection
-    const statusCollector =
-      interaction.channel?.createMessageComponentCollector({
-        componentType: ComponentType.StringSelect,
-        filter: (i) =>
-          i.customId === `party-status-select-${action}-${progPointId}` &&
-          i.user.id === interaction.user.id,
+    await this.updateMessage('', [embed], [row, backButton]);
+  }
+
+  private async showEditModal(
+    interaction: StringSelectMenuInteraction,
+    progPoint: ProgPointDocument,
+  ): Promise<void> {
+    if (!this.currentEncounter) return;
+
+    // Step 1: Show modal for long name input only (short name/ID cannot be changed)
+    const modal = new ModalBuilder()
+      .setCustomId(`edit-prog-point-modal-${progPoint.id}`)
+      .setTitle(`Edit Prog Point: ${progPoint.id}`);
+
+    const longNameInput = new TextInputBuilder()
+      .setCustomId('long-name')
+      .setLabel('Long Name (Discord display)')
+      .setPlaceholder('e.g., Phase 2: Strength of the Ward')
+      .setValue(progPoint.label)
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true)
+      .setMaxLength(100);
+
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(longNameInput),
+    );
+
+    await interaction.showModal(modal);
+
+    // Handle modal submission
+    try {
+      const modalSubmission = await interaction.awaitModalSubmit({
         time: 300_000,
+        filter: (i) => i.customId === `edit-prog-point-modal-${progPoint.id}`,
       });
 
-    // Handle back button interaction
-    const backCollector = interaction.channel?.createMessageComponentCollector({
-      componentType: ComponentType.Button,
-      filter: (i) =>
-        i.customId === `back-to-main-${encounter.id}` &&
-        i.user.id === interaction.user.id,
-      time: 300_000,
-    });
+      // Defer the modal submission immediately to acknowledge it
+      await modalSubmission.deferUpdate();
 
-    if (!backCollector) return;
+      const newLongName = modalSubmission.fields.getTextInputValue('long-name');
 
-    backCollector.on('collect', async (backInteraction) => {
-      await backInteraction.deferUpdate();
-      const progPoints = await this.encountersService.getProgPoints(
-        encounter.id,
-      );
-      await this.showProgPointsManagement(
-        backInteraction,
-        encounter,
-        progPoints,
-      );
-      statusCollector?.stop();
-      backCollector.stop();
-    });
+      // Step 2: Show party status select menu with current status selected
+      this.pendingEditOperation = {
+        progPointId: progPoint.id,
+        longName: newLongName,
+        interaction: modalSubmission,
+        action: 'add',
+      };
 
-    if (!statusCollector) return;
+      await this.showPartyStatusSelect(progPoint.id, newLongName, 'edit');
+    } catch (_error) {
+      // Modal was cancelled or timed out
+      this.logger.debug('Modal cancelled or timed out, user can try again');
+    }
+  }
 
-    statusCollector.on('collect', async (statusInteraction) => {
-      await statusInteraction.deferUpdate();
-      backCollector.stop(); // Stop back collector when user makes a selection
+  private async handlePositionSelection(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<void> {
+    if (!this.pendingAddOperation || !this.currentEncounter) return;
 
-      const selectedStatus = statusInteraction.values[0] as PartyStatus;
+    await this.safelyDeferUpdate(interaction);
+    const selectedPosition = Number.parseInt(interaction.values[0]);
 
-      try {
-        if (action === 'add') {
-          if (insertPosition !== undefined) {
-            // Add with specific position - need to reorder existing prog points
-            const existingProgPoints =
-              await this.encountersService.getProgPoints(encounter.id);
-            const sortedProgPoints = [...existingProgPoints].sort(
-              (a, b) => a.order - b.order,
+    // Store the position for later use and show party status selection
+    await this.showPartyStatusSelect(
+      this.pendingAddOperation.progPointId,
+      this.pendingAddOperation.longName,
+      'add',
+      selectedPosition,
+    );
+  }
+
+  private async handlePartyStatusSelection(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<void> {
+    if (!this.pendingPartyStatusOperation || !this.currentEncounter) return;
+
+    await this.safelyDeferUpdate(interaction);
+    const selectedStatus = interaction.values[0] as PartyStatus;
+
+    try {
+      if (this.pendingPartyStatusOperation.action === 'add') {
+        if (this.pendingPartyStatusOperation.insertPosition !== undefined) {
+          // Add with specific position - need to reorder existing prog points
+          // Get fresh prog points from database and refresh our cache
+          const existingProgPoints =
+            await this.encountersService.getAllProgPoints(
+              this.currentEncounter.id,
             );
+          this.currentProgPoints = existingProgPoints;
+          const sortedProgPoints = this.getAllProgPointsSorted();
 
-            // Create new prog point with temporary order
-            await this.encountersService.addProgPoint(encounter.id, {
-              id: progPointId,
-              label: longName,
-              partyStatus: selectedStatus,
-            });
+          // Create new prog point with temporary order
+          await this.encountersService.addProgPoint(this.currentEncounter.id, {
+            id: this.pendingPartyStatusOperation.progPointId,
+            label: this.pendingPartyStatusOperation.longName,
+            partyStatus: selectedStatus,
+          });
 
-            // Create new order array with the new prog point inserted at the specified position
-            const newProgPointIds = [...sortedProgPoints.map((p) => p.id)];
-            newProgPointIds.splice(insertPosition, 0, progPointId);
-
-            // Reorder all prog points
-            await this.encountersService.reorderProgPoints(
-              encounter.id,
-              newProgPointIds,
-            );
-
-            await this.showSuccessWithReturnOption(
-              statusInteraction,
-              `✅ Successfully added prog point: **${longName}** (ID: ${progPointId}) at position ${insertPosition + 1} with status **${selectedStatus}**`,
-              encounter,
-              interaction.user.id,
-            );
-          } else {
-            // Add at the end (default behavior)
-            await this.encountersService.addProgPoint(encounter.id, {
-              id: progPointId,
-              label: longName,
-              partyStatus: selectedStatus,
-            });
-
-            await this.showSuccessWithReturnOption(
-              statusInteraction,
-              `✅ Successfully added prog point: **${longName}** (ID: ${progPointId}) with status **${selectedStatus}**`,
-              encounter,
-              interaction.user.id,
-            );
-          }
-
-          this.logger.log(
-            `User ${interaction.user.id} added prog point ${progPointId} to encounter ${encounter.id}`,
+          // Create new order array with the new prog point inserted at the specified position
+          const newProgPointIds = [...sortedProgPoints.map((p) => p.id)];
+          newProgPointIds.splice(
+            this.pendingPartyStatusOperation.insertPosition,
+            0,
+            this.pendingPartyStatusOperation.progPointId,
           );
-        } else {
-          // Handle edit case - ID is always unchanged now, so simple update
-          await this.encountersService.updateProgPoint(
-            encounter.id,
-            progPointId,
-            {
-              label: longName,
-              partyStatus: selectedStatus,
-            },
+
+          // Reorder all prog points
+          await this.encountersService.reorderProgPoints(
+            this.currentEncounter.id,
+            newProgPointIds,
           );
 
           await this.showSuccessWithReturnOption(
-            statusInteraction,
-            `✅ Successfully updated prog point: **${longName}** (ID: ${progPointId}) with status **${selectedStatus}**`,
-            encounter,
-            interaction.user.id,
+            `✅ Successfully added prog point: **${this.pendingPartyStatusOperation.longName}** (ID: ${this.pendingPartyStatusOperation.progPointId}) at position ${this.pendingPartyStatusOperation.insertPosition + 1} with status **${selectedStatus}**`,
           );
-
-          this.logger.log(
-            `User ${interaction.user.id} updated prog point ${progPointId} in encounter ${encounter.id}`,
-          );
-        }
-      } catch (error) {
-        this.logger.error(error, `Failed to ${action} prog point`);
-        await statusInteraction.editReply({
-          content: `❌ Failed to ${action} prog point. Please try again.`,
-          embeds: [],
-          components: [],
-        });
-      }
-    });
-
-    statusCollector.on('end', (collected, reason) => {
-      backCollector.stop();
-      if (reason === 'time' && collected.size === 0) {
-        interaction.editReply({
-          content: '⏰ Party status selection timed out.',
-          embeds: [],
-          components: [],
-        });
-      }
-    });
-  }
-
-  private async handleEditProgPoint(
-    interaction: ButtonInteraction,
-    encounter: EncounterDocument,
-    progPoints: ProgPointDocument[],
-  ): Promise<void> {
-    await interaction.deferUpdate();
-
-    // Create select menu for choosing prog point to edit
-    const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId('select-prog-point-edit')
-      .setPlaceholder('Choose a prog point to edit...')
-      .addOptions(
-        progPoints.map((progPoint) => ({
-          label: progPoint.label,
-          value: progPoint.id,
-          description: `Status: ${progPoint.partyStatus}`,
-        })),
-      );
-
-    // Add back to main menu button
-    const backButton = new ButtonBuilder()
-      .setCustomId('back-to-main')
-      .setLabel('Back to Main Menu')
-      .setStyle(ButtonStyle.Secondary);
-
-    const selectRow =
-      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-    const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      backButton,
-    );
-
-    await interaction.editReply({
-      content: 'Select a prog point to edit:',
-      components: [selectRow, buttonRow],
-      embeds: [],
-    });
-
-    // Handle both select menu and back button
-    const collector = interaction.channel?.createMessageComponentCollector({
-      filter: (i) =>
-        (i.customId === 'select-prog-point-edit' ||
-          i.customId === 'back-to-main') &&
-        i.user.id === interaction.user.id,
-      time: 60_000,
-    });
-
-    if (!collector) return;
-
-    collector.on('collect', async (componentInteraction) => {
-      if (componentInteraction.customId === 'back-to-main') {
-        collector.stop();
-        const updatedProgPoints = await this.encountersService.getProgPoints(
-          encounter.id,
-        );
-        await this.showProgPointsManagement(
-          componentInteraction as ButtonInteraction,
-          encounter,
-          updatedProgPoints,
-        );
-        return;
-      }
-
-      const progPointId = (componentInteraction as StringSelectMenuInteraction)
-        .values[0];
-
-      const progPoint = progPoints.find((p) => p.id === progPointId);
-
-      if (!progPoint) {
-        await componentInteraction.reply({
-          content: '❌ Prog point not found.',
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      // Step 1: Show modal for long name input only (short name/ID cannot be changed)
-      const modal = new ModalBuilder()
-        .setCustomId(`edit-prog-point-modal-${progPointId}`)
-        .setTitle(`Edit Prog Point: ${progPoint.id}`);
-
-      const longNameInput = new TextInputBuilder()
-        .setCustomId('long-name')
-        .setLabel('Long Name (Discord display)')
-        .setPlaceholder('e.g., Phase 2: Strength of the Ward')
-        .setValue(progPoint.label)
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-        .setMaxLength(100);
-
-      modal.addComponents(
-        new ActionRowBuilder<TextInputBuilder>().addComponents(longNameInput),
-      );
-
-      await componentInteraction.showModal(modal);
-
-      // Handle modal submission with proper timeout handling
-      try {
-        const modalSubmission = await componentInteraction.awaitModalSubmit({
-          time: 300_000,
-          filter: (i) => i.customId === `edit-prog-point-modal-${progPointId}`,
-        });
-
-        collector.stop(); // Stop the collector since we're proceeding
-
-        await modalSubmission.deferReply({ flags: MessageFlags.Ephemeral });
-
-        const newLongName =
-          modalSubmission.fields.getTextInputValue('long-name');
-
-        // Step 2: Show party status select menu with current status selected
-        await this.showPartyStatusSelect(
-          modalSubmission,
-          encounter,
-          progPointId, // Keep the original ID - no changes allowed
-          newLongName,
-          'edit',
-        );
-      } catch (_error) {
-        // Modal was cancelled or timed out - don't stop the collector
-        // User can try again with the same prog point
-        this.logger.debug('Modal cancelled or timed out, user can try again');
-      }
-    });
-
-    collector.on('end', (collected, reason) => {
-      if (reason === 'time' && collected.size === 0) {
-        interaction
-          .editReply({
-            content: '⏰ Selection timed out.',
-            components: [],
-          })
-          .catch(() => {}); // Ignore errors if interaction is already handled
-      }
-    });
-  }
-
-  private async handleRemoveProgPoint(
-    interaction: ButtonInteraction,
-    encounter: EncounterDocument,
-    progPoints: ProgPointDocument[],
-  ): Promise<void> {
-    await interaction.deferUpdate();
-
-    // Create select menu for choosing prog point to remove
-    const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId('select-prog-point-remove')
-      .setPlaceholder('Choose a prog point to remove...')
-      .addOptions(
-        progPoints.map((progPoint) => ({
-          label: progPoint.label,
-          value: progPoint.id,
-          description: `Status: ${progPoint.partyStatus}`,
-        })),
-      );
-
-    // Add back to main menu button
-    const backButton = new ButtonBuilder()
-      .setCustomId('back-to-main-remove')
-      .setLabel('Back to Main Menu')
-      .setStyle(ButtonStyle.Secondary);
-
-    const selectRow =
-      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-    const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      backButton,
-    );
-
-    await interaction.editReply({
-      content: '⚠️ Select a prog point to remove:',
-      components: [selectRow, buttonRow],
-      embeds: [],
-    });
-
-    // Handle both select menu and back button
-    const collector = interaction.channel?.createMessageComponentCollector({
-      filter: (i) =>
-        (i.customId === 'select-prog-point-remove' ||
-          i.customId === 'back-to-main-remove') &&
-        i.user.id === interaction.user.id,
-      time: 60_000,
-    });
-
-    if (!collector) return;
-
-    collector.on('collect', async (componentInteraction) => {
-      if (componentInteraction.customId === 'back-to-main-remove') {
-        collector.stop();
-        const updatedProgPoints = await this.encountersService.getProgPoints(
-          encounter.id,
-        );
-
-        await this.showProgPointsManagement(
-          componentInteraction as ButtonInteraction,
-          encounter,
-          updatedProgPoints,
-        );
-
-        return;
-      }
-
-      const progPointId = (componentInteraction as StringSelectMenuInteraction)
-        .values[0];
-
-      const progPoint = progPoints.find((p) => p.id === progPointId);
-
-      if (!progPoint) {
-        await componentInteraction.reply({
-          content: '❌ Prog point not found.',
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      await componentInteraction.deferUpdate();
-      collector.stop(); // Stop the collector since we're proceeding
-
-      // Show confirmation
-      const confirmEmbed = new EmbedBuilder()
-        .setTitle('⚠️ Confirm Removal')
-        .setColor(Colors.Orange)
-        .setDescription('Are you sure you want to remove this prog point?')
-        .addFields(
-          { name: 'Label', value: progPoint.label, inline: true },
-          { name: 'Party Status', value: progPoint.partyStatus, inline: true },
-        );
-
-      const confirmButtons =
-        new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`confirm-remove-${progPointId}`)
-            .setLabel('Remove')
-            .setStyle(ButtonStyle.Danger),
-          new ButtonBuilder()
-            .setCustomId('cancel-remove')
-            .setLabel('Cancel')
-            .setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder()
-            .setCustomId('back-to-main-from-remove')
-            .setLabel('Back to Main Menu')
-            .setStyle(ButtonStyle.Secondary),
-        );
-
-      await componentInteraction.editReply({
-        content: '',
-        embeds: [confirmEmbed],
-        components: [confirmButtons],
-      });
-
-      // Handle confirmation
-      const confirmCollector =
-        interaction.channel?.createMessageComponentCollector({
-          componentType: ComponentType.Button,
-          filter: (i) =>
-            (i.customId === `confirm-remove-${progPointId}` ||
-              i.customId === 'cancel-remove' ||
-              i.customId === 'back-to-main-from-remove') &&
-            i.user.id === interaction.user.id,
-          time: 60_000,
-        });
-
-      if (!confirmCollector) return;
-
-      confirmCollector.on('collect', async (confirmInteraction) => {
-        await confirmInteraction.deferUpdate();
-
-        if (confirmInteraction.customId === 'back-to-main-from-remove') {
-          const updatedProgPoints = await this.encountersService.getProgPoints(
-            encounter.id,
-          );
-
-          await this.showProgPointsManagement(
-            confirmInteraction,
-            encounter,
-            updatedProgPoints,
-          );
-          return;
-        }
-
-        if (confirmInteraction.customId === `confirm-remove-${progPointId}`) {
-          try {
-            await this.encountersService.removeProgPoint(
-              encounter.id,
-              progPointId,
-            );
-
-            await this.showSuccessWithReturnOption(
-              confirmInteraction,
-              `✅ Successfully removed prog point: **${progPoint.label}**`,
-              encounter,
-              interaction.user.id,
-            );
-
-            this.logger.log(
-              `User ${interaction.user.id} removed prog point ${progPointId} from encounter ${encounter.id}`,
-            );
-          } catch (error) {
-            this.logger.error(error, 'Failed to remove prog point');
-            await confirmInteraction.editReply({
-              content: '❌ Failed to remove prog point. Please try again.',
-              embeds: [],
-              components: [],
-            });
-          }
         } else {
-          await confirmInteraction.editReply({
-            content: '✅ Removal cancelled.',
-            embeds: [],
-            components: [],
+          // Add at the end (default behavior)
+          await this.encountersService.addProgPoint(this.currentEncounter.id, {
+            id: this.pendingPartyStatusOperation.progPointId,
+            label: this.pendingPartyStatusOperation.longName,
+            partyStatus: selectedStatus,
           });
-        }
-      });
-    });
 
-    collector.on('end', (collected, reason) => {
-      if (reason === 'time' && collected.size === 0) {
-        interaction
-          .editReply({
-            content: '⏰ Selection timed out.',
-            components: [],
-          })
-          .catch(() => {}); // Ignore errors if interaction is already handled
+          await this.showSuccessWithReturnOption(
+            `✅ Successfully added prog point: **${this.pendingPartyStatusOperation.longName}** (ID: ${this.pendingPartyStatusOperation.progPointId}) with status **${selectedStatus}**`,
+          );
+        }
+
+        this.logger.log(
+          `User ${this.originalInteraction?.user.id} added prog point ${this.pendingPartyStatusOperation.progPointId} to encounter ${this.currentEncounter.id}`,
+        );
+      } else {
+        // Handle edit case - ID is always unchanged now, so simple update
+        await this.encountersService.updateProgPoint(
+          this.currentEncounter.id,
+          this.pendingPartyStatusOperation.progPointId,
+          {
+            label: this.pendingPartyStatusOperation.longName,
+            partyStatus: selectedStatus,
+          },
+        );
+
+        await this.showSuccessWithReturnOption(
+          `✅ Successfully updated prog point: **${this.pendingPartyStatusOperation.longName}** (ID: ${this.pendingPartyStatusOperation.progPointId}) with status **${selectedStatus}**`,
+        );
+
+        this.logger.log(
+          `User ${this.originalInteraction?.user.id} updated prog point ${this.pendingPartyStatusOperation.progPointId} in encounter ${this.currentEncounter.id}`,
+        );
       }
-    });
+
+      // Clear pending operations
+      this.pendingAddOperation = null;
+      this.pendingEditOperation = null;
+      this.pendingPartyStatusOperation = null;
+    } catch (error) {
+      this.logger.error(
+        error,
+        `Failed to ${this.pendingPartyStatusOperation?.action} prog point`,
+      );
+      await this.updateMessage(
+        `❌ Failed to ${this.pendingPartyStatusOperation?.action} prog point. Please try again.`,
+        [],
+        [],
+      );
+    }
   }
 
-  private async handleReorderProgPoints(
-    interaction: ButtonInteraction,
-    encounter: EncounterDocument,
-    progPoints: ProgPointDocument[],
+  private async handleReorderProgPointSelection(
+    interaction: StringSelectMenuInteraction,
   ): Promise<void> {
-    await interaction.deferUpdate();
+    if (!this.currentEncounter) return;
 
-    // Sort prog points by current order
-    const sortedProgPoints = [...progPoints].sort((a, b) => a.order - b.order);
+    await this.safelyDeferUpdate(interaction);
+    const progPointToMove = interaction.values[0];
 
-    const embed = new EmbedBuilder()
-      .setTitle('Reorder Prog Points')
+    // Get ALL prog points (active and inactive) for accurate position numbering
+    const sortedProgPoints = this.getAllProgPointsSorted();
+
+    const movingProgPoint = sortedProgPoints.find(
+      (p) => p.id === progPointToMove,
+    );
+
+    if (!movingProgPoint) {
+      await this.updateMessage('❌ Prog point not found.', [], []);
+      return;
+    }
+
+    // Store reorder operation state
+    this.pendingReorderOperation = {
+      progPointToMove,
+      sortedProgPoints,
+    };
+
+    // Create position select menu
+    const positionOptions = sortedProgPoints.map((_, index) => ({
+      label: `Position ${index + 1}`,
+      value: index.toString(),
+      description:
+        index < sortedProgPoints.length - 1
+          ? `Before: ${sortedProgPoints[index + 1]?.label || 'End'}`
+          : 'At the end',
+    }));
+
+    const positionSelect = new StringSelectMenuBuilder()
+      .setCustomId(`select-new-position-${progPointToMove}`)
+      .setPlaceholder('Choose new position...')
+      .addOptions(positionOptions);
+
+    const positionRow =
+      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+        positionSelect,
+      );
+
+    const backButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId('back-to-main-reorder-position')
+        .setLabel('Back to Main Menu')
+        .setStyle(ButtonStyle.Secondary),
+    );
+
+    const positionEmbed = new EmbedBuilder()
+      .setTitle('Choose New Position')
       .setColor(Colors.Blue)
       .setDescription(
-        'Select a prog point to move, then choose its new position:',
+        `Moving: **${movingProgPoint.label}**\n\nSelect the new position:`,
       )
       .addFields({
         name: 'Current Order',
         value: sortedProgPoints
-          .map((p, index) => `${index + 1}. ${p.label}`)
+          .map((p, index) => {
+            const prefix = p.id === progPointToMove ? '**→ ' : `${index + 1}. `;
+            const suffix = p.id === progPointToMove ? '**' : '';
+            return `${prefix}${p.label}${suffix}`;
+          })
           .join('\n'),
         inline: false,
       });
 
-    // Create select menu for choosing prog point to move
-    const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId('select-prog-point-to-move')
-      .setPlaceholder('Choose a prog point to move...')
-      .addOptions(
-        sortedProgPoints.map((progPoint, index) => ({
-          label: `${index + 1}. ${progPoint.label}`,
-          value: progPoint.id,
-          description: `Current position: ${index + 1}`,
-        })),
-      );
+    this.currentState = ScreenState.REORDER_POSITION;
+    await this.updateMessage('', [positionEmbed], [positionRow, backButton]);
+  }
 
-    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-      selectMenu,
+  private async handleReorderPositionSelection(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<void> {
+    if (!this.pendingReorderOperation || !this.currentEncounter) return;
+
+    await this.safelyDeferUpdate(interaction);
+    const newPosition = Number.parseInt(interaction.values[0]);
+    const { progPointToMove, sortedProgPoints } = this.pendingReorderOperation;
+
+    const currentPosition = sortedProgPoints.findIndex(
+      (p) => p.id === progPointToMove,
+    );
+    const movingProgPoint = sortedProgPoints.find(
+      (p) => p.id === progPointToMove,
     );
 
-    await interaction.editReply({
-      embeds: [embed],
-      components: [row],
-    });
+    if (!movingProgPoint) {
+      await this.updateMessage('❌ Prog point not found.', [], []);
+      return;
+    }
 
-    // Handle prog point selection for moving
-    const selectCollector =
-      interaction.channel?.createMessageComponentCollector({
-        componentType: ComponentType.StringSelect,
-        filter: (i) =>
-          i.customId === 'select-prog-point-to-move' &&
-          i.user.id === interaction.user.id,
-        time: 300_000,
-      });
+    if (newPosition === currentPosition) {
+      await this.updateMessage(
+        '✅ No changes made - prog point is already in that position.',
+        [],
+        [],
+      );
+      return;
+    }
 
-    if (!selectCollector) return;
+    try {
+      // Create new order by moving the prog point
+      const reorderedProgPoints = [...sortedProgPoints];
+      const [movedItem] = reorderedProgPoints.splice(currentPosition, 1);
+      reorderedProgPoints.splice(newPosition, 0, movedItem);
 
-    selectCollector.on('collect', async (selectInteraction) => {
-      await selectInteraction.deferUpdate();
+      // Create the new order array with prog point IDs
+      const newOrder = reorderedProgPoints.map((p) => p.id);
 
-      const progPointToMove = selectInteraction.values[0];
-      const movingProgPoint = sortedProgPoints.find(
-        (p) => p.id === progPointToMove,
+      await this.encountersService.reorderProgPoints(
+        this.currentEncounter.id,
+        newOrder,
       );
 
-      if (!movingProgPoint) {
-        await selectInteraction.editReply({
-          content: '❌ Prog point not found.',
-          embeds: [],
-          components: [],
-        });
-        return;
-      }
-
-      // Create position select menu
-      const positionOptions = sortedProgPoints.map((_, index) => ({
-        label: `Position ${index + 1}`,
-        value: index.toString(),
-        description:
-          index < sortedProgPoints.length - 1
-            ? `Before: ${sortedProgPoints[index + 1]?.label || 'End'}`
-            : 'At the end',
-      }));
-
-      const positionSelect = new StringSelectMenuBuilder()
-        .setCustomId(`select-new-position-${progPointToMove}`)
-        .setPlaceholder('Choose new position...')
-        .addOptions(positionOptions);
-
-      const positionRow =
-        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-          positionSelect,
-        );
-
-      const positionEmbed = new EmbedBuilder()
-        .setTitle('Choose New Position')
-        .setColor(Colors.Blue)
+      const successEmbed = new EmbedBuilder()
+        .setTitle('✅ Prog Points Reordered')
+        .setColor(Colors.Green)
         .setDescription(
-          `Moving: **${movingProgPoint.label}**\n\nSelect the new position:`,
+          `Successfully moved **${movingProgPoint.label}** to position ${newPosition + 1}`,
         )
         .addFields({
-          name: 'Current Order',
-          value: sortedProgPoints
-            .map((p, index) => {
-              const prefix =
-                p.id === progPointToMove ? '**→ ' : `${index + 1}. `;
-              const suffix = p.id === progPointToMove ? '**' : '';
-              return `${prefix}${p.label}${suffix}`;
-            })
-            .join('\n'),
+          name: 'New Order (All Prog Points)',
+          value: this.formatProgPointsForDisplay(
+            reorderedProgPoints,
+            progPointToMove,
+            '← Moved here',
+          ),
           inline: false,
         });
 
-      await selectInteraction.editReply({
-        embeds: [positionEmbed],
-        components: [positionRow],
-      });
+      const returnButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId('return-to-main')
+          .setLabel('Back to Main Menu')
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('🔙'),
+      );
 
-      // Handle position selection
-      const positionCollector =
-        interaction.channel?.createMessageComponentCollector({
-          componentType: ComponentType.StringSelect,
-          filter: (i) =>
-            i.customId === `select-new-position-${progPointToMove}` &&
-            i.user.id === interaction.user.id,
-          time: 300_000,
-        });
+      await this.updateMessage('', [successEmbed], [returnButton]);
 
-      if (!positionCollector) return;
+      this.logger.log(
+        `User ${this.originalInteraction?.user.id} reordered prog points in encounter ${this.currentEncounter.id}`,
+      );
 
-      positionCollector.on('collect', async (positionInteraction) => {
-        await positionInteraction.deferUpdate();
+      // Clear pending operation
+      this.pendingReorderOperation = null;
+    } catch (error) {
+      this.logger.error(error, 'Failed to reorder prog points');
+      await this.updateMessage(
+        '❌ Failed to reorder prog points. Please try again.',
+        [],
+        [],
+      );
+    }
+  }
 
-        const newPosition = Number.parseInt(positionInteraction.values[0]);
-        const currentPosition = sortedProgPoints.findIndex(
-          (p) => p.id === progPointToMove,
-        );
+  private async handleCollectorError(
+    error: ProgPointError,
+    interaction: Interaction,
+  ): Promise<void> {
+    try {
+      // Check if it's an "Unknown interaction" error (expired interaction)
+      if (
+        error?.code === 10062 ||
+        error?.message?.includes('Unknown interaction')
+      ) {
+        this.logger.warn('Interaction expired, stopping collector');
+        this.collector?.stop('expired');
+        await this.showExpiredMessage();
+        return;
+      }
 
-        if (newPosition === currentPosition) {
-          await positionInteraction.editReply({
-            content:
-              '✅ No changes made - prog point is already in that position.',
-            embeds: [],
-            components: [],
-          });
-          return;
-        }
-
+      // Try to send an error message to the user if possible
+      if (
+        interaction.isRepliable() &&
+        !interaction.replied &&
+        !interaction.deferred
+      ) {
         try {
-          // Create new order by moving the prog point
-          const reorderedProgPoints = [...sortedProgPoints];
-          const [movedItem] = reorderedProgPoints.splice(currentPosition, 1);
-          reorderedProgPoints.splice(newPosition, 0, movedItem);
-
-          // Create the new order array with prog point IDs
-          const newOrder = reorderedProgPoints.map((p) => p.id);
-
-          await this.encountersService.reorderProgPoints(
-            encounter.id,
-            newOrder,
-          );
-
-          const successEmbed = new EmbedBuilder()
-            .setTitle('✅ Prog Points Reordered')
-            .setColor(Colors.Green)
-            .setDescription(
-              `Successfully moved **${movingProgPoint.label}** to position ${newPosition + 1}`,
-            )
-            .addFields({
-              name: 'New Order',
-              value: reorderedProgPoints
-                .map((p, index) => {
-                  const isRelocated = p.id === progPointToMove;
-                  return isRelocated
-                    ? `**${index + 1}. ${p.label}** ← Moved here`
-                    : `${index + 1}. ${p.label}`;
-                })
-                .join('\n'),
-              inline: false,
-            });
-
-          const returnButton =
-            new ActionRowBuilder<ButtonBuilder>().addComponents(
-              new ButtonBuilder()
-                .setCustomId(`return-to-main-reorder-${encounter.id}`)
-                .setLabel('Back to Main Menu')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('🔙'),
-            );
-
-          await positionInteraction.editReply({
-            embeds: [successEmbed],
-            components: [returnButton],
+          await interaction.reply({
+            content: '❌ An error occurred. Please try again.',
+            flags: MessageFlags.Ephemeral,
           });
-
-          // Handle return button interaction
-          const returnCollector =
-            positionInteraction.channel?.createMessageComponentCollector({
-              componentType: ComponentType.Button,
-              filter: (i) =>
-                i.customId === `return-to-main-reorder-${encounter.id}` &&
-                i.user.id === interaction.user.id,
-              time: 60_000,
-            });
-
-          if (!returnCollector) return;
-
-          returnCollector.on('collect', async (returnInteraction) => {
-            await returnInteraction.deferUpdate();
-            await this.showMainEncounterView(returnInteraction, encounter);
-          });
-
-          returnCollector.on('end', (collected, reason) => {
-            if (reason === 'time' && collected.size === 0) {
-              positionInteraction.editReply({
-                embeds: [successEmbed],
-                components: [],
-              });
-            }
-          });
-
-          this.logger.log(
-            `User ${interaction.user.id} reordered prog points in encounter ${encounter.id}`,
-          );
-        } catch (error) {
-          this.logger.error(error, 'Failed to reorder prog points');
-          await positionInteraction.editReply({
-            content: '❌ Failed to reorder prog points. Please try again.',
-            embeds: [],
-            components: [],
-          });
+        } catch (replyError) {
+          this.logger.error(replyError, 'Failed to send error reply');
         }
-      });
-
-      positionCollector.on('end', (collected, reason) => {
-        if (reason === 'time' && collected.size === 0) {
-          interaction.editReply({
-            content: '⏰ Position selection timed out.',
-            embeds: [],
-            components: [],
+      } else if (interaction.isRepliable() && interaction.deferred) {
+        try {
+          await interaction.followUp({
+            content: '❌ An error occurred. Please try again.',
+            flags: MessageFlags.Ephemeral,
           });
+        } catch (followUpError) {
+          this.logger.error(followUpError, 'Failed to send error followup');
         }
-      });
-    });
+      }
+    } catch (handlerError) {
+      this.logger.error(handlerError, 'Error in error handler');
+    }
+  }
 
-    selectCollector.on('end', (collected, reason) => {
-      if (reason === 'time' && collected.size === 0) {
-        interaction.editReply({
-          content: '⏰ Prog point selection timed out.',
+  private async showExpiredMessage(): Promise<void> {
+    try {
+      if (this.originalInteraction) {
+        await this.originalInteraction.editReply({
+          content:
+            '⏰ This prog point management session has expired. Please run the command again.',
           embeds: [],
           components: [],
         });
       }
-    });
+    } catch (error) {
+      this.logger.error(error, 'Failed to show expired message');
+    }
   }
 
-  private async showSuccessWithReturnOption(
-    interaction: StringSelectMenuInteraction | ButtonInteraction,
-    successMessage: string,
-    encounter: EncounterDocument,
-    userId: string,
-  ): Promise<void> {
-    const returnButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`return-to-main-${encounter.id}`)
-        .setLabel('Back to Main Menu')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji('🔙'),
-    );
-
-    await interaction.editReply({
-      content: successMessage,
-      embeds: [],
-      components: [returnButton],
-    });
-
-    // Handle return button interaction
-    const returnCollector =
-      interaction.channel?.createMessageComponentCollector({
-        componentType: ComponentType.Button,
-        filter: (i) =>
-          i.customId === `return-to-main-${encounter.id}` &&
-          i.user.id === userId,
-        time: 60_000,
-      });
-
-    if (!returnCollector) return;
-
-    returnCollector.on('collect', async (returnInteraction) => {
-      await returnInteraction.deferUpdate();
-      await this.showMainEncounterView(returnInteraction, encounter);
-    });
-
-    returnCollector.on('end', (collected, reason) => {
-      if (reason === 'time' && collected.size === 0) {
-        // Remove the button after timeout to prevent stale interactions
-        interaction.editReply({
-          content: successMessage,
-          components: [],
-        });
-      }
-    });
-  }
-
-  private async showMainEncounterView(
-    interaction: ButtonInteraction,
-    encounter: EncounterDocument,
-  ): Promise<void> {
+  private isValidInteraction(interaction: Interaction): boolean {
+    // Enhanced validation - check if interaction is still valid and not expired
     try {
-      const progPoints = await this.encountersService.getProgPoints(
-        encounter.id,
-      );
+      if (!interaction.isMessageComponent()) {
+        return false;
+      }
 
-      // Group prog points by party status
-      const groupedProgPoints = progPoints.reduce(
-        (acc, progPoint) => {
-          if (!acc[progPoint.partyStatus]) {
-            acc[progPoint.partyStatus] = [];
-          }
-          acc[progPoint.partyStatus].push(progPoint);
-          return acc;
-        },
-        {} as Record<PartyStatus, typeof progPoints>,
-      );
+      // Check if interaction has already been replied to or deferred
+      if (interaction.replied || interaction.deferred) {
+        return false;
+      }
 
-      // Find threshold prog points
-      const progThresholdPoint = progPoints.find(
-        (p) => p.id === encounter.progPartyThreshold,
-      );
+      // Check interaction age - Discord interactions expire after 15 minutes
+      const interactionAge = Date.now() - interaction.createdTimestamp;
+      const fifteenMinutes = 15 * 60 * 1000;
 
-      const clearThresholdPoint = progPoints.find(
-        (p) => p.id === encounter.clearPartyThreshold,
-      );
-
-      const embed = new EmbedBuilder()
-        .setTitle(`${encounter.name} Configuration`)
-        .setColor(Colors.Blue)
-        .setDescription(`Total prog points: ${progPoints.length}`)
-        .addFields(
+      if (interactionAge > fifteenMinutes) {
+        this.logger.warn(
+          'Interaction is too old (>15 minutes), likely expired',
           {
-            name: '📈 Prog Party Threshold',
-            value: progThresholdPoint
-              ? `${progThresholdPoint.label} (${progThresholdPoint.id})`
-              : 'Not set',
-          },
-          {
-            name: '🎯 Clear Party Threshold',
-            value: clearThresholdPoint
-              ? `${clearThresholdPoint.label} (${clearThresholdPoint.id})`
-              : 'Not set',
+            age: interactionAge,
+            customId: interaction.customId,
           },
         );
-
-      // Add prog points by status
-      for (const [status, points] of Object.entries(groupedProgPoints)) {
-        if (points.length > 0) {
-          const statusEmoji = this.getStatusEmoji(status as PartyStatus);
-          const pointsList = points
-            .map((p) => `• ${p.label} (${p.id})`)
-            .join('\n');
-
-          embed.addFields({
-            name: `${statusEmoji} ${status} (${points.length})`,
-            value:
-              pointsList.length > 1024
-                ? `${pointsList.substring(0, 1020)}...`
-                : pointsList,
-            inline: false,
-          });
-        }
+        return false;
       }
 
-      await interaction.editReply({
-        content: '',
-        embeds: [embed],
-        components: [],
+      return true;
+    } catch (error: unknown) {
+      const progPointError = error as ProgPointError;
+      this.logger.warn('Error validating interaction', {
+        error: progPointError?.message,
       });
-    } catch (error) {
-      this.logger.error(error, 'Error showing main encounter view');
-      await interaction.editReply({
-        content: '❌ An error occurred while loading the main view.',
-        embeds: [],
-        components: [],
-      });
+      return false;
     }
   }
 
-  private getStatusEmoji(status: PartyStatus): string {
-    switch (status) {
-      case PartyStatus.EarlyProgParty:
-        return '🟡';
-      case PartyStatus.ProgParty:
-        return '🟠';
-      case PartyStatus.ClearParty:
-        return '🔵';
-      case PartyStatus.Cleared:
-        return '🟢';
-      default:
-        return '⚪';
+  private async safelyDeferUpdate(interaction: Interaction): Promise<boolean> {
+    try {
+      if (
+        interaction.isMessageComponent() &&
+        !interaction.deferred &&
+        !interaction.replied
+      ) {
+        await interaction.deferUpdate();
+        return true;
+      }
+      return false;
+    } catch (error: unknown) {
+      const progPointError = error as ProgPointError;
+      this.logger.warn('Failed to defer interaction update', {
+        error: progPointError?.message,
+        code: progPointError?.code,
+      });
+      // If deferring fails, the interaction is likely expired
+      if (progPointError?.code === 10062) {
+        throw progPointError; // Re-throw to be caught by main error handler
+      }
+      return false;
     }
+  }
+
+  /**
+   * Get all prog points sorted by order (includes both active and inactive)
+   * This is the source of truth for position numbering across the application
+   */
+  private getAllProgPointsSorted(): ProgPointDocument[] {
+    return [...this.currentProgPoints].sort((a, b) => a.order - b.order);
+  }
+
+  /**
+   * Get only active prog points sorted by order
+   * Use only when functionality specifically requires active-only filtering
+   */
+  private getActiveProgPointsSorted(): ProgPointDocument[] {
+    return this.currentProgPoints
+      .filter((p) => p.active)
+      .sort((a, b) => a.order - b.order);
+  }
+
+  /**
+   * Format prog points for display with consistent active/inactive indicators
+   */
+  private formatProgPointsForDisplay(
+    progPoints: ProgPointDocument[],
+    highlightId?: string,
+    highlightText?: string,
+  ): string {
+    return progPoints
+      .map((p, index) => {
+        const statusIcon = p.active ? '✅' : '❌';
+        const statusText = p.active ? '' : ' (inactive)';
+        const isHighlighted = p.id === highlightId;
+
+        if (isHighlighted && highlightText) {
+          return `**${index + 1}. ${statusIcon} ${p.label}${statusText}** ${highlightText}`;
+        }
+        return `${index + 1}. ${statusIcon} ${p.label}${statusText}`;
+      })
+      .join('\n');
+  }
+
+  /**
+   * Create selection options for prog points (centralized for all dropdowns)
+   * Always shows ALL prog points with consistent active/inactive indicators
+   */
+  private createProgPointSelectionOptions(): Array<{
+    label: string;
+    value: string;
+    description: string;
+  }> {
+    const sortedProgPoints = this.getAllProgPointsSorted();
+
+    return sortedProgPoints.map((progPoint, index) => {
+      const statusIcon = progPoint.active ? '✅' : '❌';
+      const statusText = progPoint.active ? '' : ' (inactive)';
+
+      return {
+        label: `${statusIcon} ${progPoint.label}${statusText}`,
+        value: progPoint.id,
+        description: `Position ${index + 1}`,
+      };
+    });
   }
 
   private generateProgPointId(label: string): string {
