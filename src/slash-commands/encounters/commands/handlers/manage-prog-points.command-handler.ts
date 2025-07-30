@@ -384,11 +384,11 @@ export class ManageProgPointsCommandHandler
       interaction.customId === 'select-prog-point-toggle'
     ) {
       await this.safelyDeferUpdate(interaction);
-      const selectedProgPointIds = interaction.values;
+      const selectedProgPointIds = new Set(interaction.values);
 
       // Find the selected prog points
       const selectedProgPoints = this.currentProgPoints.filter((p) =>
-        selectedProgPointIds.includes(p.id),
+        selectedProgPointIds.has(p.id),
       );
 
       if (selectedProgPoints.length === 0) {
@@ -698,7 +698,7 @@ export class ManageProgPointsCommandHandler
       new ButtonBuilder()
         .setCustomId('confirm-bulk-toggle')
         .setLabel(
-          `Yes, Toggle ${this.pendingToggleOperation.selectedProgPointIds.length} Prog Points`,
+          `Yes, Toggle ${this.pendingToggleOperation.selectedProgPointIds.size} Prog Points`,
         )
         .setStyle(ButtonStyle.Danger),
       new ButtonBuilder()
@@ -841,7 +841,7 @@ export class ManageProgPointsCommandHandler
       await this.showSuccessWithReturnOption(successMessage);
 
       this.logger.log(
-        `User ${this.originalInteraction?.user.id} bulk toggled ${successful.length}/${selectedProgPointIds.length} prog points in encounter ${this.currentEncounter.id}`,
+        `User ${this.originalInteraction?.user.id} bulk toggled ${successful.length}/${selectedProgPointIds.size} prog points in encounter ${this.currentEncounter.id}`,
       );
 
       this.pendingToggleOperation = null;
@@ -883,21 +883,29 @@ export class ManageProgPointsCommandHandler
     });
 
     const results = await Promise.allSettled(togglePromises);
-    const successful: ProgPointDocument[] = [];
-    const failed: Array<{ progPoint: ProgPointDocument; error: unknown }> = [];
 
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        const { progPoint, success, error } = result.value;
-        if (success) {
-          successful.push(progPoint);
+    const { successful, failed } = results.reduce(
+      (acc, result, index) => {
+        if (result.status === 'fulfilled') {
+          const { progPoint, success, error } = result.value;
+          if (success) {
+            acc.successful.push(progPoint);
+          } else {
+            acc.failed.push({ progPoint, error });
+          }
         } else {
-          failed.push({ progPoint, error });
+          acc.failed.push({
+            progPoint: progPoints[index],
+            error: result.reason,
+          });
         }
-      } else {
-        failed.push({ progPoint: progPoints[index], error: result.reason });
-      }
-    });
+        return acc;
+      },
+      {
+        successful: [] as ProgPointDocument[],
+        failed: [] as Array<{ progPoint: ProgPointDocument; error: unknown }>,
+      },
+    );
 
     return { successful, failed };
   }

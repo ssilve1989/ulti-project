@@ -40,7 +40,7 @@ export interface PendingReorderOperation {
 }
 
 export interface PendingToggleOperation {
-  selectedProgPointIds: string[];
+  selectedProgPointIds: Set<string>;
   progPointsToActivate: ProgPointDocument[];
   progPointsToDeactivate: ProgPointDocument[];
 }

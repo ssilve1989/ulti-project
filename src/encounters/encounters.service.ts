@@ -5,7 +5,6 @@ import type {
   ProgPointDocument,
 } from '../firebase/models/encounter.model.js';
 import { PartyStatus } from '../firebase/models/signup.model.js';
-
 import type { ProgPointOption } from './encounters.consts.js';
 import { ThresholdError } from './errors/threshold.error.js';
 
