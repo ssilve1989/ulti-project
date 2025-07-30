@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.39.0](https://github.com/ssilve1989/ulti-project/compare/v1.38.1...v1.39.0) (2025-07-30)
+
+
+### Features
+
+* **encounters:** enable multi-select when toggling prog points enablement ([#899](https://github.com/ssilve1989/ulti-project/issues/899)) ([e7a176e](https://github.com/ssilve1989/ulti-project/commit/e7a176e59346f155e99ab77d9660a8c04163392a))
+* **encounters:** enhance prog point management with active/inactive toggles ([#896](https://github.com/ssilve1989/ulti-project/issues/896)) ([b24e43e](https://github.com/ssilve1989/ulti-project/commit/b24e43ecc3791edfa503e02409dc68331cdf0b0f))
+
 ## [1.38.1](https://github.com/ssilve1989/ulti-project/compare/v1.38.0...v1.38.1) (2025-07-28)
 
 
