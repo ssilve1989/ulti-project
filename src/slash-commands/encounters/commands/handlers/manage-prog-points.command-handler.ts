@@ -64,7 +64,6 @@ export class ManageProgPointsCommandHandler
 
   // Type-safe pending operation state for multi-step flows
   private pendingAddOperation: PendingAddOperation | null = null;
-  private pendingEditOperation: PendingAddOperation | null = null;
   private pendingPartyStatusOperation: PendingPartyStatusOperation | null =
     null;
   private pendingReorderOperation: PendingReorderOperation | null = null;
@@ -1316,12 +1315,6 @@ export class ManageProgPointsCommandHandler
       const newLongName = modalSubmission.fields.getTextInputValue('long-name');
 
       // Step 2: Show party status select menu with current status selected
-      this.pendingEditOperation = {
-        progPointId: progPoint.id,
-        longName: newLongName,
-        interaction: modalSubmission,
-        action: 'add',
-      };
 
       await this.showPartyStatusSelect(progPoint.id, newLongName, 'edit');
     } catch (_error) {
@@ -1429,7 +1422,6 @@ export class ManageProgPointsCommandHandler
 
       // Clear pending operations
       this.pendingAddOperation = null;
-      this.pendingEditOperation = null;
       this.pendingPartyStatusOperation = null;
     } catch (error) {
       this.logger.error(

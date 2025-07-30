@@ -253,7 +253,8 @@ describe('ManageProgPointsCommandHandler', () => {
       expect(buttonInteraction.deferUpdate).toHaveBeenCalled();
       expect(interaction.editReply).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: 'Select one or more prog points to toggle between active and inactive:',
+          content:
+            'Select one or more prog points to toggle between active and inactive:',
         }),
       );
     });

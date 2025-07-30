@@ -143,8 +143,10 @@ export class EncountersService {
 
     // If we're trying to deactivate an active prog point, check threshold dependencies
     if (progPoint.active && encounter) {
-      let thresholdType: PartyStatus.ProgParty | PartyStatus.ClearParty | null =
-        null;
+      let thresholdType:
+        | PartyStatus.ProgParty
+        | PartyStatus.ClearParty
+        | undefined;
 
       if (encounter.progPartyThreshold === progPointId) {
         thresholdType = PartyStatus.ProgParty;
