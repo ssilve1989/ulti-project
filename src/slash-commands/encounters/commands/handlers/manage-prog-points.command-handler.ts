@@ -20,6 +20,7 @@ import {
 } from 'discord.js';
 import { isSameUserFilter } from '../../../../common/collection-filters.js';
 import { EncountersService } from '../../../../encounters/encounters.service.js';
+import { ThresholdError } from '../../../../encounters/errors/threshold.error.js';
 import { ErrorService } from '../../../../error/error.service.js';
 import type {
   EncounterDocument,
@@ -31,6 +32,7 @@ import {
   type PendingAddOperation,
   type PendingPartyStatusOperation,
   type PendingReorderOperation,
+  type PendingToggleOperation,
   type ProgPointCollector,
   type ProgPointError,
   ScreenState,
@@ -39,6 +41,10 @@ import {
   createBackButtonRow,
   createSuccessWithReturnButton,
 } from './manage-prog-points.utils.js';
+
+function isThresholdError(error: unknown): error is ThresholdError {
+  return error instanceof ThresholdError;
+}
 
 /**
  * This handler was made by several different AI Models and could use some TLC.
@@ -62,6 +68,7 @@ export class ManageProgPointsCommandHandler
   private pendingPartyStatusOperation: PendingPartyStatusOperation | null =
     null;
   private pendingReorderOperation: PendingReorderOperation | null = null;
+  private pendingToggleOperation: PendingToggleOperation | null = null;
 
   constructor(
     private readonly encountersService: EncountersService,
@@ -316,6 +323,9 @@ export class ManageProgPointsCommandHandler
       case ScreenState.TOGGLE_SELECTION:
         await this.handleToggleSelectionInteraction(interaction);
         break;
+      case ScreenState.TOGGLE_CONFIRMATION:
+        await this.handleToggleConfirmationInteraction(interaction);
+        break;
       case ScreenState.EDIT_SELECTION:
         await this.handleEditSelectionInteraction(interaction);
         break;
@@ -375,17 +385,62 @@ export class ManageProgPointsCommandHandler
       interaction.customId === 'select-prog-point-toggle'
     ) {
       await this.safelyDeferUpdate(interaction);
-      const progPointId = interaction.values[0];
-      const progPoint = this.currentProgPoints.find(
-        (p) => p.id === progPointId,
+      const selectedProgPointIds = interaction.values;
+
+      // Find the selected prog points
+      const selectedProgPoints = this.currentProgPoints.filter((p) =>
+        selectedProgPointIds.includes(p.id),
       );
 
-      if (!progPoint) {
-        await this.updateMessage('❌ Prog point not found.', [], []);
+      if (selectedProgPoints.length === 0) {
+        await this.updateMessage('❌ No prog points found.', [], []);
         return;
       }
 
-      await this.executeToggle(progPoint);
+      // If only one prog point selected, use existing single toggle logic
+      if (selectedProgPoints.length === 1) {
+        await this.executeToggle(selectedProgPoints[0]);
+        return;
+      }
+
+      // Separate into points to activate and deactivate
+      const progPointsToActivate = selectedProgPoints.filter((p) => !p.active);
+      const progPointsToDeactivate = selectedProgPoints.filter((p) => p.active);
+
+      // Store pending operation
+      this.pendingToggleOperation = {
+        selectedProgPointIds,
+        progPointsToActivate,
+        progPointsToDeactivate,
+      };
+
+      // Move to confirmation screen
+      this.currentState = ScreenState.TOGGLE_CONFIRMATION;
+      await this.showToggleConfirmation();
+    }
+  }
+
+  private async handleToggleConfirmationInteraction(
+    interaction: Interaction,
+  ): Promise<void> {
+    if (!interaction.isButton()) return;
+
+    switch (interaction.customId) {
+      case 'confirm-bulk-toggle':
+        await this.safelyDeferUpdate(interaction);
+        await this.executeBulkToggle();
+        break;
+      case 'cancel-bulk-toggle':
+        await this.safelyDeferUpdate(interaction);
+        this.pendingToggleOperation = null;
+        this.currentState = ScreenState.TOGGLE_SELECTION;
+        await this.showToggleSelection();
+        break;
+      case 'back-to-main-from-toggle':
+        await this.safelyDeferUpdate(interaction);
+        this.pendingToggleOperation = null;
+        await this.returnToMainMenu(interaction);
+        break;
     }
   }
 
@@ -543,7 +598,9 @@ export class ManageProgPointsCommandHandler
     const selectOptions = this.createProgPointSelectionOptions();
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId('select-prog-point-toggle')
-      .setPlaceholder('Choose a prog point to toggle...')
+      .setPlaceholder('Choose prog points to toggle (select multiple)...')
+      .setMinValues(1)
+      .setMaxValues(Math.min(selectOptions.length, 25))
       .addOptions(selectOptions);
 
     const selectRow =
@@ -551,7 +608,7 @@ export class ManageProgPointsCommandHandler
     const buttonRow = createBackButtonRow('back-to-main-toggle');
 
     await this.updateMessage(
-      'Select a prog point to toggle between active and inactive:',
+      'Select one or more prog points to toggle between active and inactive:',
       [],
       [selectRow, buttonRow],
     );
@@ -591,6 +648,71 @@ export class ManageProgPointsCommandHandler
       [],
       [selectRow, buttonRow],
     );
+  }
+
+  private async showToggleConfirmation(): Promise<void> {
+    if (!this.pendingToggleOperation) return;
+
+    const { progPointsToActivate, progPointsToDeactivate } =
+      this.pendingToggleOperation;
+
+    const embed = new EmbedBuilder()
+      .setTitle('Confirm Toggle Action')
+      .setColor(Colors.Yellow)
+      .setDescription(
+        '**Preview of changes:**\n\nAre you sure you want to toggle these prog points?',
+      );
+
+    // Add field for prog points being activated
+    if (progPointsToActivate.length > 0) {
+      const activatingList = progPointsToActivate
+        .map((p, index) => `${index + 1}. ❌ **${p.label}** → ✅ **Active**`)
+        .join('\n');
+
+      embed.addFields({
+        name: `Activating (${progPointsToActivate.length})`,
+        value:
+          activatingList.length > 1024
+            ? `${activatingList.substring(0, 1020)}...`
+            : activatingList,
+        inline: false,
+      });
+    }
+
+    // Add field for prog points being deactivated
+    if (progPointsToDeactivate.length > 0) {
+      const deactivatingList = progPointsToDeactivate
+        .map((p, index) => `${index + 1}. ✅ **${p.label}** → ❌ **Inactive**`)
+        .join('\n');
+
+      embed.addFields({
+        name: `Deactivating (${progPointsToDeactivate.length})`,
+        value:
+          deactivatingList.length > 1024
+            ? `${deactivatingList.substring(0, 1020)}...`
+            : deactivatingList,
+        inline: false,
+      });
+    }
+
+    const confirmButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId('confirm-bulk-toggle')
+        .setLabel(
+          `Yes, Toggle ${this.pendingToggleOperation.selectedProgPointIds.length} Prog Points`,
+        )
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId('cancel-bulk-toggle')
+        .setLabel('Cancel')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('back-to-main-from-toggle')
+        .setLabel('Back to Main Menu')
+        .setStyle(ButtonStyle.Secondary),
+    );
+
+    await this.updateMessage('', [embed], [confirmButtons]);
   }
 
   private async showReorderSelection(): Promise<void> {
@@ -697,6 +819,166 @@ export class ManageProgPointsCommandHandler
         error instanceof Error ? error.message : 'Unknown error occurred';
       await this.updateMessage(`❌ ${errorMessage}`, [], []);
     }
+  }
+
+  private async executeBulkToggle(): Promise<void> {
+    if (!this.currentEncounter || !this.pendingToggleOperation) return;
+
+    const {
+      selectedProgPointIds,
+      progPointsToActivate,
+      progPointsToDeactivate,
+    } = this.pendingToggleOperation;
+
+    try {
+      const allProgPoints = [
+        ...progPointsToActivate,
+        ...progPointsToDeactivate,
+      ];
+      const { successful, failed } =
+        await this.processToggleOperations(allProgPoints);
+
+      const successMessage = this.buildBulkToggleMessage(successful, failed);
+      await this.showSuccessWithReturnOption(successMessage);
+
+      this.logger.log(
+        `User ${this.originalInteraction?.user.id} bulk toggled ${successful.length}/${selectedProgPointIds.length} prog points in encounter ${this.currentEncounter.id}`,
+      );
+
+      this.pendingToggleOperation = null;
+    } catch (error) {
+      this.logger.error(error, 'Failed to execute bulk toggle');
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      await this.updateMessage(
+        `❌ Bulk toggle failed: ${errorMessage}`,
+        [],
+        [],
+      );
+    }
+  }
+
+  private async processToggleOperations(
+    progPoints: ProgPointDocument[],
+  ): Promise<{
+    successful: ProgPointDocument[];
+    failed: Array<{ progPoint: ProgPointDocument; error: unknown }>;
+  }> {
+    const encounterId = this.currentEncounter?.id;
+    if (!encounterId) throw new Error('No encounter available');
+
+    const togglePromises = progPoints.map(async (progPoint) => {
+      try {
+        await this.encountersService.toggleProgPointActive(
+          encounterId,
+          progPoint.id,
+        );
+        return { progPoint, success: true };
+      } catch (error) {
+        this.logger.error(
+          error,
+          `Failed to toggle prog point ${progPoint.id} (${progPoint.label})`,
+        );
+        return { progPoint, success: false, error };
+      }
+    });
+
+    const results = await Promise.allSettled(togglePromises);
+    const successful: ProgPointDocument[] = [];
+    const failed: Array<{ progPoint: ProgPointDocument; error: unknown }> = [];
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        const { progPoint, success, error } = result.value;
+        if (success) {
+          successful.push(progPoint);
+        } else {
+          failed.push({ progPoint, error });
+        }
+      } else {
+        failed.push({ progPoint: progPoints[index], error: result.reason });
+      }
+    });
+
+    return { successful, failed };
+  }
+
+  private buildBulkToggleMessage(
+    successful: ProgPointDocument[],
+    failed: Array<{ progPoint: ProgPointDocument; error: unknown }>,
+  ): string {
+    const successMessage = this.buildSuccessMessage(successful);
+    const failureMessage = this.buildFailureMessage(failed);
+
+    if (successMessage && failureMessage) {
+      return `${successMessage}\n\n${failureMessage}`;
+    }
+    return successMessage || failureMessage;
+  }
+
+  private buildSuccessMessage(successful: ProgPointDocument[]): string {
+    if (successful.length === 0) return '';
+
+    // Count based on original states (before toggle)
+    // If original was inactive (!p.active), it got activated
+    // If original was active (p.active), it got deactivated
+    const activatedCount = successful.filter((p) => !p.active).length;
+    const deactivatedCount = successful.filter((p) => p.active).length;
+
+    const parts: string[] = [];
+    if (activatedCount > 0) {
+      parts.push(
+        `activated ${activatedCount} prog point${activatedCount === 1 ? '' : 's'}`,
+      );
+    }
+    if (deactivatedCount > 0) {
+      parts.push(
+        `deactivated ${deactivatedCount} prog point${deactivatedCount === 1 ? '' : 's'}`,
+      );
+    }
+
+    return `✅ Successfully ${parts.join(' and ')}`;
+  }
+
+  private buildFailureMessage(
+    failed: Array<{ progPoint: ProgPointDocument; error: unknown }>,
+  ): string {
+    if (failed.length === 0) return '';
+
+    // Separate threshold errors from other errors
+    const thresholdErrors = failed
+      .map((f) => f.error)
+      .filter((f) => isThresholdError(f));
+
+    const otherErrors = failed.filter((f) => !isThresholdError(f.error));
+
+    const messages: string[] = [];
+
+    // Build threshold-specific error messages
+    if (thresholdErrors.length > 0) {
+      const thresholdMessages = thresholdErrors.map((error) => {
+        const thresholdName =
+          error.thresholdType === 'Prog Party' ? 'Prog Party' : 'Clear Party';
+        return `🚫 **${error.progPointLabel}** - Cannot deactivate: Currently used as **${thresholdName} Threshold**`;
+      });
+
+      messages.push(...thresholdMessages);
+      messages.push(
+        '💡 Use `/encounters set-thresholds` to change thresholds first',
+      );
+    }
+
+    // Build generic error messages for other failures
+    if (otherErrors.length > 0) {
+      const otherPointNames = otherErrors
+        .map((f) => f.progPoint.label)
+        .join(', ');
+      messages.push(
+        `❌ Failed to toggle ${otherErrors.length} prog point${otherErrors.length === 1 ? '' : 's'}: ${otherPointNames}`,
+      );
+    }
+
+    return messages.join('\n\n');
   }
 
   private async executeDelete(progPoint: ProgPointDocument): Promise<void> {
@@ -842,12 +1124,7 @@ export class ManageProgPointsCommandHandler
       }
 
       // Step 2: Show position selection for new prog point on main message
-      await this.showPositionSelect(
-        modalSubmission,
-        progPointId,
-        longName,
-        existingProgPoints,
-      );
+      await this.showPositionSelect(modalSubmission, progPointId, longName);
     } catch (error) {
       this.logger.error(error, 'Failed to handle add prog point modal');
     }
@@ -857,7 +1134,6 @@ export class ManageProgPointsCommandHandler
     interaction: ModalSubmitInteraction,
     progPointId: string,
     longName: string,
-    existingProgPoints: ProgPointDocument[],
   ): Promise<void> {
     if (!this.currentEncounter) return;
 
@@ -1457,16 +1733,6 @@ export class ManageProgPointsCommandHandler
    */
   private getAllProgPointsSorted(): ProgPointDocument[] {
     return [...this.currentProgPoints].sort((a, b) => a.order - b.order);
-  }
-
-  /**
-   * Get only active prog points sorted by order
-   * Use only when functionality specifically requires active-only filtering
-   */
-  private getActiveProgPointsSorted(): ProgPointDocument[] {
-    return this.currentProgPoints
-      .filter((p) => p.active)
-      .sort((a, b) => a.order - b.order);
   }
 
   /**

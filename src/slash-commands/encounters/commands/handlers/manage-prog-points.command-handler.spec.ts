@@ -253,7 +253,7 @@ describe('ManageProgPointsCommandHandler', () => {
       expect(buttonInteraction.deferUpdate).toHaveBeenCalled();
       expect(interaction.editReply).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: 'Select a prog point to toggle between active and inactive:',
+          content: 'Select one or more prog points to toggle between active and inactive:',
         }),
       );
     });
@@ -402,7 +402,7 @@ describe('ManageProgPointsCommandHandler', () => {
       await collectHandler?.(selectInteraction);
 
       expect(interaction.editReply).toHaveBeenCalledWith({
-        content: '❌ Prog point not found.',
+        content: '❌ No prog points found.',
         embeds: [],
         components: [],
       });

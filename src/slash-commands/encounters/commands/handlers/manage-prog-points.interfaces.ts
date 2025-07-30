@@ -8,6 +8,7 @@ import type { ProgPointDocument } from '../../../../firebase/models/encounter.mo
 export const ScreenState = {
   MAIN_MENU: 'main_menu',
   TOGGLE_SELECTION: 'toggle_selection',
+  TOGGLE_CONFIRMATION: 'toggle_confirmation',
   EDIT_SELECTION: 'edit_selection',
   DELETE_SELECTION: 'delete_selection',
   REORDER: 'reorder',
@@ -36,6 +37,12 @@ export interface PendingPartyStatusOperation {
 export interface PendingReorderOperation {
   progPointToMove: string;
   sortedProgPoints: ProgPointDocument[];
+}
+
+export interface PendingToggleOperation {
+  selectedProgPointIds: string[];
+  progPointsToActivate: ProgPointDocument[];
+  progPointsToDeactivate: ProgPointDocument[];
 }
 
 // Discord.js collector type - uses the actual type returned by createMessageComponentCollector

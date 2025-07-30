@@ -5,7 +5,9 @@ import type {
   ProgPointDocument,
 } from '../firebase/models/encounter.model.js';
 import { PartyStatus } from '../firebase/models/signup.model.js';
+
 import type { ProgPointOption } from './encounters.consts.js';
+import { ThresholdError } from './errors/threshold.error.js';
 
 @Injectable()
 export class EncountersService {
@@ -141,12 +143,21 @@ export class EncountersService {
 
     // If we're trying to deactivate an active prog point, check threshold dependencies
     if (progPoint.active && encounter) {
-      if (
-        encounter.progPartyThreshold === progPointId ||
-        encounter.clearPartyThreshold === progPointId
-      ) {
-        throw new Error(
-          `Cannot deactivate prog point ${progPointId} as it is currently used as a threshold. Please update the thresholds first.`,
+      let thresholdType: PartyStatus.ProgParty | PartyStatus.ClearParty | null =
+        null;
+
+      if (encounter.progPartyThreshold === progPointId) {
+        thresholdType = PartyStatus.ProgParty;
+      } else if (encounter.clearPartyThreshold === progPointId) {
+        thresholdType = PartyStatus.ClearParty;
+      }
+
+      if (thresholdType) {
+        throw new ThresholdError(
+          progPointId,
+          progPoint.label,
+          thresholdType,
+          encounterId,
         );
       }
     }
