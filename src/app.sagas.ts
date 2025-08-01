@@ -9,8 +9,8 @@ import {
   SignupApprovedEvent,
   SignupCreatedEvent,
 } from './slash-commands/signup/events/signup.events.js';
+import { SendSignupReviewCommand } from './slash-commands/signup/handlers/send-signup-review.command.js';
 import { hasClearedStatus } from './slash-commands/signup/signup.utils.js';
-import { SendSignupReviewCommand } from './slash-commands/signup/subcommands/send-signup-review/send-signup-review.command.js';
 import { TurboProgRemoveSignupCommand } from './slash-commands/turboprog/commands/turbo-prog.commands.js';
 
 // TODO: Why are these at the app level? They should be in the signup module
