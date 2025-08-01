@@ -6,22 +6,22 @@ import {
   BlacklistRemoveCommand,
 } from './blacklist/blacklist.commands.js';
 import { BlacklistSlashCommand } from './blacklist/blacklist.slash-command.js';
-import { CleanRolesCommand } from './clean-roles/clean-roles.command.js';
 import { CleanRolesSlashCommand } from './clean-roles/clean-roles.slash-command.js';
+import { CleanRolesCommand } from './clean-roles/commands/clean-roles.command.js';
 import { EncountersCommand } from './encounters/commands/encounters.commands.js';
 import { EncountersSlashCommand } from './encounters/encounters.slash-command.js';
 import { FINAL_PUSH_SLASH_COMMAND_NAME } from './finalpush/final-push-signup.slash-command.js';
-import { HelpCommand } from './help/help.command.js';
+import { HelpCommand } from './help/commands/help.command.js';
 import { HelpSlashCommand } from './help/help.slash-command.js';
-import { LookupCommand } from './lookup/lookup.command.js';
+import { LookupCommand } from './lookup/commands/lookup.command.js';
 import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
-import { RemoveRoleCommand } from './remove-role/remove-role.command.js';
+import { RemoveRoleCommand } from './remove-role/commands/remove-role.command.js';
 import { RemoveRoleSlashCommand } from './remove-role/remove-role.slash-command.js';
-import { RemoveSignupCommand } from './remove-signup/remove-signup.command.js';
+import { RemoveSignupCommand } from './remove-signup/commands/remove-signup.command.js';
 import { REMOVE_SIGNUP_SLASH_COMMAND_NAME } from './remove-signup/remove-signup.slash-command.js';
-import { RetireCommand } from './retire/retire.command.js';
+import { RetireCommand } from './retire/commands/retire.command.js';
 import { RetireSlashCommand } from './retire/retire.slash-command.js';
-import { SearchCommand } from './search/search.command.js';
+import { SearchCommand } from './search/commands/search.command.js';
 import { SearchSlashCommand } from './search/search.slash-command.js';
 import { SettingsSlashCommand } from './settings/settings.slash-command.js';
 import { EditChannelsCommand } from './settings/subcommands/channels/edit-channels.command.js';
@@ -33,7 +33,7 @@ import { ViewSettingsCommand } from './settings/subcommands/view/view-settings.c
 import { SignupCommand } from './signup/commands/signup.commands.js';
 import { SIGNUP_SLASH_COMMAND_NAME } from './signup/signup.slash-command.js';
 import type { DiscordCommand } from './slash-commands.interfaces.js';
-import { StatusCommand } from './status/status.command.js';
+import { StatusCommand } from './status/commands/status.command.js';
 import { StatusSlashCommand } from './status/status.slash-command.js';
 import { TurboProgCommand } from './turboprog/commands/turbo-prog.commands.js';
 import { TURBO_PROG_SLASH_COMMAND_NAME } from './turboprog/turbo-prog-signup.slash-command.js';
