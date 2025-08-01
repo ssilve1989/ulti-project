@@ -21,7 +21,8 @@ export enum PartyStatus {
 
 // TODO: Some fields here _will_ be defined depending on the value of `status`. So we should improve the types to reflect this.
 export interface SignupDocument {
-  availability: string;
+  // Preserved for potential future use - no longer used in presentation layer
+  availability?: string;
   character: string;
   discordId: string;
   encounter: Encounter;
@@ -53,7 +54,7 @@ export interface SignupDocument {
 
 export type CreateSignupDocumentProps = Omit<
   SignupDocument,
-  'status' | 'expiresAt' | 'declineReason'
+  'status' | 'expiresAt' | 'declineReason' | 'availability'
 >;
 
 export type SignupCompositeKeyProps = Pick<

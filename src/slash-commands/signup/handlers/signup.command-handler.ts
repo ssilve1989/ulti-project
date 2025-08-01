@@ -166,7 +166,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     const encounter = options.getString('encounter', true) as Encounter;
 
     const request = {
-      availability: options.getString('availability', true),
       character: options.getString('character', true),
       discordId: user.id,
       encounter,
@@ -190,7 +189,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
   private createSignupConfirmationEmbed(
     {
-      availability,
       character,
       encounter,
       notes,
@@ -207,8 +205,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       worldField(world, 'Home World'),
       { name: 'Job', value: role, inline: true },
       { name: 'Prog Point', value: progPointRequested, inline: true },
-      { name: 'Availability', value: availability, inline: true },
-      { name: 'Prof Proof Link', value: proofOfProgLink, inline: true },
+      { name: 'Prog Proof Link', value: proofOfProgLink, inline: true },
       { name: 'Notes', value: notes, inline: false },
     ]);
 

@@ -174,19 +174,17 @@ class TurboProgCommandHandler {
     options,
   }: ChatInputCommandInteraction<'cached' | 'raw'>) {
     return turboProgSignupSchema.parse({
-      availability: options.getString('availability', true),
       encounter: options.getString('encounter', true),
     });
   }
 
   private mapSignupToRowData(
     { progPointRequested, progPoint, role, character }: SignupDocument,
-    { availability, encounter }: TurboProgSignupSchema,
+    { encounter }: TurboProgSignupSchema,
   ) {
     return {
       character,
       job: role,
-      availability,
       encounter,
       progPoint: progPoint || progPointRequested,
     };
@@ -198,7 +196,7 @@ class TurboProgCommandHandler {
    */
   private mapSheetData(
     values: string[],
-    { availability, encounter }: TurboProgSignupSchema,
+    { encounter }: TurboProgSignupSchema,
     character: string,
   ) {
     if (values.length !== 4 || values.some((value, i) => i > 1 && !value)) {
@@ -211,7 +209,6 @@ class TurboProgCommandHandler {
       character,
       job: values[2],
       progPoint: values[3],
-      availability,
       encounter,
     };
   }

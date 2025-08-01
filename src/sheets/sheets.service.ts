@@ -403,7 +403,7 @@ class SheetsService {
    */
   @SentryTraced()
   private async upsertTurboProgRow(
-    { encounter, character, job, progPoint, availability }: TurboProgEntry,
+    { encounter, character, job, progPoint }: TurboProgEntry,
     spreadsheetId: string,
   ) {
     const sheetName = this.config.TURBO_PROG_SHEET_NAME;
@@ -419,7 +419,7 @@ class SheetsService {
       ? sheetValues.length + 1
       : TURBP_PROG_SHEET_STARTING_ROW;
 
-    const values = [titleCase(character), job, progPoint, availability];
+    const values = [titleCase(character), job, progPoint];
     const updateRange =
       rowIndex === -1
         ? `${sheetName}!${range.start}${rowOffset}:${range.end}`

@@ -91,7 +91,6 @@ class SendApprovedMessageEventHandler
       progPointRequested,
       discordId,
       proofOfProgLink,
-      availability,
       screenshot,
     }: SignupDocument,
   ): Promise<EmbedBuilder> {
@@ -134,10 +133,6 @@ class SendApprovedMessageEventHandler
         },
       ]);
     }
-
-    embed.addFields([
-      { name: 'Availability', value: availability, inline: true },
-    ]);
 
     if (screenshot) {
       embed.setImage(screenshot);

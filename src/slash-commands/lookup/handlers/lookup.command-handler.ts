@@ -129,16 +129,11 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
 
     const embeds = Object.entries(groupedByWorld).map(([world, signups]) => {
       const fields = signups.flatMap(
-        ({ progPoint, notes, encounter, availability, blacklistStatus }) => [
+        ({ progPoint, notes, encounter, blacklistStatus }) => [
           encounterField(encounter),
           {
             name: 'Prog Point',
             value: progPoint,
-            inline: true,
-          },
-          {
-            name: 'Availability',
-            value: availability,
             inline: true,
           },
           { name: 'Blacklisted', value: blacklistStatus, inline: !!notes },

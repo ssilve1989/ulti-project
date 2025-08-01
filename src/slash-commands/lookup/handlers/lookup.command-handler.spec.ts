@@ -56,7 +56,6 @@ describe('LookupCommandHandler', () => {
         character: 'aeo arcanist',
         world: 'jenova',
         encounter: Encounter.DSR,
-        availability: 'Monday, Wednesday, Friday',
         notes: 'Test notes',
       } as SignupDocument,
     ];
@@ -86,11 +85,6 @@ describe('LookupCommandHandler', () => {
             {
               name: 'Encounter',
               value: '[DSR] Dragonsong Reprise',
-              inline: true,
-            },
-            {
-              name: 'Availability',
-              value: signups[0].availability,
               inline: true,
             },
             {

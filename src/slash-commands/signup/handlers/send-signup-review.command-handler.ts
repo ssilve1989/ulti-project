@@ -97,7 +97,6 @@ class SendSignupReviewCommandHandler
 
   private createSignupApprovalEmbed(
     {
-      availability,
       character,
       encounter,
       notes,
@@ -123,7 +122,6 @@ class SendSignupReviewCommandHandler
         transform: (v: string) => `[View](${v})`,
         inline: true,
       },
-      { name: 'Availability', value: availability, inline: true },
       { name: 'Notes', value: notes, inline: false },
     ]);
 
