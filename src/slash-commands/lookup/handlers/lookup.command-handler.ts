@@ -9,7 +9,10 @@ import {
 } from 'discord.js';
 import { titleCase } from 'title-case';
 import { z } from 'zod';
-import { encounterField } from '../../../common/components/fields.js';
+import {
+  emptyField,
+  encounterField,
+} from '../../../common/components/fields.js';
 import { createFields } from '../../../common/embed-helpers.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { BlacklistCollection } from '../../../firebase/collections/blacklist-collection.js';
@@ -136,6 +139,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
             value: progPoint,
             inline: true,
           },
+          emptyField(),
           { name: 'Blacklisted', value: blacklistStatus, inline: true },
           {
             name: 'Notes',
