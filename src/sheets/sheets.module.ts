@@ -4,13 +4,14 @@ import { Compute, GoogleAuth } from 'google-auth-library';
 import { appConfig } from '../config/app.js';
 import { sheetsConfig } from '../config/sheets.js';
 import { EncountersModule } from '../encounters/encounters.module.js';
+import { ErrorModule } from '../error/error.module.js';
 import { SHEETS_CLIENT } from './sheets.consts.js';
 import { SheetsService } from './sheets.service.js';
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
 @Module({
-  imports: [EncountersModule],
+  imports: [EncountersModule, ErrorModule],
   providers: [
     SheetsService,
     {
