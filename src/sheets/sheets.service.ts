@@ -8,11 +8,11 @@ import { AsyncQueue } from '../common/async-queue/async-queue.js';
 import { sheetsConfig } from '../config/sheets.js';
 import { Encounter } from '../encounters/encounters.consts.js';
 import { EncountersService } from '../encounters/encounters.service.js';
+import { ErrorService } from '../error/error.service.js';
 import {
   PartyStatus,
   type SignupDocument,
 } from '../firebase/models/signup.model.js';
-import { sentryReport } from '../sentry/sentry.consts.js';
 import type { TurboProgEntry } from '../slash-commands/turboprog/turbo-prog.interfaces.js';
 import { type SheetRangeConfig, SheetRanges } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
@@ -48,6 +48,7 @@ class SheetsService {
   constructor(
     @InjectSheetsClient() private readonly client: sheets_v4.Sheets,
     private readonly encountersService: EncountersService,
+    private readonly errorService: ErrorService,
   ) {}
 
   // Regular signup methods
@@ -380,7 +381,7 @@ class SheetsService {
       return { title, url };
     } catch (e) {
       Sentry.setExtra('spreadsheetId', spreadsheetId);
-      sentryReport(e);
+      this.errorService.captureError(e);
 
       return match(e)
         .with({ code: 404 }, () => ({
