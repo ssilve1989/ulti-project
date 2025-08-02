@@ -80,7 +80,7 @@ class TurboProgSheetsService {
   }
 
   private async upsertEntry(
-    { encounter, character, job, progPoint, availability }: TurboProgEntry,
+    { encounter, character, job, progPoint }: TurboProgEntry,
     spreadsheetId: string,
   ) {
     // TODO: Figure out what to do about world
@@ -97,7 +97,7 @@ class TurboProgSheetsService {
       ? sheetValues.length + 1
       : TURBP_PROG_SHEET_STARTING_ROW;
 
-    const values = [titleCase(character), job, progPoint, availability];
+    const values = [titleCase(character), job, progPoint];
 
     const updateRange =
       rowIndex === -1

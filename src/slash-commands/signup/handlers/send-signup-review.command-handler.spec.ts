@@ -20,7 +20,6 @@ describe('Send Signup Review Command Handler', () => {
 
   let get: Mock;
   const signup: SignupDocument = {
-    availability: 'baz',
     character: 'foo',
     discordId: '12345',
     encounter: Encounter.DSR,
@@ -97,7 +96,6 @@ describe('Send Signup Review Command Handler', () => {
           status: SignupStatus.PENDING,
           character: 'foo',
           world: 'bar',
-          availability: 'baz',
         }),
         guildId: '',
       }),

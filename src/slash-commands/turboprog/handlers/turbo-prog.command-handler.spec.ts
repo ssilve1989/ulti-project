@@ -80,7 +80,6 @@ describe('TurboProgCommandHandler', () => {
       });
 
       const options = turboProgSignupSchema.parse({
-        availability: 'Weekends',
         encounter: Encounter.DSR,
       });
 
@@ -112,7 +111,6 @@ describe('TurboProgCommandHandler', () => {
       });
 
       const options = turboProgSignupSchema.parse({
-        availability: 'Weekends',
         encounter: Encounter.DSR,
       });
 
@@ -142,7 +140,6 @@ describe('TurboProgCommandHandler', () => {
       });
 
       const options = turboProgSignupSchema.parse({
-        availability: 'Weekends',
         encounter: Encounter.DSR,
       });
 
@@ -168,7 +165,6 @@ describe('TurboProgCommandHandler', () => {
 
     // Create options for the test
     const options = turboProgSignupSchema.parse({
-      availability: 'Weekends',
       encounter: Encounter.DSR,
     });
 
@@ -210,7 +206,6 @@ describe('TurboProgCommandHandler', () => {
   it('should return error if no signups found for user', async () => {
     // Create options for the test
     const options = turboProgSignupSchema.parse({
-      availability: 'Weekends',
       encounter: Encounter.DSR,
     });
 
@@ -241,7 +236,6 @@ describe('TurboProgCommandHandler', () => {
   it('should return error if sheet data is in wrong format', async () => {
     // Create options for the test
     const options = turboProgSignupSchema.parse({
-      availability: 'Weekends',
       encounter: Encounter.DSR,
     });
 

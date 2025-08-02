@@ -9,13 +9,11 @@ import {
 
 type SignupFields = Omit<
   SignupDocument,
-  'status' | 'partyStatus' | 'expiresAt'
+  'status' | 'partyStatus' | 'expiresAt' | 'availability'
 >;
 
 export const signupSchema = z
   .object({
-    availability: z.string().min(1),
-
     character: z
       .string()
       .min(1)

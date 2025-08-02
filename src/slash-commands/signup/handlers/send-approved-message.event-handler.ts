@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nestjs';
 import { Colors, EmbedBuilder, Message, User, userMention } from 'discord.js';
 import {
   characterField,
+  emptyField,
   worldField,
 } from '../../../common/components/fields.js';
 import { ClearReactions } from '../../../common/emojis/emojis.js';
@@ -91,7 +92,6 @@ class SendApprovedMessageEventHandler
       progPointRequested,
       discordId,
       proofOfProgLink,
-      availability,
       screenshot,
     }: SignupDocument,
   ): Promise<EmbedBuilder> {
@@ -117,6 +117,7 @@ class SendApprovedMessageEventHandler
         worldField(world),
         { name: 'Job', value: role, inline: true },
         { name: 'Prog Point', value: progPointFieldValue, inline: true },
+        emptyField(),
       ])
       .setFooter({
         text: `Approved by ${approvedUsersDisplayName}`,
@@ -134,10 +135,6 @@ class SendApprovedMessageEventHandler
         },
       ]);
     }
-
-    embed.addFields([
-      { name: 'Availability', value: availability, inline: true },
-    ]);
 
     if (screenshot) {
       embed.setImage(screenshot);

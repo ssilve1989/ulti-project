@@ -56,8 +56,8 @@ describe('LookupCommandHandler', () => {
         character: 'aeo arcanist',
         world: 'jenova',
         encounter: Encounter.DSR,
-        availability: 'Monday, Wednesday, Friday',
         notes: 'Test notes',
+        progPoint: 'P6',
       } as SignupDocument,
     ];
 
@@ -89,8 +89,13 @@ describe('LookupCommandHandler', () => {
               inline: true,
             },
             {
-              name: 'Availability',
-              value: signups[0].availability,
+              name: 'Prog Point',
+              value: 'P6',
+              inline: true,
+            },
+            {
+              name: '\u200b',
+              value: '\u200b',
               inline: true,
             },
             {

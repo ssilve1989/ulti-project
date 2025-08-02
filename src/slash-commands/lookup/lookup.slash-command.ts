@@ -4,7 +4,7 @@ export const LookupSlashCommand = new SlashCommandBuilder()
   .setName('lookup')
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .setDescription(
-    'lookup a players signup information, including availability, encounters, etc.',
+    'lookup a players signup information, including encounters, prog points, etc.',
   )
   .addStringOption((option) =>
     option

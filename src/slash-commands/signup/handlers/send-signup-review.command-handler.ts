@@ -4,6 +4,7 @@ import { SentryTraced } from '@sentry/nestjs';
 import { EmbedBuilder, GuildMember, userMention } from 'discord.js';
 import {
   characterField,
+  emptyField,
   worldField,
 } from '../../../common/components/fields.js';
 import { createFields } from '../../../common/embed-helpers.js';
@@ -97,7 +98,6 @@ class SendSignupReviewCommandHandler
 
   private createSignupApprovalEmbed(
     {
-      availability,
       character,
       encounter,
       notes,
@@ -117,13 +117,13 @@ class SendSignupReviewCommandHandler
       worldField(world, 'Home World'),
       { name: 'Job', value: role, inline: true },
       { name: 'Prog Point', value: progPointRequested, inline: true },
+      emptyField(),
       {
         name: 'Prog Proof Link',
         value: proofOfProgLink,
         transform: (v: string) => `[View](${v})`,
         inline: true,
       },
-      { name: 'Availability', value: availability, inline: true },
       { name: 'Notes', value: notes, inline: false },
     ]);
 

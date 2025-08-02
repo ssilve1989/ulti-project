@@ -179,7 +179,6 @@ describe('Sheets Service', () => {
         character: 'TestChar',
         job: 'WAR',
         progPoint: 'P1',
-        availability: 'Weekends',
         encounter: Encounter.DSR,
       };
 
@@ -320,7 +319,6 @@ describe('Sheets Service', () => {
         character: 'TestChar',
         job: 'WAR',
         progPoint: 'P2',
-        availability: 'Evenings',
         encounter: Encounter.DSR,
       };
 
@@ -332,7 +330,7 @@ describe('Sheets Service', () => {
         expect.objectContaining({
           spreadsheetId: 'test-spreadsheet-id',
           range: 'TurboProg!A4:D4', // row + 1 as index starts at 0
-          values: [['TestChar', 'WAR', 'P2', 'Evenings']],
+          values: [['TestChar', 'WAR', 'P2']],
           type: 'update',
         }),
       );
@@ -362,7 +360,6 @@ describe('Sheets Service', () => {
         character: 'NewChar',
         job: 'DRG',
         progPoint: 'P1',
-        availability: 'Weekends',
         encounter: Encounter.DSR,
       };
 
@@ -375,7 +372,7 @@ describe('Sheets Service', () => {
         expect.objectContaining({
           spreadsheetId: 'test-spreadsheet-id',
           range: expect.stringMatching(TURBO_PROG_RANGE_PATTERN), // Using pre-defined regex pattern
-          values: [['NewChar', 'DRG', 'P1', 'Weekends']],
+          values: [['NewChar', 'DRG', 'P1']],
           type: 'update',
         }),
       );
