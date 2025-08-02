@@ -1,6 +1,6 @@
 import type { Logger } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import type { GuildMember, Role } from 'discord.js';
-import { sentryReport } from '../../sentry/sentry.consts.js';
 import type {
   DryRunResult,
   DryRunRoleResult,
@@ -95,7 +95,7 @@ export class DryRunStrategy implements ProcessingStrategy<DryRunRoleResult> {
         `Failed to process member ${member.displayName} (${member.id}) for role ${role.name}:`,
         error,
       );
-      sentryReport(error);
+      Sentry.captureException(error);
     }
   }
 }
