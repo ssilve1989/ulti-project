@@ -1,5 +1,5 @@
 import { PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
-import type { ApplicationModeConfig } from '../../app.config.js';
+import type { ApplicationModeConfig } from '../../config/app.js';
 import { getEncounterChoicesForMode } from '../../encounters/encounters.consts.js';
 
 // TODO: abstract common options between this and /signup

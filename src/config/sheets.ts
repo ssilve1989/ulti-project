@@ -1,7 +1,6 @@
-import { registerAs } from '@nestjs/config';
 import { z } from 'zod';
 
-const schema = z.object({
+const sheetsSchema = z.object({
   // https://github.com/googleapis/google-api-nodejs-client/issues/3187
   // http2 + timeout maybe doesn't work well? We seem to be getting a lot more hanging requests
   // since this was turned on.
@@ -10,8 +9,5 @@ const schema = z.object({
   TURBO_PROG_SHEET_NAME: z.string().default('Bot'),
 });
 
-export type SheetsConfig = z.infer<typeof schema>;
-
-export const sheetsConfig = registerAs<SheetsConfig>('sheets', () =>
-  schema.parse(process.env),
-);
+export const sheetsConfig = sheetsSchema.parse(process.env);
+export type SheetsConfig = typeof sheetsConfig;

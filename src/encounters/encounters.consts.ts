@@ -1,4 +1,4 @@
-import type { ApplicationMode, ApplicationModeConfig } from '../app.config.js';
+import type { ApplicationMode, ApplicationModeConfig } from '../config/app.js';
 import { PartyStatus } from '../firebase/models/signup.model.js';
 
 export enum Encounter {

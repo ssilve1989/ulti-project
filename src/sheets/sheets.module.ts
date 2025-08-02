@@ -1,37 +1,27 @@
 import { sheets } from '@googleapis/sheets';
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Compute, GoogleAuth } from 'google-auth-library';
-import type { AppConfig } from '../app.config.js';
+import { appConfig } from '../config/app.js';
+import { sheetsConfig } from '../config/sheets.js';
 import { EncountersModule } from '../encounters/encounters.module.js';
-import { type SheetsConfig, sheetsConfig } from './sheets.config.js';
 import { SHEETS_CLIENT } from './sheets.consts.js';
 import { SheetsService } from './sheets.service.js';
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
 @Module({
-  imports: [ConfigModule.forFeature(sheetsConfig), EncountersModule],
+  imports: [EncountersModule],
   providers: [
     SheetsService,
     {
       provide: SHEETS_CLIENT,
-      inject: [ConfigService],
-      useFactory: async (
-        configService: ConfigService<
-          AppConfig & { sheets: SheetsConfig },
-          true
-        >,
-      ) => {
-        const { GOOGLE_UNIVERSE_DOMAIN, GOOGLE_APIS_HTTP2 } =
-          configService.get<SheetsConfig>('sheets');
-
+      useFactory: async () => {
         const client = new GoogleAuth({
           scopes: SCOPES,
           credentials: {
-            client_email: configService.get('GCP_ACCOUNT_EMAIL'),
-            private_key: configService.get('GCP_PRIVATE_KEY'),
-            universe_domain: GOOGLE_UNIVERSE_DOMAIN,
+            client_email: appConfig.GCP_ACCOUNT_EMAIL,
+            private_key: appConfig.GCP_PRIVATE_KEY,
+            universe_domain: sheetsConfig.GOOGLE_UNIVERSE_DOMAIN,
           },
         });
 
@@ -39,7 +29,7 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
         return sheets({
           version: 'v4',
           auth,
-          http2: GOOGLE_APIS_HTTP2,
+          http2: sheetsConfig.GOOGLE_APIS_HTTP2,
           timeout: 10_000,
         });
       },

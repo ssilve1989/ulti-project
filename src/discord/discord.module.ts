@@ -4,24 +4,21 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as Sentry from '@sentry/nestjs';
 import { ActivityType, Client, Events, Options } from 'discord.js';
 import { first, firstValueFrom, fromEvent } from 'rxjs';
-import type { AppConfig } from '../app.config.js';
+import { appConfig } from '../config/app.js';
 import { INTENTS, PARTIALS } from './discord.consts.js';
 import { DISCORD_CLIENT, InjectDiscordClient } from './discord.decorators.js';
 import { CacheTime } from './discord.helpers.js';
 import { DiscordService } from './discord.service.js';
 
 @Module({
-  imports: [ConfigModule],
   providers: [
     DiscordService,
     {
       provide: DISCORD_CLIENT,
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService<AppConfig, true>) => {
+      useFactory: async () => {
         const logger = new Logger(DISCORD_CLIENT);
         const client = new Client({
           intents: INTENTS,
@@ -63,7 +60,7 @@ import { DiscordService } from './discord.service.js';
           logger.error(error);
         });
 
-        client.login(configService.get('DISCORD_TOKEN'));
+        client.login(appConfig.DISCORD_TOKEN);
 
         await firstValueFrom(started$);
         return client;

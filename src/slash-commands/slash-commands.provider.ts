@@ -1,11 +1,10 @@
 import type { Provider } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import type {
   SlashCommandBuilder,
   SlashCommandOptionsOnlyBuilder,
   SlashCommandSubcommandsOnlyBuilder,
 } from 'discord.js';
-import type { AppConfig, ApplicationModeConfig } from '../app.config.js';
+import { appConfig } from '../config/app.js';
 import { BlacklistSlashCommand } from './blacklist/blacklist.slash-command.js';
 import { CleanRolesSlashCommand } from './clean-roles/clean-roles.slash-command.js';
 import { EncountersSlashCommand } from './encounters/encounters.slash-command.js';
@@ -32,20 +31,15 @@ export type SlashCommands = (
 
 export const SlashCommandsProvider: Provider<SlashCommands> = {
   provide: SLASH_COMMANDS_TOKEN,
-  useFactory: (
-    configService: ConfigService<AppConfig, true>,
-  ): SlashCommands => {
-    const applicationModeConfig =
-      configService.get<ApplicationModeConfig>('APPLICATION_MODE');
-
+  useFactory: (): SlashCommands => {
     return [
       BlacklistSlashCommand,
       CleanRolesSlashCommand,
       EncountersSlashCommand,
-      createRemoveSignupSlashCommand(applicationModeConfig),
-      createSignupSlashCommand(applicationModeConfig),
-      createTurboProgSlashCommand(applicationModeConfig),
-      createFinalPushSlashCommand(applicationModeConfig),
+      createRemoveSignupSlashCommand(appConfig.APPLICATION_MODE),
+      createSignupSlashCommand(appConfig.APPLICATION_MODE),
+      createTurboProgSlashCommand(appConfig.APPLICATION_MODE),
+      createFinalPushSlashCommand(appConfig.APPLICATION_MODE),
       LookupSlashCommand,
       RemoveRoleSlashCommand,
       RetireSlashCommand,
@@ -55,5 +49,4 @@ export const SlashCommandsProvider: Provider<SlashCommands> = {
       HelpSlashCommand,
     ];
   },
-  inject: [ConfigService],
 };

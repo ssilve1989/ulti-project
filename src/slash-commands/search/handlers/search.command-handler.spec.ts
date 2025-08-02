@@ -1,6 +1,5 @@
 import type { DeepMocked } from '@golevelup/ts-vitest';
 import { createMock } from '@golevelup/ts-vitest';
-import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import {
   ButtonInteraction,
@@ -22,7 +21,6 @@ import { SearchCommandHandler } from './search.command-handler.js';
 describe('SearchCommandHandler', () => {
   let handler: SearchCommandHandler;
   let mockSignupsCollection: DeepMocked<SignupCollection>;
-  let mockConfigService: DeepMocked<ConfigService>;
   let mockEncountersService: DeepMocked<EncountersService>;
   let mockInteraction: DeepMocked<ChatInputCommandInteraction>;
   let mockCollector: any; // Using 'any' to avoid complex typing issues
@@ -30,17 +28,8 @@ describe('SearchCommandHandler', () => {
 
   beforeEach(async () => {
     mockSignupsCollection = createMock<SignupCollection>();
-    mockConfigService = createMock<ConfigService>();
     mockEncountersService = createMock<EncountersService>();
     mockInteraction = createMock<ChatInputCommandInteraction>();
-
-    // Configure config service to return application mode
-    mockConfigService.get.mockImplementation((key: string) => {
-      if (key === 'APPLICATION_MODE') {
-        return ['ultimate']; // Default test mode
-      }
-      return undefined;
-    });
 
     // Force the interaction to have the right cache type
     Object.defineProperty(mockInteraction, '_cacheType', {
@@ -90,7 +79,6 @@ describe('SearchCommandHandler', () => {
       providers: [
         SearchCommandHandler,
         { provide: SignupCollection, useValue: mockSignupsCollection },
-        { provide: ConfigService, useValue: mockConfigService },
         { provide: EncountersService, useValue: mockEncountersService },
       ],
     }).compile();

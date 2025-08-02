@@ -1,20 +1,18 @@
 import {
-  Inject,
   Injectable,
   Logger,
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import type { ConfigType } from '@nestjs/config';
 import { CronJob } from 'cron';
 import { EmbedBuilder, Invite } from 'discord.js';
 import { filter, from, lastValueFrom, mergeMap, reduce } from 'rxjs';
 import { CronTime } from '../../common/cron.js';
+import { inviteCleanerConfig } from '../../config/invite-cleaner.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { JobCollection } from '../../firebase/collections/job/job.collection.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { createJob, jobDateFormatter } from '../jobs.consts.js';
-import { inviteCleanerConfig } from './invite-cleaner.config.js';
 
 const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -35,8 +33,6 @@ class InviteCleanerJob
     private readonly discordService: DiscordService,
     private readonly jobsCollection: JobCollection,
     private readonly settingsCollection: SettingsCollection,
-    @Inject(inviteCleanerConfig.KEY)
-    private readonly config: ConfigType<typeof inviteCleanerConfig>,
   ) {
     this.job = createJob('invite-cleaner', {
       cronTime: CronTime.everyDay().at(5), // Run at 5 AM Pacific
@@ -94,7 +90,7 @@ class InviteCleanerJob
                 );
                 return { success: false };
               }
-            }, this.config.INVITE_CLEANER_CONCURRENCY),
+            }, inviteCleanerConfig.INVITE_CLEANER_CONCURRENCY),
             reduce<{ success: boolean }, CleanupStats>(
               (stats, result) => {
                 if (result.success) {

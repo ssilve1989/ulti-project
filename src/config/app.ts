@@ -3,7 +3,7 @@ import { z } from 'zod';
 const APPLICATION_MODES = ['savage', 'ultimate', 'legacy'] as const;
 export type ApplicationMode = (typeof APPLICATION_MODES)[number];
 
-export const configSchema = z.object({
+export const appSchema = z.object({
   APPLICATION_MODE: z
     .string()
     .transform((str) => str.split('+').map((s) => s.trim()))
@@ -25,14 +25,13 @@ export const configSchema = z.object({
   GCP_ACCOUNT_EMAIL: z.string(),
   GCP_PROJECT_ID: z.string(),
   LOG_LEVEL: z
-    .enum(['debug', 'info', 'warn', 'error', 'silent', 'fatal'])
+    .enum(['debug', 'info', 'warn', 'error', 'silent', 'fatal'] as const)
     .default('info'),
   NODE_ENV: z
-    .enum(['development', 'production', 'test'])
+    .enum(['development', 'production', 'test'] as const)
     .default('development'),
 });
 
-export type AppConfig = z.infer<typeof configSchema>;
-export type ApplicationModeConfig = z.infer<
-  typeof configSchema
->['APPLICATION_MODE'];
+export const appConfig = appSchema.parse(process.env);
+export type AppConfig = typeof appConfig;
+export type ApplicationModeConfig = typeof appConfig.APPLICATION_MODE;
