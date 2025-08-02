@@ -1,5 +1,6 @@
 import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import {
   PartyStatus,

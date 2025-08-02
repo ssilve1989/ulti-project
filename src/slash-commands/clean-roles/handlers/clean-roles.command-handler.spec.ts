@@ -9,6 +9,7 @@ import {
   Role,
   User,
 } from 'discord.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';

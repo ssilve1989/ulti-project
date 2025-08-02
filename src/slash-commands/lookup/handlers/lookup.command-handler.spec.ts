@@ -6,6 +6,7 @@ import {
   EmbedBuilder,
   MessageFlags,
 } from 'discord.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { BlacklistCollection } from '../../../firebase/collections/blacklist-collection.js';

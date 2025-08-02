@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { AsyncQueue } from './async-queue.js';
 
 describe('Async Queue', () => {

@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { createFields } from './embed-helpers.js';
 
 describe('createFields', () => {

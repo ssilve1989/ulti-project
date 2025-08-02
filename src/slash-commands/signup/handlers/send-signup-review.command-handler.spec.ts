@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { GuildMember, TextChannel } from 'discord.js';
 import { Timestamp } from 'firebase-admin/firestore';
 import type { Mock } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MissingChannelException } from '../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';

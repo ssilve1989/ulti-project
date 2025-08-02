@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PartyStatus } from '../firebase/models/signup.model.js';
 import { CLEARED_OPTION } from './encounters.components.js';
 import { Encounter } from './encounters.consts.js';

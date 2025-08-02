@@ -1,6 +1,7 @@
 import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { EditSpreadsheetCommandHandler } from './edit-spreadsheet.command-handler.js';
