@@ -14,12 +14,6 @@ class RetireCommandHandler implements ICommandHandler<RetireCommand> {
 
   @SentryTraced()
   async execute({ interaction }: RetireCommand): Promise<void> {
-    // This command can only be used in a guild
-    if (!interaction.inGuild()) {
-      this.logger.error('Retire command used outside of a guild');
-      return;
-    }
-
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const currentHelperRole = interaction.options.getRole(
