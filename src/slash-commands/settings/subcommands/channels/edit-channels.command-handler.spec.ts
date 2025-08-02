@@ -42,7 +42,7 @@ describe('Edit Channels Command Handler', () => {
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
     await handler.execute({
-      interaction: createMock<ChatInputCommandInteraction<'raw' | 'cached'>>({
+      interaction: createMock<ChatInputCommandInteraction<'cached'>>({
         guildId,
         options: {
           getChannel: (name: string) => {
@@ -79,9 +79,7 @@ describe('Edit Channels Command Handler', () => {
     settingsCollection.getSettings.mockRejectedValueOnce(error);
     errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
 
-    const interaction = createMock<
-      ChatInputCommandInteraction<'raw' | 'cached'>
-    >({
+    const interaction = createMock<ChatInputCommandInteraction<'cached'>>({
       guildId: '12345',
       options: {
         getChannel: () => createMock({ id: '67890' }),

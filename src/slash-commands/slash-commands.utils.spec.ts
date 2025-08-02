@@ -30,12 +30,10 @@ const cases = [
 }));
 
 test.each(cases)('$description', ({ input, expected }) => {
-  const interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>(
-    {
-      commandName: input,
-      valueOf: () => '',
-    },
-  );
+  const interaction = createMock<ChatInputCommandInteraction<'cached'>>({
+    commandName: input,
+    valueOf: () => '',
+  });
 
   const result = getCommandForInteraction(interaction);
   expect(result).toBeInstanceOf(expected);

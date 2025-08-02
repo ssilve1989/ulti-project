@@ -1,10 +1,9 @@
 import { ChatInputCommandInteraction } from 'discord.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
-import type { DiscordCommand } from '../../slash-commands.interfaces.js';
 
-export class SignupCommand implements DiscordCommand {
+export class SignupCommand {
   constructor(
-    public readonly interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+    public readonly interaction: ChatInputCommandInteraction<'cached'>,
   ) {}
 }
 

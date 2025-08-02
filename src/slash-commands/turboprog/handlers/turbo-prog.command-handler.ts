@@ -170,9 +170,7 @@ class TurboProgCommandHandler {
     };
   }
 
-  private getOptions({
-    options,
-  }: ChatInputCommandInteraction<'cached' | 'raw'>) {
+  private getOptions({ options }: ChatInputCommandInteraction<'cached'>) {
     return turboProgSignupSchema.parse({
       encounter: options.getString('encounter', true),
     });

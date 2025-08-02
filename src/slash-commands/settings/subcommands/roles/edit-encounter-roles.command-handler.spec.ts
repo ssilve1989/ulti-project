@@ -38,7 +38,7 @@ describe('Edit Encounter Roles Command Handler', () => {
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
     await handler.execute({
-      interaction: createMock<ChatInputCommandInteraction<'raw' | 'cached'>>({
+      interaction: createMock<ChatInputCommandInteraction<'cached'>>({
         guildId,
         options: {
           getString: (name: string, _required?: boolean) =>

@@ -1,6 +1,13 @@
 import { type ICommandHandler } from '@nestjs/cqrs';
-import { MessageFlags, PermissionsBitField } from 'discord.js';
-import type { DiscordCommand } from '../../slash-commands/slash-commands.interfaces.js';
+import {
+  ChatInputCommandInteraction,
+  MessageFlags,
+  PermissionsBitField,
+} from 'discord.js';
+
+type CommandWithInteraction = {
+  interaction: ChatInputCommandInteraction<'cached'>;
+};
 
 interface Options {
   disallowAdmin?: boolean;
@@ -19,12 +26,16 @@ export function RequiresRole(
   { disallowAdmin = false }: Options = {},
 ) {
   // biome-ignore lint/suspicious/noExplicitAny: decorator
-  return <T extends { new (...args: any[]): ICommandHandler<DiscordCommand> }>(
+  return <
+    T extends { new (...args: any[]): ICommandHandler<CommandWithInteraction> },
+  >(
     target: T,
   ) => {
     const originalHandler = target.prototype.execute;
 
-    target.prototype.execute = async function (command: DiscordCommand) {
+    target.prototype.execute = async function (
+      command: CommandWithInteraction,
+    ) {
       const { interaction } = command;
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 

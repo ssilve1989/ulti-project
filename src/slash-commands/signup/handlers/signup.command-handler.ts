@@ -118,7 +118,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
   private async handleConfirm(
     request: SignupSchema,
-    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+    interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<SignupDocument | undefined> {
     const [signup, reviewChannelId] = await Promise.all([
       this.repository.upsert(request),
@@ -363,7 +363,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   }
 
   private async validateConfiguration(
-    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+    interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<boolean> {
     const hasReviewChannelConfigured =
       !!(await this.settingsService.getReviewChannel(interaction.guildId));
@@ -379,7 +379,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   }
 
   private async validateSignupRequest(
-    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+    interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<SignupSchema | null> {
     const [signupRequest, validationErrors] =
       this.createSignupRequest(interaction);
@@ -404,7 +404,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
   private async handleConfirmationFlow(
     signupRequest: SignupSchema,
-    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+    interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<void> {
     const displayName = await this.discordService.getDisplayName({
       userId: interaction.user.id,
@@ -459,7 +459,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
   private async handleConfirmationError(
     error: unknown,
-    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+    interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<void> {
     // Enhanced error handling with ErrorService
     const errorEmbed = this.errorService.handleCommandError(error, interaction);

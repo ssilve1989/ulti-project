@@ -32,7 +32,6 @@ import { EditTurboProgCommand } from './settings/subcommands/turbo-prog/edit-tur
 import { ViewSettingsCommand } from './settings/subcommands/view/view-settings.command.js';
 import { SignupCommand } from './signup/commands/signup.commands.js';
 import { SIGNUP_SLASH_COMMAND_NAME } from './signup/signup.slash-command.js';
-import type { DiscordCommand } from './slash-commands.interfaces.js';
 import { StatusCommand } from './status/commands/status.command.js';
 import { StatusSlashCommand } from './status/status.slash-command.js';
 import { TurboProgCommand } from './turboprog/commands/turbo-prog.commands.js';
@@ -45,8 +44,8 @@ import { TURBO_PROG_SLASH_COMMAND_NAME } from './turboprog/turbo-prog-signup.sla
  */
 
 export function getCommandForInteraction(
-  interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
-): DiscordCommand | undefined {
+  interaction: ChatInputCommandInteraction<'cached'>,
+): { interaction: ChatInputCommandInteraction<'cached'> } | undefined {
   return match(interaction.commandName)
     .with(BlacklistSlashCommand.name, () => {
       const subcommand = interaction.options.getSubcommand();

@@ -1,8 +1,7 @@
 import { ChatInputCommandInteraction } from 'discord.js';
-import type { DiscordCommand } from '../../slash-commands.interfaces.js';
 
-export class StatusCommand implements DiscordCommand {
+export class StatusCommand {
   constructor(
-    public readonly interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+    public readonly interaction: ChatInputCommandInteraction<'cached'>,
   ) {}
 }

@@ -58,7 +58,9 @@ class SlashCommandsService {
               scope.setTag('command', interaction.commandName);
               scope.setTag('guild_id', interaction.guildId);
 
-              const command = getCommandForInteraction(interaction);
+              const command = getCommandForInteraction(
+                interaction as ChatInputCommandInteraction<'cached'>,
+              );
 
               if (command) {
                 try {

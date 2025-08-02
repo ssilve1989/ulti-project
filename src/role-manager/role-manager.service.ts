@@ -17,7 +17,7 @@ class RoleManagerService {
    * @returns
    */
   async validateRole(
-    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+    interaction: ChatInputCommandInteraction<'cached'>,
     requiredRoleKey: string,
   ): Promise<boolean> {
     const settings = await this.settingsCollection.getSettings(

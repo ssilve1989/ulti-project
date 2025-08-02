@@ -25,8 +25,7 @@ describe('View Settings Command Handler', () => {
   });
 
   it('should reply with the configured settings', async () => {
-    const interaction =
-      createMock<ChatInputCommandInteraction<'cached' | 'raw'>>();
+    const interaction = createMock<ChatInputCommandInteraction<'cached'>>();
 
     settingsCollection.getSettings.mockResolvedValueOnce({
       reviewChannel: '12345',

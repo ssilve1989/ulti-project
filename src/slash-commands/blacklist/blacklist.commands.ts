@@ -1,22 +1,21 @@
 import type { ChatInputCommandInteraction } from 'discord.js';
 import type { SignupDocument } from '../../firebase/models/signup.model.js';
-import type { DiscordCommand } from '../slash-commands.interfaces.js';
 
-export class BlacklistAddCommand implements DiscordCommand {
+export class BlacklistAddCommand {
   constructor(
-    public readonly interaction: ChatInputCommandInteraction<'raw' | 'cached'>,
+    public readonly interaction: ChatInputCommandInteraction<'cached'>,
   ) {}
 }
 
-export class BlacklistRemoveCommand implements DiscordCommand {
+export class BlacklistRemoveCommand {
   constructor(
-    public readonly interaction: ChatInputCommandInteraction<'raw' | 'cached'>,
+    public readonly interaction: ChatInputCommandInteraction<'cached'>,
   ) {}
 }
 
-export class BlacklistDisplayCommand implements DiscordCommand {
+export class BlacklistDisplayCommand {
   constructor(
-    public readonly interaction: ChatInputCommandInteraction<'raw' | 'cached'>,
+    public readonly interaction: ChatInputCommandInteraction<'cached'>,
   ) {}
 }
 

@@ -40,7 +40,7 @@ describe('Edit Turbo Prog Command Handler', () => {
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
     await handler.execute({
-      interaction: createMock<ChatInputCommandInteraction<'raw' | 'cached'>>({
+      interaction: createMock<ChatInputCommandInteraction<'cached'>>({
         guildId,
         options: {
           getBoolean: (name: string, _required?: boolean) =>
@@ -73,7 +73,7 @@ describe('Edit Turbo Prog Command Handler', () => {
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
     await handler.execute({
-      interaction: createMock<ChatInputCommandInteraction<'raw' | 'cached'>>({
+      interaction: createMock<ChatInputCommandInteraction<'cached'>>({
         guildId,
         options: {
           getBoolean: (name: string, _required?: boolean) =>
@@ -100,9 +100,7 @@ describe('Edit Turbo Prog Command Handler', () => {
     settingsCollection.getSettings.mockRejectedValueOnce(error);
     errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
 
-    const interaction = createMock<
-      ChatInputCommandInteraction<'raw' | 'cached'>
-    >({
+    const interaction = createMock<ChatInputCommandInteraction<'cached'>>({
       guildId: '12345',
       options: {
         getBoolean: (_: string, __?: boolean) => true,
