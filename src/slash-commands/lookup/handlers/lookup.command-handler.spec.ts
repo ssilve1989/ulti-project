@@ -57,6 +57,7 @@ describe('LookupCommandHandler', () => {
         world: 'jenova',
         encounter: Encounter.DSR,
         notes: 'Test notes',
+        progPoint: 'P6',
       } as SignupDocument,
     ];
 
@@ -85,6 +86,16 @@ describe('LookupCommandHandler', () => {
             {
               name: 'Encounter',
               value: '[DSR] Dragonsong Reprise',
+              inline: true,
+            },
+            {
+              name: 'Prog Point',
+              value: 'P6',
+              inline: true,
+            },
+            {
+              name: '\u200b',
+              value: '\u200b',
               inline: true,
             },
             {
