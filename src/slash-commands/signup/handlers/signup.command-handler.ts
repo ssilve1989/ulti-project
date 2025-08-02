@@ -24,6 +24,7 @@ import {
 } from '../../../common/components/buttons.js';
 import {
   characterField,
+  emptyField,
   worldField,
 } from '../../../common/components/fields.js';
 import { createFields } from '../../../common/embed-helpers.js';
@@ -205,6 +206,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       worldField(world, 'Home World'),
       { name: 'Job', value: role, inline: true },
       { name: 'Prog Point', value: progPointRequested, inline: true },
+      emptyField(),
       { name: 'Prog Proof Link', value: proofOfProgLink, inline: true },
       { name: 'Notes', value: notes, inline: false },
     ]);
