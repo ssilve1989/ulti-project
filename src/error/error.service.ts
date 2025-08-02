@@ -33,7 +33,7 @@ export class ErrorService {
 
     // Additional interaction-specific logging with Discord context
     if (options?.log ?? true) {
-      this.logError(error, interaction);
+      this.logInteractionError(error, interaction);
     }
 
     return this.createErrorEmbed(options?.message);
@@ -61,7 +61,7 @@ export class ErrorService {
     }
   }
 
-  private logError(
+  private logInteractionError(
     error: unknown,
     interaction: ChatInputCommandInteraction,
   ): void {
