@@ -22,7 +22,6 @@ import { appConfig } from '../config/app.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { safeReply } from '../discord/discord.helpers.js';
 import { ErrorService } from '../error/error.service.js';
-import { sentryReport } from '../sentry/sentry.consts.js';
 import {
   SLASH_COMMANDS_TOKEN,
   type SlashCommands,
@@ -119,8 +118,7 @@ class SlashCommandsService {
         },
       }),
       catchError((err) => {
-        sentryReport(err);
-        this.logger.error(err);
+        this.errorService.captureError(err);
         return EMPTY;
       }),
     );
