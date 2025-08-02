@@ -35,7 +35,7 @@ describe('RoleManagerService', () => {
       mockSettingsCollection.getSettings.mockResolvedValue(null);
 
       const result = await roleManagerService.validateRole(
-        mockInteraction as ChatInputCommandInteraction<'cached' | 'raw'>,
+        mockInteraction as ChatInputCommandInteraction<'cached'>,
         'someRole',
       );
 
@@ -52,7 +52,7 @@ describe('RoleManagerService', () => {
       });
 
       const result = await roleManagerService.validateRole(
-        mockInteraction as ChatInputCommandInteraction<'cached' | 'raw'>,
+        mockInteraction as ChatInputCommandInteraction<'cached'>,
         'someRole',
       );
 
@@ -70,7 +70,7 @@ describe('RoleManagerService', () => {
       mockDiscordService.userHasRole.mockResolvedValue(true);
 
       const result = await roleManagerService.validateRole(
-        mockInteraction as ChatInputCommandInteraction<'cached' | 'raw'>,
+        mockInteraction as ChatInputCommandInteraction<'cached'>,
         'someRole',
       );
 
@@ -89,7 +89,7 @@ describe('RoleManagerService', () => {
       mockDiscordService.userHasRole.mockResolvedValue(false);
 
       const result = await roleManagerService.validateRole(
-        mockInteraction as ChatInputCommandInteraction<'cached' | 'raw'>,
+        mockInteraction as ChatInputCommandInteraction<'cached'>,
         'someRole',
       );
 

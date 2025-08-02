@@ -62,12 +62,11 @@ describe('HelpCommandHandler', () => {
     const createInteractionMock = (
       permissions: bigint[] = [],
       hasPermissions = true,
-    ): ChatInputCommandInteraction<'cached' | 'raw'> => {
+    ): ChatInputCommandInteraction<'cached'> => {
       const deferReply = vi.fn().mockResolvedValue(undefined);
       const editReply = vi.fn().mockResolvedValue(undefined);
 
-      const interaction =
-        createMock<ChatInputCommandInteraction<'cached' | 'raw'>>();
+      const interaction = createMock<ChatInputCommandInteraction<'cached'>>();
       interaction.deferReply = deferReply;
       interaction.editReply = editReply;
 

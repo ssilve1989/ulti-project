@@ -22,7 +22,7 @@ describe('ManageProgPointsCommandHandler', () => {
   let handler: ManageProgPointsCommandHandler;
   let encountersService: DeepMocked<EncountersService>;
   let errorService: DeepMocked<ErrorService>;
-  let interaction: DeepMocked<ChatInputCommandInteraction<'cached' | 'raw'>>;
+  let interaction: DeepMocked<ChatInputCommandInteraction<'cached'>>;
   let mockChannel: DeepMocked<any>;
   let mockCollector: DeepMocked<any>;
 
@@ -74,7 +74,7 @@ describe('ManageProgPointsCommandHandler', () => {
     errorService = fixture.get(ErrorService);
 
     // Setup interaction mock
-    interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>();
+    interaction = createMock<ChatInputCommandInteraction<'cached'>>();
     mockChannel = createMock();
     mockCollector = createMock();
 

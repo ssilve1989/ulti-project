@@ -93,9 +93,7 @@ describe('SearchCommandHandler', () => {
 
   it('should create initial embed with encounter select menu', async () => {
     const command = new SearchCommand(
-      mockInteraction as unknown as ChatInputCommandInteraction<
-        'cached' | 'raw'
-      >,
+      mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
 
     // Mock the editReply response with a proper structure
@@ -153,9 +151,7 @@ describe('SearchCommandHandler', () => {
 
     // Execute the command
     const command = new SearchCommand(
-      mockInteraction as unknown as ChatInputCommandInteraction<
-        'cached' | 'raw'
-      >,
+      mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
     await handler.execute(command);
 
@@ -230,9 +226,7 @@ describe('SearchCommandHandler', () => {
 
     // Execute the command
     const command = new SearchCommand(
-      mockInteraction as unknown as ChatInputCommandInteraction<
-        'cached' | 'raw'
-      >,
+      mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
     await handler.execute(command);
 
@@ -379,9 +373,7 @@ describe('SearchCommandHandler', () => {
 
     // Execute the command
     const command = new SearchCommand(
-      mockInteraction as unknown as ChatInputCommandInteraction<
-        'cached' | 'raw'
-      >,
+      mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
     await handler.execute(command);
 
@@ -459,9 +451,7 @@ describe('SearchCommandHandler', () => {
 
     // Execute the command
     const command = new SearchCommand(
-      mockInteraction as unknown as ChatInputCommandInteraction<
-        'cached' | 'raw'
-      >,
+      mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
     await handler.execute(command);
 
@@ -500,9 +490,7 @@ describe('SearchCommandHandler', () => {
 
     // Execute the command
     const command = new SearchCommand(
-      mockInteraction as unknown as ChatInputCommandInteraction<
-        'cached' | 'raw'
-      >,
+      mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
     await handler.execute(command);
 
@@ -562,9 +550,7 @@ describe('SearchCommandHandler', () => {
 
     // Execute the command
     const command = new SearchCommand(
-      mockInteraction as unknown as ChatInputCommandInteraction<
-        'cached' | 'raw'
-      >,
+      mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
     await handler.execute(command);
 
@@ -651,9 +637,7 @@ describe('SearchCommandHandler', () => {
 
     // Execute the command
     const command = new SearchCommand(
-      mockInteraction as unknown as ChatInputCommandInteraction<
-        'cached' | 'raw'
-      >,
+      mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
     await handler.execute(command);
 

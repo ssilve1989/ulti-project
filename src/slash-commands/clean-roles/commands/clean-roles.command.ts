@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ChatInputCommandInteraction } from 'discord.js';
-import type { DiscordCommand } from '../../slash-commands.interfaces.js';
 
 @Injectable()
-class CleanRolesCommand implements DiscordCommand {
+class CleanRolesCommand {
   constructor(
-    public readonly interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+    public readonly interaction: ChatInputCommandInteraction<'cached'>,
   ) {}
 }
 

@@ -29,7 +29,7 @@ import { SignupCommandHandler } from './signup.command-handler.js';
 
 describe('Signup Command Handler', () => {
   let handler: SignupCommandHandler;
-  let interaction: DeepMocked<ChatInputCommandInteraction<'cached' | 'raw'>>;
+  let interaction: DeepMocked<ChatInputCommandInteraction<'cached'>>;
   let confirmationInteraction: DeepMocked<Message<boolean>>;
   let settingsCollection: DeepMocked<SettingsCollection>;
   let discordServiceMock: DeepMocked<DiscordService>;
@@ -53,7 +53,7 @@ describe('Signup Command Handler', () => {
     fflogsServiceMock = fixture.get(FFLogsService);
     errorService = fixture.get(ErrorService);
 
-    interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
+    interaction = createMock<ChatInputCommandInteraction<'cached'>>({
       user: {
         username: 'Test User',
         id: '123456',

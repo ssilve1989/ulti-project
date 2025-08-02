@@ -254,7 +254,7 @@ class RemoveSignupCommandHandler
   }
 
   private async handleDocumentNotFoundException(
-    interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+    interaction: ChatInputCommandInteraction<'cached'>,
     embed: EmbedBuilder,
   ) {
     await interaction.editReply({
