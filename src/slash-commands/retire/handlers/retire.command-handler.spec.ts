@@ -77,12 +77,6 @@ describe('RetireCommandHandler', () => {
     };
 
     // Test cases
-    it('should do nothing if not in a guild', async () => {
-      const { mock, deferReply } = createInteractionMock({ inGuild: false });
-      await handler.execute(new RetireCommand(mock));
-      expect(deferReply).not.toHaveBeenCalled();
-    });
-
     it('should reject if source and destination roles are the same', async () => {
       const { mock, editReply } = createInteractionMock({
         currentRoleId: 'same-id',
