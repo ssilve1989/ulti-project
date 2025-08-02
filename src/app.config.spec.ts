@@ -1,9 +1,10 @@
+import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { configSchema } from './app.config.js';
+import { appSchema } from './config/app.js';
 
 describe('configSchema', () => {
   it('should apply default values when not provided', () => {
-    const config = configSchema.parse({
+    const config = appSchema.parse({
       CLIENT_ID: 'test-id',
       DISCORD_TOKEN: 'test-token',
       GCP_PRIVATE_KEY: 'key',
@@ -22,7 +23,7 @@ describe('configSchema', () => {
   });
 
   it('should transform APPLICATION_MODE string into array', () => {
-    const config = configSchema.parse({
+    const config = appSchema.parse({
       APPLICATION_MODE: 'savage+ultimate',
       CLIENT_ID: 'test-id',
       DISCORD_TOKEN: 'test-token',
@@ -36,7 +37,7 @@ describe('configSchema', () => {
 
   it('should reject invalid APPLICATION_MODE values', () => {
     expect(() =>
-      configSchema.parse({
+      appSchema.parse({
         APPLICATION_MODE: 'invalid+ultimate',
         CLIENT_ID: 'test-id',
         DISCORD_TOKEN: 'test-token',
@@ -48,7 +49,7 @@ describe('configSchema', () => {
   });
 
   it('should reject duplicate APPLICATION_MODE values', () => {
-    const result = configSchema.safeParse({
+    const result = appSchema.safeParse({
       APPLICATION_MODE: 'ultimate+ultimate',
       CLIENT_ID: 'test-id',
       DISCORD_TOKEN: 'test-token',
@@ -75,7 +76,7 @@ describe('configSchema', () => {
 
   it('should validate required fields', () => {
     expect(() =>
-      configSchema.parse({
+      appSchema.parse({
         APPLICATION_MODE: 'ultimate',
       }),
     ).toThrow(z.ZodError);
@@ -83,7 +84,7 @@ describe('configSchema', () => {
 
   it('should validate LOG_LEVEL enum', () => {
     expect(() =>
-      configSchema.parse({
+      appSchema.parse({
         CLIENT_ID: 'test-id',
         DISCORD_TOKEN: 'test-token',
         GCP_PRIVATE_KEY: 'key',
@@ -96,7 +97,7 @@ describe('configSchema', () => {
 
   it('should validate NODE_ENV enum', () => {
     expect(() =>
-      configSchema.parse({
+      appSchema.parse({
         CLIENT_ID: 'test-id',
         DISCORD_TOKEN: 'test-token',
         GCP_PRIVATE_KEY: 'key',

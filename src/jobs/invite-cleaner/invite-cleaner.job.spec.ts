@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { JobCollection } from '../../firebase/collections/job/job.collection.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { inviteCleanerConfig } from './invite-cleaner.config.js';
 import { InviteCleanerJob } from './invite-cleaner.job.js';
 
 describe('InviteCleanerJob', () => {
@@ -35,12 +34,6 @@ describe('InviteCleanerJob', () => {
           provide: SettingsCollection,
           useValue: {
             getSettings: vi.fn(),
-          },
-        },
-        {
-          provide: inviteCleanerConfig.KEY,
-          useValue: {
-            INVITE_CLEANER_CONCURRENCY: 5,
           },
         },
       ],

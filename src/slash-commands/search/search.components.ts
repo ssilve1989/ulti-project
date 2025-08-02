@@ -4,7 +4,7 @@ import {
   type SelectMenuComponentOptionData,
   StringSelectMenuBuilder,
 } from 'discord.js';
-import type { ApplicationModeConfig } from '../../app.config.js';
+import type { ApplicationModeConfig } from '../../config/app.js';
 import {
   getEncounterChoicesForMode,
   type ProgPointOption,

@@ -1,5 +1,4 @@
 import { Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
@@ -10,9 +9,9 @@ import {
   MessageFlags,
   StringSelectMenuBuilder,
 } from 'discord.js';
-import type { AppConfig, ApplicationModeConfig } from '../../../app.config.js';
 import { isSameUserFilter } from '../../../common/collection-filters.js';
 import { characterField } from '../../../common/components/fields.js';
+import { type ApplicationModeConfig, appConfig } from '../../../config/app.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { EncountersService } from '../../../encounters/encounters.service.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
@@ -34,11 +33,9 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
 
   constructor(
     private readonly signupsCollection: SignupCollection,
-    private readonly configService: ConfigService<AppConfig, true>,
     private readonly encountersService: EncountersService,
   ) {
-    this.applicationMode =
-      this.configService.get<ApplicationModeConfig>('APPLICATION_MODE');
+    this.applicationMode = appConfig.APPLICATION_MODE;
   }
 
   @SentryTraced()
