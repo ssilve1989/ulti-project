@@ -16,11 +16,5 @@ export function createTurboProgSlashCommand(mode: ApplicationModeConfig) {
         .setDescription('Select an encounter')
         .setName('encounter')
         .addChoices(...getEncounterChoicesForMode(mode)),
-    )
-    .addStringOption((option) =>
-      option
-        .setRequired(true)
-        .setDescription('Availability. Ex: M-F 8pm-12am EST')
-        .setName('availability'),
     );
 }

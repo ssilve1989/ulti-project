@@ -9,7 +9,10 @@ import {
 } from 'discord.js';
 import { titleCase } from 'title-case';
 import { z } from 'zod';
-import { encounterField } from '../../../common/components/fields.js';
+import {
+  emptyField,
+  encounterField,
+} from '../../../common/components/fields.js';
 import { createFields } from '../../../common/embed-helpers.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { BlacklistCollection } from '../../../firebase/collections/blacklist-collection.js';
@@ -129,19 +132,15 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
 
     const embeds = Object.entries(groupedByWorld).map(([world, signups]) => {
       const fields = signups.flatMap(
-        ({ progPoint, notes, encounter, availability, blacklistStatus }) => [
+        ({ progPoint, notes, encounter, blacklistStatus }) => [
           encounterField(encounter),
           {
             name: 'Prog Point',
             value: progPoint,
             inline: true,
           },
-          {
-            name: 'Availability',
-            value: availability,
-            inline: true,
-          },
-          { name: 'Blacklisted', value: blacklistStatus, inline: !!notes },
+          emptyField(),
+          { name: 'Blacklisted', value: blacklistStatus, inline: true },
           {
             name: 'Notes',
             value: notes,

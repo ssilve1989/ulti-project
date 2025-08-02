@@ -33,3 +33,9 @@ export const encounterField = (
   value: EncounterFriendlyDescription[value],
   inline: true,
 });
+
+export const emptyField = () => ({
+  name: '\u200b',
+  value: '\u200b',
+  inline: true,
+});

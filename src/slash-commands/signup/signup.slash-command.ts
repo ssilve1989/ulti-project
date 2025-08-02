@@ -43,13 +43,6 @@ export function createSignupSlashCommand(mode: ApplicationModeConfig) {
     .addStringOption((option) =>
       option
         .setRequired(true)
-        .setDescription('Availability. Ex: M-F 8pm-12am EST')
-        .setName('availability')
-        .setMaxLength(256),
-    )
-    .addStringOption((option) =>
-      option
-        .setRequired(true)
         .setName('prog-point')
         .setDescription('What prog point are you at?'),
     )

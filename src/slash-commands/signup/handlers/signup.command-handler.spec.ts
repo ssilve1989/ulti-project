@@ -66,8 +66,6 @@ describe('Signup Command Handler', () => {
               return 'Test Character';
             case 'prog-proof-link':
               return 'https://www.fflogs.com/reports/foo';
-            case 'availability':
-              return 'Monday, Wednesday, Friday';
             case 'world':
               return 'Jenova';
             case 'job':
@@ -270,8 +268,6 @@ describe('Signup Command Handler', () => {
       // Set up default values for FFLogs tests
       (interaction.options.getString as any) = (key: string) => {
         switch (key) {
-          case 'availability':
-            return 'Available all day';
           case 'character':
             return 'Test Character';
           case 'encounter':
@@ -321,8 +317,6 @@ describe('Signup Command Handler', () => {
     test('should handle malformed FFLogs URLs', async () => {
       (interaction.options.getString as any) = (key: string) => {
         switch (key) {
-          case 'availability':
-            return 'Available all day';
           case 'character':
             return 'Test Character';
           case 'encounter':
@@ -390,8 +384,6 @@ describe('Signup Command Handler', () => {
     test('should skip FFLogs validation for non-FFLogs URLs', async () => {
       (interaction.options.getString as any) = (key: string) => {
         switch (key) {
-          case 'availability':
-            return 'Available all day';
           case 'character':
             return 'Test Character';
           case 'encounter':
