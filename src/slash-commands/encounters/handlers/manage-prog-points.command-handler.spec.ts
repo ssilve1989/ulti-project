@@ -7,6 +7,7 @@ import {
   MessageFlags,
   StringSelectMenuInteraction,
 } from 'discord.js';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { EncountersService } from '../../../encounters/encounters.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import type {

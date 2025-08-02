@@ -3,6 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test } from '@nestjs/testing';
 import type { Cache } from 'cache-manager';
 import { Firestore } from 'firebase-admin/firestore';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { FIRESTORE } from '../firebase.consts.js';
 import { SettingsCollection } from './settings-collection.js';
 

@@ -1,6 +1,7 @@
 import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, Colors } from 'discord.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { RetireCommand } from '../commands/retire.command.js';
 import { RetireCommandHandler } from './retire.command-handler.js';

@@ -4,6 +4,7 @@ import type {
   PartialMessageReaction,
   PartialUser,
 } from 'discord.js';
+import { describe, expect, it, vi } from 'vitest';
 import {
   CacheTime,
   hydrateReaction,

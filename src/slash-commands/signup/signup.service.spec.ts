@@ -1,6 +1,7 @@
 import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';

@@ -2,6 +2,7 @@ import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { EventBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, Colors, User } from 'discord.js';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import {
   Encounter,

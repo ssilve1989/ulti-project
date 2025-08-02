@@ -10,6 +10,7 @@ import {
   QueryDocumentSnapshot,
   QuerySnapshot,
 } from 'firebase-admin/firestore';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import type { SignupSchema } from '../../slash-commands/signup/signup.schema.js';
 import { FIRESTORE } from '../firebase.consts.js';

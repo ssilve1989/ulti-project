@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { columnToIndex } from './sheets.utils.js';
 
 describe('#columnToIndex', () => {

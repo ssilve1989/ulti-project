@@ -3,17 +3,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    pool: 'threads',
-    poolOptions: {
-      threads: {
-        // disables Node's DeprecationWarnings
-        // specifically about punycode in Node 21+ being deprecated
-        execArgv: ['--disable-warning=DeprecationWarning'],
-        singleThread: true,
-      },
+    chaiConfig: {
+      truncateThreshold: 80,
     },
-    globals: true,
-    setupFiles: ['test/setup.ts'],
     coverage: {
       include: ['src/**/*.ts'],
       exclude: [
@@ -22,9 +14,13 @@ export default defineConfig({
       ],
       provider: 'v8',
     },
-    chaiConfig: {
-      truncateThreshold: 80,
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
     },
+    setupFiles: ['test/setup.ts'],
   },
   plugins: [
     // This is required to build the test files with SWC
