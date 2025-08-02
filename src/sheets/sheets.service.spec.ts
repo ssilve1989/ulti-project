@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Encounter } from '../encounters/encounters.consts.js';
 import { EncountersService } from '../encounters/encounters.service.js';
+import { ErrorService } from '../error/error.service.js';
 import { PartyStatus } from '../firebase/models/signup.model.js';
 import { SHEETS_CLIENT } from './sheets.consts.js';
 import { SheetsService } from './sheets.service.js';
@@ -30,6 +31,7 @@ describe('Sheets Service', () => {
   let service: SheetsService;
   let client: sheets_v4.Sheets;
   let mockEncountersService: any;
+  let mockErrorService: any;
 
   beforeEach(async () => {
     // Create mock for EncountersService
@@ -40,11 +42,17 @@ describe('Sheets Service', () => {
       ]),
     };
 
+    // Create mock for ErrorService
+    mockErrorService = {
+      captureError: vi.fn(),
+    };
+
     const fixture = await Test.createTestingModule({
       providers: [
         SheetsService,
         { provide: SHEETS_CLIENT, useValue: sheets },
         { provide: EncountersService, useValue: mockEncountersService },
+        { provide: ErrorService, useValue: mockErrorService },
       ],
     }).compile();
 
