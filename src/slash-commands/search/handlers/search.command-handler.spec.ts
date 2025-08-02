@@ -7,6 +7,7 @@ import {
   MessageFlags,
   StringSelectMenuInteraction,
 } from 'discord.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { EncountersService } from '../../../encounters/encounters.service.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';

@@ -1,6 +1,7 @@
 import { createMock } from '@golevelup/ts-vitest';
 import { Logger } from '@nestjs/common';
 import { GuildMember, GuildMemberRoleManager, Role, User } from 'discord.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   NormalRoleResult,
   ProcessingContext,

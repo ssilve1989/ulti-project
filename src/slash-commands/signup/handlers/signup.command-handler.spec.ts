@@ -9,6 +9,7 @@ import {
   Message,
   MessageFlags,
 } from 'discord.js';
+import { beforeEach, describe, expect, it, test } from 'vitest';
 import { UnhandledButtonInteractionException } from '../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
