@@ -13,6 +13,7 @@ export default defineConfig({
       },
     },
     globals: true,
+    setupFiles: ['test/setup.ts'],
     coverage: {
       include: ['src/**/*.ts'],
       exclude: [

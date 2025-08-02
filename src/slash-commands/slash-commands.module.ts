@@ -1,7 +1,6 @@
 import { Module, type OnApplicationBootstrap } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
-import type { AppConfig } from '../app.config.js';
+import { appConfig } from '../config/app.js';
 import { DiscordModule } from '../discord/discord.module.js';
 import { ErrorModule } from '../error/error.module.js';
 import { BlacklistModule } from './blacklist/blacklist.module.js';
@@ -23,7 +22,6 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
   imports: [
     DiscordModule,
     ErrorModule,
-    ConfigModule,
     CqrsModule,
     SlashCommandsSharedModule,
     BlacklistModule,
@@ -42,14 +40,11 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
   providers: [SlashCommandsService],
 })
 export class SlashCommandsModule implements OnApplicationBootstrap {
-  constructor(
-    private readonly configService: ConfigService<AppConfig, true>,
-    private readonly service: SlashCommandsService,
-  ) {}
+  constructor(private readonly service: SlashCommandsService) {}
 
   onApplicationBootstrap() {
     this.service.listenToCommands();
-    if (this.configService.get('DISCORD_REFRESH_COMMANDS')) {
+    if (appConfig.DISCORD_REFRESH_COMMANDS) {
       // If we await here, the logs will be buffered since it's blocking application bootstrap
       this.service.registerCommands();
     }

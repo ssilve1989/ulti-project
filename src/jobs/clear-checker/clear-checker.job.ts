@@ -1,11 +1,9 @@
 import {
-  Inject,
   Injectable,
   Logger,
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import type { ConfigType } from '@nestjs/config';
 import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { CronJob } from 'cron';
@@ -23,6 +21,7 @@ import {
   toArray,
 } from 'rxjs';
 import { CronTime } from '../../common/cron.js';
+import { clearCheckerConfig } from '../../config/clear-checker.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import { FFLogsService } from '../../fflogs/fflogs.service.js';
@@ -38,7 +37,6 @@ import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import { RemoveSignupEvent } from '../../slash-commands/remove-signup/remove-signup.events.js';
 import { createJob, jobDateFormatter } from '../jobs.consts.js';
-import { clearCheckerConfig } from './clear-checker.config.js';
 
 @Injectable()
 class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -46,8 +44,6 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly job: CronJob;
 
   constructor(
-    @Inject(clearCheckerConfig.KEY)
-    private readonly config: ConfigType<typeof clearCheckerConfig>,
     private readonly discordService: DiscordService,
     private readonly encountersCollection: EncountersCollection,
     private readonly eventBus: EventBus,
@@ -108,7 +104,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
         return from(signups).pipe(
           mergeMap(
             (signup, index) => this.processSignup(signup, encounterIds, index),
-            this.config.CLEAR_CHECKER_CONCURRENCY,
+            clearCheckerConfig.CLEAR_CHECKER_CONCURRENCY,
           ),
         );
       }),

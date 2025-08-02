@@ -9,14 +9,9 @@
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
     // For nodejs:
-    "lib": [
-      "esnext"
-    ],
+    "lib": ["esnext"],
     "target": "esnext",
-    "types": [
-      "node",
-      "vitest/globals"
-    ],
+    "types": ["node", "vitest/globals"],
     // Other Outputs
     "declaration": false,
     "emitDecoratorMetadata": true,

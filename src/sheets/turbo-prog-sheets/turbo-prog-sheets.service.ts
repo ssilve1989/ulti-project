@@ -1,11 +1,10 @@
 import { sheets_v4 } from '@googleapis/sheets';
-import { Inject, Injectable } from '@nestjs/common';
-import type { ConfigType } from '@nestjs/config';
+import { Injectable } from '@nestjs/common';
 import { titleCase } from 'title-case';
 import { AsyncQueue } from '../../common/async-queue/async-queue.js';
+import { sheetsConfig } from '../../config/sheets.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import type { TurboProgEntry } from '../../slash-commands/turboprog/turbo-prog.interfaces.js';
-import { sheetsConfig } from '../sheets.config.js';
 import { InjectSheetsClient } from '../sheets.decorators.js';
 import {
   columnToIndex,
@@ -24,8 +23,6 @@ class TurboProgSheetsService {
 
   constructor(
     @InjectSheetsClient() private readonly client: sheets_v4.Sheets,
-    @Inject(sheetsConfig.KEY)
-    private readonly config: ConfigType<typeof sheetsConfig>,
   ) {}
 
   public upsert(entry: TurboProgEntry, spreadsheetId: string) {
@@ -43,7 +40,7 @@ class TurboProgSheetsService {
       return;
     }
 
-    const sheetName = this.config.TURBO_PROG_SHEET_NAME;
+    const sheetName = sheetsConfig.TURBO_PROG_SHEET_NAME;
     const { rowIndex } = await findCharacterRowIndex(this.client, {
       spreadsheetId,
       range: `${sheetName}!${range.start}:${range.end}`,
@@ -84,7 +81,7 @@ class TurboProgSheetsService {
     spreadsheetId: string,
   ) {
     // TODO: Figure out what to do about world
-    const sheetName = this.config.TURBO_PROG_SHEET_NAME;
+    const sheetName = sheetsConfig.TURBO_PROG_SHEET_NAME;
     const range = TurboProgSheetRanges[encounter as Encounter];
 
     const { rowIndex, sheetValues } = await findCharacterRowIndex(this.client, {

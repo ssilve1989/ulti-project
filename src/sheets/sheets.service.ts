@@ -1,11 +1,11 @@
 import { sheets_v4 } from '@googleapis/sheets';
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { ConfigType } from '@nestjs/config';
+import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
+import { sheetsConfig } from '../config/sheets.js';
 import { Encounter } from '../encounters/encounters.consts.js';
 import { EncountersService } from '../encounters/encounters.service.js';
 import {
@@ -14,7 +14,6 @@ import {
 } from '../firebase/models/signup.model.js';
 import { sentryReport } from '../sentry/sentry.consts.js';
 import type { TurboProgEntry } from '../slash-commands/turboprog/turbo-prog.interfaces.js';
-import { sheetsConfig } from './sheets.config.js';
 import { type SheetRangeConfig, SheetRanges } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
 import {
@@ -48,8 +47,6 @@ class SheetsService {
   private readonly turboProgQueue = new AsyncQueue();
   constructor(
     @InjectSheetsClient() private readonly client: sheets_v4.Sheets,
-    @Inject(sheetsConfig.KEY)
-    private readonly config: ConfigType<typeof sheetsConfig>,
     private readonly encountersService: EncountersService,
   ) {}
 
@@ -119,7 +116,7 @@ class SheetsService {
         return;
       }
 
-      const sheetName = this.config.TURBO_PROG_SHEET_NAME;
+      const sheetName = sheetsConfig.TURBO_PROG_SHEET_NAME;
       const { rowIndex } = await findCharacterRowIndex(this.client, {
         spreadsheetId,
         range: `${sheetName}!${range.start}:${range.end}`,
@@ -406,7 +403,7 @@ class SheetsService {
     { encounter, character, job, progPoint }: TurboProgEntry,
     spreadsheetId: string,
   ) {
-    const sheetName = this.config.TURBO_PROG_SHEET_NAME;
+    const sheetName = sheetsConfig.TURBO_PROG_SHEET_NAME;
     const range = TurboProgSheetRanges[encounter as Encounter];
 
     const { rowIndex, sheetValues } = await findCharacterRowIndex(this.client, {

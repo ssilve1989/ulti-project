@@ -1,5 +1,4 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { CommandBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import {
@@ -19,7 +18,7 @@ import {
   retry,
   timer,
 } from 'rxjs';
-import type { AppConfig } from '../app.config.js';
+import { appConfig } from '../config/app.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { safeReply } from '../discord/discord.helpers.js';
 import { ErrorService } from '../error/error.service.js';
@@ -37,7 +36,6 @@ class SlashCommandsService {
   constructor(
     @InjectDiscordClient() private readonly client: Client,
     private readonly commandBus: CommandBus,
-    private readonly configService: ConfigService<AppConfig, true>,
     @Inject(SLASH_COMMANDS_TOKEN) private readonly slashCommands: SlashCommands,
     private readonly errorService: ErrorService,
   ) {}
@@ -84,12 +82,10 @@ class SlashCommandsService {
   async registerCommands(): Promise<void> {
     this.logger.log('refreshing slash commands');
 
-    const clientId = this.configService.get<string>('CLIENT_ID');
+    const clientId = appConfig.CLIENT_ID;
     const guildIds = this.client.guilds.cache.map((guild) => guild.id);
 
-    const rest = new REST().setToken(
-      this.configService.get<string>('DISCORD_TOKEN'),
-    );
+    const rest = new REST().setToken(appConfig.DISCORD_TOKEN);
 
     await lastValueFrom(
       forkJoin(
