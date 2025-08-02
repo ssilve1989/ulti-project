@@ -1,8 +1,7 @@
 import { ChatInputCommandInteraction } from 'discord.js';
-import type { DiscordCommand } from '../../../../slash-commands/slash-commands.interfaces.js';
 
-export class EditSpreadsheetCommand implements DiscordCommand {
+export class EditSpreadsheetCommand {
   constructor(
-    public readonly interaction: ChatInputCommandInteraction<'cached' | 'raw'>,
+    public readonly interaction: ChatInputCommandInteraction<'cached'>,
   ) {}
 }

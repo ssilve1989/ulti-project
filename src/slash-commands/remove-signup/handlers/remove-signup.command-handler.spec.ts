@@ -44,7 +44,7 @@ describe('Remove Signup Command Handler', () => {
   let discordService: DeepMocked<DiscordService>;
   let eventBus: DeepMocked<EventBus>;
   let handler: RemoveSignupCommandHandler;
-  let interaction: DeepMocked<ChatInputCommandInteraction<'cached' | 'raw'>>;
+  let interaction: DeepMocked<ChatInputCommandInteraction<'cached'>>;
   let settingsCollection: DeepMocked<SettingsCollection>;
   let sheetsService: DeepMocked<SheetsService>;
   let signupsCollection: DeepMocked<SignupCollection>;
@@ -63,7 +63,7 @@ describe('Remove Signup Command Handler', () => {
     signupsCollection = fixture.get(SignupCollection);
     eventBus = fixture.get(EventBus);
 
-    interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
+    interaction = createMock<ChatInputCommandInteraction<'cached'>>({
       user: createMock<User>({
         id: '1',
         toString: () => '<@1>',
@@ -208,7 +208,7 @@ describe('Remove Signup Command Handler', () => {
 
   it('responds with validation error when invalid world is provided', async () => {
     const invalidWorldInteraction = createMock<
-      ChatInputCommandInteraction<'cached' | 'raw'>
+      ChatInputCommandInteraction<'cached'>
     >({
       user: createMock<User>({
         id: '1',

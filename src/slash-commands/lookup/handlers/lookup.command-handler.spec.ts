@@ -17,7 +17,7 @@ import { LookupCommandHandler } from './lookup.command-handler.js';
 
 describe('LookupCommandHandler', () => {
   let handler: LookupCommandHandler;
-  let interaction: DeepMocked<ChatInputCommandInteraction<'cached' | 'raw'>>;
+  let interaction: DeepMocked<ChatInputCommandInteraction<'cached'>>;
   let signupsCollection: DeepMocked<SignupCollection>;
   let blacklistCollection: DeepMocked<BlacklistCollection>;
   let errorService: DeepMocked<ErrorService>;
@@ -35,7 +35,7 @@ describe('LookupCommandHandler', () => {
     blacklistCollection = fixture.get(BlacklistCollection);
     errorService = fixture.get(ErrorService);
 
-    interaction = createMock<ChatInputCommandInteraction<'cached' | 'raw'>>({
+    interaction = createMock<ChatInputCommandInteraction<'cached'>>({
       options: {
         getString: getStringMock,
       },
