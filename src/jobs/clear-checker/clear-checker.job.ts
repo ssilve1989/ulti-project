@@ -24,6 +24,7 @@ import { CronTime } from '../../common/cron.js';
 import { clearCheckerConfig } from '../../config/clear-checker.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
+import { ErrorService } from '../../error/error.service.js';
 import { FFLogsService } from '../../fflogs/fflogs.service.js';
 import { EncountersCollection } from '../../firebase/collections/encounters-collection.js';
 import { JobCollection } from '../../firebase/collections/job/job.collection.js';
@@ -33,7 +34,6 @@ import {
   PartyStatus,
   type SignupDocument,
 } from '../../firebase/models/signup.model.js';
-import { sentryReport } from '../../sentry/sentry.consts.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import { RemoveSignupEvent } from '../../slash-commands/remove-signup/remove-signup.events.js';
 import { createJob, jobDateFormatter } from '../jobs.consts.js';
@@ -45,6 +45,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
 
   constructor(
     private readonly discordService: DiscordService,
+    private readonly errorService: ErrorService,
     private readonly encountersCollection: EncountersCollection,
     private readonly eventBus: EventBus,
     private readonly fflogsService: FFLogsService,
@@ -147,8 +148,9 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
 
       return hasCleared ? signup : undefined;
     } catch (e) {
-      sentryReport(e);
-      this.logger.warn(`error checking signup for ${signup.character}`);
+      this.errorService.captureError(e, {
+        message: `error checking signup for ${signup.character}`,
+      });
     }
 
     return undefined;
@@ -211,8 +213,9 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     return this.discordService
       .deleteMessage(guildId, reviewChannel, reviewMessageId)
       .catch((err) => {
-        this.logger.warn(`error removing signup for ${character}`);
-        sentryReport(err);
+        this.errorService.captureError(err, {
+          message: `error removing signup for ${character}`,
+        });
       });
   }
 
@@ -224,8 +227,9 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
         encounter: signup.encounter,
       })
       .catch((err) => {
-        this.logger.warn(`error removing signup for ${signup.character}`);
-        sentryReport(err);
+        this.errorService.captureError(err, {
+          message: `error removing signup for ${signup.character}`,
+        });
       });
   }
 
