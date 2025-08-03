@@ -13,9 +13,22 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: googleapis/release-please-action@v4.1.3
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4.1.0
+      - uses: actions/setup-node@v4
+        with:
+          # File containing the version Spec of the version to use.  Examples: .nvmrc, .node-version, .tool-versions.
+          # If node-version and node-version-file are both provided the action will use version from node-version.
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - name: Install release-please
+        run: pnpm install --frozen-lockfile
+      - name: Register custom versioning strategy
+        run: node scripts/selective-versioning-strategy.js
+      - uses: googleapis/release-please-action@v4.2.0
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-          release-type: "node"
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
           
       
