@@ -1,5 +1,101 @@
 # Changelog
 
+## [1.17.4](https://github.com/ssilve1989/ulti-project/compare/ulti-project-v1.39.0...ulti-project-v1.17.4) (2025-08-03)
+
+
+### Features
+
+* a daily job will check FFLogs for clears and remove appropriate signups ([#608](https://github.com/ssilve1989/ulti-project/issues/608)) ([ad7731d](https://github.com/ssilve1989/ulti-project/commit/ad7731df9056429d8282d92af7b94f9585133915))
+* add custom selective versioning strategy for release-please ([ac9c0f3](https://github.com/ssilve1989/ulti-project/commit/ac9c0f32ca78648809f2cdd5f0464cba37a87fe1))
+* add Discord invite cleaner job ([2e9a38a](https://github.com/ssilve1989/ulti-project/commit/2e9a38a69bf93feacc8355fb48a15a174c3dce0f))
+* add helper retirement command ([#713](https://github.com/ssilve1989/ulti-project/issues/713)) ([ac1fa95](https://github.com/ssilve1989/ulti-project/commit/ac1fa95e5e0fc85f15a5ffa2db1a0c648efd06e5))
+* add more encounter prog choices for FRU ([527d9b2](https://github.com/ssilve1989/ulti-project/commit/527d9b2c7d0fcf172d7292b6a9d3bb24924d23f6))
+* **blacklist:** add lodestone-id field ([#533](https://github.com/ssilve1989/ulti-project/issues/533)) ([895167a](https://github.com/ssilve1989/ulti-project/commit/895167a6a80fb565bde454331e0a6350bf59fa1a))
+* **blacklist:** adds the ability to maintain a list of suspicious players ([#459](https://github.com/ssilve1989/ulti-project/issues/459)) ([800396f](https://github.com/ssilve1989/ulti-project/commit/800396fca07250499d422da0d049687775eced64))
+* **clean-roles:** add slash command to clean roles from inactive members ([354e4e2](https://github.com/ssilve1989/ulti-project/commit/354e4e23d75a95fa54a50372f7db708c82b952f3))
+* **encounters:** enable multi-select when toggling prog points enablement ([#899](https://github.com/ssilve1989/ulti-project/issues/899)) ([e7a176e](https://github.com/ssilve1989/ulti-project/commit/e7a176e59346f155e99ab77d9660a8c04163392a))
+* **encounters:** enhance prog point management with active/inactive toggles ([#896](https://github.com/ssilve1989/ulti-project/issues/896)) ([b24e43e](https://github.com/ssilve1989/ulti-project/commit/b24e43ecc3791edfa503e02409dc68331cdf0b0f))
+* **final-push:** support permanent final-push command ([046e565](https://github.com/ssilve1989/ulti-project/commit/046e565d8019c5cfd7b498a7c257629e6d13b583))
+* implement dynamic encounter management system ([02aa798](https://github.com/ssilve1989/ulti-project/commit/02aa798dc619f1b9b7665675ff528bdb2cdb3276))
+* improve prog points management UX and fix edit functionality ([c90af35](https://github.com/ssilve1989/ulti-project/commit/c90af350dc2f3c9bd7659999432d9b4767501b32))
+* **lookup:** add notes field to lookup results ([#542](https://github.com/ssilve1989/ulti-project/issues/542)) ([34ee1a9](https://github.com/ssilve1989/ulti-project/commit/34ee1a908714594e4d8bcbaf43acd6b331bfcc9d))
+* **lookup:** enhance information displayed on lookup embed ([03549cc](https://github.com/ssilve1989/ulti-project/commit/03549cc396b9b4b3e66670d4ec9617a56e98333e))
+* **lookup:** lookups are now separated into embeds by world ([#587](https://github.com/ssilve1989/ulti-project/issues/587)) ([eacaced](https://github.com/ssilve1989/ulti-project/commit/eacaced37752375db17ade7dd2f0b25ccfa70031))
+* **search:** adds a new command to allow for searching for users by prog point ([#721](https://github.com/ssilve1989/ulti-project/issues/721)) ([3a125ef](https://github.com/ssilve1989/ulti-project/commit/3a125ef9a16e51af3ef4b7a9e51ff84921723e95))
+* **search:** search command now shows results from at least selected prog point ([38e065c](https://github.com/ssilve1989/ulti-project/commit/38e065c3a1dd9326534888afb8c56a75b2e77f63))
+* **settings:** moderation channel setting ([#458](https://github.com/ssilve1989/ulti-project/issues/458)) ([14cc49f](https://github.com/ssilve1989/ulti-project/commit/14cc49f8863d4b13b188304904af487927a191e7))
+* sheet-cleaner job ([#611](https://github.com/ssilve1989/ulti-project/issues/611)) ([435018a](https://github.com/ssilve1989/ulti-project/commit/435018a67943d2620ec98971a42ec56a30d67bdc))
+* **signuos:** check fflogs date ([32f694b](https://github.com/ssilve1989/ulti-project/commit/32f694b903deb956e8fac01c4b8faef728ed0ca9))
+* **signup:** add previously approved prog point to reviewer DM ([1510bce](https://github.com/ssilve1989/ulti-project/commit/1510bcedbe89f2d02041a2bce7a803ff606e1309))
+* **signups:** adds a Notes field for additional signup information ([#531](https://github.com/ssilve1989/ulti-project/issues/531)) ([40f2e91](https://github.com/ssilve1989/ulti-project/commit/40f2e910685b12f396d28d6da48c9d148aae255a))
+* **signups:** allow reviewers to provide signup decline reason ([#852](https://github.com/ssilve1989/ulti-project/issues/852)) ([1edae29](https://github.com/ssilve1989/ulti-project/commit/1edae29879b63d49458d3984f9ef5fa29b7bd9b4))
+* **signups:** clear-checker cron ([#497](https://github.com/ssilve1989/ulti-project/issues/497)) ([4814608](https://github.com/ssilve1989/ulti-project/commit/4814608d598008e651e9b22de6b4341af8833af9))
+* **signups:** confirm messages now mention user for searchability ([#676](https://github.com/ssilve1989/ulti-project/issues/676)) ([df35b83](https://github.com/ssilve1989/ulti-project/commit/df35b83db025343ad8d9f5b28716bf96ce07dd8d))
+* **signups:** publishes alerts on blacklisted signups ([#460](https://github.com/ssilve1989/ulti-project/issues/460)) ([14366de](https://github.com/ssilve1989/ulti-project/commit/14366dee430e98f5b6036efa3ccef8a27cd795a9))
+* **signups:** support Futures Rewritten ([#576](https://github.com/ssilve1989/ulti-project/issues/576)) ([f057b52](https://github.com/ssilve1989/ulti-project/commit/f057b5290870f9adace2b264f837fb35d37eca73))
+* **signups:** warn user on mismatched names when confirming signup ([#598](https://github.com/ssilve1989/ulti-project/issues/598)) ([67c79db](https://github.com/ssilve1989/ulti-project/commit/67c79db29178b08a26d1f32038239599924920f4))
+* **slash-commands:** add /help command with permission-aware filtering ([51b50c2](https://github.com/ssilve1989/ulti-project/commit/51b50c267edd476163274b688e8fa27f5ac1fa1a))
+* support application mode configuration for encounters ([#479](https://github.com/ssilve1989/ulti-project/issues/479)) ([af8cc34](https://github.com/ssilve1989/ulti-project/commit/af8cc34046dbef2a32eef3119b22f24b2eb7e9dc))
+* update turbo prog config for current FRU session ([e0787db](https://github.com/ssilve1989/ulti-project/commit/e0787dbb883f292b5b72cbfa4293e5871dbf1f7f))
+
+
+### Bug Fixes
+
+* adds transform helper to createFields to assist wit null transformations ([07e222c](https://github.com/ssilve1989/ulti-project/commit/07e222c7b729e38fbab37c651fc0ff17c4c45ed5))
+* **blacklist:** fix count of users shown in display embed ([8d3901d](https://github.com/ssilve1989/ulti-project/commit/8d3901d60c4838b114267a8c745ba0d696402675))
+* **blacklist:** fixes an issue where incorrect entries were being updated ([#462](https://github.com/ssilve1989/ulti-project/issues/462)) ([13243a3](https://github.com/ssilve1989/ulti-project/commit/13243a31d863eb2fb81e649da91d1bff997e3f75))
+* **blacklist:** fixes nullish fields causing wrong results to be resolved in queries ([6eeca76](https://github.com/ssilve1989/ulti-project/commit/6eeca76e3bd24479ccd34a53e476e89189a6c833))
+* **clear-checker:** fix request length check ([#704](https://github.com/ssilve1989/ulti-project/issues/704)) ([e90a763](https://github.com/ssilve1989/ulti-project/commit/e90a763b19959c6a94a09a3239b7578b2202e11e)), closes [#703](https://github.com/ssilve1989/ulti-project/issues/703)
+* **clear-checker:** fixes clear-checker to run on all active encounters ([f3b2a7f](https://github.com/ssilve1989/ulti-project/commit/f3b2a7f7cef0f570cd9406bd7b6186b211b10160))
+* **clear-checker:** improve logging for signup removal ([501efb3](https://github.com/ssilve1989/ulti-project/commit/501efb3fbbb8e8888e4cd0100c13a1dcf6476912))
+* **clear-checker:** use correct encounter for sheet removal ([e423bb4](https://github.com/ssilve1989/ulti-project/commit/e423bb40b8f03c86278f530f10b66d8d9ca59269))
+* fix coercion of env values ([686ec29](https://github.com/ssilve1989/ulti-project/commit/686ec29dfbb965386079262e309256bd3c15f330))
+* fix link to signup message for real ([#671](https://github.com/ssilve1989/ulti-project/issues/671)) ([efa344b](https://github.com/ssilve1989/ulti-project/commit/efa344b53ce3462c1021a3d9448e8a34415aa412))
+* fixes env var injection ([977e037](https://github.com/ssilve1989/ulti-project/commit/977e037abd34839366c8e2fda5a4327c5a055354))
+* fixes signup link in blacklist message ([#669](https://github.com/ssilve1989/ulti-project/issues/669)) ([1bbc0cb](https://github.com/ssilve1989/ulti-project/commit/1bbc0cb51704745000f332e224b94deda044520a))
+* handle Unknown Member discord API error ([#682](https://github.com/ssilve1989/ulti-project/issues/682)) ([fb94be8](https://github.com/ssilve1989/ulti-project/commit/fb94be842c40768a6650f6f457b978e89ed7ff48)), closes [#658](https://github.com/ssilve1989/ulti-project/issues/658)
+* improve edit modal UX by removing confusing read-only input ([068a43b](https://github.com/ssilve1989/ulti-project/commit/068a43b7857b899fd38b072e28fa880040486919))
+* improve prog points navigation and editing UX ([7d2061b](https://github.com/ssilve1989/ulti-project/commit/7d2061bcc186985e42f138f4ad5722b5708902ef))
+* **jobs:** fix DI error on startup ([25a9600](https://github.com/ssilve1989/ulti-project/commit/25a9600cb46a6f203bedd868df3d66c35e766038))
+* **lookup:** fixes layout of embed when there are no notes ([1b8733c](https://github.com/ssilve1989/ulti-project/commit/1b8733c124ac033d45164c56fb31081c1df8704d))
+* **lookup:** fixes validation done during lookup command ([73bbcdc](https://github.com/ssilve1989/ulti-project/commit/73bbcdc41a605c48f976e9c4e4ac9459186db912))
+* remove runOnInit for clear-checker ([8e3baea](https://github.com/ssilve1989/ulti-project/commit/8e3baeae8add2df3e6bac7779ae9aa5d7aa8efde))
+* **remove-signup:** find document by props instead of discordId ([#512](https://github.com/ssilve1989/ulti-project/issues/512)) ([4a19268](https://github.com/ssilve1989/ulti-project/commit/4a19268c3a827a71a8a01d2f8c6c838a5f3f41bb)), closes [#509](https://github.com/ssilve1989/ulti-project/issues/509)
+* **remove-signup:** handle UPDATE_PENDING as valid status for sheet removal ([#510](https://github.com/ssilve1989/ulti-project/issues/510)) ([93ad9d4](https://github.com/ssilve1989/ulti-project/commit/93ad9d4b354640d661f5425754a4e96de47021a5)), closes [#508](https://github.com/ssilve1989/ulti-project/issues/508)
+* **remove-signup:** show validation error instead of generic error ([be4d924](https://github.com/ssilve1989/ulti-project/commit/be4d92477c61ce5208c3b3ba625f385c5b20cc99))
+* **settings:** fix cache value setting ([#457](https://github.com/ssilve1989/ulti-project/issues/457)) ([418b47e](https://github.com/ssilve1989/ulti-project/commit/418b47eb3e3aae00b69020bc183250f92bac481a))
+* **sheet-cleaner:** fixes sheet cleaner job for all encounters ([25c3e63](https://github.com/ssilve1989/ulti-project/commit/25c3e63ddc9939822abcb6c5dc251cddccaf14cb))
+* **sheets:** fix handling of deleted spreadsheets when requesting metadata ([#513](https://github.com/ssilve1989/ulti-project/issues/513)) ([333e2b3](https://github.com/ssilve1989/ulti-project/commit/333e2b376996b4a2c3347d161c9f4ebe074aa664))
+* **sheets:** only send batchUpdate if requests.length &gt; 0 ([#644](https://github.com/ssilve1989/ulti-project/issues/644)) ([9a94e78](https://github.com/ssilve1989/ulti-project/commit/9a94e78980f0514c6d7c42efe18c27a5f94d4537))
+* **signup:** replace as any with proper ActionRowBuilder types ([f987fca](https://github.com/ssilve1989/ulti-project/commit/f987fcab8b1192b44a2802a15725959341804fe5))
+* **signups:** enforce reviewer role requirement and improve error handling ([#888](https://github.com/ssilve1989/ulti-project/issues/888)) ([e4a09db](https://github.com/ssilve1989/ulti-project/commit/e4a09dbbecc505126057cd7c1081464d021fa359))
+* **signups:** fix guildId for clear-checker ([5531c2f](https://github.com/ssilve1989/ulti-project/commit/5531c2ffe49fc29b4994ca2d7e300b43219367e7))
+* **signups:** fixes prog point assignment ([985c295](https://github.com/ssilve1989/ulti-project/commit/985c2952efbbf929ecc840c3e67a5cf8f51e58a8))
+* **signups:** fixes prog proof link markdown ([40df444](https://github.com/ssilve1989/ulti-project/commit/40df4447b844ab81b7cb61717878d5a1f242a835))
+* **signups:** optimize upsert to preserve existing data and reduce db reads ([#889](https://github.com/ssilve1989/ulti-project/issues/889)) ([18fb74a](https://github.com/ssilve1989/ulti-project/commit/18fb74a390a4180bd9be1bef584fa94d7e662d45))
+* **tasks:** fix clear check cron timer ([94406bb](https://github.com/ssilve1989/ulti-project/commit/94406bb4f4461d257c1b5bb77538bc5d20279520))
+* **tests:** remove any type from help command tests ([c63a032](https://github.com/ssilve1989/ulti-project/commit/c63a0322b5dd023f15be87138c3d98946604a21b))
+* **turboprog:** implement hack to find offset of sheet values when searching spreadsheet ([0c7b3a6](https://github.com/ssilve1989/ulti-project/commit/0c7b3a624072f56bb268709f13a59a985adb888e))
+* use safeReply in slash command error handler ([#680](https://github.com/ssilve1989/ulti-project/issues/680)) ([9730cc7](https://github.com/ssilve1989/ulti-project/commit/9730cc77637a3ebe33841a1e68d0618f04cc6868)), closes [#679](https://github.com/ssilve1989/ulti-project/issues/679)
+
+
+### Performance Improvements
+
+* **jobs:** batch remove requests for GSheets in ClearChecker ([#613](https://github.com/ssilve1989/ulti-project/issues/613)) ([e1a5863](https://github.com/ssilve1989/ulti-project/commit/e1a5863e765fe237ff90719e561fa4adeabcd4c0))
+* **settings:** cache settings document ([#455](https://github.com/ssilve1989/ulti-project/issues/455)) ([4bedda1](https://github.com/ssilve1989/ulti-project/commit/4bedda13553e75f802071027a2808e060fae122f))
+* **signups:** optimize upsert method to reduce redundant reads ([#885](https://github.com/ssilve1989/ulti-project/issues/885)) ([dde5cc9](https://github.com/ssilve1989/ulti-project/commit/dde5cc946eb630a1439790c7b497f57140670f98))
+
+
+### Reverts
+
+* **release-please:** undo attempts at adding more commit types ([788f62f](https://github.com/ssilve1989/ulti-project/commit/788f62f68ec65871909e2524eaf3adc6623d3b2e))
+
+
+### Miscellaneous Chores
+
+* release v1.17.1 ([e343685](https://github.com/ssilve1989/ulti-project/commit/e343685cb557643c59a1a6ddbf8249c0ac8fe447))
+* release v1.17.4 ([e042168](https://github.com/ssilve1989/ulti-project/commit/e0421682d2f65d228ecc887437cab4d9ae70767c))
+
 ## [1.39.0](https://github.com/ssilve1989/ulti-project/compare/v1.38.1...v1.39.0) (2025-07-30)
 
 
