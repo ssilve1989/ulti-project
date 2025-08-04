@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.40.0](https://github.com/ssilve1989/ulti-project/compare/v1.39.0...v1.40.0) (2025-08-04)
+
+
+### Features
+
+* **signup:** add medal.tv support for ff-xiv-online prog proof ([#918](https://github.com/ssilve1989/ulti-project/issues/918)) ([e4b2e7d](https://github.com/ssilve1989/ulti-project/commit/e4b2e7d8507879deceb3734a6d4b674b91a28995))
+
 ## [1.39.0](https://github.com/ssilve1989/ulti-project/compare/v1.38.1...v1.39.0) (2025-07-30)
 
 
