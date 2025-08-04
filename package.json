@@ -43,7 +43,7 @@
     "@sentry/nestjs": "^10.1.0",
     "@sentry/profiling-node": "^10.1.0",
     "cache-manager": "^6.4.3",
-    "cron": "^4.3.2",
+    "cron": "^4.3.3",
     "dayjs": "^1.11.13",
     "discord.js": "^14.21.0",
     "firebase-admin": "^13.4.0",
