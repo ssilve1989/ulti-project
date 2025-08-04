@@ -53,6 +53,7 @@ export const PROG_PROOF_HOSTS_WHITELIST = [
   /streamable.com/,
   /twitch.tv/,
   /youtube.com/,
+  /medal\.tv\/games\/ff-xiv-online/,
 ];
 
 // which makes us need to do this mapping for presentation
