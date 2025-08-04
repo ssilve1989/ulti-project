@@ -50,6 +50,7 @@ export const SIGNUP_REVIEW_REACTIONS: Record<SignupStatusValues, string> = {
 // In any case, we just use regexes for now
 export const PROG_PROOF_HOSTS_WHITELIST = [
   /fflogs.com/,
+  /medal.tv/,
   /streamable.com/,
   /twitch.tv/,
   /youtube.com/,
