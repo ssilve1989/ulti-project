@@ -29,10 +29,12 @@ FROM base AS build
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm run build
 
-FROM base
+FROM node:${NODE_VERSION}-alpine
 
-ENV FORCE_COLOR=1
+WORKDIR /app
 
+# Copy only the files needed for runtime
+COPY package.json instrumentation.mjs /app/
 COPY --from=prod-deps /app/node_modules /app/node_modules
 COPY --from=build /app/dist /app/dist
 
