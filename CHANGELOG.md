@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.40.1](https://github.com/ssilve1989/ulti-project/compare/v1.40.0...v1.40.1) (2025-08-07)
+
+
+### Performance Improvements
+
+* **docker:** optimize final image to exclude source files ([#920](https://github.com/ssilve1989/ulti-project/issues/920)) ([a9f669d](https://github.com/ssilve1989/ulti-project/commit/a9f669d6606fea11d7abeef18a898dfa2f3f3477))
+
 ## [1.40.0](https://github.com/ssilve1989/ulti-project/compare/v1.39.0...v1.40.0) (2025-08-04)
 
 
