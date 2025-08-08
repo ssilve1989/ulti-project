@@ -1,19 +1,32 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, Role } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { EditEncounterRolesCommandHandler } from './edit-encounter-roles.command-handler.js';
 
 describe('Edit Encounter Roles Command Handler', () => {
   let handler: EditEncounterRolesCommandHandler;
-  let settingsCollection: DeepMocked<SettingsCollection>;
+  let settingsCollection: any;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
       providers: [EditEncounterRolesCommandHandler],
     })
-      .useMocker(() => createMock())
+      .useMocker((token) => {
+        if (typeof token === 'function') {
+          const mockValue = vi.fn();
+          const proto = token.prototype;
+          if (proto) {
+            Object.getOwnPropertyNames(proto).forEach(key => {
+              if (key !== 'constructor') {
+                mockValue[key] = vi.fn();
+              }
+            });
+          }
+          return mockValue;
+        }
+        return {};
+      })
       .compile();
 
     handler = fixture.get(EditEncounterRolesCommandHandler);
@@ -38,7 +51,7 @@ describe('Edit Encounter Roles Command Handler', () => {
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
     await handler.execute({
-      interaction: createMock<ChatInputCommandInteraction<'cached'>>({
+      interaction: {
         guildId,
         options: {
           getString: (name: string, _required?: boolean) =>
@@ -46,24 +59,26 @@ describe('Edit Encounter Roles Command Handler', () => {
           getRole: (name: string, _required?: boolean) => {
             switch (name) {
               case 'prog-role':
-                return createMock<Role>({
+                return {
                   id: progRoleId,
                   toString: () => `<@&${progRoleId}>`,
                   valueOf: () => '',
-                });
+                };
               case 'clear-role':
-                return createMock<Role>({
+                return {
                   id: clearRoleId,
                   toString: () => `<@&${clearRoleId}>`,
                   valueOf: () => '',
-                });
+                };
               default:
                 return null;
             }
           },
         },
         valueOf: () => '',
-      }),
+        editReply: vi.fn(),
+        deferReply: vi.fn(),
+      } as any,
     });
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(

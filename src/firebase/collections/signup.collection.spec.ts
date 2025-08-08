@@ -1,4 +1,3 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import {
   CollectionReference,
@@ -25,24 +24,41 @@ const SIGNUP_KEY = {
 
 describe('Signup Repository', () => {
   let repository: SignupCollection;
-  let firestore: DeepMocked<Firestore>;
-  let collection: DeepMocked<CollectionReference<DocumentData>>;
-  let doc: DeepMocked<DocumentReference<DocumentData>>;
-  const signupRequest = createMock<SignupSchema>(SIGNUP_KEY);
+  let firestore: any;
+  let collection: any;
+  let doc: any;
+  const signupRequest = {
+    ...SIGNUP_KEY,
+    character: 'Test Character',
+    world: 'Test World',
+    role: 'Tank',
+  } as any;
 
   beforeEach(async () => {
-    doc = createMock<DocumentReference>();
+    doc = {
+      get: vi.fn().mockResolvedValue({
+        exists: true,
+        data: vi.fn().mockReturnValue({}),
+      }),
+      set: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      create: vi.fn(),
+    } as any;
 
-    collection = createMock<CollectionReference<DocumentData>>({
-      get: vi.fn(),
-      where: vi.fn(),
-      limit: vi.fn(),
-      doc: vi.fn().mockReturnValue(doc) as any,
-    });
+    collection = {
+      get: vi.fn().mockResolvedValue({
+        docs: [],
+        size: 0,
+      }),
+      where: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      doc: vi.fn().mockReturnValue(doc),
+    } as any;
 
-    firestore = createMock<Firestore>({
-      collection: vi.fn().mockReturnValue(collection) as any,
-    });
+    firestore = {
+      collection: vi.fn().mockReturnValue(collection),
+    } as any;
 
     const fixture = await Test.createTestingModule({
       providers: [
@@ -53,7 +69,21 @@ describe('Signup Repository', () => {
         },
       ],
     })
-      .useMocker(() => createMock())
+      .useMocker((token) => {
+        if (typeof token === 'function') {
+          const mockValue = vi.fn();
+          const proto = token.prototype;
+          if (proto) {
+            Object.getOwnPropertyNames(proto).forEach(key => {
+              if (key !== 'constructor') {
+                mockValue[key] = vi.fn();
+              }
+            });
+          }
+          return mockValue;
+        }
+        return {};
+      })
       .compile();
 
     repository = fixture.get(SignupCollection);
@@ -66,10 +96,10 @@ describe('Signup Repository', () => {
       reviewedBy: 'someReviewer',
     };
     doc.get.mockResolvedValueOnce(
-      createMock<DocumentSnapshot>({
+      {
         exists: true,
         data: () => existingData as any,
-      }),
+      } as any,
     );
 
     const result = await repository.upsert(signupRequest);
@@ -99,10 +129,10 @@ describe('Signup Repository', () => {
       reviewedBy: null,
     };
     doc.get.mockResolvedValueOnce(
-      createMock<DocumentSnapshot>({
+      {
         exists: true,
         data: () => existingData as any,
-      }),
+      } as any,
     );
 
     const result = await repository.upsert(signupRequest);
@@ -121,10 +151,10 @@ describe('Signup Repository', () => {
 
   it('should call create if the document does not exist', async () => {
     doc.get.mockResolvedValueOnce(
-      createMock<DocumentSnapshot>({
+      {
         exists: false,
         data: () => null as any,
-      }),
+      } as any,
     );
 
     const result = await repository.upsert(signupRequest);
@@ -166,33 +196,26 @@ describe('Signup Repository', () => {
 
   describe('#findByReviewId', () => {
     const mockFetch = (empty: any, signup: SignupDocument) => {
-      collection.where.mockReturnValueOnce(
-        createMock<Query>({
-          limit: () =>
-            createMock<Query>({
-              get: () =>
-                Promise.resolve(
-                  createMock<QuerySnapshot>({
-                    empty,
-                    docs: [
-                      createMock<QueryDocumentSnapshot<SignupDocument>>({
-                        data: () => signup,
-                      }),
-                    ],
-                  }),
-                ),
-            }),
-        }),
-      );
+      collection.where.mockReturnValueOnce({
+        limit: () => ({
+          get: () =>
+            Promise.resolve({
+              empty,
+              docs: [{
+                data: () => signup,
+              }],
+            } as any),
+        } as any),
+      } as any);
     };
 
     it('should return a signup by review if exists', async () => {
       const reviewMessageId = 'reviewMessageId';
-      const signup = createMock<SignupDocument>({
+      const signup = {
         ...signupRequest,
         reviewMessageId,
         status: SignupStatus.PENDING,
-      });
+      } as any;
 
       mockFetch(false, signup);
 

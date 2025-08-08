@@ -1,4 +1,3 @@
-import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import {
   ChatInputCommandInteraction,
@@ -29,7 +28,21 @@ describe('CleanRolesCommandHandler', () => {
     const fixture = await Test.createTestingModule({
       providers: [CleanRolesCommandHandler],
     })
-      .useMocker(createMock)
+      .useMocker((token) => {
+        if (typeof token === 'function') {
+          const mockValue = vi.fn();
+          const proto = token.prototype;
+          if (proto) {
+            Object.getOwnPropertyNames(proto).forEach(key => {
+              if (key !== 'constructor') {
+                mockValue[key] = vi.fn();
+              }
+            });
+          }
+          return mockValue;
+        }
+        return {};
+      })
       .compile();
 
     handler = fixture.get(CleanRolesCommandHandler);
@@ -141,7 +154,15 @@ describe('CleanRolesCommandHandler', () => {
     });
 
     it('should handle settings with no roles configured', async () => {
-      const mockErrorEmbed = createMock<EmbedBuilder>();
+      const mockErrorEmbed = {
+        data: {},
+        addFields: vi.fn(),
+        setTitle: vi.fn(),
+        setDescription: vi.fn(),
+        setColor: vi.fn(),
+        setFooter: vi.fn(),
+        setTimestamp: vi.fn(),
+      } as any;
 
       settingsCollection.getSettings = vi.fn().mockResolvedValue({});
       errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);
@@ -158,7 +179,15 @@ describe('CleanRolesCommandHandler', () => {
     });
 
     it('should handle empty role configuration', async () => {
-      const mockErrorEmbed = createMock<EmbedBuilder>();
+      const mockErrorEmbed = {
+        data: {},
+        addFields: vi.fn(),
+        setTitle: vi.fn(),
+        setDescription: vi.fn(),
+        setColor: vi.fn(),
+        setFooter: vi.fn(),
+        setTimestamp: vi.fn(),
+      } as any;
 
       settingsCollection.getSettings = vi.fn().mockResolvedValue({
         progRoles: {},
@@ -214,7 +243,15 @@ describe('CleanRolesCommandHandler', () => {
     it('should handle errors gracefully', async () => {
       const { mock, editReply } = createInteractionMock();
       const error = new Error('Database error');
-      const mockErrorEmbed = createMock<EmbedBuilder>();
+      const mockErrorEmbed = {
+        data: {},
+        addFields: vi.fn(),
+        setTitle: vi.fn(),
+        setDescription: vi.fn(),
+        setColor: vi.fn(),
+        setFooter: vi.fn(),
+        setTimestamp: vi.fn(),
+      } as any;
 
       settingsCollection.getSettings = vi.fn().mockRejectedValue(error);
       errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);
@@ -228,7 +265,15 @@ describe('CleanRolesCommandHandler', () => {
     it('should handle settings-related errors with specific message', async () => {
       const { mock, editReply } = createInteractionMock();
       const error = new Error('No clear/prog roles configured in settings');
-      const mockErrorEmbed = createMock<EmbedBuilder>();
+      const mockErrorEmbed = {
+        data: {},
+        addFields: vi.fn(),
+        setTitle: vi.fn(),
+        setDescription: vi.fn(),
+        setColor: vi.fn(),
+        setFooter: vi.fn(),
+        setTimestamp: vi.fn(),
+      } as any;
 
       settingsCollection.getSettings = vi.fn().mockRejectedValue(error);
       errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);

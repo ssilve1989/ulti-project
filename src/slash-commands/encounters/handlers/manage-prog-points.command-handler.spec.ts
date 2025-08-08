@@ -1,4 +1,3 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import {
@@ -7,7 +6,7 @@ import {
   MessageFlags,
   StringSelectMenuInteraction,
 } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EncountersService } from '../../../encounters/encounters.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import type {
@@ -20,11 +19,11 @@ import { ManageProgPointsCommandHandler } from './manage-prog-points.command-han
 
 describe('ManageProgPointsCommandHandler', () => {
   let handler: ManageProgPointsCommandHandler;
-  let encountersService: DeepMocked<EncountersService>;
-  let errorService: DeepMocked<ErrorService>;
-  let interaction: DeepMocked<ChatInputCommandInteraction<'cached'>>;
-  let mockChannel: DeepMocked<any>;
-  let mockCollector: DeepMocked<any>;
+  let encountersService: any;
+  let errorService: any;
+  let interaction: any;
+  let mockChannel: any;
+  let mockCollector: any;
 
   const mockEncounter: EncounterDocument = {
     id: 'test-encounter',
@@ -65,8 +64,28 @@ describe('ManageProgPointsCommandHandler', () => {
     const fixture = await Test.createTestingModule({
       providers: [ManageProgPointsCommandHandler],
     })
-      .useMocker(() => createMock())
-      .setLogger(createMock<Logger>())
+      .useMocker((token) => {
+        if (typeof token === 'function') {
+          const mockValue = vi.fn();
+          const proto = token.prototype;
+          if (proto) {
+            Object.getOwnPropertyNames(proto).forEach(key => {
+              if (key !== 'constructor') {
+                mockValue[key] = vi.fn();
+              }
+            });
+          }
+          return mockValue;
+        }
+        return {};
+      })
+      .setLogger({
+        log: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+        verbose: vi.fn(),
+      })
       .compile();
 
     handler = fixture.get(ManageProgPointsCommandHandler);
@@ -74,16 +93,24 @@ describe('ManageProgPointsCommandHandler', () => {
     errorService = fixture.get(ErrorService);
 
     // Setup interaction mock
-    interaction = createMock<ChatInputCommandInteraction<'cached'>>();
-    mockChannel = createMock();
-    mockCollector = createMock();
+    interaction = {
+      deferReply: vi.fn(),
+      editReply: vi.fn(),
+    } as any;
+    mockChannel = {
+      createMessageComponentCollector: vi.fn(),
+    };
+    mockCollector = {
+      on: vi.fn().mockReturnValue({}),
+      stop: vi.fn(),
+    };
 
     Object.defineProperty(interaction, 'channel', {
       value: mockChannel,
       writable: true,
     });
     Object.defineProperty(interaction, 'user', {
-      value: createMock({ id: 'test-user' }),
+      value: { id: 'test-user' },
       writable: true,
     });
     mockChannel.createMessageComponentCollector.mockReturnValue(mockCollector);
@@ -200,9 +227,11 @@ describe('ManageProgPointsCommandHandler', () => {
     });
 
     it('should handle finish interaction', async () => {
-      const buttonInteraction = createMock<ButtonInteraction>();
-      buttonInteraction.isButton.mockReturnValue(true);
-      buttonInteraction.isMessageComponent.mockReturnValue(true);
+      const buttonInteraction = {
+        isButton: vi.fn().mockReturnValue(true),
+        isMessageComponent: vi.fn().mockReturnValue(true),
+        deferUpdate: vi.fn(),
+      } as any;
       Object.defineProperty(buttonInteraction, 'customId', {
         value: 'finish-interaction',
       });
@@ -231,9 +260,11 @@ describe('ManageProgPointsCommandHandler', () => {
     });
 
     it('should handle toggle prog point button', async () => {
-      const buttonInteraction = createMock<ButtonInteraction>();
-      buttonInteraction.isButton.mockReturnValue(true);
-      buttonInteraction.isMessageComponent.mockReturnValue(true);
+      const buttonInteraction = {
+        isButton: vi.fn().mockReturnValue(true),
+        isMessageComponent: vi.fn().mockReturnValue(true),
+        deferUpdate: vi.fn(),
+      } as any;
       Object.defineProperty(buttonInteraction, 'customId', {
         value: 'toggle-prog-point',
       });
@@ -325,9 +356,11 @@ describe('ManageProgPointsCommandHandler', () => {
       await handler.execute(command);
 
       // First click toggle button to get into toggle selection state
-      const toggleButton = createMock<ButtonInteraction>();
-      toggleButton.isButton.mockReturnValue(true);
-      toggleButton.isMessageComponent.mockReturnValue(true);
+      const toggleButton = {
+        isButton: vi.fn().mockReturnValue(true),
+        isMessageComponent: vi.fn().mockReturnValue(true),
+        deferUpdate: vi.fn(),
+      } as any;
       Object.defineProperty(toggleButton, 'customId', {
         value: 'toggle-prog-point',
       });
@@ -349,9 +382,11 @@ describe('ManageProgPointsCommandHandler', () => {
     it('should toggle prog point active status', async () => {
       encountersService.toggleProgPointActive.mockResolvedValue();
 
-      const selectInteraction = createMock<StringSelectMenuInteraction>();
-      selectInteraction.isStringSelectMenu.mockReturnValue(true);
-      selectInteraction.isMessageComponent.mockReturnValue(true);
+      const selectInteraction = {
+        isStringSelectMenu: vi.fn().mockReturnValue(true),
+        isMessageComponent: vi.fn().mockReturnValue(true),
+        deferUpdate: vi.fn(),
+      } as any;
       Object.defineProperty(selectInteraction, 'customId', {
         value: 'select-prog-point-toggle',
       });
@@ -380,9 +415,11 @@ describe('ManageProgPointsCommandHandler', () => {
     });
 
     it('should handle prog point not found during toggle', async () => {
-      const selectInteraction = createMock<StringSelectMenuInteraction>();
-      selectInteraction.isStringSelectMenu.mockReturnValue(true);
-      selectInteraction.isMessageComponent.mockReturnValue(true);
+      const selectInteraction = {
+        isStringSelectMenu: vi.fn().mockReturnValue(true),
+        isMessageComponent: vi.fn().mockReturnValue(true),
+        deferUpdate: vi.fn(),
+      } as any;
       Object.defineProperty(selectInteraction, 'customId', {
         value: 'select-prog-point-toggle',
       });
@@ -422,9 +459,11 @@ describe('ManageProgPointsCommandHandler', () => {
 
     it('should handle expired interaction error', async () => {
       const expiredError = { code: 10062, message: 'Unknown interaction' };
-      const buttonInteraction = createMock<ButtonInteraction>();
-      buttonInteraction.isButton.mockReturnValue(true);
-      buttonInteraction.isMessageComponent.mockReturnValue(true);
+      const buttonInteraction = {
+        isButton: vi.fn().mockReturnValue(true),
+        isMessageComponent: vi.fn().mockReturnValue(true),
+        deferUpdate: vi.fn().mockRejectedValue(expiredError),
+      } as any;
       Object.defineProperty(buttonInteraction, 'customId', {
         value: 'toggle-prog-point',
       });
@@ -441,8 +480,6 @@ describe('ManageProgPointsCommandHandler', () => {
         (call: any) => call[0] === 'collect',
       )?.[1];
 
-      // Mock the deferUpdate to throw an expired error
-      buttonInteraction.deferUpdate.mockRejectedValue(expiredError);
 
       await collectHandler?.(buttonInteraction);
 
@@ -450,9 +487,11 @@ describe('ManageProgPointsCommandHandler', () => {
     });
 
     it('should validate interaction age', async () => {
-      const oldInteraction = createMock<ButtonInteraction>();
-      oldInteraction.isButton.mockReturnValue(true);
-      oldInteraction.isMessageComponent.mockReturnValue(true);
+      const oldInteraction = {
+        isButton: vi.fn().mockReturnValue(true),
+        isMessageComponent: vi.fn().mockReturnValue(true),
+        deferUpdate: vi.fn(),
+      } as any;
       Object.defineProperty(oldInteraction, 'customId', {
         value: 'toggle-prog-point',
       });
@@ -489,9 +528,11 @@ describe('ManageProgPointsCommandHandler', () => {
     it('should handle return to main menu', async () => {
       encountersService.getAllProgPoints.mockResolvedValue(mockProgPoints);
 
-      const buttonInteraction = createMock<ButtonInteraction>();
-      buttonInteraction.isButton.mockReturnValue(true);
-      buttonInteraction.isMessageComponent.mockReturnValue(true);
+      const buttonInteraction = {
+        isButton: vi.fn().mockReturnValue(true),
+        isMessageComponent: vi.fn().mockReturnValue(true),
+        deferUpdate: vi.fn(),
+      } as any;
       Object.defineProperty(buttonInteraction, 'customId', {
         value: 'return-to-main',
       });

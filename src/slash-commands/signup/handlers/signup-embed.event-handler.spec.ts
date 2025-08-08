@@ -1,7 +1,6 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { Colors, Message, User } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import type { SignupDocument } from '../../../firebase/models/signup.model.js';
 import {
@@ -13,25 +12,26 @@ import { UpdateApprovalEmbedEventHandler } from './signup-embed.event-handler.js
 describe('SignupEmbedEventHandler', () => {
   let handler: UpdateApprovalEmbedEventHandler;
 
-  const message = createMock<Message<true>>({
+  const message = {
     guildId: '',
     valueOf: () => '',
-  });
+    edit: vi.fn(),
+  } as any;
 
-  const reviewedBy = createMock<User>({
+  const reviewedBy = {
     id: '12345',
     displayAvatarURL: () => 'http://test-url.png',
     valueOf: () => '',
     toString: () => '<@12345>',
-  });
+  } as User;
 
   const cases = [
     {
       color: Colors.Green,
       case: 'handles an approval event',
       event: new SignupApprovedEvent(
-        createMock(),
-        createMock(),
+        {} as SignupDocument,
+        {} as SignupDocument,
         reviewedBy,
         message,
       ),
@@ -41,7 +41,7 @@ describe('SignupEmbedEventHandler', () => {
       color: Colors.Red,
       case: 'handles a declined event',
       event: new SignupDeclinedEvent(
-        createMock<SignupDocument>({ discordId: '12345' }),
+        { discordId: '12345' } as SignupDocument,
         reviewedBy,
         message,
       ),
@@ -54,13 +54,26 @@ describe('SignupEmbedEventHandler', () => {
     const fixture = await Test.createTestingModule({
       providers: [UpdateApprovalEmbedEventHandler],
     })
-      .useMocker(() => createMock())
+      .useMocker((token) => {
+        if (typeof token === 'function') {
+          const mockValue = vi.fn();
+          const proto = token.prototype;
+          if (proto) {
+            Object.getOwnPropertyNames(proto).forEach(key => {
+              if (key !== 'constructor') {
+                mockValue[key] = vi.fn();
+              }
+            });
+          }
+          return mockValue;
+        }
+        return {};
+      })
       .compile();
 
     handler = fixture.get(UpdateApprovalEmbedEventHandler);
 
-    const discordService =
-      fixture.get<DeepMocked<DiscordService>>(DiscordService);
+    const discordService = fixture.get(DiscordService);
 
     discordService.getDisplayName.mockResolvedValueOnce('Test User');
   });

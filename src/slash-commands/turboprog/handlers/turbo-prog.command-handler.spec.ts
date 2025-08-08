@@ -1,4 +1,3 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Encounter } from '../../../encounters/encounters.consts.js';
@@ -50,13 +49,27 @@ const searchableCases: Pick<SignupDocument, 'status' | 'partyStatus'>[] = [
 
 describe('TurboProgCommandHandler', () => {
   let handler: TurboProgCommandHandler;
-  let sheetsService: DeepMocked<SheetsService>;
+  let sheetsService: any;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
       providers: [TurboProgCommandHandler],
     })
-      .useMocker(() => createMock())
+      .useMocker((token) => {
+        if (typeof token === 'function') {
+          const mockValue = vi.fn();
+          const proto = token.prototype;
+          if (proto) {
+            Object.getOwnPropertyNames(proto).forEach(key => {
+              if (key !== 'constructor') {
+                mockValue[key] = vi.fn();
+              }
+            });
+          }
+          return mockValue;
+        }
+        return {};
+      })
       .compile();
 
     handler = fixture.get(TurboProgCommandHandler);
@@ -71,14 +84,14 @@ describe('TurboProgCommandHandler', () => {
     'should return allowed for $status $partyStatus signups',
     async (signup) => {
       // Include role in the mock to ensure it's used properly in mapSignupToRowData
-      const mockSignup = createMock<SignupDocument>({
+      const mockSignup = {
         ...signup,
         role: 'TestRole',
         progPoint: 'TestProgPoint',
         character: 'TestCharacter',
         encounter: Encounter.DSR,
         discordId: 'testDiscordId',
-      });
+      } as SignupDocument;
 
       const options = turboProgSignupSchema.parse({
         encounter: Encounter.DSR,
@@ -105,11 +118,11 @@ describe('TurboProgCommandHandler', () => {
   it.each(declinedCases)(
     'should return rejected for $status $partyStatus signups',
     async (signup) => {
-      const mockSignup = createMock<SignupDocument>({
+      const mockSignup = {
         ...signup,
         encounter: Encounter.DSR,
         discordId: 'testDiscordId',
-      });
+      } as SignupDocument;
 
       const options = turboProgSignupSchema.parse({
         encounter: Encounter.DSR,
@@ -132,13 +145,13 @@ describe('TurboProgCommandHandler', () => {
   it.each(searchableCases)(
     'should search the sheet for signups for $status $partyStatus signups',
     async (signup) => {
-      const mockSignup = createMock<SignupDocument>({
+      const mockSignup = {
         ...signup,
         encounter: Encounter.DSR,
         discordId: 'testDiscordId',
         character: 'TestCharacter',
         world: 'TestWorld',
-      });
+      } as SignupDocument;
 
       const options = turboProgSignupSchema.parse({
         encounter: Encounter.DSR,
@@ -170,12 +183,12 @@ describe('TurboProgCommandHandler', () => {
     });
 
     // Create a mock signup to pass directly
-    const mockSignup = createMock<SignupDocument>({
+    const mockSignup = {
       encounter: Encounter.DSR,
       character: 'TestCharacter',
       world: 'TestWorld',
       discordId: 'testDiscordId',
-    });
+    } as SignupDocument;
 
     // Call the private method directly
     const response = await (handler as any).findCharacterRowValues(
@@ -211,12 +224,12 @@ describe('TurboProgCommandHandler', () => {
     });
 
     // Create a mock signup without required sheet data
-    const mockSignup = createMock<SignupDocument>({
+    const mockSignup = {
       encounter: Encounter.DSR,
       character: 'TestCharacter',
       world: 'TestWorld',
       discordId: 'testDiscordId',
-    });
+    } as SignupDocument;
 
     // Mock the sheet service to return null (no data found)
     sheetsService.findCharacterRowValues.mockResolvedValueOnce(null);
@@ -241,12 +254,12 @@ describe('TurboProgCommandHandler', () => {
     });
 
     // Create a mock signup
-    const mockSignup = createMock<SignupDocument>({
+    const mockSignup = {
       encounter: Encounter.DSR,
       character: 'TestCharacter',
       world: 'TestWorld',
       discordId: 'testDiscordId',
-    });
+    } as SignupDocument;
 
     // Mock the sheet service to return invalid data
     sheetsService.findCharacterRowValues.mockResolvedValueOnce([

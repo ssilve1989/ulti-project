@@ -1,4 +1,3 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import {
   ChatInputCommandInteraction,
@@ -17,17 +16,31 @@ import { LookupCommandHandler } from './lookup.command-handler.js';
 
 describe('LookupCommandHandler', () => {
   let handler: LookupCommandHandler;
-  let interaction: DeepMocked<ChatInputCommandInteraction<'cached'>>;
-  let signupsCollection: DeepMocked<SignupCollection>;
-  let blacklistCollection: DeepMocked<BlacklistCollection>;
-  let errorService: DeepMocked<ErrorService>;
+  let interaction: any;
+  let signupsCollection: any;
+  let blacklistCollection: any;
+  let errorService: any;
   const getStringMock = vi.fn();
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
       providers: [LookupCommandHandler],
     })
-      .useMocker(() => createMock())
+      .useMocker((token) => {
+        if (typeof token === 'function') {
+          const mockValue = vi.fn();
+          const proto = token.prototype;
+          if (proto) {
+            Object.getOwnPropertyNames(proto).forEach(key => {
+              if (key !== 'constructor') {
+                mockValue[key] = vi.fn();
+              }
+            });
+          }
+          return mockValue;
+        }
+        return {};
+      })
       .compile();
 
     handler = fixture.get(LookupCommandHandler);
@@ -35,12 +48,16 @@ describe('LookupCommandHandler', () => {
     blacklistCollection = fixture.get(BlacklistCollection);
     errorService = fixture.get(ErrorService);
 
-    interaction = createMock<ChatInputCommandInteraction<'cached'>>({
+    interaction = {
       options: {
         getString: getStringMock,
       },
       valueOf: () => '',
-    });
+      deferReply: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn().mockResolvedValue(undefined),
+      reply: vi.fn().mockResolvedValue(undefined),
+      guildId: 'test-guild',
+    } as any;
   });
 
   afterEach(() => {
@@ -136,7 +153,15 @@ describe('LookupCommandHandler', () => {
 
   it('should handle errors gracefully', async () => {
     const error = new Error('Database error');
-    const mockErrorEmbed = createMock<EmbedBuilder>();
+    const mockErrorEmbed = {
+      data: {},
+      addFields: vi.fn(),
+      setTitle: vi.fn(),
+      setDescription: vi.fn(),
+      setColor: vi.fn(),
+      setFooter: vi.fn(),
+      setTimestamp: vi.fn(),
+    } as any;
 
     getStringMock.mockImplementation((key) => {
       if (key === 'character') return 'Test Character';

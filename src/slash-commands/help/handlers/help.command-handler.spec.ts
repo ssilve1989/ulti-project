@@ -1,4 +1,3 @@
-import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import {
@@ -48,7 +47,21 @@ describe('HelpCommandHandler', () => {
         },
       ],
     })
-      .useMocker(createMock)
+      .useMocker((token) => {
+        if (typeof token === 'function') {
+          const mockValue = vi.fn();
+          const proto = token.prototype;
+          if (proto) {
+            Object.getOwnPropertyNames(proto).forEach(key => {
+              if (key !== 'constructor') {
+                mockValue[key] = vi.fn();
+              }
+            });
+          }
+          return mockValue;
+        }
+        return {};
+      })
       .compile();
 
     handler = fixture.get(HelpCommandHandler);
@@ -66,9 +79,10 @@ describe('HelpCommandHandler', () => {
       const deferReply = vi.fn().mockResolvedValue(undefined);
       const editReply = vi.fn().mockResolvedValue(undefined);
 
-      const interaction = createMock<ChatInputCommandInteraction<'cached'>>();
-      interaction.deferReply = deferReply;
-      interaction.editReply = editReply;
+      const interaction = {
+        deferReply,
+        editReply,
+      } as any;
 
       // Handle the readonly property correctly
       Object.defineProperty(interaction, 'memberPermissions', {

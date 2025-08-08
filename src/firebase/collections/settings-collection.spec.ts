@@ -1,9 +1,8 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test } from '@nestjs/testing';
 import type { Cache } from 'cache-manager';
 import { Firestore } from 'firebase-admin/firestore';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FIRESTORE } from '../firebase.consts.js';
 import { SettingsCollection } from './settings-collection.js';
 
@@ -11,22 +10,54 @@ describe.each([{ cache: true }, { cache: false }])(
   'SettingsCollection with cache: $cache',
   ({ cache }) => {
     let service: SettingsCollection;
-    let firestore: DeepMocked<Firestore>;
-    let cacheManager: DeepMocked<Cache>;
+    let firestore: any;
+    let cacheManager: any;
     const guildId = 'guildId';
 
     beforeEach(async () => {
-      firestore = createMock<Firestore>();
-
       const module = await Test.createTestingModule({
         providers: [SettingsCollection],
       })
-        .useMocker(() => createMock())
+        .useMocker((token) => {
+          if (token === FIRESTORE) {
+            return {
+              collection: vi.fn().mockReturnValue({
+                doc: vi.fn().mockReturnValue({
+                  get: vi.fn().mockResolvedValue({
+                    data: vi.fn().mockReturnValue({}),
+                  }),
+                  set: vi.fn(),
+                  update: vi.fn(),
+                }),
+              }),
+            };
+          }
+          if (token === CACHE_MANAGER) {
+            return {
+              get: vi.fn(),
+              set: vi.fn(),
+              del: vi.fn(),
+            };
+          }
+          if (typeof token === 'function') {
+            const mockValue = vi.fn();
+            const proto = token.prototype;
+            if (proto) {
+              Object.getOwnPropertyNames(proto).forEach(key => {
+                if (key !== 'constructor') {
+                  mockValue[key] = vi.fn();
+                }
+              });
+            }
+            return mockValue;
+          }
+          return {};
+        })
         .compile();
 
       service = module.get<SettingsCollection>(SettingsCollection);
       firestore = module.get(FIRESTORE);
-      cacheManager = module.get<DeepMocked<Cache>>(CACHE_MANAGER);
+      cacheManager = module.get(CACHE_MANAGER);
       cacheManager.get.mockResolvedValueOnce(cache ? {} : undefined);
     });
 

@@ -1,7 +1,6 @@
-import { createMock } from '@golevelup/ts-vitest';
 import { Logger } from '@nestjs/common';
 import { GuildMember, Role, User } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   DryRunRoleResult,
   ProcessingContext,
@@ -13,7 +12,13 @@ describe('DryRunStrategy', () => {
   let mockLogger: Logger;
 
   beforeEach(() => {
-    mockLogger = createMock<Logger>();
+    mockLogger = {
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      verbose: vi.fn(),
+    } as any;
     strategy = new DryRunStrategy(mockLogger);
   });
 

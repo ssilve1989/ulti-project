@@ -1,4 +1,3 @@
-import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, Colors } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,7 +13,21 @@ describe('RetireCommandHandler', () => {
     const fixture = await Test.createTestingModule({
       providers: [RetireCommandHandler],
     })
-      .useMocker(createMock)
+      .useMocker((token) => {
+        if (typeof token === 'function') {
+          const mockValue = vi.fn();
+          const proto = token.prototype;
+          if (proto) {
+            Object.getOwnPropertyNames(proto).forEach(key => {
+              if (key !== 'constructor') {
+                mockValue[key] = vi.fn();
+              }
+            });
+          }
+          return mockValue;
+        }
+        return {};
+      })
       .compile();
 
     handler = fixture.get(RetireCommandHandler);
@@ -49,28 +62,30 @@ describe('RetireCommandHandler', () => {
       const deferReply = vi.fn().mockResolvedValue(undefined);
       const editReply = vi.fn().mockResolvedValue(undefined);
 
-      return {
-        mock: createMock<ChatInputCommandInteraction<'cached'>>({
-          deferReply,
-          editReply,
-          guildId,
-          inGuild: () => inGuild,
-          options: {
-            getRole: (name: string) => {
-              if (name === 'current-helper-role') {
-                return {
-                  id: currentRoleId,
-                  name: currentRoleName,
-                };
-              }
+      const mock = {
+        deferReply,
+        editReply,
+        guildId,
+        inGuild: () => inGuild,
+        options: {
+          getRole: (name: string) => {
+            if (name === 'current-helper-role') {
               return {
-                id: retiredRoleId,
-                name: retiredRoleName,
+                id: currentRoleId,
+                name: currentRoleName,
               };
-            },
+            }
+            return {
+              id: retiredRoleId,
+              name: retiredRoleName,
+            };
           },
-          valueOf: () => '',
-        }),
+        },
+        valueOf: () => '',
+      } as any;
+
+      return {
+        mock,
         deferReply,
         editReply,
       };

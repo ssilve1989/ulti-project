@@ -1,5 +1,3 @@
-import type { DeepMocked } from '@golevelup/ts-vitest';
-import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import {
   ButtonInteraction,
@@ -21,16 +19,30 @@ import { SearchCommandHandler } from './search.command-handler.js';
 
 describe('SearchCommandHandler', () => {
   let handler: SearchCommandHandler;
-  let mockSignupsCollection: DeepMocked<SignupCollection>;
-  let mockEncountersService: DeepMocked<EncountersService>;
-  let mockInteraction: DeepMocked<ChatInputCommandInteraction>;
+  let mockSignupsCollection: any;
+  let mockEncountersService: any;
+  let mockInteraction: any;
   let mockCollector: any; // Using 'any' to avoid complex typing issues
   let mockReplyMessage: any;
 
   beforeEach(async () => {
-    mockSignupsCollection = createMock<SignupCollection>();
-    mockEncountersService = createMock<EncountersService>();
-    mockInteraction = createMock<ChatInputCommandInteraction>();
+    mockSignupsCollection = {
+      findByStatusIn: vi.fn(),
+      findAll: vi.fn(),
+      getSettings: vi.fn(),
+    } as any;
+    
+    mockEncountersService = {
+      getProgPoints: vi.fn(),
+      getProgPointsAsOptions: vi.fn().mockResolvedValue([]),
+    } as any;
+    
+    mockInteraction = {
+      deferReply: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn(),
+      user: { id: 'user123', username: 'testuser' },
+      guildId: 'guild123',
+    } as any;
 
     // Force the interaction to have the right cache type
     Object.defineProperty(mockInteraction, '_cacheType', {
@@ -156,10 +168,13 @@ describe('SearchCommandHandler', () => {
     await handler.execute(command);
 
     // Create a mock select menu interaction for encounter selection
-    const mockSelectInteraction = createMock<StringSelectMenuInteraction>();
-    mockSelectInteraction.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
-    mockSelectInteraction.values = [Encounter.TOP];
-    mockSelectInteraction.isStringSelectMenu.mockReturnValue(true);
+    const mockSelectInteraction = {
+      customId: SEARCH_ENCOUNTER_SELECTOR_ID,
+      values: [Encounter.TOP],
+      isStringSelectMenu: vi.fn().mockReturnValue(true),
+      deferUpdate: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn(),
+    } as any;
 
     // Mock the editReply for the selection interaction
     mockSelectInteraction.editReply.mockImplementation(() => {
@@ -231,10 +246,13 @@ describe('SearchCommandHandler', () => {
     await handler.execute(command);
 
     // First, simulate encounter selection
-    const mockEncounterSelect = createMock<StringSelectMenuInteraction>();
-    mockEncounterSelect.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
-    mockEncounterSelect.values = [Encounter.TOP];
-    mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
+    const mockEncounterSelect = {
+      customId: SEARCH_ENCOUNTER_SELECTOR_ID,
+      values: [Encounter.TOP],
+      isStringSelectMenu: vi.fn().mockReturnValue(true),
+      deferUpdate: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn(),
+    } as any;
 
     mockEncounterSelect.editReply.mockImplementation(() => {
       return Promise.resolve({
@@ -254,10 +272,13 @@ describe('SearchCommandHandler', () => {
     await collectorCallback!(mockEncounterSelect);
 
     // Then, simulate prog point selection
-    const mockProgPointSelect = createMock<StringSelectMenuInteraction>();
-    mockProgPointSelect.customId = SEARCH_PROG_POINT_SELECT_ID;
-    mockProgPointSelect.values = ['P6 Enrage'];
-    mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);
+    const mockProgPointSelect = {
+      customId: SEARCH_PROG_POINT_SELECT_ID,
+      values: ['P6 Enrage'],
+      isStringSelectMenu: vi.fn().mockReturnValue(true),
+      deferUpdate: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn(),
+    } as any;
 
     mockProgPointSelect.editReply.mockImplementation(() => {
       return Promise.resolve({
@@ -378,17 +399,23 @@ describe('SearchCommandHandler', () => {
     await handler.execute(command);
 
     // First, simulate encounter selection
-    const mockEncounterSelect = createMock<StringSelectMenuInteraction>();
-    mockEncounterSelect.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
-    mockEncounterSelect.values = [Encounter.TOP];
-    mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
+    const mockEncounterSelect = {
+      customId: SEARCH_ENCOUNTER_SELECTOR_ID,
+      values: [Encounter.TOP],
+      isStringSelectMenu: vi.fn().mockReturnValue(true),
+      deferUpdate: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn(),
+    } as any;
     await collectorCallback!(mockEncounterSelect);
 
     // Then, simulate prog point selection
-    const mockProgPointSelect = createMock<StringSelectMenuInteraction>();
-    mockProgPointSelect.customId = SEARCH_PROG_POINT_SELECT_ID;
-    mockProgPointSelect.values = ['P6 Enrage'];
-    mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);
+    const mockProgPointSelect = {
+      customId: SEARCH_PROG_POINT_SELECT_ID,
+      values: ['P6 Enrage'],
+      isStringSelectMenu: vi.fn().mockReturnValue(true),
+      deferUpdate: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn(),
+    } as any;
 
     await collectorCallback!(mockProgPointSelect);
 
@@ -456,8 +483,11 @@ describe('SearchCommandHandler', () => {
     await handler.execute(command);
 
     // Simulate reset button click
-    const mockButtonInteraction = createMock<ButtonInteraction>();
-    mockButtonInteraction.customId = SEARCH_RESET_BUTTON_ID;
+    const mockButtonInteraction = {
+      customId: SEARCH_RESET_BUTTON_ID,
+      deferUpdate: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn(),
+    } as any;
 
     mockButtonInteraction.editReply.mockImplementation(() => {
       return Promise.resolve({
@@ -555,17 +585,23 @@ describe('SearchCommandHandler', () => {
     await handler.execute(command);
 
     // First, simulate encounter selection
-    const mockEncounterSelect = createMock<StringSelectMenuInteraction>();
-    mockEncounterSelect.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
-    mockEncounterSelect.values = [Encounter.TOP];
-    mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
+    const mockEncounterSelect = {
+      customId: SEARCH_ENCOUNTER_SELECTOR_ID,
+      values: [Encounter.TOP],
+      isStringSelectMenu: vi.fn().mockReturnValue(true),
+      deferUpdate: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn(),
+    } as any;
     await collectorCallback!(mockEncounterSelect);
 
     // Then, simulate prog point selection (selecting P6 Enrage should include P6 Enrage and Clear)
-    const mockProgPointSelect = createMock<StringSelectMenuInteraction>();
-    mockProgPointSelect.customId = SEARCH_PROG_POINT_SELECT_ID;
-    mockProgPointSelect.values = ['P6 Enrage'];
-    mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);
+    const mockProgPointSelect = {
+      customId: SEARCH_PROG_POINT_SELECT_ID,
+      values: ['P6 Enrage'],
+      isStringSelectMenu: vi.fn().mockReturnValue(true),
+      deferUpdate: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn(),
+    } as any;
 
     mockProgPointSelect.editReply.mockImplementation(() => {
       return Promise.resolve({
@@ -642,17 +678,23 @@ describe('SearchCommandHandler', () => {
     await handler.execute(command);
 
     // First, simulate encounter selection
-    const mockEncounterSelect = createMock<StringSelectMenuInteraction>();
-    mockEncounterSelect.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
-    mockEncounterSelect.values = [Encounter.TOP];
-    mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
+    const mockEncounterSelect = {
+      customId: SEARCH_ENCOUNTER_SELECTOR_ID,
+      values: [Encounter.TOP],
+      isStringSelectMenu: vi.fn().mockReturnValue(true),
+      deferUpdate: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn(),
+    } as any;
     await collectorCallback!(mockEncounterSelect);
 
     // Then, simulate prog point selection (selecting Clear should only include Clear)
-    const mockProgPointSelect = createMock<StringSelectMenuInteraction>();
-    mockProgPointSelect.customId = SEARCH_PROG_POINT_SELECT_ID;
-    mockProgPointSelect.values = ['Clear'];
-    mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);
+    const mockProgPointSelect = {
+      customId: SEARCH_PROG_POINT_SELECT_ID,
+      values: ['Clear'],
+      isStringSelectMenu: vi.fn().mockReturnValue(true),
+      deferUpdate: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn(),
+    } as any;
 
     await collectorCallback!(mockProgPointSelect);
 

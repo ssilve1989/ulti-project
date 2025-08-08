@@ -1,21 +1,34 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { EditTurboProgCommandHandler } from './edit-turbo-prog.command-handler.js';
 
 describe('Edit Turbo Prog Command Handler', () => {
   let handler: EditTurboProgCommandHandler;
-  let settingsCollection: DeepMocked<SettingsCollection>;
-  let errorService: DeepMocked<ErrorService>;
+  let settingsCollection: any;
+  let errorService: any;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
       providers: [EditTurboProgCommandHandler],
     })
-      .useMocker(() => createMock())
+      .useMocker((token) => {
+        if (typeof token === 'function') {
+          const mockValue = vi.fn();
+          const proto = token.prototype;
+          if (proto) {
+            Object.getOwnPropertyNames(proto).forEach(key => {
+              if (key !== 'constructor') {
+                mockValue[key] = vi.fn();
+              }
+            });
+          }
+          return mockValue;
+        }
+        return {};
+      })
       .compile();
 
     handler = fixture.get(EditTurboProgCommandHandler);
@@ -40,7 +53,7 @@ describe('Edit Turbo Prog Command Handler', () => {
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
     await handler.execute({
-      interaction: createMock<ChatInputCommandInteraction<'cached'>>({
+      interaction: {
         guildId,
         options: {
           getBoolean: (name: string, _required?: boolean) =>
@@ -49,7 +62,9 @@ describe('Edit Turbo Prog Command Handler', () => {
             name === 'spreadsheet-id' ? spreadsheetId : null,
         },
         valueOf: () => '',
-      }),
+        editReply: vi.fn(),
+        deferReply: vi.fn(),
+      } as any,
     });
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(
@@ -73,7 +88,7 @@ describe('Edit Turbo Prog Command Handler', () => {
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
     await handler.execute({
-      interaction: createMock<ChatInputCommandInteraction<'cached'>>({
+      interaction: {
         guildId,
         options: {
           getBoolean: (name: string, _required?: boolean) =>
@@ -81,7 +96,9 @@ describe('Edit Turbo Prog Command Handler', () => {
           getString: () => null,
         },
         valueOf: () => '',
-      }),
+        editReply: vi.fn(),
+        deferReply: vi.fn(),
+      } as any,
     });
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(
@@ -95,19 +112,29 @@ describe('Edit Turbo Prog Command Handler', () => {
 
   it('should handle errors gracefully', async () => {
     const error = new Error('Test error');
-    const mockErrorEmbed = createMock<EmbedBuilder>();
+    const mockErrorEmbed = {
+      data: {},
+      addFields: vi.fn(),
+      setTitle: vi.fn(),
+      setDescription: vi.fn(),
+      setColor: vi.fn(),
+      setFooter: vi.fn(),
+      setTimestamp: vi.fn(),
+    } as any;
 
     settingsCollection.getSettings.mockRejectedValueOnce(error);
     errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
 
-    const interaction = createMock<ChatInputCommandInteraction<'cached'>>({
+    const interaction = {
       guildId: '12345',
       options: {
         getBoolean: (_: string, __?: boolean) => true,
         getString: (_: string) => 'test-spreadsheet-id',
       },
       valueOf: () => '',
-    });
+      editReply: vi.fn(),
+      deferReply: vi.fn(),
+    } as any;
 
     await handler.execute({ interaction });
 

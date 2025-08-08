@@ -1,4 +1,3 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,48 +11,64 @@ import { SignupService } from './signup.service.js';
 // TODO: Actually assert approval/decline functionality, not just that they were called
 describe('SignupService', () => {
   let service: SignupService;
-  let messageReaction: DeepMocked<MessageReaction>;
-  let user: DeepMocked<User>;
-  let settings: DeepMocked<SettingsDocument>;
-  let signup: DeepMocked<SignupDocument>;
-  let repository: DeepMocked<SignupCollection>;
-  let discordService: DeepMocked<DiscordService>;
+  let messageReaction: any;
+  let user: any;
+  let settings: any;
+  let signup: any;
+  let repository: any;
+  let discordService: any;
 
   beforeEach(async () => {
     const fixture: TestingModule = await Test.createTestingModule({
       providers: [SignupService],
     })
-      .useMocker(() => createMock())
+      .useMocker((token) => {
+        if (typeof token === 'function') {
+          const mockValue = vi.fn();
+          const proto = token.prototype;
+          if (proto) {
+            Object.getOwnPropertyNames(proto).forEach(key => {
+              if (key !== 'constructor') {
+                mockValue[key] = vi.fn();
+              }
+            });
+          }
+          return mockValue;
+        }
+        return {};
+      })
       .compile();
 
     service = fixture.get(SignupService);
     repository = fixture.get(SignupCollection);
     discordService = fixture.get(DiscordService);
 
-    messageReaction = createMock<MessageReaction>({
-      message: createMock<Message>({
+    messageReaction = {
+      message: {
         id: 'messageId',
         valueOf: () => '',
         edit: vi.fn(),
-      }),
-      emoji: createMock<ReactionEmoji>({
+        inGuild: vi.fn().mockReturnValue(true),
+      },
+      emoji: {
         name: 'emojiName',
         valueOf: () => '',
-      }),
+      },
       valueOf: () => '',
-    });
+    };
 
-    user = createMock<User>({
+    user = {
       displayAvatarURL: () => 'http://someurl.com',
       valueOf: () => '',
       toString: () => '<@someuser>',
-    });
-    settings = createMock<SettingsDocument>();
-    signup = createMock<SignupDocument>({
+      id: 'user123',
+    };
+    settings = {} as SettingsDocument;
+    signup = {
       reviewMessageId: 'messageId',
       reviewedBy: undefined,
       discordId: 'abc123',
-    });
+    } as SignupDocument;
   });
 
   it('should be defined', () => {

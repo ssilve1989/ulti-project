@@ -1,7 +1,5 @@
-import type { DeepMocked } from '@golevelup/ts-vitest';
-import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EncountersCollection } from '../firebase/collections/encounters-collection.js';
 import type {
   EncounterDocument,
@@ -12,10 +10,19 @@ import { EncountersService } from './encounters.service.js';
 
 describe('EncountersService', () => {
   let service: EncountersService;
-  let mockEncountersCollection: DeepMocked<EncountersCollection>;
+  let mockEncountersCollection: any;
 
   beforeEach(async () => {
-    mockEncountersCollection = createMock<EncountersCollection>();
+    mockEncountersCollection = {
+      getEncounter: vi.fn(),
+      getProgPoints: vi.fn(),
+      getNextProgPointOrder: vi.fn(),
+      addProgPoint: vi.fn(),
+      updateProgPoint: vi.fn(),
+      deactivateProgPoint: vi.fn(),
+      upsertEncounter: vi.fn(),
+      reorderProgPoints: vi.fn(),
+    };
 
     const module = await Test.createTestingModule({
       providers: [
