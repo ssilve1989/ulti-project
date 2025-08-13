@@ -31,22 +31,20 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
 
     try {
       await match(partyStatus)
-        .with(PartyStatus.ClearParty, () =>
-          Promise.all([
-            this.updateRole({
-              discordId,
-              guildId,
-              action: 'remove',
-              role: progRole,
-            }),
-            this.updateRole({
-              discordId,
-              guildId,
-              role: clearRole,
-              action: 'add',
-            }),
-          ]),
-        )
+        .with(PartyStatus.ClearParty, async () => {
+          await this.updateRole({
+            discordId,
+            guildId,
+            action: 'remove',
+            role: progRole,
+          });
+          await this.updateRole({
+            discordId,
+            guildId,
+            role: clearRole,
+            action: 'add',
+          });
+        })
         .with(PartyStatus.ProgParty, PartyStatus.EarlyProgParty, () =>
           this.updateRole({
             discordId,
