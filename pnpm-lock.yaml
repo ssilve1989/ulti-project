@@ -48,8 +48,8 @@ importers:
         specifier: ^14.22.1
         version: 14.22.1
       firebase-admin:
-        specifier: ^13.4.0
-        version: 13.4.0
+        specifier: ^13.5.0
+        version: 13.5.0
       google-auth-library:
         specifier: ^10.3.0
         version: 10.3.0
@@ -792,8 +792,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@fastify/busboy@3.1.1':
-    resolution: {integrity: sha512-5DGmA8FTdB2XbDeEwc/5ZXBl6UbBAyBOOLlPuBnZ/N1SwdH9Ii+cOX3tBROlDgcTXxjOYnLMVoKk9+FXAw0CJw==}
+  '@fastify/busboy@3.2.0':
+    resolution: {integrity: sha512-m9FVDXU3GT2ITSe0UaMA5rU3QkfC/UXtCU8y0gSN/GugTqtVldOBWIB5V6V3sbmenVZUIpU6f+mPEO2+m5iTaA==}
 
   '@firebase/app-check-interop-types@0.3.3':
     resolution: {integrity: sha512-gAlxfPLT2j8bTI/qfe3ahl2I2YcBQ8cFIBdhAQA4I2f3TndcO+22YizyGYuttLHPQEpWkhmpFW60VCFEPg4g5A==}
@@ -804,28 +804,28 @@ packages:
   '@firebase/auth-interop-types@0.2.4':
     resolution: {integrity: sha512-JPgcXKCuO+CWqGDnigBtvo09HeBs5u/Ktc2GaFj2m01hLarbxthLNm7Fk8iOP1aqAtXV+fnnGj7U28xmk7IwVA==}
 
-  '@firebase/component@0.6.16':
-    resolution: {integrity: sha512-whx+e3pgC3J9O6t4LOB8jiLk3tpWtnXaQ+xt/ys/4IGUPRI+nnWooVdtWrEnMga/gT03ug9SdEAEJLl6I1BIlg==}
-    engines: {node: '>=18.0.0'}
+  '@firebase/component@0.7.0':
+    resolution: {integrity: sha512-wR9En2A+WESUHexjmRHkqtaVH94WLNKt6rmeqZhSLBybg4Wyf0Umk04SZsS6sBq4102ZsDBFwoqMqJYj2IoDSg==}
+    engines: {node: '>=20.0.0'}
 
-  '@firebase/database-compat@2.0.8':
-    resolution: {integrity: sha512-GsopZGu8SefAUHtdh+1HL10TcpuBmXCz7RRJ1iPP9sbkF0vWHu5eYpkqKzaZ687EyS0SG03o2rno7JIwm1hbYQ==}
-    engines: {node: '>=18.0.0'}
+  '@firebase/database-compat@2.1.0':
+    resolution: {integrity: sha512-8nYc43RqxScsePVd1qe1xxvWNf0OBnbwHxmXJ7MHSuuTVYFO3eLyLW3PiCKJ9fHnmIz4p4LbieXwz+qtr9PZDg==}
+    engines: {node: '>=20.0.0'}
 
-  '@firebase/database-types@1.0.13':
-    resolution: {integrity: sha512-HoMVmHNLNEmSe55XMKXYbfAaie21h++G7gxhIttj330yPlW+RgG00CLedpmQvaqfEHEvh+6eUjddtJ/ezm1x2w==}
+  '@firebase/database-types@1.0.16':
+    resolution: {integrity: sha512-xkQLQfU5De7+SPhEGAXFBnDryUWhhlFXelEg2YeZOQMCdoe7dL64DDAd77SQsR+6uoXIZY5MB4y/inCs4GTfcw==}
 
-  '@firebase/database@1.0.17':
-    resolution: {integrity: sha512-CUUsegGubS90/QkZ4sO84SgoJlnYOCaArVl6CG8aTSuTJoEAoD8elVwR02aPM80m0GOFM6NBT7B+ayK7jeVmMA==}
-    engines: {node: '>=18.0.0'}
+  '@firebase/database@1.1.0':
+    resolution: {integrity: sha512-gM6MJFae3pTyNLoc9VcJNuaUDej0ctdjn3cVtILo3D5lpp0dmUHHLFN/pUKe7ImyeB1KAvRlEYxvIHNF04Filg==}
+    engines: {node: '>=20.0.0'}
 
-  '@firebase/logger@0.4.4':
-    resolution: {integrity: sha512-mH0PEh1zoXGnaR8gD1DeGeNZtWFKbnz9hDO91dIml3iou1gpOnLqXQ2dJfB71dj6dpmUjcQ6phY3ZZJbjErr9g==}
-    engines: {node: '>=18.0.0'}
+  '@firebase/logger@0.5.0':
+    resolution: {integrity: sha512-cGskaAvkrnh42b3BA3doDWeBmuHFO/Mx5A83rbRDYakPjO9bJtRL3dX7javzc2Rr/JHZf4HlterTW2lUkfeN4g==}
+    engines: {node: '>=20.0.0'}
 
-  '@firebase/util@1.11.3':
-    resolution: {integrity: sha512-4wYnOV9FpwdCq3rHQOCrdx4AQBUbfH1p2DhWGQxlQ+D3Xl/wSxc/HttcyPN4NNFiynxoNCFGWQH/zdhRfxP1Zg==}
-    engines: {node: '>=18.0.0'}
+  '@firebase/util@1.13.0':
+    resolution: {integrity: sha512-0AZUyYUfpMNcztR5l09izHwXkZpghLgCUaAGjtMwXnCg3bj4ml5VgiwqOMOxJ+Nw4qN/zJAaOQBcJ7KGkWStqQ==}
+    engines: {node: '>=20.0.0'}
 
   '@flydotio/dockerfile@0.7.10':
     resolution: {integrity: sha512-dTXqBjCl7nFmnhlyeDjjPtX+sdfYBWFH9PUKNqAYttvBiczKcYXxr7/0A0wZ+g1FB1tmMzsOzedgr6xap/AB9g==}
@@ -835,8 +835,8 @@ packages:
   '@golevelup/ts-vitest@0.5.2':
     resolution: {integrity: sha512-kxL12/4lBeYcdpfabvqWGgIagt8ycD6vUNlVyNUjGjxuqo8wPRB1Ohfnn4LNWQG8X8/xf74S2qYnOGqJ7IvWFA==}
 
-  '@google-cloud/firestore@7.11.1':
-    resolution: {integrity: sha512-ZxOdH8Wr01hBDvKCQfMWqwUcfNcN3JY19k1LtS1fTFhEyorYPLsbWN+VxIRL46pOYGHTPkU3Or5HbT/SLQM5nA==}
+  '@google-cloud/firestore@7.11.3':
+    resolution: {integrity: sha512-qsM3/WHpawF07SRVvEJJVRwhYzM7o9qtuksyuqnrMig6fxIrwWnsezECWsG/D5TyYru51Fv5c/RTqNDQ2yU+4w==}
     engines: {node: '>=14.0.0'}
 
   '@google-cloud/paginator@5.0.2':
@@ -851,8 +851,8 @@ packages:
     resolution: {integrity: sha512-Orxzlfb9c67A15cq2JQEyVc7wEsmFBmHjZWZYQMUyJ1qivXyMwdyNOs9odi79hze+2zqdTtu1E19IM/FtqZ10g==}
     engines: {node: '>=14'}
 
-  '@google-cloud/storage@7.16.0':
-    resolution: {integrity: sha512-7/5LRgykyOfQENcm6hDKP8SX/u9XxE5YOiWOkgkwcoO+cG8xT/cyOvp9wwN3IxfdYgpHs8CE7Nq2PKX2lNaEXw==}
+  '@google-cloud/storage@7.17.0':
+    resolution: {integrity: sha512-5m9GoZqKh52a1UqkxDBu/+WVFDALNtHg5up5gNmNbXQWBcV813tzJKsyDtKjOPrlR1em1TxtD7NSPCrObH7koQ==}
     engines: {node: '>=14'}
 
   '@googleapis/sheets@11.1.0':
@@ -1139,8 +1139,8 @@ packages:
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
 
-  '@grpc/grpc-js@1.13.3':
-    resolution: {integrity: sha512-FTXHdOoPbZrBjlVLHuKbDZnsTxXv2BlHF57xw6LuThXacXvtkahEPED0CKMk6obZDf65Hv4k3z62eyPNpvinIg==}
+  '@grpc/grpc-js@1.13.4':
+    resolution: {integrity: sha512-GsFaMXCkMqkKIvwCQjCrwH+GHbPKBjhwo/8ZuUkWHqbI73Kky9I+pQltrlT0+MWpedCoosda53lgjYfyEPgxBg==}
     engines: {node: '>=12.10.0'}
 
   '@grpc/proto-loader@0.7.15':
@@ -1969,8 +1969,8 @@ packages:
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
     engines: {node: '>= 10'}
 
-  '@types/body-parser@1.19.5':
-    resolution: {integrity: sha512-fB3Zu92ucau0iQ0JMCFQE7b/dv8Ot07NI3KaZIkIUNXq82k4eBAqUaneXfleGY9JWskeS9y+u0nXMyspcuQrCg==}
+  '@types/body-parser@1.19.6':
+    resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
 
   '@types/caseless@0.12.5':
     resolution: {integrity: sha512-hWtVTC2q7hc7xZ/RLbxapMvDMgUnDvKvMOpKal4DrMyfGBUfB1oKaZlIRr6mJL+If3bAP6sV/QneGzF6tJjZDg==}
@@ -1993,17 +1993,17 @@ packages:
   '@types/express-serve-static-core@4.19.6':
     resolution: {integrity: sha512-N4LZ2xG7DatVqhCZzOGb1Yi5lMbXSZcmdLDe9EzSndPV2HpWYWzRbaerl2n27irrm94EPpprqa8KpskPT085+A==}
 
-  '@types/express@4.17.22':
-    resolution: {integrity: sha512-eZUmSnhRX9YRSkplpz0N+k6NljUUn5l3EWZIKZvYzhvMphEuNiyyy1viH/ejgt66JWgALwC/gtSUAeQKtSwW/w==}
+  '@types/express@4.17.23':
+    resolution: {integrity: sha512-Crp6WY9aTYP3qPi2wGDo9iUe/rceX01UMhnF1jmwDcKCFM6cx7YhGP/Mpr3y9AASpfHixIG0E6azCcL5OcDHsQ==}
 
-  '@types/http-errors@2.0.4':
-    resolution: {integrity: sha512-D0CFMMtydbJAegzOyHjtiKPLlvnm3iTZyZRSZoLq2mRhDdmLfIWOCYPfQJ4cu2erKghU++QvjcUjp/5h7hESpA==}
+  '@types/http-errors@2.0.5':
+    resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
 
   '@types/js-yaml@4.0.9':
     resolution: {integrity: sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg==}
 
-  '@types/jsonwebtoken@9.0.9':
-    resolution: {integrity: sha512-uoe+GxEuHbvy12OUQct2X9JenKM3qAscquYymuQN4fMWG9DBQtykrQEFcAbVACF7qaLw9BePSodUL0kquqBJpQ==}
+  '@types/jsonwebtoken@9.0.10':
+    resolution: {integrity: sha512-asx5hIG9Qmf/1oStypjanR7iKTv0gXQ1Ov/jfrX6kS/EO0OFni8orbmGCn0672NHR3kXHwpAwR+B368ZGN/2rA==}
 
   '@types/long@4.0.2':
     resolution: {integrity: sha512-MqTGEo5bj5t157U6fA/BiDynNkn0YknVdh48CMPkTSpFTVmvao5UQmm7uEF6xBEo7qIMAlY/JSleYaE6VOdpaA==}
@@ -2023,8 +2023,8 @@ packages:
   '@types/node@17.0.45':
     resolution: {integrity: sha512-w+tIMs3rq2afQdsPJlODhoUEKzFP1ayaoyl1CcnwtIlsVe7K7bA1NGm4s3PraqTLlXnbIN84zuBlxBWo1u9BLw==}
 
-  '@types/node@22.17.2':
-    resolution: {integrity: sha512-gL6z5N9Jm9mhY+U2KXZpteb+09zyffliRkZyZOHODGATyC5B1Jt/7TzuuiLkFsSUMLbS1OLmlj/E+/3KF4Q/4w==}
+  '@types/node@22.18.1':
+    resolution: {integrity: sha512-rzSDyhn4cYznVG+PCzGe1lwuMYJrcBS1fc3JqSa2PvtABwWo+dZ1ij5OVok3tqfpEBCBoaR4d7upFJk73HRJDw==}
 
   '@types/node@24.3.0':
     resolution: {integrity: sha512-aPTXCrfwnDLj4VvXrm+UUCQjNEvJgNA8s5F1cvwQU+3KNltTOkBm1j30uNLyqqPNe7gE3KFzImYoZEfLhp4Yow==}
@@ -2041,14 +2041,14 @@ packages:
   '@types/range-parser@1.2.7':
     resolution: {integrity: sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==}
 
-  '@types/request@2.48.12':
-    resolution: {integrity: sha512-G3sY+NpsA9jnwm0ixhAFQSJ3Q9JkpLZpJbI3GMv0mIAT0y3mRabYeINzal5WOChIiaTEGQYlHOKgkaM9EisWHw==}
+  '@types/request@2.48.13':
+    resolution: {integrity: sha512-FGJ6udDNUCjd19pp0Q3iTiDkwhYup7J8hpMW9c4k53NrccQFFWKRho6hvtPPEhnXWKvukfwAlB6DbDz4yhH5Gg==}
 
-  '@types/send@0.17.4':
-    resolution: {integrity: sha512-x2EM6TJOybec7c52BX0ZspPodMsQUd5L6PRwOunVyVUhXiBSKf3AezDL8Dgvgt5o0UfKNfuA0eMLr2wLT4AiBA==}
+  '@types/send@0.17.5':
+    resolution: {integrity: sha512-z6F2D3cOStZvuk2SaP6YrwkNO65iTZcwA2ZkSABegdkAh/lf+Aa/YQndZVfmEXT5vgAp6zv06VQ3ejSVjAny4w==}
 
-  '@types/serve-static@1.15.7':
-    resolution: {integrity: sha512-W8Ym+h8nhuRwaKPaDw34QUkwsGi6Rc4yYqvKFo5rm2FUEhCFbzVWrxXUxuKK8TASjWsysJY0nsmNCGhCOIsrOw==}
+  '@types/serve-static@1.15.8':
+    resolution: {integrity: sha512-roei0UY3LhpOJvjbIP6ZZFngyLKl5dskOtDhxY5THRSpO+ZI+nzJ+m5yUMzGrp89YRa7lvknKkMYjqQFGwA7Sg==}
 
   '@types/shimmer@1.2.0':
     resolution: {integrity: sha512-UE7oxhQLLd9gub6JKIAhDq06T0F6FnztwMNRvYgjeQSBeMc1ZG/tA47EwfduvkuQS8apbkM/lpLpWsaCeYsXVg==}
@@ -2862,8 +2862,8 @@ packages:
     resolution: {integrity: sha512-6jvvn/12IC4quLBL1KNokxC7wWTvYncaVUYSoxWw7YykPLuRrnv4qdHcSOywOI5RpkOVGeQRtWM8/q+G6W6qfQ==}
     engines: {node: '>= 8'}
 
-  firebase-admin@13.4.0:
-    resolution: {integrity: sha512-Y8DcyKK+4pl4B93ooiy1G8qvdyRMkcNFfBSh+8rbVcw4cW8dgG0VXCCTp5NUwub8sn9vSPsOwpb9tE2OuFmcfQ==}
+  firebase-admin@13.5.0:
+    resolution: {integrity: sha512-QZOpv1DJRJpH8NcWiL1xXE10tw3L/bdPFlgjcWrqU3ufyOJDYfxB1MMtxiVTwxK16NlybQbEM6ciSich2uWEIQ==}
     engines: {node: '>=18'}
 
   flatted@3.3.3:
@@ -3996,8 +3996,8 @@ packages:
     resolution: {integrity: sha512-SAzp/O4Yh02jGdRc+uIrGoe87dkN/XtwxfZ4ZyafJHymd79ozp5VG5nyZ7ygqPM5+cpLDjjGnYFUkngonyDPOQ==}
     engines: {node: '>=14.0.0'}
 
-  protobufjs@7.5.2:
-    resolution: {integrity: sha512-f2ls6rpO6G153Cy+o2XQ+Y0sARLOZ17+OGVLHrc3VUKcLHYKEKWbkSujdBWQXM7gKn5NTfp0XnRPZn1MIu8n9w==}
+  protobufjs@7.5.4:
+    resolution: {integrity: sha512-CvexbZtbov6jW2eXAvLukXjXUW1TzFaivC46BpWc/3BpcCysb5Vffu+B3XHMm8lVEuy2Mm4XGex8hBSg1yapPg==}
     engines: {node: '>=12.0.0'}
 
   proxy-from-env@1.1.0:
@@ -5494,7 +5494,7 @@ snapshots:
   '@esbuild/win32-x64@0.25.5':
     optional: true
 
-  '@fastify/busboy@3.1.1': {}
+  '@fastify/busboy@3.2.0': {}
 
   '@firebase/app-check-interop-types@0.3.3': {}
 
@@ -5502,40 +5502,40 @@ snapshots:
 
   '@firebase/auth-interop-types@0.2.4': {}
 
-  '@firebase/component@0.6.16':
+  '@firebase/component@0.7.0':
     dependencies:
-      '@firebase/util': 1.11.3
+      '@firebase/util': 1.13.0
       tslib: 2.8.1
 
-  '@firebase/database-compat@2.0.8':
+  '@firebase/database-compat@2.1.0':
     dependencies:
-      '@firebase/component': 0.6.16
-      '@firebase/database': 1.0.17
-      '@firebase/database-types': 1.0.13
-      '@firebase/logger': 0.4.4
-      '@firebase/util': 1.11.3
+      '@firebase/component': 0.7.0
+      '@firebase/database': 1.1.0
+      '@firebase/database-types': 1.0.16
+      '@firebase/logger': 0.5.0
+      '@firebase/util': 1.13.0
       tslib: 2.8.1
 
-  '@firebase/database-types@1.0.13':
+  '@firebase/database-types@1.0.16':
     dependencies:
       '@firebase/app-types': 0.9.3
-      '@firebase/util': 1.11.3
+      '@firebase/util': 1.13.0
 
-  '@firebase/database@1.0.17':
+  '@firebase/database@1.1.0':
     dependencies:
       '@firebase/app-check-interop-types': 0.3.3
       '@firebase/auth-interop-types': 0.2.4
-      '@firebase/component': 0.6.16
-      '@firebase/logger': 0.4.4
-      '@firebase/util': 1.11.3
+      '@firebase/component': 0.7.0
+      '@firebase/logger': 0.5.0
+      '@firebase/util': 1.13.0
       faye-websocket: 0.11.4
       tslib: 2.8.1
 
-  '@firebase/logger@0.4.4':
+  '@firebase/logger@0.5.0':
     dependencies:
       tslib: 2.8.1
 
-  '@firebase/util@1.11.3':
+  '@firebase/util@1.13.0':
     dependencies:
       tslib: 2.8.1
 
@@ -5552,13 +5552,13 @@ snapshots:
 
   '@golevelup/ts-vitest@0.5.2': {}
 
-  '@google-cloud/firestore@7.11.1':
+  '@google-cloud/firestore@7.11.3':
     dependencies:
       '@opentelemetry/api': 1.9.0
       fast-deep-equal: 3.1.3
       functional-red-black-tree: 1.0.1
       google-gax: 4.6.1
-      protobufjs: 7.5.2
+      protobufjs: 7.5.4
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -5576,7 +5576,7 @@ snapshots:
   '@google-cloud/promisify@4.0.0':
     optional: true
 
-  '@google-cloud/storage@7.16.0':
+  '@google-cloud/storage@7.17.0':
     dependencies:
       '@google-cloud/paginator': 5.0.2
       '@google-cloud/projectify': 4.0.0
@@ -6125,7 +6125,7 @@ snapshots:
     dependencies:
       graphql: 16.9.0
 
-  '@grpc/grpc-js@1.13.3':
+  '@grpc/grpc-js@1.13.4':
     dependencies:
       '@grpc/proto-loader': 0.7.15
       '@js-sdsl/ordered-map': 4.4.2
@@ -6135,7 +6135,7 @@ snapshots:
     dependencies:
       lodash.camelcase: 4.3.0
       long: 5.3.2
-      protobufjs: 7.5.2
+      protobufjs: 7.5.4
       yargs: 17.7.2
     optional: true
 
@@ -6984,7 +6984,7 @@ snapshots:
   '@tootallnate/once@2.0.0':
     optional: true
 
-  '@types/body-parser@1.19.5':
+  '@types/body-parser@1.19.6':
     dependencies:
       '@types/connect': 3.4.38
       '@types/node': 24.3.0
@@ -7013,20 +7013,20 @@ snapshots:
       '@types/node': 24.3.0
       '@types/qs': 6.14.0
       '@types/range-parser': 1.2.7
-      '@types/send': 0.17.4
+      '@types/send': 0.17.5
 
-  '@types/express@4.17.22':
+  '@types/express@4.17.23':
     dependencies:
-      '@types/body-parser': 1.19.5
+      '@types/body-parser': 1.19.6
       '@types/express-serve-static-core': 4.19.6
       '@types/qs': 6.14.0
-      '@types/serve-static': 1.15.7
+      '@types/serve-static': 1.15.8
 
-  '@types/http-errors@2.0.4': {}
+  '@types/http-errors@2.0.5': {}
 
   '@types/js-yaml@4.0.9': {}
 
-  '@types/jsonwebtoken@9.0.9':
+  '@types/jsonwebtoken@9.0.10':
     dependencies:
       '@types/ms': 2.1.0
       '@types/node': 24.3.0
@@ -7046,7 +7046,7 @@ snapshots:
 
   '@types/node@17.0.45': {}
 
-  '@types/node@22.17.2':
+  '@types/node@22.18.1':
     dependencies:
       undici-types: 6.21.0
 
@@ -7068,7 +7068,7 @@ snapshots:
 
   '@types/range-parser@1.2.7': {}
 
-  '@types/request@2.48.12':
+  '@types/request@2.48.13':
     dependencies:
       '@types/caseless': 0.12.5
       '@types/node': 24.3.0
@@ -7076,16 +7076,16 @@ snapshots:
       form-data: 2.5.5
     optional: true
 
-  '@types/send@0.17.4':
+  '@types/send@0.17.5':
     dependencies:
       '@types/mime': 1.3.5
       '@types/node': 24.3.0
 
-  '@types/serve-static@1.15.7':
+  '@types/serve-static@1.15.8':
     dependencies:
-      '@types/http-errors': 2.0.4
+      '@types/http-errors': 2.0.5
       '@types/node': 24.3.0
-      '@types/send': 0.17.4
+      '@types/send': 0.17.5
 
   '@types/shimmer@1.2.0': {}
 
@@ -7189,7 +7189,7 @@ snapshots:
 
   '@whatwg-node/node-fetch@0.7.21':
     dependencies:
-      '@fastify/busboy': 3.1.1
+      '@fastify/busboy': 3.2.0
       '@whatwg-node/disposablestack': 0.0.6
       '@whatwg-node/promise-helpers': 1.3.2
       tslib: 2.8.1
@@ -8043,21 +8043,22 @@ snapshots:
       micromatch: 4.0.8
       resolve-dir: 1.0.1
 
-  firebase-admin@13.4.0:
+  firebase-admin@13.5.0:
     dependencies:
-      '@fastify/busboy': 3.1.1
-      '@firebase/database-compat': 2.0.8
-      '@firebase/database-types': 1.0.13
-      '@types/node': 22.17.2
+      '@fastify/busboy': 3.2.0
+      '@firebase/database-compat': 2.1.0
+      '@firebase/database-types': 1.0.16
+      '@types/node': 22.18.1
       farmhash-modern: 1.1.0
+      fast-deep-equal: 3.1.3
       google-auth-library: 9.15.1
       jsonwebtoken: 9.0.2
       jwks-rsa: 3.2.0
       node-forge: 1.3.1
       uuid: 11.1.0
     optionalDependencies:
-      '@google-cloud/firestore': 7.11.1
-      '@google-cloud/storage': 7.16.0
+      '@google-cloud/firestore': 7.11.3
+      '@google-cloud/storage': 7.17.0
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -8269,7 +8270,7 @@ snapshots:
 
   google-gax@4.6.1:
     dependencies:
-      '@grpc/grpc-js': 1.13.3
+      '@grpc/grpc-js': 1.13.4
       '@grpc/proto-loader': 0.7.15
       '@types/long': 4.0.2
       abort-controller: 3.0.0
@@ -8278,7 +8279,7 @@ snapshots:
       node-fetch: 2.7.0
       object-hash: 3.0.0
       proto3-json-serializer: 2.0.2
-      protobufjs: 7.5.2
+      protobufjs: 7.5.4
       retry-request: 7.0.2
       uuid: 9.0.1
     transitivePeerDependencies:
@@ -8761,8 +8762,8 @@ snapshots:
 
   jwks-rsa@3.2.0:
     dependencies:
-      '@types/express': 4.17.22
-      '@types/jsonwebtoken': 9.0.9
+      '@types/express': 4.17.23
+      '@types/jsonwebtoken': 9.0.10
       debug: 4.4.1
       jose: 4.15.9
       limiter: 1.1.5
@@ -9281,10 +9282,10 @@ snapshots:
 
   proto3-json-serializer@2.0.2:
     dependencies:
-      protobufjs: 7.5.2
+      protobufjs: 7.5.4
     optional: true
 
-  protobufjs@7.5.2:
+  protobufjs@7.5.4:
     dependencies:
       '@protobufjs/aspromise': 1.1.2
       '@protobufjs/base64': 1.1.2
@@ -9382,7 +9383,7 @@ snapshots:
 
   retry-request@7.0.2:
     dependencies:
-      '@types/request': 2.48.12
+      '@types/request': 2.48.13
       extend: 3.0.2
       teeny-request: 9.0.0
     transitivePeerDependencies:
