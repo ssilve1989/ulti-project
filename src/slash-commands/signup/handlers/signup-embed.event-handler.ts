@@ -21,8 +21,9 @@ class SignupEmbedEventHandler
         .with(P.instanceOf(SignupDeclinedEvent), this.handleDeclined.bind(this))
         .run();
     } catch (error) {
-      Sentry.setExtra('signup', event.signup);
-      Sentry.captureException(error);
+      const scope = Sentry.getCurrentScope();
+      scope.setExtra('signup', event.signup);
+      scope.captureException(error);
     }
   }
 

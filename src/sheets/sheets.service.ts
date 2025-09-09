@@ -380,7 +380,7 @@ class SheetsService {
 
       return { title, url };
     } catch (e) {
-      Sentry.setExtra('spreadsheetId', spreadsheetId);
+      Sentry.getCurrentScope().setExtra('spreadsheetId', spreadsheetId);
       this.errorService.captureError(e);
 
       return match(e)

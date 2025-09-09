@@ -39,13 +39,14 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
   @SentryTraced()
   async execute({ interaction }: CleanRolesCommand) {
     try {
+      const scope = Sentry.getCurrentScope();
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const { guildId, options } = interaction;
       const isDryRun = options.getBoolean('dry-run') ?? false;
 
       // Add command-specific context
-      Sentry.setContext('clean_roles_operation', {
+      scope.setContext('clean_roles_operation', {
         isDryRun,
       });
 
@@ -57,7 +58,7 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
         const result = await this.processCleanRolesCore(guildId, true);
 
         // Add context about dry run results
-        Sentry.setContext('dry_run_results', {
+        scope.setContext('dry_run_results', {
           totalRolesProcessed: result.totalRolesProcessed,
           totalMembersProcessed: result.totalMembersProcessed,
           totalRolesRemoved: result.totalRolesRemoved,
@@ -73,7 +74,7 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
         const result = await this.processCleanRolesCore(guildId, false);
 
         // Add context about operation results
-        Sentry.setContext('operation_results', {
+        scope.setContext('operation_results', {
           totalRolesProcessed: result.totalRolesProcessed,
           totalMembersProcessed: result.totalMembersProcessed,
           totalRolesRemoved: result.totalRolesRemoved,

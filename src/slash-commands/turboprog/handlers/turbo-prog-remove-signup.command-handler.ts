@@ -24,8 +24,9 @@ class TurboProgRemoveSignupHandler
         await this.sheetsService.removeTurboProgEntry(entry, spreadsheetId);
       }
     } catch (error) {
-      Sentry.setExtra('entry', entry);
-      Sentry.captureException(error);
+      const scope = Sentry.getCurrentScope();
+      scope.setExtra('entry', entry);
+      scope.captureException(error);
     }
   }
 }
