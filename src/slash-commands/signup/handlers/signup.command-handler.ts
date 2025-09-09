@@ -275,9 +275,10 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   private async validateFFLogsUrl(
     proofOfProgLink: string | null,
   ): Promise<FFLogsValidationResult> {
+    const scope = Sentry.getCurrentScope();
     if (!proofOfProgLink) {
       // Add FFLogs validation context for Sentry
-      Sentry.setContext('fflogs_validation', {
+      scope.setContext('fflogs_validation', {
         hasUrl: false,
         validationResult: 'success',
       });
@@ -290,7 +291,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
 
       if (isFFLogsUrl(url) && !reportCode) {
         // Add FFLogs validation context for Sentry
-        Sentry.setContext('fflogs_validation', {
+        scope.setContext('fflogs_validation', {
           hasUrl: true,
           validationResult: 'format',
         });
@@ -314,7 +315,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
             this.logger.log(fflogsValidation.errorMessage);
 
             // Add FFLogs validation context for Sentry
-            Sentry.setContext('fflogs_validation', {
+            scope.setContext('fflogs_validation', {
               hasUrl: true,
               validationResult: 'age',
             });
@@ -328,7 +329,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
         } catch (error: unknown) {
           this.logger.warn('Error validating FFLogs report age:', error);
           // Add FFLogs validation context for Sentry
-          Sentry.setContext('fflogs_validation', {
+          scope.setContext('fflogs_validation', {
             hasUrl: true,
             validationResult: 'api',
           });
@@ -342,7 +343,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       }
 
       // Add FFLogs validation context for Sentry (success case)
-      Sentry.setContext('fflogs_validation', {
+      scope.setContext('fflogs_validation', {
         hasUrl: true,
         validationResult: 'success',
       });
@@ -350,7 +351,7 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     } catch (_: unknown) {
       // Handle URL parsing errors
       // Add FFLogs validation context for Sentry
-      Sentry.setContext('fflogs_validation', {
+      scope.setContext('fflogs_validation', {
         hasUrl: true,
         validationResult: 'format',
       });
@@ -390,14 +391,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       });
       return null;
     }
-
-    // Add signup request context for Sentry
-    Sentry.setContext('signup_request', {
-      encounter: signupRequest.encounter,
-      character: signupRequest.character,
-      world: signupRequest.world,
-      progPointRequested: signupRequest.progPointRequested,
-    });
 
     return signupRequest;
   }

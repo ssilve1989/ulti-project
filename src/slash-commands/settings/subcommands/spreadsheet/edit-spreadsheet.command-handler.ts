@@ -17,6 +17,7 @@ export class EditSpreadsheetCommandHandler
 
   @SentryTraced()
   async execute({ interaction }: EditSpreadsheetCommand) {
+    const scope = Sentry.getCurrentScope();
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -26,7 +27,7 @@ export class EditSpreadsheetCommandHandler
       );
 
       // Add command-specific context
-      Sentry.setContext('spreadsheet_update', {
+      scope.setContext('spreadsheet_update', {
         spreadsheetId,
       });
 

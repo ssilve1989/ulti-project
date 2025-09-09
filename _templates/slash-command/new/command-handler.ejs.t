@@ -27,7 +27,7 @@ class <%= h.changeCase.pascal(name) %>CommandHandler implements ICommandHandler<
         ephemeral: true,
       });
     } catch (error) {
-      Sentry.captureException(error);
+      Sentry.getCurrentScope().captureException(error);
       await this.errorService.handleError({
         interaction,
         error: error as Error,

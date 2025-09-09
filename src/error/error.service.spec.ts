@@ -6,7 +6,9 @@ import { ErrorService } from './error.service.js';
 
 // Mock Sentry
 vi.mock('@sentry/nestjs', () => ({
-  captureException: vi.fn(),
+  getCurrentScope: vi.fn().mockReturnValue({
+    captureException: vi.fn(),
+  }),
 }));
 
 // Mock Discord interaction
@@ -42,7 +44,9 @@ describe('ErrorService', () => {
 
       service.handleCommandError(error, mockInteraction);
 
-      expect(Sentry.captureException).toHaveBeenCalledWith(error);
+      expect(Sentry.getCurrentScope().captureException).toHaveBeenCalledWith(
+        error,
+      );
     });
 
     test('should return error embed with default message', () => {
@@ -104,7 +108,9 @@ describe('ErrorService', () => {
 
       const result = service.handleCommandError(error, mockInteraction);
 
-      expect(Sentry.captureException).toHaveBeenCalledWith(error);
+      expect(Sentry.getCurrentScope().captureException).toHaveBeenCalledWith(
+        error,
+      );
       expect(result).toBeInstanceOf(EmbedBuilder);
     });
 
@@ -113,7 +119,7 @@ describe('ErrorService', () => {
 
       service.handleCommandError(error, mockInteraction, { capture: false });
 
-      expect(Sentry.captureException).not.toHaveBeenCalled();
+      expect(Sentry.getCurrentScope().captureException).not.toHaveBeenCalled();
     });
 
     test('should skip logging when log option is false', () => {
@@ -131,7 +137,9 @@ describe('ErrorService', () => {
 
       service.captureError(error);
 
-      expect(Sentry.captureException).toHaveBeenCalledWith(error);
+      expect(Sentry.getCurrentScope().captureException).toHaveBeenCalledWith(
+        error,
+      );
     });
 
     test('should log error by default', () => {
@@ -147,7 +155,7 @@ describe('ErrorService', () => {
 
       service.captureError(error, { capture: false });
 
-      expect(Sentry.captureException).not.toHaveBeenCalled();
+      expect(Sentry.getCurrentScope().captureException).not.toHaveBeenCalled();
     });
 
     test('should skip logging when log option is false', () => {
@@ -163,7 +171,9 @@ describe('ErrorService', () => {
 
       service.captureError(error);
 
-      expect(Sentry.captureException).toHaveBeenCalledWith(error);
+      expect(Sentry.getCurrentScope().captureException).toHaveBeenCalledWith(
+        error,
+      );
       expect(loggerErrorSpy).toHaveBeenCalledWith('Error: String error');
     });
 
@@ -172,7 +182,7 @@ describe('ErrorService', () => {
 
       service.captureError(error, { capture: false, log: false });
 
-      expect(Sentry.captureException).not.toHaveBeenCalled();
+      expect(Sentry.getCurrentScope().captureException).not.toHaveBeenCalled();
       expect(loggerErrorSpy).not.toHaveBeenCalled();
     });
   });

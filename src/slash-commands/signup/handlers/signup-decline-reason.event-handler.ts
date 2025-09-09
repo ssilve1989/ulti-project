@@ -22,8 +22,9 @@ export class SignupDeclineReasonEventHandler
     try {
       await this.sendDeclineMessage(event);
     } catch (error) {
-      Sentry.setExtra('signup', event.signup);
-      Sentry.captureException(error);
+      const scope = Sentry.getCurrentScope();
+      scope.setExtra('signup', event.signup);
+      scope.captureException(error);
       this.logger.error(
         error,
         `Failed to send decline message for signup ${event.signup.discordId}-${event.signup.encounter}`,

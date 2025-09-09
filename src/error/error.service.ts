@@ -53,7 +53,7 @@ export class ErrorService {
    */
   private processError(error: unknown, options?: ErrorHandlingOptions): void {
     if (options?.capture ?? true) {
-      Sentry.captureException(error);
+      Sentry.getCurrentScope().captureException(error);
     }
 
     if (options?.log ?? true) {

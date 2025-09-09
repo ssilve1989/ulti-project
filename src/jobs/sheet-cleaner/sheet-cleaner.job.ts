@@ -89,7 +89,7 @@ class SheetCleanerJob implements OnApplicationBootstrap, OnApplicationShutdown {
                     encounter: encounter.id as Encounter,
                   })
                   .catch((err) => {
-                    Sentry.captureException(err);
+                    Sentry.getCurrentScope().captureException(err);
                     return EMPTY;
                   }),
               ),

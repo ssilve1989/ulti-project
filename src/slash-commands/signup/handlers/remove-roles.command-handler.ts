@@ -41,8 +41,9 @@ export class RemoveRolesCommandHandler
         );
       }
     } catch (error) {
-      Sentry.setExtras({ encounter, userId });
-      Sentry.captureException(error);
+      const scope = Sentry.getCurrentScope();
+      scope.setExtras({ encounter, userId });
+      scope.captureException(error);
     }
   }
 }

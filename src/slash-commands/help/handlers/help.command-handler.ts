@@ -29,8 +29,9 @@ class HelpCommandHandler implements ICommandHandler<HelpCommand> {
 
   @SentryTraced()
   async execute({ interaction }: HelpCommand): Promise<void> {
+    const scope = Sentry.getCurrentScope();
     // Add command-specific Sentry context
-    Sentry.setContext('help_command', {
+    scope.setContext('help_command', {
       hasAdminPerms:
         interaction.memberPermissions?.has(
           PermissionsBitField.Flags.Administrator,
@@ -61,7 +62,7 @@ class HelpCommandHandler implements ICommandHandler<HelpCommand> {
       );
 
       // Add context about the processed commands
-      Sentry.setContext('help_processing', {
+      scope.setContext('help_processing', {
         totalCommands: allCommands.length,
         availableCommands: availableCommands.length,
       });

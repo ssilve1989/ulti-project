@@ -148,7 +148,7 @@ class DiscordService {
       mergeMap(
         (member) =>
           member.roles.remove(roleId).catch((err) => {
-            Sentry.captureException(err);
+            Sentry.getCurrentScope().captureException(err);
             this.logger.error(
               `failed to remove role ${role.name} from member ${member.displayName}`,
             );
