@@ -1,5 +1,4 @@
-import { CACHE_MANAGER, type Cache } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import { CollectionReference, Firestore } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
@@ -12,11 +11,9 @@ import type {
 class EncountersCollection {
   private readonly collection: CollectionReference<EncounterDocument>;
   private readonly logger = new Logger(EncountersCollection.name);
+  private readonly cache = new Map<string, unknown>();
 
-  constructor(
-    @InjectFirestore() private readonly firestore: Firestore,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {
+  constructor(@InjectFirestore() private readonly firestore: Firestore) {
     this.collection = firestore.collection(
       'encounters',
     ) as CollectionReference<EncounterDocument>;
@@ -34,7 +31,7 @@ class EncountersCollection {
     encounterId: string,
   ): Promise<EncounterDocument | undefined> {
     const cacheKey = this.encounterCacheKey(encounterId);
-    const cached = await this.cacheManager.get<EncounterDocument>(cacheKey);
+    const cached = this.cache.get(cacheKey) as EncounterDocument | undefined;
 
     if (cached) {
       return { ...cached, id: encounterId };
@@ -45,7 +42,7 @@ class EncountersCollection {
 
     if (data) {
       const encounterWithId = { ...data, id: doc.id };
-      await this.cacheManager.set(cacheKey, encounterWithId);
+      this.cache.set(cacheKey, encounterWithId);
       return encounterWithId;
     }
 
@@ -74,7 +71,7 @@ class EncountersCollection {
     encounterId: string,
   ): Promise<ProgPointDocument[]> {
     const cacheKey = this.progPointsCacheKey(encounterId);
-    const cached = await this.cacheManager.get<ProgPointDocument[]>(cacheKey);
+    const cached = this.cache.get(cacheKey) as ProgPointDocument[] | undefined;
 
     if (cached) {
       return cached;
@@ -88,7 +85,7 @@ class EncountersCollection {
 
     const progPoints = snapshot.docs.map((doc) => doc.data());
 
-    await this.cacheManager.set(cacheKey, progPoints);
+    this.cache.set(cacheKey, progPoints);
 
     return progPoints;
   }
@@ -251,14 +248,14 @@ class EncountersCollection {
       const doc = await this.collection.doc(encounterId).get();
       const data = doc.data();
       if (data) {
-        await this.cacheManager.set(cacheKey, { ...data, id: doc.id });
+        this.cache.set(cacheKey, { ...data, id: doc.id });
       }
     } catch (error) {
       this.logger.warn(
         `Failed to update encounter cache: invalidating key ${cacheKey}`,
       );
       this.logger.error(error, 'Failed to update encounter cache');
-      await this.cacheManager.del(cacheKey);
+      this.cache.delete(cacheKey);
     }
   }
 
@@ -266,7 +263,7 @@ class EncountersCollection {
     const cacheKey = this.progPointsCacheKey(encounterId);
     try {
       // Clear cache first to avoid infinite recursion
-      await this.cacheManager.del(cacheKey);
+      this.cache.delete(cacheKey);
 
       const progPointsCollection = this.collection
         .doc(encounterId)
@@ -275,13 +272,13 @@ class EncountersCollection {
       const snapshot = await progPointsCollection.orderBy('order').get();
 
       const progPoints = snapshot.docs.map((doc) => doc.data());
-      await this.cacheManager.set(cacheKey, progPoints);
+      this.cache.set(cacheKey, progPoints);
     } catch (error) {
       this.logger.warn(
         `Failed to update prog points cache: invalidating key ${cacheKey}`,
       );
       this.logger.error(error, 'Failed to update prog points cache');
-      await this.cacheManager.del(cacheKey);
+      this.cache.delete(cacheKey);
     }
   }
 
