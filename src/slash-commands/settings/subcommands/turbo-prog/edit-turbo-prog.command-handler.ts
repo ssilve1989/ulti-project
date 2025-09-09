@@ -17,6 +17,7 @@ export class EditTurboProgCommandHandler
 
   @SentryTraced()
   async execute({ interaction }: EditTurboProgCommand) {
+    const scope = Sentry.getCurrentScope();
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -24,7 +25,7 @@ export class EditTurboProgCommandHandler
       const spreadsheetId = interaction.options.getString('spreadsheet-id');
 
       // Add command-specific context
-      Sentry.setContext('turbo_prog_update', {
+      scope.setContext('turbo_prog_update', {
         active,
         hasSpreadsheetId: !!spreadsheetId,
         spreadsheetId,

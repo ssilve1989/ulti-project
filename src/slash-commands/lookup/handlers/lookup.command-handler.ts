@@ -37,6 +37,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
   @SentryTraced()
   async execute({ interaction }: LookupCommand): Promise<void> {
     try {
+      const scope = Sentry.getCurrentScope();
       const { options, guildId } = interaction;
 
       const lookupResult = this.getLookupRequest(options);
@@ -53,7 +54,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
       const dto = lookupResult.data;
 
       // Add command-specific context
-      Sentry.setContext('lookup_request', {
+      scope.setContext('lookup_request', {
         character: dto.character,
         world: dto.world,
       });
@@ -65,7 +66,7 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
       );
 
       // Add context about results
-      Sentry.setContext('lookup_results', {
+      scope.setContext('lookup_results', {
         signupCount: results.length,
         worlds: [...new Set(results.map((r) => r.world))],
       });

@@ -21,13 +21,14 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
 
   @SentryTraced()
   async execute({ interaction }: StatusCommand) {
+    const scope = Sentry.getCurrentScope();
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const signups = await this.service.getSignups(interaction.user.id);
 
       // Add context about the results
-      Sentry.setContext('status_results', {
+      scope.setContext('status_results', {
         signupCount: signups.length,
         hasSignups: signups.length > 0,
         encounters: signups.map((s) => s.encounter),

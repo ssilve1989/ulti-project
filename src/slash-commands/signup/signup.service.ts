@@ -127,8 +127,8 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     if (!event.reaction.message.inGuild()) {
       return;
     }
-
-    Sentry.setExtra('message', getMessageLink(event.reaction.message));
+    const scope = Sentry.getCurrentScope();
+    scope.setExtra('message', getMessageLink(event.reaction.message));
 
     try {
       const settings = await this.settingsCollection.getSettings(
@@ -144,7 +144,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         hydrateUser(event.user),
       ]);
 
-      Sentry.setUser({
+      scope.setUser({
         id: user.id,
         username: user.username,
       });
@@ -158,7 +158,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         settings,
       );
 
-      Sentry.setExtra('shouldHandleReaction', shouldHandle);
+      scope.setExtra('shouldHandleReaction', shouldHandle);
 
       if (shouldHandle) {
         await this.handleReaction(reaction, user, settings);
@@ -338,7 +338,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   ): Promise<void> {
     const reply = getErrorReplyMessage(error);
 
-    Sentry.setContext('reply', { reply });
+    Sentry.getCurrentScope().setContext('reply', { reply });
     this.errorService.captureError(error);
 
     // TODO: Improve error reporting to better inform user what happened

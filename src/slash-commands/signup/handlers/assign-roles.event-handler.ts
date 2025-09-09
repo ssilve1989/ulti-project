@@ -58,8 +58,9 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
         .with(PartyStatus.Cleared, P.nullish, () => undefined)
         .exhaustive();
     } catch (error) {
-      Sentry.setExtra('event', event);
-      Sentry.captureException(error);
+      const scope = Sentry.getCurrentScope();
+      scope.setExtra('event', event);
+      scope.captureException(error);
     }
   }
 

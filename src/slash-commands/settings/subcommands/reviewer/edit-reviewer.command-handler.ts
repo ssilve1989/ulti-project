@@ -18,12 +18,13 @@ export class EditReviewerCommandHandler
   @SentryTraced()
   async execute({ interaction }: EditReviewerCommand) {
     try {
+      const scope = Sentry.getCurrentScope();
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const reviewerRole = interaction.options.getRole('reviewer-role', true);
 
       // Add command-specific context
-      Sentry.setContext('reviewer_update', {
+      scope.setContext('reviewer_update', {
         roleId: reviewerRole.id,
         roleName: reviewerRole.name,
       });

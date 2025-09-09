@@ -32,8 +32,9 @@ class SendApprovedMessageEventHandler
     try {
       await this.sendApprovedMessage(event);
     } catch (error) {
-      Sentry.setExtra('event', event);
-      Sentry.captureException(error);
+      const scope = Sentry.getCurrentScope();
+      scope.setExtra('event', event);
+      scope.captureException(error);
     }
   }
 
@@ -53,8 +54,9 @@ class SendApprovedMessageEventHandler
     });
 
     if (!channel) {
-      Sentry.setExtras({ signupChannel, guildId });
-      Sentry.captureMessage('Text Channel not found');
+      const scope = Sentry.getCurrentScope();
+      scope.setExtras({ signupChannel, guildId });
+      scope.captureMessage('Text Channel not found');
       return;
     }
 
@@ -159,13 +161,13 @@ class SendApprovedMessageEventHandler
         emojis.map((emoji) =>
           message.react(emoji).catch((err) => {
             this.logger.warn(err);
-            Sentry.captureException(err);
+            Sentry.getCurrentScope().captureException(err);
           }),
         ),
       );
     } catch (err) {
       this.logger.error(err);
-      Sentry.captureException(err);
+      Sentry.getCurrentScope().captureException(err);
     }
   }
 }

@@ -274,8 +274,9 @@ export class DeclineReasonRequestService {
     error: unknown,
     context: { signup: SignupDocument; reviewer: User },
   ): void {
-    Sentry.setExtra('signup', context.signup);
-    Sentry.setExtra('reviewer', context.reviewer);
-    Sentry.captureException(error);
+    const scope = Sentry.getCurrentScope();
+    scope.setExtra('signup', context.signup);
+    scope.setExtra('reviewer', context.reviewer);
+    scope.captureException(error);
   }
 }

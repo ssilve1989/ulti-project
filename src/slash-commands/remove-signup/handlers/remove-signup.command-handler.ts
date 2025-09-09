@@ -72,7 +72,7 @@ class RemoveSignupCommandHandler
     }
 
     const options = optionsResult.data;
-    Sentry.setExtra('options', options);
+    Sentry.getCurrentScope().setExtra('options', options);
 
     const embed = new EmbedBuilder()
       .setTitle('Remove Signup')
@@ -184,8 +184,9 @@ class RemoveSignupCommandHandler
           );
         }
       } catch (e) {
-        Sentry.setExtra('signup', signup);
-        Sentry.captureException(e);
+        const scope = Sentry.getCurrentScope();
+        scope.setExtra('signup', signup);
+        scope.captureException(e);
       }
     }
 

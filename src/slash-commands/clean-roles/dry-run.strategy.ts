@@ -95,7 +95,7 @@ export class DryRunStrategy implements ProcessingStrategy<DryRunRoleResult> {
         `Failed to process member ${member.displayName} (${member.id}) for role ${role.name}:`,
         error,
       );
-      Sentry.captureException(error);
+      Sentry.getCurrentScope().captureException(error);
     }
   }
 }

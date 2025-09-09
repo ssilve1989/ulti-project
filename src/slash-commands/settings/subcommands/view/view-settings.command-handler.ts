@@ -46,6 +46,7 @@ class ViewSettingsCommandHandler
 
   @SentryTraced()
   async execute({ interaction }: ViewSettingsCommand): Promise<void> {
+    const scope = Sentry.getCurrentScope();
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -59,7 +60,7 @@ class ViewSettingsCommandHandler
       }
 
       // Add context about the retrieved settings
-      Sentry.setContext('settings_data', {
+      scope.setContext('settings_data', {
         hasSpreadsheet: !!settings.spreadsheetId,
         hasTurboProgSpreadsheet: !!settings.turboProgSpreadsheetId,
         turboProgActive: settings.turboProgActive,
