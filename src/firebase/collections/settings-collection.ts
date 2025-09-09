@@ -1,5 +1,4 @@
-import { CACHE_MANAGER, type Cache } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import { CollectionReference, Firestore } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
@@ -9,11 +8,9 @@ import type { SettingsDocument } from '../models/settings.model.js';
 class SettingsCollection {
   private readonly collection: CollectionReference<SettingsDocument>;
   private readonly logger = new Logger(SettingsCollection.name);
+  private readonly cache = new Map<string, unknown>();
 
-  constructor(
-    @InjectFirestore() firestore: Firestore,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {
+  constructor(@InjectFirestore() firestore: Firestore) {
     this.collection = firestore.collection(
       'settings',
     ) as CollectionReference<SettingsDocument>;
@@ -49,7 +46,7 @@ class SettingsCollection {
   @SentryTraced()
   public async getSettings(guildId: string) {
     const key = this.cacheKey(guildId);
-    const cachedValue = await this.cacheManager.get<SettingsDocument>(key);
+    const cachedValue = this.cache.get(key) as SettingsDocument | undefined;
 
     if (cachedValue) {
       return Promise.resolve(cachedValue);
@@ -57,7 +54,7 @@ class SettingsCollection {
 
     const doc = await this.collection.doc(guildId).get();
 
-    await this.cacheManager.set(key, doc.data());
+    this.cache.set(key, doc.data());
 
     return doc.data();
   }
@@ -72,11 +69,11 @@ class SettingsCollection {
     const key = this.cacheKey(guildId);
     try {
       const settings = await this.collection.doc(guildId).get();
-      await this.cacheManager.set(key, settings.data());
+      this.cache.set(key, settings.data());
     } catch (e: unknown) {
       this.logger.warn(`failed to update cache: invalidating key ${key}`);
       this.logger.error(e);
-      await this.cacheManager.del(this.cacheKey(guildId));
+      this.cache.delete(this.cacheKey(guildId));
     }
   }
 

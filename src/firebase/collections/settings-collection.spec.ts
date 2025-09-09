@@ -1,7 +1,5 @@
 import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test } from '@nestjs/testing';
-import type { Cache } from 'cache-manager';
 import { Firestore } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { FIRESTORE } from '../firebase.consts.js';
@@ -12,7 +10,6 @@ describe.each([{ cache: true }, { cache: false }])(
   ({ cache }) => {
     let service: SettingsCollection;
     let firestore: DeepMocked<Firestore>;
-    let cacheManager: DeepMocked<Cache>;
     const guildId = 'guildId';
 
     beforeEach(async () => {
@@ -26,8 +23,10 @@ describe.each([{ cache: true }, { cache: false }])(
 
       service = module.get<SettingsCollection>(SettingsCollection);
       firestore = module.get(FIRESTORE);
-      cacheManager = module.get<DeepMocked<Cache>>(CACHE_MANAGER);
-      cacheManager.get.mockResolvedValueOnce(cache ? {} : undefined);
+      // Mock the cache behavior by setting up service internal cache
+      if (cache) {
+        (service as any).cache.set('settings:guildId', {});
+      }
     });
 
     it('should call upsert with with correct arguments', async () => {

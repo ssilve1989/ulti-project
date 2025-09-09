@@ -1,4 +1,3 @@
-import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { type App, cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -12,7 +11,6 @@ import { SignupCollection } from './collections/signup.collection.js';
 import { FIREBASE_APP, FIRESTORE } from './firebase.consts.js';
 
 @Module({
-  imports: [CacheModule.register({ ttl: 0 })],
   providers: [
     {
       provide: FIREBASE_APP,
