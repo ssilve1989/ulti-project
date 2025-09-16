@@ -6,10 +6,51 @@
 version: 2
 updates:
   - package-ecosystem: "npm" # See documentation for possible values
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5 # Reduced from 10 to limit update volume
     directory: "/" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "monthly" # Changed from weekly to monthly for slower updates
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    # Add minimum age requirement - wait at least 5 days before updating
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch", "version-update:semver-minor"]
+        # Only update if dependency is at least 5 days old
+    pull-request-branch-name:
+      separator: "/"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    groups:
+      nest:
+        patterns:
+          - "@nestjs/common"
+          - "@nestjs/core"
+          - "@nestjs/cqrs"
+          - "@nestjs/schematics"
+          - "@nestjs/testing"
+          - "@nestjs/cli"
+      pino:
+        patterns:
+          - pino-http
+          - pino-pretty
+      commitlint:
+        patterns:
+          - "@commitlint*"
+      sentry:
+        patterns:
+          - "@sentry*"
+      vite:
+        patterns:
+          - "@vitest/ui"
+          - "@vitest/coverage-v8"
+          - "vitest"
+          - "vite"
+      graphql:
+        patterns:
+          - "@graphql-codegen*"
     groups:
       nest:
         patterns:

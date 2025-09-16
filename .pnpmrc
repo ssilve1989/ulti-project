@@ -1,0 +1,20 @@
+# pnpm configuration for dependency age management
+# Registry and caching settings to control dependency freshness
+registry=https://registry.npmjs.org/
+
+# Use exact versions by default to avoid automatic updates
+save-exact=true
+
+# Disable auto-install on peer dependencies to maintain control
+auto-install-peers=false
+
+# Enable strict peer dependencies to ensure version consistency
+strict-peer-dependencies=true
+
+# Cache settings - longer cache times help avoid very fresh packages
+fetch-retries=3
+fetch-retry-mintimeout=10000
+fetch-retry-maxtimeout=60000
+
+# Store directory for better cache control
+# store-dir=~/.pnpm-store

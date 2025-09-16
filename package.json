@@ -14,6 +14,7 @@
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json",
     "check": "biome check src",
+    "check-deps-age": "node scripts/check-dependency-age.js",
     "commit": "git-cz",
     "commitlint": "commitlint --edit",
     "docker:build": "docker build . -t ulti-project-bot:latest",
@@ -100,6 +101,9 @@
     ],
     "ignoredBuiltDependencies": [
       "protobufjs"
-    ]
+    ],
+    "updateConfig": {
+      "ignoreDependencies": []
+    }
   }
 }
