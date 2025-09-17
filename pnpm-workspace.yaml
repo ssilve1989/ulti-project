@@ -1,0 +1,7 @@
+packages:
+  # Include the root package as a workspace
+  - '.'
+
+# Minimum release age configuration
+# Packages must be at least 5 days old before they can be installed
+minimumReleaseAge: 432000000  # 5 days in milliseconds (5 * 24 * 60 * 60 * 1000)
