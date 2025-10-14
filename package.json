@@ -78,7 +78,7 @@
     "hygen": "^6.2.11",
     "rimraf": "^6.0.1",
     "source-map-support": "^0.5.21",
-    "typescript": "^5.9.2",
+    "typescript": "^5.9.3",
     "unplugin-swc": "^1.5.7",
     "vitest": "^3.2.4"
   },
