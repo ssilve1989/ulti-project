@@ -9,9 +9,9 @@ jobs:
     #   matrix:
     #     os: [macos-latest, ubuntu-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4.1.0
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
         with:
           # File containing the version Spec of the version to use.  Examples: .nvmrc, .node-version, .tool-versions.
           # If node-version and node-version-file are both provided the action will use version from node-version.
@@ -23,14 +23,14 @@ jobs:
           cache: "pnpm"
       - run: pnpm install
       - run: pnpm graphql:codegen
-        env: 
+        env:
           FFLOGS_API_ACCESS_TOKEN: ${{ secrets.FFLOGS_API_ACCESS_TOKEN }}
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm lint:ci
       - run: pnpm test:ci
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5.4.3
+        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
         with:
           files: ./coverage/coverage-final.json
         env:
