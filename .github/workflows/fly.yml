@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: deploy-group # optional: ensure only one action runs at a time
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4.1.0
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
         with:
-          node-version-file: '.nvmrc'
-          cache: 'pnpm'
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - uses: superfly/flyctl-actions@1.5
       # build and upload sourcemaps before we deploy this image
       - run: pnpm install
       - run: pnpm build
@@ -34,12 +34,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout private action repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
           repository: ssilve1989/github-releases-to-discord-action
           token: ${{ secrets.DISCORD_RELEASES_TOKEN }}
-      - uses: pnpm/action-setup@v4.1.0
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
