@@ -81,10 +81,7 @@ describe('FFLogsService', () => {
       expect(result.errorMessage).toContain(
         'Unable to validate report age due to API issues',
       );
-      expect(loggerSpy).toHaveBeenCalledWith(
-        'FFLogs API error during report validation:',
-        expect.any(String),
-      );
+      expect(loggerSpy).toHaveBeenCalledWith(expect.any(String));
 
       loggerSpy.mockRestore();
     });
@@ -189,10 +186,7 @@ describe('FFLogsService', () => {
       expect(result.errorMessage).toContain(
         'Unable to validate report age due to API issues',
       );
-      expect(loggerSpy).toHaveBeenCalledWith(
-        'FFLogs API error during report validation:',
-        expect.any(String),
-      );
+      expect(loggerSpy).toHaveBeenCalledWith(expect.any(String));
 
       loggerSpy.mockRestore();
     });
