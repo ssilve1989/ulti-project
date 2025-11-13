@@ -31,7 +31,8 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
           version: 'v4',
           auth,
           http2: sheetsConfig.GOOGLE_APIS_HTTP2,
-          timeout: 10_000,
+          timeout: 20_000,
+          retry: true,
         });
       },
     },
