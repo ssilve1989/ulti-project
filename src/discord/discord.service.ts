@@ -40,7 +40,7 @@ class DiscordService {
     } catch (error) {
       // Unknown Member error
       if (error instanceof DiscordAPIError && error.code === 10007) {
-        Sentry.captureMessage(error.message, 'debug');
+        this.logger.log(`member ${memberId} not found in guild ${guildId}`);
         return undefined;
       }
       throw error;
