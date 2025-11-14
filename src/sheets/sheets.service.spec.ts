@@ -1,6 +1,6 @@
 import { sheets, sheets_v4 } from '@googleapis/sheets';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Encounter } from '../encounters/encounters.consts.js';
 import { EncountersService } from '../encounters/encounters.service.js';
 import { ErrorService } from '../error/error.service.js';
@@ -183,6 +183,10 @@ describe('Sheets Service', () => {
   });
 
   describe('#removeTurboProgEntry', () => {
+    afterEach(() => {
+      vi.resetAllMocks();
+    });
+
     it('should skip if encounter does not support TurboProg', async () => {
       // Mock an encounter that doesn't have a range defined
       const mockEncounter = 'UNSUPPORTED' as Encounter;
