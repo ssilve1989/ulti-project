@@ -17,7 +17,7 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
-      - uses: superfly/flyctl-actions@1.5
+      - uses: superfly/flyctl-actions/setup-flyctl@master
       # build and upload sourcemaps before we deploy this image
       - run: pnpm install
       - run: pnpm build
