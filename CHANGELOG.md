@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.40.2](https://github.com/ssilve1989/ulti-project/compare/v1.40.1...v1.40.2) (2025-11-14)
+
+
+### Bug Fixes
+
+* suppress Unknown Member from occurring in Sentry ([a7982dc](https://github.com/ssilve1989/ulti-project/commit/a7982dce2aa183e0d56d9f86c5601028a8caca67))
+
 ## [1.40.1](https://github.com/ssilve1989/ulti-project/compare/v1.40.0...v1.40.1) (2025-08-13)
 
 
