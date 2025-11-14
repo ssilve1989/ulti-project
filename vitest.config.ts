@@ -15,11 +15,6 @@ export default defineConfig({
       provider: 'v8',
     },
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
     setupFiles: ['test/setup.ts'],
   },
   plugins: [
