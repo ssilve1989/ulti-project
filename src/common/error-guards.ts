@@ -11,7 +11,7 @@ export function getErrorMessage(error: unknown): string {
   if (error instanceof ClientError) {
     return (
       error.response.errors?.map((error) => error.message).join(', ') ??
-      'Unknown GraphQL Client Error'
+      `FFLogs GraphQL Client Error: ${error.response.status}`
     );
   }
 
