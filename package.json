@@ -44,7 +44,7 @@
     "cron": "^4.3.4",
     "dayjs": "^1.11.19",
     "discord.js": "^14.23.2",
-    "firebase-admin": "^13.5.0",
+    "firebase-admin": "^13.6.0",
     "google-auth-library": "^10.5.0",
     "graphql-request": "^7.3.1",
     "nestjs-pino": "^4.4.1",
