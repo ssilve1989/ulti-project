@@ -41,7 +41,7 @@
     "@sentry/cli": "^2.57.0",
     "@sentry/nestjs": "^10.22.0",
     "@sentry/profiling-node": "^10.22.0",
-    "cron": "^4.3.3",
+    "cron": "^4.3.4",
     "dayjs": "^1.11.19",
     "discord.js": "^14.23.2",
     "firebase-admin": "^13.5.0",
