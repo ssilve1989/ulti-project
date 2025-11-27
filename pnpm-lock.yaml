@@ -3530,8 +3530,8 @@ packages:
   jws@4.0.0:
     resolution: {integrity: sha512-KDncfTmOZoOMTFG4mBlG0qUIOlc03fmzH+ru6RgYVZhPkyiy/92Owlt/8UEN+a4TXR1FQetfIpJE8ApdvdVxTg==}
 
-  libphonenumber-js@1.12.28:
-    resolution: {integrity: sha512-sDB+nY8l1d2SHC0TnBat4uovsx1EjrkesK9U8Arl2/LQluXn3OQczwqr2M/1V2Lo0ajnaY/nZjvacg6vmbqWUQ==}
+  libphonenumber-js@1.12.29:
+    resolution: {integrity: sha512-P2aLrbeqHbmh8+9P35LXQfXOKc7XJ0ymUKl7tyeyQjdRNfzunXWxQXGc4yl3fUf28fqLRfPY+vIVvFXK7KEBTw==}
 
   limiter@1.1.5:
     resolution: {integrity: sha512-FWWMIEOxz3GwUI4Ts/IvgVy6LPvoMPgjMdQ185nN6psJyBJ4yOpzqm695/h5umdLJg2vW3GR5iG11MAkR2AzJA==}
@@ -7674,7 +7674,7 @@ snapshots:
   class-validator@0.14.1:
     dependencies:
       '@types/validator': 13.15.10
-      libphonenumber-js: 1.12.28
+      libphonenumber-js: 1.12.29
       validator: 13.15.23
     optional: true
 
@@ -8904,7 +8904,7 @@ snapshots:
       jwa: 2.0.1
       safe-buffer: 5.2.1
 
-  libphonenumber-js@1.12.28:
+  libphonenumber-js@1.12.29:
     optional: true
 
   limiter@1.1.5: {}
