@@ -115,63 +115,63 @@ describe('Signup Command Handler', () => {
     );
   });
 
-  it.each([SignupStatus.PENDING, SignupStatus.UPDATE_PENDING])(
-    'deletes a prior review message on confirm if it exists and has status %s',
-    async (status) => {
-      confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
-        createMock<ChannelSelectMenuInteraction>({
-          customId: 'confirm',
-          valueOf: () => '',
-          guildId: 'g123',
-        }),
-      );
+  it.each([
+    SignupStatus.PENDING,
+    SignupStatus.UPDATE_PENDING,
+  ])('deletes a prior review message on confirm if it exists and has status %s', async (status) => {
+    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
+      createMock<ChannelSelectMenuInteraction>({
+        customId: 'confirm',
+        valueOf: () => '',
+        guildId: 'g123',
+      }),
+    );
 
-      interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
-      signupCollectionMock.upsert.mockResolvedValueOnce(
-        createMock<SignupDocument>({
-          status,
-          reviewMessageId: 'messageId123',
-        }),
-      );
+    interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
+    signupCollectionMock.upsert.mockResolvedValueOnce(
+      createMock<SignupDocument>({
+        status,
+        reviewMessageId: 'messageId123',
+      }),
+    );
 
-      const command = new SignupCommand(interaction);
-      await handler.execute(command);
+    const command = new SignupCommand(interaction);
+    await handler.execute(command);
 
-      expect(discordServiceMock.deleteMessage).toHaveBeenCalled();
+    expect(discordServiceMock.deleteMessage).toHaveBeenCalled();
 
-      expect(interaction.editReply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED,
-        }),
-      );
-    },
-  );
+    expect(interaction.editReply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED,
+      }),
+    );
+  });
 
-  it.each([SignupStatus.APPROVED, SignupStatus.DECLINED])(
-    'does not call delete if the prior approval has status %s',
-    async (status) => {
-      confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
-        createMock<ChannelSelectMenuInteraction>({
-          customId: 'confirm',
-          valueOf: () => '',
-          guildId: 'g123',
-        }),
-      );
+  it.each([
+    SignupStatus.APPROVED,
+    SignupStatus.DECLINED,
+  ])('does not call delete if the prior approval has status %s', async (status) => {
+    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
+      createMock<ChannelSelectMenuInteraction>({
+        customId: 'confirm',
+        valueOf: () => '',
+        guildId: 'g123',
+      }),
+    );
 
-      interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
-      signupCollectionMock.upsert.mockResolvedValueOnce(
-        createMock<SignupDocument>({
-          status,
-          reviewMessageId: 'messageId123',
-        }),
-      );
+    interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
+    signupCollectionMock.upsert.mockResolvedValueOnce(
+      createMock<SignupDocument>({
+        status,
+        reviewMessageId: 'messageId123',
+      }),
+    );
 
-      const command = new SignupCommand(interaction);
-      await handler.execute(command);
+    const command = new SignupCommand(interaction);
+    await handler.execute(command);
 
-      expect(discordServiceMock.deleteMessage).not.toHaveBeenCalled();
-    },
-  );
+    expect(discordServiceMock.deleteMessage).not.toHaveBeenCalled();
+  });
 
   it('handles UnhandledButtonInteractionException with ErrorService', async () => {
     const mockErrorEmbed = createMock<EmbedBuilder>();
