@@ -35,6 +35,7 @@ export type ArchonViewModels = {
   readonly buildsSpecPageSlugs: Maybe<Scalars['JSON']['output']>;
   readonly buildsZonePage: Maybe<Scalars['JSON']['output']>;
   readonly buildsZonePageSlugs: Maybe<Scalars['JSON']['output']>;
+  readonly characterIndexPage: Maybe<Scalars['JSON']['output']>;
   readonly characterPage: Maybe<Scalars['JSON']['output']>;
   readonly characterPageContent: Maybe<Scalars['JSON']['output']>;
   readonly cmsNavigation: Maybe<Scalars['JSON']['output']>;
@@ -112,6 +113,12 @@ export type ArchonViewModelsBuildsZonePageArgs = {
 };
 
 
+export type ArchonViewModelsCharacterIndexPageArgs = {
+  gameSlug: Scalars['String']['input'];
+  userId: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type ArchonViewModelsCharacterPageArgs = {
   categorySlug: Scalars['String']['input'];
   characterSlug: Scalars['String']['input'];
@@ -125,6 +132,7 @@ export type ArchonViewModelsCharacterPageContentArgs = {
   categorySlug: Scalars['String']['input'];
   characterSlug: Scalars['String']['input'];
   gameSlug: Scalars['String']['input'];
+  sectionComponentNames: ReadonlyArray<Scalars['String']['input']>;
   userId: InputMaybe<Scalars['Int']['input']>;
   zoneSlug: InputMaybe<Scalars['String']['input']>;
 };
@@ -283,7 +291,7 @@ export type CharacterZoneRankingsArgs = {
   compare?: InputMaybe<RankingCompareType>;
   difficulty?: InputMaybe<Scalars['Int']['input']>;
   includePrivateLogs?: InputMaybe<Scalars['Boolean']['input']>;
-  metric?: InputMaybe<CharacterRankingMetricType>;
+  metric?: InputMaybe<CharacterPageRankingMetricType>;
   partition?: InputMaybe<Scalars['Int']['input']>;
   role?: InputMaybe<RoleType>;
   size?: InputMaybe<Scalars['Int']['input']>;
@@ -319,6 +327,77 @@ export type CharacterDataCharactersArgs = {
   page?: InputMaybe<Scalars['Int']['input']>;
 };
 
+/** All character ranking metrics, plus combined metrics for points and damage/healing that are displayed on character pages. */
+export const CharacterPageRankingMetricType = {
+  /** Boss cDPS is unique to FFXIV and is damage done to the boss adjusted for raid-contributing buffs and debuffs. */
+  Bosscdps: 'bosscdps',
+  /** Boss damage per second. */
+  Bossdps: 'bossdps',
+  /** Boss nDPS is unique to FFXIV and is damage done to the boss adjusted for raid-contributing buffs and debuffs. */
+  Bossndps: 'bossndps',
+  /** Boss rDPS is unique to FFXIV and is damage done to the boss adjusted for raid-contributing buffs and debuffs. */
+  Bossrdps: 'bossrdps',
+  /** cDPS is unique to FFXIV and is damage done adjusted for raid-contributing buffs and debuffs. */
+  Cdps: 'cdps',
+  /** Choose an appropriate default depending on the other selected parameters. */
+  Default: 'default',
+  /** Damage per second. */
+  Dps: 'dps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content. */
+  Healercombinedbosscdps: 'healercombinedbosscdps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content. */
+  Healercombinedbossdps: 'healercombinedbossdps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content. */
+  Healercombinedbossndps: 'healercombinedbossndps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content. */
+  Healercombinedbossrdps: 'healercombinedbossrdps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content. */
+  Healercombinedcdps: 'healercombinedcdps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content. */
+  Healercombineddps: 'healercombineddps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content. */
+  Healercombinedndps: 'healercombinedndps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content. */
+  Healercombinedrdps: 'healercombinedrdps',
+  /** Healing per second. */
+  Hps: 'hps',
+  /** Survivability ranking for tanks. Deprecated. Only supported for some older WoW zones. */
+  Krsi: 'krsi',
+  /** nDPS is unique to FFXIV and is damage done adjusted for raid-contributing buffs and debuffs. */
+  Ndps: 'ndps',
+  /** Score. Used by WoW Mythic dungeons and by ESO trials. */
+  Playerscore: 'playerscore',
+  /** Speed. Not supported by every zone. */
+  Playerspeed: 'playerspeed',
+  /** Combined score and damage. Used by WoW Mythic+ and Fellowship. Returns score rankings plus an additional throughputRankings field with damage data filtered by key and item level. */
+  PointsAndDamage: 'points_and_damage',
+  /** Combined score and healing. Used by WoW Mythic+ and Fellowship. Returns score rankings plus an additional throughputRankings field with healing data filtered by key and item level. */
+  PointsAndHealing: 'points_and_healing',
+  /** rDPS is unique to FFXIV and is damage done adjusted for raid-contributing buffs and debuffs. */
+  Rdps: 'rdps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content. */
+  Tankcombinedbosscdps: 'tankcombinedbosscdps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content. */
+  Tankcombinedbossdps: 'tankcombinedbossdps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content. */
+  Tankcombinedbossndps: 'tankcombinedbossndps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content. */
+  Tankcombinedbossrdps: 'tankcombinedbossrdps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content. */
+  Tankcombinedcdps: 'tankcombinedcdps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content. */
+  Tankcombineddps: 'tankcombineddps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content. */
+  Tankcombinedndps: 'tankcombinedndps',
+  /** Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content. */
+  Tankcombinedrdps: 'tankcombinedrdps',
+  /** Healing done per second to tanks. */
+  Tankhps: 'tankhps',
+  /** Weighted damage per second. Unique to WoW currently. Used to remove pad damage and reward damage done to high priority targets. */
+  Wdps: 'wdps'
+} as const;
+
+export type CharacterPageRankingMetricType = typeof CharacterPageRankingMetricType[keyof typeof CharacterPageRankingMetricType];
 export type CharacterPagination = {
   readonly __typename: 'CharacterPagination';
   /** Current page of the cursor */
