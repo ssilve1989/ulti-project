@@ -233,8 +233,9 @@ type ArchonViewModels {
   buildsSpecPageSlugs: JSON
   buildsZonePage(affixesSlug: String, difficultySlug: String, encounterSlug: String, gameSlug: String, rankingsSlug: String, zoneTypeSlug: String): JSON
   buildsZonePageSlugs: JSON
+  characterIndexPage(gameSlug: String!, userId: Int): JSON
   characterPage(categorySlug: String!, characterSlug: String!, gameSlug: String!, userId: Int, zoneSlug: String): JSON
-  characterPageContent(categorySlug: String!, characterSlug: String!, gameSlug: String!, userId: Int, zoneSlug: String): JSON
+  characterPageContent(categorySlug: String!, characterSlug: String!, gameSlug: String!, sectionComponentNames: [String!]!, userId: Int, zoneSlug: String): JSON
   cmsNavigation(currentSlug: String): JSON
   contactPage: JSON
   fightPage(categorySlug: String!, cutoffSlug: Int, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, reportSlug: String!, throughputSlug: String, userId: Int): JSON
@@ -421,7 +422,7 @@ type Character {
     """
     Optional. You can filter to a specific character metric like dps or hps. If omitted, an appropriate default metric for the zone will be chosen.
     """
-    metric: CharacterRankingMetricType = default
+    metric: CharacterPageRankingMetricType = default
     """
     Optional. Whether or not to filter the rankings to a specific partition. By default, the latest partition is chosen. A special value of -1 can be passed to fetch data from all partitions.
     """
@@ -489,6 +490,132 @@ type CharacterData {
     """
     page: Int = 1
   ): CharacterPagination
+}
+
+"""
+All character ranking metrics, plus combined metrics for points and damage/healing that are displayed on character pages.
+"""
+enum CharacterPageRankingMetricType {
+  """
+  Boss cDPS is unique to FFXIV and is damage done to the boss adjusted for raid-contributing buffs and debuffs.
+  """
+  bosscdps
+  """Boss damage per second."""
+  bossdps
+  """
+  Boss nDPS is unique to FFXIV and is damage done to the boss adjusted for raid-contributing buffs and debuffs.
+  """
+  bossndps
+  """
+  Boss rDPS is unique to FFXIV and is damage done to the boss adjusted for raid-contributing buffs and debuffs.
+  """
+  bossrdps
+  """
+  cDPS is unique to FFXIV and is damage done adjusted for raid-contributing buffs and debuffs.
+  """
+  cdps
+  """
+  Choose an appropriate default depending on the other selected parameters.
+  """
+  default
+  """Damage per second."""
+  dps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content.
+  """
+  healercombinedbosscdps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content.
+  """
+  healercombinedbossdps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content.
+  """
+  healercombinedbossndps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content.
+  """
+  healercombinedbossrdps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content.
+  """
+  healercombinedcdps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content.
+  """
+  healercombineddps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content.
+  """
+  healercombinedndps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of healers in eight player content.
+  """
+  healercombinedrdps
+  """Healing per second."""
+  hps
+  """
+  Survivability ranking for tanks. Deprecated. Only supported for some older WoW zones.
+  """
+  krsi
+  """
+  nDPS is unique to FFXIV and is damage done adjusted for raid-contributing buffs and debuffs.
+  """
+  ndps
+  """Score. Used by WoW Mythic dungeons and by ESO trials."""
+  playerscore
+  """Speed. Not supported by every zone."""
+  playerspeed
+  """
+  Combined score and damage. Used by WoW Mythic+ and Fellowship. Returns score rankings plus an additional throughputRankings field with damage data filtered by key and item level.
+  """
+  points_and_damage
+  """
+  Combined score and healing. Used by WoW Mythic+ and Fellowship. Returns score rankings plus an additional throughputRankings field with healing data filtered by key and item level.
+  """
+  points_and_healing
+  """
+  rDPS is unique to FFXIV and is damage done adjusted for raid-contributing buffs and debuffs.
+  """
+  rdps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content.
+  """
+  tankcombinedbosscdps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content.
+  """
+  tankcombinedbossdps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content.
+  """
+  tankcombinedbossndps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content.
+  """
+  tankcombinedbossrdps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content.
+  """
+  tankcombinedcdps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content.
+  """
+  tankcombineddps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content.
+  """
+  tankcombinedndps
+  """
+  Unique to FFXIV. Represents the combined ranking for a pair of tanks in eight player content.
+  """
+  tankcombinedrdps
+  """Healing done per second to tanks."""
+  tankhps
+  """
+  Weighted damage per second. Unique to WoW currently. Used to remove pad damage and reward damage done to high priority targets.
+  """
+  wdps
 }
 
 type CharacterPagination {
