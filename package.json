@@ -43,7 +43,7 @@
     "@sentry/profiling-node": "^10.27.0",
     "cron": "^4.3.5",
     "dayjs": "^1.11.19",
-    "discord.js": "^14.24.2",
+    "discord.js": "^14.25.1",
     "firebase-admin": "^13.6.0",
     "google-auth-library": "^10.5.0",
     "graphql-request": "^7.3.4",
