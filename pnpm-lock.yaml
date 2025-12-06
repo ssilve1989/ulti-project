@@ -33,8 +33,8 @@ importers:
         specifier: ^10.27.0
         version: 10.27.0
       cron:
-        specifier: ^4.3.4
-        version: 4.3.4
+        specifier: ^4.3.5
+        version: 4.3.5
       dayjs:
         specifier: ^1.11.19
         version: 1.11.19
@@ -2623,8 +2623,8 @@ packages:
       typescript:
         optional: true
 
-  cron@4.3.4:
-    resolution: {integrity: sha512-OiO0l73MGhQOZQCjYZ0v7r8yFWpBOWteemwR1RIxiHtfVsIOwiTJZDvg7GmKzggkwC0RO8tI3P1QYBUCIZNYRQ==}
+  cron@4.3.5:
+    resolution: {integrity: sha512-hKPP7fq1+OfyCqoePkKfVq7tNAdFwiQORr4lZUHwrf0tebC65fYEeWgOrXOL6prn1/fegGOdTfrM6e34PJfksg==}
     engines: {node: '>=18.x'}
 
   cross-fetch@3.2.0:
@@ -7785,7 +7785,7 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
-  cron@4.3.4:
+  cron@4.3.5:
     dependencies:
       '@types/luxon': 3.7.1
       luxon: 3.7.2
