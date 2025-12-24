@@ -1337,7 +1337,7 @@ export class ManageProgPointsCommandHandler
     if (!this.pendingAddOperation || !this.currentEncounter) return;
 
     await this.safelyDeferUpdate(interaction);
-    const selectedPosition = Number.parseInt(interaction.values[0]);
+    const selectedPosition = Number.parseInt(interaction.values[0], 10);
 
     // Store the position for later use and show party status selection
     await this.showPartyStatusSelect(
@@ -1525,7 +1525,7 @@ export class ManageProgPointsCommandHandler
     if (!this.pendingReorderOperation || !this.currentEncounter) return;
 
     await this.safelyDeferUpdate(interaction);
-    const newPosition = Number.parseInt(interaction.values[0]);
+    const newPosition = Number.parseInt(interaction.values[0], 10);
     const { progPointToMove, sortedProgPoints } = this.pendingReorderOperation;
 
     const currentPosition = sortedProgPoints.findIndex(
