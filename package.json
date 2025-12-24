@@ -12,7 +12,7 @@
     "node": ">=22.x"
   },
   "scripts": {
-    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "build": "rimraf dist && tsgo -p tsconfig.build.json",
     "check": "biome check src",
     "commit": "git-cz",
     "commitlint": "commitlint --edit",
@@ -29,7 +29,7 @@
     "test:ci": "CI=true vitest run --coverage",
     "test:cov": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org ulti-project --project ulti-project-bot ./dist && sentry-cli sourcemaps upload --org ulti-project --project ulti-project-bot ./dist"
   },
   "dependencies": {
@@ -71,6 +71,7 @@
     "@nestjs/schematics": "^11.0.9",
     "@nestjs/testing": "^11.1.9",
     "@types/node": "^24.10.1",
+    "@typescript/native-preview": "7.0.0-dev.20251219.1",
     "@vitest/coverage-v8": "^4.0.15",
     "@vitest/ui": "^4.0.15",
     "commitizen": "^4.3.1",
@@ -78,7 +79,6 @@
     "hygen": "^6.2.11",
     "rimraf": "^6.1.2",
     "source-map-support": "^0.5.21",
-    "typescript": "^5.9.3",
     "unplugin-swc": "^1.5.9",
     "vitest": "^4.0.15"
   },
