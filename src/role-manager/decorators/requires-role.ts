@@ -25,9 +25,10 @@ export function RequiresRole(
   roleKey: string,
   { disallowAdmin = false }: Options = {},
 ) {
-  // biome-ignore lint/suspicious/noExplicitAny: decorator
   return <
-    T extends { new (...args: any[]): ICommandHandler<CommandWithInteraction> },
+    T extends {
+      new (...args: unknown[]): ICommandHandler<CommandWithInteraction>;
+    },
   >(
     target: T,
   ) => {
