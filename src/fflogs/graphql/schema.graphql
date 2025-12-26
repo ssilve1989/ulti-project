@@ -233,7 +233,7 @@ type ArchonViewModels {
   buildsSpecPageSlugs: JSON
   buildsZonePage(affixesSlug: String, difficultySlug: String, encounterSlug: String, gameSlug: String, rankingsSlug: String, zoneTypeSlug: String): JSON
   buildsZonePageSlugs: JSON
-  characterIndexPage(gameSlug: String!, userId: Int): JSON
+  characterIndexPage(gameSlug: String!, searchTerm: String = null, userId: Int): JSON
   characterPage(categorySlug: String!, characterSlug: String!, gameSlug: String!, userId: Int, zoneSlug: String): JSON
   characterPageContent(categorySlug: String!, characterSlug: String!, gameSlug: String!, sectionComponentNames: [String!]!, userId: Int, zoneSlug: String): JSON
   cmsNavigation(currentSlug: String): JSON
@@ -241,7 +241,7 @@ type ArchonViewModels {
   fightPage(categorySlug: String!, cutoffSlug: Int, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, reportSlug: String!, throughputSlug: String, userId: Int): JSON
   fightPageContent(categorySlug: String!, cutoffSlug: Int, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, reportSlug: String!, sectionComponentNames: [String!]!, throughputSlug: String, userId: Int): JSON
   footer: JSON
-  game: JSON
+  game(buildsZoneTypeSlug: String = null): JSON
   gamePage: JSON
   gameSlugs: JSON
   googleAnalytics: JSON
@@ -1848,7 +1848,7 @@ type Report {
     """
     Optional. How many events to retrieve. Allowed value ranges are 100-10000. The default value is 300.
     """
-    limit: Int = 300
+    limit: Int = 10000
     """
     A comma-separated list of auras that must be absent on the source for the event to be included.
     """
