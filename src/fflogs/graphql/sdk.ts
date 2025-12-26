@@ -115,6 +115,7 @@ export type ArchonViewModelsBuildsZonePageArgs = {
 
 export type ArchonViewModelsCharacterIndexPageArgs = {
   gameSlug: Scalars['String']['input'];
+  searchTerm?: InputMaybe<Scalars['String']['input']>;
   userId: InputMaybe<Scalars['Int']['input']>;
 };
 
@@ -169,6 +170,11 @@ export type ArchonViewModelsFightPageContentArgs = {
   sectionComponentNames: ReadonlyArray<Scalars['String']['input']>;
   throughputSlug: InputMaybe<Scalars['String']['input']>;
   userId: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ArchonViewModelsGameArgs = {
+  buildsZoneTypeSlug?: InputMaybe<Scalars['String']['input']>;
 };
 
 
