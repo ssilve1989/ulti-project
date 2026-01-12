@@ -233,13 +233,14 @@ type ArchonViewModels {
   buildsSpecPageSlugs: JSON
   buildsZonePage(affixesSlug: String, difficultySlug: String, encounterSlug: String, gameSlug: String, rankingsSlug: String, zoneTypeSlug: String): JSON
   buildsZonePageSlugs: JSON
+  characterCustomizationOptions(characterSlug: String!, userId: Int): JSON
   characterIndexPage(gameSlug: String!, searchTerm: String = null, userId: Int): JSON
-  characterPage(categorySlug: String!, characterSlug: String!, gameSlug: String!, userId: Int, zoneSlug: String): JSON
-  characterPageContent(categorySlug: String!, characterSlug: String!, gameSlug: String!, sectionComponentNames: [String!]!, userId: Int, zoneSlug: String): JSON
+  characterPage(byBracketSlug: String, categorySlug: String!, characterSlug: String!, difficultySlug: String, gameSlug: String!, metricSlug: String, partitionSlug: String, sizeSlug: String, specSlug: String, userId: Int): JSON
+  characterPageContent(byBracketSlug: String, categorySlug: String!, characterSlug: String!, difficultySlug: String, gameSlug: String!, metricSlug: String, partitionSlug: String, sectionComponentNames: [String!]!, sizeSlug: String, specSlug: String, userId: Int): JSON
   cmsNavigation(currentSlug: String): JSON
   contactPage: JSON
-  fightPage(categorySlug: String!, cutoffSlug: Int, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, reportSlug: String!, throughputSlug: String, userId: Int): JSON
-  fightPageContent(categorySlug: String!, cutoffSlug: Int, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, reportSlug: String!, sectionComponentNames: [String!]!, throughputSlug: String, userId: Int): JSON
+  fightPage(categorySlug: String!, cutoffSlug: Int, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, pullSlug: String, reportSlug: String!, throughputSlug: String, userId: Int): JSON
+  fightPageContent(categorySlug: String!, cutoffSlug: Int, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, pullSlug: String, reportSlug: String!, sectionComponentNames: [String!]!, throughputSlug: String, userId: Int): JSON
   footer: JSON
   game(buildsZoneTypeSlug: String = null): JSON
   gamePage: JSON
