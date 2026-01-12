@@ -35,6 +35,7 @@ export type ArchonViewModels = {
   readonly buildsSpecPageSlugs: Maybe<Scalars['JSON']['output']>;
   readonly buildsZonePage: Maybe<Scalars['JSON']['output']>;
   readonly buildsZonePageSlugs: Maybe<Scalars['JSON']['output']>;
+  readonly characterCustomizationOptions: Maybe<Scalars['JSON']['output']>;
   readonly characterIndexPage: Maybe<Scalars['JSON']['output']>;
   readonly characterPage: Maybe<Scalars['JSON']['output']>;
   readonly characterPageContent: Maybe<Scalars['JSON']['output']>;
@@ -113,6 +114,12 @@ export type ArchonViewModelsBuildsZonePageArgs = {
 };
 
 
+export type ArchonViewModelsCharacterCustomizationOptionsArgs = {
+  characterSlug: Scalars['String']['input'];
+  userId: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type ArchonViewModelsCharacterIndexPageArgs = {
   gameSlug: Scalars['String']['input'];
   searchTerm?: InputMaybe<Scalars['String']['input']>;
@@ -121,21 +128,31 @@ export type ArchonViewModelsCharacterIndexPageArgs = {
 
 
 export type ArchonViewModelsCharacterPageArgs = {
+  byBracketSlug: InputMaybe<Scalars['String']['input']>;
   categorySlug: Scalars['String']['input'];
   characterSlug: Scalars['String']['input'];
+  difficultySlug: InputMaybe<Scalars['String']['input']>;
   gameSlug: Scalars['String']['input'];
+  metricSlug: InputMaybe<Scalars['String']['input']>;
+  partitionSlug: InputMaybe<Scalars['String']['input']>;
+  sizeSlug: InputMaybe<Scalars['String']['input']>;
+  specSlug: InputMaybe<Scalars['String']['input']>;
   userId: InputMaybe<Scalars['Int']['input']>;
-  zoneSlug: InputMaybe<Scalars['String']['input']>;
 };
 
 
 export type ArchonViewModelsCharacterPageContentArgs = {
+  byBracketSlug: InputMaybe<Scalars['String']['input']>;
   categorySlug: Scalars['String']['input'];
   characterSlug: Scalars['String']['input'];
+  difficultySlug: InputMaybe<Scalars['String']['input']>;
   gameSlug: Scalars['String']['input'];
+  metricSlug: InputMaybe<Scalars['String']['input']>;
+  partitionSlug: InputMaybe<Scalars['String']['input']>;
   sectionComponentNames: ReadonlyArray<Scalars['String']['input']>;
+  sizeSlug: InputMaybe<Scalars['String']['input']>;
+  specSlug: InputMaybe<Scalars['String']['input']>;
   userId: InputMaybe<Scalars['Int']['input']>;
-  zoneSlug: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -152,6 +169,7 @@ export type ArchonViewModelsFightPageArgs = {
   gameSlug: Scalars['String']['input'];
   phaseSlug: InputMaybe<Scalars['String']['input']>;
   playerSlug: InputMaybe<Scalars['String']['input']>;
+  pullSlug: InputMaybe<Scalars['String']['input']>;
   reportSlug: Scalars['String']['input'];
   throughputSlug: InputMaybe<Scalars['String']['input']>;
   userId: InputMaybe<Scalars['Int']['input']>;
@@ -166,6 +184,7 @@ export type ArchonViewModelsFightPageContentArgs = {
   gameSlug: Scalars['String']['input'];
   phaseSlug: InputMaybe<Scalars['String']['input']>;
   playerSlug: InputMaybe<Scalars['String']['input']>;
+  pullSlug: InputMaybe<Scalars['String']['input']>;
   reportSlug: Scalars['String']['input'];
   sectionComponentNames: ReadonlyArray<Scalars['String']['input']>;
   throughputSlug: InputMaybe<Scalars['String']['input']>;
