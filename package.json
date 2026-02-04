@@ -33,14 +33,14 @@
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org ulti-project --project ulti-project-bot ./dist && sentry-cli sourcemaps upload --org ulti-project --project ulti-project-bot ./dist"
   },
   "dependencies": {
-    "@dotenvx/dotenvx": "^1.51.4",
+    "@dotenvx/dotenvx": "^1.52.0",
     "@googleapis/sheets": "^13.0.1",
     "@nestjs/common": "^11.1.12",
     "@nestjs/core": "^11.1.12",
     "@nestjs/cqrs": "^11.0.3",
     "@sentry/cli": "^3.1.0",
-    "@sentry/nestjs": "^10.34.0",
-    "@sentry/profiling-node": "^10.34.0",
+    "@sentry/nestjs": "^10.38.0",
+    "@sentry/profiling-node": "^10.38.0",
     "cron": "^4.4.0",
     "dayjs": "^1.11.19",
     "discord.js": "^14.25.1",
