@@ -71,7 +71,7 @@
     "@nestjs/schematics": "^11.0.9",
     "@nestjs/testing": "^11.1.12",
     "@types/node": "^24.10.1",
-    "@typescript/native-preview": "7.0.0-dev.20260113.1",
+    "@typescript/native-preview": "7.0.0-dev.20260131.1",
     "@vitest/coverage-v8": "^4.0.17",
     "@vitest/ui": "^4.0.18",
     "commitizen": "^4.3.1",
