@@ -27,7 +27,7 @@ jobs:
           # Package manager should be pre-installed
           # Default: ''
           cache: "pnpm"
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
       - run: pnpm graphql:codegen
         env:
           FFLOGS_API_ACCESS_TOKEN: ${{ secrets.FFLOGS_API_ACCESS_TOKEN }}
