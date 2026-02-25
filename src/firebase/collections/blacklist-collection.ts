@@ -43,7 +43,7 @@ class BlacklistCollection {
     await document.set(source, { merge: true });
     const snapshot = await document.get();
 
-    return snapshot.data() as BlacklistDocument;
+    return snapshot.data()!;
   }
 
   /**
@@ -104,7 +104,9 @@ class BlacklistCollection {
   private getCollection(
     guildId: string,
   ): CollectionReference<BlacklistDocument> {
-    return this.firestore.collection(`blacklist/${guildId}/documents`);
+    return this.firestore.collection(
+      `blacklist/${guildId}/documents`,
+    ) as CollectionReference<BlacklistDocument>;
   }
 }
 
