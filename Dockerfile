@@ -1,4 +1,4 @@
-ARG NODE_VERSION=24.13.1
+ARG NODE_VERSION=25.7.0
 # Switch to alpine instead of slim
 FROM node:${NODE_VERSION}-alpine AS base  
 
