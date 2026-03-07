@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.40.3](https://github.com/ssilve1989/ulti-project/compare/v1.40.2...v1.40.3) (2026-03-07)
+
+
+### Bug Fixes
+
+* **docker:** replace corepack with pnpm standalone installer for Node 25 ([26d4de5](https://github.com/ssilve1989/ulti-project/commit/26d4de5204be514b85d95fb3054fa1335518992c))
+* **firebase:** add type cast to blacklist collection reference ([2546d3b](https://github.com/ssilve1989/ulti-project/commit/2546d3baaaf2f02fb4f5d5bb870cf4a8f1443580))
+
 ## [1.40.2](https://github.com/ssilve1989/ulti-project/compare/v1.40.1...v1.40.2) (2025-11-14)
 
 
