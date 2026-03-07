@@ -1,7 +1,6 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { Firestore } from 'firebase-admin/firestore';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createAutoMock } from '../../test-utils/mock-factory.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { SettingsCollection } from './settings-collection.js';
 
@@ -10,20 +9,46 @@ describe.each([
   { cache: false },
 ])('SettingsCollection with cache: $cache', ({ cache }) => {
   let service: SettingsCollection;
-  let firestore: DeepMocked<Firestore>;
+  let firestoreMock: { collection: ReturnType<typeof vi.fn> };
+  let collectionMock: {
+    doc: ReturnType<typeof vi.fn>;
+    where: ReturnType<typeof vi.fn>;
+    limit: ReturnType<typeof vi.fn>;
+    get: ReturnType<typeof vi.fn>;
+  };
+  let docMock: {
+    set: ReturnType<typeof vi.fn>;
+    get: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+  };
   const guildId = 'guildId';
 
   beforeEach(async () => {
-    firestore = createMock<Firestore>();
+    docMock = {
+      set: vi.fn(),
+      get: vi.fn().mockResolvedValue({ data: () => undefined }),
+      update: vi.fn(),
+      create: vi.fn(),
+    };
+    collectionMock = {
+      doc: vi.fn().mockReturnValue(docMock),
+      where: vi.fn(),
+      limit: vi.fn(),
+      get: vi.fn(),
+    };
+    firestoreMock = { collection: vi.fn().mockReturnValue(collectionMock) };
 
     const module = await Test.createTestingModule({
-      providers: [SettingsCollection],
+      providers: [
+        SettingsCollection,
+        { provide: FIRESTORE, useValue: firestoreMock },
+      ],
     })
-      .useMocker(() => createMock())
+      .useMocker(createAutoMock)
       .compile();
 
     service = module.get<SettingsCollection>(SettingsCollection);
-    firestore = module.get(FIRESTORE);
     // Mock the cache behavior by setting up service internal cache
     if (cache) {
       (service as any).cache.set('settings:guildId', {});
@@ -35,34 +60,32 @@ describe.each([
 
     await service.upsert(guildId, settings);
 
-    expect(firestore.collection).toHaveBeenCalledWith('settings');
-    expect(firestore.collection('').doc).toHaveBeenCalledWith(guildId);
-    expect(firestore.collection('').doc().set).toHaveBeenCalledWith(settings, {
-      merge: true,
-    });
+    expect(firestoreMock.collection).toHaveBeenCalledWith('settings');
+    expect(collectionMock.doc).toHaveBeenCalledWith(guildId);
+    expect(docMock.set).toHaveBeenCalledWith(settings, { merge: true });
   });
 
   it('should call getReviewChannel with correct arguments', async () => {
     await service.getReviewChannel(guildId);
-    expect(firestore.collection).toHaveBeenCalledWith('settings');
+    expect(firestoreMock.collection).toHaveBeenCalledWith('settings');
 
     if (cache) {
-      expect(firestore.collection('').doc).not.toHaveBeenCalled();
+      expect(collectionMock.doc).not.toHaveBeenCalled();
     } else {
-      expect(firestore.collection('').doc).toHaveBeenCalledWith(guildId);
-      expect(firestore.collection('').doc().get).toHaveBeenCalled();
+      expect(collectionMock.doc).toHaveBeenCalledWith(guildId);
+      expect(docMock.get).toHaveBeenCalled();
     }
   });
 
   it('should call getSettings with correct arguments', async () => {
     await service.getSettings(guildId);
-    expect(firestore.collection).toHaveBeenCalledWith('settings');
+    expect(firestoreMock.collection).toHaveBeenCalledWith('settings');
 
     if (cache) {
-      expect(firestore.collection('').doc).not.toHaveBeenCalled();
+      expect(collectionMock.doc).not.toHaveBeenCalled();
     } else {
-      expect(firestore.collection('').doc).toHaveBeenCalledWith(guildId);
-      expect(firestore.collection('').doc().get).toHaveBeenCalled();
+      expect(collectionMock.doc).toHaveBeenCalledWith(guildId);
+      expect(docMock.get).toHaveBeenCalled();
     }
   });
 });

@@ -1,21 +1,21 @@
-import type { DeepMocked } from '@golevelup/ts-vitest';
-import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, type Mocked } from 'vitest';
 import { EncountersCollection } from '../firebase/collections/encounters-collection.js';
 import type {
   EncounterDocument,
   ProgPointDocument,
 } from '../firebase/models/encounter.model.js';
 import { PartyStatus } from '../firebase/models/signup.model.js';
+import { createAutoMock } from '../test-utils/mock-factory.js';
 import { EncountersService } from './encounters.service.js';
 
 describe('EncountersService', () => {
   let service: EncountersService;
-  let mockEncountersCollection: DeepMocked<EncountersCollection>;
+  let mockEncountersCollection: Mocked<EncountersCollection>;
 
   beforeEach(async () => {
-    mockEncountersCollection = createMock<EncountersCollection>();
+    mockEncountersCollection =
+      createAutoMock() as unknown as Mocked<EncountersCollection>;
 
     const module = await Test.createTestingModule({
       providers: [

@@ -1,19 +1,19 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { ChatInputCommandInteraction } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import type { ChatInputCommandInteraction } from 'discord.js';
+import { beforeEach, describe, expect, it, type Mocked } from 'vitest';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
+import { createAutoMock } from '../../../../test-utils/mock-factory.js';
 import { ViewSettingsCommandHandler } from './view-settings.command-handler.js';
 
 describe('View Settings Command Handler', () => {
   let handler: ViewSettingsCommandHandler;
-  let settingsCollection: DeepMocked<SettingsCollection>;
+  let settingsCollection: Mocked<SettingsCollection>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
       providers: [ViewSettingsCommandHandler],
     })
-      .useMocker(() => createMock())
+      .useMocker(createAutoMock)
       .compile();
 
     handler = fixture.get(ViewSettingsCommandHandler);
@@ -25,7 +25,8 @@ describe('View Settings Command Handler', () => {
   });
 
   it('should reply with the configured settings', async () => {
-    const interaction = createMock<ChatInputCommandInteraction<'cached'>>();
+    const interaction =
+      createAutoMock() as unknown as ChatInputCommandInteraction<'cached'>;
 
     settingsCollection.getSettings.mockResolvedValueOnce({
       reviewChannel: '12345',

@@ -1,21 +1,21 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import type { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
+import { createAutoMock } from '../../../../test-utils/mock-factory.js';
 import { EditChannelsCommandHandler } from './edit-channels.command-handler.js';
 
 describe('Edit Channels Command Handler', () => {
   let handler: EditChannelsCommandHandler;
-  let settingsCollection: DeepMocked<SettingsCollection>;
-  let errorService: DeepMocked<ErrorService>;
+  let settingsCollection: Mocked<SettingsCollection>;
+  let errorService: Mocked<ErrorService>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
       providers: [EditChannelsCommandHandler],
     })
-      .useMocker(() => createMock())
+      .useMocker(createAutoMock)
       .compile();
 
     handler = fixture.get(EditChannelsCommandHandler);
@@ -42,24 +42,25 @@ describe('Edit Channels Command Handler', () => {
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
     await handler.execute({
-      interaction: createMock<ChatInputCommandInteraction<'cached'>>({
+      interaction: {
         guildId,
         options: {
           getChannel: (name: string) => {
             switch (name) {
               case 'signup-review-channel':
-                return createMock({ id: reviewChannelId });
+                return { id: reviewChannelId };
               case 'signup-public-channel':
-                return createMock({ id: signupChannelId });
+                return { id: signupChannelId };
               case 'moderation-channel':
-                return createMock({ id: autoModChannelId });
+                return { id: autoModChannelId };
               default:
                 return null;
             }
           },
         },
-        valueOf: () => '',
-      }),
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>,
     });
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(
@@ -74,18 +75,19 @@ describe('Edit Channels Command Handler', () => {
 
   it('should handle errors gracefully', async () => {
     const error = new Error('Test error');
-    const mockErrorEmbed = createMock<EmbedBuilder>();
+    const mockErrorEmbed = {} as EmbedBuilder;
 
     settingsCollection.getSettings.mockRejectedValueOnce(error);
     errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
 
-    const interaction = createMock<ChatInputCommandInteraction<'cached'>>({
+    const interaction = {
       guildId: '12345',
       options: {
-        getChannel: () => createMock({ id: '67890' }),
+        getChannel: () => ({ id: '67890' }),
       },
-      valueOf: () => '',
-    });
+      deferReply: vi.fn(),
+      editReply: vi.fn(),
+    } as unknown as ChatInputCommandInteraction<'cached'>;
 
     await handler.execute({ interaction });
 

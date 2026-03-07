@@ -1,7 +1,7 @@
-import { createMock } from '@golevelup/ts-vitest';
 import { Logger } from '@nestjs/common';
 import { GuildMember, GuildMemberRoleManager, Role, User } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createAutoMock } from '../../test-utils/mock-factory.js';
 import type {
   NormalRoleResult,
   ProcessingContext,
@@ -13,7 +13,7 @@ describe('NormalStrategy', () => {
   let mockLogger: Logger;
 
   beforeEach(() => {
-    mockLogger = createMock<Logger>();
+    mockLogger = createAutoMock() as unknown as Logger;
     strategy = new NormalStrategy(mockLogger);
   });
 
