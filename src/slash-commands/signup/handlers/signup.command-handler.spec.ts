@@ -1,15 +1,22 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
+import type { LoggerService } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import {
+import type {
   ChannelSelectMenuInteraction,
   ChatInputCommandInteraction,
   DiscordjsError,
-  DiscordjsErrorCodes,
   EmbedBuilder,
   Message,
-  MessageFlags,
 } from 'discord.js';
-import { beforeEach, describe, expect, it, test } from 'vitest';
+import { DiscordjsErrorCodes, MessageFlags } from 'discord.js';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mocked,
+  test,
+  vi,
+} from 'vitest';
 import { UnhandledButtonInteractionException } from '../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
@@ -23,29 +30,32 @@ import {
   type SignupDocument,
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
+import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { SignupCommand } from '../commands/signup.commands.js';
 import { SIGNUP_MESSAGES } from '../signup.consts.js';
 import { SignupCommandHandler } from './signup.command-handler.js';
 
 describe('Signup Command Handler', () => {
   let handler: SignupCommandHandler;
-  let interaction: DeepMocked<ChatInputCommandInteraction<'cached'>>;
-  let confirmationInteraction: DeepMocked<Message<boolean>>;
-  let settingsCollection: DeepMocked<SettingsCollection>;
-  let discordServiceMock: DeepMocked<DiscordService>;
-  let signupCollectionMock: DeepMocked<SignupCollection>;
-  let fflogsServiceMock: DeepMocked<FFLogsService>;
-  let errorService: DeepMocked<ErrorService>;
+  let interaction: Mocked<ChatInputCommandInteraction<'cached'>>;
+  let confirmationInteraction: Mocked<Message<true>>;
+  let settingsCollection: Mocked<SettingsCollection>;
+  let discordServiceMock: Mocked<DiscordService>;
+  let signupCollectionMock: Mocked<SignupCollection>;
+  let fflogsServiceMock: Mocked<FFLogsService>;
+  let errorService: Mocked<ErrorService>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
       providers: [SignupCommandHandler],
     })
-      .useMocker(() => createMock())
-      .setLogger(createMock())
+      .useMocker(createAutoMock)
+      .setLogger(createAutoMock() as unknown as LoggerService)
       .compile();
 
-    confirmationInteraction = createMock<Message<boolean>>({});
+    confirmationInteraction = createAutoMock() as unknown as Mocked<
+      Message<true>
+    >;
     discordServiceMock = fixture.get(DiscordService);
     handler = fixture.get(SignupCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
@@ -53,11 +63,8 @@ describe('Signup Command Handler', () => {
     fflogsServiceMock = fixture.get(FFLogsService);
     errorService = fixture.get(ErrorService);
 
-    interaction = createMock<ChatInputCommandInteraction<'cached'>>({
-      user: {
-        username: 'Test User',
-        id: '123456',
-      },
+    interaction = {
+      user: { username: 'Test User', id: '123456' },
       options: {
         getString: (value: string) => {
           switch (value) {
@@ -79,11 +86,17 @@ describe('Signup Command Handler', () => {
         },
         getAttachment: () => null,
       },
-      valueOf: () => '',
-    });
+      deferReply: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn().mockResolvedValue(undefined),
+    } as unknown as Mocked<ChatInputCommandInteraction<'cached'>>;
 
     discordServiceMock.getDisplayName.mockResolvedValue('Test Character');
-    errorService.handleCommandError.mockReturnValue(createMock<EmbedBuilder>());
+    errorService.handleCommandError.mockReturnValue({} as EmbedBuilder);
+    settingsCollection.getReviewChannel.mockResolvedValue('review-channel-id');
+    fflogsServiceMock.validateReportAge.mockResolvedValue({
+      isValid: true,
+      reportDate: new Date(),
+    });
   });
 
   test('is defined', () => {
@@ -91,12 +104,9 @@ describe('Signup Command Handler', () => {
   });
 
   it('confirms a signup', async () => {
-    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
-      createMock<ChannelSelectMenuInteraction>({
-        customId: 'confirm',
-        valueOf: () => '',
-      }),
-    );
+    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce({
+      customId: 'confirm',
+    } as unknown as ChannelSelectMenuInteraction<'cached'>);
 
     interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
 
@@ -119,21 +129,16 @@ describe('Signup Command Handler', () => {
     SignupStatus.PENDING,
     SignupStatus.UPDATE_PENDING,
   ])('deletes a prior review message on confirm if it exists and has status %s', async (status) => {
-    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
-      createMock<ChannelSelectMenuInteraction>({
-        customId: 'confirm',
-        valueOf: () => '',
-        guildId: 'g123',
-      }),
-    );
+    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce({
+      customId: 'confirm',
+      guildId: 'g123',
+    } as unknown as ChannelSelectMenuInteraction<'cached'>);
 
     interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
-    signupCollectionMock.upsert.mockResolvedValueOnce(
-      createMock<SignupDocument>({
-        status,
-        reviewMessageId: 'messageId123',
-      }),
-    );
+    signupCollectionMock.upsert.mockResolvedValueOnce({
+      status,
+      reviewMessageId: 'messageId123',
+    } as SignupDocument);
 
     const command = new SignupCommand(interaction);
     await handler.execute(command);
@@ -151,21 +156,16 @@ describe('Signup Command Handler', () => {
     SignupStatus.APPROVED,
     SignupStatus.DECLINED,
   ])('does not call delete if the prior approval has status %s', async (status) => {
-    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
-      createMock<ChannelSelectMenuInteraction>({
-        customId: 'confirm',
-        valueOf: () => '',
-        guildId: 'g123',
-      }),
-    );
+    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce({
+      customId: 'confirm',
+      guildId: 'g123',
+    } as unknown as ChannelSelectMenuInteraction<'cached'>);
 
     interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
-    signupCollectionMock.upsert.mockResolvedValueOnce(
-      createMock<SignupDocument>({
-        status,
-        reviewMessageId: 'messageId123',
-      }),
-    );
+    signupCollectionMock.upsert.mockResolvedValueOnce({
+      status,
+      reviewMessageId: 'messageId123',
+    } as SignupDocument);
 
     const command = new SignupCommand(interaction);
     await handler.execute(command);
@@ -174,15 +174,12 @@ describe('Signup Command Handler', () => {
   });
 
   it('handles UnhandledButtonInteractionException with ErrorService', async () => {
-    const mockErrorEmbed = createMock<EmbedBuilder>();
+    const mockErrorEmbed = {} as EmbedBuilder;
     errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
 
-    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
-      createMock<ChannelSelectMenuInteraction>({
-        customId: 'foo',
-        valueOf: () => '',
-      }),
-    );
+    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce({
+      customId: 'foo',
+    } as unknown as ChannelSelectMenuInteraction<'cached'>);
 
     interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
 
@@ -199,12 +196,9 @@ describe('Signup Command Handler', () => {
   });
 
   it('handles cancelling a signup', async () => {
-    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
-      createMock<ChannelSelectMenuInteraction<any>>({
-        customId: 'cancel',
-        valueOf: () => '',
-      }),
-    );
+    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce({
+      customId: 'cancel',
+    } as unknown as ChannelSelectMenuInteraction<'cached'>);
 
     interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
 
@@ -224,11 +218,9 @@ describe('Signup Command Handler', () => {
   });
 
   it('handles a timeout', async () => {
-    confirmationInteraction.awaitMessageComponent.mockRejectedValueOnce(
-      createMock<DiscordjsError>({
-        code: DiscordjsErrorCodes.InteractionCollectorError,
-      }),
-    );
+    confirmationInteraction.awaitMessageComponent.mockRejectedValueOnce({
+      code: DiscordjsErrorCodes.InteractionCollectorError,
+    } as unknown as DiscordjsError);
 
     interaction.editReply.mockResolvedValue(confirmationInteraction);
 
@@ -263,9 +255,7 @@ describe('Signup Command Handler', () => {
   describe('FFLogs Validation', () => {
     beforeEach(() => {
       settingsCollection.getReviewChannel.mockResolvedValue('123456789');
-      errorService.handleCommandError.mockReturnValue(
-        createMock<EmbedBuilder>(),
-      );
+      errorService.handleCommandError.mockReturnValue({} as EmbedBuilder);
       // Set up default values for FFLogs tests
       (interaction.options.getString as any) = (key: string) => {
         switch (key) {

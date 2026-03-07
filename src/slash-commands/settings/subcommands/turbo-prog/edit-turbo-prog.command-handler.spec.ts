@@ -1,21 +1,21 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import type { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
+import { createAutoMock } from '../../../../test-utils/mock-factory.js';
 import { EditTurboProgCommandHandler } from './edit-turbo-prog.command-handler.js';
 
 describe('Edit Turbo Prog Command Handler', () => {
   let handler: EditTurboProgCommandHandler;
-  let settingsCollection: DeepMocked<SettingsCollection>;
-  let errorService: DeepMocked<ErrorService>;
+  let settingsCollection: Mocked<SettingsCollection>;
+  let errorService: Mocked<ErrorService>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
       providers: [EditTurboProgCommandHandler],
     })
-      .useMocker(() => createMock())
+      .useMocker(createAutoMock)
       .compile();
 
     handler = fixture.get(EditTurboProgCommandHandler);
@@ -40,7 +40,7 @@ describe('Edit Turbo Prog Command Handler', () => {
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
     await handler.execute({
-      interaction: createMock<ChatInputCommandInteraction<'cached'>>({
+      interaction: {
         guildId,
         options: {
           getBoolean: (name: string, _required?: boolean) =>
@@ -48,8 +48,9 @@ describe('Edit Turbo Prog Command Handler', () => {
           getString: (name: string) =>
             name === 'spreadsheet-id' ? spreadsheetId : null,
         },
-        valueOf: () => '',
-      }),
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>,
     });
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(
@@ -73,15 +74,16 @@ describe('Edit Turbo Prog Command Handler', () => {
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
     await handler.execute({
-      interaction: createMock<ChatInputCommandInteraction<'cached'>>({
+      interaction: {
         guildId,
         options: {
           getBoolean: (name: string, _required?: boolean) =>
             name === 'active' ? active : null,
           getString: () => null,
         },
-        valueOf: () => '',
-      }),
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>,
     });
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(
@@ -95,19 +97,20 @@ describe('Edit Turbo Prog Command Handler', () => {
 
   it('should handle errors gracefully', async () => {
     const error = new Error('Test error');
-    const mockErrorEmbed = createMock<EmbedBuilder>();
+    const mockErrorEmbed = {} as EmbedBuilder;
 
     settingsCollection.getSettings.mockRejectedValueOnce(error);
     errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
 
-    const interaction = createMock<ChatInputCommandInteraction<'cached'>>({
+    const interaction = {
       guildId: '12345',
       options: {
         getBoolean: (_: string, __?: boolean) => true,
         getString: (_: string) => 'test-spreadsheet-id',
       },
-      valueOf: () => '',
-    });
+      deferReply: vi.fn(),
+      editReply: vi.fn(),
+    } as unknown as ChatInputCommandInteraction<'cached'>;
 
     await handler.execute({ interaction });
 

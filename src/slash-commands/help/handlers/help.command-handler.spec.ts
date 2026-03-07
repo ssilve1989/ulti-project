@@ -1,4 +1,3 @@
-import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import {
@@ -8,6 +7,7 @@ import {
   SlashCommandBuilder,
 } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { SLASH_COMMANDS_TOKEN } from '../../slash-commands.provider.js';
 import { HelpCommand } from '../commands/help.command.js';
 import { HelpCommandHandler } from './help.command-handler.js';
@@ -48,7 +48,7 @@ describe('HelpCommandHandler', () => {
         },
       ],
     })
-      .useMocker(createMock)
+      .useMocker(createAutoMock)
       .compile();
 
     handler = fixture.get(HelpCommandHandler);
@@ -66,17 +66,13 @@ describe('HelpCommandHandler', () => {
       const deferReply = vi.fn().mockResolvedValue(undefined);
       const editReply = vi.fn().mockResolvedValue(undefined);
 
-      const interaction = createMock<ChatInputCommandInteraction<'cached'>>();
-      interaction.deferReply = deferReply;
-      interaction.editReply = editReply;
-
-      // Handle the readonly property correctly
-      Object.defineProperty(interaction, 'memberPermissions', {
-        value: hasPermissions ? new PermissionsBitField(permissions) : null,
-        writable: false,
-      });
-
-      return interaction;
+      return {
+        deferReply,
+        editReply,
+        memberPermissions: hasPermissions
+          ? new PermissionsBitField(permissions)
+          : null,
+      } as unknown as ChatInputCommandInteraction<'cached'>;
     };
 
     it('should show only public commands for regular users', async () => {
