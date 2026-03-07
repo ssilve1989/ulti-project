@@ -1,5 +1,8 @@
 pre-commit:
+  parallel: true 
   commands:
+    lint: 
+      run: pnpm check --diagnostic-level=error
     typecheck:
       run: pnpm typecheck
     test:
