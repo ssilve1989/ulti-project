@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
           repository: ssilve1989/github-releases-to-discord-action
-          token: ${{ secrets.DISCORD_RELEASES_TOKEN }}
+          token: ${{ secrets.ULTI_PROJECT_PAT }}
       - uses: jdx/mise-action@v3
         with:
           tool_versions: |
