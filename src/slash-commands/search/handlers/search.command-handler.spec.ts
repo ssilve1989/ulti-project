@@ -1,16 +1,16 @@
-import type { DeepMocked } from '@golevelup/ts-vitest';
-import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import {
+import type {
   ButtonInteraction,
   ChatInputCommandInteraction,
-  MessageFlags,
   StringSelectMenuInteraction,
 } from 'discord.js';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MessageFlags } from 'discord.js';
+import { beforeEach, describe, expect, it, type Mocked } from 'vitest';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { EncountersService } from '../../../encounters/encounters.service.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
+import { PartyStatus } from '../../../firebase/models/signup.model.js';
+import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { SearchCommand } from '../commands/search.command.js';
 import {
   SEARCH_ENCOUNTER_SELECTOR_ID,
@@ -21,56 +21,58 @@ import { SearchCommandHandler } from './search.command-handler.js';
 
 describe('SearchCommandHandler', () => {
   let handler: SearchCommandHandler;
-  let mockSignupsCollection: DeepMocked<SignupCollection>;
-  let mockEncountersService: DeepMocked<EncountersService>;
-  let mockInteraction: DeepMocked<ChatInputCommandInteraction>;
-  let mockCollector: any; // Using 'any' to avoid complex typing issues
-  let mockReplyMessage: any;
+  let mockSignupsCollection: Mocked<SignupCollection>;
+  let mockEncountersService: Mocked<EncountersService>;
+  let mockInteraction: Mocked<ChatInputCommandInteraction>;
+  let mockCollector: ReturnType<typeof createAutoMock>;
+  let mockReplyMessage: ReturnType<typeof createAutoMock>;
 
   beforeEach(async () => {
-    mockSignupsCollection = createMock<SignupCollection>();
-    mockEncountersService = createMock<EncountersService>();
-    mockInteraction = createMock<ChatInputCommandInteraction>();
+    mockSignupsCollection =
+      createAutoMock() as unknown as Mocked<SignupCollection>;
+    mockEncountersService =
+      createAutoMock() as unknown as Mocked<EncountersService>;
+    mockInteraction =
+      createAutoMock() as unknown as Mocked<ChatInputCommandInteraction>;
 
-    // Force the interaction to have the right cache type
-    Object.defineProperty(mockInteraction, '_cacheType', {
-      value: 'cached',
-      writable: true,
-    });
+    mockCollector = createAutoMock();
+    mockCollector.on.mockReturnValue(mockCollector);
 
-    // Create a simple mock collector
-    mockCollector = {
-      on: vi.fn().mockReturnThis(),
-    };
+    mockReplyMessage = createAutoMock();
+    mockReplyMessage.createMessageComponentCollector.mockReturnValue(
+      mockCollector,
+    );
 
-    mockReplyMessage = {
-      createMessageComponentCollector: vi.fn().mockReturnValue(mockCollector),
-    };
-
-    mockInteraction.editReply.mockResolvedValue(mockReplyMessage);
+    mockInteraction.editReply.mockResolvedValue(mockReplyMessage as any);
     mockInteraction.user = { id: 'user123', username: 'testuser' } as any;
     mockInteraction.guildId = 'guild123';
 
     // Mock EncountersService methods
+    mockEncountersService.getProgPointsAsOptions.mockResolvedValue({
+      'P5 Phase 1': { label: 'P5 Phase 1', partyStatus: PartyStatus.ProgParty },
+      'P6 Enrage': { label: 'P6 Enrage', partyStatus: PartyStatus.ProgParty },
+      Clear: { label: 'Clear', partyStatus: PartyStatus.ClearParty },
+    });
+
     mockEncountersService.getProgPoints.mockResolvedValue([
       {
         id: 'P5 Phase 1',
         label: 'P5 Phase 1',
-        partyStatus: 'ProgParty',
+        partyStatus: PartyStatus.ProgParty,
         order: 0,
         active: true,
       },
       {
         id: 'P6 Enrage',
         label: 'P6 Enrage',
-        partyStatus: 'ProgParty',
+        partyStatus: PartyStatus.ProgParty,
         order: 1,
         active: true,
       },
       {
         id: 'Clear',
         label: 'Clear',
-        partyStatus: 'ClearParty',
+        partyStatus: PartyStatus.ClearParty,
         order: 2,
         active: true,
       },
@@ -156,7 +158,8 @@ describe('SearchCommandHandler', () => {
     await handler.execute(command);
 
     // Create a mock select menu interaction for encounter selection
-    const mockSelectInteraction = createMock<StringSelectMenuInteraction>();
+    const mockSelectInteraction =
+      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
     mockSelectInteraction.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
     mockSelectInteraction.values = [Encounter.TOP];
     mockSelectInteraction.isStringSelectMenu.mockReturnValue(true);
@@ -207,7 +210,7 @@ describe('SearchCommandHandler', () => {
         progPoint: 'P6 Enrage',
       },
     ];
-    mockSignupsCollection.findAll.mockResolvedValue(mockSignups);
+    mockSignupsCollection.findAll.mockResolvedValue(mockSignups as any);
 
     // Mock the editReply responses
     mockInteraction.editReply.mockImplementation(() => {
@@ -231,7 +234,8 @@ describe('SearchCommandHandler', () => {
     await handler.execute(command);
 
     // First, simulate encounter selection
-    const mockEncounterSelect = createMock<StringSelectMenuInteraction>();
+    const mockEncounterSelect =
+      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
     mockEncounterSelect.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
     mockEncounterSelect.values = [Encounter.TOP];
     mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
@@ -254,7 +258,8 @@ describe('SearchCommandHandler', () => {
     await collectorCallback!(mockEncounterSelect);
 
     // Then, simulate prog point selection
-    const mockProgPointSelect = createMock<StringSelectMenuInteraction>();
+    const mockProgPointSelect =
+      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
     mockProgPointSelect.customId = SEARCH_PROG_POINT_SELECT_ID;
     mockProgPointSelect.values = ['P6 Enrage'];
     mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);
@@ -362,10 +367,10 @@ describe('SearchCommandHandler', () => {
     mockSignupsCollection.findAll.mockImplementation(
       ({ progPoint }: { progPoint?: string }) => {
         if (progPoint === 'P6 Enrage') {
-          return Promise.resolve(p6SignupsMock);
+          return Promise.resolve(p6SignupsMock as any);
         }
         if (progPoint === 'Clear') {
-          return Promise.resolve(clearSignupsMock);
+          return Promise.resolve(clearSignupsMock as any);
         }
         return Promise.resolve([]);
       },
@@ -378,14 +383,16 @@ describe('SearchCommandHandler', () => {
     await handler.execute(command);
 
     // First, simulate encounter selection
-    const mockEncounterSelect = createMock<StringSelectMenuInteraction>();
+    const mockEncounterSelect =
+      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
     mockEncounterSelect.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
     mockEncounterSelect.values = [Encounter.TOP];
     mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
     await collectorCallback!(mockEncounterSelect);
 
     // Then, simulate prog point selection
-    const mockProgPointSelect = createMock<StringSelectMenuInteraction>();
+    const mockProgPointSelect =
+      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
     mockProgPointSelect.customId = SEARCH_PROG_POINT_SELECT_ID;
     mockProgPointSelect.values = ['P6 Enrage'];
     mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);
@@ -405,7 +412,7 @@ describe('SearchCommandHandler', () => {
 
     // Verify the response contains multiple embeds
     expect(mockProgPointSelect.editReply).toHaveBeenCalled();
-    const editReplyCall = mockProgPointSelect.editReply.mock.calls[0][0];
+    const editReplyCall = mockProgPointSelect.editReply.mock.calls[0][0] as any;
     expect(editReplyCall).toHaveProperty('embeds');
     expect(editReplyCall.embeds).toHaveLength(2); // Should have 2 pages
 
@@ -456,7 +463,8 @@ describe('SearchCommandHandler', () => {
     await handler.execute(command);
 
     // Simulate reset button click
-    const mockButtonInteraction = createMock<ButtonInteraction>();
+    const mockButtonInteraction =
+      createAutoMock() as unknown as Mocked<ButtonInteraction>;
     mockButtonInteraction.customId = SEARCH_RESET_BUTTON_ID;
 
     mockButtonInteraction.editReply.mockImplementation(() => {
@@ -541,9 +549,9 @@ describe('SearchCommandHandler', () => {
 
     // Mock findAll to return different results for different prog points
     mockSignupsCollection.findAll.mockImplementation(
-      ({ progPoint }: { progPoint: string }) => {
-        if (progPoint === 'P6 Enrage') return Promise.resolve(p6Signups);
-        if (progPoint === 'Clear') return Promise.resolve(clearSignups);
+      ({ progPoint }: { progPoint?: string }) => {
+        if (progPoint === 'P6 Enrage') return Promise.resolve(p6Signups as any);
+        if (progPoint === 'Clear') return Promise.resolve(clearSignups as any);
         return Promise.resolve([]);
       },
     );
@@ -555,14 +563,16 @@ describe('SearchCommandHandler', () => {
     await handler.execute(command);
 
     // First, simulate encounter selection
-    const mockEncounterSelect = createMock<StringSelectMenuInteraction>();
+    const mockEncounterSelect =
+      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
     mockEncounterSelect.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
     mockEncounterSelect.values = [Encounter.TOP];
     mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
     await collectorCallback!(mockEncounterSelect);
 
     // Then, simulate prog point selection (selecting P6 Enrage should include P6 Enrage and Clear)
-    const mockProgPointSelect = createMock<StringSelectMenuInteraction>();
+    const mockProgPointSelect =
+      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
     mockProgPointSelect.customId = SEARCH_PROG_POINT_SELECT_ID;
     mockProgPointSelect.values = ['P6 Enrage'];
     mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);
@@ -633,7 +643,7 @@ describe('SearchCommandHandler', () => {
       },
     ];
 
-    mockSignupsCollection.findAll.mockResolvedValue(clearSignups);
+    mockSignupsCollection.findAll.mockResolvedValue(clearSignups as any);
 
     // Execute the command
     const command = new SearchCommand(
@@ -642,14 +652,16 @@ describe('SearchCommandHandler', () => {
     await handler.execute(command);
 
     // First, simulate encounter selection
-    const mockEncounterSelect = createMock<StringSelectMenuInteraction>();
+    const mockEncounterSelect =
+      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
     mockEncounterSelect.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
     mockEncounterSelect.values = [Encounter.TOP];
     mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
     await collectorCallback!(mockEncounterSelect);
 
     // Then, simulate prog point selection (selecting Clear should only include Clear)
-    const mockProgPointSelect = createMock<StringSelectMenuInteraction>();
+    const mockProgPointSelect =
+      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
     mockProgPointSelect.customId = SEARCH_PROG_POINT_SELECT_ID;
     mockProgPointSelect.values = ['Clear'];
     mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);

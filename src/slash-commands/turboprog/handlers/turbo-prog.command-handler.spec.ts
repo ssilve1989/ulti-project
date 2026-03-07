@@ -1,6 +1,5 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import {
   PartyStatus,
@@ -8,6 +7,7 @@ import {
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
+import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { turboProgSignupSchema } from '../turbo-prog-signup.schema.js';
 import { TURBO_PROG_SIGNUP_INVALID } from '../turboprog.consts.js';
 import { TurboProgCommandHandler } from './turbo-prog.command-handler.js';
@@ -50,13 +50,13 @@ const searchableCases: Pick<SignupDocument, 'status' | 'partyStatus'>[] = [
 
 describe('TurboProgCommandHandler', () => {
   let handler: TurboProgCommandHandler;
-  let sheetsService: DeepMocked<SheetsService>;
+  let sheetsService: Mocked<SheetsService>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
       providers: [TurboProgCommandHandler],
     })
-      .useMocker(() => createMock())
+      .useMocker(createAutoMock)
       .compile();
 
     handler = fixture.get(TurboProgCommandHandler);
@@ -71,14 +71,14 @@ describe('TurboProgCommandHandler', () => {
     approvedCases,
   )('should return allowed for $status $partyStatus signups', async (signup) => {
     // Include role in the mock to ensure it's used properly in mapSignupToRowData
-    const mockSignup = createMock<SignupDocument>({
+    const mockSignup = {
       ...signup,
       role: 'TestRole',
       progPoint: 'TestProgPoint',
       character: 'TestCharacter',
       encounter: Encounter.DSR,
       discordId: 'testDiscordId',
-    });
+    } as SignupDocument;
 
     const options = turboProgSignupSchema.parse({
       encounter: Encounter.DSR,
@@ -104,11 +104,11 @@ describe('TurboProgCommandHandler', () => {
   it.each(
     declinedCases,
   )('should return rejected for $status $partyStatus signups', async (signup) => {
-    const mockSignup = createMock<SignupDocument>({
+    const mockSignup = {
       ...signup,
       encounter: Encounter.DSR,
       discordId: 'testDiscordId',
-    });
+    } as SignupDocument;
 
     const options = turboProgSignupSchema.parse({
       encounter: Encounter.DSR,
@@ -130,13 +130,13 @@ describe('TurboProgCommandHandler', () => {
   it.each(
     searchableCases,
   )('should search the sheet for signups for $status $partyStatus signups', async (signup) => {
-    const mockSignup = createMock<SignupDocument>({
+    const mockSignup = {
       ...signup,
       encounter: Encounter.DSR,
       discordId: 'testDiscordId',
       character: 'TestCharacter',
       world: 'TestWorld',
-    });
+    } as SignupDocument;
 
     const options = turboProgSignupSchema.parse({
       encounter: Encounter.DSR,
@@ -167,12 +167,12 @@ describe('TurboProgCommandHandler', () => {
     });
 
     // Create a mock signup to pass directly
-    const mockSignup = createMock<SignupDocument>({
+    const mockSignup = {
       encounter: Encounter.DSR,
       character: 'TestCharacter',
       world: 'TestWorld',
       discordId: 'testDiscordId',
-    });
+    } as SignupDocument;
 
     // Call the private method directly
     const response = await (handler as any).findCharacterRowValues(
@@ -208,15 +208,17 @@ describe('TurboProgCommandHandler', () => {
     });
 
     // Create a mock signup without required sheet data
-    const mockSignup = createMock<SignupDocument>({
+    const mockSignup = {
       encounter: Encounter.DSR,
       character: 'TestCharacter',
       world: 'TestWorld',
       discordId: 'testDiscordId',
-    });
+    } as SignupDocument;
 
     // Mock the sheet service to return null (no data found)
-    sheetsService.findCharacterRowValues.mockResolvedValueOnce(null);
+    sheetsService.findCharacterRowValues.mockResolvedValueOnce(
+      null as unknown as string[],
+    );
 
     // Call the private method directly
     const response = await (handler as any).findCharacterRowValues(
@@ -238,12 +240,12 @@ describe('TurboProgCommandHandler', () => {
     });
 
     // Create a mock signup
-    const mockSignup = createMock<SignupDocument>({
+    const mockSignup = {
       encounter: Encounter.DSR,
       character: 'TestCharacter',
       world: 'TestWorld',
       discordId: 'testDiscordId',
-    });
+    } as SignupDocument;
 
     // Mock the sheet service to return invalid data
     sheetsService.findCharacterRowValues.mockResolvedValueOnce([

@@ -2,7 +2,7 @@
 to: src/slash-commands/<%=name%>/<%=name%>.command-handler.spec.ts
 ---
 import { Test } from '@nestjs/testing';
-import { createMock } from '@golevelup/ts-vitest';
+import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { <%= h.changeCase.pascal(name) %>CommandHandler } from './<%=name%>.command-handler.js';
 
 describe('<%=h.changeCase.pascal(name)%>CommandHandler', () => {
@@ -12,7 +12,7 @@ describe('<%=h.changeCase.pascal(name)%>CommandHandler', () => {
     const fixture = await Test.createTestingModule({
       providers: [<%= h.changeCase.pascal(name) %>CommandHandler],
     })
-      .useMocker(() => createMock())
+      .useMocker(createAutoMock)
       .compile();
 
     handler = fixture.get(<%= h.changeCase.pascal(name) %>CommandHandler);

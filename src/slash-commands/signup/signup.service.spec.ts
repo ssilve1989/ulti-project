@@ -1,59 +1,57 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import type { SignupDocument } from '../../firebase/models/signup.model.js';
+import { createAutoMock } from '../../test-utils/mock-factory.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
 
 // TODO: Actually assert approval/decline functionality, not just that they were called
 describe('SignupService', () => {
   let service: SignupService;
-  let messageReaction: DeepMocked<MessageReaction>;
-  let user: DeepMocked<User>;
-  let settings: DeepMocked<SettingsDocument>;
-  let signup: DeepMocked<SignupDocument>;
-  let repository: DeepMocked<SignupCollection>;
-  let discordService: DeepMocked<DiscordService>;
+  let messageReaction: MessageReaction;
+  let user: User;
+  let settings: SettingsDocument;
+  let signup: SignupDocument;
+  let repository: Mocked<SignupCollection>;
+  let discordService: Mocked<DiscordService>;
 
   beforeEach(async () => {
     const fixture: TestingModule = await Test.createTestingModule({
       providers: [SignupService],
     })
-      .useMocker(() => createMock())
+      .useMocker(createAutoMock)
       .compile();
 
     service = fixture.get(SignupService);
     repository = fixture.get(SignupCollection);
     discordService = fixture.get(DiscordService);
 
-    messageReaction = createMock<MessageReaction>({
-      message: createMock<Message>({
+    messageReaction = {
+      message: {
         id: 'messageId',
-        valueOf: () => '',
-        edit: vi.fn(),
-      }),
-      emoji: createMock<ReactionEmoji>({
+        edit: vi.fn().mockResolvedValue(undefined),
+        inGuild: vi.fn().mockReturnValue(true),
+      } as unknown as Message<boolean>,
+      emoji: {
         name: 'emojiName',
-        valueOf: () => '',
-      }),
-      valueOf: () => '',
-    });
+      } as unknown as ReactionEmoji,
+    } as unknown as MessageReaction;
 
-    user = createMock<User>({
+    user = {
+      id: 'userId',
       displayAvatarURL: () => 'http://someurl.com',
-      valueOf: () => '',
       toString: () => '<@someuser>',
-    });
-    settings = createMock<SettingsDocument>();
-    signup = createMock<SignupDocument>({
+    } as unknown as User;
+    settings = {} as SettingsDocument;
+    signup = {
       reviewMessageId: 'messageId',
       reviewedBy: undefined,
       discordId: 'abc123',
-    });
+    } as SignupDocument;
   });
 
   it('should be defined', () => {
@@ -107,9 +105,9 @@ describe('SignupService', () => {
 
     messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
 
+    const spy = vi.spyOn(service, 'handleApprovedReaction' as any);
     await service['handleReaction'](messageReaction, user, settings);
 
-    const spy = vi.spyOn(service, 'handleApprovedReaction' as any);
     expect(spy).not.toHaveBeenCalled();
   });
 });
