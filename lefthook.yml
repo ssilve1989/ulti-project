@@ -1,0 +1,11 @@
+pre-commit:
+  commands:
+    typecheck:
+      run: pnpm typecheck
+    test:
+      run: pnpm test --run
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm commitlint --edit {1}
