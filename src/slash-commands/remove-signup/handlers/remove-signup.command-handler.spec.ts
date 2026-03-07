@@ -1,8 +1,8 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { EventBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
-import { ChatInputCommandInteraction, Colors, User } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import type { ChatInputCommandInteraction, User } from 'discord.js';
+import { Colors } from 'discord.js';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import {
   Encounter,
@@ -16,6 +16,7 @@ import {
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
+import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { SIGNUP_MESSAGES } from '../../signup/signup.consts.js';
 import {
   REMOVAL_MISSING_PERMISSIONS,
@@ -41,19 +42,19 @@ const DEFAULT_SETTINGS = {
 };
 
 describe('Remove Signup Command Handler', () => {
-  let discordService: DeepMocked<DiscordService>;
-  let eventBus: DeepMocked<EventBus>;
+  let discordService: Mocked<DiscordService>;
+  let eventBus: Mocked<EventBus>;
   let handler: RemoveSignupCommandHandler;
-  let interaction: DeepMocked<ChatInputCommandInteraction<'cached'>>;
-  let settingsCollection: DeepMocked<SettingsCollection>;
-  let sheetsService: DeepMocked<SheetsService>;
-  let signupsCollection: DeepMocked<SignupCollection>;
+  let interaction: ChatInputCommandInteraction<'cached'>;
+  let settingsCollection: Mocked<SettingsCollection>;
+  let sheetsService: Mocked<SheetsService>;
+  let signupsCollection: Mocked<SignupCollection>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
       providers: [RemoveSignupCommandHandler],
     })
-      .useMocker(() => createMock())
+      .useMocker(createAutoMock)
       .compile();
 
     discordService = fixture.get(DiscordService);
@@ -63,12 +64,8 @@ describe('Remove Signup Command Handler', () => {
     signupsCollection = fixture.get(SignupCollection);
     eventBus = fixture.get(EventBus);
 
-    interaction = createMock<ChatInputCommandInteraction<'cached'>>({
-      user: createMock<User>({
-        id: '1',
-        toString: () => '<@1>',
-        valueOf: () => '',
-      }),
+    interaction = {
+      user: { id: '1', toString: () => '<@1>' } as unknown as User,
       options: {
         getString: (key: string) => {
           switch (key) {
@@ -83,8 +80,9 @@ describe('Remove Signup Command Handler', () => {
           }
         },
       },
-      valueOf: () => '',
-    });
+      deferReply: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ChatInputCommandInteraction<'cached'>;
   });
 
   it('is defined', () => {
@@ -149,11 +147,9 @@ describe('Remove Signup Command Handler', () => {
     if (signup instanceof DocumentNotFoundException) {
       signupsCollection.findOneOrFail.mockRejectedValue(signup);
     } else {
-      signupsCollection.findOne.mockResolvedValue(
-        createMock<SignupDocument>(signup),
-      );
+      signupsCollection.findOne.mockResolvedValue(signup as SignupDocument);
       signupsCollection.findOneOrFail.mockResolvedValueOnce(
-        createMock<SignupDocument>(signup),
+        signup as SignupDocument,
       );
     }
 
@@ -179,12 +175,11 @@ describe('Remove Signup Command Handler', () => {
 
   it('calls removeSignup from SheetService if spreadsheetId is set and signup has been approved', async () => {
     settingsCollection.getSettings.mockResolvedValue(DEFAULT_SETTINGS);
+    discordService.userHasRole.mockResolvedValue(true);
 
-    signupsCollection.findOneOrFail.mockResolvedValueOnce(
-      createMock<SignupDocument>({
-        status: SignupStatus.APPROVED,
-      }),
-    );
+    signupsCollection.findOneOrFail.mockResolvedValueOnce({
+      status: SignupStatus.APPROVED,
+    } as SignupDocument);
 
     await handler.execute({ interaction });
     expect(sheetsService.removeSignup).toHaveBeenCalled();
@@ -193,25 +188,17 @@ describe('Remove Signup Command Handler', () => {
   it('does not call removeSignup from SheetService if the signup has not been approved', async () => {
     settingsCollection.getSettings.mockResolvedValue(DEFAULT_SETTINGS);
 
-    signupsCollection.findOneOrFail.mockResolvedValueOnce(
-      createMock<SignupDocument>({
-        status: SignupStatus.PENDING,
-      }),
-    );
+    signupsCollection.findOneOrFail.mockResolvedValueOnce({
+      status: SignupStatus.PENDING,
+    } as SignupDocument);
 
     await handler.execute({ interaction });
     expect(sheetsService.removeSignup).not.toHaveBeenCalled();
   });
 
   it('responds with validation error when invalid world is provided', async () => {
-    const invalidWorldInteraction = createMock<
-      ChatInputCommandInteraction<'cached'>
-    >({
-      user: createMock<User>({
-        id: '1',
-        toString: () => '<@1>',
-        valueOf: () => '',
-      }),
+    const invalidWorldInteraction = {
+      user: { id: '1', toString: () => '<@1>' } as unknown as User,
       options: {
         getString: (key: string) => {
           switch (key) {
@@ -226,8 +213,9 @@ describe('Remove Signup Command Handler', () => {
           }
         },
       },
-      valueOf: () => '',
-    });
+      deferReply: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ChatInputCommandInteraction<'cached'>;
 
     await handler.execute({ interaction: invalidWorldInteraction });
 

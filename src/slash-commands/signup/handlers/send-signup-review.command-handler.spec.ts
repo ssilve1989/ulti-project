@@ -1,9 +1,8 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
+import type { LoggerService } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { GuildMember, TextChannel } from 'discord.js';
+import type { GuildMember } from 'discord.js';
 import { Timestamp } from 'firebase-admin/firestore';
-import type { Mock } from 'vitest';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { MissingChannelException } from '../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
@@ -12,14 +11,14 @@ import {
   type SignupDocument,
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
+import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { SendSignupReviewCommandHandler } from './send-signup-review.command-handler.js';
 
 describe('Send Signup Review Command Handler', () => {
   let handler: SendSignupReviewCommandHandler;
-  let settingsCollection: DeepMocked<SettingsCollection>;
-  let discordServiceMock: DeepMocked<DiscordService>;
+  let settingsCollection: Mocked<SettingsCollection>;
+  let discordServiceMock: Mocked<DiscordService>;
 
-  let get: Mock;
   const signup: SignupDocument = {
     character: 'foo',
     discordId: '12345',
@@ -36,13 +35,11 @@ describe('Send Signup Review Command Handler', () => {
   };
 
   beforeEach(async () => {
-    get = vi.fn(() => undefined);
-
     const fixture = await Test.createTestingModule({
       providers: [SendSignupReviewCommandHandler],
     })
-      .useMocker(() => createMock())
-      .setLogger(createMock())
+      .useMocker(createAutoMock)
+      .setLogger(createAutoMock() as unknown as LoggerService)
       .compile();
 
     handler = fixture.get(SendSignupReviewCommandHandler);
@@ -56,24 +53,22 @@ describe('Send Signup Review Command Handler', () => {
 
     settingsCollection.getReviewChannel.mockResolvedValueOnce(undefined);
 
-    await handler.execute({ signup: createMock({}), guildId: '' });
+    await handler.execute({ signup: {} as SignupDocument, guildId: '' });
 
     expect(settingsCollection.getReviewChannel).toHaveBeenCalled();
     expect(spy).not.toHaveBeenCalled();
   });
 
   it('sends a review if a review channel has been configured', async () => {
-    const spy = vi.spyOn(handler, 'sendSignupForApproval');
+    const spy = vi
+      .spyOn(handler, 'sendSignupForApproval')
+      .mockResolvedValue('reviewMessageId');
 
     settingsCollection.getReviewChannel.mockResolvedValueOnce('#foo');
-    get.mockReturnValueOnce(createMock<TextChannel>({}));
-    discordServiceMock.getGuildMember.mockResolvedValueOnce(
-      createMock<GuildMember>({
-        displayAvatarURL: () => 'http://foo',
-        toString: () => '<@ay>',
-        valueOf: () => 'some value',
-      }),
-    );
+    discordServiceMock.getGuildMember.mockResolvedValueOnce({
+      displayAvatarURL: () => 'http://foo',
+      toString: () => '<@ay>',
+    } as unknown as GuildMember);
 
     await handler.execute({
       signup,
@@ -88,16 +83,14 @@ describe('Send Signup Review Command Handler', () => {
     settingsCollection.getReviewChannel.mockResolvedValueOnce('#foo');
     discordServiceMock.getTextChannel.mockResolvedValueOnce(null);
 
-    get.mockReturnValueOnce(undefined);
-
     return expect(() =>
       handler.execute({
-        signup: createMock<SignupDocument>({
+        signup: {
           encounter: Encounter.DSR,
           status: SignupStatus.PENDING,
           character: 'foo',
           world: 'bar',
-        }),
+        } as SignupDocument,
         guildId: '',
       }),
     ).rejects.toThrow(MissingChannelException);

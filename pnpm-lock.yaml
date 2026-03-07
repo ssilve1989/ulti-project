@@ -93,9 +93,6 @@ importers:
       '@flydotio/dockerfile':
         specifier: ^0.7.10
         version: 0.7.10(@types/node@25.3.3)
-      '@golevelup/ts-vitest':
-        specifier: ^0.5.2
-        version: 0.5.2
       '@graphql-codegen/cli':
         specifier: 6.1.1
         version: 6.1.1(@types/node@25.3.3)(graphql@16.9.0)(typescript@5.9.3)
@@ -903,9 +900,6 @@ packages:
     resolution: {integrity: sha512-dTXqBjCl7nFmnhlyeDjjPtX+sdfYBWFH9PUKNqAYttvBiczKcYXxr7/0A0wZ+g1FB1tmMzsOzedgr6xap/AB9g==}
     engines: {node: '>=16.0.0'}
     hasBin: true
-
-  '@golevelup/ts-vitest@0.5.2':
-    resolution: {integrity: sha512-kxL12/4lBeYcdpfabvqWGgIagt8ycD6vUNlVyNUjGjxuqo8wPRB1Ohfnn4LNWQG8X8/xf74S2qYnOGqJ7IvWFA==}
 
   '@google-cloud/firestore@7.11.6':
     resolution: {integrity: sha512-EW/O8ktzwLfyWBOsNuhRoMi8lrC3clHM5LVFhGvO1HCsLozCOOXRAlHrYBoE6HL42Sc8yYMuCb2XqcnJ4OOEpw==}
@@ -5869,8 +5863,6 @@ snapshots:
       yargs: 17.7.2
     transitivePeerDependencies:
       - '@types/node'
-
-  '@golevelup/ts-vitest@0.5.2': {}
 
   '@google-cloud/firestore@7.11.6':
     dependencies:

@@ -1,13 +1,12 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
-import { Logger } from '@nestjs/common';
+import type { LoggerService } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import {
+import type {
   ButtonInteraction,
-  type ChatInputCommandInteraction,
-  MessageFlags,
+  ChatInputCommandInteraction,
   StringSelectMenuInteraction,
 } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { MessageFlags } from 'discord.js';
+import { beforeEach, describe, expect, it, type Mocked } from 'vitest';
 import { EncountersService } from '../../../encounters/encounters.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import type {
@@ -15,16 +14,17 @@ import type {
   ProgPointDocument,
 } from '../../../firebase/models/encounter.model.js';
 import { PartyStatus } from '../../../firebase/models/signup.model.js';
+import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { ManageProgPointsCommand } from '../commands/encounters.commands.js';
 import { ManageProgPointsCommandHandler } from './manage-prog-points.command-handler.js';
 
 describe('ManageProgPointsCommandHandler', () => {
   let handler: ManageProgPointsCommandHandler;
-  let encountersService: DeepMocked<EncountersService>;
-  let errorService: DeepMocked<ErrorService>;
-  let interaction: DeepMocked<ChatInputCommandInteraction<'cached'>>;
-  let mockChannel: DeepMocked<any>;
-  let mockCollector: DeepMocked<any>;
+  let encountersService: Mocked<EncountersService>;
+  let errorService: Mocked<ErrorService>;
+  let interaction: ChatInputCommandInteraction<'cached'>;
+  let mockChannel: ReturnType<typeof createAutoMock>;
+  let mockCollector: ReturnType<typeof createAutoMock>;
 
   const mockEncounter: EncounterDocument = {
     id: 'test-encounter',
@@ -65,8 +65,8 @@ describe('ManageProgPointsCommandHandler', () => {
     const fixture = await Test.createTestingModule({
       providers: [ManageProgPointsCommandHandler],
     })
-      .useMocker(() => createMock())
-      .setLogger(createMock<Logger>())
+      .useMocker(createAutoMock)
+      .setLogger(createAutoMock() as unknown as LoggerService)
       .compile();
 
     handler = fixture.get(ManageProgPointsCommandHandler);
@@ -74,16 +74,17 @@ describe('ManageProgPointsCommandHandler', () => {
     errorService = fixture.get(ErrorService);
 
     // Setup interaction mock
-    interaction = createMock<ChatInputCommandInteraction<'cached'>>();
-    mockChannel = createMock();
-    mockCollector = createMock();
+    interaction =
+      createAutoMock() as unknown as ChatInputCommandInteraction<'cached'>;
+    mockChannel = createAutoMock();
+    mockCollector = createAutoMock();
 
     Object.defineProperty(interaction, 'channel', {
       value: mockChannel,
       writable: true,
     });
     Object.defineProperty(interaction, 'user', {
-      value: createMock({ id: 'test-user' }),
+      value: { id: 'test-user' },
       writable: true,
     });
     mockChannel.createMessageComponentCollector.mockReturnValue(mockCollector);
@@ -132,7 +133,7 @@ describe('ManageProgPointsCommandHandler', () => {
     });
 
     it('should handle encounter not found', async () => {
-      encountersService.getEncounter.mockResolvedValue(null);
+      encountersService.getEncounter.mockResolvedValue(null as never);
       const command = new ManageProgPointsCommand(
         interaction,
         'test-encounter',
@@ -200,7 +201,8 @@ describe('ManageProgPointsCommandHandler', () => {
     });
 
     it('should handle finish interaction', async () => {
-      const buttonInteraction = createMock<ButtonInteraction>();
+      const buttonInteraction =
+        createAutoMock() as unknown as Mocked<ButtonInteraction>;
       buttonInteraction.isButton.mockReturnValue(true);
       buttonInteraction.isMessageComponent.mockReturnValue(true);
       Object.defineProperty(buttonInteraction, 'customId', {
@@ -231,7 +233,8 @@ describe('ManageProgPointsCommandHandler', () => {
     });
 
     it('should handle toggle prog point button', async () => {
-      const buttonInteraction = createMock<ButtonInteraction>();
+      const buttonInteraction =
+        createAutoMock() as unknown as Mocked<ButtonInteraction>;
       buttonInteraction.isButton.mockReturnValue(true);
       buttonInteraction.isMessageComponent.mockReturnValue(true);
       Object.defineProperty(buttonInteraction, 'customId', {
@@ -325,7 +328,8 @@ describe('ManageProgPointsCommandHandler', () => {
       await handler.execute(command);
 
       // First click toggle button to get into toggle selection state
-      const toggleButton = createMock<ButtonInteraction>();
+      const toggleButton =
+        createAutoMock() as unknown as Mocked<ButtonInteraction>;
       toggleButton.isButton.mockReturnValue(true);
       toggleButton.isMessageComponent.mockReturnValue(true);
       Object.defineProperty(toggleButton, 'customId', {
@@ -349,7 +353,8 @@ describe('ManageProgPointsCommandHandler', () => {
     it('should toggle prog point active status', async () => {
       encountersService.toggleProgPointActive.mockResolvedValue();
 
-      const selectInteraction = createMock<StringSelectMenuInteraction>();
+      const selectInteraction =
+        createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
       selectInteraction.isStringSelectMenu.mockReturnValue(true);
       selectInteraction.isMessageComponent.mockReturnValue(true);
       Object.defineProperty(selectInteraction, 'customId', {
@@ -380,7 +385,8 @@ describe('ManageProgPointsCommandHandler', () => {
     });
 
     it('should handle prog point not found during toggle', async () => {
-      const selectInteraction = createMock<StringSelectMenuInteraction>();
+      const selectInteraction =
+        createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
       selectInteraction.isStringSelectMenu.mockReturnValue(true);
       selectInteraction.isMessageComponent.mockReturnValue(true);
       Object.defineProperty(selectInteraction, 'customId', {
@@ -422,7 +428,8 @@ describe('ManageProgPointsCommandHandler', () => {
 
     it('should handle expired interaction error', async () => {
       const expiredError = { code: 10062, message: 'Unknown interaction' };
-      const buttonInteraction = createMock<ButtonInteraction>();
+      const buttonInteraction =
+        createAutoMock() as unknown as Mocked<ButtonInteraction>;
       buttonInteraction.isButton.mockReturnValue(true);
       buttonInteraction.isMessageComponent.mockReturnValue(true);
       Object.defineProperty(buttonInteraction, 'customId', {
@@ -450,7 +457,8 @@ describe('ManageProgPointsCommandHandler', () => {
     });
 
     it('should validate interaction age', async () => {
-      const oldInteraction = createMock<ButtonInteraction>();
+      const oldInteraction =
+        createAutoMock() as unknown as Mocked<ButtonInteraction>;
       oldInteraction.isButton.mockReturnValue(true);
       oldInteraction.isMessageComponent.mockReturnValue(true);
       Object.defineProperty(oldInteraction, 'customId', {
@@ -489,7 +497,8 @@ describe('ManageProgPointsCommandHandler', () => {
     it('should handle return to main menu', async () => {
       encountersService.getAllProgPoints.mockResolvedValue(mockProgPoints);
 
-      const buttonInteraction = createMock<ButtonInteraction>();
+      const buttonInteraction =
+        createAutoMock() as unknown as Mocked<ButtonInteraction>;
       buttonInteraction.isButton.mockReturnValue(true);
       buttonInteraction.isMessageComponent.mockReturnValue(true);
       Object.defineProperty(buttonInteraction, 'customId', {

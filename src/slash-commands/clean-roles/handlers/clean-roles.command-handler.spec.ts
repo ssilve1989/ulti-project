@@ -1,4 +1,3 @@
-import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
 import {
   ChatInputCommandInteraction,
@@ -15,6 +14,7 @@ import { ErrorService } from '../../../error/error.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { SignupStatus } from '../../../firebase/models/signup.model.js';
+import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { CleanRolesCommand } from '../commands/clean-roles.command.js';
 import { CleanRolesCommandHandler } from './clean-roles.command-handler.js';
 
@@ -29,7 +29,7 @@ describe('CleanRolesCommandHandler', () => {
     const fixture = await Test.createTestingModule({
       providers: [CleanRolesCommandHandler],
     })
-      .useMocker(createMock)
+      .useMocker(createAutoMock)
       .compile();
 
     handler = fixture.get(CleanRolesCommandHandler);
@@ -141,7 +141,7 @@ describe('CleanRolesCommandHandler', () => {
     });
 
     it('should handle settings with no roles configured', async () => {
-      const mockErrorEmbed = createMock<EmbedBuilder>();
+      const mockErrorEmbed = {} as EmbedBuilder;
 
       settingsCollection.getSettings = vi.fn().mockResolvedValue({});
       errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);
@@ -158,7 +158,7 @@ describe('CleanRolesCommandHandler', () => {
     });
 
     it('should handle empty role configuration', async () => {
-      const mockErrorEmbed = createMock<EmbedBuilder>();
+      const mockErrorEmbed = {} as EmbedBuilder;
 
       settingsCollection.getSettings = vi.fn().mockResolvedValue({
         progRoles: {},
@@ -214,7 +214,7 @@ describe('CleanRolesCommandHandler', () => {
     it('should handle errors gracefully', async () => {
       const { mock, editReply } = createInteractionMock();
       const error = new Error('Database error');
-      const mockErrorEmbed = createMock<EmbedBuilder>();
+      const mockErrorEmbed = {} as EmbedBuilder;
 
       settingsCollection.getSettings = vi.fn().mockRejectedValue(error);
       errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);
@@ -228,7 +228,7 @@ describe('CleanRolesCommandHandler', () => {
     it('should handle settings-related errors with specific message', async () => {
       const { mock, editReply } = createInteractionMock();
       const error = new Error('No clear/prog roles configured in settings');
-      const mockErrorEmbed = createMock<EmbedBuilder>();
+      const mockErrorEmbed = {} as EmbedBuilder;
 
       settingsCollection.getSettings = vi.fn().mockRejectedValue(error);
       errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);

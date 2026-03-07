@@ -1,21 +1,25 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { ChatInputCommandInteraction, EmbedBuilder, Role } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import type {
+  ChatInputCommandInteraction,
+  EmbedBuilder,
+  Role,
+} from 'discord.js';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
+import { createAutoMock } from '../../../../test-utils/mock-factory.js';
 import { EditReviewerCommandHandler } from './edit-reviewer.command-handler.js';
 
 describe('Edit Reviewer Command Handler', () => {
   let handler: EditReviewerCommandHandler;
-  let settingsCollection: DeepMocked<SettingsCollection>;
-  let errorService: DeepMocked<ErrorService>;
+  let settingsCollection: Mocked<SettingsCollection>;
+  let errorService: Mocked<ErrorService>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
       providers: [EditReviewerCommandHandler],
     })
-      .useMocker(() => createMock())
+      .useMocker(createAutoMock)
       .compile();
 
     handler = fixture.get(EditReviewerCommandHandler);
@@ -38,20 +42,20 @@ describe('Edit Reviewer Command Handler', () => {
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
     await handler.execute({
-      interaction: createMock<ChatInputCommandInteraction<'cached'>>({
+      interaction: {
         guildId,
         options: {
           getRole: (name: string, _required?: boolean) =>
             name === 'reviewer-role'
-              ? createMock<Role>({
+              ? ({
                   id: roleId,
                   toString: () => `<@&${roleId}>`,
-                  valueOf: () => '',
-                })
+                } as unknown as Role)
               : null,
         },
-        valueOf: () => '',
-      }),
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>,
     });
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(
@@ -64,23 +68,20 @@ describe('Edit Reviewer Command Handler', () => {
 
   it('should handle errors gracefully', async () => {
     const error = new Error('Test error');
-    const mockErrorEmbed = createMock<EmbedBuilder>();
+    const mockErrorEmbed = {} as EmbedBuilder;
 
     settingsCollection.getSettings.mockRejectedValueOnce(error);
     errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
 
-    const interaction = createMock<ChatInputCommandInteraction<'cached'>>({
+    const interaction = {
       guildId: '12345',
       options: {
         getRole: (_: string, __?: boolean) =>
-          createMock<Role>({
-            id: '67890',
-            toString: () => '<@&67890>',
-            valueOf: () => '',
-          }),
+          ({ id: '67890', toString: () => '<@&67890>' }) as unknown as Role,
       },
-      valueOf: () => '',
-    });
+      deferReply: vi.fn(),
+      editReply: vi.fn(),
+    } as unknown as ChatInputCommandInteraction<'cached'>;
 
     await handler.execute({ interaction });
 

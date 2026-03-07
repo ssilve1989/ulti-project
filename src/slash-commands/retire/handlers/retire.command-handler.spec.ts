@@ -1,20 +1,21 @@
-import { createMock } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
-import { ChatInputCommandInteraction, Colors } from 'discord.js';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ChatInputCommandInteraction } from 'discord.js';
+import { Colors } from 'discord.js';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
+import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { RetireCommand } from '../commands/retire.command.js';
 import { RetireCommandHandler } from './retire.command-handler.js';
 
 describe('RetireCommandHandler', () => {
   let handler: RetireCommandHandler;
-  let discordService: DiscordService;
+  let discordService: Mocked<DiscordService>;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
       providers: [RetireCommandHandler],
     })
-      .useMocker(createMock)
+      .useMocker(createAutoMock)
       .compile();
 
     handler = fixture.get(RetireCommandHandler);
@@ -50,7 +51,7 @@ describe('RetireCommandHandler', () => {
       const editReply = vi.fn().mockResolvedValue(undefined);
 
       return {
-        mock: createMock<ChatInputCommandInteraction<'cached'>>({
+        mock: {
           deferReply,
           editReply,
           guildId,
@@ -69,8 +70,7 @@ describe('RetireCommandHandler', () => {
               };
             },
           },
-          valueOf: () => '',
-        }),
+        } as unknown as ChatInputCommandInteraction<'cached'>,
         deferReply,
         editReply,
       };

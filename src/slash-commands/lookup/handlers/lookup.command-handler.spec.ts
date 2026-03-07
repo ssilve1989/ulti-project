@@ -1,33 +1,37 @@
-import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { Test } from '@nestjs/testing';
+import type { ChatInputCommandInteraction } from 'discord.js';
+import { Colors, EmbedBuilder, MessageFlags } from 'discord.js';
 import {
-  ChatInputCommandInteraction,
-  Colors,
-  EmbedBuilder,
-  MessageFlags,
-} from 'discord.js';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mocked,
+  vi,
+} from 'vitest';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { BlacklistCollection } from '../../../firebase/collections/blacklist-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../../firebase/models/signup.model.js';
+import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { LookupCommand } from '../commands/lookup.command.js';
 import { LookupCommandHandler } from './lookup.command-handler.js';
 
 describe('LookupCommandHandler', () => {
   let handler: LookupCommandHandler;
-  let interaction: DeepMocked<ChatInputCommandInteraction<'cached'>>;
-  let signupsCollection: DeepMocked<SignupCollection>;
-  let blacklistCollection: DeepMocked<BlacklistCollection>;
-  let errorService: DeepMocked<ErrorService>;
+  let interaction: ChatInputCommandInteraction<'cached'>;
+  let signupsCollection: Mocked<SignupCollection>;
+  let blacklistCollection: Mocked<BlacklistCollection>;
+  let errorService: Mocked<ErrorService>;
   const getStringMock = vi.fn();
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
       providers: [LookupCommandHandler],
     })
-      .useMocker(() => createMock())
+      .useMocker(createAutoMock)
       .compile();
 
     handler = fixture.get(LookupCommandHandler);
@@ -35,12 +39,10 @@ describe('LookupCommandHandler', () => {
     blacklistCollection = fixture.get(BlacklistCollection);
     errorService = fixture.get(ErrorService);
 
-    interaction = createMock<ChatInputCommandInteraction<'cached'>>({
-      options: {
-        getString: getStringMock,
-      },
-      valueOf: () => '',
-    });
+    interaction = {
+      options: { getString: getStringMock },
+      reply: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ChatInputCommandInteraction<'cached'>;
   });
 
   afterEach(() => {
@@ -71,7 +73,7 @@ describe('LookupCommandHandler', () => {
     signupsCollection.findAll.mockResolvedValue(signups);
 
     // Return null so the user is not blacklisted
-    blacklistCollection.search.mockResolvedValue(null);
+    blacklistCollection.search.mockResolvedValue(null as never);
 
     const command = new LookupCommand(interaction);
 
@@ -136,7 +138,7 @@ describe('LookupCommandHandler', () => {
 
   it('should handle errors gracefully', async () => {
     const error = new Error('Database error');
-    const mockErrorEmbed = createMock<EmbedBuilder>();
+    const mockErrorEmbed = {} as EmbedBuilder;
 
     getStringMock.mockImplementation((key) => {
       if (key === 'character') return 'Test Character';

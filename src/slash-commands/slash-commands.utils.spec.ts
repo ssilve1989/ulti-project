@@ -1,5 +1,4 @@
-import { createMock } from '@golevelup/ts-vitest';
-import { ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import { expect, test } from 'vitest';
 import { LookupCommand } from './lookup/commands/lookup.command.js';
 import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
@@ -30,10 +29,9 @@ const cases = [
 }));
 
 test.each(cases)('$description', ({ input, expected }) => {
-  const interaction = createMock<ChatInputCommandInteraction<'cached'>>({
+  const interaction = {
     commandName: input,
-    valueOf: () => '',
-  });
+  } as unknown as ChatInputCommandInteraction<'cached'>;
 
   const result = getCommandForInteraction(interaction);
   expect(result).toBeInstanceOf(expected);
