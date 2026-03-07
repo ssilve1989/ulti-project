@@ -1,0 +1,7 @@
+# Mise tool versions - PRIMARY source for all development tools
+# See: https://mise.jdx.dev/
+nodejs     25.7.0
+# Build Tools
+pnpm       10.30.3
+# Containers
+docker-cli 28.3.3
