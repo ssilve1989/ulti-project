@@ -37,6 +37,10 @@ class AsyncQueue {
       this.queue$.next({ task, resolve, reject });
     });
   }
+
+  public complete(): void {
+    this.queue$.complete();
+  }
 }
 
 export { AsyncQueue };

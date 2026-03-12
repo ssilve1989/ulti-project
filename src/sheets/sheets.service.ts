@@ -1,5 +1,5 @@
 import { sheets_v4 } from '@googleapis/sheets';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, type OnApplicationShutdown } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import { titleCase } from 'title-case';
@@ -40,16 +40,22 @@ type PartyTypes = (
  * Ranges are very brittle and will need to be updated if the spreadsheet changes.
  */
 @Injectable()
-class SheetsService {
+class SheetsService implements OnApplicationShutdown {
   private readonly logger: Logger = new Logger(SheetsService.name);
   // Separate queues for regular signups and TurboProg operations
   private readonly signupQueue = new AsyncQueue();
   private readonly turboProgQueue = new AsyncQueue();
+
   constructor(
     @InjectSheetsClient() private readonly client: sheets_v4.Sheets,
     private readonly encountersService: EncountersService,
     private readonly errorService: ErrorService,
   ) {}
+
+  onApplicationShutdown(): void {
+    this.signupQueue.complete();
+    this.turboProgQueue.complete();
+  }
 
   // Regular signup methods
 
