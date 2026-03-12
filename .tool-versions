@@ -2,6 +2,6 @@
 # See: https://mise.jdx.dev/
 nodejs     25.7.0
 # Build Tools
-pnpm       10.30.3
+pnpm       10.32.1
 # Containers
 docker-cli 28.3.3
