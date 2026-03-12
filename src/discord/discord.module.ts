@@ -83,7 +83,7 @@ class DiscordModule implements OnApplicationBootstrap, OnApplicationShutdown {
     fromEvent(this.client, Events.CacheSweep).subscribe({
       next: (msg) => this.logger.log(msg),
       error: (err) => {
-        Sentry;
+        Sentry.captureException(err);
         this.logger.error(err);
       },
     });
