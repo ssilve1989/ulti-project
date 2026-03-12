@@ -34,8 +34,8 @@
   "dependencies": {
     "@dotenvx/dotenvx": "^1.52.0",
     "@googleapis/sheets": "^13.0.1",
-    "@nestjs/common": "^11.1.15",
-    "@nestjs/core": "^11.1.15",
+    "@nestjs/common": "^11.1.16",
+    "@nestjs/core": "^11.1.16",
     "@nestjs/cqrs": "^11.0.3",
     "@sentry/cli": "^3.2.3",
     "@sentry/nestjs": "^10.42.0",
