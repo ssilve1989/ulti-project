@@ -1,0 +1,57 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:best-practices"],
+  "schedule": ["before 9am on monday"],
+  "minimumReleaseAge": "5 days",
+  "prConcurrentLimit": 10,
+  "packageRules": [
+    {
+      "description": "Automerge minor/patch/pin/digest updates",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "NestJS packages",
+      "matchPackageNames": [
+        "@nestjs/common",
+        "@nestjs/core",
+        "@nestjs/cqrs",
+        "@nestjs/schematics",
+        "@nestjs/testing",
+        "@nestjs/cli"
+      ],
+      "groupName": "nest"
+    },
+    {
+      "description": "Pino packages",
+      "matchPackageNames": ["pino-http", "pino-pretty"],
+      "groupName": "pino"
+    },
+    {
+      "description": "Commitlint packages",
+      "matchPackagePatterns": ["^@commitlint"],
+      "groupName": "commitlint"
+    },
+    {
+      "description": "Sentry packages",
+      "matchPackagePatterns": ["^@sentry"],
+      "groupName": "sentry"
+    },
+    {
+      "description": "Vite and Vitest packages",
+      "matchPackageNames": [
+        "@vitest/ui",
+        "@vitest/coverage-v8",
+        "vitest",
+        "vite"
+      ],
+      "groupName": "vite"
+    },
+    {
+      "description": "GraphQL Codegen packages",
+      "matchPackagePatterns": ["^@graphql-codegen"],
+      "groupName": "graphql"
+    }
+  ]
+}
