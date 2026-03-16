@@ -30,13 +30,13 @@
     },
     {
       "description": "Commitlint packages",
-      "matchPackagePatterns": ["^@commitlint"],
-      "groupName": "commitlint"
+      "groupName": "commitlint",
+      "matchPackageNames": ["/^@commitlint/"]
     },
     {
       "description": "Sentry packages",
-      "matchPackagePatterns": ["^@sentry"],
-      "groupName": "sentry"
+      "groupName": "sentry",
+      "matchPackageNames": ["/^@sentry/"]
     },
     {
       "description": "Vite and Vitest packages",
@@ -50,8 +50,8 @@
     },
     {
       "description": "GraphQL Codegen packages",
-      "matchPackagePatterns": ["^@graphql-codegen"],
-      "groupName": "graphql"
+      "groupName": "graphql",
+      "matchPackageNames": ["/^@graphql-codegen/"]
     },
     {
       "description": "GitHub Actions",
