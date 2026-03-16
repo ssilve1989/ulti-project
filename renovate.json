@@ -52,6 +52,11 @@
       "description": "GraphQL Codegen packages",
       "matchPackagePatterns": ["^@graphql-codegen"],
       "groupName": "graphql"
+    },
+    {
+      "description": "GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions"
     }
   ]
 }
