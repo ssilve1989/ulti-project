@@ -79,16 +79,16 @@ importers:
         specifier: 2.4.6
         version: 2.4.6
       '@commitlint/cli':
-        specifier: ^20.4.3
+        specifier: 20.4.3
         version: 20.4.3(@types/node@25.3.5)(typescript@5.9.3)
       '@commitlint/config-conventional':
-        specifier: ^20.4.3
+        specifier: 20.4.3
         version: 20.4.3
       '@commitlint/cz-commitlint':
-        specifier: ^20.4.3
+        specifier: 20.4.3
         version: 20.4.3(@types/node@25.3.5)(commitizen@4.3.1(@types/node@25.3.5)(typescript@5.9.3))(inquirer@12.5.2(@types/node@25.3.5))(typescript@5.9.3)
       '@commitlint/prompt-cli':
-        specifier: ^20.4.3
+        specifier: 20.4.3
         version: 20.4.3(@types/node@25.3.5)(typescript@5.9.3)
       '@flydotio/dockerfile':
         specifier: ^0.7.10
@@ -4432,10 +4432,6 @@ packages:
     resolution: {integrity: sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==}
     engines: {node: '>=8'}
 
-  strip-ansi@7.1.2:
-    resolution: {integrity: sha512-gmBGslpoQJtgnMAvOVqGZpEz9dyoKTCzy2nfz/n8aIFhN/jCE/rCmcxabB6jOOHV+0WNnylOxaxBQPSvcWklhA==}
-    engines: {node: '>=12'}
-
   strip-ansi@7.2.0:
     resolution: {integrity: sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w==}
     engines: {node: '>=12'}
@@ -6440,7 +6436,7 @@ snapshots:
     dependencies:
       string-width: 5.1.2
       string-width-cjs: string-width@4.2.3
-      strip-ansi: 7.1.2
+      strip-ansi: 7.2.0
       strip-ansi-cjs: strip-ansi@6.0.1
       wrap-ansi: 8.1.0
       wrap-ansi-cjs: wrap-ansi@7.0.0
@@ -9719,7 +9715,7 @@ snapshots:
     dependencies:
       eastasianwidth: 0.2.0
       emoji-regex: 9.2.2
-      strip-ansi: 7.1.2
+      strip-ansi: 7.2.0
 
   string-width@7.2.0:
     dependencies:
@@ -9739,10 +9735,6 @@ snapshots:
   strip-ansi@6.0.1:
     dependencies:
       ansi-regex: 5.0.1
-
-  strip-ansi@7.1.2:
-    dependencies:
-      ansi-regex: 6.2.2
 
   strip-ansi@7.2.0:
     dependencies:
@@ -10070,7 +10062,7 @@ snapshots:
     dependencies:
       ansi-styles: 6.2.3
       string-width: 5.1.2
-      strip-ansi: 7.1.2
+      strip-ansi: 7.2.0
 
   wrap-ansi@9.0.2:
     dependencies:
