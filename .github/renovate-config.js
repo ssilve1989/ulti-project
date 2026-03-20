@@ -5,6 +5,9 @@ module.exports = {
   // Skip onboarding PR since we're self-hosting
   onboarding: false,
   requireConfig: 'optional',
+  // Disable cache to prevent false "repository-changed" aborts caused by
+  // stale cached master SHA being compared against the current SHA on each run
+  repositoryCache: 'disabled',
   // repositories: ['ssilve1989/ulti-project'],
 
   // Target master branch
