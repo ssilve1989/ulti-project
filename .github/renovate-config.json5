@@ -1,14 +1,11 @@
-// biome-ignore lint/style/noCommonJs: renvoate config file
-module.exports = {
+{
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+
+  extends: ['config:best-practices', ':preserveSemverRanges'],
 
   // Skip onboarding PR since we're self-hosting
   onboarding: false,
   requireConfig: 'optional',
-  // Disable cache to prevent false "repository-changed" aborts caused by
-  // stale cached master SHA being compared against the current SHA on each run
-  repositoryCache: 'disabled',
-  // repositories: ['ssilve1989/ulti-project'],
 
   // Target master branch
   baseBranchPatterns: ['master'],
@@ -19,17 +16,19 @@ module.exports = {
   // Only enable the managers we need right now
   enabledManagers: ['npm', 'github-actions'],
 
-  // Rate limiting for a large monorepo
+  // Rate limiting
   prConcurrentLimit: 25,
   prHourlyLimit: 8,
 
   // Separate major from minor/patch
   separateMajorMinor: true,
 
-  // Match pnpm-workspace.yaml minimumReleaseAge: 7200 (minutes)
+  // Match pnpm-workspace.yaml minimumReleaseAge
   minimumReleaseAge: '5 days',
 
-  // Package rules for grouping
+  // Ignore paths that shouldn't be scanned
+  ignorePaths: ['node_modules/**'],
+
   packageRules: [
     // Automerge minor/patch/digest updates
     {
@@ -37,25 +36,25 @@ module.exports = {
       automerge: true,
       automergeType: 'pr',
     },
-    // --- NPM grouping (migrated from Dependabot groups) ---
+    // --- NPM grouping ---
     {
       groupName: 'NestJS core',
       matchManagers: ['npm'],
       matchPackageNames: [
-        '/^@nestjs\\/common$/',
-        '/^@nestjs\\/core$/',
-        '/^@nestjs\\/cqrs$/',
-        '/^@nestjs\\/microservices$/',
-        '/^@nestjs\\/platform-express$/',
-        '/^@nestjs\\/schematics$/',
-        '/^@nestjs\\/testing$/',
-        '/^@nestjs\\/cli$/',
+        '/^@nestjs/common$/',
+        '/^@nestjs/core$/',
+        '/^@nestjs/cqrs$/',
+        '/^@nestjs/microservices$/',
+        '/^@nestjs/platform-express$/',
+        '/^@nestjs/schematics$/',
+        '/^@nestjs/testing$/',
+        '/^@nestjs/cli$/',
       ],
     },
     {
       groupName: 'Vitest',
       matchManagers: ['npm'],
-      matchPackageNames: ['/^@vitest\\//', '/vitest/'],
+      matchPackageNames: ['/^@vitest//', '/vitest/'],
     },
     {
       groupName: 'Pino',
@@ -70,29 +69,23 @@ module.exports = {
     {
       groupName: 'Commitlint',
       matchManagers: ['npm'],
-      matchPackageNames: ['/^@commitlint\\//'],
+      matchPackageNames: ['/^@commitlint//'],
     },
     {
       groupName: 'Sentry',
       matchManagers: ['npm'],
-      matchPackageNames: ['/^@sentry\\//'],
+      matchPackageNames: ['/^@sentry//'],
     },
     {
       groupName: 'GraphQL Codegen',
       matchManagers: ['npm'],
-      matchPackageNames: ['/^@graphql-codegen\\//', '/^graphql/'],
+      matchPackageNames: ['/^@graphql-codegen//', '/^graphql/'],
     },
     // --- GitHub Actions grouping ---
     {
       groupName: 'GitHub Actions',
       matchManagers: ['github-actions'],
       matchPackageNames: ['*'],
-    },
-    // Use maven versioning for Bazel Maven deps
-    {
-      matchManagers: ['bazel-module'],
-      matchDatasources: ['maven'],
-      versioning: 'maven',
     },
     // Assign npm PRs to frontend platform team
     {
@@ -103,17 +96,14 @@ module.exports = {
     // Assign LangChain PRs to david-trumid
     {
       matchManagers: ['npm'],
-      matchPackageNames: ['/^@langchain\\//'],
+      matchPackageNames: ['/^@langchain//'],
       assignees: ['david-trumid', 'ssilve1989', 'zackerydev'],
       reviewers: ['david-trumid', 'ssilve1989', 'zackerydev'],
     },
-    // Match pnpm-workspace.yaml minimumReleaseAgeExclude for typescript
+    // Skip minimumReleaseAge for TypeScript
     {
       matchPackageNames: ['typescript'],
       minimumReleaseAge: '0 seconds',
     },
   ],
-
-  // Ignore paths that shouldn't be scanned
-  ignorePaths: ['node_modules/**'],
-};
+}
