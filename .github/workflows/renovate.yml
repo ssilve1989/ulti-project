@@ -19,3 +19,4 @@ jobs:
           token: ${{ secrets.RENOVATE_TOKEN }}
         env:
           RENOVATE_REPOSITORIES: ssilve1989/ulti-project
+          LOG_LEVEL: debug
