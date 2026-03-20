@@ -32,6 +32,12 @@ module.exports = {
 
   // Package rules for grouping
   packageRules: [
+    // Automerge minor/patch/digest updates
+    {
+      matchUpdateTypes: ['minor', 'patch', 'digest'],
+      automerge: true,
+      automergeType: 'pr',
+    },
     // --- NPM grouping (migrated from Dependabot groups) ---
     {
       groupName: 'NestJS core',
