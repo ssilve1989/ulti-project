@@ -26,10 +26,6 @@ module.exports = {
   // Match pnpm-workspace.yaml minimumReleaseAge: 7200 (minutes)
   minimumReleaseAge: '5 days',
 
-  // Schedule: weekdays during business hours (ET)
-  timezone: 'America/New_York',
-  schedule: ['after 9am and before 5pm every weekday'],
-
   // Package rules for grouping
   packageRules: [
     // Automerge minor/patch/digest updates
