@@ -1,0 +1,92 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
+  "extends": ["config:best-practices", ":preserveSemverRanges"],
+
+  "baseBranchPatterns": ["master"],
+
+  "branchPrefix": "renovate-",
+
+  "enabledManagers": ["npm", "github-actions"],
+
+  "prConcurrentLimit": 25,
+  "prHourlyLimit": 8,
+
+  "separateMajorMinor": true,
+
+  "minimumReleaseAge": "5 days",
+
+  "ignorePaths": ["node_modules/**"],
+
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "groupName": "NestJS core",
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "/^@nestjs/common$/",
+        "/^@nestjs/core$/",
+        "/^@nestjs/cqrs$/",
+        "/^@nestjs/microservices$/",
+        "/^@nestjs/platform-express$/",
+        "/^@nestjs/schematics$/",
+        "/^@nestjs/testing$/",
+        "/^@nestjs/cli$/"
+      ]
+    },
+    {
+      "groupName": "Vitest",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@vitest/", "/vitest/"]
+    },
+    {
+      "groupName": "Pino",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^pino/"]
+    },
+    {
+      "groupName": "Vite",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^vite$/", "/^unplugin-swc$/"]
+    },
+    {
+      "groupName": "Commitlint",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@commitlint//"]
+    },
+    {
+      "groupName": "Sentry",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@sentry//"]
+    },
+    {
+      "groupName": "GraphQL Codegen",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@graphql-codegen//", "/^graphql/"]
+    },
+    {
+      "groupName": "GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["*"]
+    },
+    {
+      "matchManagers": ["npm"],
+      "assignees": ["ssilve1989", "zackerydev"],
+      "reviewers": ["ssilve1989", "zackerydev"]
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@langchain//"],
+      "assignees": ["david-trumid", "ssilve1989", "zackerydev"],
+      "reviewers": ["david-trumid", "ssilve1989", "zackerydev"]
+    },
+    {
+      "matchPackageNames": ["typescript"],
+      "minimumReleaseAge": "0 seconds"
+    }
+  ]
+}
