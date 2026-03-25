@@ -12,7 +12,7 @@ jobs:
     concurrency: deploy-group # optional: ensure only one action runs at a time
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - uses: jdx/mise-action@c1ecc8f748cd28cdeabf76dab3cccde4ce692fe4 # v4
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4
       - uses: superfly/flyctl-actions/setup-flyctl@63da3ecc5e2793b98a3f2519b3d75d4f4c11cec2 # master
       # build and upload sourcemaps before we deploy this image
       - run: pnpm install --frozen-lockfile
@@ -34,7 +34,7 @@ jobs:
         with:
           repository: ssilve1989/github-releases-to-discord-action
           token: ${{ secrets.ULTI_PROJECT_PAT }}
-      - uses: jdx/mise-action@c1ecc8f748cd28cdeabf76dab3cccde4ce692fe4 # v4
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4
         with:
           tool_versions: |
             node 25.7.0
