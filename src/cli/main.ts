@@ -1,6 +1,6 @@
 import * as clack from '@clack/prompts';
-import type { AddCommandOptions } from './commands/encounters/add.js';
-import { runAddCommand } from './commands/encounters/add.js';
+import type { AddCommandOptions } from './commands/encounters/add/index.js';
+import { runAdd } from './commands/encounters/add/index.js';
 import { runManageProgPointsCommand } from './commands/encounters/manage-prog-points.js';
 import { runViewCommand } from './commands/encounters/view.js';
 import { createCliContext } from './config.js';
@@ -77,7 +77,7 @@ async function main(): Promise<void> {
   const { db, fflogsToken } = createCliContext();
 
   if (subcommand === 'add') {
-    await runAddCommand(db, fflogsToken, opts);
+    await runAdd(db, fflogsToken, opts);
   } else if (subcommand === 'manage-prog-points') {
     await runManageProgPointsCommand(db);
   } else if (subcommand === 'view') {
