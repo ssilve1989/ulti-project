@@ -29,17 +29,26 @@ Adding a new encounter currently requires manually editing two source files and 
 ```
 src/
   firebase/
-    create-firestore.ts        # NEW: pure factory fn — createFirestore(config) → Firestore
-    firebase.module.ts         # Updated: useFactory calls createFirestore() instead of inlining
+    create-firestore.ts        # Pure factory fn — createFirestore(config) → Firestore
+    firebase.module.ts         # useFactory calls createFirestore()
 
   cli/
-    main.ts                    # Entry point — routes top-level commands
+    main.ts                    # ~30 lines — program wiring, preAction hook, parseAsync
+    config.ts                  # cliConfigSchema, CliContext type, createCliContext()
     commands/
       encounters/
-        add.ts                 # Add new encounter (interactive + config file)
-        manage-prog-points.ts  # Add/edit/remove/reorder/toggle prog points
-        view.ts                # Read-only Firestore inspection
+        index.ts               # registerEncountersCommand(program, getCtx)
+        add/
+          index.ts             # registerAddCommand(cmd, getCtx) + thin runAdd orchestrator
+          prompts.ts           # all @clack/prompts interactive flows
+          steps.ts             # loadOrBuildConfig, resolveUltimateCascade, applySourceEditsStep, seedFirestoreStep
+        manage-prog-points/
+          index.ts             # registerManageProgPointsCommand(cmd, getCtx) + main loop
+          handlers.ts          # handleAdd/Edit/Toggle/Delete/Reorder, dispatchAction, promptSelectProgPoint
+        view/
+          index.ts             # registerViewCommand(cmd, getCtx) — single file, already compact
     utils/
+      clack.ts                 # Shared cancelIfCancel helper
       firestore.ts             # Raw Firestore CRUD for encounters + prog-points (no NestJS DI)
       source-editor.ts         # In-place edits to encounters.consts.ts + fflogs.consts.ts
       fflogs-lookup.ts         # FF Logs GraphQL search for encounter IDs
@@ -50,27 +59,59 @@ src/
 
 - **No NestJS** — the CLI bootstraps its own Firebase connection via `createFirestore()`. NestJS startup overhead (~1–2s) is avoided, and the Discord bot's dependency graph (Discord.js, Sentry, etc.) is not loaded.
 - **Shared types, not shared services** — the CLI imports `EncounterDocument`, `ProgPointDocument`, `PartyStatus`, and `Encounter` from `src/` directly. It does not reuse `EncountersCollection` or `EncountersService` (which are NestJS-coupled), but writes minimal Firestore operations in `src/cli/utils/firestore.ts`.
-- **Shared Firebase init** — `FirebaseModule` is refactored to call `createFirestore()` so initialisation logic is not duplicated.
+- **Shared Firebase init** — `FirebaseModule` calls `createFirestore()` so initialisation logic is not duplicated.
+- **Commander.js** — arg parsing, help text, and option typing are handled by Commander. `main.ts` uses a `preAction` hook to initialise `CliContext` lazily so `--help` and `--version` work without env vars present.
+- **Self-registering commands** — each command module exports a `register*(parentCmd, getCtx)` factory. `main.ts` stays under ~30 lines.
 - **`verbatimModuleSyntax` / `nodenext`** — all CLI files follow existing project module conventions (`.js` extensions on imports, `import type` where appropriate).
+- **Bun runtime** — CLI runs via `bun src/cli/main.ts`. Bun handles TypeScript natively (no build step), resolves `.js` imports to `.ts`, and provides the native `YAML` API used in `config-loader.ts`.
 
-### New dependencies (devDependencies only)
+### Context and wiring
+
+`config.ts` owns the env schema (`GCP_*` + `FFLOGS_API_ACCESS_TOKEN` only — not Discord vars), the `CliContext` type, and `createCliContext()`:
+
+```typescript
+export interface CliContext {
+  db: Firestore;
+  fflogsToken: string | undefined;
+}
+```
+
+`main.ts` uses a Commander `preAction` hook for lazy initialisation:
+
+```typescript
+let _ctx: CliContext;
+const getCtx = (): CliContext => _ctx;
+
+program.hook('preAction', () => { _ctx = createCliContext(); });
+registerEncountersCommand(program, getCtx);
+await program.parseAsync();
+```
+
+Each register factory receives `getCtx` and calls it only inside the `.action()` handler.
+
+### Dependencies (devDependencies)
 
 | Package | Purpose |
 |---|---|
 | `@clack/prompts` | Terminal UI — spinners, prompts, groups, cancel handling |
-| `js-yaml` | Parse YAML config files |
+| `commander` | Arg parsing, subcommand routing, help generation |
+| `bun` (runtime) | Declared in `.tool-versions`; runs CLI directly without a build step |
 
-`firebase-admin`, `graphql-request`, `zod`, and `@dotenvx/dotenvx` are already present.
+`firebase-admin`, `graphql-request`, `zod`, `@dotenvx/dotenvx`, and `bun-types` are already present. `js-yaml` replaced by Bun's native `YAML` API.
 
-### `package.json` addition
+### `package.json`
 
 ```json
-"cli": "dotenvx run -f .env -- node --experimental-strip-types src/cli/main.ts"
+"cli": "dotenvx run -f .env -- bun src/cli/main.ts"
 ```
 
 ### `tsconfig.build.json`
 
-Add `"src/cli"` to `exclude` so the CLI is not compiled into the production bot bundle.
+`src/cli` excluded so the CLI is not compiled into the production bot bundle.
+
+### `.dockerignore`
+
+`src/cli` excluded so CLI source is not copied into the application container build context.
 
 ---
 
