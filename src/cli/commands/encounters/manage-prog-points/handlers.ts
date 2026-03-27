@@ -1,9 +1,8 @@
 import * as clack from '@clack/prompts';
 import type { Firestore } from 'firebase-admin/firestore';
-import { Encounter } from '../../../encounters/encounters.consts.js';
-import type { ProgPointDocument } from '../../../firebase/models/encounter.model.js';
-import { PartyStatus } from '../../../firebase/models/signup.model.js';
-import { cancelIfCancel } from '../../utils/clack.js';
+import type { ProgPointDocument } from '../../../../firebase/models/encounter.model.js';
+import { PartyStatus } from '../../../../firebase/models/signup.model.js';
+import { cancelIfCancel } from '../../../utils/clack.js';
 import {
   addProgPoint,
   deleteProgPoint,
@@ -12,9 +11,9 @@ import {
   getNextProgPointOrder,
   reorderProgPoints,
   updateProgPoint,
-} from '../../utils/firestore.js';
+} from '../../../utils/firestore.js';
 
-async function promptSelectProgPoint(
+export async function promptSelectProgPoint(
   db: Firestore,
   encounterId: string,
   message: string,
@@ -34,7 +33,10 @@ async function promptSelectProgPoint(
   );
 }
 
-async function handleAdd(db: Firestore, encounterId: string): Promise<void> {
+export async function handleAdd(
+  db: Firestore,
+  encounterId: string,
+): Promise<void> {
   const id = cancelIfCancel(
     await clack.text({
       message: 'Prog point ID (short key, e.g. p1-loop):',
@@ -69,7 +71,10 @@ async function handleAdd(db: Firestore, encounterId: string): Promise<void> {
   spinner.stop(`Added: ${progPoint.id} — ${progPoint.label}`);
 }
 
-async function handleEdit(db: Firestore, encounterId: string): Promise<void> {
+export async function handleEdit(
+  db: Firestore,
+  encounterId: string,
+): Promise<void> {
   const progPoint = await promptSelectProgPoint(
     db,
     encounterId,
@@ -116,7 +121,10 @@ async function handleEdit(db: Firestore, encounterId: string): Promise<void> {
   spinner.stop(`Updated ${progPoint.id}`);
 }
 
-async function handleToggle(db: Firestore, encounterId: string): Promise<void> {
+export async function handleToggle(
+  db: Firestore,
+  encounterId: string,
+): Promise<void> {
   const progPoints = await getAllProgPoints(db, encounterId);
   const encounter = await getEncounter(db, encounterId);
 
@@ -130,7 +138,6 @@ async function handleToggle(db: Firestore, encounterId: string): Promise<void> {
     }),
   );
 
-  // Guard: cannot deactivate a threshold
   if (selected.active && encounter) {
     if (
       encounter.progPartyThreshold === selected.id ||
@@ -152,7 +159,10 @@ async function handleToggle(db: Firestore, encounterId: string): Promise<void> {
   spinner.stop(`${selected.id} is now ${newActive ? 'active' : 'inactive'}`);
 }
 
-async function handleDelete(db: Firestore, encounterId: string): Promise<void> {
+export async function handleDelete(
+  db: Firestore,
+  encounterId: string,
+): Promise<void> {
   const encounter = await getEncounter(db, encounterId);
   const progPoint = await promptSelectProgPoint(
     db,
@@ -160,7 +170,6 @@ async function handleDelete(db: Firestore, encounterId: string): Promise<void> {
     'Select prog point to delete:',
   );
 
-  // Guard: cannot delete a threshold
   if (encounter) {
     if (
       encounter.progPartyThreshold === progPoint.id ||
@@ -189,7 +198,7 @@ async function handleDelete(db: Firestore, encounterId: string): Promise<void> {
   spinner.stop(`Deleted ${progPoint.id}`);
 }
 
-async function handleReorder(
+export async function handleReorder(
   db: Firestore,
   encounterId: string,
 ): Promise<void> {
@@ -231,7 +240,7 @@ async function handleReorder(
   spinner.stop('Reordered successfully');
 }
 
-async function dispatchAction(
+export async function dispatchAction(
   db: Firestore,
   encounterId: string,
   action: string,
@@ -241,41 +250,4 @@ async function dispatchAction(
   else if (action === 'toggle') await handleToggle(db, encounterId);
   else if (action === 'delete') await handleDelete(db, encounterId);
   else if (action === 'reorder') await handleReorder(db, encounterId);
-}
-
-export async function runManageProgPointsCommand(db: Firestore): Promise<void> {
-  clack.intro('Manage Prog Points');
-
-  const encounterId = cancelIfCancel(
-    await clack.select({
-      message: 'Select encounter:',
-      options: Object.values(Encounter).map((v) => ({ value: v, label: v })),
-    }),
-  );
-
-  for (;;) {
-    const action = cancelIfCancel(
-      await clack.select({
-        message: 'What would you like to do?',
-        options: [
-          { value: 'add', label: 'Add prog point' },
-          { value: 'edit', label: 'Edit prog point' },
-          { value: 'toggle', label: 'Toggle active/inactive' },
-          { value: 'delete', label: 'Delete prog point' },
-          { value: 'reorder', label: 'Reorder prog points' },
-          { value: 'exit', label: 'Exit' },
-        ],
-      }),
-    );
-
-    if (action === 'exit') break;
-
-    try {
-      await dispatchAction(db, encounterId, action);
-    } catch (error) {
-      clack.log.error(error instanceof Error ? error.message : String(error));
-    }
-  }
-
-  clack.outro('Done');
 }
