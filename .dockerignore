@@ -2,6 +2,9 @@
 /dist
 /node_modules
 
+# CLI tooling (dev-only, not part of the application container)
+src/cli
+
 # Logs
 logs
 *.log
