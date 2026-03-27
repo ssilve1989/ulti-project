@@ -1,18 +1,9 @@
 import * as clack from '@clack/prompts';
-import { z } from 'zod';
-import { createFirestore } from '../firebase/create-firestore.js';
 import type { AddCommandOptions } from './commands/encounters/add.js';
 import { runAddCommand } from './commands/encounters/add.js';
 import { runManageProgPointsCommand } from './commands/encounters/manage-prog-points.js';
 import { runViewCommand } from './commands/encounters/view.js';
-
-const cliConfigSchema = z.object({
-  GCP_ACCOUNT_EMAIL: z.string(),
-  GCP_PRIVATE_KEY: z.string(),
-  GCP_PROJECT_ID: z.string(),
-  FIRESTORE_DATABASE_ID: z.string().optional(),
-  FFLOGS_API_ACCESS_TOKEN: z.string().optional(),
-});
+import { createCliContext } from './config.js';
 
 interface ParsedArgs {
   command: string;
@@ -83,25 +74,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Validate env vars the CLI needs
-  const cliConfig = cliConfigSchema.safeParse(process.env);
-  if (!cliConfig.success) {
-    clack.log.error(
-      `Missing required environment variables:\n${cliConfig.error.message}`,
-    );
-    process.exit(1);
-  }
-
-  // Initialise Firestore
-  const db = createFirestore({
-    clientEmail: cliConfig.data.GCP_ACCOUNT_EMAIL,
-    privateKey: cliConfig.data.GCP_PRIVATE_KEY,
-    projectId: cliConfig.data.GCP_PROJECT_ID,
-    databaseId: cliConfig.data.FIRESTORE_DATABASE_ID,
-    appName: 'cli',
-  });
-
-  const fflogsToken = cliConfig.data.FFLOGS_API_ACCESS_TOKEN;
+  const { db, fflogsToken } = createCliContext();
 
   if (subcommand === 'add') {
     await runAddCommand(db, fflogsToken, opts);
