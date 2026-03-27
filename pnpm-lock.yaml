@@ -123,6 +123,9 @@ importers:
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260317.1
         version: 7.0.0-dev.20260317.1
+      '@vercel/ncc':
+        specifier: ^0.38.4
+        version: 0.38.4
       '@vitest/coverage-v8':
         specifier: ^4.0.18
         version: 4.1.0(vitest@4.1.0)
@@ -147,9 +150,6 @@ importers:
       source-map-support:
         specifier: ^0.5.21
         version: 0.5.21
-      tsx:
-        specifier: ^4.21.0
-        version: 4.21.0
       unplugin-swc:
         specifier: ^1.5.9
         version: 1.5.9(@swc/core@1.7.3)(rollup@4.59.0)
@@ -2178,6 +2178,10 @@ packages:
 
   '@typescript/native-preview@7.0.0-dev.20260317.1':
     resolution: {integrity: sha512-HmYNuhDoN9OHfsSHuSRvYJobHAHDVubLvSGSrjfNL6C34fVlPkPDi+iA53LcN1pVX5J30kajcKC7Snm13xmuKA==}
+    hasBin: true
+
+  '@vercel/ncc@0.38.4':
+    resolution: {integrity: sha512-8LwjnlP39s08C08J5NstzriPvW1SP8Zfpp1BvC2sI35kPeZnHfxVkCwu4/+Wodgnd60UtT1n8K8zw+Mp7J9JmQ==}
     hasBin: true
 
   '@vitest/coverage-v8@4.1.0':
@@ -7169,6 +7173,8 @@ snapshots:
       '@typescript/native-preview-win32-arm64': 7.0.0-dev.20260317.1
       '@typescript/native-preview-win32-x64': 7.0.0-dev.20260317.1
 
+  '@vercel/ncc@0.38.4': {}
+
   '@vitest/coverage-v8@4.1.0(vitest@4.1.0)':
     dependencies:
       '@bcoe/v8-coverage': 1.0.2
@@ -8228,6 +8234,7 @@ snapshots:
   get-tsconfig@4.13.6:
     dependencies:
       resolve-pkg-maps: 1.0.0
+    optional: true
 
   git-raw-commits@5.0.1(conventional-commits-parser@6.3.0):
     dependencies:
@@ -9374,7 +9381,8 @@ snapshots:
 
   resolve-from@5.0.0: {}
 
-  resolve-pkg-maps@1.0.0: {}
+  resolve-pkg-maps@1.0.0:
+    optional: true
 
   restore-cursor@3.1.0:
     dependencies:
@@ -9762,6 +9770,7 @@ snapshots:
       get-tsconfig: 4.13.6
     optionalDependencies:
       fsevents: 2.3.3
+    optional: true
 
   type-fest@0.21.3: {}
 
