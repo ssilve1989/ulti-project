@@ -2,7 +2,7 @@ import * as clack from '@clack/prompts';
 import type { AddCommandOptions } from './commands/encounters/add/index.js';
 import { runAdd } from './commands/encounters/add/index.js';
 import { runManageProgPoints } from './commands/encounters/manage-prog-points/index.js';
-import { runViewCommand } from './commands/encounters/view.js';
+import { runView } from './commands/encounters/view/index.js';
 import { createCliContext } from './config.js';
 
 interface ParsedArgs {
@@ -81,7 +81,7 @@ async function main(): Promise<void> {
   } else if (subcommand === 'manage-prog-points') {
     await runManageProgPoints(db);
   } else if (subcommand === 'view') {
-    await runViewCommand(db, opts.encounterId);
+    await runView(db, opts.encounterId);
   } else {
     clack.log.error(`Unknown encounters subcommand: ${subcommand}`);
     printUsage();

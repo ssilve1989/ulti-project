@@ -1,15 +1,17 @@
 import * as clack from '@clack/prompts';
+import type { Command } from 'commander';
 import type { Firestore } from 'firebase-admin/firestore';
 import {
   Encounter,
   EncounterFriendlyDescription,
-} from '../../../encounters/encounters.consts.js';
-import { PartyStatus } from '../../../firebase/models/signup.model.js';
+} from '../../../../encounters/encounters.consts.js';
+import { PartyStatus } from '../../../../firebase/models/signup.model.js';
+import type { CliContext } from '../../../config.js';
 import {
   getAllActiveEncounters,
   getAllProgPoints,
   getEncounter,
-} from '../../utils/firestore.js';
+} from '../../../utils/firestore.js';
 
 const PARTY_STATUS_ICON: Record<PartyStatus, string> = {
   [PartyStatus.EarlyProgParty]: '🟡',
@@ -95,7 +97,7 @@ async function viewAllEncounters(db: Firestore): Promise<void> {
   clack.log.info(lines.join('\n'));
 }
 
-export async function runViewCommand(
+export async function runView(
   db: Firestore,
   encounterId?: string,
 ): Promise<void> {
@@ -118,4 +120,17 @@ export async function runViewCommand(
   }
 
   clack.outro('Done');
+}
+
+export function registerViewCommand(
+  encountersCmd: Command,
+  getCtx: () => CliContext,
+): void {
+  encountersCmd
+    .command('view [encounter-id]')
+    .description('View encounter configuration from Firestore')
+    .action(async (encounterId?: string) => {
+      const { db } = getCtx();
+      await runView(db, encounterId);
+    });
 }
