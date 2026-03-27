@@ -23,7 +23,7 @@
     "lint:ci": "biome ci --diagnostic-level=error",
     "prepare": "node scripts/install-hooks.js",
     "start:sentry": "NODE_OPTIONS=\"--import=./instrumentation.mjs\" pnpm start",
-    "cli": "dotenvx run -f .env -- node --experimental-strip-types src/cli/main.ts",
+    "cli": "dotenvx run -f .env -- tsx src/cli/main.ts",
     "start": "dotenvx run -f .env -f .env.development -- node dist/main",
     "test": "vitest",
     "test:ci": "CI=true vitest run --coverage",
@@ -81,6 +81,7 @@
     "lefthook": "^2.1.2",
     "rimraf": "^6.1.3",
     "source-map-support": "^0.5.21",
+    "tsx": "^4.21.0",
     "unplugin-swc": "^1.5.9",
     "vitest": "^4.0.18"
   },
