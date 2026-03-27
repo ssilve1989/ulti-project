@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=./encounter.schema.yaml
+
+id: FRU
+name: "[FRU] Futures Rewritten"
+description: "[FRU] Futures Rewritten"
+active: true
+progPartyThreshold: "P3: Apocalypse"
+clearPartyThreshold: "P5: Fulgent 1"
+progPoints: 
+  - id: "P2: Light Rampant"
+    label: "Phase 2: Light Rampant"
+    partyStatus: Early Prog Party
+    active: false
+  - id: "P2: Adds"
+    label: "Phase 2: Adds"
+    partyStatus: Prog Party
+    active: false
+  - id: "P3: Ultimate Relativity"
+    label: "Phase 3: Ultimate Relativity"
+    partyStatus: Prog Party
+    active: false
+  - id: "P3: Apocalypse"
+    label: "Phase 3: Apocalypse"
+    partyStatus: Prog Party
+    active: true
+  - id: "P3: Enrage"
+    label: "Phase 3: Enrage"
+    partyStatus: Prog Party
+    active: true
+  - id: "P4: Darklit"
+    label: "Phase 4: Darklit Dragonsong"
+    partyStatus: Prog Party
+    active: true
+  - id: "P4: AM 1"
+    label: "Phase 4: Akh Morn 1"
+    partyStatus: Prog Party
+    active: true
+  - id: "P4: Crystalize Time"
+    label: "Phase 4: Crystalize Time"
+    partyStatus: Prog Party
+    active: true
+  - id: "P4: AM 2"
+    label: "Phase 4: Akh Morn 2"
+    partyStatus: Prog Party
+    active: true
+  - id: "P4: Enrage"
+    label: "Phase 4: Enrage"
+    partyStatus: Prog Party
+    active: true
+  - id: "P5: Fulgent 1"
+    label: "Phase 5: Fulgent Blade 1"
+    partyStatus: Clear Party
+    active: true
+  - id: "P5: Wings 1"
+    label: "Phase 5: Wings Dark and Light 1"
+    partyStatus: Clear Party
+    active: true
+  - id: "P5: Polar 1"
+    label: "Phase 5: Polarizing Strikes 1"
+    partyStatus: Clear Party
+    active: true
+  - id: "P5: Fulgent 2"
+    label: "Phase 5: Fulgent Blade 2"
+    partyStatus: Clear Party
+    active: true
+  - id: "P5: Wings 2"
+    label: "Phase 5: Wings Dark and Light 2"
+    partyStatus: Clear Party
+    active: true
+  - id: "P5: Fulgent 3"
+    label: "Phase 5: Fulgent Blade 3"
+    partyStatus: Clear Party
+    active: true
+  - id: "P5: Polar 2"
+    label: "Phase 5: Polarizing Strikes 2"
+    partyStatus: Clear Party
+    active: true
+  - id: "P5: Enrage"
+    label: "Phase 5: Enrage"
+    partyStatus: Clear Party
+    active: true

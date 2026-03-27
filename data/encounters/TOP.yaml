@@ -1,0 +1,85 @@
+# yaml-language-server: $schema=./encounter.schema.yaml
+
+id: TOP
+name: "[TOP] The Omega Protocol"
+description: "[TOP] The Omega Protocol"
+active: true
+progPartyThreshold: P5 Delta
+clearPartyThreshold: P6 Wave Cannon 1
+progPoints: 
+  - id: P2 Party Synergy
+    label: "Phase 2: Party Synergy"
+    partyStatus: Early Prog Party
+    active: true
+  - id: P2 Limitless
+    label: "Phase 2: Limitless Synergy"
+    partyStatus: Early Prog Party
+    active: true
+  - id: P3 Transition
+    label: "Phase 3: Transition"
+    partyStatus: Early Prog Party
+    active: true
+  - id: P3 Hello World
+    label: "Phase 3: Hello World"
+    partyStatus: Early Prog Party
+    active: true
+  - id: P3 Monitors
+    label: "Phase 3: Monitors"
+    partyStatus: Early Prog Party
+    active: true
+  - id: P3 Enrage
+    label: "Phase 3: Enrage"
+    partyStatus: Early Prog Party
+    active: true
+  - id: P4
+    label: "Phase 4: Blue Screen"
+    partyStatus: Prog Party
+    active: true
+  - id: P5 Delta
+    label: "Phase 5: Delta"
+    partyStatus: Prog Party
+    active: true
+  - id: P5 Sigma
+    label: "Phase 5: Sigma"
+    partyStatus: Prog Party
+    active: true
+  - id: P5 Omega
+    label: "Phase 5: Omega"
+    partyStatus: Prog Party
+    active: true
+  - id: P5 Enrage
+    label: "Phase 5: Enrage"
+    partyStatus: Prog Party
+    active: true
+  - id: P6 Exasquares 1
+    label: "Phase 6: Exasquares 1"
+    partyStatus: Prog Party
+    active: true
+  - id: P6 Cosmo Dive 1
+    label: "Phase 6: Cosmo Dive 1"
+    partyStatus: Prog Party
+    active: true
+  - id: P6 Wave Cannon 1
+    label: "Phase 6: Wave Cannon 1"
+    partyStatus: Clear Party
+    active: true
+  - id: P6 Wave Cannon 2
+    label: "Phase 6: Wave Cannon 2"
+    partyStatus: Clear Party
+    active: true
+  - id: P6 Cosmo Dive 2
+    label: "Phase 6: Cosmo Dive 2"
+    partyStatus: Clear Party
+    active: true
+  - id: P6 Cosmo Meteor
+    label: "Phase 6: Cosmo Meteor"
+    partyStatus: Clear Party
+    active: true
+  - id: P6 Enrage
+    label: "Phase 6: Enrage"
+    partyStatus: Clear Party
+    active: true
+  - id: phase-6-chocobo-rescue
+    label: "Phase 6: Chocobo Rescue"
+    partyStatus: Clear Party
+    active: false
