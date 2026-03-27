@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=./encounter.schema.yaml
+
+id: TEA
+name: "[TEA] The Epic of Alexander"
+description: "[TEA] The Epic of Alexander"
+active: true
+progPartyThreshold: BJCC
+clearPartyThreshold: Final Word
+progPoints: 
+  - id: Limit Cut
+    label: "Phase 1: Limit Cut"
+    partyStatus: Early Prog Party
+    active: true
+  - id: BJCC
+    label: "Phase 2: BJCC"
+    partyStatus: Prog Party
+    active: true
+  - id: Time Stop
+    label: "Phase 3: Time Stop"
+    partyStatus: Prog Party
+    active: true
+  - id: Inception
+    label: "Phase 3: Inception"
+    partyStatus: Prog Party
+    active: true
+  - id: Wormhole
+    label: "Phase 3: Wormhole"
+    partyStatus: Clear Party
+    active: true
+  - id: J Waves
+    label: "Phase 3: J Waves"
+    partyStatus: Clear Party
+    active: true
+  - id: Final Word
+    label: "Phase 4: Final Word"
+    partyStatus: Clear Party
+    active: true
+  - id: "Fate Cal: A"
+    label: "Phase 4: Fate Calibration (Alpha)"
+    partyStatus: Clear Party
+    active: true
+  - id: "Fate Cal: B"
+    label: "Phase 4: Fate Calibration (Beta)"
+    partyStatus: Clear Party
+    active: true
+  - id: Trines (Enrage)
+    label: "Phase 4: Trines"
+    partyStatus: Clear Party
+    active: true

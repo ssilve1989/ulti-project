@@ -1,0 +1,89 @@
+# yaml-language-server: $schema=./encounter.schema.yaml
+
+id: DSR
+name: "[DSR] Dragonsong Reprise"
+description: "[DSR] Dragonsong Reprise"
+active: true
+progPartyThreshold: Nidhogg
+clearPartyThreshold: P6 Enrage
+progPoints:
+  - id: Strength
+    label: "Phase 2: Strength of the Ward"
+    partyStatus: Early Prog Party
+    active: true
+  - id: Sanctity
+    label: "Phase 2: Sanctity of the Ward"
+    partyStatus: Early Prog Party
+    active: true
+  - id: Nidhogg
+    label: "Phase 3: Nidhogg"
+    partyStatus: Prog Party
+    active: true
+  - id: Eyes
+    label: "Phase 4: Eyes"
+    partyStatus: Prog Party
+    active: true
+  - id: Rewind
+    label: "Phase 4: Rewind"
+    partyStatus: Prog Party
+    active: true
+  - id: WOTH
+    label: "Phase 5: Wrath of the Heavens"
+    partyStatus: Prog Party
+    active: true
+  - id: DOTH
+    label: "Phase 5: Death of the Heavens"
+    partyStatus: Prog Party
+    active: true
+  - id: WB1
+    label: "Phase 6: Wyrmsbreath 1"
+    partyStatus: Prog Party
+    active: true
+  - id: HW1
+    label: "Phase 6: Hallowed Wings 1"
+    partyStatus: Prog Party
+    active: true
+  - id: Wroth Flames
+    label: "Phase 6: Wroth Flames"
+    partyStatus: Prog Party
+    active: true
+  - id: HW2
+    label: "Phase 6: Hallowed Wings 2"
+    partyStatus: Prog Party
+    active: true
+  - id: WB2
+    label: "Phase 6: Wyrmsbreath 2"
+    partyStatus: Prog Party
+    active: true
+  - id: P6 Enrage
+    label: "Phase 6: Enrage"
+    partyStatus: Clear Party
+    active: true
+  - id: "Exa #1"
+    label: "Phase 7: Exaflare 1"
+    partyStatus: Clear Party
+    active: true
+  - id: "Akh Morn #1"
+    label: "Phase 7: Akh Morn 1"
+    partyStatus: Clear Party
+    active: true
+  - id: "Giga Flare #1"
+    label: "Phase 7: Gigaflare 1"
+    partyStatus: Clear Party
+    active: true
+  - id: "Akh Morn #2"
+    label: "Phase 7: Akh Morn 2"
+    partyStatus: Clear Party
+    active: true
+  - id: "Giga Flare #2"
+    label: "Phase 7: Gigaflare 2"
+    partyStatus: Clear Party
+    active: true
+  - id: "Akh Morn #3"
+    label: "Phase 7: Akh Morn 3"
+    partyStatus: Clear Party
+    active: true
+  - id: P7 Enrage
+    label: "Phase 7: Enrage"
+    partyStatus: Clear Party
+    active: true

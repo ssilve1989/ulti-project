@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=./encounter.schema.yaml
+
+id: UWU
+name: "[UwU] The Weapons Refrain"
+description: "[UwU] The Weapons Refrain"
+active: true
+progPartyThreshold: Titan
+clearPartyThreshold: Suppression
+progPoints: 
+  - id: Ifrit
+    label: "Phase 2: Ifrit"
+    partyStatus: Early Prog Party
+    active: true
+  - id: Titan
+    label: "Phase 3: Titan"
+    partyStatus: Prog Party
+    active: true
+  - id: Predation
+    label: "Phase 4: Predation"
+    partyStatus: Prog Party
+    active: true
+  - id: Annihilation
+    label: "Phase 4: Annihilation"
+    partyStatus: Prog Party
+    active: true
+  - id: Suppression
+    label: "Phase 4: Suppression"
+    partyStatus: Clear Party
+    active: true
+  - id: Primal Roulette
+    label: "Phase 4: Primal Roulette"
+    partyStatus: Clear Party
+    active: true
+  - id: Enrage
+    label: "Phase 4: Enrage"
+    partyStatus: Clear Party
+    active: true

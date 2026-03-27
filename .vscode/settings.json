@@ -8,6 +8,7 @@
   "typescript.preferences.preferTypeOnlyAutoImports": true,
   "typescript.updateImportsOnFileMove.enabled": "always",
   "json.schemaDownload.enable": true,
+  "yaml.schemaStore.enable": true,
   "[json]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
