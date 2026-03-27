@@ -74,6 +74,7 @@
     "@typescript/native-preview": "7.0.0-dev.20260317.1",
     "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.18",
+    "commander": "^14.0.3",
     "commitizen": "^4.3.1",
     "hygen": "^6.2.11",
     "lefthook": "^2.1.2",

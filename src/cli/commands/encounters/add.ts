@@ -2,6 +2,7 @@ import * as clack from '@clack/prompts';
 import type { Firestore } from 'firebase-admin/firestore';
 import type { ProgPointDocument } from '../../../firebase/models/encounter.model.js';
 import { PartyStatus } from '../../../firebase/models/signup.model.js';
+import { cancelIfCancel } from '../../utils/clack.js';
 import type { EncounterConfig } from '../../utils/config-loader.js';
 import { loadEncounterConfig } from '../../utils/config-loader.js';
 import { searchFflogsEncounters } from '../../utils/fflogs-lookup.js';
@@ -23,14 +24,6 @@ export interface AddCommandOptions {
   dryRun?: boolean;
   yes?: boolean;
   fflogsEncounterId?: string;
-}
-
-function cancelIfCancel<T>(value: T | symbol): T {
-  if (clack.isCancel(value)) {
-    clack.cancel('Operation cancelled.');
-    process.exit(0);
-  }
-  return value;
 }
 
 async function promptFflogsIds(

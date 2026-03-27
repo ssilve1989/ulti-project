@@ -3,6 +3,7 @@ import type { Firestore } from 'firebase-admin/firestore';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import type { ProgPointDocument } from '../../../firebase/models/encounter.model.js';
 import { PartyStatus } from '../../../firebase/models/signup.model.js';
+import { cancelIfCancel } from '../../utils/clack.js';
 import {
   addProgPoint,
   deleteProgPoint,
@@ -12,14 +13,6 @@ import {
   reorderProgPoints,
   updateProgPoint,
 } from '../../utils/firestore.js';
-
-function cancelIfCancel<T>(value: T | symbol): T {
-  if (clack.isCancel(value)) {
-    clack.cancel('Operation cancelled.');
-    process.exit(0);
-  }
-  return value;
-}
 
 async function promptSelectProgPoint(
   db: Firestore,
