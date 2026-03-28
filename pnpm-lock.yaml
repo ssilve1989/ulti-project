@@ -79,16 +79,16 @@ importers:
         specifier: 2.4.8
         version: 2.4.8
       '@commitlint/cli':
-        specifier: ^20.4.3
+        specifier: ^20.5.0
         version: 20.5.0(@types/node@25.3.5)(conventional-commits-parser@6.3.0)(typescript@5.9.3)
       '@commitlint/config-conventional':
-        specifier: ^20.4.3
+        specifier: ^20.5.0
         version: 20.5.0
       '@commitlint/cz-commitlint':
-        specifier: ^20.4.3
+        specifier: ^20.5.0
         version: 20.5.0(@types/node@25.3.5)(commitizen@4.3.1(@types/node@25.3.5)(typescript@5.9.3))(inquirer@12.5.2(@types/node@25.3.5))(typescript@5.9.3)
       '@commitlint/prompt-cli':
-        specifier: ^20.4.3
+        specifier: ^20.5.0
         version: 20.5.0(@types/node@25.3.5)(typescript@5.9.3)
       '@flydotio/dockerfile':
         specifier: ^0.7.10
