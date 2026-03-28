@@ -1,27 +1,61 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
 
-  "extends": ["config:best-practices", ":preserveSemverRanges"],
+  "dependencyDashboard": true,
+  "configMigration": true,
+  "semanticCommits": "enabled",
 
   "baseBranchPatterns": ["master"],
-
   "branchPrefix": "renovate-",
-
   "enabledManagers": ["npm", "github-actions"],
 
   "prConcurrentLimit": 25,
   "prHourlyLimit": 8,
-
   "separateMajorMinor": true,
-
-  "minimumReleaseAge": "5 days",
+  "rangeStrategy": "bump",
 
   "ignorePaths": ["node_modules/**"],
 
-  "rangeStrategy": "bump",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on Monday"]
+  },
 
   "packageRules": [
     {
+      "description": "Use chore commit type for all updates by default",
+      "matchPackageNames": ["*"],
+      "semanticCommitType": "chore"
+    },
+    {
+      "description": "Wait 5 days before raising npm updates (security: prevents malicious packages and unpublish races)",
+      "matchDatasources": ["npm"],
+      "minimumReleaseAge": "5 days",
+      "internalChecksFilter": "strict"
+    },
+    {
+      "description": "Flag packages with no release for over a year as abandoned",
+      "matchPackageNames": ["*"],
+      "abandonmentThreshold": "1 year"
+    },
+    {
+      "description": "Pin GitHub Action digests for supply chain security",
+      "matchDepTypes": ["action"],
+      "pinDigests": true
+    },
+    {
+      "description": "Show Age and Confidence merge confidence badges on PRs",
+      "matchUpdateTypes": ["patch", "minor", "major"],
+      "prBodyColumns": ["Package", "Change", "Age", "Confidence"]
+    },
+    {
+      "description": "Use node versioning for @types/node to align with Node.js release schedule",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@types/node"],
+      "versioning": "node"
+    },
+    {
+      "description": "Automerge non-major updates",
       "matchUpdateTypes": ["minor", "patch", "digest"],
       "automerge": true,
       "automergeType": "pr"
@@ -76,18 +110,8 @@
       "matchPackageNames": ["*"]
     },
     {
-      "matchManagers": ["npm"],
-      "assignees": ["ssilve1989", "zackerydev"],
-      "reviewers": ["ssilve1989", "zackerydev"]
-    },
-    {
-      "matchManagers": ["npm"],
-      "matchPackageNames": ["/^@langchain//"],
-      "assignees": ["david-trumid", "ssilve1989", "zackerydev"],
-      "reviewers": ["david-trumid", "ssilve1989", "zackerydev"]
-    },
-    {
-      "matchPackageNames": ["typescript"],
+      "description": "Skip minimum release age for TypeScript since we track native-preview builds",
+      "matchPackageNames": ["typescript", "@typescript/native-preview"],
       "minimumReleaseAge": "0 seconds"
     }
   ]
