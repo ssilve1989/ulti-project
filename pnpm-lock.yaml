@@ -130,7 +130,7 @@ importers:
         specifier: ^6.2.11
         version: 6.2.11
       lefthook:
-        specifier: ^2.1.2
+        specifier: ^2.1.4
         version: 2.1.4
       rimraf:
         specifier: ^6.1.3
