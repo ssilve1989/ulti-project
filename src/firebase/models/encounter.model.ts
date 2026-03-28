@@ -5,6 +5,9 @@ export interface EncounterDocument extends DocumentData {
   name: string;
   description: string;
   active: boolean;
+  mode?: 'legacy' | 'ultimate' | 'savage';
+  emoji?: string;
+  fflogsEncounterIds?: number[];
   progPartyThreshold?: string;
   clearPartyThreshold?: string;
 }

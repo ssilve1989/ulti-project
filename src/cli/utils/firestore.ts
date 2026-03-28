@@ -49,6 +49,19 @@ export async function getAllProgPoints(
   return snapshot.docs.map((doc) => doc.data());
 }
 
+export async function clearProgPoints(
+  db: Firestore,
+  encounterId: string,
+): Promise<void> {
+  const snapshot = await progPointsRef(db, encounterId).get();
+  if (snapshot.empty) return;
+  const batch = db.batch();
+  for (const doc of snapshot.docs) {
+    batch.delete(doc.ref);
+  }
+  await batch.commit();
+}
+
 export async function getNextProgPointOrder(
   db: Firestore,
   encounterId: string,
