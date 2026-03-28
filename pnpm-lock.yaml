@@ -36,7 +36,7 @@ importers:
         specifier: ^4.4.0
         version: 4.4.0
       dayjs:
-        specifier: ^1.11.19
+        specifier: ^1.11.20
         version: 1.11.20
       discord.js:
         specifier: ^14.25.1
