@@ -65,7 +65,7 @@
     "@graphql-codegen/cli": "6.2.1",
     "@graphql-codegen/schema-ast": "^5.0.1",
     "@graphql-codegen/typescript": "5.0.9",
-    "@graphql-codegen/typescript-graphql-request": "^6.4.0",
+    "@graphql-codegen/typescript-graphql-request": "^7.0.0",
     "@nestjs/schematics": "^11.0.9",
     "@nestjs/testing": "^11.1.16",
     "@types/node": "^25.3.5",
