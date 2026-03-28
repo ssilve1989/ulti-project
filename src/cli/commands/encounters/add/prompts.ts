@@ -106,7 +106,7 @@ async function promptProgPoints(): Promise<
 
     const id = cancelIfCancel(
       await clack.text({
-        message: 'Prog point ID:',
+        message: 'Prog point ID (used in Sheets, e.g. Giga Flare #1):',
         validate: (v) => (v?.trim() ? undefined : 'Required'),
       }),
     );
