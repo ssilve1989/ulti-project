@@ -16,7 +16,10 @@ export interface CliContext {
   fflogsToken: string | undefined;
 }
 
-export function createCliContext(): CliContext {
+// Initialized by main.ts preAction hook before any command action runs.
+export let ctx!: CliContext;
+
+export function initCtx(): void {
   const result = cliConfigSchema.safeParse(process.env);
   if (!result.success) {
     clack.log.error(
@@ -32,5 +35,5 @@ export function createCliContext(): CliContext {
     databaseId: config.FIRESTORE_DATABASE_ID,
     appName: 'cli',
   });
-  return { db, fflogsToken: config.FFLOGS_API_ACCESS_TOKEN };
+  ctx = { db, fflogsToken: config.FFLOGS_API_ACCESS_TOKEN };
 }

@@ -2,7 +2,7 @@ import * as clack from '@clack/prompts';
 import type { Command } from 'commander';
 import type { Firestore } from 'firebase-admin/firestore';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
-import type { CliContext } from '../../../config.js';
+import { ctx } from '../../../config.js';
 import { cancelIfCancel } from '../../../utils/clack.js';
 import { dispatchAction } from './handlers.js';
 
@@ -43,15 +43,11 @@ export async function runManageProgPoints(db: Firestore): Promise<void> {
   clack.outro('Done');
 }
 
-export function registerManageProgPointsCommand(
-  encountersCmd: Command,
-  getCtx: () => CliContext,
-): void {
+export function registerManageProgPointsCommand(encountersCmd: Command): void {
   encountersCmd
     .command('manage-prog-points')
     .description('Manage prog points for an encounter')
     .action(async () => {
-      const { db } = getCtx();
-      await runManageProgPoints(db);
+      await runManageProgPoints(ctx.db);
     });
 }

@@ -1,7 +1,7 @@
 import * as clack from '@clack/prompts';
 import type { Command } from 'commander';
 import type { Firestore } from 'firebase-admin/firestore';
-import type { CliContext } from '../../../config.js';
+import { ctx } from '../../../config.js';
 import {
   applySourceEditsStep,
   buildSourceEdits,
@@ -50,10 +50,7 @@ export async function runAdd(
   clack.outro(`Encounter '${config.id}' added successfully.`);
 }
 
-export function registerAddCommand(
-  encountersCmd: Command,
-  getCtx: () => CliContext,
-): void {
+export function registerAddCommand(encountersCmd: Command): void {
   encountersCmd
     .command('add')
     .description('Add a new encounter (interactive or --config)')
@@ -65,7 +62,6 @@ export function registerAddCommand(
       'Comma-separated FF Logs encounter IDs',
     )
     .action(async (opts: AddCommandOptions) => {
-      const { db, fflogsToken } = getCtx();
-      await runAdd(db, fflogsToken, opts);
+      await runAdd(ctx.db, ctx.fflogsToken, opts);
     });
 }

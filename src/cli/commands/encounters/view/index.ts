@@ -6,7 +6,7 @@ import {
   EncounterFriendlyDescription,
 } from '../../../../encounters/encounters.consts.js';
 import { PartyStatus } from '../../../../firebase/models/signup.model.js';
-import type { CliContext } from '../../../config.js';
+import { ctx } from '../../../config.js';
 import {
   getAllActiveEncounters,
   getAllProgPoints,
@@ -122,15 +122,12 @@ export async function runView(
   clack.outro('Done');
 }
 
-export function registerViewCommand(
-  encountersCmd: Command,
-  getCtx: () => CliContext,
-): void {
+export function registerViewCommand(encountersCmd: Command): void {
   encountersCmd
     .command('view [encounter-id]')
     .description('View encounter configuration from Firestore')
     .action(async (encounterId?: string) => {
-      const { db } = getCtx();
+      const { db } = ctx;
       await runView(db, encounterId);
     });
 }
