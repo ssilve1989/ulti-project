@@ -18,6 +18,8 @@
 
   "ignorePaths": ["node_modules/**"],
 
+  "rangeStrategy": "bump",
+
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch", "digest"],
