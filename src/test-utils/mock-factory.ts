@@ -26,6 +26,7 @@ export function createAutoMock(
       if (TRANSPARENT_PROPS.has(prop)) return undefined;
       if (!cache.has(prop))
         cache.set(prop, vi.fn().mockResolvedValue(undefined));
+      // biome-ignore lint/style/noNonNullAssertion: mock impl
       return cache.get(prop)!;
     },
     set(_, prop, value) {

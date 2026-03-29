@@ -7,8 +7,14 @@
     "useIgnoreFile": true,
     "defaultBranch": "master"
   },
+  "files": {
+    "includes": [
+      "**",
+      "!**/src/fflogs/graphql/**/*.ts",
+      "!**/src/fflogs/graphql/**/*.graphql"
+    ]
+  },
   "linter": {
-    "includes": ["**", "!**/src/fflogs/graphql/**/*.ts"],
     "enabled": true,
     "rules": {
       "complexity": {
@@ -41,12 +47,7 @@
   },
   "formatter": {
     "indentStyle": "space",
-    "indentWidth": 2,
-    "includes": [
-      "**",
-      "!**/src/fflogs/graphql/**/*.ts",
-      "!**/src/fflogs/graphql/**/*.graphql"
-    ]
+    "indentWidth": 2
   },
   "javascript": {
     "parser": {
