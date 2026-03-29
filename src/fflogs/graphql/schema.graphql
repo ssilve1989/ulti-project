@@ -234,11 +234,13 @@ type ArchonViewModels {
   buildsZonePage(affixesSlug: String, difficultySlug: String, encounterSlug: String, gameSlug: String, rankingsSlug: String, zoneTypeSlug: String): JSON
   buildsZonePageSlugs: JSON
   characterCustomizationOptions(characterSlug: String!, userId: Int): JSON
+  characterEncounterRankings(aggregateEncounterId: String!, byBracketSlug: String, categorySlug: String!, characterSlug: String!, difficultySlug: String, gameSlug: String!, metricSlug: String, partitionSlug: String, privateSlug: String, showMore: Boolean = false, sizeSlug: String, specSlug: String, userId: Int): JSON
   characterIndexPage(gameSlug: String!, searchTerm: String = null, userId: Int): JSON
-  characterPage(byBracketSlug: String, categorySlug: String!, characterSlug: String!, difficultySlug: String, gameSlug: String!, metricSlug: String, partitionSlug: String, sizeSlug: String, specSlug: String, userId: Int): JSON
-  characterPageContent(byBracketSlug: String, categorySlug: String!, characterSlug: String!, difficultySlug: String, gameSlug: String!, metricSlug: String, partitionSlug: String, sectionComponentNames: [String!]!, sizeSlug: String, specSlug: String, userId: Int): JSON
+  characterPage(byBracketSlug: String, categorySlug: String!, characterSlug: String!, difficultySlug: String, gameSlug: String!, loadoutSourceSlug: String, loadoutSourceTypeSlug: String, metricSlug: String, partitionSlug: String, privateSlug: String, sizeSlug: String, specSlug: String, userId: Int): JSON
+  characterPageContent(byBracketSlug: String, categorySlug: String!, characterSlug: String!, difficultySlug: String, gameSlug: String!, loadoutSourceSlug: String, loadoutSourceTypeSlug: String, metricSlug: String, partitionSlug: String, privateSlug: String, sectionComponentNames: [String!]!, sizeSlug: String, specSlug: String, userId: Int): JSON
   cmsNavigation(currentSlug: String): JSON
   contactPage: JSON
+  downloadPage: JSON
   fightPage(categorySlug: String!, cutoffSlug: Int, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, pullSlug: String, reportSlug: String!, throughputSlug: String, userId: Int): JSON
   fightPageContent(categorySlug: String!, cutoffSlug: Int, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, pullSlug: String, reportSlug: String!, sectionComponentNames: [String!]!, throughputSlug: String, userId: Int): JSON
   footer: JSON
@@ -805,6 +807,10 @@ type Encounter {
     """
     includeCombatantInfo: Boolean = false
     """
+    Optional. Whether to include the other characters cleared with in the results.
+    """
+    includeOtherPlayers: Boolean = false
+    """
     Optional. Controls whether to include ranks without backing logs in games & content types that support this. Ignored if unsupported.
     """
     leaderboard: LeaderboardRank = Any
@@ -857,6 +863,10 @@ type Encounter {
     Optional. Filters ranks to a specific hard mode (0-5) or any hard mode level (-1). Most encounters do not have variable hard mode levels. Use `difficulty` for ESO Veteran Hard Modes.
     """
     hardModeLevel: HardModeLevelRankFilter = Any
+    """
+    Optional. Whether to include the other characters cleared with in the results.
+    """
+    includeOtherPlayers: Boolean = false
     """
     Optional. Controls whether to include ranks without backing logs in games & content types that support this. Ignored if unsupported.
     """
@@ -1342,6 +1352,8 @@ type Guild {
   name: String!
   """The server that the guild belongs to."""
   server: Server!
+  """The statics that belong to this Free Company."""
+  statics: [Guild]!
   """Whether or not the guild has stealth mode enabled."""
   stealthMode: Boolean!
   """

@@ -6,6 +6,24 @@ export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: 
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
 export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+
+import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
+export class TypedDocumentString<TResult, TVariables>
+  extends String
+  implements DocumentTypeDecoration<TResult, TVariables>
+{
+  __apiType?: NonNullable<DocumentTypeDecoration<TResult, TVariables>['__apiType']>;
+  private value: string;
+  public __meta__?: Record<string, any> | undefined;
+  constructor(value: string, __meta__?: Record<string, any> | undefined) {
+    super(value);
+    this.value = value;
+    this.__meta__ = __meta__;
+  }
+  override toString(): string & DocumentTypeDecoration<TResult, TVariables> {
+    return this.value;
+  }
+}
 type GraphQLClientRequestHeaders = RequestOptions['requestHeaders'];
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -36,11 +54,13 @@ export type ArchonViewModels = {
   readonly buildsZonePage: Maybe<Scalars['JSON']['output']>;
   readonly buildsZonePageSlugs: Maybe<Scalars['JSON']['output']>;
   readonly characterCustomizationOptions: Maybe<Scalars['JSON']['output']>;
+  readonly characterEncounterRankings: Maybe<Scalars['JSON']['output']>;
   readonly characterIndexPage: Maybe<Scalars['JSON']['output']>;
   readonly characterPage: Maybe<Scalars['JSON']['output']>;
   readonly characterPageContent: Maybe<Scalars['JSON']['output']>;
   readonly cmsNavigation: Maybe<Scalars['JSON']['output']>;
   readonly contactPage: Maybe<Scalars['JSON']['output']>;
+  readonly downloadPage: Maybe<Scalars['JSON']['output']>;
   readonly fightPage: Maybe<Scalars['JSON']['output']>;
   readonly fightPageContent: Maybe<Scalars['JSON']['output']>;
   readonly footer: Maybe<Scalars['JSON']['output']>;
@@ -120,6 +140,23 @@ export type ArchonViewModelsCharacterCustomizationOptionsArgs = {
 };
 
 
+export type ArchonViewModelsCharacterEncounterRankingsArgs = {
+  aggregateEncounterId: Scalars['String']['input'];
+  byBracketSlug: InputMaybe<Scalars['String']['input']>;
+  categorySlug: Scalars['String']['input'];
+  characterSlug: Scalars['String']['input'];
+  difficultySlug: InputMaybe<Scalars['String']['input']>;
+  gameSlug: Scalars['String']['input'];
+  metricSlug: InputMaybe<Scalars['String']['input']>;
+  partitionSlug: InputMaybe<Scalars['String']['input']>;
+  privateSlug: InputMaybe<Scalars['String']['input']>;
+  showMore?: InputMaybe<Scalars['Boolean']['input']>;
+  sizeSlug: InputMaybe<Scalars['String']['input']>;
+  specSlug: InputMaybe<Scalars['String']['input']>;
+  userId: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type ArchonViewModelsCharacterIndexPageArgs = {
   gameSlug: Scalars['String']['input'];
   searchTerm?: InputMaybe<Scalars['String']['input']>;
@@ -133,8 +170,11 @@ export type ArchonViewModelsCharacterPageArgs = {
   characterSlug: Scalars['String']['input'];
   difficultySlug: InputMaybe<Scalars['String']['input']>;
   gameSlug: Scalars['String']['input'];
+  loadoutSourceSlug: InputMaybe<Scalars['String']['input']>;
+  loadoutSourceTypeSlug: InputMaybe<Scalars['String']['input']>;
   metricSlug: InputMaybe<Scalars['String']['input']>;
   partitionSlug: InputMaybe<Scalars['String']['input']>;
+  privateSlug: InputMaybe<Scalars['String']['input']>;
   sizeSlug: InputMaybe<Scalars['String']['input']>;
   specSlug: InputMaybe<Scalars['String']['input']>;
   userId: InputMaybe<Scalars['Int']['input']>;
@@ -147,8 +187,11 @@ export type ArchonViewModelsCharacterPageContentArgs = {
   characterSlug: Scalars['String']['input'];
   difficultySlug: InputMaybe<Scalars['String']['input']>;
   gameSlug: Scalars['String']['input'];
+  loadoutSourceSlug: InputMaybe<Scalars['String']['input']>;
+  loadoutSourceTypeSlug: InputMaybe<Scalars['String']['input']>;
   metricSlug: InputMaybe<Scalars['String']['input']>;
   partitionSlug: InputMaybe<Scalars['String']['input']>;
+  privateSlug: InputMaybe<Scalars['String']['input']>;
   sectionComponentNames: ReadonlyArray<Scalars['String']['input']>;
   sizeSlug: InputMaybe<Scalars['String']['input']>;
   specSlug: InputMaybe<Scalars['String']['input']>;
@@ -546,6 +589,7 @@ export type EncounterCharacterRankingsArgs = {
   filter?: InputMaybe<Scalars['String']['input']>;
   hardModeLevel?: InputMaybe<HardModeLevelRankFilter>;
   includeCombatantInfo?: InputMaybe<Scalars['Boolean']['input']>;
+  includeOtherPlayers?: InputMaybe<Scalars['Boolean']['input']>;
   leaderboard?: InputMaybe<LeaderboardRank>;
   metric?: InputMaybe<CharacterRankingMetricType>;
   page?: InputMaybe<Scalars['Int']['input']>;
@@ -563,6 +607,7 @@ export type EncounterFightRankingsArgs = {
   difficulty?: InputMaybe<Scalars['Int']['input']>;
   filter?: InputMaybe<Scalars['String']['input']>;
   hardModeLevel?: InputMaybe<HardModeLevelRankFilter>;
+  includeOtherPlayers?: InputMaybe<Scalars['Boolean']['input']>;
   leaderboard?: InputMaybe<LeaderboardRank>;
   metric?: InputMaybe<FightRankingMetricType>;
   page?: InputMaybe<Scalars['Int']['input']>;
@@ -977,6 +1022,8 @@ export type Guild = {
   readonly name: Scalars['String']['output'];
   /** The server that the guild belongs to. */
   readonly server: Server;
+  /** The statics that belong to this Free Company. */
+  readonly statics: ReadonlyArray<Maybe<Guild>>;
   /** Whether or not the guild has stealth mode enabled. */
   readonly stealthMode: Scalars['Boolean']['output'];
   /** The tags used to label reports. In the site UI, these are called raid teams. */
@@ -2286,7 +2333,7 @@ export type ReportDataQueryVariables = Exact<{
 export type ReportDataQuery = { readonly __typename: 'Query', readonly reportData: { readonly __typename: 'ReportData', readonly report: { readonly __typename: 'Report', readonly code: string, readonly startTime: number, readonly endTime: number, readonly title: string } | null } | null };
 
 
-export const CharacterDataDocument = `
+export const CharacterDataDocument = new TypedDocumentString(`
     query characterData($name: String, $server: String, $region: String) {
   characterData {
     character(name: $name, serverSlug: $server, serverRegion: $region) {
@@ -2298,8 +2345,8 @@ export const CharacterDataDocument = `
     }
   }
 }
-    `;
-export const EncounterRankingsDocument = `
+    `);
+export const EncounterRankingsDocument = new TypedDocumentString(`
     query encounterRankings($name: String, $server: String, $region: String, $encounterID: Int) {
   characterData {
     character(name: $name, serverSlug: $server, serverRegion: $region) {
@@ -2316,8 +2363,8 @@ export const EncounterRankingsDocument = `
     }
   }
 }
-    `;
-export const ReportDataDocument = `
+    `);
+export const ReportDataDocument = new TypedDocumentString(`
     query reportData($code: String!) {
   reportData {
     report(code: $code) {
@@ -2328,7 +2375,7 @@ export const ReportDataDocument = `
     }
   }
 }
-    `;
+    `);
 
 export type SdkFunctionWrapper = <T>(action: (requestHeaders?:Record<string, string>) => Promise<T>, operationName: string, operationType?: string, variables?: any) => Promise<T>;
 
