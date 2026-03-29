@@ -1,11 +1,14 @@
 pre-commit:
-  parallel: true 
+  parallel: true
   commands:
-    lint: 
+    lint:
+      glob: "*.{ts,json,html,yaml}"
       run: pnpm check --diagnostic-level=error
     typecheck:
+      glob: "*.{ts,json,html,yaml}"
       run: pnpm typecheck
     test:
+      glob: "*.{ts,json,html,yaml}"
       run: pnpm test --run
 
 commit-msg:
