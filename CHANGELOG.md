@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.40.4](https://github.com/ssilve1989/ulti-project/compare/v1.40.3...v1.40.4) (2026-03-29)
+
+
+### Bug Fixes
+
+* **ci:** add repository config to renovate workflow ([9a1c957](https://github.com/ssilve1989/ulti-project/commit/9a1c9575a6edfb2054eb0979c1faf8982df42654))
+
 ## [1.40.3](https://github.com/ssilve1989/ulti-project/compare/v1.40.2...v1.40.3) (2026-03-12)
 
 
