@@ -1,3 +1,4 @@
+import type { DocumentNode } from 'graphql';
 import type { GraphQLClient, RequestOptions } from 'graphql-request';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
@@ -36,11 +37,13 @@ export type ArchonViewModels = {
   readonly buildsZonePage: Maybe<Scalars['JSON']['output']>;
   readonly buildsZonePageSlugs: Maybe<Scalars['JSON']['output']>;
   readonly characterCustomizationOptions: Maybe<Scalars['JSON']['output']>;
+  readonly characterEncounterRankings: Maybe<Scalars['JSON']['output']>;
   readonly characterIndexPage: Maybe<Scalars['JSON']['output']>;
   readonly characterPage: Maybe<Scalars['JSON']['output']>;
   readonly characterPageContent: Maybe<Scalars['JSON']['output']>;
   readonly cmsNavigation: Maybe<Scalars['JSON']['output']>;
   readonly contactPage: Maybe<Scalars['JSON']['output']>;
+  readonly downloadPage: Maybe<Scalars['JSON']['output']>;
   readonly fightPage: Maybe<Scalars['JSON']['output']>;
   readonly fightPageContent: Maybe<Scalars['JSON']['output']>;
   readonly footer: Maybe<Scalars['JSON']['output']>;
@@ -120,6 +123,23 @@ export type ArchonViewModelsCharacterCustomizationOptionsArgs = {
 };
 
 
+export type ArchonViewModelsCharacterEncounterRankingsArgs = {
+  aggregateEncounterId: Scalars['String']['input'];
+  byBracketSlug: InputMaybe<Scalars['String']['input']>;
+  categorySlug: Scalars['String']['input'];
+  characterSlug: Scalars['String']['input'];
+  difficultySlug: InputMaybe<Scalars['String']['input']>;
+  gameSlug: Scalars['String']['input'];
+  metricSlug: InputMaybe<Scalars['String']['input']>;
+  partitionSlug: InputMaybe<Scalars['String']['input']>;
+  privateSlug: InputMaybe<Scalars['String']['input']>;
+  showMore?: InputMaybe<Scalars['Boolean']['input']>;
+  sizeSlug: InputMaybe<Scalars['String']['input']>;
+  specSlug: InputMaybe<Scalars['String']['input']>;
+  userId: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type ArchonViewModelsCharacterIndexPageArgs = {
   gameSlug: Scalars['String']['input'];
   searchTerm?: InputMaybe<Scalars['String']['input']>;
@@ -133,8 +153,11 @@ export type ArchonViewModelsCharacterPageArgs = {
   characterSlug: Scalars['String']['input'];
   difficultySlug: InputMaybe<Scalars['String']['input']>;
   gameSlug: Scalars['String']['input'];
+  loadoutSourceSlug: InputMaybe<Scalars['String']['input']>;
+  loadoutSourceTypeSlug: InputMaybe<Scalars['String']['input']>;
   metricSlug: InputMaybe<Scalars['String']['input']>;
   partitionSlug: InputMaybe<Scalars['String']['input']>;
+  privateSlug: InputMaybe<Scalars['String']['input']>;
   sizeSlug: InputMaybe<Scalars['String']['input']>;
   specSlug: InputMaybe<Scalars['String']['input']>;
   userId: InputMaybe<Scalars['Int']['input']>;
@@ -147,8 +170,11 @@ export type ArchonViewModelsCharacterPageContentArgs = {
   characterSlug: Scalars['String']['input'];
   difficultySlug: InputMaybe<Scalars['String']['input']>;
   gameSlug: Scalars['String']['input'];
+  loadoutSourceSlug: InputMaybe<Scalars['String']['input']>;
+  loadoutSourceTypeSlug: InputMaybe<Scalars['String']['input']>;
   metricSlug: InputMaybe<Scalars['String']['input']>;
   partitionSlug: InputMaybe<Scalars['String']['input']>;
+  privateSlug: InputMaybe<Scalars['String']['input']>;
   sectionComponentNames: ReadonlyArray<Scalars['String']['input']>;
   sizeSlug: InputMaybe<Scalars['String']['input']>;
   specSlug: InputMaybe<Scalars['String']['input']>;
@@ -546,6 +572,7 @@ export type EncounterCharacterRankingsArgs = {
   filter?: InputMaybe<Scalars['String']['input']>;
   hardModeLevel?: InputMaybe<HardModeLevelRankFilter>;
   includeCombatantInfo?: InputMaybe<Scalars['Boolean']['input']>;
+  includeOtherPlayers?: InputMaybe<Scalars['Boolean']['input']>;
   leaderboard?: InputMaybe<LeaderboardRank>;
   metric?: InputMaybe<CharacterRankingMetricType>;
   page?: InputMaybe<Scalars['Int']['input']>;
@@ -563,6 +590,7 @@ export type EncounterFightRankingsArgs = {
   difficulty?: InputMaybe<Scalars['Int']['input']>;
   filter?: InputMaybe<Scalars['String']['input']>;
   hardModeLevel?: InputMaybe<HardModeLevelRankFilter>;
+  includeOtherPlayers?: InputMaybe<Scalars['Boolean']['input']>;
   leaderboard?: InputMaybe<LeaderboardRank>;
   metric?: InputMaybe<FightRankingMetricType>;
   page?: InputMaybe<Scalars['Int']['input']>;
@@ -977,6 +1005,8 @@ export type Guild = {
   readonly name: Scalars['String']['output'];
   /** The server that the guild belongs to. */
   readonly server: Server;
+  /** The statics that belong to this Free Company. */
+  readonly statics: ReadonlyArray<Maybe<Guild>>;
   /** Whether or not the guild has stealth mode enabled. */
   readonly stealthMode: Scalars['Boolean']['output'];
   /** The tags used to label reports. In the site UI, these are called raid teams. */
@@ -2286,49 +2316,9 @@ export type ReportDataQueryVariables = Exact<{
 export type ReportDataQuery = { readonly __typename: 'Query', readonly reportData: { readonly __typename: 'ReportData', readonly report: { readonly __typename: 'Report', readonly code: string, readonly startTime: number, readonly endTime: number, readonly title: string } | null } | null };
 
 
-export const CharacterDataDocument = `
-    query characterData($name: String, $server: String, $region: String) {
-  characterData {
-    character(name: $name, serverSlug: $server, serverRegion: $region) {
-      hidden
-      id
-      lodestoneID
-      name
-      zoneRankings
-    }
-  }
-}
-    `;
-export const EncounterRankingsDocument = `
-    query encounterRankings($name: String, $server: String, $region: String, $encounterID: Int) {
-  characterData {
-    character(name: $name, serverSlug: $server, serverRegion: $region) {
-      id
-      name
-      encounterRankings(
-        encounterID: $encounterID
-        includeCombatantInfo: false
-        includeOtherPlayers: false
-        includeHistoricalGraph: false
-        includePrivateLogs: true
-        partition: -1
-      )
-    }
-  }
-}
-    `;
-export const ReportDataDocument = `
-    query reportData($code: String!) {
-  reportData {
-    report(code: $code) {
-      code
-      startTime
-      endTime
-      title
-    }
-  }
-}
-    `;
+export const CharacterDataDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"characterData"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"name"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"server"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"region"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"characterData"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"character"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"name"},"value":{"kind":"Variable","name":{"kind":"Name","value":"name"}}},{"kind":"Argument","name":{"kind":"Name","value":"serverSlug"},"value":{"kind":"Variable","name":{"kind":"Name","value":"server"}}},{"kind":"Argument","name":{"kind":"Name","value":"serverRegion"},"value":{"kind":"Variable","name":{"kind":"Name","value":"region"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"hidden"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"lodestoneID"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"zoneRankings"}}]}}]}}]}}]} as unknown as DocumentNode;
+export const EncounterRankingsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"encounterRankings"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"name"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"server"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"region"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"encounterID"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"characterData"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"character"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"name"},"value":{"kind":"Variable","name":{"kind":"Name","value":"name"}}},{"kind":"Argument","name":{"kind":"Name","value":"serverSlug"},"value":{"kind":"Variable","name":{"kind":"Name","value":"server"}}},{"kind":"Argument","name":{"kind":"Name","value":"serverRegion"},"value":{"kind":"Variable","name":{"kind":"Name","value":"region"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"encounterRankings"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"encounterID"},"value":{"kind":"Variable","name":{"kind":"Name","value":"encounterID"}}},{"kind":"Argument","name":{"kind":"Name","value":"includeCombatantInfo"},"value":{"kind":"BooleanValue","value":false}},{"kind":"Argument","name":{"kind":"Name","value":"includeOtherPlayers"},"value":{"kind":"BooleanValue","value":false}},{"kind":"Argument","name":{"kind":"Name","value":"includeHistoricalGraph"},"value":{"kind":"BooleanValue","value":false}},{"kind":"Argument","name":{"kind":"Name","value":"includePrivateLogs"},"value":{"kind":"BooleanValue","value":true}},{"kind":"Argument","name":{"kind":"Name","value":"partition"},"value":{"kind":"IntValue","value":"-1"}}]}]}}]}}]}}]} as unknown as DocumentNode;
+export const ReportDataDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"reportData"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"code"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"reportData"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"report"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"code"},"value":{"kind":"Variable","name":{"kind":"Name","value":"code"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"startTime"}},{"kind":"Field","name":{"kind":"Name","value":"endTime"}},{"kind":"Field","name":{"kind":"Name","value":"title"}}]}}]}}]}}]} as unknown as DocumentNode;
 
 export type SdkFunctionWrapper = <T>(action: (requestHeaders?:Record<string, string>) => Promise<T>, operationName: string, operationType?: string, variables?: any) => Promise<T>;
 

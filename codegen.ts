@@ -30,7 +30,7 @@ const config: CodegenConfig = {
       ],
       config: {
         enumsAsConst: true,
-        documentMode: 'string',
+        documentMode: 'documentNode',
         immutableTypes: true,
         useTypeImports: true,
         avoidOptionals: true,
