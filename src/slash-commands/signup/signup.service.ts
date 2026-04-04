@@ -32,7 +32,11 @@ import {
 import { match } from 'ts-pattern';
 import { isSameUserFilter } from '../../common/collection-filters.js';
 import { getMessageLink } from '../../discord/discord.consts.js';
-import { hydrateReaction, hydrateUser } from '../../discord/discord.helpers.js';
+import {
+  getFirstEmbed,
+  hydrateReaction,
+  hydrateUser,
+} from '../../discord/discord.helpers.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { PROG_POINT_SELECT_ID } from '../../encounters/encounters.components.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
@@ -254,9 +258,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     message: Message<true>,
     user: User,
   ): Promise<string | undefined> {
-    const {
-      embeds: [sourceEmbed],
-    } = message;
+    const sourceEmbed = getFirstEmbed(message);
 
     return await this.requestProgPointConfirmation(signup, sourceEmbed, user);
   }

@@ -2,6 +2,7 @@ import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { Colors, EmbedBuilder, userMention } from 'discord.js';
 import { match, P } from 'ts-pattern';
+import { getFirstEmbed } from '../../../discord/discord.helpers.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import {
   SignupApprovedEvent,
@@ -28,7 +29,7 @@ class SignupEmbedEventHandler
   }
 
   private async handleApproved({ message, reviewedBy }: SignupApprovedEvent) {
-    const embed = message.embeds[0];
+    const embed = getFirstEmbed(message);
     const displayName = await this.discordService.getDisplayName({
       guildId: message.guildId,
       userId: reviewedBy.id,
@@ -58,7 +59,7 @@ class SignupEmbedEventHandler
 
     const content = `Declined ${userMention(signup.discordId)}`;
 
-    const embed = EmbedBuilder.from(message.embeds[0])
+    const embed = EmbedBuilder.from(getFirstEmbed(message))
       .setDescription(null)
       .setFooter({
         text: `Declined by ${displayName}`,

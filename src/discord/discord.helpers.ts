@@ -1,6 +1,8 @@
 import {
   type ChatInputCommandInteraction,
+  type Embed,
   type InteractionReplyOptions,
+  type Message,
   MessageReaction,
   type PartialMessageReaction,
   type PartialUser,
@@ -48,6 +50,12 @@ type SafeReplyOptions = Pick<
  * @param payload
  * @returns
  */
+export function getFirstEmbed(message: Message): Embed {
+  const embed = message.embeds.at(0);
+  if (!embed) throw new Error(`Expected embed on message ${message.id}`);
+  return embed;
+}
+
 export function safeReply(
   interaction: ChatInputCommandInteraction,
   payload: string | SafeReplyOptions,
