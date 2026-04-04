@@ -55,7 +55,7 @@ import { DiscordService } from './discord.service.js';
         });
         const started$ = fromEvent(client, Events.ClientReady).pipe(first());
 
-        client.once('error', (error) => {
+        client.on('error', (error) => {
           Sentry.captureException(error);
           logger.error(error);
         });
