@@ -167,18 +167,15 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
 
     if (settings?.spreadsheetId) {
       // Group signups by encounter since each call to batchRemoveClearedSignups handles one encounter
-      const signupsByEncounter = Object.groupBy(
+      const signupsByEncounter = Map.groupBy(
         signups,
         (signup) => signup.encounter,
       );
 
       // Process each encounter group separately
-      for (const [encounter, encounterSignups] of Object.entries(
-        signupsByEncounter,
-      )) {
-        if (!encounterSignups) continue;
+      for (const [encounter, encounterSignups] of signupsByEncounter) {
         await this.sheetsService.batchRemoveClearedSignups(encounterSignups, {
-          encounter: encounter as Encounter,
+          encounter,
           spreadsheetId: settings.spreadsheetId,
           partyTypes: [PartyStatus.ClearParty, PartyStatus.ProgParty],
         });
