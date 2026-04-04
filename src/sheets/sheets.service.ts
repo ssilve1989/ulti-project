@@ -590,10 +590,9 @@ class SheetsService implements OnApplicationShutdown {
       const progPoints = progPointsFromDB
         .sort((a, b) => a.order - b.order)
         .map((p) => p.id);
+      const progPointIndexMap = new Map(progPoints.map((p, i) => [p, i]));
       const progPointIndex = (value: string) =>
-        progPoints.indexOf(value) !== -1
-          ? progPoints.indexOf(value)
-          : Number.NEGATIVE_INFINITY;
+        progPointIndexMap.get(value) ?? Number.NEGATIVE_INFINITY;
 
       // Sort the rows while keeping their formatting
       nonEmptyRows.sort((a, b) => {
