@@ -176,6 +176,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
       for (const [encounter, encounterSignups] of Object.entries(
         signupsByEncounter,
       )) {
+        if (!encounterSignups) continue;
         await this.sheetsService.batchRemoveClearedSignups(encounterSignups, {
           encounter: encounter as Encounter,
           spreadsheetId: settings.spreadsheetId,
