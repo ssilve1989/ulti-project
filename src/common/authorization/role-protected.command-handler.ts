@@ -7,7 +7,7 @@ type CommandWithInteraction = {
 };
 
 export abstract class RoleProtectedHandler<T extends CommandWithInteraction> {
-  @Inject() protected readonly roleManagerService: RoleManagerService;
+  @Inject() protected readonly roleManagerService!: RoleManagerService;
 
   abstract execute(command: T): Promise<unknown>;
 }

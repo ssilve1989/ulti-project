@@ -30,7 +30,6 @@
     "noUncheckedSideEffectImports": true,
     "skipLibCheck": true,
     "strict": true,
-    "strictPropertyInitialization": false,
     "verbatimModuleSyntax": true
   }
 }
