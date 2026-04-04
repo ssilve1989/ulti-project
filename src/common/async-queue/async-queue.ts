@@ -1,4 +1,4 @@
-import { concatMap, Subject } from 'rxjs';
+import { concatMap, Subject, type Subscription } from 'rxjs';
 
 interface Job<T> {
   // biome-ignore lint/suspicious/noExplicitAny: abstract
@@ -15,9 +15,10 @@ interface Job<T> {
  */
 class AsyncQueue {
   private readonly queue$ = new Subject<Job<unknown>>();
+  private readonly subscription: Subscription;
 
   constructor() {
-    this.queue$
+    this.subscription = this.queue$
       .pipe(
         concatMap(async ({ task, resolve, reject }) => {
           try {
@@ -40,6 +41,7 @@ class AsyncQueue {
 
   public complete(): void {
     this.queue$.complete();
+    this.subscription.unsubscribe();
   }
 }
 
