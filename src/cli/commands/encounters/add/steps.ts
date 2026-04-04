@@ -136,7 +136,7 @@ async function seedProgPoints(
     );
     clack.log.error(error instanceof Error ? error.message : String(error));
     clack.log.warn(
-      `Partial write: ${addedCount} of ${config.progPoints.length} prog points were added. Use 'manage-prog-points' to complete.`,
+      `Partial write: ${addedCount} of ${config.progPoints.length} prog points were added. Fix the YAML and use 'push' to retry.`,
     );
     process.exit(1);
   }
