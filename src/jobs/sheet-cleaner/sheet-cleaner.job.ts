@@ -41,7 +41,10 @@ class SheetCleanerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     this.job = createJob('sheet-cleaner', {
       cronTime: CronTime.everyDay().at(4),
       onTick: () => {
-        this.cleanSheet();
+        this.cleanSheet().catch((e) => {
+          Sentry.getCurrentScope().captureException(e);
+          this.logger.error('sheet-cleaner job failed', e);
+        });
       },
     });
   }

@@ -17,4 +17,5 @@ logger.log(`NodeJS Version: ${process.version}`);
 process.on('unhandledRejection', (error) => {
   logger.error(error);
   Sentry.captureException(error);
+  process.exit(1);
 });

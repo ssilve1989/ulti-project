@@ -37,7 +37,9 @@ class InviteCleanerJob
     this.job = createJob('invite-cleaner', {
       cronTime: CronTime.everyDay().at(5), // Run at 5 AM Pacific
       onTick: () => {
-        this.cleanInvites();
+        this.cleanInvites().catch((e) => {
+          this.logger.error('invite-cleaner job failed', e);
+        });
       },
     });
   }
