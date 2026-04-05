@@ -2,8 +2,17 @@
 /dist
 /node_modules
 
+# Git
+.git
+
 # CLI tooling (dev-only, not part of the application container)
 src/cli
+
+# Test files
+/coverage
+/.nyc_output
+test
+src/**/*.spec.ts
 
 # Logs
 logs
@@ -17,9 +26,23 @@ lerna-debug.log*
 # OS
 .DS_Store
 
-# Tests
-/coverage
-/.nyc_output
+# Documentation & templates
+docs
+_templates
+data
+*.md
+
+# Dev tooling configs (not needed at runtime)
+biome.json
+lefthook.yml
+codecov.yml
+commitlint.config.js
+fly.toml
+vitest.config.ts
+codegen.ts
+schema.graphql
+tsconfig.app.json
+pnpm-workspace.yaml
 
 # IDEs and editors
 /.idea
@@ -37,3 +60,6 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 .env*
+
+# Claude
+.claude
