@@ -10,6 +10,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    if: ${{ !startsWith(github.head_ref || '', 'release-please--') }}
     # runs-on: ${{ matrix.os }}
     # strategy:
     #   matrix:
