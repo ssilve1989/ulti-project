@@ -9,3 +9,5 @@ minimumReleaseAgeExclude:
   - "@typescript/native-preview-linux-arm64"
   - "@typescript/native-preview-darwin-x64"
   - "@typescript/native-preview-darwin-arm64"
+  # Renovate security update: @nestjs/core@11.1.18
+  - "@nestjs/core@11.1.18"
