@@ -4,6 +4,7 @@ on: [pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: ${{ !startsWith(github.head_ref || '', 'release-please--') }}
 
     steps:
       - name: Checkout code
