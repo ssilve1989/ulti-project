@@ -13,9 +13,13 @@
   "prHourlyLimit": 8,
   "separateMajorMinor": true,
   "rangeStrategy": "bump",
-  "bumpVersion": "patch",
 
   "ignorePaths": ["node_modules/**"],
+
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "rangeStrategy": "bump"
+  },
 
   "lockFileMaintenance": {
     "enabled": true,
