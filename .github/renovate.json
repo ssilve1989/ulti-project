@@ -13,6 +13,7 @@
   "prHourlyLimit": 8,
   "separateMajorMinor": true,
   "rangeStrategy": "bump",
+  "bumpVersion": "patch",
 
   "ignorePaths": ["node_modules/**"],
 
