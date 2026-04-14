@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@dotenvx/dotenvx':
-        specifier: ^1.60.2
-        version: 1.60.2
+        specifier: ^1.61.0
+        version: 1.61.0
       '@googleapis/sheets':
         specifier: ^13.0.1
         version: 13.0.1
@@ -453,8 +453,8 @@ packages:
     resolution: {integrity: sha512-wPlQDxEmlDg5IxhJPuxXr3Vy9AjYq5xCvFWGJyD7w7Np8ZGu+Mc+97LCoEc/+AYCo2IDpKioiH0/c/mj5ZR9Uw==}
     engines: {node: '>=16.11.0'}
 
-  '@dotenvx/dotenvx@1.60.2':
-    resolution: {integrity: sha512-r4AznHUvfLONuWdoSIQtut6Ez/ym+lGXRtDvRaoAEMEhAmwSoK24jRsfR28vcb3ygWm7qeYOcbZolhtseJl6mA==}
+  '@dotenvx/dotenvx@1.61.0':
+    resolution: {integrity: sha512-utL3cpZoFzflyqUkjYbxYujI6STBTmO5LFn4bbin/NZnRWN6wQ7eErhr3/Vpa5h/jicPFC6kTa42r940mQftJQ==}
     hasBin: true
 
   '@ecies/ciphers@0.2.5':
@@ -4810,7 +4810,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@dotenvx/dotenvx@1.60.2':
+  '@dotenvx/dotenvx@1.61.0':
     dependencies:
       commander: 11.1.0
       dotenv: 17.3.1
