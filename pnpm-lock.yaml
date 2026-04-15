@@ -42,8 +42,8 @@ importers:
         specifier: ^14.26.2
         version: 14.26.2
       firebase-admin:
-        specifier: ^13.7.0
-        version: 13.7.0
+        specifier: ^13.8.0
+        version: 13.8.0
       google-auth-library:
         specifier: ^10.6.2
         version: 10.6.2
@@ -1210,10 +1210,6 @@ packages:
 
   '@opentelemetry/api-logs@0.214.0':
     resolution: {integrity: sha512-40lSJeqYO8Uz2Yj7u94/SJWE/wONa7rmMKjI1ZcIjgf3MHNHv1OZUCrCETGuaRF62d5pQD1wKIW+L4lmSMTzZA==}
-    engines: {node: '>=8.0.0'}
-
-  '@opentelemetry/api@1.9.0':
-    resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
     engines: {node: '>=8.0.0'}
 
   '@opentelemetry/api@1.9.1':
@@ -2672,8 +2668,8 @@ packages:
     resolution: {integrity: sha512-6jvvn/12IC4quLBL1KNokxC7wWTvYncaVUYSoxWw7YykPLuRrnv4qdHcSOywOI5RpkOVGeQRtWM8/q+G6W6qfQ==}
     engines: {node: '>= 8'}
 
-  firebase-admin@13.7.0:
-    resolution: {integrity: sha512-o3qS8zCJbApe7aKzkO2Pa380t9cHISqeSd3blqYTtOuUUUua3qZTLwNWgGUOss3td6wbzrZhiHIj3c8+fC046Q==}
+  firebase-admin@13.8.0:
+    resolution: {integrity: sha512-iawoQkmZbsA+2DY5UEuB8f6jSlskzzySoye0D2F6e3zlDZX9DUcXf0HhZqLUn/P6WhLGvTf6ZtCmshZvhAgTYg==}
     engines: {node: '>=18'}
 
   flatted@3.4.2:
@@ -4990,7 +4986,7 @@ snapshots:
 
   '@google-cloud/firestore@7.11.6':
     dependencies:
-      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/api': 1.9.1
       fast-deep-equal: 3.1.3
       functional-red-black-tree: 1.0.1
       google-gax: 4.6.1
@@ -5705,9 +5701,6 @@ snapshots:
   '@opentelemetry/api-logs@0.214.0':
     dependencies:
       '@opentelemetry/api': 1.9.1
-
-  '@opentelemetry/api@1.9.0':
-    optional: true
 
   '@opentelemetry/api@1.9.1': {}
 
@@ -7254,7 +7247,7 @@ snapshots:
       micromatch: 4.0.8
       resolve-dir: 1.0.1
 
-  firebase-admin@13.7.0:
+  firebase-admin@13.8.0:
     dependencies:
       '@fastify/busboy': 3.2.0
       '@firebase/database-compat': 2.1.1
