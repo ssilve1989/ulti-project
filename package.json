@@ -45,7 +45,7 @@
     "cron": "^4.4.0",
     "dayjs": "^1.11.20",
     "discord.js": "^14.26.2",
-    "firebase-admin": "^13.7.0",
+    "firebase-admin": "^13.8.0",
     "google-auth-library": "^10.6.2",
     "graphql": "^16.13.2",
     "graphql-request": "^7.4.0",
