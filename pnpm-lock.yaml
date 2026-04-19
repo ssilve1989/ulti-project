@@ -39,8 +39,8 @@ importers:
         specifier: ^1.11.20
         version: 1.11.20
       discord.js:
-        specifier: ^14.26.2
-        version: 14.26.2
+        specifier: ^14.26.3
+        version: 14.26.3
       firebase-admin:
         specifier: ^13.8.0
         version: 13.8.0
@@ -2457,8 +2457,8 @@ packages:
   discord-api-types@0.38.43:
     resolution: {integrity: sha512-sSoBf/nK6m7BGtw65mi+QBuvEWaHE8MMziFLqWL+gT6ME/BLg34dRSVKS3Husx40uU06bvxUc3/X+D9Y6/zAbw==}
 
-  discord.js@14.26.2:
-    resolution: {integrity: sha512-feShi+gULJ6R2MAA4/KkCFnkJcuVrROJrKk4czplzq8gE1oqhqgOy9K0Scu44B8oGeWKe04egquzf+ia6VtXAw==}
+  discord.js@14.26.3:
+    resolution: {integrity: sha512-XEKtYn28YFsiJ5l4fLRyikdbo6RD5oFyqfVHQlvXz2104JhH/E8slN28dbky05w3DCrJcNVWvhVvcJCTSl/KIg==}
     engines: {node: '>=18'}
 
   dot-case@2.1.1:
@@ -6996,7 +6996,7 @@ snapshots:
 
   discord-api-types@0.38.43: {}
 
-  discord.js@14.26.2:
+  discord.js@14.26.3:
     dependencies:
       '@discordjs/builders': 1.14.1
       '@discordjs/collection': 1.5.3
