@@ -261,26 +261,11 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       .setTimestamp();
   }
 
-  /**
-   * Validates an FFLogs URL for security and report age requirements.
-   *
-   * This method performs comprehensive validation of FFLogs URLs to prevent
-   * security vulnerabilities like URL spoofing while ensuring reports meet
-   * age requirements for competitive integrity.
-   *
-   * Security considerations:
-   * - Uses exact hostname matching to prevent subdomain spoofing attacks
-   * - Validates URL format before attempting report code extraction
-   * - Only accepts fflogs.com and www.fflogs.com as valid domains
-   *
-   * @param proofOfProgLink The URL string to validate, or null if none provided
-   * @returns Promise<FFLogsValidationResult> - Validation result with success status and error details
-   */
   private async validateFFLogsUrl(
     proofOfProgLink: string | null,
   ): Promise<FFLogsValidationResult> {
     if (!proofOfProgLink) {
-      return { success: true }; // No URL to validate
+      return { success: true };
     }
 
     try {
@@ -299,7 +284,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       }
 
       if (reportCode) {
-        // Only proceed with FFLogs validation if we successfully extracted a report code
         try {
           const fflogsValidation =
             await this.fflogsService.validateReportAge(reportCode);
@@ -325,9 +309,8 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
         }
       }
 
-      return { success: true }; // Validation passed or no FFLogs URL provided
+      return { success: true };
     } catch (_: unknown) {
-      // Handle URL parsing errors
       return {
         success: false,
         errorMessage: 'Invalid URL format. Please provide a valid URL.',
@@ -438,10 +421,8 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     error: unknown,
     interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<void> {
-    // Enhanced error handling with ErrorService
     const errorEmbed = this.errorService.handleCommandError(error, interaction);
 
-    // Preserve Discord-specific error handling
     if (error && typeof error === 'object' && 'code' in error) {
       if (error.code === DiscordjsErrorCodes.InteractionCollectorError) {
         await interaction.editReply({
@@ -453,7 +434,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       }
     }
 
-    // Default error response
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
