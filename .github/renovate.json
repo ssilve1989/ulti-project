@@ -7,7 +7,7 @@
 
   "baseBranchPatterns": ["master"],
   "branchPrefix": "renovate-",
-  "enabledManagers": ["npm", "github-actions"],
+  "enabledManagers": ["npm", "github-actions", "mise"],
 
   "prConcurrentLimit": 25,
   "prHourlyLimit": 8,
