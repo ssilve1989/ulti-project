@@ -1,21 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { type ICommand, type IEvent, ofType, Saga } from '@nestjs/cqrs';
 import { filter, map, mergeMap, Observable } from 'rxjs';
-import { BlacklistSearchCommand } from './slash-commands/blacklist/blacklist.commands.js';
-import { RemoveSignupEvent } from './slash-commands/remove-signup/remove-signup.events.js';
-import { RemoveRolesCommand } from './slash-commands/signup/commands/signup.commands.js';
+import { BlacklistSearchCommand } from '../blacklist/blacklist.commands.js';
+import { RemoveSignupEvent } from '../remove-signup/remove-signup.events.js';
+import { TurboProgRemoveSignupCommand } from '../turboprog/commands/turbo-prog.commands.js';
+import { RemoveRolesCommand } from './commands/signup.commands.js';
 import {
   SignupApprovalSentEvent,
   SignupApprovedEvent,
   SignupCreatedEvent,
-} from './slash-commands/signup/events/signup.events.js';
-import { SendSignupReviewCommand } from './slash-commands/signup/handlers/send-signup-review.command.js';
-import { hasClearedStatus } from './slash-commands/signup/signup.utils.js';
-import { TurboProgRemoveSignupCommand } from './slash-commands/turboprog/commands/turbo-prog.commands.js';
+} from './events/signup.events.js';
+import { SendSignupReviewCommand } from './handlers/send-signup-review.command.js';
+import { hasClearedStatus } from './signup.utils.js';
 
-// TODO: Why are these at the app level? They should be in the signup module
 @Injectable()
-class AppSagas {
+class SignupSagas {
   /**
    * When a signup event is created, dispatch a command that sends a signup to a designated channel for review
    * @param event$
@@ -85,4 +84,4 @@ class AppSagas {
     );
 }
 
-export { AppSagas };
+export { SignupSagas };
