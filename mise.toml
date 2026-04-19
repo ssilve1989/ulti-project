@@ -1,0 +1,9 @@
+[tools]
+node       = "25.9.0"
+pnpm       = "latest"
+bun        = "1.3.12"
+docker-cli = "29.4.0"
+
+[tasks."test:e2e"]
+description = "Run tests against the local Firebase emulator"
+run         = "mise exec --env test -- pnpm firebase emulators:exec --project demo-ulti-project 'vitest --run test/flows'"
