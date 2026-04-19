@@ -13,6 +13,7 @@ import { SendSignupReviewCommandHandler } from './handlers/send-signup-review.co
 import { SignupCommandHandler } from './handlers/signup.command-handler.js';
 import { SignupDeclineReasonEventHandler } from './handlers/signup-decline-reason.event-handler.js';
 import { UpdateApprovalEmbedEventHandler } from './handlers/signup-embed.event-handler.js';
+import { SignupSagas } from './signup.sagas.js';
 import { SignupService } from './signup.service.js';
 
 @Module({
@@ -32,6 +33,7 @@ import { SignupService } from './signup.service.js';
     SendSignupReviewCommandHandler,
     SignupCommandHandler,
     SignupDeclineReasonEventHandler,
+    SignupSagas,
     SignupService,
     UpdateApprovalEmbedEventHandler,
   ],
