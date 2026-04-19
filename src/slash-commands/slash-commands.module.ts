@@ -9,6 +9,7 @@ import { EncountersSlashCommandModule } from './encounters/encounters.module.js'
 import { HelpModule } from './help/help.module.js';
 import { LookupModule } from './lookup/lookup.module.js';
 import { RemoveRoleModule } from './remove-role/remove-role.module.js';
+import { RemoveSignupModule } from './remove-signup/remove-signup.module.js';
 import { RetireModule } from './retire/retire.module.js';
 import { SearchModule } from './search/search.module.js';
 import { SettingsModule } from './settings/settings.module.js';
@@ -30,6 +31,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     HelpModule,
     LookupModule,
     RemoveRoleModule,
+    RemoveSignupModule,
     RetireModule,
     SearchModule,
     SettingsModule,
