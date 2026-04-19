@@ -6,7 +6,6 @@ import { ErrorModule } from '../../error/error.module.js';
 import { FfLogsModule } from '../../fflogs/fflogs.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
-import { RemoveSignupCommandHandler } from '../remove-signup/handlers/remove-signup.command-handler.js';
 import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import { AssignRolesEventHandler } from './handlers/assign-roles.event-handler.js';
 import { RemoveRolesCommandHandler } from './handlers/remove-roles.command-handler.js';
@@ -31,7 +30,6 @@ import { SignupService } from './signup.service.js';
     AssignRolesEventHandler,
     DeclineReasonRequestService,
     RemoveRolesCommandHandler,
-    RemoveSignupCommandHandler,
     SendApprovedMessageEventHandler,
     SendSignupReviewCommandHandler,
     SignupCommandHandler,
