@@ -15,20 +15,20 @@ importers:
         specifier: ^13.0.1
         version: 13.0.1
       '@nestjs/common':
-        specifier: ^11.1.18
-        version: 11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+        specifier: ^11.1.19
+        version: 11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core':
-        specifier: ^11.1.18
-        version: 11.1.18(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+        specifier: ^11.1.19
+        version: 11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/cqrs':
         specifier: ^11.0.3
-        version: 11.0.3(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+        version: 11.0.3(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@sentry/cli':
         specifier: ^3.3.5
         version: 3.3.5
       '@sentry/nestjs':
         specifier: ^10.48.0
-        version: 10.48.0(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
+        version: 10.48.0(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@sentry/profiling-node':
         specifier: ^10.48.0
         version: 10.48.0
@@ -55,7 +55,7 @@ importers:
         version: 7.4.0(graphql@16.13.2)
       nestjs-pino:
         specifier: ^4.6.1
-        version: 4.6.1(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(pino-http@11.0.0)(pino@10.0.0)(rxjs@7.8.2)
+        version: 4.6.1(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(pino-http@11.0.0)(pino@10.0.0)(rxjs@7.8.2)
       pino-http:
         specifier: ^11.0.0
         version: 11.0.0
@@ -100,14 +100,14 @@ importers:
         specifier: ^0.7.10
         version: 0.7.10(@types/node@25.5.2)
       '@graphql-codegen/cli':
-        specifier: 6.2.1
-        version: 6.2.1(@types/node@25.5.2)(graphql@16.13.2)(typescript@5.9.3)
+        specifier: 6.3.0
+        version: 6.3.0(@types/node@25.5.2)(graphql@16.13.2)(typescript@5.9.3)
       '@graphql-codegen/schema-ast':
-        specifier: ^5.0.1
-        version: 5.0.1(graphql@16.13.2)
+        specifier: ^5.0.2
+        version: 5.0.2(graphql@16.13.2)
       '@graphql-codegen/typescript':
-        specifier: 5.0.9
-        version: 5.0.9(graphql@16.13.2)
+        specifier: 5.0.10
+        version: 5.0.10(graphql@16.13.2)
       '@graphql-codegen/typescript-graphql-request':
         specifier: ^7.0.0
         version: 7.0.0(graphql-request@7.4.0(graphql@16.13.2))(graphql-tag@2.12.6(graphql@16.13.2))(graphql@16.13.2)
@@ -115,8 +115,8 @@ importers:
         specifier: ^11.0.10
         version: 11.0.10(chokidar@4.0.3)(typescript@5.9.3)
       '@nestjs/testing':
-        specifier: ^11.1.18
-        version: 11.1.18(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
+        specifier: ^11.1.19
+        version: 11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@types/bun':
         specifier: ^1.3.12
         version: 1.3.12
@@ -124,8 +124,8 @@ importers:
         specifier: ^25.5.2
         version: 25.5.2
       '@typescript/native-preview':
-        specifier: 7.0.0-dev.20260417.1
-        version: 7.0.0-dev.20260417.1
+        specifier: 7.0.0-dev.20260418.1
+        version: 7.0.0-dev.20260418.1
       '@vitest/coverage-v8':
         specifier: ^4.1.4
         version: 4.1.4(vitest@4.1.4)
@@ -700,14 +700,14 @@ packages:
     resolution: {integrity: sha512-XTYObncN5Rqexc0uITZIN9OWTEyE/ZR2S6c7wAniqHe2oGXW9gcHR9f9hQwPMHFUTHjH7Jkj8SLdt0O0u37y2A==}
     engines: {node: '>=12.0.0'}
 
-  '@graphql-codegen/add@6.0.0':
-    resolution: {integrity: sha512-biFdaURX0KTwEJPQ1wkT6BRgNasqgQ5KbCI1a3zwtLtO7XTo7/vKITPylmiU27K5DSOWYnY/1jfSqUAEBuhZrQ==}
+  '@graphql-codegen/add@6.0.1':
+    resolution: {integrity: sha512-MSylSekjpVWbOBw2A/2ssk1fPY54sYb6Qk2C4AX5u7s2R+2pMQ9ws7DTXo8VU9qwTgWwVp6vGfdQ0AMpAn4Iug==}
     engines: {node: '>=16'}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
 
-  '@graphql-codegen/cli@6.2.1':
-    resolution: {integrity: sha512-E1B+5nBda2l89Pci5M0HcEj2Hmx2yhORFX+1T3rmwpQjdOiulo+h9JifWxKomUpjfbmU1YkBSd47CCGLFPU10A==}
+  '@graphql-codegen/cli@6.3.0':
+    resolution: {integrity: sha512-tlzSaM2oSnG6x8+QVc+cJ7NMJe+CN4tnSm/B8Uny/IpgSkAqP+RG8xaDxnrzwQZ+lz1ZXrBkNM6vzAGZhOaOGw==}
     engines: {node: '>=16'}
     hasBin: true
     peerDependencies:
@@ -717,8 +717,8 @@ packages:
       '@parcel/watcher':
         optional: true
 
-  '@graphql-codegen/client-preset@5.2.4':
-    resolution: {integrity: sha512-k4f9CoepkVznXRReCHBVnG/FeQVQgIOhgtkaJ6I9FcQRzUkrm9ASmQjOdNdMlZt0DHTU4nbVxIBGZW7gk1RavA==}
+  '@graphql-codegen/client-preset@5.3.0':
+    resolution: {integrity: sha512-K9FON+j7qyxAUDuSGqI3ofb7lWTBs16oPTYpu14lhdL4DKZQSHLyc8EMYU9e3KcyQ/13gU/d6culOppzAuexLA==}
     engines: {node: '>=16'}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
@@ -727,14 +727,14 @@ packages:
       graphql-sock:
         optional: true
 
-  '@graphql-codegen/core@5.0.1':
-    resolution: {integrity: sha512-eQD7aXpKkKvaydMv5Bu0FnKCPnNMAhZ3vZW+K4Rl9IAC2w5PDv9lJhs3YTWM9W58zNOZpGQGT2F0ekS3QNIiKw==}
+  '@graphql-codegen/core@5.0.2':
+    resolution: {integrity: sha512-7RX0wwjoWPlLG/tUmpaTK91ZZqHcACNWpRL0nGnnJaJrORie9pgmX8JPrcwBgYiHSC+3ERo9xY91RFPem/VrpQ==}
     engines: {node: '>=16'}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
 
-  '@graphql-codegen/gql-tag-operations@5.1.4':
-    resolution: {integrity: sha512-tDj/0a1U7rDH3PQgLeA+PlgBNb593MIJ43oAOKMRgJPwIQ9T7p2oqBRLxwfFZFTDLwnwsGZ7xIKqIcGgyAIj5Q==}
+  '@graphql-codegen/gql-tag-operations@5.2.0':
+    resolution: {integrity: sha512-B9gtJ4ziqpIv+7mHqwjtpYLFOuv0GmmRGpNDoWKM2VIx4OQqgI84d6OHKYCVeO7yu3mUr0QPvUgkSyuLVrdukA==}
     engines: {node: '>=16'}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
@@ -745,14 +745,20 @@ packages:
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
 
-  '@graphql-codegen/schema-ast@5.0.1':
-    resolution: {integrity: sha512-svLffXddnXxq1qFXQqqh+zYrxdiMnIKm+CXCUv0MYhLh0R4L5vpnaTzIUCk3icHNNXhKRm2uBD70+K8VY0xiCg==}
+  '@graphql-codegen/plugin-helpers@6.3.0':
+    resolution: {integrity: sha512-Auc+/B7okDx9+pVgLVliZtZLYh6iltWXlnzzM+bRE+zh1T4r3hKbnr8xAmtT937ArfSgk5GHcQHr8LfPYnrRBg==}
     engines: {node: '>=16'}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
 
-  '@graphql-codegen/typed-document-node@6.1.7':
-    resolution: {integrity: sha512-VLL9hB+YPigc/W2QYCkSNMZrkKv42nTchb9mJ0h5VY98YmW/zWb6NeYM80iHSpk8ZvHsuUT5geA53/s1phO2NQ==}
+  '@graphql-codegen/schema-ast@5.0.2':
+    resolution: {integrity: sha512-jl1F/9IjRkJisEb9B0ayG4QGqYlPldLRy8ojDdmL9NE1NsdB5ROfxQnSqyC3g+wuvBhWX7kZgMRQYn3RU1I5bA==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
+
+  '@graphql-codegen/typed-document-node@6.1.8':
+    resolution: {integrity: sha512-+qDdiJSQ7Ol+vpLMAH8ZJok50CvlYxA6seQ7cwEa3emXt8MmH5hh3zdc9unQlPc7bynoJHRCgoKk7E0B7hry0w==}
     engines: {node: '>=16'}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
@@ -765,8 +771,8 @@ packages:
       graphql-request: ^6.0.0 || ^7.0.0
       graphql-tag: ^2.0.0
 
-  '@graphql-codegen/typescript-operations@5.0.9':
-    resolution: {integrity: sha512-jJFdJKMS5Cqisb5QMi7xXHPsJH9yHBMYOxBc8laFkFjHk/AOqJK90qCKbO9lwwTMPZUDe6N/HslmA0ax4J0zsg==}
+  '@graphql-codegen/typescript-operations@5.1.0':
+    resolution: {integrity: sha512-JlmjbFl0EnsfMDIYvTE1Q0kAOrntVEZ+ZfBqWTP91g4e0F/TzuwJ/V4tiFmeDf5dx/rf9AK4VkPehIdxu7TYhw==}
     engines: {node: '>=16'}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
@@ -775,14 +781,20 @@ packages:
       graphql-sock:
         optional: true
 
-  '@graphql-codegen/typescript@5.0.9':
-    resolution: {integrity: sha512-YlIZ4nqdFdzr5vxuNtQtZnnMYuZ5cLYB2HaGhGI2zvqHxCmkBjIRpu/5sfccawKy23wetV+aoWvoNqxGKIryig==}
+  '@graphql-codegen/typescript@5.0.10':
+    resolution: {integrity: sha512-Pa8OFmL9TdhEYnLYJLYA9EhP8eEeivP/YDYq4Nb8LQaL7GXm4TGX8zELYaCM9Fu8M3iZb7iQGMt7qc+1lXz8XQ==}
     engines: {node: '>=16'}
     peerDependencies:
       graphql: ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
 
   '@graphql-codegen/visitor-plugin-common@6.2.4':
     resolution: {integrity: sha512-iwiVCc7Mv8/XAa3K35AdFQ9chJSDv/gYEnBeQFF/Sq/W8EyJoHypOGOTTLk7OSrWO4xea65ggv0e7fGt7rPJjQ==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
+
+  '@graphql-codegen/visitor-plugin-common@6.3.0':
+    resolution: {integrity: sha512-vGBoE+4huzZyNhyGSAhXAkdROHlwKxxuziZm4XtP1mxe7nuI+VgyOmXebafLijbmuDsptPXQN0C/htL54O8hrg==}
     engines: {node: '>=16'}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
@@ -1114,8 +1126,8 @@ packages:
     resolution: {integrity: sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==}
     engines: {node: '>=8'}
 
-  '@nestjs/common@11.1.18':
-    resolution: {integrity: sha512-0sLq8Z+TIjLnz1Tqp0C/x9BpLbqpt1qEu0VcH4/fkE0y3F5JxhfK1AdKQ/SPbKhKgwqVDoY4gS8GQr2G6ujaWg==}
+  '@nestjs/common@11.1.19':
+    resolution: {integrity: sha512-qeiTt2tv+e5QyDKqG8HlVZb2wx64FEaSGFJouqTSRs+kG44iTfl3xlz1XqVped+rihx4hmjWgL5gkhtdK3E6+Q==}
     peerDependencies:
       class-transformer: '>=0.4.1'
       class-validator: '>=0.13.2'
@@ -1127,8 +1139,8 @@ packages:
       class-validator:
         optional: true
 
-  '@nestjs/core@11.1.18':
-    resolution: {integrity: sha512-wR3DtGyk/LUAiPtbXDuWJJwVkWElKBY0sqnTzf9d4uM3+X18FRZhK7WFc47czsIGOdWuRsMeLYV+1Z9dO4zDEQ==}
+  '@nestjs/core@11.1.19':
+    resolution: {integrity: sha512-6nJkWa2efrYi+XlU686J9y5L7OvxpLVjT0T/sxRKE7Jvpffiihelup4WSvLvRhdHDjj/5SuoWEwqReXAaaeHmw==}
     engines: {node: '>= 20'}
     peerDependencies:
       '@nestjs/common': ^11.0.0
@@ -1158,8 +1170,8 @@ packages:
     peerDependencies:
       typescript: '>=4.8.2'
 
-  '@nestjs/testing@11.1.18':
-    resolution: {integrity: sha512-frzwNlpBgtAzI3hp/qo57DZoRO4RMTH1wST3QUYEhRTHyfPkLpzkWz3jV/mhApXjD0yT56Ptlzn6zuYPLh87Lw==}
+  '@nestjs/testing@11.1.19':
+    resolution: {integrity: sha512-/UFNWXvPEdu4v4DlC5oWLbGKmD27LehLK06b8oLzs6D6lf4vAQTdST8LRAXBadyMUQnVEQWMuBo3CtAVtlfXtQ==}
     peerDependencies:
       '@nestjs/common': ^11.0.0
       '@nestjs/core': ^11.0.0
@@ -1885,43 +1897,43 @@ packages:
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
-  '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260417.1':
-    resolution: {integrity: sha512-TSV/P3OlMs3iua4dus60uphUwuB0DXnx+1nNazpcAhrpi1oAP6SyKcpYR0D+pqa55i+BDUHVAqpj/AP6pWli8Q==}
+  '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260418.1':
+    resolution: {integrity: sha512-wY8SQLt+9QSfh9zsPPVvg43gSgkyOAXvcBTfjsAhogkZS7kr52//BHtgCXFkVqenUnNCynHcwopQdHqUiAd/Vg==}
     cpu: [arm64]
     os: [darwin]
 
-  '@typescript/native-preview-darwin-x64@7.0.0-dev.20260417.1':
-    resolution: {integrity: sha512-vwjFGTPRH15tiHTPjLpKc9YdCaJoySXsWuosopAeTdzghnM58YOXle8J2+y7Sui5N+5uKCCvu0Dug/thL/IpzA==}
+  '@typescript/native-preview-darwin-x64@7.0.0-dev.20260418.1':
+    resolution: {integrity: sha512-GhnIbnFyQe9utyQp6hIPLwVzRYJOpDGFzmUnkKi6ezzdJkhhAvvqZwGYUiVWX7FCRYRUTkLwkE1jgt09Usg7+w==}
     cpu: [x64]
     os: [darwin]
 
-  '@typescript/native-preview-linux-arm64@7.0.0-dev.20260417.1':
-    resolution: {integrity: sha512-Xbx3FANuS28RpwkjmzwASXeUmPJw8g7E/IRATaWfY945nldwnL5W6MACIdUKKPyQJYm4FtgtntorxJrf2O8vYw==}
+  '@typescript/native-preview-linux-arm64@7.0.0-dev.20260418.1':
+    resolution: {integrity: sha512-O0LFHBgH0WLw1fb/Aohtyn3zSIatOz6j1TnMol1NxzSR90plPKw67GqXISTu+xlbU/W0VMeyVpmzT7oQc76BXA==}
     cpu: [arm64]
     os: [linux]
 
-  '@typescript/native-preview-linux-arm@7.0.0-dev.20260417.1':
-    resolution: {integrity: sha512-/2MG/XnvJMlwfej06NFHZTIOTHuxYCjGRHd+yBclbn6fTUVr3YhlzOZkFj9i2ewir//orOaEVD5u1F4rth8mVg==}
+  '@typescript/native-preview-linux-arm@7.0.0-dev.20260418.1':
+    resolution: {integrity: sha512-s4vvjR5X3yMBz+OJSy0oFs8X3FLUIya8zZGLPep78rcu7uhZYe1lNEbfE3CGUTiYHRG4snDmQdIeQM7x0BYvOg==}
     cpu: [arm]
     os: [linux]
 
-  '@typescript/native-preview-linux-x64@7.0.0-dev.20260417.1':
-    resolution: {integrity: sha512-kA6tz+vBtfXdCrdwfh36pDhzdoCdn42sEIHIr4HpLvkpAfcn/ruRHWPCvcaOVcKAZWwqgOhyE5ENN9uOSKBZPA==}
+  '@typescript/native-preview-linux-x64@7.0.0-dev.20260418.1':
+    resolution: {integrity: sha512-8OuVB9HS8etF6Xok+gHzGPleHsmQLxIo0aJA8BQ93ZzBabRZgqDI5B/TzIPZ3/Lp66smFdlFREpxjZamoZwUPA==}
     cpu: [x64]
     os: [linux]
 
-  '@typescript/native-preview-win32-arm64@7.0.0-dev.20260417.1':
-    resolution: {integrity: sha512-BHWsdltUYVNu1lHJTim3FofIBQSjn/Jw4BbA0UEiRpOwFi4hXt4SnP4/7M1A2DMmkBAAv/ZVU8vi+uR44CHatg==}
+  '@typescript/native-preview-win32-arm64@7.0.0-dev.20260418.1':
+    resolution: {integrity: sha512-dMQjoEYUgrASd0oY0cPChO0asJ+/d6NY+Fcahgx74BXLSJyRprx5chTTxnOjSY7WXpYSZKwgUxztSXXkMJcHpw==}
     cpu: [arm64]
     os: [win32]
 
-  '@typescript/native-preview-win32-x64@7.0.0-dev.20260417.1':
-    resolution: {integrity: sha512-93bOoa7KDADhfC5vyhnCKPn2A5lhe2lPGMIC2yWfmueOX+R6DLkl2G8olqh+ocTFHCJRhBv8R/VM1j7FaAxG5A==}
+  '@typescript/native-preview-win32-x64@7.0.0-dev.20260418.1':
+    resolution: {integrity: sha512-/nQEojAYiluwEhHBPmdgb/vqLJpWztNTFWX9oDb0LNnvVWwBRDYJDF+0b6JIT8G4bJSmOZoxBe86jm9eY5Ggqg==}
     cpu: [x64]
     os: [win32]
 
-  '@typescript/native-preview@7.0.0-dev.20260417.1':
-    resolution: {integrity: sha512-uIsfMRxtjgMF83TbAcpvHe0rgWVhqDSwCU1EYQT17qQbnOR56NIULneywLjeGKFgOCpn3eszd01/EjzS0n/LkA==}
+  '@typescript/native-preview@7.0.0-dev.20260418.1':
+    resolution: {integrity: sha512-O0okml4q3D0B7uWFrx8dy7zJHOifPuH0eu8JiHmOQlcc2yJzR3qGZfhoM/qsvqrgEZvw9hqRHlqkAUj0TJ9mWA==}
     hasBin: true
 
   '@vitest/coverage-v8@4.1.4':
@@ -5030,20 +5042,20 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@graphql-codegen/add@6.0.0(graphql@16.13.2)':
+  '@graphql-codegen/add@6.0.1(graphql@16.13.2)':
     dependencies:
-      '@graphql-codegen/plugin-helpers': 6.2.0(graphql@16.13.2)
+      '@graphql-codegen/plugin-helpers': 6.3.0(graphql@16.13.2)
       graphql: 16.13.2
-      tslib: 2.6.3
+      tslib: 2.8.1
 
-  '@graphql-codegen/cli@6.2.1(@types/node@25.5.2)(graphql@16.13.2)(typescript@5.9.3)':
+  '@graphql-codegen/cli@6.3.0(@types/node@25.5.2)(graphql@16.13.2)(typescript@5.9.3)':
     dependencies:
       '@babel/generator': 7.29.1
       '@babel/template': 7.28.6
       '@babel/types': 7.29.0
-      '@graphql-codegen/client-preset': 5.2.4(graphql@16.13.2)
-      '@graphql-codegen/core': 5.0.1(graphql@16.13.2)
-      '@graphql-codegen/plugin-helpers': 6.2.0(graphql@16.13.2)
+      '@graphql-codegen/client-preset': 5.3.0(graphql@16.13.2)
+      '@graphql-codegen/core': 5.0.2(graphql@16.13.2)
+      '@graphql-codegen/plugin-helpers': 6.3.0(graphql@16.13.2)
       '@graphql-tools/apollo-engine-loader': 8.0.28(graphql@16.13.2)
       '@graphql-tools/code-file-loader': 8.1.28(graphql@16.13.2)
       '@graphql-tools/git-loader': 8.0.32(graphql@16.13.2)
@@ -5085,39 +5097,39 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@graphql-codegen/client-preset@5.2.4(graphql@16.13.2)':
+  '@graphql-codegen/client-preset@5.3.0(graphql@16.13.2)':
     dependencies:
       '@babel/helper-plugin-utils': 7.28.6
       '@babel/template': 7.28.6
-      '@graphql-codegen/add': 6.0.0(graphql@16.13.2)
-      '@graphql-codegen/gql-tag-operations': 5.1.4(graphql@16.13.2)
-      '@graphql-codegen/plugin-helpers': 6.2.0(graphql@16.13.2)
-      '@graphql-codegen/typed-document-node': 6.1.7(graphql@16.13.2)
-      '@graphql-codegen/typescript': 5.0.9(graphql@16.13.2)
-      '@graphql-codegen/typescript-operations': 5.0.9(graphql@16.13.2)
-      '@graphql-codegen/visitor-plugin-common': 6.2.4(graphql@16.13.2)
+      '@graphql-codegen/add': 6.0.1(graphql@16.13.2)
+      '@graphql-codegen/gql-tag-operations': 5.2.0(graphql@16.13.2)
+      '@graphql-codegen/plugin-helpers': 6.3.0(graphql@16.13.2)
+      '@graphql-codegen/typed-document-node': 6.1.8(graphql@16.13.2)
+      '@graphql-codegen/typescript': 5.0.10(graphql@16.13.2)
+      '@graphql-codegen/typescript-operations': 5.1.0(graphql@16.13.2)
+      '@graphql-codegen/visitor-plugin-common': 6.3.0(graphql@16.13.2)
       '@graphql-tools/documents': 1.0.1(graphql@16.13.2)
       '@graphql-tools/utils': 11.0.0(graphql@16.13.2)
       '@graphql-typed-document-node/core': 3.2.0(graphql@16.13.2)
       graphql: 16.13.2
-      tslib: 2.6.3
+      tslib: 2.8.1
 
-  '@graphql-codegen/core@5.0.1(graphql@16.13.2)':
+  '@graphql-codegen/core@5.0.2(graphql@16.13.2)':
     dependencies:
-      '@graphql-codegen/plugin-helpers': 6.2.0(graphql@16.13.2)
+      '@graphql-codegen/plugin-helpers': 6.3.0(graphql@16.13.2)
       '@graphql-tools/schema': 10.0.31(graphql@16.13.2)
       '@graphql-tools/utils': 11.0.0(graphql@16.13.2)
       graphql: 16.13.2
-      tslib: 2.6.3
+      tslib: 2.8.1
 
-  '@graphql-codegen/gql-tag-operations@5.1.4(graphql@16.13.2)':
+  '@graphql-codegen/gql-tag-operations@5.2.0(graphql@16.13.2)':
     dependencies:
-      '@graphql-codegen/plugin-helpers': 6.2.0(graphql@16.13.2)
-      '@graphql-codegen/visitor-plugin-common': 6.2.4(graphql@16.13.2)
+      '@graphql-codegen/plugin-helpers': 6.3.0(graphql@16.13.2)
+      '@graphql-codegen/visitor-plugin-common': 6.3.0(graphql@16.13.2)
       '@graphql-tools/utils': 11.0.0(graphql@16.13.2)
       auto-bind: 4.0.0
       graphql: 16.13.2
-      tslib: 2.6.3
+      tslib: 2.8.1
 
   '@graphql-codegen/plugin-helpers@6.2.0(graphql@16.13.2)':
     dependencies:
@@ -5129,21 +5141,30 @@ snapshots:
       lodash: 4.17.23
       tslib: 2.6.3
 
-  '@graphql-codegen/schema-ast@5.0.1(graphql@16.13.2)':
+  '@graphql-codegen/plugin-helpers@6.3.0(graphql@16.13.2)':
     dependencies:
-      '@graphql-codegen/plugin-helpers': 6.2.0(graphql@16.13.2)
+      '@graphql-tools/utils': 11.0.0(graphql@16.13.2)
+      change-case-all: 1.0.15
+      common-tags: 1.8.2
+      graphql: 16.13.2
+      import-from: 4.0.0
+      tslib: 2.8.1
+
+  '@graphql-codegen/schema-ast@5.0.2(graphql@16.13.2)':
+    dependencies:
+      '@graphql-codegen/plugin-helpers': 6.3.0(graphql@16.13.2)
       '@graphql-tools/utils': 11.0.0(graphql@16.13.2)
       graphql: 16.13.2
-      tslib: 2.6.3
+      tslib: 2.8.1
 
-  '@graphql-codegen/typed-document-node@6.1.7(graphql@16.13.2)':
+  '@graphql-codegen/typed-document-node@6.1.8(graphql@16.13.2)':
     dependencies:
-      '@graphql-codegen/plugin-helpers': 6.2.0(graphql@16.13.2)
-      '@graphql-codegen/visitor-plugin-common': 6.2.4(graphql@16.13.2)
+      '@graphql-codegen/plugin-helpers': 6.3.0(graphql@16.13.2)
+      '@graphql-codegen/visitor-plugin-common': 6.3.0(graphql@16.13.2)
       auto-bind: 4.0.0
       change-case-all: 1.0.15
       graphql: 16.13.2
-      tslib: 2.6.3
+      tslib: 2.8.1
 
   '@graphql-codegen/typescript-graphql-request@7.0.0(graphql-request@7.4.0(graphql@16.13.2))(graphql-tag@2.12.6(graphql@16.13.2))(graphql@16.13.2)':
     dependencies:
@@ -5155,23 +5176,23 @@ snapshots:
       graphql-tag: 2.12.6(graphql@16.13.2)
       tslib: 2.8.1
 
-  '@graphql-codegen/typescript-operations@5.0.9(graphql@16.13.2)':
+  '@graphql-codegen/typescript-operations@5.1.0(graphql@16.13.2)':
     dependencies:
-      '@graphql-codegen/plugin-helpers': 6.2.0(graphql@16.13.2)
-      '@graphql-codegen/typescript': 5.0.9(graphql@16.13.2)
-      '@graphql-codegen/visitor-plugin-common': 6.2.4(graphql@16.13.2)
+      '@graphql-codegen/plugin-helpers': 6.3.0(graphql@16.13.2)
+      '@graphql-codegen/typescript': 5.0.10(graphql@16.13.2)
+      '@graphql-codegen/visitor-plugin-common': 6.3.0(graphql@16.13.2)
       auto-bind: 4.0.0
       graphql: 16.13.2
-      tslib: 2.6.3
+      tslib: 2.8.1
 
-  '@graphql-codegen/typescript@5.0.9(graphql@16.13.2)':
+  '@graphql-codegen/typescript@5.0.10(graphql@16.13.2)':
     dependencies:
-      '@graphql-codegen/plugin-helpers': 6.2.0(graphql@16.13.2)
-      '@graphql-codegen/schema-ast': 5.0.1(graphql@16.13.2)
-      '@graphql-codegen/visitor-plugin-common': 6.2.4(graphql@16.13.2)
+      '@graphql-codegen/plugin-helpers': 6.3.0(graphql@16.13.2)
+      '@graphql-codegen/schema-ast': 5.0.2(graphql@16.13.2)
+      '@graphql-codegen/visitor-plugin-common': 6.3.0(graphql@16.13.2)
       auto-bind: 4.0.0
       graphql: 16.13.2
-      tslib: 2.6.3
+      tslib: 2.8.1
 
   '@graphql-codegen/visitor-plugin-common@6.2.4(graphql@16.13.2)':
     dependencies:
@@ -5186,6 +5207,20 @@ snapshots:
       graphql-tag: 2.12.6(graphql@16.13.2)
       parse-filepath: 1.0.2
       tslib: 2.6.3
+
+  '@graphql-codegen/visitor-plugin-common@6.3.0(graphql@16.13.2)':
+    dependencies:
+      '@graphql-codegen/plugin-helpers': 6.3.0(graphql@16.13.2)
+      '@graphql-tools/optimize': 2.0.0(graphql@16.13.2)
+      '@graphql-tools/relay-operation-optimizer': 7.1.1(graphql@16.13.2)
+      '@graphql-tools/utils': 11.0.0(graphql@16.13.2)
+      auto-bind: 4.0.0
+      change-case-all: 1.0.15
+      dependency-graph: 1.0.0
+      graphql: 16.13.2
+      graphql-tag: 2.12.6(graphql@16.13.2)
+      parse-filepath: 1.0.2
+      tslib: 2.8.1
 
   '@graphql-hive/signal@2.0.0': {}
 
@@ -5609,7 +5644,7 @@ snapshots:
 
   '@lukeed/csprng@1.1.0': {}
 
-  '@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)':
+  '@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)':
     dependencies:
       file-type: 21.3.4
       iterare: 1.2.1
@@ -5624,9 +5659,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@nestjs/core@11.1.18(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)':
+  '@nestjs/core@11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)':
     dependencies:
-      '@nestjs/common': 11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/common': 11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nuxt/opencollective': 0.4.1
       fast-safe-stringify: 2.1.1
       iterare: 1.2.1
@@ -5636,10 +5671,10 @@ snapshots:
       tslib: 2.8.1
       uid: 2.0.2
 
-  '@nestjs/cqrs@11.0.3(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)':
+  '@nestjs/cqrs@11.0.3(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)':
     dependencies:
-      '@nestjs/common': 11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/core': 11.1.18(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/common': 11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       reflect-metadata: 0.2.2
       rxjs: 7.8.2
 
@@ -5654,10 +5689,10 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@nestjs/testing@11.1.18(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))':
+  '@nestjs/testing@11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))':
     dependencies:
-      '@nestjs/common': 11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/core': 11.1.18(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/common': 11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       tslib: 2.8.1
 
   '@noble/ciphers@1.3.0': {}
@@ -6131,10 +6166,10 @@ snapshots:
 
   '@sentry/core@10.48.0': {}
 
-  '@sentry/nestjs@10.48.0(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))':
+  '@sentry/nestjs@10.48.0(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))':
     dependencies:
-      '@nestjs/common': 11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/core': 11.1.18(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/common': 11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.6.1(@opentelemetry/api@1.9.1)
       '@opentelemetry/instrumentation': 0.214.0(@opentelemetry/api@1.9.1)
@@ -6364,36 +6399,36 @@ snapshots:
     dependencies:
       '@types/node': 25.5.2
 
-  '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260417.1':
+  '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260418.1':
     optional: true
 
-  '@typescript/native-preview-darwin-x64@7.0.0-dev.20260417.1':
+  '@typescript/native-preview-darwin-x64@7.0.0-dev.20260418.1':
     optional: true
 
-  '@typescript/native-preview-linux-arm64@7.0.0-dev.20260417.1':
+  '@typescript/native-preview-linux-arm64@7.0.0-dev.20260418.1':
     optional: true
 
-  '@typescript/native-preview-linux-arm@7.0.0-dev.20260417.1':
+  '@typescript/native-preview-linux-arm@7.0.0-dev.20260418.1':
     optional: true
 
-  '@typescript/native-preview-linux-x64@7.0.0-dev.20260417.1':
+  '@typescript/native-preview-linux-x64@7.0.0-dev.20260418.1':
     optional: true
 
-  '@typescript/native-preview-win32-arm64@7.0.0-dev.20260417.1':
+  '@typescript/native-preview-win32-arm64@7.0.0-dev.20260418.1':
     optional: true
 
-  '@typescript/native-preview-win32-x64@7.0.0-dev.20260417.1':
+  '@typescript/native-preview-win32-x64@7.0.0-dev.20260418.1':
     optional: true
 
-  '@typescript/native-preview@7.0.0-dev.20260417.1':
+  '@typescript/native-preview@7.0.0-dev.20260418.1':
     optionalDependencies:
-      '@typescript/native-preview-darwin-arm64': 7.0.0-dev.20260417.1
-      '@typescript/native-preview-darwin-x64': 7.0.0-dev.20260417.1
-      '@typescript/native-preview-linux-arm': 7.0.0-dev.20260417.1
-      '@typescript/native-preview-linux-arm64': 7.0.0-dev.20260417.1
-      '@typescript/native-preview-linux-x64': 7.0.0-dev.20260417.1
-      '@typescript/native-preview-win32-arm64': 7.0.0-dev.20260417.1
-      '@typescript/native-preview-win32-x64': 7.0.0-dev.20260417.1
+      '@typescript/native-preview-darwin-arm64': 7.0.0-dev.20260418.1
+      '@typescript/native-preview-darwin-x64': 7.0.0-dev.20260418.1
+      '@typescript/native-preview-linux-arm': 7.0.0-dev.20260418.1
+      '@typescript/native-preview-linux-arm64': 7.0.0-dev.20260418.1
+      '@typescript/native-preview-linux-x64': 7.0.0-dev.20260418.1
+      '@typescript/native-preview-win32-arm64': 7.0.0-dev.20260418.1
+      '@typescript/native-preview-win32-x64': 7.0.0-dev.20260418.1
 
   '@vitest/coverage-v8@4.1.4(vitest@4.1.4)':
     dependencies:
@@ -8123,9 +8158,9 @@ snapshots:
 
   nanoid@3.3.11: {}
 
-  nestjs-pino@4.6.1(@nestjs/common@11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(pino-http@11.0.0)(pino@10.0.0)(rxjs@7.8.2):
+  nestjs-pino@4.6.1(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(pino-http@11.0.0)(pino@10.0.0)(rxjs@7.8.2):
     dependencies:
-      '@nestjs/common': 11.1.18(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/common': 11.1.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       pino: 10.0.0
       pino-http: 11.0.0
       rxjs: 7.8.2

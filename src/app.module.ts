@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { LoggerModule } from 'nestjs-pino';
-import { AppSagas } from './app.sagas.js';
 import { AppService } from './app.service.js';
 import { appConfig } from './config/app.js';
 import { DiscordModule } from './discord/discord.module.js';
@@ -30,6 +29,6 @@ import { SlashCommandsModule } from './slash-commands/slash-commands.module.js';
       },
     }),
   ],
-  providers: [AppService, AppSagas],
+  providers: [AppService],
 })
 export class AppModule {}

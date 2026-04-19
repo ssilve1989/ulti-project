@@ -100,6 +100,10 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     const fflogsValidationResult = await this.validateFFLogsUrl(
       signupRequest.proofOfProgLink,
     );
+    this.setFFLogsValidationContext(
+      fflogsValidationResult,
+      signupRequest.proofOfProgLink !== null,
+    );
 
     if (!fflogsValidationResult.success) {
       await interaction.editReply({
@@ -257,32 +261,11 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       .setTimestamp();
   }
 
-  /**
-   * Validates an FFLogs URL for security and report age requirements.
-   *
-   * This method performs comprehensive validation of FFLogs URLs to prevent
-   * security vulnerabilities like URL spoofing while ensuring reports meet
-   * age requirements for competitive integrity.
-   *
-   * Security considerations:
-   * - Uses exact hostname matching to prevent subdomain spoofing attacks
-   * - Validates URL format before attempting report code extraction
-   * - Only accepts fflogs.com and www.fflogs.com as valid domains
-   *
-   * @param proofOfProgLink The URL string to validate, or null if none provided
-   * @returns Promise<FFLogsValidationResult> - Validation result with success status and error details
-   */
   private async validateFFLogsUrl(
     proofOfProgLink: string | null,
   ): Promise<FFLogsValidationResult> {
-    const scope = Sentry.getCurrentScope();
     if (!proofOfProgLink) {
-      // Add FFLogs validation context for Sentry
-      scope.setContext('fflogs_validation', {
-        hasUrl: false,
-        validationResult: 'success',
-      });
-      return { success: true }; // No URL to validate
+      return { success: true };
     }
 
     try {
@@ -290,15 +273,10 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       const reportCode = extractFflogsReportCode(url);
 
       if (isFFLogsUrl(url) && !reportCode) {
-        // Add FFLogs validation context for Sentry
-        scope.setContext('fflogs_validation', {
-          hasUrl: true,
-          validationResult: 'format',
-        });
         return {
           success: false,
           errorMessage: `Invalid FFLogs URL format. Please provide a valid link to a report. Not a profile or any other fflogs link.
-            
+
             Example: https://www.fflogs.com/reports/2XG7tZp1AjQcWTn9?fight=3&type=damage-done
             `,
           errorType: 'format',
@@ -306,7 +284,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       }
 
       if (reportCode) {
-        // Only proceed with FFLogs validation if we successfully extracted a report code
         try {
           const fflogsValidation =
             await this.fflogsService.validateReportAge(reportCode);
@@ -314,11 +291,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
           if (!fflogsValidation.isValid) {
             this.logger.log(fflogsValidation.errorMessage);
 
-            // Add FFLogs validation context for Sentry
-            scope.setContext('fflogs_validation', {
-              hasUrl: true,
-              validationResult: 'age',
-            });
             return {
               success: false,
               errorMessage:
@@ -328,11 +300,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
           }
         } catch (error: unknown) {
           this.logger.warn('Error validating FFLogs report age:', error);
-          // Add FFLogs validation context for Sentry
-          scope.setContext('fflogs_validation', {
-            hasUrl: true,
-            validationResult: 'api',
-          });
           return {
             success: false,
             errorMessage:
@@ -342,25 +309,25 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
         }
       }
 
-      // Add FFLogs validation context for Sentry (success case)
-      scope.setContext('fflogs_validation', {
-        hasUrl: true,
-        validationResult: 'success',
-      });
-      return { success: true }; // Validation passed or no FFLogs URL provided
+      return { success: true };
     } catch (_: unknown) {
-      // Handle URL parsing errors
-      // Add FFLogs validation context for Sentry
-      scope.setContext('fflogs_validation', {
-        hasUrl: true,
-        validationResult: 'format',
-      });
       return {
         success: false,
         errorMessage: 'Invalid URL format. Please provide a valid URL.',
         errorType: 'format',
       };
     }
+  }
+
+  private setFFLogsValidationContext(
+    result: FFLogsValidationResult,
+    hasUrl: boolean,
+  ): void {
+    const scope = Sentry.getCurrentScope();
+    scope.setContext('fflogs_validation', {
+      hasUrl,
+      validationResult: result.success ? 'success' : result.errorType,
+    });
   }
 
   private async validateConfiguration(
@@ -454,10 +421,8 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
     error: unknown,
     interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<void> {
-    // Enhanced error handling with ErrorService
     const errorEmbed = this.errorService.handleCommandError(error, interaction);
 
-    // Preserve Discord-specific error handling
     if (error && typeof error === 'object' && 'code' in error) {
       if (error.code === DiscordjsErrorCodes.InteractionCollectorError) {
         await interaction.editReply({
@@ -469,7 +434,6 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
       }
     }
 
-    // Default error response
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
