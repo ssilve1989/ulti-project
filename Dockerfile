@@ -1,4 +1,4 @@
-ARG NODE_VERSION=25.7.0
+ARG NODE_VERSION=26
 FROM node:${NODE_VERSION}-alpine AS base
 
 LABEL fly_launch_runtime="NestJS"

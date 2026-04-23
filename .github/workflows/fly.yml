@@ -37,7 +37,7 @@ jobs:
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4
         with:
           tool_versions: |
-            node 25.7.0
+            node 26
             pnpm 10.28.2
       - run: pnpm install
       - run: pnpm build
