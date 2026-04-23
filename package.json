@@ -73,7 +73,7 @@
     "@nestjs/schematics": "^11.1.0",
     "@nestjs/testing": "^11.1.19",
     "@types/bun": "^1.3.12",
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.6.0",
     "@typescript/native-preview": "7.0.0-dev.20260422.1",
     "@vitest/coverage-v8": "^4.1.4",
     "@vitest/ui": "^4.1.4",
