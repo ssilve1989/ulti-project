@@ -8,6 +8,7 @@ export enum Encounter {
   TEA = 'TEA',
   DSR = 'DSR',
   FRU = 'FRU',
+  DMU = 'DMU',
 }
 
 export const EncounterFriendlyDescription = Object.freeze({
@@ -17,6 +18,7 @@ export const EncounterFriendlyDescription = Object.freeze({
   [Encounter.TEA]: '[TEA] The Epic of Alexander',
   [Encounter.DSR]: '[DSR] Dragonsong Reprise',
   [Encounter.FRU]: '[FRU] Futures Rewritten',
+  [Encounter.DMU]: 'Dancing Mad (Ultimate)',
 });
 
 // these identifiers are specific to the ulti-project sausfest discord
@@ -75,6 +77,11 @@ export const ENCOUNTER_CHOICES: Readonly<EncounterChoice>[] = [
   {
     name: 'Futures Rewritten (Ultimate)',
     value: Encounter.FRU,
+    mode: 'legacy',
+  },
+  {
+    name: 'Dancing Mad (Ultimate)',
+    value: Encounter.DMU,
     mode: 'ultimate',
   },
 ];

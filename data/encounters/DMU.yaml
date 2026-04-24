@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=./encounter.schema.yaml
+
+id: DMU
+name: Dancing Mad (Ultimate)
+description: "[DMU] Dancing Mad"
+active: true
+progPoints: 
+  []
