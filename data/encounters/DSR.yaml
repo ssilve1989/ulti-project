@@ -6,7 +6,7 @@ description: "[DSR] Dragonsong Reprise"
 active: true
 progPartyThreshold: Nidhogg
 clearPartyThreshold: P6 Enrage
-progPoints:
+progPoints: 
   - id: Strength
     label: "Phase 2: Strength of the Ward"
     partyStatus: Early Prog Party
