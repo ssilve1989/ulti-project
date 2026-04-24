@@ -1,12 +1,11 @@
 # yaml-language-server: $schema=./encounter.schema.yaml
-
 id: TOP
 name: "[TOP] The Omega Protocol"
 description: "[TOP] The Omega Protocol"
 active: true
 progPartyThreshold: P5 Delta
 clearPartyThreshold: P6 Wave Cannon 1
-progPoints: 
+progPoints:
   - id: P2 Party Synergy
     label: "Phase 2: Party Synergy"
     partyStatus: Early Prog Party

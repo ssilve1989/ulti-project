@@ -1,12 +1,11 @@
 # yaml-language-server: $schema=./encounter.schema.yaml
-
 id: FRU
 name: "[FRU] Futures Rewritten"
 description: "[FRU] Futures Rewritten"
 active: true
 progPartyThreshold: "P3: Apocalypse"
 clearPartyThreshold: "P5: Fulgent 1"
-progPoints: 
+progPoints:
   - id: "P2: Light Rampant"
     label: "Phase 2: Light Rampant"
     partyStatus: Early Prog Party
