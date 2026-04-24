@@ -1,12 +1,11 @@
 # yaml-language-server: $schema=./encounter.schema.yaml
-
 id: TEA
 name: "[TEA] The Epic of Alexander"
 description: "[TEA] The Epic of Alexander"
 active: true
 progPartyThreshold: BJCC
 clearPartyThreshold: Final Word
-progPoints: 
+progPoints:
   - id: Limit Cut
     label: "Phase 1: Limit Cut"
     partyStatus: Early Prog Party

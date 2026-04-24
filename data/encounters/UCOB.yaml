@@ -1,12 +1,11 @@
 # yaml-language-server: $schema=./encounter.schema.yaml
-
 id: UCOB
 name: "[UCoB] The Unending Coil of Bahamut"
 description: "[UCoB] The Unending Coil of Bahamut"
 active: true
 progPartyThreshold: QMT
 clearPartyThreshold: Adds
-progPoints: 
+progPoints:
   - id: Nael
     label: "Phase 2: Nael"
     partyStatus: Early Prog Party

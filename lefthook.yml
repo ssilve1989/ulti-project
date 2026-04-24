@@ -1,6 +1,10 @@
 pre-commit:
   parallel: true
   commands:
+    format-yaml:
+      glob: "*.{yml,yaml}"
+      exclude: "pnpm-lock.yaml"
+      run: mise exec -- yamlfmt {staged_files}
     lint:
       glob: "*.{ts,json,html,yaml}"
       run: pnpm check --diagnostic-level=error
@@ -10,7 +14,6 @@ pre-commit:
     test:
       glob: "*.{ts,json,html,yaml}"
       run: pnpm test --run
-
 commit-msg:
   commands:
     commitlint:

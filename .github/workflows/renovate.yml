@@ -1,13 +1,10 @@
 name: Renovate
-
 on:
   schedule:
     - cron: "0 14 * * *"
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   renovate:
     runs-on: ubuntu-latest

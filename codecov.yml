@@ -6,12 +6,9 @@ coverage:
     patch:
       default:
         informational: true
-
 comment:
   require_changes: true
-
 codecov:
   require_ci_to_pass: false
-
 ignore:
   - src/slash-commands/**/*-command.ts # Ignore call slash command builder commands from coverage
