@@ -49,3 +49,4 @@ pr-description.md
 *.db
 *.astro
 ai-docs/
+.worktrees/
