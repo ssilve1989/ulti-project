@@ -17,7 +17,7 @@ import {
 import { isSameUserFilter } from '../../common/collection-filters.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import type { SignupDocument } from '../../firebase/models/signup.model.js';
+import type { DeclinedSignupDocument } from '../../firebase/models/signup.model.js';
 import {
   CUSTOM_DECLINE_REASON_INPUT_ID,
   CUSTOM_DECLINE_REASON_MODAL_ID,
@@ -41,7 +41,7 @@ export class DeclineReasonRequestService {
 
   @SentryTraced()
   async requestDeclineReason(
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
   ): Promise<void> {
@@ -81,7 +81,7 @@ export class DeclineReasonRequestService {
 
   private async handleDeclineReasonInteractions(
     dmMessage: Message<false> | InteractionResponse<false>,
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
   ): Promise<void> {
@@ -119,7 +119,7 @@ export class DeclineReasonRequestService {
 
   private async handleReasonSelection(
     interaction: StringSelectMenuInteraction,
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     signupId: string,
     reviewer: User,
     reviewMessage: Message<true>,
@@ -174,7 +174,7 @@ export class DeclineReasonRequestService {
 
   private async handleCustomReasonSubmit(
     interaction: ModalSubmitInteraction,
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
   ): Promise<void> {
@@ -195,7 +195,7 @@ export class DeclineReasonRequestService {
   }
 
   private async updateSignupWithDeclineReason(
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     declineReason: string,
     reviewer: User,
     reviewMessage: Message<true>,
@@ -227,7 +227,7 @@ export class DeclineReasonRequestService {
   }
 
   private dispatchDeclineReasonEvent(
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
     declineReason?: string,
@@ -251,7 +251,7 @@ export class DeclineReasonRequestService {
 
   private handleTimeoutError(
     error: unknown,
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
     context: string,
@@ -272,7 +272,7 @@ export class DeclineReasonRequestService {
 
   private reportError(
     error: unknown,
-    context: { signup: SignupDocument; reviewer: User },
+    context: { signup: DeclinedSignupDocument; reviewer: User },
   ): void {
     const scope = Sentry.getCurrentScope();
     scope.setExtra('signup', context.signup);
