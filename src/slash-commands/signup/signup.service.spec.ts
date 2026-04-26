@@ -4,7 +4,10 @@ import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
-import type { SignupDocument } from '../../firebase/models/signup.model.js';
+import {
+  type SignupDocument,
+  SignupStatus,
+} from '../../firebase/models/signup.model.js';
 import { createAutoMock } from '../../test-utils/mock-factory.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
@@ -49,9 +52,9 @@ describe('SignupService', () => {
     settings = {} as SettingsDocument;
     signup = {
       reviewMessageId: 'messageId',
-      reviewedBy: undefined,
       discordId: 'abc123',
-    } as SignupDocument;
+      status: SignupStatus.PENDING,
+    } as unknown as SignupDocument;
   });
 
   it('should be defined', () => {
@@ -83,7 +86,7 @@ describe('SignupService', () => {
 
     repository.findByReviewId.mockResolvedValueOnce(signup);
     discordService.getDisplayName.mockResolvedValueOnce('someuser');
-    repository.updateSignupStatus.mockResolvedValueOnce({} as any);
+    repository.declineSignup.mockResolvedValueOnce({} as any);
     vi.spyOn(messageReaction.message, 'edit').mockResolvedValueOnce({} as any);
 
     const handleDeclineSpy = vi.spyOn(service, 'handleDeclinedReaction' as any);
@@ -100,8 +103,8 @@ describe('SignupService', () => {
   it('should return early if a signup has been reviewed', async () => {
     repository.findByReviewId.mockResolvedValue({
       ...signup,
-      reviewedBy: user.id,
-    });
+      status: SignupStatus.APPROVED,
+    } as unknown as SignupDocument);
 
     messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
 

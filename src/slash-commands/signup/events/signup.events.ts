@@ -1,6 +1,10 @@
 import { Message, User } from 'discord.js';
 import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
-import type { SignupDocument } from '../../../firebase/models/signup.model.js';
+import type {
+  ApprovedSignupDocument,
+  DeclinedSignupDocument,
+  SignupDocument,
+} from '../../../firebase/models/signup.model.js';
 
 export class SignupCreatedEvent {
   constructor(
@@ -18,7 +22,7 @@ export class SignupReviewCreatedEvent {
 
 export class SignupApprovedEvent {
   constructor(
-    public readonly signup: SignupDocument,
+    public readonly signup: ApprovedSignupDocument,
     public readonly settings: SettingsDocument,
     public readonly reviewedBy: User,
     public readonly message: Message<true>,
@@ -27,7 +31,7 @@ export class SignupApprovedEvent {
 
 export class SignupDeclinedEvent {
   constructor(
-    public readonly signup: SignupDocument,
+    public readonly signup: DeclinedSignupDocument,
     public readonly reviewedBy: User,
     public readonly message: Message<true>,
   ) {}

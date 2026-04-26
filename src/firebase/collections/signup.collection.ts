@@ -7,15 +7,27 @@ import {
   Firestore,
   type Query,
   Timestamp,
+  type UpdateData,
 } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import {
+  type ApprovedSignupDocument,
   type CreateSignupDocumentProps,
+  type DeclinedSignupDocument,
+  type PendingSignupDocument,
   type SignupCompositeKeyProps as SignupCompositeKey,
   type SignupDocument,
   SignupStatus,
 } from '../models/signup.model.js';
+
+// Internal type for Firestore field-based queries — not exported.
+// All fields optional; status-specific fields are included so callers can filter by them.
+type SignupFilter = Partial<
+  Omit<PendingSignupDocument, 'status'> &
+    Omit<ApprovedSignupDocument, 'status'> &
+    Omit<DeclinedSignupDocument, 'status'> & { status: SignupStatus }
+>;
 
 @Injectable()
 class SignupCollection {
@@ -58,8 +70,8 @@ class SignupCollection {
         // reset the reviewedBy field because it now has to be reviewed again
         reviewedBy: null,
         expiresAt,
-      };
-      await document.update(signupData);
+      } as unknown as SignupDocument;
+      await document.update(signupData as unknown as UpdateData<DocumentData>);
       return signupData;
     }
 
@@ -67,7 +79,7 @@ class SignupCollection {
       ...props,
       expiresAt,
       status: SignupStatus.PENDING,
-    };
+    } satisfies SignupDocument;
 
     await document.create(signupData);
     return signupData;
@@ -81,16 +93,14 @@ class SignupCollection {
 
   @SentryTraced()
   public async findOne(
-    query: Partial<SignupDocument>,
+    query: SignupFilter,
   ): Promise<SignupDocument | undefined> {
     const snapshot = await this.where(query).limit(1).get();
     return snapshot.docs.at(0)?.data();
   }
 
   @SentryTraced()
-  public async findOneOrFail(
-    query: Partial<SignupDocument>,
-  ): Promise<SignupDocument> {
+  public async findOneOrFail(query: SignupFilter): Promise<SignupDocument> {
     const signup = await this.findOne(query);
 
     if (!signup) {
@@ -101,9 +111,7 @@ class SignupCollection {
   }
 
   @SentryTraced()
-  public async findAll(
-    query: Partial<SignupDocument>,
-  ): Promise<SignupDocument[]> {
+  public async findAll(query: SignupFilter): Promise<SignupDocument[]> {
     const snapshot = await this.where(query).get();
     return snapshot.docs.map((doc) => doc.data() as SignupDocument);
   }
@@ -130,27 +138,36 @@ class SignupCollection {
   }
 
   /**
-   * Updates the approval status of a signup. Does not modify the timestamp of the signup
-   * @param status - new status for the signup
-   * @param key - composite key for the signup
-   * @param reviewedBy - discordId of the user that reviewed the signup
-   * @returns
+   * Records coordinator approval: sets status to APPROVED and captures
+   * the prog point and party type determined during review.
    */
   @SentryTraced()
-  public updateSignupStatus(
-    status: SignupStatus,
+  public approveSignup(
+    key: SignupCompositeKey,
     {
-      partyStatus,
       progPoint,
-      ...key
-    }: SignupCompositeKey & Pick<SignupDocument, 'progPoint' | 'partyStatus'>,
+      partyStatus,
+    }: Pick<ApprovedSignupDocument, 'progPoint' | 'partyStatus'>,
     reviewedBy: string,
   ) {
     return this.collection.doc(SignupCollection.getKeyForSignup(key)).update({
-      status,
+      status: SignupStatus.APPROVED,
       progPoint,
       reviewedBy,
       partyStatus,
+    });
+  }
+
+  /**
+   * Records coordinator decline: sets status to DECLINED.
+   * The decline reason is persisted separately via updateDeclineReason
+   * because it is collected asynchronously.
+   */
+  @SentryTraced()
+  public declineSignup(key: SignupCompositeKey, reviewedBy: string) {
+    return this.collection.doc(SignupCollection.getKeyForSignup(key)).update({
+      status: SignupStatus.DECLINED,
+      reviewedBy,
     });
   }
 
@@ -196,7 +213,7 @@ class SignupCollection {
    * @param props
    * @returns
    */
-  private where(props: Partial<SignupDocument>) {
+  private where(props: SignupFilter) {
     let query: Query = this.collection;
 
     for (const [key, value] of Object.entries(props)) {

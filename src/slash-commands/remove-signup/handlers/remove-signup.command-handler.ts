@@ -152,12 +152,12 @@ class RemoveSignupCommandHandler
     signup,
   }: RemoveSignupProps): Promise<string> {
     let description = REMOVAL_SUCCESS;
-    // If the signup exists and has been approved, we expect to find it on the sheet
-    const validStatus =
+    // If the signup was approved (or re-submitted after approval), expect it on the sheet
+    const wasOnSheet =
       signup.status === SignupStatus.APPROVED ||
       signup.status === SignupStatus.UPDATE_PENDING;
 
-    if (spreadsheetId && validStatus) {
+    if (spreadsheetId && wasOnSheet) {
       const response = await this.sheetsService.removeSignup(
         dto,
         spreadsheetId,

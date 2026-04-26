@@ -15,7 +15,7 @@ import { type ApplicationModeConfig, appConfig } from '../../../config/app.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { EncountersService } from '../../../encounters/encounters.service.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import type { SignupDocument } from '../../../firebase/models/signup.model.js';
+import type { ApprovedSignupDocument } from '../../../firebase/models/signup.model.js';
 import { SearchCommand } from '../commands/search.command.js';
 import {
   createEncounterSelectMenu,
@@ -202,8 +202,8 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
 
     const signupArrays = await Promise.all(signupPromises);
 
-    // Flatten the arrays (no deduplication needed since each user can only have one signup per encounter)
-    return signupArrays.flat();
+    // Signups filtered by progPoint are approved signups — only approved signups have progPoint set in Firestore.
+    return signupArrays.flat() as ApprovedSignupDocument[];
   }
 
   /**
@@ -212,7 +212,7 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
   private createResultsEmbed(
     encounter: Encounter,
     progPoint: string,
-    signups: SignupDocument[],
+    signups: ApprovedSignupDocument[],
   ): EmbedBuilder[] {
     // If no results found
     if (signups.length === 0) {
@@ -250,8 +250,11 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
       const fields = pageSignups.flatMap((signup) => [
         characterField(signup.character, { memberId: signup.discordId }),
         { name: 'Role', value: signup.role, inline: true },
-        // biome-ignore lint/style/noNonNullAssertion: prog point won't be undefined here but we should improve types of Signups to fix this kind of issue
-        { name: 'Prog Point', value: signup.progPoint!, inline: true },
+        {
+          name: 'Prog Point',
+          value: signup.progPoint ?? signup.progPointRequested,
+          inline: true,
+        },
       ]);
 
       return embed.addFields(fields);

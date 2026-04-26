@@ -10,6 +10,7 @@ import { Encounter } from '../encounters/encounters.consts.js';
 import { EncountersService } from '../encounters/encounters.service.js';
 import { ErrorService } from '../error/error.service.js';
 import {
+  type ApprovedSignupDocument,
   PartyStatus,
   type SignupDocument,
 } from '../firebase/models/signup.model.js';
@@ -67,7 +68,7 @@ class SheetsService implements OnApplicationShutdown {
    */
   @SentryTraced()
   public upsertSignup(
-    { partyStatus, ...signup }: SignupDocument,
+    { partyStatus, ...signup }: ApprovedSignupDocument,
     spreadsheetId: string,
   ) {
     switch (partyStatus) {
@@ -443,7 +444,7 @@ class SheetsService implements OnApplicationShutdown {
 
   @SentryTraced()
   private async upsertRow(
-    signup: Omit<SignupDocument, 'partyStatus'>,
+    signup: Omit<ApprovedSignupDocument, 'partyStatus'>,
     spreadsheetId: string,
     partyStatus:
       | PartyStatus.ClearParty
@@ -514,7 +515,7 @@ class SheetsService implements OnApplicationShutdown {
     world,
     role,
     progPoint = '',
-  }: SignupDocument): string[] {
+  }: Omit<ApprovedSignupDocument, 'partyStatus'>): string[] {
     return [titleCase(character), titleCase(world), role, progPoint];
   }
 

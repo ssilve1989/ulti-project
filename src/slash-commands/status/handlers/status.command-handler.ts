@@ -8,6 +8,7 @@ import {
   type SignupDocument,
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
+
 import { SIGNUP_REVIEW_REACTIONS } from '../../signup/signup.consts.js';
 import { StatusCommand } from '../commands/status.command.js';
 import { StatusService } from '../status.service.js';
@@ -46,7 +47,8 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
   }
 
   private createStatusEmbed(signups: SignupDocument[]) {
-    const fields = signups.flatMap(({ encounter, status, partyStatus }) => {
+    const fields = signups.flatMap((signup) => {
+      const { encounter, status } = signup;
       const subfields = [
         {
           name: 'Encounter',
@@ -59,6 +61,11 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
           inline: true,
         },
       ];
+
+      const partyStatus =
+        signup.status === SignupStatus.APPROVED
+          ? signup.partyStatus
+          : undefined;
 
       if (partyStatus) {
         subfields.push({

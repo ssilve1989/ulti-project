@@ -24,6 +24,7 @@ import { type LookupSchema, lookupSchema } from '../lookup.schema.js';
 type BlacklistStatus = 'No' | 'Yes' | 'Unknown';
 type SignupWithBlacklistStatus = SignupDocument & {
   blacklistStatus: BlacklistStatus;
+  progPoint?: string;
 };
 
 @CommandHandler(LookupCommand)

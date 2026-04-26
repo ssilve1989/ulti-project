@@ -13,7 +13,11 @@ import type { SignupSchema } from '../../slash-commands/signup/signup.schema.js'
 import { createAutoMock } from '../../test-utils/mock-factory.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
-import { type SignupDocument, SignupStatus } from '../models/signup.model.js';
+import {
+  PartyStatus,
+  type SignupDocument,
+  SignupStatus,
+} from '../models/signup.model.js';
 import { SignupCollection } from './signup.collection.js';
 
 const SIGNUP_KEY = {
@@ -133,16 +137,27 @@ describe('Signup Repository', () => {
     });
   });
 
-  it('should call updateSignupStatus with the correct arguments', async () => {
-    await repository.updateSignupStatus(
-      SignupStatus.APPROVED,
+  it('should call approveSignup with the correct arguments', async () => {
+    await repository.approveSignup(
       SIGNUP_KEY,
-      'reviewedBy',
+      { progPoint: 'P8S', partyStatus: PartyStatus.ProgParty },
+      'reviewerUser',
     );
 
     expect(doc.update).toHaveBeenCalledWith({
       status: SignupStatus.APPROVED,
-      reviewedBy: 'reviewedBy',
+      reviewedBy: 'reviewerUser',
+      progPoint: 'P8S',
+      partyStatus: PartyStatus.ProgParty,
+    });
+  });
+
+  it('should call declineSignup with the correct arguments', async () => {
+    await repository.declineSignup(SIGNUP_KEY, 'reviewerUser');
+
+    expect(doc.update).toHaveBeenCalledWith({
+      status: SignupStatus.DECLINED,
+      reviewedBy: 'reviewerUser',
     });
   });
 

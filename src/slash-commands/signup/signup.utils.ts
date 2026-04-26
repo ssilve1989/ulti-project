@@ -3,6 +3,7 @@ import { DiscordjsErrorCodes, Embed, EmbedBuilder } from 'discord.js';
 import { match, P } from 'ts-pattern';
 import { DocumentNotFoundException } from '../../firebase/firebase.exceptions.js';
 import {
+  type ApprovedSignupDocument,
   PartyStatus,
   type SignupDocument,
   SignupStatus,
@@ -19,7 +20,7 @@ export function shouldDeleteReviewMessageForSignup({ status }: SignupDocument) {
 
 export function hasClearedStatus({
   partyStatus,
-}: Pick<SignupDocument, 'partyStatus'>) {
+}: Pick<ApprovedSignupDocument, 'partyStatus'>) {
   return partyStatus === PartyStatus.Cleared;
 }
 

@@ -3,7 +3,10 @@ import type { Message, User } from 'discord.js';
 import { Colors } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
-import type { SignupDocument } from '../../../firebase/models/signup.model.js';
+import type {
+  ApprovedSignupDocument,
+  DeclinedSignupDocument,
+} from '../../../firebase/models/signup.model.js';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import {
   SignupApprovedEvent,
@@ -27,8 +30,8 @@ describe('SignupEmbedEventHandler', () => {
       case: 'handles an approval event',
       createEvent: (msg: Message<true>) =>
         new SignupApprovedEvent(
-          createAutoMock() as unknown as SignupDocument,
-          createAutoMock() as unknown as SignupDocument,
+          createAutoMock() as unknown as ApprovedSignupDocument,
+          createAutoMock() as unknown as ApprovedSignupDocument,
           reviewedBy,
           msg,
         ),
@@ -39,7 +42,7 @@ describe('SignupEmbedEventHandler', () => {
       case: 'handles a declined event',
       createEvent: (msg: Message<true>) =>
         new SignupDeclinedEvent(
-          { discordId: '12345' } as SignupDocument,
+          { discordId: '12345' } as unknown as DeclinedSignupDocument,
           reviewedBy,
           msg,
         ),

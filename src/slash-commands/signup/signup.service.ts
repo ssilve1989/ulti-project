@@ -47,8 +47,10 @@ import { SettingsCollection } from '../../firebase/collections/settings-collecti
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import {
+  type ApprovedSignupDocument,
+  type DeclinedSignupDocument,
   PartyStatus,
-  type SignupDocument,
+  type PendingSignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
@@ -187,7 +189,10 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     // that there is no associated signup anymore
     const signup = await this.repository.findByReviewId(message.id);
 
-    if (signup.reviewedBy) {
+    if (
+      signup.status === SignupStatus.APPROVED ||
+      signup.status === SignupStatus.DECLINED
+    ) {
       this.logger.log(
         `signup ${signup.reviewMessageId} already reviewed by ${user.displayName}`,
       );
@@ -241,7 +246,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async handleApprovedReaction(
-    signup: SignupDocument,
+    signup: PendingSignupDocument,
     message: Message<true>,
     user: User,
     settings: SettingsDocument,
@@ -254,7 +259,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async confirmProgPoint(
-    signup: SignupDocument,
+    signup: PendingSignupDocument,
     message: Message<true>,
     user: User,
   ): Promise<string | undefined> {
@@ -264,22 +269,24 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async buildConfirmedSignup(
-    signup: SignupDocument,
+    signup: PendingSignupDocument,
     progPoint: string | undefined,
-  ): Promise<SignupDocument> {
+  ): Promise<ApprovedSignupDocument> {
     const partyStatus = progPoint
       ? await this.getPartyStatus(signup.encounter, progPoint)
       : undefined;
 
     return {
       ...signup,
+      status: SignupStatus.APPROVED,
+      reviewedBy: '',
       progPoint,
       partyStatus,
     };
   }
 
   private async persistApprovedSignup(
-    confirmedSignup: SignupDocument,
+    confirmedSignup: ApprovedSignupDocument,
     settings: SettingsDocument,
     user: User,
   ): Promise<void> {
@@ -299,29 +306,33 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         encounter: confirmedSignup.encounter,
       });
     } else {
-      await this.repository.updateSignupStatus(
-        SignupStatus.APPROVED,
+      await this.repository.approveSignup(
         confirmedSignup,
+        {
+          progPoint: confirmedSignup.progPoint,
+          partyStatus: confirmedSignup.partyStatus,
+        },
         user.username,
       );
     }
   }
 
   private async handleDeclinedReaction(
-    signup: SignupDocument,
+    signup: PendingSignupDocument,
     message: Message<true>,
     user: User,
   ): Promise<SignupDeclinedEvent> {
-    // Update signup status immediately (for sequential reaction processing)
-    await this.repository.updateSignupStatus(
-      SignupStatus.DECLINED,
-      signup,
-      user.username,
-    );
+    await this.repository.declineSignup(signup, user.username);
+
+    const declinedSignup: DeclinedSignupDocument = {
+      ...signup,
+      status: SignupStatus.DECLINED,
+      reviewedBy: user.username,
+    };
 
     // Fire decline reason request with event dispatch context (non-blocking)
     this.declineReasonRequestService
-      .requestDeclineReason(signup, user, message)
+      .requestDeclineReason(declinedSignup, user, message)
       .catch((error) => {
         this.logger.error(
           error,
@@ -330,7 +341,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       });
 
     // Return event immediately for embed footer update
-    return new SignupDeclinedEvent(signup, user, message);
+    return new SignupDeclinedEvent(declinedSignup, user, message);
   }
 
   private async handleError(
@@ -357,7 +368,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
   @SentryTraced()
   private async requestProgPointConfirmation(
-    signup: SignupDocument,
+    signup: PendingSignupDocument,
     sourceEmbed: Embed,
     user: User,
   ): Promise<string | undefined> {

@@ -6,6 +6,7 @@ import { match, P } from 'ts-pattern';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import {
+  type ApprovedSignupDocument,
   PartyStatus,
   type SignupDocument,
   SignupStatus,
@@ -100,50 +101,33 @@ class TurboProgCommandHandler {
     spreadsheetId: string,
     signup?: SignupDocument,
   ): Promise<ProggerAllowedResponse> | ProggerAllowedResponse {
-    // if the progger has an entry already in the database we can check its status
     const scope = Sentry.getCurrentScope();
-    if (signup) {
-      return (
-        match([signup.status, signup.partyStatus])
-          .with(
-            // has a bot signup that was approved with a party status
-            [SignupStatus.APPROVED, PartyStatus.ClearParty],
-            [SignupStatus.APPROVED, PartyStatus.ProgParty],
-            () => ({
-              allowed: true as true,
-              data: this.mapSignupToRowData(signup, options),
-            }),
-          )
-          .with(
-            // has a bot signup that was approved but not an eligible party status
-            [SignupStatus.APPROVED, PartyStatus.EarlyProgParty],
-            [P.any, PartyStatus.Cleared],
-            () => {
-              scope.setExtra('options', options);
-              scope.captureMessage('Turbo Prog Signup Invalid', 'debug');
-              return {
-                error: TURBO_PROG_SIGNUP_INVALID,
-                allowed: undefined,
-              };
-            },
-          )
-          // they have a bot signup thats not been approved, but may have a prior signup on the sheet
-          .with(
-            [SignupStatus.APPROVED, P.nullish],
-            [SignupStatus.DECLINED, P.any],
-            [SignupStatus.PENDING, P.any],
-            [SignupStatus.UPDATE_PENDING, P.any],
-            () => this.findCharacterRowValues(options, spreadsheetId, signup),
-          )
-          .exhaustive()
-      );
+
+    if (!signup) {
+      scope.captureMessage('No Signup Found for Turbo Prog', 'debug');
+      return { allowed: undefined, error: TURBO_PROG_NO_SIGNUP_FOUND };
     }
 
-    scope.captureMessage('No Signup Found for Turbo Prog', 'debug');
-    return {
-      allowed: undefined,
-      error: TURBO_PROG_NO_SIGNUP_FOUND,
-    };
+    if (signup.status !== SignupStatus.APPROVED) {
+      // Not yet approved — check the sheet for a prior signup
+      return this.findCharacterRowValues(options, spreadsheetId, signup);
+    }
+
+    // signup is ApprovedSignupDocument here — partyStatus is type-safe
+    return match(signup.partyStatus)
+      .with(PartyStatus.ClearParty, PartyStatus.ProgParty, () => ({
+        allowed: true as true,
+        data: this.mapSignupToRowData(signup, options),
+      }))
+      .with(PartyStatus.EarlyProgParty, PartyStatus.Cleared, () => {
+        scope.setExtra('options', options);
+        scope.captureMessage('Turbo Prog Signup Invalid', 'debug');
+        return { error: TURBO_PROG_SIGNUP_INVALID, allowed: undefined };
+      })
+      .with(P.nullish, () =>
+        this.findCharacterRowValues(options, spreadsheetId, signup),
+      )
+      .exhaustive();
   }
 
   private async findCharacterRowValues(
@@ -180,14 +164,14 @@ class TurboProgCommandHandler {
   }
 
   private mapSignupToRowData(
-    { progPointRequested, progPoint, role, character }: SignupDocument,
+    { progPointRequested, progPoint, role, character }: ApprovedSignupDocument,
     { encounter }: TurboProgSignupSchema,
   ) {
     return {
       character,
       job: role,
       encounter,
-      progPoint: progPoint || progPointRequested,
+      progPoint: progPoint ?? progPointRequested,
     };
   }
 
