@@ -10,6 +10,7 @@ import { Encounter } from '../encounters/encounters.consts.js';
 import { EncountersService } from '../encounters/encounters.service.js';
 import { ErrorService } from '../error/error.service.js';
 import {
+  type ApprovedSignupDocument,
   PartyStatus,
   type SignupDocument,
 } from '../firebase/models/signup.model.js';
@@ -67,7 +68,7 @@ class SheetsService implements OnApplicationShutdown {
    */
   @SentryTraced()
   public upsertSignup(
-    { partyStatus, ...signup }: SignupDocument,
+    { partyStatus, ...signup }: ApprovedSignupDocument,
     spreadsheetId: string,
   ) {
     switch (partyStatus) {
@@ -513,9 +514,18 @@ class SheetsService implements OnApplicationShutdown {
     character,
     world,
     role,
-    progPoint = '',
-  }: SignupDocument): string[] {
-    return [titleCase(character), titleCase(world), role, progPoint];
+    progPoint,
+    progPointRequested,
+  }: Pick<
+    ApprovedSignupDocument,
+    'character' | 'world' | 'role' | 'progPoint' | 'progPointRequested'
+  >): string[] {
+    return [
+      titleCase(character),
+      titleCase(world),
+      role,
+      progPoint ?? progPointRequested,
+    ];
   }
 
   private async isProgEncounter(encounter: Encounter): Promise<boolean> {

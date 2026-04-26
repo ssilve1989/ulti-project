@@ -17,7 +17,10 @@ import { createFields } from '../../../common/embed-helpers.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { BlacklistCollection } from '../../../firebase/collections/blacklist-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import type { SignupDocument } from '../../../firebase/models/signup.model.js';
+import {
+  type SignupDocument,
+  SignupStatus,
+} from '../../../firebase/models/signup.model.js';
 import { LookupCommand } from '../commands/lookup.command.js';
 import { type LookupSchema, lookupSchema } from '../lookup.schema.js';
 
@@ -132,23 +135,28 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
     }, {});
 
     const embeds = Object.entries(groupedByWorld).map(([world, signups]) => {
-      const fields = signups.flatMap(
-        ({ progPoint, notes, encounter, blacklistStatus }) => [
-          encounterField(encounter),
+      const fields = signups.flatMap((signup) => {
+        const progPoint =
+          signup.status === SignupStatus.APPROVED
+            ? (signup.progPoint ?? signup.progPointRequested)
+            : signup.progPointRequested;
+
+        return [
+          encounterField(signup.encounter),
           {
             name: 'Prog Point',
             value: progPoint,
             inline: true,
           },
           emptyField(),
-          { name: 'Blacklisted', value: blacklistStatus, inline: true },
+          { name: 'Blacklisted', value: signup.blacklistStatus, inline: true },
           {
             name: 'Notes',
-            value: notes,
+            value: signup.notes ?? 'None',
             inline: false,
           },
-        ],
-      );
+        ];
+      });
 
       const color = Colors.Green;
 
