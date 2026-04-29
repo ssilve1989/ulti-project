@@ -15,8 +15,8 @@ import {
   EncounterFriendlyDescription,
 } from '../../../encounters/encounters.consts.js';
 import {
+  type ApprovedSignupDocument,
   PartyStatus,
-  type SignupDocument,
 } from '../../../firebase/models/signup.model.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
 
@@ -95,7 +95,7 @@ class SendApprovedMessageEventHandler
       discordId,
       proofOfProgLink,
       screenshot,
-    }: SignupDocument,
+    }: ApprovedSignupDocument,
   ): Promise<EmbedBuilder> {
     const progPointFieldValue = progPoint ?? progPointRequested;
     const emoji = this.discordService.getEmojiString(EncounterEmoji[encounter]);

@@ -9,7 +9,11 @@ import { beforeEach, describe, expect, it, type Mocked } from 'vitest';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { EncountersService } from '../../../encounters/encounters.service.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import { PartyStatus } from '../../../firebase/models/signup.model.js';
+import {
+  type ApprovedSignupDocument,
+  PartyStatus,
+  SignupStatus,
+} from '../../../firebase/models/signup.model.js';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { SearchCommand } from '../commands/search.command.js';
 import {
@@ -18,6 +22,21 @@ import {
   SEARCH_RESET_BUTTON_ID,
 } from '../search.components.js';
 import { SearchCommandHandler } from './search.command-handler.js';
+
+const buildApprovedSignup = (index: number): ApprovedSignupDocument => ({
+  character: `Character ${index}`,
+  discordId: `discord-${index}`,
+  encounter: Encounter.TOP,
+  expiresAt: {} as any,
+  progPointRequested: 'P6 Enrage',
+  reviewedBy: 'reviewer-id',
+  role: 'WAR',
+  status: SignupStatus.APPROVED,
+  username: `User ${index}`,
+  world: 'Gilgamesh',
+  partyStatus: PartyStatus.ProgParty,
+  progPoint: index > 8 ? 'Clear' : 'P6 Enrage',
+});
 
 describe('SearchCommandHandler', () => {
   let handler: SearchCommandHandler;
@@ -198,18 +217,7 @@ describe('SearchCommandHandler', () => {
       return mockCollector;
     });
 
-    // Mock search results with separate character and world fields
-    const mockSignups = [
-      {
-        character: 'TestChar',
-        world: 'TestWorld',
-        role: 'Tank',
-        discordId: 'user123',
-        notes: 'Test notes',
-        username: 'testuser',
-        progPoint: 'P6 Enrage',
-      },
-    ];
+    const mockSignups = [buildApprovedSignup(1)];
     mockSignupsCollection.findAll.mockResolvedValue(mockSignups as any);
 
     // Mock the editReply responses
@@ -283,7 +291,7 @@ describe('SearchCommandHandler', () => {
               },
               {
                 name: 'Prog Point',
-                value: signup.progPoint!,
+                value: signup.progPoint,
                 inline: true,
               },
             ]),
@@ -304,7 +312,7 @@ describe('SearchCommandHandler', () => {
               },
               {
                 name: 'Prog Point',
-                value: signup.progPoint!,
+                value: signup.progPoint,
                 inline: true,
               },
             ]),
@@ -320,10 +328,12 @@ describe('SearchCommandHandler', () => {
     expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
       encounter: Encounter.TOP,
       progPoint: 'P6 Enrage',
+      status: SignupStatus.APPROVED,
     });
     expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
       encounter: Encounter.TOP,
       progPoint: 'Clear',
+      status: SignupStatus.APPROVED,
     });
     expect(mockSignupsCollection.findAll).toHaveBeenCalledTimes(2);
 
@@ -341,38 +351,15 @@ describe('SearchCommandHandler', () => {
       return mockCollector;
     });
 
-    // Create different signups for different prog points to simulate real behavior
-    // where each user can only have one signup per encounter
-    const p6SignupsMock = Array.from({ length: 5 }, (_, i) => ({
-      character: `P6Char${i + 1}`,
-      world: 'TestWorld',
-      role: 'Tank',
-      discordId: `p6user${i + 1}`,
-      notes: 'Test notes',
-      username: `p6testuser${i + 1}`,
-      progPoint: 'P6 Enrage',
-    }));
+    const mockSignups = Array.from({ length: 10 }, (_, index) =>
+      buildApprovedSignup(index + 1),
+    );
 
-    const clearSignupsMock = Array.from({ length: 5 }, (_, i) => ({
-      character: `ClearChar${i + 1}`,
-      world: 'TestWorld',
-      role: 'DPS',
-      discordId: `clearuser${i + 1}`,
-      notes: 'Test notes',
-      username: `cleartestuser${i + 1}`,
-      progPoint: 'Clear',
-    }));
-
-    // Mock findAll to return different signups based on prog point
     mockSignupsCollection.findAll.mockImplementation(
       ({ progPoint }: { progPoint?: string }) => {
-        if (progPoint === 'P6 Enrage') {
-          return Promise.resolve(p6SignupsMock as any);
-        }
-        if (progPoint === 'Clear') {
-          return Promise.resolve(clearSignupsMock as any);
-        }
-        return Promise.resolve([]);
+        return Promise.resolve(
+          mockSignups.filter((s) => s.progPoint === progPoint),
+        );
       },
     );
 
@@ -403,10 +390,12 @@ describe('SearchCommandHandler', () => {
     expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
       encounter: Encounter.TOP,
       progPoint: 'P6 Enrage',
+      status: SignupStatus.APPROVED,
     });
     expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
       encounter: Encounter.TOP,
       progPoint: 'Clear',
+      status: SignupStatus.APPROVED,
     });
     expect(mockSignupsCollection.findAll).toHaveBeenCalledTimes(2);
 
@@ -609,10 +598,12 @@ describe('SearchCommandHandler', () => {
     expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
       encounter: Encounter.TOP,
       progPoint: 'P6 Enrage',
+      status: SignupStatus.APPROVED,
     });
     expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
       encounter: Encounter.TOP,
       progPoint: 'Clear',
+      status: SignupStatus.APPROVED,
     });
     expect(mockSignupsCollection.findAll).toHaveBeenCalledTimes(2);
 
@@ -672,6 +663,7 @@ describe('SearchCommandHandler', () => {
     expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
       encounter: Encounter.TOP,
       progPoint: 'Clear',
+      status: SignupStatus.APPROVED,
     });
     expect(mockSignupsCollection.findAll).toHaveBeenCalledTimes(1);
 

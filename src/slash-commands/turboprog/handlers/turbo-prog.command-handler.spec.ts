@@ -12,41 +12,22 @@ import { turboProgSignupSchema } from '../turbo-prog-signup.schema.js';
 import { TURBO_PROG_SIGNUP_INVALID } from '../turboprog.consts.js';
 import { TurboProgCommandHandler } from './turbo-prog.command-handler.js';
 
-const approvedCases: Pick<SignupDocument, 'status' | 'partyStatus'>[] = [
+const approvedCases = [
   { status: SignupStatus.APPROVED, partyStatus: PartyStatus.ClearParty },
   { status: SignupStatus.APPROVED, partyStatus: PartyStatus.ProgParty },
-];
+] as const;
 
-const declinedCases: Pick<SignupDocument, 'status' | 'partyStatus'>[] = [
+const declinedCases = [
   { status: SignupStatus.APPROVED, partyStatus: PartyStatus.EarlyProgParty },
-  // any where status is cleared
   { status: SignupStatus.APPROVED, partyStatus: PartyStatus.Cleared },
-  { status: SignupStatus.PENDING, partyStatus: PartyStatus.Cleared },
-  { status: SignupStatus.UPDATE_PENDING, partyStatus: PartyStatus.Cleared },
-  { status: SignupStatus.DECLINED, partyStatus: PartyStatus.Cleared },
-];
+] as const;
 
-const searchableCases: Pick<SignupDocument, 'status' | 'partyStatus'>[] = [
+const searchableCases = [
   { status: SignupStatus.APPROVED, partyStatus: undefined },
-  // any pending signups might have had one prior to the bot and need to look at the sheet
-  { status: SignupStatus.PENDING, partyStatus: PartyStatus.ClearParty },
-  { status: SignupStatus.PENDING, partyStatus: PartyStatus.ProgParty },
-  { status: SignupStatus.PENDING, partyStatus: PartyStatus.EarlyProgParty },
-  { status: SignupStatus.PENDING, partyStatus: undefined },
-  { status: SignupStatus.UPDATE_PENDING, partyStatus: PartyStatus.ClearParty },
-  { status: SignupStatus.UPDATE_PENDING, partyStatus: PartyStatus.ProgParty },
-  {
-    status: SignupStatus.UPDATE_PENDING,
-    partyStatus: PartyStatus.EarlyProgParty,
-  },
-  { status: SignupStatus.UPDATE_PENDING, partyStatus: undefined },
-  // any signups that have been declined may be getting declined for a different reason
-  // and could still have a prior valid signup on the sheet
-  { status: SignupStatus.DECLINED, partyStatus: PartyStatus.ClearParty },
-  { status: SignupStatus.DECLINED, partyStatus: PartyStatus.ProgParty },
-  { status: SignupStatus.DECLINED, partyStatus: PartyStatus.EarlyProgParty },
-  { status: SignupStatus.DECLINED, partyStatus: undefined },
-];
+  { status: SignupStatus.PENDING },
+  { status: SignupStatus.UPDATE_PENDING },
+  { status: SignupStatus.DECLINED },
+] as const;
 
 describe('TurboProgCommandHandler', () => {
   let handler: TurboProgCommandHandler;
@@ -70,15 +51,19 @@ describe('TurboProgCommandHandler', () => {
   it.each(
     approvedCases,
   )('should return allowed for $status $partyStatus signups', async (signup) => {
-    // Include role in the mock to ensure it's used properly in mapSignupToRowData
     const mockSignup = {
       ...signup,
-      role: 'TestRole',
-      progPoint: 'TestProgPoint',
       character: 'TestCharacter',
-      encounter: Encounter.DSR,
       discordId: 'testDiscordId',
-    } as SignupDocument;
+      encounter: Encounter.DSR,
+      expiresAt: {} as any,
+      progPointRequested: 'RequestedProgPoint',
+      reviewedBy: 'reviewer-id',
+      role: 'TestRole',
+      username: 'TestUser',
+      world: 'TestWorld',
+      progPoint: 'TestProgPoint',
+    } as const;
 
     const options = turboProgSignupSchema.parse({
       encounter: Encounter.DSR,
@@ -106,9 +91,17 @@ describe('TurboProgCommandHandler', () => {
   )('should return rejected for $status $partyStatus signups', async (signup) => {
     const mockSignup = {
       ...signup,
-      encounter: Encounter.DSR,
+      character: 'TestCharacter',
       discordId: 'testDiscordId',
-    } as SignupDocument;
+      encounter: Encounter.DSR,
+      expiresAt: {} as any,
+      progPointRequested: 'RequestedProgPoint',
+      reviewedBy: 'reviewer-id',
+      role: 'TestRole',
+      username: 'TestUser',
+      world: 'TestWorld',
+      progPoint: 'TestProgPoint',
+    } as const;
 
     const options = turboProgSignupSchema.parse({
       encounter: Encounter.DSR,
@@ -132,11 +125,15 @@ describe('TurboProgCommandHandler', () => {
   )('should search the sheet for signups for $status $partyStatus signups', async (signup) => {
     const mockSignup = {
       ...signup,
-      encounter: Encounter.DSR,
-      discordId: 'testDiscordId',
       character: 'TestCharacter',
+      discordId: 'testDiscordId',
+      encounter: Encounter.DSR,
+      expiresAt: {} as any,
+      progPointRequested: 'RequestedProgPoint',
+      role: 'TestRole',
+      username: 'TestUser',
       world: 'TestWorld',
-    } as SignupDocument;
+    } as unknown as SignupDocument;
 
     const options = turboProgSignupSchema.parse({
       encounter: Encounter.DSR,

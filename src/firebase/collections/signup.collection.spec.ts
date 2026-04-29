@@ -7,13 +7,18 @@ import type {
   Firestore,
   Query,
 } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { Encounter } from '../../encounters/encounters.consts.js';
 import type { SignupSchema } from '../../slash-commands/signup/signup.schema.js';
 import { createAutoMock } from '../../test-utils/mock-factory.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
-import { type SignupDocument, SignupStatus } from '../models/signup.model.js';
+import {
+  PartyStatus,
+  type SignupDocument,
+  SignupStatus,
+} from '../models/signup.model.js';
 import { SignupCollection } from './signup.collection.js';
 
 const SIGNUP_KEY = {
@@ -58,9 +63,13 @@ describe('Signup Repository', () => {
   it('should call update if document exists', async () => {
     const existingData = {
       ...signupRequest,
+      partyStatus: PartyStatus.ProgParty,
+      progPoint: 'P6 Enrage',
+      reviewMessageId: 'review-message-id',
       status: SignupStatus.APPROVED,
       reviewedBy: 'someReviewer',
     };
+
     doc.get.mockResolvedValueOnce({
       exists: true,
       data: () => existingData,
@@ -70,27 +79,34 @@ describe('Signup Repository', () => {
 
     expect(doc.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        ...existingData,
         ...signupRequest,
+        declineReason: FieldValue.delete(),
+        partyStatus: FieldValue.delete(),
+        progPoint: FieldValue.delete(),
+        reviewMessageId: existingData.reviewMessageId,
+        reviewedBy: FieldValue.delete(),
+        expiresAt: expect.anything(),
         status: SignupStatus.UPDATE_PENDING,
-        reviewedBy: null,
       }),
     );
 
     expect(doc.create).not.toHaveBeenCalled();
     expect(result).toMatchObject({
-      ...existingData,
       ...signupRequest,
+      reviewMessageId: existingData.reviewMessageId,
       status: SignupStatus.UPDATE_PENDING,
-      reviewedBy: null,
     });
+    expect(result).not.toHaveProperty('reviewedBy');
+    expect(result).not.toHaveProperty('progPoint');
+    expect(result).not.toHaveProperty('partyStatus');
+    expect(result).not.toHaveProperty('declineReason');
   });
 
   it('should preserve PENDING status when updating an existing PENDING signup', async () => {
     const existingData = {
       ...signupRequest,
+      reviewMessageId: 'review-message-id',
       status: SignupStatus.PENDING,
-      reviewedBy: null,
     };
     doc.get.mockResolvedValueOnce({
       exists: true,
@@ -101,14 +117,20 @@ describe('Signup Repository', () => {
 
     expect(doc.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        ...existingData,
         ...signupRequest,
+        declineReason: FieldValue.delete(),
+        partyStatus: FieldValue.delete(),
+        progPoint: FieldValue.delete(),
+        reviewMessageId: existingData.reviewMessageId,
+        reviewedBy: FieldValue.delete(),
+        expiresAt: expect.anything(),
         status: SignupStatus.PENDING, // Should remain PENDING
-        reviewedBy: null,
       }),
     );
 
     expect(result.status).toBe(SignupStatus.PENDING);
+    expect(result.reviewMessageId).toBe(existingData.reviewMessageId);
+    expect(result).not.toHaveProperty('reviewedBy');
   });
 
   it('should call create if the document does not exist', async () => {
@@ -133,16 +155,33 @@ describe('Signup Repository', () => {
     });
   });
 
-  it('should call updateSignupStatus with the correct arguments', async () => {
-    await repository.updateSignupStatus(
-      SignupStatus.APPROVED,
-      SIGNUP_KEY,
+  it('should call approveSignup with the correct arguments', async () => {
+    await repository.approveSignup(
+      {
+        ...SIGNUP_KEY,
+        partyStatus: PartyStatus.ProgParty,
+        progPoint: 'P6 Enrage',
+      },
       'reviewedBy',
     );
 
     expect(doc.update).toHaveBeenCalledWith({
       status: SignupStatus.APPROVED,
+      progPoint: 'P6 Enrage',
+      partyStatus: PartyStatus.ProgParty,
       reviewedBy: 'reviewedBy',
+      declineReason: FieldValue.delete(),
+    });
+  });
+
+  it('should call declineSignup with the correct arguments', async () => {
+    await repository.declineSignup(SIGNUP_KEY, 'reviewedBy');
+
+    expect(doc.update).toHaveBeenCalledWith({
+      status: SignupStatus.DECLINED,
+      reviewedBy: 'reviewedBy',
+      progPoint: FieldValue.delete(),
+      partyStatus: FieldValue.delete(),
     });
   });
 

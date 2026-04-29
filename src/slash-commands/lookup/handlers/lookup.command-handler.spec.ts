@@ -14,7 +14,10 @@ import { Encounter } from '../../../encounters/encounters.consts.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { BlacklistCollection } from '../../../firebase/collections/blacklist-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import type { SignupDocument } from '../../../firebase/models/signup.model.js';
+import {
+  type SignupDocument,
+  SignupStatus,
+} from '../../../firebase/models/signup.model.js';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { LookupCommand } from '../commands/lookup.command.js';
 import { LookupCommandHandler } from './lookup.command-handler.js';
@@ -61,6 +64,9 @@ describe('LookupCommandHandler', () => {
         encounter: Encounter.DSR,
         notes: 'Test notes',
         progPoint: 'P6',
+        progPointRequested: 'P6',
+        status: SignupStatus.APPROVED,
+        reviewedBy: 'reviewer-id',
       } as SignupDocument,
     ];
 
