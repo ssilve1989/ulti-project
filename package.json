@@ -92,19 +92,17 @@
     }
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "@biomejs/biome",
-      "lefthook",
-      "@firebase/util",
-      "@nestjs/core",
-      "@sentry-internal/node-cpu-profiler",
-      "@sentry/cli",
-      "@swc/core",
-      "esbuild",
-      "nestjs-pino"
-    ],
-    "ignoredBuiltDependencies": [
-      "protobufjs"
-    ]
+    "allowBuilds": {
+      "@biomejs/biome": true,
+      "lefthook": true,
+      "@firebase/util": true,
+      "@nestjs/core": true,
+      "@sentry-internal/node-cpu-profiler": true,
+      "@sentry/cli": true,
+      "@swc/core": true,
+      "esbuild": true,
+      "nestjs-pino": true,
+      "protobufjs": false
+    }
   }
 }
