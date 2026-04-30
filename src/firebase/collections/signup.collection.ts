@@ -62,16 +62,17 @@ class SignupCollection {
       const signupData = {
         ...existing,
         ...props,
-        // if there is already a signup and it is still PENDING we do nothing, otherwise we move it to UPDATE_PENDING
         status:
           existing.status === SignupStatus.PENDING
             ? SignupStatus.PENDING
             : SignupStatus.UPDATE_PENDING,
-        // reset the reviewedBy field because it now has to be reviewed again
-        reviewedBy: null,
         expiresAt,
-      } as unknown as SignupDocument;
-      await document.update(signupData as unknown as UpdateData<DocumentData>);
+      } as PendingSignupDocument;
+      // reviewedBy must be cleared so the signup goes back through review
+      await document.update({
+        ...signupData,
+        reviewedBy: null,
+      } as UpdateData<DocumentData>);
       return signupData;
     }
 

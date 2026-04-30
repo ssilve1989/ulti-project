@@ -86,7 +86,6 @@ describe('Signup Repository', () => {
       ...existingData,
       ...signupRequest,
       status: SignupStatus.UPDATE_PENDING,
-      reviewedBy: null,
     });
   });
 
