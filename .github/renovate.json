@@ -9,6 +9,7 @@
   "branchPrefix": "renovate-",
   "enabledManagers": ["npm", "github-actions", "mise"],
 
+  "rebaseWhen": "conflicted",
   "prConcurrentLimit": 25,
   "prHourlyLimit": 8,
   "separateMajorMinor": true,
