@@ -15,12 +15,12 @@ COPY scripts ./scripts
 
 FROM base AS prod-deps
 ENV NODE_ENV="production"
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --prod --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store mise exec -- pnpm install --prod --frozen-lockfile
 
 FROM base AS build
 COPY src ./src
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm run build
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store mise exec -- pnpm install --frozen-lockfile
+RUN mise exec -- pnpm run build
 
 FROM ghcr.io/jdx/mise
 LABEL fly_launch_runtime="NestJS"
