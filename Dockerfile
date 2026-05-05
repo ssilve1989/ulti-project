@@ -7,7 +7,7 @@ ENV MISE_YES=1
 WORKDIR /app
 
 COPY mise.toml ./
-RUN mise install node pnpm
+RUN mise install
 
 COPY package.json pnpm-lock.yaml tsconfig.json tsconfig.build.json instrumentation.mjs ./
 # scripts/ needed by prepare hook in both prod-deps and build stages; exits cleanly without .git
@@ -30,7 +30,7 @@ ENV MISE_YES=1
 WORKDIR /app
 
 COPY mise.toml ./
-RUN mise install node pnpm
+RUN mise install
 
 COPY package.json instrumentation.mjs ./
 COPY --from=prod-deps /app/node_modules ./node_modules
