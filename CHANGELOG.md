@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.41.0](https://github.com/ssilve1989/ulti-project/compare/v1.40.3...v1.41.0) (2026-05-07)
+
+
+### Features
+
+* **encounters:** add Dancing Mad (Ultimate) (DMU) ([ec4b410](https://github.com/ssilve1989/ulti-project/commit/ec4b410611f7815a0e88bba4a964baf1d6dc01f9))
+
+
+### Bug Fixes
+
+* **async-queue:** track and clean up RxJS subscription on complete ([984e37b](https://github.com/ssilve1989/ulti-project/commit/984e37b64290af87167e18602679c1592c0ff14b))
+* **ci:** add repository config to renovate workflow ([9a1c957](https://github.com/ssilve1989/ulti-project/commit/9a1c9575a6edfb2054eb0979c1faf8982df42654))
+* **clear-checker:** replace Object.groupBy with Map.groupBy ([09ec623](https://github.com/ssilve1989/ulti-project/commit/09ec623943d2d5f9a7b3da618eea5c6d1600ab79))
+* **config:** re-enable strictPropertyInitialization ([11c1ac5](https://github.com/ssilve1989/ulti-project/commit/11c1ac56a7fbe05d32c3b7632e9a92b7d1e4e00b))
+* **discord:** handle all client error events, not just the first ([50e0bd9](https://github.com/ssilve1989/ulti-project/commit/50e0bd990b460a0f69f4b14a4710c0d39bcdff39))
+* **jobs:** handle unhandled rejections and cron tick promise leaks ([e0c7e59](https://github.com/ssilve1989/ulti-project/commit/e0c7e597f50c0677232a0d91b88c26146c24f12a))
+* resolve merge conflict artifacts in package.json and pnpm-lock.yaml ([8142338](https://github.com/ssilve1989/ulti-project/commit/8142338dd57ecad2debe7bcf0bded63470defde0))
+* **signup:** add getFirstEmbed helper and guard Object.groupBy results ([770bd87](https://github.com/ssilve1989/ulti-project/commit/770bd874c88f5a3d0e8923e26003914279dffe1f))
+* tsgo release exclude ([1947029](https://github.com/ssilve1989/ulti-project/commit/19470297cefd201de4cbdda3c475c858efca72a3))
+
+
+### Performance Improvements
+
+* **sheets:** use Map lookup for prog point sort index ([6283261](https://github.com/ssilve1989/ulti-project/commit/62832619231de6308fa8b191f3afc65b4b003dad))
+
 ## [1.40.3](https://github.com/ssilve1989/ulti-project/compare/v1.40.2...v1.40.3) (2026-03-12)
 
 
