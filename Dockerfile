@@ -9,7 +9,7 @@ WORKDIR /app
 COPY mise.toml ./
 RUN mise install
 
-COPY package.json pnpm-lock.yaml tsconfig.json tsconfig.build.json instrumentation.mjs ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json tsconfig.build.json instrumentation.mjs ./
 # scripts/ needed by prepare hook in both prod-deps and build stages; exits cleanly without .git
 COPY scripts ./scripts
 
