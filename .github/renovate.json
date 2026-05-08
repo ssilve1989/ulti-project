@@ -12,7 +12,7 @@
   "rebaseWhen": "auto",
 
   "postUpgradeTasks": {
-    "commands": ["pnpm install --no-frozen-lockfile"],
+    "commands": ["pnpm install --lockfile-only"],
     "fileFilters": ["pnpm-lock.yaml"],
     "executionMode": "branch"
   },

@@ -17,4 +17,4 @@ jobs:
           token: ${{ secrets.RENOVATE_TOKEN }}
         env:
           RENOVATE_REPOSITORIES: ssilve1989/ulti-project
-          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^pnpm install"]'
+          RENOVATE_ALLOWED_COMMANDS: '["^pnpm install"]'
