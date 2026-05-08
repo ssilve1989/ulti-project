@@ -42,7 +42,6 @@ vitest.config.ts
 codegen.ts
 schema.graphql
 tsconfig.app.json
-pnpm-workspace.yaml
 
 # IDEs and editors
 /.idea
