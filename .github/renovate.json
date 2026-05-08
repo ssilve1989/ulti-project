@@ -10,6 +10,12 @@
   "enabledManagers": ["npm", "github-actions", "mise"],
 
   "rebaseWhen": "auto",
+
+  "postUpgradeTasks": {
+    "commands": ["pnpm install --no-frozen-lockfile"],
+    "fileFilters": ["pnpm-lock.yaml"],
+    "executionMode": "branch"
+  },
   "prConcurrentLimit": 25,
   "prHourlyLimit": 8,
   "separateMajorMinor": true,
