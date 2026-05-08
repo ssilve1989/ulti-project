@@ -7,6 +7,7 @@
   "private": true,
   "license": "UNLICENSED",
   "main": "dist/main.js",
+  "packageManager": "pnpm@11.0.4",
   "engines": {
     "node": ">=22.22.2"
   },
@@ -89,20 +90,6 @@
   "config": {
     "commitizen": {
       "path": "@commitlint/cz-commitlint"
-    }
-  },
-  "pnpm": {
-    "allowBuilds": {
-      "@biomejs/biome": true,
-      "lefthook": true,
-      "@firebase/util": true,
-      "@nestjs/core": true,
-      "@sentry-internal/node-cpu-profiler": true,
-      "@sentry/cli": true,
-      "@swc/core": true,
-      "esbuild": true,
-      "nestjs-pino": true,
-      "protobufjs": false
     }
   }
 }
