@@ -92,18 +92,4 @@
       "path": "@commitlint/cz-commitlint"
     }
   },
-  "pnpm": {
-    "allowBuilds": {
-      "@biomejs/biome": true,
-      "lefthook": true,
-      "@firebase/util": true,
-      "@nestjs/core": true,
-      "@sentry-internal/node-cpu-profiler": true,
-      "@sentry/cli": true,
-      "@swc/core": true,
-      "esbuild": true,
-      "nestjs-pino": true,
-      "protobufjs": false
-    }
-  }
 }
