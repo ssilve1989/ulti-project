@@ -5,7 +5,7 @@ LABEL fly_launch_runtime="NestJS"
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN wget -qO- https://get.pnpm.io/install.sh | PNPM_VERSION=10.32.1 ENV="$HOME/.shrc" SHELL="$(which sh)" sh -
+RUN wget -qO- https://get.pnpm.io/install.sh | PNPM_VERSION=11.0.4 ENV="$HOME/.shrc" SHELL="$(which sh)" sh -
 
 WORKDIR /app
 
