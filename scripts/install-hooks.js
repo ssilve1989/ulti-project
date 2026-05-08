@@ -11,7 +11,8 @@ if (isGitRepo) {
   try {
     execSync('pnpm dlx lefthook install', { stdio: 'inherit' });
   } catch (error) {
-    console.warn('Warning: Failed to install lefthook hooks (skipping):', error.message);
+    console.error('Failed to install lefthook hooks:', error);
+    process.exit(1);
   }
 } else {
   console.log('Skipping lefthook install (not in a git repository)');
