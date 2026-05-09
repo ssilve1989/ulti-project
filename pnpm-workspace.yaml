@@ -11,6 +11,11 @@ allowBuilds:
   "nestjs-pino": true
   "protobufjs": false
 minimumReleaseAge: 7200
+# pnpm 11 made minimumReleaseAgeStrict default to true when minimumReleaseAge
+# is set explicitly, which surfaces ERR_PNPM_MISSING_TIME for packages whose
+# npm registry metadata lacks a `time` field (e.g. vite, @vitest/utils).
+# Restore pnpm 10's lenient behavior so Renovate's lockfile updates don't abort.
+minimumReleaseAgeIgnoreMissingTime: true
 minimumReleaseAgeExclude:
   - typescript
   - "@typescript/native-preview"
