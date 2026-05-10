@@ -1,101 +1,62 @@
-# CLAUDE.md
+# CLAUDE.md — 12-rule template
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+These rules apply to every task in this project unless explicitly overridden.
+Bias: caution over speed on non-trivial work. Use judgment on trivial tasks.
 
-## Development Commands
+## Rule 1 — Think Before Coding
+State assumptions explicitly. If uncertain, ask rather than guess.
+Present multiple interpretations when ambiguity exists.
+Push back when a simpler approach exists.
+Stop when confused. Name what's unclear.
 
-**Build & Development:**
+## Rule 2 — Simplicity First
+Minimum code that solves the problem. Nothing speculative.
+No features beyond what was asked. No abstractions for single-use code.
+Test: would a senior engineer say this is overcomplicated? If yes, simplify.
 
-- `pnpm build` - Build the application
-- `pnpm start:dev` - Start development server with hot reload
-- `pnpm start:debug` - Start with debug mode
-- `pnpm start:dev:sentry` - Start development with Sentry instrumentation
+## Rule 3 — Surgical Changes
+Touch only what you must. Clean up only your own mess.
+Don't "improve" adjacent code, comments, or formatting.
+Don't refactor what isn't broken. Match existing style.
 
-**Code Quality:**
+## Rule 4 — Goal-Driven Execution
+Define success criteria. Loop until verified.
+Don't follow steps. Define success and iterate.
+Strong success criteria let you loop independently.
 
-- `pnpm lint` - Run Biome linter (must pass)
-- `pnpm check` - Run Biome check (includes lint + format)
-- `pnpm format` - Format code with Biome
-- `pnpm typecheck` - TypeScript type checking (must pass)
+## Rule 5 — Use the model only for judgment calls
+Use me for: classification, drafting, summarization, extraction.
+Do NOT use me for: routing, retries, deterministic transforms.
+If code can answer, code answers.
 
-**Note:** When running linting with biome, use `biome check --fix` to also apply formatting fixes automatically.
+## Rule 6 — Token budgets are not advisory
+Per-task: 4,000 tokens. Per-session: 30,000 tokens.
+If approaching budget, summarize and start fresh.
+Surface the breach. Do not silently overrun.
 
-**Testing:**
+## Rule 7 — Surface conflicts, don't average them
+If two patterns contradict, pick one (more recent / more tested).
+Explain why. Flag the other for cleanup.
+Don't blend conflicting patterns.
 
-- `pnpm test` - Run tests in watch mode
-- `pnpm test:cov` - Run tests with coverage
-- `pnpm test:ci` - Run tests in CI mode
+## Rule 8 — Read before you write
+Before adding code, read exports, immediate callers, shared utilities.
+"Looks orthogonal" is dangerous. If unsure why code is structured a way, ask.
 
-**Git & Commits:**
+## Rule 9 — Tests verify intent, not just behavior
+Tests must encode WHY behavior matters, not just WHAT it does.
+A test that can't fail when business logic changes is wrong.
 
-- `pnpm commit` - Use commitizen for conventional commits (required)
+## Rule 10 — Checkpoint after every significant step
+Summarize what was done, what's verified, what's left.
+Don't continue from a state you can't describe back.
+If you lose track, stop and restate.
 
-## Architecture Overview
+## Rule 11 — Match the codebase's conventions, even if you disagree
+Conformance > taste inside the codebase.
+If you genuinely think a convention is harmful, surface it. Don't fork silently.
 
-**Framework:** NestJS application context (not HTTP server) that runs as a Discord bot
-
-**Core Structure:**
-
-- `src/main.ts` - Application bootstrap
-- `src/app.module.ts` - Root module importing all feature modules
-- `src/discord/` - Discord.js client integration and helpers
-- `src/slash-commands/` - Discord slash command implementations using CQRS pattern
-- `src/firebase/` - Firebase/Firestore database integration
-- `src/sheets/` - Google Sheets API integration
-- `src/fflogs/` - FF Logs GraphQL API integration
-- `src/jobs/` - Scheduled jobs (cron tasks)
-
-**Key Patterns:**
-
-- **CQRS**: Commands and events for slash command handling
-- **Module-based**: Each feature has its own NestJS module
-- **Slash Commands**: Each command has `.slash-command.ts`, `.command-handler.ts`, `.command.ts` files
-- **Configuration**: Zod schemas for environment validation
-- **Error Handling**: Sentry integration with structured logging
-
-**Slash Commands Architecture:**
-
-- Commands are organized by feature (blacklist, signup, search, etc.)
-- Each command uses CQRS pattern with command handlers
-- Subcommands are organized in nested directories
-- Command registration happens in `SlashCommandsService`
-
-**External Integrations:**
-
-- **Discord.js**: Bot client and interaction handling
-- **Firebase**: Document-based data storage
-- **Google Sheets**: Spreadsheet integration for signup management
-- **FF Logs**: FFXIV combat log analysis
-- **Sentry**: Error monitoring and performance tracking
-
-## Code Standards
-
-**Formatting:** Uses Biome instead of Prettier/ESLint
-
-- 2 spaces indentation
-- Single quotes for JavaScript strings
-- Automatic import organization
-
-**TypeScript:**
-
-- Strict mode enabled
-- No explicit `any` allowed (except in tests)
-- Import type annotations preferred where applicable
-
-**Testing:** Vitest with coverage via v8 provider
-
-- Test files use `.spec.ts` suffix
-- Global test utilities available (describe, test, expect, etc.)
-- Coverage excludes command definition files
-
-**Commits:** Conventional Commits enforced via commitlint
-
-- Use `pnpm commit` for guided commit creation
-- Format: `type(scope): description`
-- Types: feat, fix, docs, style, refactor, test, build, ci, perf
-
-## Development Notes
-
-**Dependencies:** Uses pnpm with specific built dependencies configuration
-**Docker:** Dockerfile available for containerized deployment
-**GraphQL:** Code generation from FF Logs schema via `pnpm graphql:codegen`
+## Rule 12 — Fail loud
+"Completed" is wrong if anything was skipped silently.
+"Tests pass" is wrong if any were skipped.
+Default to surfacing uncertainty, not hiding it.
