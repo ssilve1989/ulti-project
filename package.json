@@ -7,7 +7,7 @@
   "private": true,
   "license": "UNLICENSED",
   "main": "dist/main.js",
-  "packageManager": "pnpm@11.0.5",
+  "packageManager": "pnpm@11.0.6",
   "engines": {
     "node": ">=22.22.2"
   },
