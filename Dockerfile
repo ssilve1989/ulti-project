@@ -1,40 +1,31 @@
-FROM ghcr.io/jdx/mise AS base
+FROM node:26.1.0-slim AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN npm install --global corepack@latest
+RUN corepack enable pnpm
 
 LABEL fly_launch_runtime="NestJS"
 
-ENV MISE_YES=1
-
 WORKDIR /app
-
-COPY mise.toml ./
-RUN mise install
-
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json tsconfig.build.json instrumentation.mjs ./
 # scripts/ needed by prepare hook in both prod-deps and build stages; exits cleanly without .git
 COPY scripts ./scripts
 
 FROM base AS prod-deps
 ENV NODE_ENV="production"
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store mise exec -- pnpm install --prod --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --prod --frozen-lockfile
 
 FROM base AS build
 COPY src ./src
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store mise exec -- pnpm install --frozen-lockfile
-RUN mise exec -- pnpm run build
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
+RUN pnpm run build
 
-FROM ghcr.io/jdx/mise
-LABEL fly_launch_runtime="NestJS"
-
-ENV MISE_YES=1
-
+FROM node:26.1.0-slim
 WORKDIR /app
-
-COPY mise.toml ./
-RUN mise install
 
 COPY package.json instrumentation.mjs ./
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 
 EXPOSE 3000
-CMD ["mise", "exec", "--", "node", "--import", "./instrumentation.mjs", "dist/main"]
+CMD [ "node", "--import", "./instrumentation.mjs", "dist/main" ]
