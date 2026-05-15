@@ -8,6 +8,7 @@ import { BlacklistModule } from './blacklist/blacklist.module.js';
 import { CleanRolesModule } from './clean-roles/clean-roles.module.js';
 import { EncountersSlashCommandModule } from './encounters/encounters.module.js';
 import { HelpModule } from './help/help.module.js';
+import { HelpersModule } from './helpers/helpers.module.js';
 import { LookupModule } from './lookup/lookup.module.js';
 import { RemoveRoleModule } from './remove-role/remove-role.module.js';
 import { RemoveSignupModule } from './remove-signup/remove-signup.module.js';
@@ -18,6 +19,7 @@ import { SlashCommandsSharedModule } from './shared/slash-commands-shared.module
 import { SignupModule } from './signup/signup.module.js';
 import { SlashCommandsService } from './slash-commands.service.js';
 import { StatusModule } from './status/status.module.js';
+import { TeamsModule } from './teams/teams.module.js';
 import { TurboProgModule } from './turboprog/turbo-prog.module.js';
 
 @Module({
@@ -31,6 +33,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     CleanRolesModule,
     EncountersSlashCommandModule,
     HelpModule,
+    HelpersModule,
     LookupModule,
     RemoveRoleModule,
     RemoveSignupModule,
@@ -39,6 +42,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     SettingsModule,
     SignupModule,
     StatusModule,
+    TeamsModule,
     TurboProgModule,
   ],
   providers: [SlashCommandsService],

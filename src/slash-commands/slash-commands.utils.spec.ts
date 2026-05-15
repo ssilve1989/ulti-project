@@ -6,6 +6,9 @@ import { RemoveRoleCommand } from './remove-role/commands/remove-role.command.js
 import { RemoveRoleSlashCommand } from './remove-role/remove-role.slash-command.js';
 import { RemoveSignupCommand } from './remove-signup/commands/remove-signup.command.js';
 import { REMOVE_SIGNUP_SLASH_COMMAND_NAME } from './remove-signup/remove-signup.slash-command.js';
+import { SettingsSlashCommand } from './settings/settings.slash-command.js';
+import { EditAbsenceChannelCommand } from './settings/subcommands/helper/edit-absence-channel.command.js';
+import { EditCoordinatorRoleCommand } from './settings/subcommands/helper/edit-coordinator-role.command.js';
 import { SignupCommand } from './signup/commands/signup.commands.js';
 import { SIGNUP_SLASH_COMMAND_NAME } from './signup/signup.slash-command.js';
 import { getCommandForInteraction } from './slash-commands.utils.js';
@@ -31,6 +34,30 @@ const cases = [
 test.each(cases)('$description', ({ input, expected }) => {
   const interaction = {
     commandName: input,
+  } as unknown as ChatInputCommandInteraction<'cached'>;
+
+  const result = getCommandForInteraction(interaction);
+  expect(result).toBeInstanceOf(expected);
+});
+
+const settingsSubcommandCases = [
+  ['coordinator-role', EditCoordinatorRoleCommand] as const,
+  ['absence-channel', EditAbsenceChannelCommand] as const,
+].map(([subcommand, expected]) => ({
+  subcommand,
+  expected,
+  description: `getCommandForInteraction(${SettingsSlashCommand.name} ${subcommand}) should return ${expected.name}`,
+}));
+
+test.each(settingsSubcommandCases)('$description', ({
+  subcommand,
+  expected,
+}) => {
+  const interaction = {
+    commandName: SettingsSlashCommand.name,
+    options: {
+      getSubcommand: () => subcommand,
+    },
   } as unknown as ChatInputCommandInteraction<'cached'>;
 
   const result = getCommandForInteraction(interaction);

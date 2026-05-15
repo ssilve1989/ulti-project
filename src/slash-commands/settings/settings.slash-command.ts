@@ -45,6 +45,27 @@ export const EditReviewerRoleSubcommand = new SlashCommandSubcommandBuilder()
       .setRequired(true),
   );
 
+export const EditCoordinatorRoleSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('coordinator-role')
+  .setDescription('Edit helper coordinator role settings')
+  .addRoleOption((option) =>
+    option
+      .setName('coordinator-role')
+      .setDescription('The role that coordinates helper team activity')
+      .setRequired(true),
+  );
+
+export const EditAbsenceChannelSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('absence-channel')
+  .setDescription('Edit helper absence notification channel settings')
+  .addChannelOption((option) =>
+    option
+      .setName('absence-channel')
+      .setDescription('The channel to send helper absence notifications to')
+      .addChannelTypes(ChannelType.GuildText)
+      .setRequired(true),
+  );
+
 export const EditEncounterRolesSubcommand = new SlashCommandSubcommandBuilder()
   .setName('encounter-roles')
   .setDescription('Edit encounter roles')
@@ -111,6 +132,8 @@ export const SettingsSlashCommand = new SlashCommandBuilder()
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
   .addSubcommand(EditChannelsSubcommand)
   .addSubcommand(EditReviewerRoleSubcommand)
+  .addSubcommand(EditCoordinatorRoleSubcommand)
+  .addSubcommand(EditAbsenceChannelSubcommand)
   .addSubcommand(EditEncounterRolesSubcommand)
   .addSubcommand(EditSpreadsheetSubcommand)
   .addSubcommand(EditTurboProgSubcommand)

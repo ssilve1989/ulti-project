@@ -3,6 +3,8 @@ import { ErrorModule } from '../../error/error.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
 import { EditChannelsCommandHandler } from './subcommands/channels/edit-channels.command-handler.js';
+import { EditAbsenceChannelCommandHandler } from './subcommands/helper/edit-absence-channel.command-handler.js';
+import { EditCoordinatorRoleCommandHandler } from './subcommands/helper/edit-coordinator-role.command-handler.js';
 import { EditReviewerCommandHandler } from './subcommands/reviewer/edit-reviewer.command-handler.js';
 import { EditEncounterRolesCommandHandler } from './subcommands/roles/edit-encounter-roles.command-handler.js';
 import { EditSpreadsheetCommandHandler } from './subcommands/spreadsheet/edit-spreadsheet.command-handler.js';
@@ -12,7 +14,9 @@ import { ViewSettingsCommandHandler } from './subcommands/view/view-settings.com
 @Module({
   imports: [ErrorModule, FirebaseModule, SheetsModule],
   providers: [
+    EditAbsenceChannelCommandHandler,
     EditChannelsCommandHandler,
+    EditCoordinatorRoleCommandHandler,
     EditEncounterRolesCommandHandler,
     EditReviewerCommandHandler,
     EditSpreadsheetCommandHandler,

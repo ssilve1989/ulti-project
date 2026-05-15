@@ -231,6 +231,19 @@ class DiscordService {
     };
   }
 
+  public async getMembersWithRole({
+    guildId,
+    roleId,
+  }: {
+    guildId: string;
+    roleId: string;
+  }): Promise<GuildMember[]> {
+    const guild = await this.client.guilds.fetch(guildId);
+    await guild.members.fetch();
+    const role = await guild.roles.fetch(roleId);
+    return role ? [...role.members.values()] : [];
+  }
+
   public async getGuildInvites(
     guildId: string,
   ): Promise<Collection<string, Invite>> {

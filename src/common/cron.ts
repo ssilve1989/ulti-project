@@ -17,6 +17,7 @@ export const CronTime = {
     at: (minute: number, second = 0) => `${second} ${minute} * * * *`,
   }),
   everyWeek: () => ({
+    // these are not Temporal's 1-based dayOfWeek until cronjobs support that kind of change
     on: (dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6) => ({
       at: (hour: number, minute = 0, second = 0) =>
         `${second} ${minute} ${hour} * * ${dayOfWeek}`,

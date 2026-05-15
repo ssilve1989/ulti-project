@@ -13,6 +13,8 @@ import { EncountersSlashCommand } from './encounters/encounters.slash-command.js
 import { FINAL_PUSH_SLASH_COMMAND_NAME } from './finalpush/final-push-signup.slash-command.js';
 import { HelpCommand } from './help/commands/help.command.js';
 import { HelpSlashCommand } from './help/help.slash-command.js';
+import { HelpersCommand } from './helpers/helpers.commands.js';
+import { HelpersSlashCommand } from './helpers/helpers.slash-command.js';
 import { LookupCommand } from './lookup/commands/lookup.command.js';
 import { LookupSlashCommand } from './lookup/lookup.slash-command.js';
 import { RemoveRoleCommand } from './remove-role/commands/remove-role.command.js';
@@ -25,6 +27,8 @@ import { SearchCommand } from './search/commands/search.command.js';
 import { SearchSlashCommand } from './search/search.slash-command.js';
 import { SettingsSlashCommand } from './settings/settings.slash-command.js';
 import { EditChannelsCommand } from './settings/subcommands/channels/edit-channels.command.js';
+import { EditAbsenceChannelCommand } from './settings/subcommands/helper/edit-absence-channel.command.js';
+import { EditCoordinatorRoleCommand } from './settings/subcommands/helper/edit-coordinator-role.command.js';
 import { EditReviewerCommand } from './settings/subcommands/reviewer/edit-reviewer.command.js';
 import { EditEncounterRolesCommand } from './settings/subcommands/roles/edit-encounter-roles.command.js';
 import { EditSpreadsheetCommand } from './settings/subcommands/spreadsheet/edit-spreadsheet.command.js';
@@ -34,6 +38,8 @@ import { SignupCommand } from './signup/commands/signup.commands.js';
 import { SIGNUP_SLASH_COMMAND_NAME } from './signup/signup.slash-command.js';
 import { StatusCommand } from './status/commands/status.command.js';
 import { StatusSlashCommand } from './status/status.slash-command.js';
+import { TeamsCommand } from './teams/teams.commands.js';
+import { TeamsSlashCommand } from './teams/teams.slash-command.js';
 import { TurboProgCommand } from './turboprog/commands/turbo-prog.commands.js';
 import { TURBO_PROG_SLASH_COMMAND_NAME } from './turboprog/turbo-prog-signup.slash-command.js';
 
@@ -69,6 +75,14 @@ export function getCommandForInteraction(
         .with('channels', () => new EditChannelsCommand(interaction))
         .with('reviewer', () => new EditReviewerCommand(interaction))
         .with(
+          'coordinator-role',
+          () => new EditCoordinatorRoleCommand(interaction),
+        )
+        .with(
+          'absence-channel',
+          () => new EditAbsenceChannelCommand(interaction),
+        )
+        .with(
           'encounter-roles',
           () => new EditEncounterRolesCommand(interaction),
         )
@@ -87,5 +101,7 @@ export function getCommandForInteraction(
       () => new TurboProgCommand(interaction),
     )
     .with(RemoveRoleSlashCommand.name, () => new RemoveRoleCommand(interaction))
+    .with(TeamsSlashCommand.name, () => new TeamsCommand(interaction))
+    .with(HelpersSlashCommand.name, () => new HelpersCommand(interaction))
     .otherwise(() => undefined);
 }
