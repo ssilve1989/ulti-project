@@ -195,12 +195,30 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
       return;
     }
 
+    const memberLists = await Promise.all(
+      teams.map((t) =>
+        this.discordService.getMembersWithRole({
+          guildId: interaction.guildId,
+          roleId: t.memberRoleId,
+        }),
+      ),
+    );
+
     const embed = new EmbedBuilder().setTitle('Active Helper Teams').addFields(
-      teams.map((t) => ({
-        name: t.name,
-        value: t.description ?? t.teamId,
-        inline: false,
-      })),
+      teams.map((t, i) => {
+        const nonLeaders = memberLists[i].filter(
+          (m) => m.user.id !== t.leaderUserId,
+        );
+        const lines = [
+          `<@${t.leaderUserId}> (Leader)`,
+          ...nonLeaders.map((m) => `<@${m.user.id}>`),
+        ];
+        return {
+          name: `<@&${t.memberRoleId}>`,
+          value: lines.join('\n'),
+          inline: false,
+        };
+      }),
     );
 
     await interaction.editReply({ embeds: [embed] });

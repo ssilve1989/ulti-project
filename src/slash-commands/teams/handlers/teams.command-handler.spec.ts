@@ -448,4 +448,149 @@ describe('TeamsCommandHandler', () => {
       expect(helperTeamCollection.upsert).not.toHaveBeenCalled();
     });
   });
+
+  describe('view subcommand', () => {
+    it('replies with no-teams message when no active teams exist', async () => {
+      helperTeamCollection.getActiveForGuild.mockResolvedValueOnce([]);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: { getSubcommand: () => 'view' },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'No active teams found.',
+      );
+    });
+
+    it('shows role mention as field name and leader-first member mentions as field value', async () => {
+      const now = Timestamp.now();
+      helperTeamCollection.getActiveForGuild.mockResolvedValueOnce([
+        {
+          guildId: 'guild-id',
+          teamId: 'alpha',
+          name: 'Alpha',
+          active: true,
+          memberRoleId: 'role-alpha',
+          leaderUserId: 'leader-id',
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
+
+      const member1 = { user: { id: 'member-1' } } as unknown as GuildMember;
+      discordService.getMembersWithRole.mockResolvedValueOnce([member1]);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: { getSubcommand: () => 'view' },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(discordService.getMembersWithRole).toHaveBeenCalledWith({
+        guildId: 'guild-id',
+        roleId: 'role-alpha',
+      });
+
+      const replyArg = (interaction.editReply as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as {
+        embeds: { data: { fields: { name: string; value: string }[] } }[];
+      };
+      expect(replyArg.embeds[0].data.fields[0]).toMatchObject({
+        name: '<@&role-alpha>',
+        value: '<@leader-id> (Leader)\n<@member-1>',
+      });
+    });
+
+    it('omits the leader from the non-leader list when the leader holds the role', async () => {
+      const now = Timestamp.now();
+      helperTeamCollection.getActiveForGuild.mockResolvedValueOnce([
+        {
+          guildId: 'guild-id',
+          teamId: 'alpha',
+          name: 'Alpha',
+          active: true,
+          memberRoleId: 'role-alpha',
+          leaderUserId: 'leader-id',
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
+
+      // The leader also holds the member role — should appear once, not twice
+      const leaderMember = {
+        user: { id: 'leader-id' },
+      } as unknown as GuildMember;
+      const otherMember = {
+        user: { id: 'member-2' },
+      } as unknown as GuildMember;
+      discordService.getMembersWithRole.mockResolvedValueOnce([
+        leaderMember,
+        otherMember,
+      ]);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: { getSubcommand: () => 'view' },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      const replyArg = (interaction.editReply as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as {
+        embeds: { data: { fields: { name: string; value: string }[] } }[];
+      };
+      expect(replyArg.embeds[0].data.fields[0].value).toBe(
+        '<@leader-id> (Leader)\n<@member-2>',
+      );
+    });
+
+    it('shows only the leader line when no other members hold the role', async () => {
+      const now = Timestamp.now();
+      helperTeamCollection.getActiveForGuild.mockResolvedValueOnce([
+        {
+          guildId: 'guild-id',
+          teamId: 'alpha',
+          name: 'Alpha',
+          active: true,
+          memberRoleId: 'role-alpha',
+          leaderUserId: 'leader-id',
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
+
+      discordService.getMembersWithRole.mockResolvedValueOnce([]);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: { getSubcommand: () => 'view' },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      const replyArg = (interaction.editReply as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as {
+        embeds: { data: { fields: { name: string; value: string }[] } }[];
+      };
+      expect(replyArg.embeds[0].data.fields[0].value).toBe(
+        '<@leader-id> (Leader)',
+      );
+    });
+  });
 });
