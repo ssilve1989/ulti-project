@@ -44,7 +44,13 @@ describe('HelperTeamNotificationService', () => {
 
       expect(channel.send).toHaveBeenCalledWith(
         expect.objectContaining({
-          embeds: expect.any(Array),
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              data: expect.objectContaining({
+                description: expect.stringContaining('<@&alpha-role-id>'),
+              }),
+            }),
+          ]),
         }),
       );
       expect(result).toEqual({ sent: true });

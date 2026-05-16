@@ -339,7 +339,7 @@ export class HelpersCommandHandler implements ICommandHandler<HelpersCommand> {
     const options = absences.map((a) => {
       const label =
         a.type === 'session'
-          ? `Session absence: ${a.teamId}`
+          ? `Session absence: <@&${a.teamId}>`
           : `Range: ${a.startDate} to ${a.endDate}`;
       return new StringSelectMenuOptionBuilder()
         .setLabel(label)
@@ -390,7 +390,7 @@ export class HelpersCommandHandler implements ICommandHandler<HelpersCommand> {
     const absence = absences.find((a) => a.absenceId === absenceId);
     const description =
       absence?.type === 'session'
-        ? `Session absence: ${absence.teamId}`
+        ? `Session absence: <@&${absence.teamId}>`
         : absence
           ? `Range: ${absence.startDate} to ${absence.endDate}`
           : absenceId;
@@ -444,7 +444,7 @@ export class HelpersCommandHandler implements ICommandHandler<HelpersCommand> {
         const summary = userAbsences
           .map((a) =>
             a.type === 'session'
-              ? `Session (${a.teamId})`
+              ? `Session (<@&${a.teamId}>)`
               : `Range: ${a.startDate} → ${a.endDate}`,
           )
           .join('\n');
