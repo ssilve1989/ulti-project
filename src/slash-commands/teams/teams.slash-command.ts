@@ -54,6 +54,116 @@ const ViewSubcommand = new SlashCommandSubcommandBuilder()
   .setName('view')
   .setDescription('View all active helper teams');
 
+const ScheduleAddSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('schedule-add')
+  .setDescription('Add a recurring weekly session to a team')
+  .addRoleOption((o) =>
+    o
+      .setName('member-role')
+      .setDescription('Role for the team')
+      .setRequired(true),
+  )
+  .addIntegerOption((o) =>
+    o
+      .setName('day-of-week')
+      .setDescription('Day of the week')
+      .setRequired(true)
+      .addChoices(
+        { name: 'Monday', value: 1 },
+        { name: 'Tuesday', value: 2 },
+        { name: 'Wednesday', value: 3 },
+        { name: 'Thursday', value: 4 },
+        { name: 'Friday', value: 5 },
+        { name: 'Saturday', value: 6 },
+        { name: 'Sunday', value: 7 },
+      ),
+  )
+  .addStringOption((o) =>
+    o
+      .setName('start-time')
+      .setDescription('Session start time in HH:mm format (e.g. 20:00)')
+      .setRequired(true),
+  )
+  .addIntegerOption((o) =>
+    o
+      .setName('duration-minutes')
+      .setDescription('Session duration in minutes')
+      .setRequired(true)
+      .setMinValue(15)
+      .setMaxValue(480),
+  )
+  .addStringOption((o) =>
+    o
+      .setName('timezone')
+      .setDescription('Timezone (e.g. America/Denver, UTC)')
+      .setRequired(true),
+  );
+
+const ScheduleListSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('schedule-list')
+  .setDescription('List all active sessions for a team')
+  .addRoleOption((o) =>
+    o
+      .setName('member-role')
+      .setDescription('Role for the team')
+      .setRequired(true),
+  );
+
+const ScheduleEditSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('schedule-edit')
+  .setDescription('Edit a recurring session for a team')
+  .addRoleOption((o) =>
+    o
+      .setName('member-role')
+      .setDescription('Role for the team')
+      .setRequired(true),
+  )
+  .addIntegerOption((o) =>
+    o
+      .setName('day-of-week')
+      .setDescription('New day of the week')
+      .setRequired(false)
+      .addChoices(
+        { name: 'Monday', value: 1 },
+        { name: 'Tuesday', value: 2 },
+        { name: 'Wednesday', value: 3 },
+        { name: 'Thursday', value: 4 },
+        { name: 'Friday', value: 5 },
+        { name: 'Saturday', value: 6 },
+        { name: 'Sunday', value: 7 },
+      ),
+  )
+  .addStringOption((o) =>
+    o
+      .setName('start-time')
+      .setDescription('New start time in HH:mm format')
+      .setRequired(false),
+  )
+  .addIntegerOption((o) =>
+    o
+      .setName('duration-minutes')
+      .setDescription('New duration in minutes')
+      .setRequired(false)
+      .setMinValue(15)
+      .setMaxValue(480),
+  )
+  .addStringOption((o) =>
+    o
+      .setName('timezone')
+      .setDescription('New timezone (e.g. America/Denver, UTC)')
+      .setRequired(false),
+  );
+
+const ScheduleRemoveSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('schedule-remove')
+  .setDescription('Remove a recurring session from a team')
+  .addRoleOption((o) =>
+    o
+      .setName('member-role')
+      .setDescription('Role for the team')
+      .setRequired(true),
+  );
+
 export const TeamsSlashCommand = new SlashCommandBuilder()
   .setName('teams')
   .setDescription('Manage helper teams')
@@ -62,4 +172,8 @@ export const TeamsSlashCommand = new SlashCommandBuilder()
   .addSubcommand(EditSubcommand)
   .addSubcommand(ArchiveSubcommand)
   .addSubcommand(MembersSubcommand)
-  .addSubcommand(ViewSubcommand);
+  .addSubcommand(ViewSubcommand)
+  .addSubcommand(ScheduleAddSubcommand)
+  .addSubcommand(ScheduleListSubcommand)
+  .addSubcommand(ScheduleEditSubcommand)
+  .addSubcommand(ScheduleRemoveSubcommand);
