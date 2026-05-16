@@ -381,7 +381,119 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
   private async handleScheduleEdit(
     interaction: TeamsCommand['interaction'],
   ): Promise<void> {
-    await interaction.editReply('Not yet implemented.');
+    const memberRole = interaction.options.getRole('member-role', true);
+    const rawDay = interaction.options.getInteger('day-of-week');
+    const startTime = interaction.options.getString('start-time');
+    const durationMinutes = interaction.options.getInteger('duration-minutes');
+    const timezone = interaction.options.getString('timezone');
+
+    if (startTime !== null && !isValidTime(startTime)) {
+      await interaction.editReply(
+        'Invalid start time. Use HH:mm format (e.g. 20:00).',
+      );
+      return;
+    }
+
+    const team = await this.helperTeamCollection.getByMemberRole(
+      interaction.guildId,
+      memberRole.id,
+    );
+    if (!team) {
+      await interaction.editReply(
+        `No team is configured for the role <@&${memberRole.id}>.`,
+      );
+      return;
+    }
+
+    if (team.leaderUserId !== interaction.user.id) {
+      await interaction.editReply(
+        `You are not the leader of the <@&${team.memberRoleId}> team.`,
+      );
+      return;
+    }
+
+    const sessions = await this.sessionCollection.getActiveForTeams(
+      interaction.guildId,
+      [team.teamId],
+    );
+    if (sessions.length === 0) {
+      await interaction.editReply('No active sessions for this team.');
+      return;
+    }
+
+    const options = sessions.map((s) =>
+      new StringSelectMenuOptionBuilder()
+        .setLabel(
+          `${DAY_NAMES[s.dayOfWeek]} ${s.startTime} — ${s.durationMinutes}min (${s.timezone})`,
+        )
+        .setValue(s.sessionId),
+    );
+
+    const select = new StringSelectMenuBuilder()
+      .setCustomId('schedule-edit-select')
+      .setPlaceholder('Select a session to edit')
+      .addOptions(options);
+
+    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+      select,
+    );
+
+    const replyMessage = await interaction.editReply({ components: [row] });
+
+    let componentInteraction: Awaited<
+      ReturnType<
+        typeof replyMessage.awaitMessageComponent<ComponentType.StringSelect>
+      >
+    >;
+    try {
+      componentInteraction =
+        await replyMessage.awaitMessageComponent<ComponentType.StringSelect>({
+          filter: isSameUserFilter(interaction.user),
+          time: 60_000,
+        });
+    } catch (error: unknown) {
+      if (
+        error !== null &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === DiscordjsErrorCodes.InteractionCollectorError
+      ) {
+        await interaction.editReply({
+          content: 'Selection timed out.',
+          components: [],
+        });
+        return;
+      }
+      throw error;
+    }
+
+    await componentInteraction.deferUpdate();
+
+    const sessionId = componentInteraction.values[0];
+    const session = sessions.find((s) => s.sessionId === sessionId);
+    if (!session) {
+      await interaction.editReply({
+        content: 'That session is no longer active.',
+        components: [],
+      });
+      return;
+    }
+
+    await this.sessionCollection.upsert({
+      ...session,
+      dayOfWeek:
+        rawDay !== null
+          ? (rawDay as 1 | 2 | 3 | 4 | 5 | 6 | 7)
+          : session.dayOfWeek,
+      startTime: startTime ?? session.startTime,
+      durationMinutes: durationMinutes ?? session.durationMinutes,
+      timezone: timezone ?? session.timezone,
+    });
+
+    await interaction.editReply({
+      content: 'Session updated.',
+      components: [],
+    });
   }
 
   private async handleScheduleRemove(

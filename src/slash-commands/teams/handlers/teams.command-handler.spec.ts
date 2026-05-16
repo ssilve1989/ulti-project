@@ -976,6 +976,278 @@ describe('TeamsCommandHandler', () => {
     });
   });
 
+  describe('schedule-edit subcommand', () => {
+    const now = Timestamp.now();
+    const team = {
+      guildId: 'guild-id',
+      teamId: 'member-role-id',
+      active: true,
+      memberRoleId: 'member-role-id',
+      leaderUserId: 'coordinator-id',
+      createdAt: now,
+      updatedAt: now,
+    };
+    const session = {
+      guildId: 'guild-id',
+      sessionId: 's1',
+      teamId: 'member-role-id',
+      active: true,
+      dayOfWeek: 5 as const,
+      startTime: '20:00',
+      durationMinutes: 120,
+      timezone: 'America/Denver',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    it('shows a select menu with active sessions', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(team);
+      sessionCollection.getActiveForTeams.mockResolvedValueOnce([session]);
+
+      const componentInteraction = { values: ['s1'], deferUpdate: vi.fn() };
+      const replyMessage = {
+        awaitMessageComponent: vi.fn().mockResolvedValue(componentInteraction),
+      };
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-edit',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+          getInteger: () => null,
+          getString: () => null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn().mockResolvedValue(replyMessage),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      const firstCall = (interaction.editReply as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
+      expect(firstCall).toMatchObject({ components: expect.any(Array) });
+    });
+
+    it('upserts the session with provided field values', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(team);
+      sessionCollection.getActiveForTeams.mockResolvedValueOnce([session]);
+
+      const componentInteraction = { values: ['s1'], deferUpdate: vi.fn() };
+      const replyMessage = {
+        awaitMessageComponent: vi.fn().mockResolvedValue(componentInteraction),
+      };
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-edit',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+          getInteger: (name: string) => {
+            if (name === 'day-of-week') return 6;
+            if (name === 'duration-minutes') return 90;
+            return null;
+          },
+          getString: (name: string) => {
+            if (name === 'start-time') return '21:00';
+            if (name === 'timezone') return 'UTC';
+            return null;
+          },
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn().mockResolvedValue(replyMessage),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(sessionCollection.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: 's1',
+          dayOfWeek: 6,
+          startTime: '21:00',
+          durationMinutes: 90,
+          timezone: 'UTC',
+        }),
+      );
+      expect(interaction.editReply).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          content: 'Session updated.',
+          components: [],
+        }),
+      );
+    });
+
+    it('keeps existing field values when options are not provided', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(team);
+      sessionCollection.getActiveForTeams.mockResolvedValueOnce([session]);
+
+      const componentInteraction = { values: ['s1'], deferUpdate: vi.fn() };
+      const replyMessage = {
+        awaitMessageComponent: vi.fn().mockResolvedValue(componentInteraction),
+      };
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-edit',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+          getInteger: () => null,
+          getString: () => null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn().mockResolvedValue(replyMessage),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(sessionCollection.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: 's1',
+          dayOfWeek: 5,
+          startTime: '20:00',
+          durationMinutes: 120,
+          timezone: 'America/Denver',
+        }),
+      );
+    });
+
+    it('rejects with invalid-time error before any Firestore reads', async () => {
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-edit',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+          getInteger: () => null,
+          getString: (name: string) =>
+            name === 'start-time' ? 'not-a-time' : null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'Invalid start time. Use HH:mm format (e.g. 20:00).',
+      );
+      expect(helperTeamCollection.getByMemberRole).not.toHaveBeenCalled();
+      expect(sessionCollection.upsert).not.toHaveBeenCalled();
+    });
+
+    it('replies with timeout when selection times out', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(team);
+      sessionCollection.getActiveForTeams.mockResolvedValueOnce([session]);
+
+      const replyMessage = {
+        awaitMessageComponent: vi.fn().mockRejectedValue({
+          code: DiscordjsErrorCodes.InteractionCollectorError,
+        }),
+      };
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-edit',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+          getInteger: () => null,
+          getString: () => null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn().mockResolvedValue(replyMessage),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenLastCalledWith({
+        content: 'Selection timed out.',
+        components: [],
+      });
+      expect(sessionCollection.upsert).not.toHaveBeenCalled();
+    });
+
+    it('replies with no-sessions message when team has no active sessions', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(team);
+      sessionCollection.getActiveForTeams.mockResolvedValueOnce([]);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-edit',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+          getInteger: () => null,
+          getString: () => null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'No active sessions for this team.',
+      );
+    });
+
+    it('rejects when no team is configured for the role', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(undefined);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-edit',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'role-id' } : null,
+          getInteger: () => null,
+          getString: () => null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'No team is configured for the role <@&role-id>.',
+      );
+    });
+
+    it('rejects when coordinator is not the team leader', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce({
+        ...team,
+        leaderUserId: 'someone-else-id',
+      });
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-edit',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+          getInteger: () => null,
+          getString: () => null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'You are not the leader of the <@&member-role-id> team.',
+      );
+      expect(sessionCollection.getActiveForTeams).not.toHaveBeenCalled();
+    });
+  });
+
   describe('unknown subcommand', () => {
     it('replies with unknown subcommand for unrecognized input', async () => {
       const interaction = {
