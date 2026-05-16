@@ -498,7 +498,7 @@ describe('TeamsCommandHandler', () => {
         guildId: 'guild-id',
         user: { id: 'coordinator-id' },
         options: {
-          getSubcommand: () => 'schedule-add',
+          getSubcommand: () => 'bogus',
           getRole: () => null,
           getUser: () => null,
         },
