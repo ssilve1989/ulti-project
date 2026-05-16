@@ -76,8 +76,10 @@ class ViewSettingsCommandHandler
 
       const {
         autoModChannelId,
+        absenceNotificationChannelId,
         progRoles,
         clearRoles,
+        coordinatorRole,
         reviewChannel,
         reviewerRole,
         signupChannel,
@@ -108,6 +110,16 @@ class ViewSettingsCommandHandler
         {
           name: 'Reviewer Role',
           value: formatRole(reviewerRole),
+          inline: true,
+        },
+        {
+          name: 'Helper Coordinator Role',
+          value: formatRole(coordinatorRole),
+          inline: true,
+        },
+        {
+          name: 'Absence Notification Channel',
+          value: formatChannel(absenceNotificationChannelId),
           inline: true,
         },
         {

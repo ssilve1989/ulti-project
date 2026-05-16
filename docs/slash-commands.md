@@ -38,7 +38,9 @@ Additional files per feature as needed:
 | `/lookup` | Yes | Look up all signups for a player by character name + world, including blacklist status |
 | `/blacklist add/remove/display` | Yes | Manage the list of players blocked from signing up |
 | `/encounters` | Yes | Configure encounter prog points and party size thresholds |
-| `/settings channels/reviewer/encounter-roles/spreadsheet/turbo-prog/view` | Yes (Manage Guild) | Configure bot channels, roles, reviewer gate, and spreadsheet IDs |
+| `/settings channels/reviewer/encounter-roles/spreadsheet/turbo-prog/coordinator-role/absence-channel/view` | Yes (Manage Guild) | Configure bot channels, roles, reviewer gate, spreadsheet IDs, and helper team settings |
+| `/teams create/edit/archive/members/view/schedule-add/schedule-edit/schedule-remove/schedule-list` | Yes (Manage Roles) | Manage helper teams, their Discord roles, and recurring session schedules |
+| `/helpers absent-session/absent-range/absent-remove/status` | No (helper/coordinator) | Report and manage helper team absences; coordinators can view team absence status |
 | `/turbo-prog` | No | Submit a lightweight signup for a turbo-prog or final-push event |
 | `/final-push` | No | Alias for `/turbo-prog` — same handler, different command name |
 | `/clean-roles` | Yes | Remove prog/clear roles from members without active signups (supports dry-run) |
