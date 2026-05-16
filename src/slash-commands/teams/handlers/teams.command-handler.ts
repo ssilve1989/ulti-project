@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
@@ -7,6 +8,7 @@ import { ErrorService } from '../../../error/error.service.js';
 import { HelperTeamCollection } from '../../../firebase/collections/helper-team.collection.js';
 import { HelperTeamSessionCollection } from '../../../firebase/collections/helper-team-session.collection.js';
 import { HelperTeamAuthorizationService } from '../../../helper-team/helper-team-authorization.service.js';
+import { isValidTime } from '../../../helper-team/helper-team-time.js';
 import { TeamsCommand } from '../teams.commands.js';
 
 const DAY_NAMES = [
@@ -246,7 +248,64 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
   private async handleScheduleAdd(
     interaction: TeamsCommand['interaction'],
   ): Promise<void> {
-    await interaction.editReply('Not yet implemented.');
+    const memberRole = interaction.options.getRole('member-role', true);
+    const dayOfWeek = interaction.options.getInteger('day-of-week', true) as
+      | 1
+      | 2
+      | 3
+      | 4
+      | 5
+      | 6
+      | 7;
+    const startTime = interaction.options.getString('start-time', true);
+    const durationMinutes = interaction.options.getInteger(
+      'duration-minutes',
+      true,
+    );
+    const timezone = interaction.options.getString('timezone', true);
+
+    if (!isValidTime(startTime)) {
+      await interaction.editReply(
+        'Invalid start time. Use HH:mm format (e.g. 20:00).',
+      );
+      return;
+    }
+
+    const team = await this.helperTeamCollection.getByMemberRole(
+      interaction.guildId,
+      memberRole.id,
+    );
+    if (!team) {
+      await interaction.editReply(
+        `No team is configured for the role <@&${memberRole.id}>.`,
+      );
+      return;
+    }
+
+    if (team.leaderUserId !== interaction.user.id) {
+      await interaction.editReply(
+        `You are not the leader of the <@&${team.memberRoleId}> team.`,
+      );
+      return;
+    }
+
+    const now = Timestamp.now();
+    await this.sessionCollection.upsert({
+      guildId: interaction.guildId,
+      sessionId: randomUUID(),
+      teamId: team.teamId,
+      active: true,
+      dayOfWeek,
+      startTime,
+      durationMinutes,
+      timezone,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await interaction.editReply(
+      `Schedule added: ${DAY_NAMES[dayOfWeek]} at ${startTime} (${durationMinutes}min, ${timezone}).`,
+    );
   }
 
   private async handleScheduleList(

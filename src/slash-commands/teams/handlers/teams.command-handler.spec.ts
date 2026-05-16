@@ -495,6 +495,166 @@ describe('TeamsCommandHandler', () => {
     });
   });
 
+  describe('schedule-add subcommand', () => {
+    const now = Timestamp.now();
+    const team = {
+      guildId: 'guild-id',
+      teamId: 'member-role-id',
+      active: true,
+      memberRoleId: 'member-role-id',
+      leaderUserId: 'coordinator-id', // matches interaction.user.id
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    it('upserts a new session and replies with day/time summary', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(team);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-add',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+          getInteger: (name: string) => {
+            if (name === 'day-of-week') return 5;
+            if (name === 'duration-minutes') return 120;
+            return null;
+          },
+          getString: (name: string) => {
+            if (name === 'start-time') return '20:00';
+            if (name === 'timezone') return 'America/Denver';
+            return null;
+          },
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(sessionCollection.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          guildId: 'guild-id',
+          teamId: 'member-role-id',
+          active: true,
+          dayOfWeek: 5,
+          startTime: '20:00',
+          durationMinutes: 120,
+          timezone: 'America/Denver',
+        }),
+      );
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.stringContaining('Fri'),
+      );
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.stringContaining('20:00'),
+      );
+    });
+
+    it('rejects with invalid-time error before any Firestore reads', async () => {
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-add',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+          getInteger: (name: string) => {
+            if (name === 'day-of-week') return 5;
+            if (name === 'duration-minutes') return 120;
+            return null;
+          },
+          getString: (name: string) => {
+            if (name === 'start-time') return 'bad-time';
+            if (name === 'timezone') return 'America/Denver';
+            return null;
+          },
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'Invalid start time. Use HH:mm format (e.g. 20:00).',
+      );
+      expect(helperTeamCollection.getByMemberRole).not.toHaveBeenCalled();
+      expect(sessionCollection.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects when no team is configured for the role', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(undefined);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-add',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'role-id' } : null,
+          getInteger: (name: string) => {
+            if (name === 'day-of-week') return 1;
+            if (name === 'duration-minutes') return 60;
+            return null;
+          },
+          getString: (name: string) => {
+            if (name === 'start-time') return '19:00';
+            if (name === 'timezone') return 'UTC';
+            return null;
+          },
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'No team is configured for the role <@&role-id>.',
+      );
+      expect(sessionCollection.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects when coordinator is not the team leader', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce({
+        ...team,
+        leaderUserId: 'someone-else-id',
+      });
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-add',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+          getInteger: (name: string) => {
+            if (name === 'day-of-week') return 5;
+            if (name === 'duration-minutes') return 120;
+            return null;
+          },
+          getString: (name: string) => {
+            if (name === 'start-time') return '20:00';
+            if (name === 'timezone') return 'America/Denver';
+            return null;
+          },
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'You are not the leader of the <@&member-role-id> team.',
+      );
+      expect(sessionCollection.upsert).not.toHaveBeenCalled();
+    });
+  });
+
   describe('unknown subcommand', () => {
     it('replies with unknown subcommand for unrecognized input', async () => {
       const interaction = {
