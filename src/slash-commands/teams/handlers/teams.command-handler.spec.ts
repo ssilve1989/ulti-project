@@ -1,5 +1,9 @@
 import { Test } from '@nestjs/testing';
-import type { ChatInputCommandInteraction, GuildMember } from 'discord.js';
+import {
+  type ChatInputCommandInteraction,
+  DiscordjsErrorCodes,
+  type GuildMember,
+} from 'discord.js';
 import { Timestamp } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
@@ -772,6 +776,190 @@ describe('TeamsCommandHandler', () => {
         user: { id: 'coordinator-id' },
         options: {
           getSubcommand: () => 'schedule-list',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'You are not the leader of the <@&member-role-id> team.',
+      );
+      expect(sessionCollection.getActiveForTeams).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('schedule-remove subcommand', () => {
+    const now = Timestamp.now();
+    const team = {
+      guildId: 'guild-id',
+      teamId: 'member-role-id',
+      active: true,
+      memberRoleId: 'member-role-id',
+      leaderUserId: 'coordinator-id',
+      createdAt: now,
+      updatedAt: now,
+    };
+    const session = {
+      guildId: 'guild-id',
+      sessionId: 's1',
+      teamId: 'member-role-id',
+      active: true,
+      dayOfWeek: 5 as const,
+      startTime: '20:00',
+      durationMinutes: 120,
+      timezone: 'America/Denver',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    it('shows a select menu with active sessions', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(team);
+      sessionCollection.getActiveForTeams.mockResolvedValueOnce([session]);
+
+      const componentInteraction = { values: ['s1'], deferUpdate: vi.fn() };
+      const replyMessage = {
+        awaitMessageComponent: vi.fn().mockResolvedValue(componentInteraction),
+      };
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-remove',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn().mockResolvedValue(replyMessage),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      const firstCall = (interaction.editReply as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
+      expect(firstCall).toMatchObject({ components: expect.any(Array) });
+    });
+
+    it('archives the selected session and replies with success', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(team);
+      sessionCollection.getActiveForTeams.mockResolvedValueOnce([session]);
+
+      const componentInteraction = { values: ['s1'], deferUpdate: vi.fn() };
+      const replyMessage = {
+        awaitMessageComponent: vi.fn().mockResolvedValue(componentInteraction),
+      };
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-remove',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn().mockResolvedValue(replyMessage),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(sessionCollection.archive).toHaveBeenCalledWith('guild-id', 's1');
+      expect(interaction.editReply).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining('removed'),
+          components: [],
+        }),
+      );
+    });
+
+    it('replies with timeout when selection times out', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(team);
+      sessionCollection.getActiveForTeams.mockResolvedValueOnce([session]);
+
+      const replyMessage = {
+        awaitMessageComponent: vi.fn().mockRejectedValue({
+          code: DiscordjsErrorCodes.InteractionCollectorError,
+        }),
+      };
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-remove',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn().mockResolvedValue(replyMessage),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenLastCalledWith({
+        content: 'Selection timed out.',
+        components: [],
+      });
+      expect(sessionCollection.archive).not.toHaveBeenCalled();
+    });
+
+    it('replies with no-sessions message when team has no active sessions', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(team);
+      sessionCollection.getActiveForTeams.mockResolvedValueOnce([]);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-remove',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'No active sessions for this team.',
+      );
+    });
+
+    it('rejects when no team is configured for the role', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(undefined);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-remove',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'role-id' } : null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'No team is configured for the role <@&role-id>.',
+      );
+    });
+
+    it('rejects when coordinator is not the team leader', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce({
+        ...team,
+        leaderUserId: 'someone-else-id',
+      });
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-remove',
           getRole: (name: string) =>
             name === 'member-role' ? { id: 'member-role-id' } : null,
         },

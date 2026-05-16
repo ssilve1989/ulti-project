@@ -1,8 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
-import { EmbedBuilder, MessageFlags } from 'discord.js';
+import {
+  ActionRowBuilder,
+  ComponentType,
+  DiscordjsErrorCodes,
+  EmbedBuilder,
+  MessageFlags,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
+} from 'discord.js';
 import { Timestamp } from 'firebase-admin/firestore';
+import { isSameUserFilter } from '../../../common/collection-filters.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { HelperTeamCollection } from '../../../firebase/collections/helper-team.collection.js';
@@ -378,6 +387,94 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
   private async handleScheduleRemove(
     interaction: TeamsCommand['interaction'],
   ): Promise<void> {
-    await interaction.editReply('Not yet implemented.');
+    const memberRole = interaction.options.getRole('member-role', true);
+
+    const team = await this.helperTeamCollection.getByMemberRole(
+      interaction.guildId,
+      memberRole.id,
+    );
+    if (!team) {
+      await interaction.editReply(
+        `No team is configured for the role <@&${memberRole.id}>.`,
+      );
+      return;
+    }
+
+    if (team.leaderUserId !== interaction.user.id) {
+      await interaction.editReply(
+        `You are not the leader of the <@&${team.memberRoleId}> team.`,
+      );
+      return;
+    }
+
+    const sessions = await this.sessionCollection.getActiveForTeams(
+      interaction.guildId,
+      [team.teamId],
+    );
+    if (sessions.length === 0) {
+      await interaction.editReply('No active sessions for this team.');
+      return;
+    }
+
+    const options = sessions.map((s) =>
+      new StringSelectMenuOptionBuilder()
+        .setLabel(
+          `${DAY_NAMES[s.dayOfWeek]} ${s.startTime} — ${s.durationMinutes}min (${s.timezone})`,
+        )
+        .setValue(s.sessionId),
+    );
+
+    const select = new StringSelectMenuBuilder()
+      .setCustomId('schedule-remove-select')
+      .setPlaceholder('Select a session to remove')
+      .addOptions(options);
+
+    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+      select,
+    );
+
+    const replyMessage = await interaction.editReply({ components: [row] });
+
+    let componentInteraction: Awaited<
+      ReturnType<
+        typeof replyMessage.awaitMessageComponent<ComponentType.StringSelect>
+      >
+    >;
+    try {
+      componentInteraction =
+        await replyMessage.awaitMessageComponent<ComponentType.StringSelect>({
+          filter: isSameUserFilter(interaction.user),
+          time: 60_000,
+        });
+    } catch (error: unknown) {
+      if (
+        error !== null &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === DiscordjsErrorCodes.InteractionCollectorError
+      ) {
+        await interaction.editReply({
+          content: 'Selection timed out.',
+          components: [],
+        });
+        return;
+      }
+      throw error;
+    }
+
+    await componentInteraction.deferUpdate();
+
+    const sessionId = componentInteraction.values[0];
+    await this.sessionCollection.archive(interaction.guildId, sessionId);
+
+    const session = sessions.find((s) => s.sessionId === sessionId);
+    const label = session
+      ? `${DAY_NAMES[session.dayOfWeek]} ${session.startTime}`
+      : sessionId;
+
+    await interaction.editReply({
+      content: `Session **${label}** removed.`,
+      components: [],
+    });
   }
 }
