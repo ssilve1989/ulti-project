@@ -18,7 +18,7 @@ export class HelperTeamNotificationService {
   public async sendSessionAbsenceNotification(input: {
     guildId: string;
     helperUserId: string;
-    teamName: string;
+    teamRoleId: string;
     occurrenceUnixSeconds: number;
     reason?: string;
   }): Promise<NotificationResult> {
@@ -28,7 +28,7 @@ export class HelperTeamNotificationService {
     const embed = new EmbedBuilder()
       .setTitle('Helper Absence Reported')
       .setDescription(
-        `<@${input.helperUserId}> has reported an absence for the **${input.teamName}** session on ${formatDiscordTimestamp(input.occurrenceUnixSeconds, 'f')} (${formatDiscordTimestamp(input.occurrenceUnixSeconds, 'R')}).`,
+        `<@${input.helperUserId}> has reported an absence for the <@&${input.teamRoleId}> session on ${formatDiscordTimestamp(input.occurrenceUnixSeconds, 'f')} (${formatDiscordTimestamp(input.occurrenceUnixSeconds, 'R')}).`,
       );
 
     if (input.reason) {

@@ -239,13 +239,12 @@ export class HelpersCommandHandler implements ICommandHandler<HelpersCommand> {
     });
 
     const membership = memberships.find((m) => m.teamId === teamId);
-    const teamName = membership?.roleName ?? teamId;
 
     const notification =
       await this.notificationService.sendSessionAbsenceNotification({
         guildId: interaction.guildId,
         helperUserId: interaction.user.id,
-        teamName,
+        teamRoleId: membership?.memberRoleId ?? teamId,
         occurrenceUnixSeconds,
         reason: reason ?? undefined,
       });

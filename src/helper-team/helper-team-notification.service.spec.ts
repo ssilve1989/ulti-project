@@ -37,7 +37,7 @@ describe('HelperTeamNotificationService', () => {
       const result = await service.sendSessionAbsenceNotification({
         guildId: 'guild-id',
         helperUserId: 'helper-id',
-        teamName: 'Alpha',
+        teamRoleId: 'alpha-role-id',
         occurrenceUnixSeconds: 1767225600,
         reason: 'Work conflict',
       });
@@ -56,7 +56,7 @@ describe('HelperTeamNotificationService', () => {
       const result = await service.sendSessionAbsenceNotification({
         guildId: 'guild-id',
         helperUserId: 'helper-id',
-        teamName: 'Alpha',
+        teamRoleId: 'alpha-role-id',
         occurrenceUnixSeconds: 1767225600,
       });
 
@@ -75,7 +75,7 @@ describe('HelperTeamNotificationService', () => {
       const result = await service.sendSessionAbsenceNotification({
         guildId: 'guild-id',
         helperUserId: 'helper-id',
-        teamName: 'Alpha',
+        teamRoleId: 'alpha-role-id',
         occurrenceUnixSeconds: 1767225600,
       });
 
