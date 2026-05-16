@@ -16,8 +16,7 @@ describe('HelperTeamMembershipService', () => {
 
   const alphaTeam = {
     guildId: 'guild-id',
-    teamId: 'alpha',
-    name: 'Alpha',
+    teamId: 'alpha-member-role',
     active: true,
     memberRoleId: 'alpha-member-role',
     leaderUserId: 'alpha-leader-user',
@@ -27,8 +26,7 @@ describe('HelperTeamMembershipService', () => {
 
   const bravoTeam = {
     guildId: 'guild-id',
-    teamId: 'bravo',
-    name: 'Bravo',
+    teamId: 'bravo-member-role',
     active: true,
     memberRoleId: 'bravo-member-role',
     leaderUserId: 'bravo-leader-user',
@@ -48,7 +46,7 @@ describe('HelperTeamMembershipService', () => {
     discordService = fixture.get(DiscordService);
   });
 
-  it('returns leader role for team where discordId matches leaderUserId', async () => {
+  it('returns leader role with roleName for team where discordId matches leaderUserId', async () => {
     helperTeamCollection.getActiveForGuild.mockResolvedValueOnce([
       alphaTeam,
       bravoTeam,
@@ -62,6 +60,9 @@ describe('HelperTeamMembershipService', () => {
       },
     } as unknown as GuildMember;
     discordService.getGuildMember.mockResolvedValueOnce(member);
+    discordService.getRoleName
+      .mockResolvedValueOnce('Alpha Role')
+      .mockResolvedValueOnce('Bravo Role');
 
     const result = await service.getMembershipsForUser(
       'guild-id',
@@ -70,15 +71,15 @@ describe('HelperTeamMembershipService', () => {
 
     expect(result).toEqual([
       {
-        teamId: 'alpha',
-        teamName: 'Alpha',
+        teamId: 'alpha-member-role',
+        roleName: 'Alpha Role',
         memberRoleId: 'alpha-member-role',
         leaderUserId: 'alpha-leader-user',
         role: 'leader',
       },
       {
-        teamId: 'bravo',
-        teamName: 'Bravo',
+        teamId: 'bravo-member-role',
+        roleName: 'Bravo Role',
         memberRoleId: 'bravo-member-role',
         leaderUserId: 'bravo-leader-user',
         role: 'member',
@@ -96,6 +97,7 @@ describe('HelperTeamMembershipService', () => {
 
     const result = await service.getMembershipsForUser('guild-id', 'nobody');
     expect(result).toEqual([]);
+    expect(discordService.getRoleName).not.toHaveBeenCalled();
   });
 
   it('returns empty array when guild member not found', async () => {
@@ -104,15 +106,17 @@ describe('HelperTeamMembershipService', () => {
 
     const result = await service.getMembershipsForUser('guild-id', 'nobody');
     expect(result).toEqual([]);
+    expect(discordService.getRoleName).not.toHaveBeenCalled();
   });
 
-  it('prefers leader when discordId matches leaderUserId and user also has member role', async () => {
+  it('prefers leader role when discordId matches leaderUserId and user also has member role', async () => {
     helperTeamCollection.getActiveForGuild.mockResolvedValueOnce([alphaTeam]);
 
     const member = {
       roles: { cache: { has: () => true } },
     } as unknown as GuildMember;
     discordService.getGuildMember.mockResolvedValueOnce(member);
+    discordService.getRoleName.mockResolvedValueOnce('Alpha Role');
 
     const result = await service.getMembershipsForUser(
       'guild-id',

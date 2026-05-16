@@ -52,7 +52,7 @@ describe('HelperTeamAuthorizationService', () => {
       membershipService.getMembershipsForUser.mockResolvedValueOnce([
         {
           teamId: 'alpha',
-          teamName: 'Alpha',
+          roleName: 'Alpha',
           memberRoleId: 'mr',
           leaderUserId: 'leader-user-id',
           role: 'member',

@@ -5,7 +5,7 @@ import { HelperTeamCollection } from '../firebase/collections/helper-team.collec
 
 export interface HelperTeamMembership {
   teamId: string;
-  teamName: string;
+  roleName: string;
   memberRoleId: string;
   leaderUserId: string;
   role: 'member' | 'leader';
@@ -30,23 +30,24 @@ export class HelperTeamMembershipService {
 
     if (!member) return [];
 
-    const memberships: HelperTeamMembership[] = [];
-
-    for (const team of teams) {
+    const userTeams = teams.filter((team) => {
       const isLeader = discordId === team.leaderUserId;
       const isMember = member.roles.cache.has(team.memberRoleId);
+      return isLeader || isMember;
+    });
 
-      if (isLeader || isMember) {
-        memberships.push({
-          teamId: team.teamId,
-          teamName: team.name,
-          memberRoleId: team.memberRoleId,
-          leaderUserId: team.leaderUserId,
-          role: isLeader ? 'leader' : 'member',
-        });
-      }
-    }
+    const roleNames = await Promise.all(
+      userTeams.map((t) =>
+        this.discordService.getRoleName({ guildId, roleId: t.memberRoleId }),
+      ),
+    );
 
-    return memberships;
+    return userTeams.map((team, i) => ({
+      teamId: team.teamId,
+      roleName: roleNames[i],
+      memberRoleId: team.memberRoleId,
+      leaderUserId: team.leaderUserId,
+      role: discordId === team.leaderUserId ? 'leader' : 'member',
+    }));
   }
 }

@@ -141,7 +141,7 @@ export class HelpersCommandHandler implements ICommandHandler<HelpersCommand> {
           const membership = memberships.find(
             (m) => m.teamId === session.teamId,
           );
-          const teamName = membership?.teamName ?? session.teamId;
+          const teamName = membership?.roleName ?? session.teamId;
           options.push(
             new StringSelectMenuOptionBuilder()
               .setLabel(`${teamName} — ${session.startTime}`)
@@ -239,7 +239,7 @@ export class HelpersCommandHandler implements ICommandHandler<HelpersCommand> {
     });
 
     const membership = memberships.find((m) => m.teamId === teamId);
-    const teamName = membership?.teamName ?? teamId;
+    const teamName = membership?.roleName ?? teamId;
 
     const notification =
       await this.notificationService.sendSessionAbsenceNotification({

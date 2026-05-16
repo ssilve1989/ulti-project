@@ -22,7 +22,7 @@ describe('HelpersCommandHandler', () => {
 
   const membership = {
     teamId: 'alpha',
-    teamName: 'Alpha',
+    roleName: 'Alpha',
     memberRoleId: 'member-role',
     leaderUserId: 'leader-user-id',
     role: 'member' as const,
