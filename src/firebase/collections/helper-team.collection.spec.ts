@@ -56,7 +56,6 @@ describe('HelperTeamCollection', () => {
     await collection.upsert({
       guildId: 'g1',
       teamId: 'alpha',
-      name: 'Alpha',
       active: true,
       memberRoleId: 'member-role',
       leaderUserId: 'leader-user',

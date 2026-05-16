@@ -3,8 +3,6 @@ import type { DocumentData, Timestamp } from 'firebase-admin/firestore';
 export interface HelperTeamDocument extends DocumentData {
   guildId: string;
   teamId: string;
-  name: string;
-  description?: string;
   active: boolean;
   memberRoleId: string;
   leaderUserId: string;
