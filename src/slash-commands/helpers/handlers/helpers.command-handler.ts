@@ -141,10 +141,10 @@ export class HelpersCommandHandler implements ICommandHandler<HelpersCommand> {
           const membership = memberships.find(
             (m) => m.teamId === session.teamId,
           );
-          const teamName = membership?.roleName ?? session.teamId;
+          const roleName = membership?.roleName ?? session.teamId;
           options.push(
             new StringSelectMenuOptionBuilder()
-              .setLabel(`${teamName} — ${session.startTime}`)
+              .setLabel(`${roleName} — ${session.startTime}`)
               .setValue(
                 `${session.teamId}|${session.sessionId}|${occurrence.unixSeconds}`,
               ),

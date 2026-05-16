@@ -69,7 +69,6 @@ describe('HelperTeamCollection', () => {
     const teamData = {
       guildId: 'g1',
       teamId: 'alpha',
-      name: 'Alpha',
       active: true,
     };
     doc.get.mockResolvedValueOnce({
