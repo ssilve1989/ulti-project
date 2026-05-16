@@ -655,6 +655,139 @@ describe('TeamsCommandHandler', () => {
     });
   });
 
+  describe('schedule-list subcommand', () => {
+    const now = Timestamp.now();
+    const team = {
+      guildId: 'guild-id',
+      teamId: 'member-role-id',
+      active: true,
+      memberRoleId: 'member-role-id',
+      leaderUserId: 'coordinator-id',
+      createdAt: now,
+      updatedAt: now,
+    };
+    const session = {
+      guildId: 'guild-id',
+      sessionId: 's1',
+      teamId: 'member-role-id',
+      active: true,
+      dayOfWeek: 5 as const,
+      startTime: '20:00',
+      durationMinutes: 120,
+      timezone: 'America/Denver',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    it('returns an embed with one field per session', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(team);
+      sessionCollection.getActiveForTeams.mockResolvedValueOnce([session]);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-list',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(sessionCollection.getActiveForTeams).toHaveBeenCalledWith(
+        'guild-id',
+        ['member-role-id'],
+      );
+
+      const replyArg = (interaction.editReply as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as {
+        embeds: {
+          data: { title: string; fields: { name: string; value: string }[] };
+        }[];
+      };
+      expect(replyArg.embeds[0].data.title).toContain('member-role-id');
+      expect(replyArg.embeds[0].data.fields[0].name).toContain('Fri');
+      expect(replyArg.embeds[0].data.fields[0].name).toContain('20:00');
+      expect(replyArg.embeds[0].data.fields[0].value).toContain(
+        'America/Denver',
+      );
+    });
+
+    it('replies with no-sessions message when team has no active sessions', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(team);
+      sessionCollection.getActiveForTeams.mockResolvedValueOnce([]);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-list',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'No active sessions for this team.',
+      );
+    });
+
+    it('rejects when no team is configured for the role', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(undefined);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-list',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'role-id' } : null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'No team is configured for the role <@&role-id>.',
+      );
+    });
+
+    it('rejects when coordinator is not the team leader', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce({
+        ...team,
+        leaderUserId: 'someone-else-id',
+      });
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-list',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        'You are not the leader of the <@&member-role-id> team.',
+      );
+      expect(sessionCollection.getActiveForTeams).not.toHaveBeenCalled();
+    });
+  });
+
   describe('unknown subcommand', () => {
     it('replies with unknown subcommand for unrecognized input', async () => {
       const interaction = {

@@ -8,7 +8,11 @@ import { ErrorService } from '../../../error/error.service.js';
 import { HelperTeamCollection } from '../../../firebase/collections/helper-team.collection.js';
 import { HelperTeamSessionCollection } from '../../../firebase/collections/helper-team-session.collection.js';
 import { HelperTeamAuthorizationService } from '../../../helper-team/helper-team-authorization.service.js';
-import { isValidTime } from '../../../helper-team/helper-team-time.js';
+import {
+  formatDiscordTimestamp,
+  getNextOccurrence,
+  isValidTime,
+} from '../../../helper-team/helper-team-time.js';
 import { TeamsCommand } from '../teams.commands.js';
 
 const DAY_NAMES = [
@@ -311,7 +315,58 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
   private async handleScheduleList(
     interaction: TeamsCommand['interaction'],
   ): Promise<void> {
-    await interaction.editReply('Not yet implemented.');
+    const memberRole = interaction.options.getRole('member-role', true);
+
+    const team = await this.helperTeamCollection.getByMemberRole(
+      interaction.guildId,
+      memberRole.id,
+    );
+    if (!team) {
+      await interaction.editReply(
+        `No team is configured for the role <@&${memberRole.id}>.`,
+      );
+      return;
+    }
+
+    if (team.leaderUserId !== interaction.user.id) {
+      await interaction.editReply(
+        `You are not the leader of the <@&${team.memberRoleId}> team.`,
+      );
+      return;
+    }
+
+    const sessions = await this.sessionCollection.getActiveForTeams(
+      interaction.guildId,
+      [team.teamId],
+    );
+    if (sessions.length === 0) {
+      await interaction.editReply('No active sessions for this team.');
+      return;
+    }
+
+    const embed = new EmbedBuilder().setTitle(
+      `<@&${team.memberRoleId}> — Schedule`,
+    );
+
+    for (const session of sessions) {
+      let nextLine: string;
+      try {
+        const occurrence = getNextOccurrence({
+          ...session,
+          now: Temporal.Now.instant(),
+        });
+        nextLine = `Next: ${formatDiscordTimestamp(occurrence.unixSeconds, 'f')} (${formatDiscordTimestamp(occurrence.unixSeconds, 'R')})`;
+      } catch {
+        nextLine = 'Next: unavailable';
+      }
+      embed.addFields({
+        name: `${DAY_NAMES[session.dayOfWeek]} at ${session.startTime} (${session.durationMinutes}min)`,
+        value: `Timezone: ${session.timezone}\n${nextLine}`,
+        inline: false,
+      });
+    }
+
+    await interaction.editReply({ embeds: [embed] });
   }
 
   private async handleScheduleEdit(
