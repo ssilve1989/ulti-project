@@ -30,31 +30,18 @@ describe('TeamsCommandHandler', () => {
   });
 
   describe('create subcommand', () => {
-    it('upserts a new team with a leader user and replies with success', async () => {
+    it('upserts a new team using memberRoleId as teamId and replies with role mention', async () => {
       const interaction = {
         guildId: 'guild-id',
         user: { id: 'coordinator-id' },
         options: {
           getSubcommand: () => 'create',
-          getString: (name: string) => {
-            const values: Record<string, string> = {
-              name: 'Alpha',
-              description: 'Friday helper team',
-            };
-            return values[name] ?? null;
-          },
-          getRole: (name: string) => {
-            const roles: Record<string, { id: string; name: string }> = {
-              'member-role': { id: 'member-role-id', name: 'Alpha Member' },
-            };
-            return roles[name] ?? null;
-          },
-          getUser: (name: string) => {
-            const users: Record<string, { id: string }> = {
-              leader: { id: 'leader-user-id' },
-            };
-            return users[name] ?? null;
-          },
+          getRole: (name: string) =>
+            name === 'member-role'
+              ? { id: 'member-role-id', name: 'Alpha Member' }
+              : null,
+          getUser: (name: string) =>
+            name === 'leader' ? { id: 'leader-user-id' } : null,
         },
         deferReply: vi.fn(),
         editReply: vi.fn(),
@@ -65,14 +52,14 @@ describe('TeamsCommandHandler', () => {
       expect(helperTeamCollection.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           guildId: 'guild-id',
-          name: 'Alpha',
+          teamId: 'member-role-id',
           memberRoleId: 'member-role-id',
           leaderUserId: 'leader-user-id',
           active: true,
         }),
       );
       expect(interaction.editReply).toHaveBeenCalledWith(
-        expect.stringContaining('Alpha'),
+        'Team for <@&member-role-id> created successfully!',
       );
     });
   });
@@ -82,8 +69,7 @@ describe('TeamsCommandHandler', () => {
       const now = Timestamp.now();
       helperTeamCollection.getByMemberRole.mockResolvedValueOnce({
         guildId: 'guild-id',
-        teamId: 'alpha',
-        name: 'Alpha',
+        teamId: 'member-role-id',
         active: true,
         memberRoleId: 'member-role-id',
         leaderUserId: 'old-leader-id',
@@ -100,7 +86,6 @@ describe('TeamsCommandHandler', () => {
             name === 'member-role'
               ? { id: 'member-role-id', name: 'Alpha Member' }
               : null,
-          getString: () => null,
           getUser: (name: string) =>
             name === 'leader' ? { id: 'new-leader-id' } : null,
         },
@@ -114,7 +99,7 @@ describe('TeamsCommandHandler', () => {
         expect.objectContaining({ leaderUserId: 'new-leader-id' }),
       );
       expect(interaction.editReply).toHaveBeenCalledWith(
-        expect.stringContaining('Alpha'),
+        'Team for <@&member-role-id> updated.',
       );
     });
 
@@ -122,8 +107,7 @@ describe('TeamsCommandHandler', () => {
       const now = Timestamp.now();
       helperTeamCollection.getByMemberRole.mockResolvedValueOnce({
         guildId: 'guild-id',
-        teamId: 'alpha',
-        name: 'Alpha',
+        teamId: 'member-role-id',
         active: true,
         memberRoleId: 'member-role-id',
         leaderUserId: 'existing-leader-id',
@@ -140,7 +124,6 @@ describe('TeamsCommandHandler', () => {
             name === 'member-role'
               ? { id: 'member-role-id', name: 'Alpha Member' }
               : null,
-          getString: () => null,
           getUser: () => null,
         },
         deferReply: vi.fn(),
@@ -166,7 +149,6 @@ describe('TeamsCommandHandler', () => {
             name === 'member-role'
               ? { id: 'role-id', name: 'Unknown Role' }
               : null,
-          getString: () => null,
           getUser: () => null,
         },
         deferReply: vi.fn(),
@@ -180,51 +162,14 @@ describe('TeamsCommandHandler', () => {
       );
       expect(helperTeamCollection.upsert).not.toHaveBeenCalled();
     });
-
-    it('replies with the new name when name option is provided', async () => {
-      const now = Timestamp.now();
-      helperTeamCollection.getByMemberRole.mockResolvedValueOnce({
-        guildId: 'guild-id',
-        teamId: 'alpha',
-        name: 'Alpha',
-        active: true,
-        memberRoleId: 'member-role-id',
-        leaderUserId: 'leader-user-id',
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      const interaction = {
-        guildId: 'guild-id',
-        user: { id: 'coordinator-id' },
-        options: {
-          getSubcommand: () => 'edit',
-          getRole: (name: string) =>
-            name === 'member-role'
-              ? { id: 'member-role-id', name: 'Alpha Member' }
-              : null,
-          getString: (name: string) => (name === 'name' ? 'Beta' : null),
-          getUser: () => null,
-        },
-        deferReply: vi.fn(),
-        editReply: vi.fn(),
-      } as unknown as ChatInputCommandInteraction<'cached'>;
-
-      await handler.execute({ interaction });
-
-      expect(interaction.editReply).toHaveBeenCalledWith(
-        'Team **Beta** updated.',
-      );
-    });
   });
 
   describe('archive subcommand', () => {
-    it('archives the team matching the given role', async () => {
+    it('archives the team matching the given role and replies with role mention', async () => {
       const now = Timestamp.now();
       helperTeamCollection.getByMemberRole.mockResolvedValueOnce({
         guildId: 'guild-id',
-        teamId: 'alpha',
-        name: 'Alpha',
+        teamId: 'member-role-id',
         active: true,
         memberRoleId: 'member-role-id',
         leaderUserId: 'leader-user-id',
@@ -250,10 +195,10 @@ describe('TeamsCommandHandler', () => {
 
       expect(helperTeamCollection.archive).toHaveBeenCalledWith(
         'guild-id',
-        'alpha',
+        'member-role-id',
       );
       expect(interaction.editReply).toHaveBeenCalledWith(
-        expect.stringContaining('Alpha'),
+        'Team for <@&member-role-id> archived.',
       );
     });
 
@@ -284,12 +229,11 @@ describe('TeamsCommandHandler', () => {
   });
 
   describe('members subcommand', () => {
-    it('shows leader mention and role members in embed', async () => {
+    it('shows leader mention and role members in embed with role mention title', async () => {
       const now = Timestamp.now();
       helperTeamCollection.getByMemberRole.mockResolvedValueOnce({
         guildId: 'guild-id',
-        teamId: 'alpha',
-        name: 'Alpha',
+        teamId: 'member-role-id',
         active: true,
         memberRoleId: 'member-role-id',
         leaderUserId: 'leader-user-id',
@@ -326,8 +270,13 @@ describe('TeamsCommandHandler', () => {
 
       const replyArg = (interaction.editReply as ReturnType<typeof vi.fn>).mock
         .calls[0][0] as {
-        embeds: { data: { fields: { name: string; value: string }[] } }[];
+        embeds: {
+          data: { title: string; fields: { name: string; value: string }[] };
+        }[];
       };
+      expect(replyArg.embeds[0].data.title).toBe(
+        '<@&member-role-id> — Members',
+      );
       expect(replyArg.embeds[0].data.fields[0]).toMatchObject({
         name: 'Leader',
         value: '<@leader-user-id>',
@@ -338,8 +287,7 @@ describe('TeamsCommandHandler', () => {
       const now = Timestamp.now();
       helperTeamCollection.getByMemberRole.mockResolvedValueOnce({
         guildId: 'guild-id',
-        teamId: 'alpha',
-        name: 'Alpha',
+        teamId: 'member-role-id',
         active: true,
         memberRoleId: 'member-role-id',
         leaderUserId: 'leader-user-id',
@@ -400,55 +348,6 @@ describe('TeamsCommandHandler', () => {
     });
   });
 
-  describe('unknown subcommand', () => {
-    it('replies with unknown subcommand for unrecognized input', async () => {
-      const interaction = {
-        guildId: 'guild-id',
-        user: { id: 'coordinator-id' },
-        options: {
-          getSubcommand: () => 'schedule-add',
-          getString: () => null,
-          getRole: () => null,
-          getUser: () => null,
-        },
-        deferReply: vi.fn(),
-        editReply: vi.fn(),
-      } as unknown as ChatInputCommandInteraction<'cached'>;
-
-      await handler.execute({ interaction });
-
-      expect(interaction.editReply).toHaveBeenCalledWith(
-        expect.stringContaining('Unknown subcommand'),
-      );
-    });
-  });
-
-  describe('permission check', () => {
-    it('replies with permission denied when user is not a coordinator', async () => {
-      authorizationService.isCoordinator.mockResolvedValueOnce(false);
-
-      const interaction = {
-        guildId: 'guild-id',
-        user: { id: 'user-id' },
-        options: {
-          getSubcommand: () => 'create',
-          getString: () => 'Alpha',
-          getRole: () => ({ id: 'role-id', name: 'Role' }),
-          getUser: () => null,
-        },
-        deferReply: vi.fn(),
-        editReply: vi.fn(),
-      } as unknown as ChatInputCommandInteraction<'cached'>;
-
-      await handler.execute({ interaction });
-
-      expect(interaction.editReply).toHaveBeenCalledWith({
-        content: 'You do not have permission to use this command.',
-      });
-      expect(helperTeamCollection.upsert).not.toHaveBeenCalled();
-    });
-  });
-
   describe('view subcommand', () => {
     it('replies with no-teams message when no active teams exist', async () => {
       helperTeamCollection.getActiveForGuild.mockResolvedValueOnce([]);
@@ -468,13 +367,12 @@ describe('TeamsCommandHandler', () => {
       );
     });
 
-    it('shows role mention as field name and leader-first member mentions as field value', async () => {
+    it('shows fetched role name as field name and leader-first member mentions as value', async () => {
       const now = Timestamp.now();
       helperTeamCollection.getActiveForGuild.mockResolvedValueOnce([
         {
           guildId: 'guild-id',
-          teamId: 'alpha',
-          name: 'Alpha',
+          teamId: 'role-alpha',
           active: true,
           memberRoleId: 'role-alpha',
           leaderUserId: 'leader-id',
@@ -485,6 +383,7 @@ describe('TeamsCommandHandler', () => {
 
       const member1 = { user: { id: 'member-1' } } as unknown as GuildMember;
       discordService.getMembersWithRole.mockResolvedValueOnce([member1]);
+      discordService.getRoleName.mockResolvedValueOnce('Alpha Role');
 
       const interaction = {
         guildId: 'guild-id',
@@ -496,7 +395,7 @@ describe('TeamsCommandHandler', () => {
 
       await handler.execute({ interaction });
 
-      expect(discordService.getMembersWithRole).toHaveBeenCalledWith({
+      expect(discordService.getRoleName).toHaveBeenCalledWith({
         guildId: 'guild-id',
         roleId: 'role-alpha',
       });
@@ -506,7 +405,7 @@ describe('TeamsCommandHandler', () => {
         embeds: { data: { fields: { name: string; value: string }[] } }[];
       };
       expect(replyArg.embeds[0].data.fields[0]).toMatchObject({
-        name: '<@&role-alpha>',
+        name: 'Alpha Role',
         value: '<@leader-id> (Leader)\n<@member-1>',
       });
     });
@@ -516,8 +415,7 @@ describe('TeamsCommandHandler', () => {
       helperTeamCollection.getActiveForGuild.mockResolvedValueOnce([
         {
           guildId: 'guild-id',
-          teamId: 'alpha',
-          name: 'Alpha',
+          teamId: 'role-alpha',
           active: true,
           memberRoleId: 'role-alpha',
           leaderUserId: 'leader-id',
@@ -526,7 +424,6 @@ describe('TeamsCommandHandler', () => {
         },
       ]);
 
-      // The leader also holds the member role — should appear once, not twice
       const leaderMember = {
         user: { id: 'leader-id' },
       } as unknown as GuildMember;
@@ -537,6 +434,7 @@ describe('TeamsCommandHandler', () => {
         leaderMember,
         otherMember,
       ]);
+      discordService.getRoleName.mockResolvedValueOnce('Alpha Role');
 
       const interaction = {
         guildId: 'guild-id',
@@ -562,8 +460,7 @@ describe('TeamsCommandHandler', () => {
       helperTeamCollection.getActiveForGuild.mockResolvedValueOnce([
         {
           guildId: 'guild-id',
-          teamId: 'alpha',
-          name: 'Alpha',
+          teamId: 'role-alpha',
           active: true,
           memberRoleId: 'role-alpha',
           leaderUserId: 'leader-id',
@@ -573,6 +470,7 @@ describe('TeamsCommandHandler', () => {
       ]);
 
       discordService.getMembersWithRole.mockResolvedValueOnce([]);
+      discordService.getRoleName.mockResolvedValueOnce('Alpha Role');
 
       const interaction = {
         guildId: 'guild-id',
@@ -591,6 +489,53 @@ describe('TeamsCommandHandler', () => {
       expect(replyArg.embeds[0].data.fields[0].value).toBe(
         '<@leader-id> (Leader)',
       );
+    });
+  });
+
+  describe('unknown subcommand', () => {
+    it('replies with unknown subcommand for unrecognized input', async () => {
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-add',
+          getRole: () => null,
+          getUser: () => null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.stringContaining('Unknown subcommand'),
+      );
+    });
+  });
+
+  describe('permission check', () => {
+    it('replies with permission denied when user is not a coordinator', async () => {
+      authorizationService.isCoordinator.mockResolvedValueOnce(false);
+
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'user-id' },
+        options: {
+          getSubcommand: () => 'create',
+          getRole: () => ({ id: 'role-id', name: 'Role' }),
+          getUser: () => null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenCalledWith({
+        content: 'You do not have permission to use this command.',
+      });
+      expect(helperTeamCollection.upsert).not.toHaveBeenCalled();
     });
   });
 });

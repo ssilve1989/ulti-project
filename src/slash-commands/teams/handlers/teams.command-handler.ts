@@ -8,14 +8,6 @@ import { HelperTeamCollection } from '../../../firebase/collections/helper-team.
 import { HelperTeamAuthorizationService } from '../../../helper-team/helper-team-authorization.service.js';
 import { TeamsCommand } from '../teams.commands.js';
 
-function normalizeTeamId(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
 @CommandHandler(TeamsCommand)
 export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
   constructor(
@@ -74,17 +66,13 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
   private async handleCreate(
     interaction: TeamsCommand['interaction'],
   ): Promise<void> {
-    const name = interaction.options.getString('name', true);
-    const description = interaction.options.getString('description');
     const memberRole = interaction.options.getRole('member-role', true);
     const leaderUser = interaction.options.getUser('leader', true);
 
     const now = Timestamp.now();
     await this.helperTeamCollection.upsert({
       guildId: interaction.guildId,
-      teamId: normalizeTeamId(name),
-      name,
-      description: description ?? undefined,
+      teamId: memberRole.id,
       active: true,
       memberRoleId: memberRole.id,
       leaderUserId: leaderUser.id,
@@ -92,15 +80,15 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
       updatedAt: now,
     });
 
-    await interaction.editReply(`Team **${name}** created successfully!`);
+    await interaction.editReply(
+      `Team for <@&${memberRole.id}> created successfully!`,
+    );
   }
 
   private async handleEdit(
     interaction: TeamsCommand['interaction'],
   ): Promise<void> {
     const memberRole = interaction.options.getRole('member-role', true);
-    const name = interaction.options.getString('name');
-    const description = interaction.options.getString('description');
     const leaderUser = interaction.options.getUser('leader');
 
     const team = await this.helperTeamCollection.getByMemberRole(
@@ -114,17 +102,13 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
       return;
     }
 
-    const updatedName = name ?? team.name;
-
     await this.helperTeamCollection.upsert({
       ...team,
-      name: updatedName,
-      description: description ?? team.description,
       leaderUserId: leaderUser?.id ?? team.leaderUserId,
       updatedAt: Timestamp.now(),
     });
 
-    await interaction.editReply(`Team **${updatedName}** updated.`);
+    await interaction.editReply(`Team for <@&${team.memberRoleId}> updated.`);
   }
 
   private async handleArchive(
@@ -144,7 +128,7 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
     }
 
     await this.helperTeamCollection.archive(interaction.guildId, team.teamId);
-    await interaction.editReply(`Team **${team.name}** archived.`);
+    await interaction.editReply(`Team for <@&${team.memberRoleId}> archived.`);
   }
 
   private async handleMembers(
@@ -174,7 +158,7 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
         : 'None';
 
     const embed = new EmbedBuilder()
-      .setTitle(`${team.name} — Members`)
+      .setTitle(`<@&${team.memberRoleId}> — Members`)
       .addFields(
         { name: 'Leader', value: `<@${team.leaderUserId}>`, inline: true },
         { name: 'Members', value: memberList, inline: true },
@@ -195,14 +179,24 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
       return;
     }
 
-    const memberLists = await Promise.all(
-      teams.map((t) =>
-        this.discordService.getMembersWithRole({
-          guildId: interaction.guildId,
-          roleId: t.memberRoleId,
-        }),
+    const [memberLists, roleNames] = await Promise.all([
+      Promise.all(
+        teams.map((t) =>
+          this.discordService.getMembersWithRole({
+            guildId: interaction.guildId,
+            roleId: t.memberRoleId,
+          }),
+        ),
       ),
-    );
+      Promise.all(
+        teams.map((t) =>
+          this.discordService.getRoleName({
+            guildId: interaction.guildId,
+            roleId: t.memberRoleId,
+          }),
+        ),
+      ),
+    ]);
 
     const embed = new EmbedBuilder().setTitle('Active Helper Teams').addFields(
       teams.map((t, i) => {
@@ -214,7 +208,7 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
           ...nonLeaders.map((m) => `<@${m.user.id}>`),
         ];
         return {
-          name: `<@&${t.memberRoleId}>`,
+          name: roleNames[i],
           value: lines.join('\n'),
           inline: false,
         };

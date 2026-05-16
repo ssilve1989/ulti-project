@@ -7,9 +7,6 @@ import {
 const CreateSubcommand = new SlashCommandSubcommandBuilder()
   .setName('create')
   .setDescription('Create a new helper team')
-  .addStringOption((o) =>
-    o.setName('name').setDescription('Team name').setRequired(true),
-  )
   .addRoleOption((o) =>
     o
       .setName('member-role')
@@ -18,12 +15,6 @@ const CreateSubcommand = new SlashCommandSubcommandBuilder()
   )
   .addUserOption((o) =>
     o.setName('leader').setDescription('Team leader').setRequired(true),
-  )
-  .addStringOption((o) =>
-    o
-      .setName('description')
-      .setDescription('Team description')
-      .setRequired(false),
   );
 
 const EditSubcommand = new SlashCommandSubcommandBuilder()
@@ -34,15 +25,6 @@ const EditSubcommand = new SlashCommandSubcommandBuilder()
       .setName('member-role')
       .setDescription('Role for the team to edit')
       .setRequired(true),
-  )
-  .addStringOption((o) =>
-    o.setName('name').setDescription('New team name').setRequired(false),
-  )
-  .addStringOption((o) =>
-    o
-      .setName('description')
-      .setDescription('New team description')
-      .setRequired(false),
   )
   .addUserOption((o) =>
     o.setName('leader').setDescription('New team leader').setRequired(false),
