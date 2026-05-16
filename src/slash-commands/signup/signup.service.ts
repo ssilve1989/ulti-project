@@ -47,8 +47,10 @@ import { SettingsCollection } from '../../firebase/collections/settings-collecti
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import {
+  type ApprovedSignupDocument,
+  type DeclinedSignupDocument,
   PartyStatus,
-  type SignupDocument,
+  type PendingSignupDocument,
   SignupStatus,
 } from '../../firebase/models/signup.model.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
@@ -187,9 +189,12 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     // that there is no associated signup anymore
     const signup = await this.repository.findByReviewId(message.id);
 
-    if (signup.reviewedBy) {
+    if (
+      signup.status !== SignupStatus.PENDING &&
+      signup.status !== SignupStatus.UPDATE_PENDING
+    ) {
       this.logger.log(
-        `signup ${signup.reviewMessageId} already reviewed by ${user.displayName}`,
+        `signup ${signup.reviewMessageId} is already in status ${signup.status}`,
       );
       return;
     }
@@ -241,20 +246,25 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async handleApprovedReaction(
-    signup: SignupDocument,
+    signup: PendingSignupDocument,
     message: Message<true>,
     user: User,
     settings: SettingsDocument,
   ): Promise<SignupApprovedEvent> {
     const progPoint = await this.confirmProgPoint(signup, message, user);
-    const confirmedSignup = await this.buildConfirmedSignup(signup, progPoint);
-    await this.persistApprovedSignup(confirmedSignup, settings, user);
+    const approvedSignup = await this.buildApprovedSignup(
+      signup,
+      message,
+      user,
+      progPoint,
+    );
+    await this.persistApprovedSignup(approvedSignup, settings, user);
 
-    return new SignupApprovedEvent(confirmedSignup, settings, user, message);
+    return new SignupApprovedEvent(approvedSignup, settings, user, message);
   }
 
   private async confirmProgPoint(
-    signup: SignupDocument,
+    signup: PendingSignupDocument,
     message: Message<true>,
     user: User,
   ): Promise<string | undefined> {
@@ -263,23 +273,28 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     return await this.requestProgPointConfirmation(signup, sourceEmbed, user);
   }
 
-  private async buildConfirmedSignup(
-    signup: SignupDocument,
+  private async buildApprovedSignup(
+    signup: PendingSignupDocument,
+    message: Message<true>,
+    user: User,
     progPoint: string | undefined,
-  ): Promise<SignupDocument> {
+  ): Promise<ApprovedSignupDocument> {
     const partyStatus = progPoint
       ? await this.getPartyStatus(signup.encounter, progPoint)
       : undefined;
 
     return {
       ...signup,
+      status: SignupStatus.APPROVED,
+      reviewMessageId: signup.reviewMessageId ?? message.id,
+      reviewedBy: user.username,
       progPoint,
       partyStatus,
     };
   }
 
   private async persistApprovedSignup(
-    confirmedSignup: SignupDocument,
+    confirmedSignup: ApprovedSignupDocument,
     settings: SettingsDocument,
     user: User,
   ): Promise<void> {
@@ -299,38 +314,57 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         encounter: confirmedSignup.encounter,
       });
     } else {
-      await this.repository.updateSignupStatus(
-        SignupStatus.APPROVED,
-        confirmedSignup,
+      await this.repository.approveSignup(
+        {
+          discordId: confirmedSignup.discordId,
+          encounter: confirmedSignup.encounter,
+          partyStatus: confirmedSignup.partyStatus,
+          progPoint: confirmedSignup.progPoint,
+        },
         user.username,
       );
     }
   }
 
   private async handleDeclinedReaction(
-    signup: SignupDocument,
+    signup: PendingSignupDocument,
     message: Message<true>,
     user: User,
   ): Promise<SignupDeclinedEvent> {
+    const declinedSignup = this.buildDeclinedSignup(signup, user);
+
     // Update signup status immediately (for sequential reaction processing)
-    await this.repository.updateSignupStatus(
-      SignupStatus.DECLINED,
-      signup,
+    await this.repository.declineSignup(
+      {
+        discordId: declinedSignup.discordId,
+        encounter: declinedSignup.encounter,
+      },
       user.username,
     );
 
     // Fire decline reason request with event dispatch context (non-blocking)
     this.declineReasonRequestService
-      .requestDeclineReason(signup, user, message)
+      .requestDeclineReason(declinedSignup, user, message)
       .catch((error) => {
         this.logger.error(
           error,
-          `Failed to request decline reason for signup ${signup.discordId}-${signup.encounter}`,
+          `Failed to request decline reason for signup ${declinedSignup.discordId}-${declinedSignup.encounter}`,
         );
       });
 
     // Return event immediately for embed footer update
-    return new SignupDeclinedEvent(signup, user, message);
+    return new SignupDeclinedEvent(declinedSignup, user, message);
+  }
+
+  private buildDeclinedSignup(
+    signup: PendingSignupDocument,
+    user: User,
+  ): DeclinedSignupDocument {
+    return {
+      ...signup,
+      status: SignupStatus.DECLINED,
+      reviewedBy: user.username,
+    };
   }
 
   private async handleError(
@@ -357,15 +391,12 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
   @SentryTraced()
   private async requestProgPointConfirmation(
-    signup: SignupDocument,
+    signup: PendingSignupDocument,
     sourceEmbed: Embed,
     user: User,
   ): Promise<string | undefined> {
     const menu = await this.createProgPointMenu(signup.encounter);
-    const embed = buildProgPointConfirmationEmbed(
-      sourceEmbed,
-      signup.progPoint,
-    );
+    const embed = buildProgPointConfirmationEmbed(sourceEmbed);
 
     const message = await this.sendProgPointConfirmationMessage(
       user,

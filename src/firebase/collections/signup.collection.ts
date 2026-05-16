@@ -4,18 +4,44 @@ import day from 'dayjs';
 import {
   type CollectionReference,
   type DocumentData,
+  FieldValue,
   Firestore,
   type Query,
   Timestamp,
+  type UpdateData,
 } from 'firebase-admin/firestore';
+import { Encounter } from '../../encounters/encounters.consts.js';
 import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import {
+  type ApprovedSignupDocument,
   type CreateSignupDocumentProps,
+  PartyStatus,
+  type PendingSignupDocument,
   type SignupCompositeKeyProps as SignupCompositeKey,
   type SignupDocument,
   SignupStatus,
 } from '../models/signup.model.js';
+
+type SignupFilter = Partial<{
+  availability: string;
+  character: string;
+  declineReason: string;
+  discordId: string;
+  encounter: Encounter;
+  expiresAt: Timestamp;
+  notes: string | null;
+  partyStatus: PartyStatus;
+  progPoint: string;
+  progPointRequested: string;
+  reviewMessageId: string;
+  reviewedBy: string;
+  role: string;
+  screenshot: string | null;
+  status: SignupStatus;
+  username: string;
+  world: string;
+}>;
 
 @Injectable()
 class SignupCollection {
@@ -47,23 +73,29 @@ class SignupCollection {
     const existing = snapshot.data();
 
     if (existing) {
-      const signupData = {
-        ...existing,
+      const signupData: PendingSignupDocument = {
         ...props,
+        reviewMessageId: existing.reviewMessageId,
         // if there is already a signup and it is still PENDING we do nothing, otherwise we move it to UPDATE_PENDING
         status:
           existing.status === SignupStatus.PENDING
             ? SignupStatus.PENDING
             : SignupStatus.UPDATE_PENDING,
-        // reset the reviewedBy field because it now has to be reviewed again
-        reviewedBy: null,
         expiresAt,
       };
-      await document.update(signupData);
+      const updateData: UpdateData<SignupDocument> = {
+        ...signupData,
+        declineReason: FieldValue.delete(),
+        partyStatus: FieldValue.delete(),
+        progPoint: FieldValue.delete(),
+        reviewedBy: FieldValue.delete(),
+      };
+
+      await document.update(updateData);
       return signupData;
     }
 
-    const signupData = {
+    const signupData: PendingSignupDocument = {
       ...props,
       expiresAt,
       status: SignupStatus.PENDING,
@@ -81,16 +113,14 @@ class SignupCollection {
 
   @SentryTraced()
   public async findOne(
-    query: Partial<SignupDocument>,
+    query: SignupFilter,
   ): Promise<SignupDocument | undefined> {
     const snapshot = await this.where(query).limit(1).get();
     return snapshot.docs.at(0)?.data();
   }
 
   @SentryTraced()
-  public async findOneOrFail(
-    query: Partial<SignupDocument>,
-  ): Promise<SignupDocument> {
+  public async findOneOrFail(query: SignupFilter): Promise<SignupDocument> {
     const signup = await this.findOne(query);
 
     if (!signup) {
@@ -101,9 +131,7 @@ class SignupCollection {
   }
 
   @SentryTraced()
-  public async findAll(
-    query: Partial<SignupDocument>,
-  ): Promise<SignupDocument[]> {
+  public async findAll(query: SignupFilter): Promise<SignupDocument[]> {
     const snapshot = await this.where(query).get();
     return snapshot.docs.map((doc) => doc.data() as SignupDocument);
   }
@@ -137,21 +165,40 @@ class SignupCollection {
    * @returns
    */
   @SentryTraced()
-  public updateSignupStatus(
-    status: SignupStatus,
+  public approveSignup(
     {
       partyStatus,
       progPoint,
       ...key
-    }: SignupCompositeKey & Pick<SignupDocument, 'progPoint' | 'partyStatus'>,
+    }: SignupCompositeKey &
+      Pick<ApprovedSignupDocument, 'progPoint' | 'partyStatus'>,
     reviewedBy: string,
   ) {
-    return this.collection.doc(SignupCollection.getKeyForSignup(key)).update({
-      status,
+    const updateData: UpdateData<SignupDocument> = {
+      declineReason: FieldValue.delete(),
+      partyStatus,
       progPoint,
       reviewedBy,
-      partyStatus,
-    });
+      status: SignupStatus.APPROVED,
+    };
+
+    return this.collection
+      .doc(SignupCollection.getKeyForSignup(key))
+      .update(updateData);
+  }
+
+  @SentryTraced()
+  public declineSignup(key: SignupCompositeKey, reviewedBy: string) {
+    const updateData: UpdateData<SignupDocument> = {
+      partyStatus: FieldValue.delete(),
+      progPoint: FieldValue.delete(),
+      reviewedBy,
+      status: SignupStatus.DECLINED,
+    };
+
+    return this.collection
+      .doc(SignupCollection.getKeyForSignup(key))
+      .update(updateData);
   }
 
   /**
@@ -196,7 +243,7 @@ class SignupCollection {
    * @param props
    * @returns
    */
-  private where(props: Partial<SignupDocument>) {
+  private where(props: SignupFilter) {
     let query: Query = this.collection;
 
     for (const [key, value] of Object.entries(props)) {

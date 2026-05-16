@@ -46,23 +46,23 @@ class StatusCommandHandler implements ICommandHandler<StatusCommand> {
   }
 
   private createStatusEmbed(signups: SignupDocument[]) {
-    const fields = signups.flatMap(({ encounter, status, partyStatus }) => {
+    const fields = signups.flatMap((signup) => {
       const subfields = [
         {
           name: 'Encounter',
-          value: EncounterFriendlyDescription[encounter],
+          value: EncounterFriendlyDescription[signup.encounter],
           inline: true,
         },
         {
           name: 'Status',
-          value: `${SIGNUP_REVIEW_REACTIONS[status]} ${SignupStatus[status]}`,
+          value: `${SIGNUP_REVIEW_REACTIONS[signup.status]} ${SignupStatus[signup.status]}`,
           inline: true,
         },
       ];
 
-      if (partyStatus) {
+      if (signup.status === SignupStatus.APPROVED && signup.partyStatus) {
         subfields.push({
-          value: partyStatus,
+          value: signup.partyStatus,
           name: 'Party Type',
           inline: true,
         });
