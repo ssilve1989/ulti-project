@@ -1246,6 +1246,40 @@ describe('TeamsCommandHandler', () => {
       );
       expect(sessionCollection.getActiveForTeams).not.toHaveBeenCalled();
     });
+
+    it('replies with stale-session message when selected sessionId is not in the active list', async () => {
+      helperTeamCollection.getByMemberRole.mockResolvedValueOnce(team);
+      sessionCollection.getActiveForTeams.mockResolvedValueOnce([session]);
+
+      const componentInteraction = {
+        values: ['s-stale'],
+        deferUpdate: vi.fn(),
+      };
+      const replyMessage = {
+        awaitMessageComponent: vi.fn().mockResolvedValue(componentInteraction),
+      };
+      const interaction = {
+        guildId: 'guild-id',
+        user: { id: 'coordinator-id' },
+        options: {
+          getSubcommand: () => 'schedule-edit',
+          getRole: (name: string) =>
+            name === 'member-role' ? { id: 'member-role-id' } : null,
+          getInteger: () => null,
+          getString: () => null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn().mockResolvedValue(replyMessage),
+      } as unknown as ChatInputCommandInteraction<'cached'>;
+
+      await handler.execute({ interaction });
+
+      expect(interaction.editReply).toHaveBeenLastCalledWith({
+        content: 'That session is no longer active.',
+        components: [],
+      });
+      expect(sessionCollection.upsert).not.toHaveBeenCalled();
+    });
   });
 
   describe('unknown subcommand', () => {
