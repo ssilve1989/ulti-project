@@ -5,13 +5,26 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { HelperTeamCollection } from '../../../firebase/collections/helper-team.collection.js';
+import { HelperTeamSessionCollection } from '../../../firebase/collections/helper-team-session.collection.js';
 import { HelperTeamAuthorizationService } from '../../../helper-team/helper-team-authorization.service.js';
 import { TeamsCommand } from '../teams.commands.js';
+
+const DAY_NAMES = [
+  '',
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+  'Sun',
+] as const;
 
 @CommandHandler(TeamsCommand)
 export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
   constructor(
     private readonly helperTeamCollection: HelperTeamCollection,
+    private readonly sessionCollection: HelperTeamSessionCollection,
     private readonly discordService: DiscordService,
     private readonly authorizationService: HelperTeamAuthorizationService,
     private readonly errorService: ErrorService,
@@ -50,6 +63,18 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
           break;
         case 'view':
           await this.handleView(interaction);
+          break;
+        case 'schedule-add':
+          await this.handleScheduleAdd(interaction);
+          break;
+        case 'schedule-list':
+          await this.handleScheduleList(interaction);
+          break;
+        case 'schedule-edit':
+          await this.handleScheduleEdit(interaction);
+          break;
+        case 'schedule-remove':
+          await this.handleScheduleRemove(interaction);
           break;
         default:
           await interaction.editReply(`Unknown subcommand: ${subcommand}`);
@@ -216,5 +241,29 @@ export class TeamsCommandHandler implements ICommandHandler<TeamsCommand> {
     );
 
     await interaction.editReply({ embeds: [embed] });
+  }
+
+  private async handleScheduleAdd(
+    interaction: TeamsCommand['interaction'],
+  ): Promise<void> {
+    await interaction.editReply('Not yet implemented.');
+  }
+
+  private async handleScheduleList(
+    interaction: TeamsCommand['interaction'],
+  ): Promise<void> {
+    await interaction.editReply('Not yet implemented.');
+  }
+
+  private async handleScheduleEdit(
+    interaction: TeamsCommand['interaction'],
+  ): Promise<void> {
+    await interaction.editReply('Not yet implemented.');
+  }
+
+  private async handleScheduleRemove(
+    interaction: TeamsCommand['interaction'],
+  ): Promise<void> {
+    await interaction.editReply('Not yet implemented.');
   }
 }

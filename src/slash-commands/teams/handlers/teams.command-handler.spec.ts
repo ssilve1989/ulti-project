@@ -4,6 +4,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { HelperTeamCollection } from '../../../firebase/collections/helper-team.collection.js';
+import { HelperTeamSessionCollection } from '../../../firebase/collections/helper-team-session.collection.js';
 import { HelperTeamAuthorizationService } from '../../../helper-team/helper-team-authorization.service.js';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { TeamsCommandHandler } from './teams.command-handler.js';
@@ -11,6 +12,7 @@ import { TeamsCommandHandler } from './teams.command-handler.js';
 describe('TeamsCommandHandler', () => {
   let handler: TeamsCommandHandler;
   let helperTeamCollection: Mocked<HelperTeamCollection>;
+  let sessionCollection: Mocked<HelperTeamSessionCollection>;
   let authorizationService: Mocked<HelperTeamAuthorizationService>;
   let discordService: Mocked<DiscordService>;
 
@@ -23,6 +25,7 @@ describe('TeamsCommandHandler', () => {
 
     handler = fixture.get(TeamsCommandHandler);
     helperTeamCollection = fixture.get(HelperTeamCollection);
+    sessionCollection = fixture.get(HelperTeamSessionCollection);
     authorizationService = fixture.get(HelperTeamAuthorizationService);
     discordService = fixture.get(DiscordService);
 
