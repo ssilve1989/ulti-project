@@ -9,7 +9,7 @@
   "main": "dist/main.js",
   "packageManager": "pnpm@11.1.2",
   "engines": {
-    "node": ">=22.22.2"
+    "node": ">=22.22.3"
   },
   "scripts": {
     "build": "rimraf dist && tsgo -p tsconfig.build.json",
