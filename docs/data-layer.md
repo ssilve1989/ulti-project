@@ -13,7 +13,7 @@ The application uses Firebase Admin SDK / Firestore as its primary data store. K
 
 ## Collections
 
-The `FirebaseModule` (`src/firebase/firebase.module.ts`) initializes Firestore and exports five collection services:
+The `FirebaseModule` (`src/firebase/firebase.module.ts`) initializes Firestore and exports eight collection services:
 
 | Collection | Service Class | Purpose |
 |------------|--------------|---------|
@@ -22,6 +22,9 @@ The `FirebaseModule` (`src/firebase/firebase.module.ts`) initializes Firestore a
 | `blacklist` | `BlacklistCollection` | Players blocked from signing up |
 | `jobs` | `JobCollection` | Per-guild cron job enable/disable flags |
 | `encounters` | `EncountersCollection` | Encounter definitions with prog points and party thresholds |
+| `helperTeams` | `HelperTeamCollection` | Helper team metadata and role IDs |
+| `helperTeamSessions` | `HelperTeamSessionCollection` | Recurring session schedules per team |
+| `helperAbsences` | `HelperAbsenceCollection` | Session and date-range absences with TTL expiry |
 
 ---
 

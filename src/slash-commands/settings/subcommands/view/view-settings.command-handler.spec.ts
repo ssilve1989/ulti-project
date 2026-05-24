@@ -31,6 +31,8 @@ describe('View Settings Command Handler', () => {
     settingsCollection.getSettings.mockResolvedValueOnce({
       reviewChannel: '12345',
       reviewerRole: '67890',
+      coordinatorRole: 'coordinator-role-id',
+      absenceNotificationChannelId: 'absence-channel-id',
       signupChannel: '09876',
       progRoles: {},
     });
@@ -39,5 +41,23 @@ describe('View Settings Command Handler', () => {
 
     expect(interaction.deferReply).toHaveBeenCalled();
     expect(interaction.editReply).toHaveBeenCalled();
+    expect(interaction.editReply).toHaveBeenCalledWith({
+      embeds: [
+        expect.objectContaining({
+          data: expect.objectContaining({
+            fields: expect.arrayContaining([
+              expect.objectContaining({
+                name: 'Helper Coordinator Role',
+                value: '<@&coordinator-role-id>',
+              }),
+              expect.objectContaining({
+                name: 'Absence Notification Channel',
+                value: '<#absence-channel-id>',
+              }),
+            ]),
+          }),
+        }),
+      ],
+    });
   });
 });

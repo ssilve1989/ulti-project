@@ -5,6 +5,7 @@
 # Package manager lock files (use pnpm-lock.yaml only)
 package-lock.json
 yarn.lock
+.pnpm-store/
 
 # Logs
 logs

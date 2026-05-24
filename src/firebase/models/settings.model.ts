@@ -4,7 +4,9 @@ import { Encounter } from '../../encounters/encounters.consts.js';
 export interface SettingsDocument extends DocumentData {
   reviewChannel?: string;
   reviewerRole?: string;
+  coordinatorRole?: string;
   autoModChannelId?: string;
+  absenceNotificationChannelId?: string;
   signupChannel?: string;
   spreadsheetId?: string;
   turboProgActive?: boolean;
