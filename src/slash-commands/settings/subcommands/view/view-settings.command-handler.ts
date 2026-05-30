@@ -44,6 +44,21 @@ class ViewSettingsCommandHandler
     private readonly errorService: ErrorService,
   ) {}
 
+  private async buildSpreadsheetField(name: string, spreadsheetId: string) {
+    try {
+      const { title, url } =
+        await this.sheetsService.getSheetMetadata(spreadsheetId);
+      return { name, value: `[${title}](${url})`, inline: true };
+    } catch (error) {
+      this.errorService.captureError(error);
+      return {
+        name,
+        value: 'Unable to fetch sheet info',
+        inline: true,
+      };
+    }
+  }
+
   @SentryTraced()
   async execute({ interaction }: ViewSettingsCommand): Promise<void> {
     const scope = Sentry.getCurrentScope();
@@ -132,24 +147,21 @@ class ViewSettingsCommandHandler
       ];
 
       if (turboProgSpreadsheetId) {
-        const { title, url } = await this.sheetsService.getSheetMetadata(
-          turboProgSpreadsheetId,
+        fields.push(
+          await this.buildSpreadsheetField(
+            'Turbo Prog Spreadsheet',
+            turboProgSpreadsheetId,
+          ),
         );
-        fields.push({
-          name: 'Turbo Prog Spreadsheet',
-          value: `[${title}](${url})`,
-          inline: true,
-        });
       }
 
       if (spreadsheetId) {
-        const { title, url } =
-          await this.sheetsService.getSheetMetadata(spreadsheetId);
-        fields.push({
-          name: 'Managed Spreadsheet',
-          value: `[${title}](${url})`,
-          inline: true,
-        });
+        fields.push(
+          await this.buildSpreadsheetField(
+            'Managed Spreadsheet',
+            spreadsheetId,
+          ),
+        );
       }
 
       const embed = new EmbedBuilder()
