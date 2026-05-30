@@ -4,8 +4,6 @@ import { SentryTraced } from '@sentry/nestjs';
 import { MessageFlags } from 'discord.js';
 import {
   EncountersCommand,
-  ManageProgPointsCommand,
-  SetThresholdsCommand,
   ViewEncounterCommand,
 } from '../commands/encounters.commands.js';
 
@@ -23,22 +21,6 @@ export class EncountersCommandHandler
 
     try {
       switch (subcommand) {
-        case 'set-thresholds': {
-          const encounterId = interaction.options.getString('encounter', true);
-          await this.commandBus.execute(
-            new SetThresholdsCommand(interaction, encounterId),
-          );
-          break;
-        }
-
-        case 'manage-prog-points': {
-          const encounterId = interaction.options.getString('encounter', true);
-          await this.commandBus.execute(
-            new ManageProgPointsCommand(interaction, encounterId),
-          );
-          break;
-        }
-
         case 'view': {
           const encounterId = interaction.options.getString('encounter');
           await this.commandBus.execute(
