@@ -1,6 +1,6 @@
 ---
-name: adding-encounter-prog-points
-description: Use when adding or editing progression points in encounter YAML files, to avoid skipping validation or forgetting the required Firestore sync step
+name: edit-encounter-prog-points
+description: Use when adding, editing, or deleting progression points in encounter YAML files, to avoid skipping validation or forgetting the required Firestore sync step
 ---
 
 # Adding/Editing Encounter Progression Points
@@ -15,6 +15,7 @@ Encounter progression points define raid milestones in the Discord bot. They liv
 
 - Adding a new progression point to an encounter
 - Editing an existing prog point (rename, change status, etc.)
+- Deleting prog points
 - Deactivating prog points
 - Reorganizing prog point order
 
