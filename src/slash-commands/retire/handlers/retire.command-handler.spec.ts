@@ -4,7 +4,6 @@ import { Colors } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
-import { RetireCommand } from '../commands/retire.command.js';
 import { RetireCommandHandler } from './retire.command-handler.js';
 
 describe('RetireCommandHandler', () => {
@@ -83,7 +82,7 @@ describe('RetireCommandHandler', () => {
         retiredRoleId: 'same-id',
       });
 
-      await handler.execute(new RetireCommand(mock));
+      await handler.execute(mock);
 
       expect(editReply).toHaveBeenCalledWith({
         embeds: [
@@ -108,7 +107,7 @@ describe('RetireCommandHandler', () => {
         failCount: 0,
       });
 
-      await handler.execute(new RetireCommand(mock));
+      await handler.execute(mock);
 
       expect(discordService.retireRole).toHaveBeenCalledWith(
         'guild-123',
@@ -140,7 +139,7 @@ describe('RetireCommandHandler', () => {
         failCount: 0,
       });
 
-      await handler.execute(new RetireCommand(mock));
+      await handler.execute(mock);
 
       expect(discordService.retireRole).toHaveBeenCalledWith(
         'guild-123',
@@ -175,7 +174,7 @@ describe('RetireCommandHandler', () => {
         failCount: 1,
       });
 
-      await handler.execute(new RetireCommand(mock));
+      await handler.execute(mock);
 
       expect(editReply).toHaveBeenCalledWith({
         embeds: [
@@ -199,7 +198,7 @@ describe('RetireCommandHandler', () => {
         .fn()
         .mockRejectedValue(new Error('Something went wrong'));
 
-      await handler.execute(new RetireCommand(mock));
+      await handler.execute(mock);
 
       expect(editReply).toHaveBeenCalledWith({
         embeds: [

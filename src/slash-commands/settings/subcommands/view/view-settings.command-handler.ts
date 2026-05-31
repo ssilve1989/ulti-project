@@ -1,6 +1,7 @@
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import {
   channelMention,
   EmbedBuilder,
@@ -10,7 +11,9 @@ import {
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
-import { ViewSettingsCommand } from './view-settings.command.js';
+import { SlashCommand } from '../../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../../slash-command.interface.js';
+import { SettingsSlashCommand } from '../../settings.slash-command.js';
 
 function formatRole(roleId?: string) {
   return roleId ? roleMention(roleId) : 'No Role Set';
@@ -34,10 +37,9 @@ function reduceRoleSettings(
   );
 }
 
-@CommandHandler(ViewSettingsCommand)
-class ViewSettingsCommandHandler
-  implements ICommandHandler<ViewSettingsCommand>
-{
+@Injectable()
+@SlashCommand({ builder: SettingsSlashCommand, subcommand: 'view' })
+class ViewSettingsCommandHandler implements ISlashCommand {
   constructor(
     private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
@@ -60,7 +62,9 @@ class ViewSettingsCommandHandler
   }
 
   @SentryTraced()
-  async execute({ interaction }: ViewSettingsCommand): Promise<void> {
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
     const scope = Sentry.getCurrentScope();
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -74,7 +78,6 @@ class ViewSettingsCommandHandler
         return;
       }
 
-      // Add context about the retrieved settings
       scope.setContext('settings_data', {
         hasSpreadsheet: !!settings.spreadsheetId,
         hasTurboProgSpreadsheet: !!settings.turboProgSpreadsheetId,

@@ -1,6 +1,6 @@
-import { Logger } from '@nestjs/common';
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -16,7 +16,8 @@ import { Encounter } from '../../../encounters/encounters.consts.js';
 import { EncountersService } from '../../../encounters/encounters.service.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../../firebase/models/signup.model.js';
-import { SearchCommand } from '../commands/search.command.js';
+import { SlashCommand } from '../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../slash-command.interface.js';
 import {
   createEncounterSelectMenu,
   createProgPointSelectMenu,
@@ -25,9 +26,11 @@ import {
   SEARCH_PROG_POINT_SELECT_ID,
   SEARCH_RESET_BUTTON_ID,
 } from '../search.components.js';
+import { SearchSlashCommand } from '../search.slash-command.js';
 
-@CommandHandler(SearchCommand)
-class SearchCommandHandler implements ICommandHandler<SearchCommand> {
+@Injectable()
+@SlashCommand({ builder: SearchSlashCommand })
+class SearchCommandHandler implements ISlashCommand {
   private readonly logger = new Logger(SearchCommandHandler.name);
   private readonly applicationMode: ApplicationModeConfig;
 
@@ -39,7 +42,9 @@ class SearchCommandHandler implements ICommandHandler<SearchCommand> {
   }
 
   @SentryTraced()
-  async execute({ interaction }: SearchCommand): Promise<void> {
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const initialEmbed = new EmbedBuilder()

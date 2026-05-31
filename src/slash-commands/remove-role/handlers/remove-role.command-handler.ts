@@ -1,18 +1,23 @@
-import { Logger } from '@nestjs/common';
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import { DiscordService } from '../../../discord/discord.service.js';
-import { RemoveRoleCommand } from '../commands/remove-role.command.js';
+import { SlashCommand } from '../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../slash-command.interface.js';
+import { RemoveRoleSlashCommand } from '../remove-role.slash-command.js';
 
-@CommandHandler(RemoveRoleCommand)
-class RemoveRoleCommandHandler implements ICommandHandler<RemoveRoleCommand> {
+@Injectable()
+@SlashCommand({ builder: RemoveRoleSlashCommand })
+class RemoveRoleCommandHandler implements ISlashCommand {
   private readonly logger = new Logger(RemoveRoleCommandHandler.name);
 
   constructor(private readonly discordService: DiscordService) {}
 
   @SentryTraced()
-  async execute({ interaction }: RemoveRoleCommand) {
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const { guildId, options } = interaction;

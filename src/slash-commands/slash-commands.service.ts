@@ -1,5 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { CommandBus } from '@nestjs/cqrs';
+import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import {
   ChatInputCommandInteraction,
@@ -22,11 +21,7 @@ import { appConfig } from '../config/app.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { safeReply } from '../discord/discord.helpers.js';
 import { ErrorService } from '../error/error.service.js';
-import {
-  SLASH_COMMANDS_TOKEN,
-  type SlashCommands,
-} from './slash-commands.provider.js';
-import { getCommandForInteraction } from './slash-commands.utils.js';
+import { SlashCommandRegistry } from './slash-command-registry.service.js';
 
 @Injectable()
 class SlashCommandsService {
@@ -34,8 +29,7 @@ class SlashCommandsService {
 
   constructor(
     @InjectDiscordClient() private readonly client: Client,
-    private readonly commandBus: CommandBus,
-    @Inject(SLASH_COMMANDS_TOKEN) private readonly slashCommands: SlashCommands,
+    private readonly registry: SlashCommandRegistry,
     private readonly errorService: ErrorService,
   ) {}
 
@@ -58,20 +52,20 @@ class SlashCommandsService {
               scope.setTag('command', interaction.commandName);
               scope.setTag('guild_id', interaction.guildId);
 
-              const command = getCommandForInteraction(
-                interaction as ChatInputCommandInteraction<'cached'>,
-              );
+              try {
+                this.logger.debug(
+                  `dispatching command: ${interaction.commandName}`,
+                );
 
-              if (command) {
-                try {
-                  await this.commandBus.execute(command);
-                  span.setStatus({ code: 1 });
-                } catch (err) {
-                  await this.handleCommandError(err, interaction);
-                  span.setStatus({ code: 2 });
-                } finally {
-                  span.end();
-                }
+                await this.registry.dispatch(
+                  interaction as ChatInputCommandInteraction<'cached'>,
+                );
+                span.setStatus({ code: 1 });
+              } catch (err) {
+                await this.handleCommandError(err, interaction);
+                span.setStatus({ code: 2 });
+              } finally {
+                span.end();
               }
             });
           },
@@ -85,7 +79,6 @@ class SlashCommandsService {
 
     const clientId = appConfig.CLIENT_ID;
     const guildIds = this.client.guilds.cache.map((guild) => guild.id);
-
     const rest = new REST().setToken(appConfig.DISCORD_TOKEN);
 
     await lastValueFrom(
@@ -103,13 +96,14 @@ class SlashCommandsService {
     guildId: string,
     rest: REST,
   ): Observable<void> {
+    const builders = this.registry.getAllBuilders();
     return defer(async () => {
       await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
-        body: this.slashCommands,
+        body: builders,
       });
 
       this.logger.log(
-        `Successfully registered ${this.slashCommands.length} application commands for guild: ${guildId}`,
+        `Successfully registered ${builders.length} application commands for guild: ${guildId}`,
       );
     }).pipe(
       retry({

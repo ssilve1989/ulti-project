@@ -1,6 +1,6 @@
 import { URL } from 'node:url';
-import { Logger } from '@nestjs/common';
-import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable, Logger } from '@nestjs/common';
+import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
@@ -28,6 +28,7 @@ import {
   worldField,
 } from '../../../common/components/fields.js';
 import { createFields } from '../../../common/embed-helpers.js';
+import { appConfig } from '../../../config/app.js';
 import { UnhandledButtonInteractionException } from '../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import {
@@ -39,10 +40,12 @@ import { FFLogsService } from '../../../fflogs/fflogs.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../../firebase/models/signup.model.js';
-import { SignupCommand } from '../commands/signup.commands.js';
+import { SlashCommand } from '../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../slash-command.interface.js';
 import { SignupCreatedEvent } from '../events/signup.events.js';
 import { SIGNUP_MESSAGES } from '../signup.consts.js';
 import { type SignupSchema, signupSchema } from '../signup.schema.js';
+import { createSignupSlashCommand } from '../signup.slash-command.js';
 import {
   extractFflogsReportCode,
   isFFLogsUrl,
@@ -66,8 +69,9 @@ type FFLogsValidationResult =
       errorType: 'format' | 'age' | 'api';
     };
 
-@CommandHandler(SignupCommand)
-class SignupCommandHandler implements ICommandHandler<SignupCommand> {
+@Injectable()
+@SlashCommand({ builder: createSignupSlashCommand(appConfig.APPLICATION_MODE) })
+class SignupCommandHandler implements ISlashCommand {
   private readonly logger = new Logger(SignupCommandHandler.name);
   private static readonly SIGNUP_TIMEOUT = 60_000;
 
@@ -81,7 +85,9 @@ class SignupCommandHandler implements ICommandHandler<SignupCommand> {
   ) {}
 
   @SentryTraced()
-  async execute({ interaction }: SignupCommand) {
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
     const { username } = interaction.user;
 
     this.logger.debug(`handling signup command for user: ${username}`);

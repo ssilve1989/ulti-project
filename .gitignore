@@ -50,3 +50,4 @@ pr-description.md
 *.astro
 ai-docs/
 .worktrees/
+.opencode

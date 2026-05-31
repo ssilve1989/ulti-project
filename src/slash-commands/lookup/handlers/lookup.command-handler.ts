@@ -1,6 +1,7 @@
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import {
   Colors,
   CommandInteractionOptionResolver,
@@ -18,16 +19,19 @@ import { ErrorService } from '../../../error/error.service.js';
 import { BlacklistCollection } from '../../../firebase/collections/blacklist-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../../firebase/models/signup.model.js';
-import { LookupCommand } from '../commands/lookup.command.js';
+import { SlashCommand } from '../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../slash-command.interface.js';
 import { type LookupSchema, lookupSchema } from '../lookup.schema.js';
+import { LookupSlashCommand } from '../lookup.slash-command.js';
 
 type BlacklistStatus = 'No' | 'Yes' | 'Unknown';
 type SignupWithBlacklistStatus = SignupDocument & {
   blacklistStatus: BlacklistStatus;
 };
 
-@CommandHandler(LookupCommand)
-class LookupCommandHandler implements ICommandHandler<LookupCommand> {
+@Injectable()
+@SlashCommand({ builder: LookupSlashCommand })
+class LookupCommandHandler implements ISlashCommand {
   constructor(
     private readonly signupsCollection: SignupCollection,
     private readonly blacklistCollection: BlacklistCollection,
@@ -35,7 +39,9 @@ class LookupCommandHandler implements ICommandHandler<LookupCommand> {
   ) {}
 
   @SentryTraced()
-  async execute({ interaction }: LookupCommand): Promise<void> {
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
     try {
       const scope = Sentry.getCurrentScope();
       const { options, guildId } = interaction;

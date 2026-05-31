@@ -2,8 +2,10 @@ import {
   ApplicationCommandOptionType,
   PermissionFlagsBits,
   PermissionsBitField,
+  type SlashCommandBuilder,
+  type SlashCommandOptionsOnlyBuilder,
+  type SlashCommandSubcommandsOnlyBuilder,
 } from 'discord.js';
-import type { SlashCommands } from '../slash-commands.provider.js';
 
 export interface CommandInfo {
   name: string;
@@ -12,7 +14,7 @@ export interface CommandInfo {
   subcommands?: string[];
 }
 
-export function getCommandPermissionLevel(
+function getCommandPermissionLevel(
   defaultMemberPermissions: string | null | undefined,
 ): 'public' | 'manageGuild' | 'administrator' {
   if (!defaultMemberPermissions) {
@@ -33,7 +35,13 @@ export function getCommandPermissionLevel(
 }
 
 function extractSubcommands(
-  command: ReturnType<SlashCommands[0]['toJSON']>,
+  command: ReturnType<
+    (
+      | SlashCommandBuilder
+      | SlashCommandSubcommandsOnlyBuilder
+      | SlashCommandOptionsOnlyBuilder
+    )['toJSON']
+  >,
 ): string[] {
   const subcommands: string[] = [];
 
@@ -49,12 +57,16 @@ function extractSubcommands(
 }
 
 export function getAvailableCommands(
-  slashCommands: SlashCommands,
+  builders: (
+    | SlashCommandBuilder
+    | SlashCommandSubcommandsOnlyBuilder
+    | SlashCommandOptionsOnlyBuilder
+  )[],
 ): CommandInfo[] {
-  return slashCommands
-    .filter((command) => command.name !== 'help') // Exclude help command itself
-    .map((command) => {
-      const commandData = command.toJSON();
+  return builders
+    .filter((builder) => builder.name !== 'help')
+    .map((builder) => {
+      const commandData = builder.toJSON();
       const subcommands = extractSubcommands(commandData);
 
       return {

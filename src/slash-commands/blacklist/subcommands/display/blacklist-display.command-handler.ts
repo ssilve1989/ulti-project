@@ -1,20 +1,24 @@
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable } from '@nestjs/common';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { DiscordService } from '../../../../discord/discord.service.js';
 import { BlacklistCollection } from '../../../../firebase/collections/blacklist-collection.js';
-import { BlacklistDisplayCommand } from '../../blacklist.commands.js';
+import { SlashCommand } from '../../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../../slash-command.interface.js';
+import { BlacklistSlashCommand } from '../../blacklist.slash-command.js';
 import { createBlacklistEmbedFields } from '../../blacklist.utils.js';
 
-@CommandHandler(BlacklistDisplayCommand)
-class BlacklistDisplayCommandHandler
-  implements ICommandHandler<BlacklistDisplayCommand>
-{
+@Injectable()
+@SlashCommand({ builder: BlacklistSlashCommand, subcommand: 'display' })
+class BlacklistDisplayCommandHandler implements ISlashCommand {
   constructor(
     private readonly blacklistCollection: BlacklistCollection,
     private readonly discordService: DiscordService,
   ) {}
 
-  async execute({ interaction }: BlacklistDisplayCommand) {
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const results = await this.blacklistCollection.getBlacklist(

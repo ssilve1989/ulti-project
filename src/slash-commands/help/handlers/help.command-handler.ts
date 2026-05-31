@@ -1,7 +1,8 @@
-import { Inject } from '@nestjs/common';
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import {
   Colors,
   EmbedBuilder,
@@ -9,28 +10,40 @@ import {
   PermissionsBitField,
 } from 'discord.js';
 import { ErrorService } from '../../../error/error.service.js';
-import {
-  SLASH_COMMANDS_TOKEN,
-  type SlashCommands,
-} from '../../slash-commands.provider.js';
-import { HelpCommand } from '../commands/help.command.js';
+import { SlashCommand } from '../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../slash-command.interface.js';
+import { SlashCommandRegistry } from '../../slash-command-registry.service.js';
+import { HelpSlashCommand } from '../help.slash-command.js';
 import {
   type CommandInfo,
   filterCommandsByPermissions,
   getAvailableCommands,
 } from '../help.utils.js';
 
-@CommandHandler(HelpCommand)
-class HelpCommandHandler implements ICommandHandler<HelpCommand> {
+@Injectable()
+@SlashCommand({ builder: HelpSlashCommand })
+class HelpCommandHandler implements ISlashCommand {
+  private registry!: SlashCommandRegistry;
+
   constructor(
-    @Inject(SLASH_COMMANDS_TOKEN) private readonly slashCommands: SlashCommands,
+    private readonly moduleRef: ModuleRef,
     private readonly errorService: ErrorService,
   ) {}
 
+  private getRegistry(): SlashCommandRegistry {
+    if (!this.registry) {
+      this.registry = this.moduleRef.get(SlashCommandRegistry, {
+        strict: false,
+      });
+    }
+    return this.registry;
+  }
+
   @SentryTraced()
-  async execute({ interaction }: HelpCommand): Promise<void> {
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
     const scope = Sentry.getCurrentScope();
-    // Add command-specific Sentry context
     scope.setContext('help_command', {
       hasAdminPerms:
         interaction.memberPermissions?.has(
@@ -54,14 +67,15 @@ class HelpCommandHandler implements ICommandHandler<HelpCommand> {
           PermissionsBitField.Flags.ManageGuild,
         ) ?? false;
 
-      const allCommands = getAvailableCommands(this.slashCommands);
+      const allCommands = getAvailableCommands(
+        this.getRegistry().getAllBuilders(),
+      );
       const availableCommands = filterCommandsByPermissions(
         allCommands,
         isAdmin,
         canManageGuild,
       );
 
-      // Add context about the processed commands
       scope.setContext('help_processing', {
         totalCommands: allCommands.length,
         availableCommands: availableCommands.length,
@@ -72,7 +86,6 @@ class HelpCommandHandler implements ICommandHandler<HelpCommand> {
         isAdmin,
         canManageGuild,
       );
-
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       const errorEmbed = this.errorService.handleCommandError(
@@ -113,7 +126,6 @@ class HelpCommandHandler implements ICommandHandler<HelpCommand> {
       .setColor(Colors.Blue)
       .setTimestamp();
 
-    // Always add public commands
     if (publicCommands.length > 0) {
       const publicCommandsText = publicCommands
         .map((cmd) => this.formatCommand(cmd))
@@ -126,7 +138,6 @@ class HelpCommandHandler implements ICommandHandler<HelpCommand> {
       });
     }
 
-    // Add manage guild commands if user has permission
     if (manageGuildCommands.length > 0 && (canManageGuild || isAdmin)) {
       const manageGuildCommandsText = manageGuildCommands
         .map((cmd) => this.formatCommand(cmd))
@@ -139,7 +150,6 @@ class HelpCommandHandler implements ICommandHandler<HelpCommand> {
       });
     }
 
-    // Add admin commands if user is admin
     if (adminCommands.length > 0 && isAdmin) {
       const adminCommandsText = adminCommands
         .map((cmd) => this.formatCommand(cmd))
@@ -152,7 +162,6 @@ class HelpCommandHandler implements ICommandHandler<HelpCommand> {
       });
     }
 
-    // Add footer with permission info
     let footerText = `Showing ${commands.length} available commands`;
     if (isAdmin) {
       footerText += ' • You have Administrator permissions';

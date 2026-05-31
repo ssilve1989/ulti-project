@@ -1,41 +1,36 @@
-import { Logger } from '@nestjs/common';
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
-import {
-  type ChatInputCommandInteraction,
-  Colors,
-  EmbedBuilder,
-  MessageFlags,
-} from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
+import { Colors, EmbedBuilder, MessageFlags } from 'discord.js';
 import {
   Encounter,
   EncounterFriendlyDescription,
 } from '../../../encounters/encounters.consts.js';
 import { EncountersService } from '../../../encounters/encounters.service.js';
 import { PartyStatus } from '../../../firebase/models/signup.model.js';
-import { ViewEncounterCommand } from '../commands/encounters.commands.js';
+import { SlashCommand } from '../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../slash-command.interface.js';
+import { EncountersSlashCommand } from '../encounters.slash-command.js';
 
-@CommandHandler(ViewEncounterCommand)
-export class ViewEncounterCommandHandler
-  implements ICommandHandler<ViewEncounterCommand>
-{
+@Injectable()
+@SlashCommand({ builder: EncountersSlashCommand, subcommand: 'view' })
+export class ViewEncounterCommandHandler implements ISlashCommand {
   private readonly logger = new Logger(ViewEncounterCommandHandler.name);
 
   constructor(private readonly encountersService: EncountersService) {}
 
   @SentryTraced()
-  async execute({
-    interaction,
-    encounterId,
-  }: ViewEncounterCommand): Promise<void> {
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
+    const encounterId = interaction.options.getString('encounter');
+
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
       if (encounterId) {
-        // Show specific encounter
         await this.showSingleEncounter(interaction, encounterId);
       } else {
-        // Show all encounters
         await this.showAllEncounters(interaction);
       }
     } catch (error) {
@@ -63,10 +58,8 @@ export class ViewEncounterCommandHandler
       return;
     }
 
-    // Sort prog points by order to maintain consistent display
     const sortedProgPoints = [...progPoints].sort((a, b) => a.order - b.order);
 
-    // Group prog points by party status
     const groupedProgPoints = sortedProgPoints.reduce(
       (acc, progPoint) => {
         if (!acc[progPoint.partyStatus]) {
@@ -78,7 +71,6 @@ export class ViewEncounterCommandHandler
       {} as Record<PartyStatus, typeof progPoints>,
     );
 
-    // Find threshold prog points
     const progThresholdPoint = progPoints.find(
       (p) => p.id === encounter.progPartyThreshold,
     );
@@ -105,7 +97,6 @@ export class ViewEncounterCommandHandler
         },
       );
 
-    // Add prog points by status
     for (const [status, points] of Object.entries(groupedProgPoints)) {
       if (points.length > 0) {
         const statusEmoji = this.getStatusEmoji(status as PartyStatus);
@@ -138,7 +129,6 @@ export class ViewEncounterCommandHandler
       .setColor(Colors.Blue)
       .setDescription('Configuration status for all encounters:');
 
-    // Fetch all encounter data in parallel
     const encounterPromises = Object.entries(Encounter).map(
       async ([key, encounterId]) => {
         try {
@@ -174,7 +164,6 @@ export class ViewEncounterCommandHandler
 
     let hasData = false;
 
-    // Create embed fields from results
     for (const { key, encounter, progPoints, error } of encounterResults) {
       if (error) {
         embed.addFields({

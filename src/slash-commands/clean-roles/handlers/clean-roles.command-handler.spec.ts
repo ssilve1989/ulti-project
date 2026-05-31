@@ -15,7 +15,6 @@ import { SettingsCollection } from '../../../firebase/collections/settings-colle
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { SignupStatus } from '../../../firebase/models/signup.model.js';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
-import { CleanRolesCommand } from '../commands/clean-roles.command.js';
 import { CleanRolesCommandHandler } from './clean-roles.command-handler.js';
 
 describe('CleanRolesCommandHandler', () => {
@@ -148,7 +147,7 @@ describe('CleanRolesCommandHandler', () => {
 
       const { mock, editReply } = createInteractionMock();
 
-      await handler.execute(new CleanRolesCommand(mock));
+      await handler.execute(mock);
 
       expect(errorService.handleCommandError).toHaveBeenCalledWith(
         expect.any(Error),
@@ -168,7 +167,7 @@ describe('CleanRolesCommandHandler', () => {
 
       const { mock, editReply } = createInteractionMock();
 
-      await handler.execute(new CleanRolesCommand(mock));
+      await handler.execute(mock);
 
       expect(errorService.handleCommandError).toHaveBeenCalledWith(
         expect.any(Error),
@@ -182,7 +181,7 @@ describe('CleanRolesCommandHandler', () => {
         dryRun: false,
       });
 
-      await handler.execute(new CleanRolesCommand(mock));
+      await handler.execute(mock);
 
       expect(deferReply).toHaveBeenCalledWith({
         flags: MessageFlags.Ephemeral,
@@ -201,7 +200,7 @@ describe('CleanRolesCommandHandler', () => {
         dryRun: true,
       });
 
-      await handler.execute(new CleanRolesCommand(mock));
+      await handler.execute(mock);
 
       expect(deferReply).toHaveBeenCalledWith({
         flags: MessageFlags.Ephemeral,
@@ -219,7 +218,7 @@ describe('CleanRolesCommandHandler', () => {
       settingsCollection.getSettings = vi.fn().mockRejectedValue(error);
       errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);
 
-      await handler.execute(new CleanRolesCommand(mock));
+      await handler.execute(mock);
 
       expect(errorService.handleCommandError).toHaveBeenCalledWith(error, mock);
       expect(editReply).toHaveBeenCalledWith({ embeds: [mockErrorEmbed] });
@@ -233,7 +232,7 @@ describe('CleanRolesCommandHandler', () => {
       settingsCollection.getSettings = vi.fn().mockRejectedValue(error);
       errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);
 
-      await handler.execute(new CleanRolesCommand(mock));
+      await handler.execute(mock);
 
       expect(errorService.handleCommandError).toHaveBeenCalledWith(error, mock);
       expect(editReply).toHaveBeenCalledWith({ embeds: [mockErrorEmbed] });

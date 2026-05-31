@@ -1,12 +1,13 @@
 ---
-to: src/slash-commands/<%=name%>/<%=name%>.command-handler.spec.ts
+to: src/slash-commands/<%=name%>/handlers/<%=name%>.command-handler.spec.ts
 ---
 import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { <%= h.changeCase.pascal(name) %>CommandHandler } from './<%=name%>.command-handler.js';
 
 describe('<%=h.changeCase.pascal(name)%>CommandHandler', () => {
-  let handler: <%= h.changeCase.pascal(name) %>CommandHandler;
+  let command: <%= h.changeCase.pascal(name) %>CommandHandler;
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
@@ -15,10 +16,10 @@ describe('<%=h.changeCase.pascal(name)%>CommandHandler', () => {
       .useMocker(createAutoMock)
       .compile();
 
-    handler = fixture.get(<%= h.changeCase.pascal(name) %>CommandHandler);
+    command = fixture.get(<%= h.changeCase.pascal(name) %>CommandHandler);
   });
 
   it('should be defined', () => {
-    expect(handler).toBeDefined();
+    expect(command).toBeDefined();
   });
 });

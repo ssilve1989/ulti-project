@@ -5,8 +5,8 @@ import { SettingsCollection } from '../../../../firebase/collections/settings-co
 import { createAutoMock } from '../../../../test-utils/mock-factory.js';
 import { EditEncounterRolesCommandHandler } from './edit-encounter-roles.command-handler.js';
 
-describe('Edit Encounter Roles Command Handler', () => {
-  let handler: EditEncounterRolesCommandHandler;
+describe('EditEncounterRolesCommandHandler', () => {
+  let command: EditEncounterRolesCommandHandler;
   let settingsCollection: Mocked<SettingsCollection>;
 
   beforeEach(async () => {
@@ -16,12 +16,12 @@ describe('Edit Encounter Roles Command Handler', () => {
       .useMocker(createAutoMock)
       .compile();
 
-    handler = fixture.get(EditEncounterRolesCommandHandler);
+    command = fixture.get(EditEncounterRolesCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
   });
 
   it('should be defined', () => {
-    expect(handler).toBeDefined();
+    expect(command).toBeDefined();
   });
 
   it('should update encounter roles', async () => {
@@ -37,33 +37,31 @@ describe('Edit Encounter Roles Command Handler', () => {
 
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
-    await handler.execute({
-      interaction: {
-        guildId,
-        options: {
-          getString: (name: string, _required?: boolean) =>
-            name === 'encounter' ? encounter : null,
-          getRole: (name: string, _required?: boolean) => {
-            switch (name) {
-              case 'prog-role':
-                return {
-                  id: progRoleId,
-                  toString: () => `<@&${progRoleId}>`,
-                } as unknown as Role;
-              case 'clear-role':
-                return {
-                  id: clearRoleId,
-                  toString: () => `<@&${clearRoleId}>`,
-                } as unknown as Role;
-              default:
-                return null;
-            }
-          },
+    await command.execute({
+      guildId,
+      options: {
+        getString: (name: string, _required?: boolean) =>
+          name === 'encounter' ? encounter : null,
+        getRole: (name: string, _required?: boolean) => {
+          switch (name) {
+            case 'prog-role':
+              return {
+                id: progRoleId,
+                toString: () => `<@&${progRoleId}>`,
+              } as unknown as Role;
+            case 'clear-role':
+              return {
+                id: clearRoleId,
+                toString: () => `<@&${clearRoleId}>`,
+              } as unknown as Role;
+            default:
+              return null;
+          }
         },
-        deferReply: vi.fn(),
-        editReply: vi.fn(),
-      } as unknown as ChatInputCommandInteraction<'cached'>,
-    });
+      },
+      deferReply: vi.fn(),
+      editReply: vi.fn(),
+    } as unknown as ChatInputCommandInteraction<'cached'>);
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(
       guildId,

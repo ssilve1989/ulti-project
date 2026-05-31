@@ -1,22 +1,26 @@
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { EditTurboProgCommand } from './edit-turbo-prog.command.js';
+import { SlashCommand } from '../../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../../slash-command.interface.js';
+import { SettingsSlashCommand } from '../../settings.slash-command.js';
 
-@CommandHandler(EditTurboProgCommand)
-export class EditTurboProgCommandHandler
-  implements ICommandHandler<EditTurboProgCommand>
-{
+@Injectable()
+@SlashCommand({ builder: SettingsSlashCommand, subcommand: 'turbo-prog' })
+class EditTurboProgCommandHandler implements ISlashCommand {
   constructor(
     private readonly settingsCollection: SettingsCollection,
     private readonly errorService: ErrorService,
   ) {}
 
   @SentryTraced()
-  async execute({ interaction }: EditTurboProgCommand) {
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
     const scope = Sentry.getCurrentScope();
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -51,3 +55,5 @@ export class EditTurboProgCommandHandler
     }
   }
 }
+
+export { EditTurboProgCommandHandler };

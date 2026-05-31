@@ -1,6 +1,7 @@
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { EncounterFriendlyDescription } from '../../../encounters/encounters.consts.js';
 import { ErrorService } from '../../../error/error.service.js';
@@ -9,18 +10,21 @@ import {
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../../signup/signup.consts.js';
-import { StatusCommand } from '../commands/status.command.js';
+import { SlashCommand } from '../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../slash-command.interface.js';
 import { StatusService } from '../status.service.js';
+import { StatusSlashCommand } from '../status.slash-command.js';
 
-@CommandHandler(StatusCommand)
-class StatusCommandHandler implements ICommandHandler<StatusCommand> {
+@Injectable()
+@SlashCommand({ builder: StatusSlashCommand })
+class StatusCommandHandler implements ISlashCommand {
   constructor(
     private readonly service: StatusService,
     private readonly errorService: ErrorService,
   ) {}
 
   @SentryTraced()
-  async execute({ interaction }: StatusCommand) {
+  async execute(interaction: ChatInputCommandInteraction<'cached'>) {
     const scope = Sentry.getCurrentScope();
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });

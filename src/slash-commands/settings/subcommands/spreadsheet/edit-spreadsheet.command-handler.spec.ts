@@ -6,8 +6,8 @@ import { SettingsCollection } from '../../../../firebase/collections/settings-co
 import { createAutoMock } from '../../../../test-utils/mock-factory.js';
 import { EditSpreadsheetCommandHandler } from './edit-spreadsheet.command-handler.js';
 
-describe('Edit Spreadsheet Command Handler', () => {
-  let handler: EditSpreadsheetCommandHandler;
+describe('EditSpreadsheetCommandHandler', () => {
+  let command: EditSpreadsheetCommandHandler;
   let settingsCollection: Mocked<SettingsCollection>;
   let errorService: Mocked<ErrorService>;
 
@@ -18,13 +18,13 @@ describe('Edit Spreadsheet Command Handler', () => {
       .useMocker(createAutoMock)
       .compile();
 
-    handler = fixture.get(EditSpreadsheetCommandHandler);
+    command = fixture.get(EditSpreadsheetCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
     errorService = fixture.get(ErrorService);
   });
 
   it('should be defined', () => {
-    expect(handler).toBeDefined();
+    expect(command).toBeDefined();
   });
 
   it('should update spreadsheet settings', async () => {
@@ -37,17 +37,15 @@ describe('Edit Spreadsheet Command Handler', () => {
 
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
-    await handler.execute({
-      interaction: {
-        guildId,
-        options: {
-          getString: (name: string, _required?: boolean) =>
-            name === 'spreadsheet-id' ? spreadsheetId : null,
-        },
-        deferReply: vi.fn(),
-        editReply: vi.fn(),
-      } as unknown as ChatInputCommandInteraction<'cached'>,
-    });
+    await command.execute({
+      guildId,
+      options: {
+        getString: (name: string, _required?: boolean) =>
+          name === 'spreadsheet-id' ? spreadsheetId : null,
+      },
+      deferReply: vi.fn(),
+      editReply: vi.fn(),
+    } as unknown as ChatInputCommandInteraction<'cached'>);
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(
       guildId,
@@ -74,7 +72,7 @@ describe('Edit Spreadsheet Command Handler', () => {
       editReply: vi.fn(),
     } as unknown as ChatInputCommandInteraction<'cached'>;
 
-    await handler.execute({ interaction });
+    await command.execute(interaction);
 
     expect(errorService.handleCommandError).toHaveBeenCalledWith(
       error,

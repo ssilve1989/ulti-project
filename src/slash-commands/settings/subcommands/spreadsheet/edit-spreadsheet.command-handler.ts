@@ -1,22 +1,26 @@
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { EditSpreadsheetCommand } from './edit-spreadsheet.command.js';
+import { SlashCommand } from '../../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../../slash-command.interface.js';
+import { SettingsSlashCommand } from '../../settings.slash-command.js';
 
-@CommandHandler(EditSpreadsheetCommand)
-export class EditSpreadsheetCommandHandler
-  implements ICommandHandler<EditSpreadsheetCommand>
-{
+@Injectable()
+@SlashCommand({ builder: SettingsSlashCommand, subcommand: 'spreadsheet' })
+class EditSpreadsheetCommandHandler implements ISlashCommand {
   constructor(
     private readonly settingsCollection: SettingsCollection,
     private readonly errorService: ErrorService,
   ) {}
 
   @SentryTraced()
-  async execute({ interaction }: EditSpreadsheetCommand) {
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
     const scope = Sentry.getCurrentScope();
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -50,3 +54,5 @@ export class EditSpreadsheetCommandHandler
     }
   }
 }
+
+export { EditSpreadsheetCommandHandler };

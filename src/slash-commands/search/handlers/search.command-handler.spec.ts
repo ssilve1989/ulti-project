@@ -11,7 +11,6 @@ import { EncountersService } from '../../../encounters/encounters.service.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { PartyStatus } from '../../../firebase/models/signup.model.js';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
-import { SearchCommand } from '../commands/search.command.js';
 import {
   SEARCH_ENCOUNTER_SELECTOR_ID,
   SEARCH_PROG_POINT_SELECT_ID,
@@ -94,10 +93,6 @@ describe('SearchCommandHandler', () => {
   });
 
   it('should create initial embed with encounter select menu', async () => {
-    const command = new SearchCommand(
-      mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
-    );
-
     // Mock the editReply response with a proper structure
     mockInteraction.editReply.mockImplementation(() => {
       return Promise.resolve({
@@ -113,7 +108,9 @@ describe('SearchCommandHandler', () => {
       } as any);
     });
 
-    await handler.execute(command);
+    await handler.execute(
+      mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
+    );
 
     expect(mockInteraction.deferReply).toHaveBeenCalledWith({
       flags: MessageFlags.Ephemeral,
@@ -152,10 +149,9 @@ describe('SearchCommandHandler', () => {
     });
 
     // Execute the command
-    const command = new SearchCommand(
+    await handler.execute(
       mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
-    await handler.execute(command);
 
     // Create a mock select menu interaction for encounter selection
     const mockSelectInteraction =
@@ -228,10 +224,9 @@ describe('SearchCommandHandler', () => {
     });
 
     // Execute the command
-    const command = new SearchCommand(
+    await handler.execute(
       mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
-    await handler.execute(command);
 
     // First, simulate encounter selection
     const mockEncounterSelect =
@@ -377,10 +372,9 @@ describe('SearchCommandHandler', () => {
     );
 
     // Execute the command
-    const command = new SearchCommand(
+    await handler.execute(
       mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
-    await handler.execute(command);
 
     // First, simulate encounter selection
     const mockEncounterSelect =
@@ -457,10 +451,9 @@ describe('SearchCommandHandler', () => {
     });
 
     // Execute the command
-    const command = new SearchCommand(
+    await handler.execute(
       mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
-    await handler.execute(command);
 
     // Simulate reset button click
     const mockButtonInteraction =
@@ -497,10 +490,9 @@ describe('SearchCommandHandler', () => {
     });
 
     // Execute the command
-    const command = new SearchCommand(
+    await handler.execute(
       mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
-    await handler.execute(command);
 
     // Simulate the collector ending
     await endCallback!();
@@ -557,10 +549,9 @@ describe('SearchCommandHandler', () => {
     );
 
     // Execute the command
-    const command = new SearchCommand(
+    await handler.execute(
       mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
-    await handler.execute(command);
 
     // First, simulate encounter selection
     const mockEncounterSelect =
@@ -646,10 +637,9 @@ describe('SearchCommandHandler', () => {
     mockSignupsCollection.findAll.mockResolvedValue(clearSignups as any);
 
     // Execute the command
-    const command = new SearchCommand(
+    await handler.execute(
       mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
     );
-    await handler.execute(command);
 
     // First, simulate encounter selection
     const mockEncounterSelect =
