@@ -1,4 +1,3 @@
-// @ts-check
 import * as Sentry from '@sentry/nestjs';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import pkg from './package.json' with { type: 'json' };
