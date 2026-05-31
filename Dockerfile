@@ -7,7 +7,7 @@ RUN corepack enable pnpm
 LABEL fly_launch_runtime="NestJS"
 
 WORKDIR /app
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json tsconfig.build.json instrumentation.mjs ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json tsconfig.build.json instrumentation.ts ./
 # scripts/ needed by prepare hook in both prod-deps and build stages; exits cleanly without .git
 COPY scripts ./scripts
 
@@ -23,7 +23,7 @@ RUN pnpm run build
 FROM platformatic/node-caged:26-slim
 WORKDIR /app
 
-COPY package.json instrumentation.mjs ./
+COPY package.json instrumentation.ts ./
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 
