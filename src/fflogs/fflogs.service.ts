@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import dayjs from 'dayjs';
 import {
   catchError,
   EmptyError,
@@ -90,9 +89,13 @@ class FFLogsService {
 
       // FFLogs timestamps are in milliseconds
       const reportDate = new Date(report.endTime);
-      const now = dayjs();
-      const reportDayjs = dayjs(reportDate);
-      const daysDifference = now.diff(reportDayjs, 'day');
+      const now = Temporal.Now.plainDateISO();
+      const reportDatePlain = new Temporal.PlainDate(
+        reportDate.getFullYear(),
+        reportDate.getMonth() + 1,
+        reportDate.getDate(),
+      );
+      const daysDifference = now.since(reportDatePlain).days;
 
       if (daysDifference > maxAgeDays) {
         return {

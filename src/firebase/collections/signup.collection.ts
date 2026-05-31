@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
-import day from 'dayjs';
 import {
   type CollectionReference,
   type DocumentData,
@@ -42,7 +41,9 @@ class SignupCollection {
   ): Promise<SignupDocument> {
     const key = SignupCollection.getKeyForSignup(props);
     const document = this.collection.doc(key);
-    const expiresAt = Timestamp.fromDate(day().add(28, 'days').toDate());
+    const expiresAt = Timestamp.fromMillis(
+      Temporal.Now.zonedDateTimeISO().add({ days: 28 }).epochMilliseconds,
+    );
     const snapshot = await document.get();
     const existing = snapshot.data();
 
