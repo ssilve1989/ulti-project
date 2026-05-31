@@ -1,4 +1,3 @@
-import dayjs from 'dayjs';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { expiredReportError } from './fflogs.consts.js';
 import { FFLogsService } from './fflogs.service.js';
@@ -17,7 +16,9 @@ describe('FFLogsService', () => {
 
   describe('validateReportAge', () => {
     test('should return valid for report within 28 days', async () => {
-      const recentDate = dayjs().subtract(15, 'day').valueOf(); // 15 days ago
+      const recentDate = Temporal.Now.zonedDateTimeISO().subtract({
+        days: 15,
+      }).epochMilliseconds;
       mockClient.reportData.mockResolvedValue({
         reportData: {
           report: {
@@ -37,7 +38,9 @@ describe('FFLogsService', () => {
     });
 
     test('should return invalid for report older than 28 days', async () => {
-      const oldDate = dayjs().subtract(35, 'day').valueOf(); // 35 days ago
+      const oldDate = Temporal.Now.zonedDateTimeISO().subtract({
+        days: 35,
+      }).epochMilliseconds;
       mockClient.reportData.mockResolvedValue({
         reportData: {
           report: {
@@ -52,7 +55,7 @@ describe('FFLogsService', () => {
       const result = await service.validateReportAge('ABC123');
 
       expect(result.isValid).toBe(false);
-      expect(result.errorMessage).toBe(expiredReportError(34, 28));
+      expect(result.errorMessage).toBe(expiredReportError(35, 28));
       expect(result.reportDate).toEqual(new Date(oldDate + 1000000));
     });
 
@@ -87,7 +90,9 @@ describe('FFLogsService', () => {
     });
 
     test('should use custom max age days', async () => {
-      const testDate = dayjs().subtract(40, 'day').valueOf(); // 40 days ago
+      const testDate = Temporal.Now.zonedDateTimeISO().subtract({
+        days: 40,
+      }).epochMilliseconds;
       mockClient.reportData.mockResolvedValue({
         reportData: {
           report: {
@@ -105,7 +110,9 @@ describe('FFLogsService', () => {
     });
 
     test('should handle report exactly at boundary', async () => {
-      const boundaryDate = dayjs().subtract(28, 'day').valueOf(); // Exactly 28 days ago
+      const boundaryDate = Temporal.Now.zonedDateTimeISO().subtract({
+        days: 28,
+      }).epochMilliseconds;
       mockClient.reportData.mockResolvedValue({
         reportData: {
           report: {
@@ -123,10 +130,10 @@ describe('FFLogsService', () => {
     });
 
     test('should handle report just over boundary', async () => {
-      const overBoundaryDate = dayjs()
-        .subtract(29, 'day')
-        .subtract(1, 'hour')
-        .valueOf(); // Just over 29 days ago
+      const overBoundaryDate = Temporal.Now.zonedDateTimeISO().subtract({
+        days: 29,
+        hours: 1,
+      }).epochMilliseconds;
       mockClient.reportData.mockResolvedValue({
         reportData: {
           report: {
@@ -145,7 +152,9 @@ describe('FFLogsService', () => {
     });
 
     test('should handle concurrent validation requests', async () => {
-      const recentDate = dayjs().subtract(15, 'day').valueOf();
+      const recentDate = Temporal.Now.zonedDateTimeISO().subtract({
+        days: 15,
+      }).epochMilliseconds;
       mockClient.reportData.mockResolvedValue({
         reportData: {
           report: {
