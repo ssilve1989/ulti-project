@@ -13,6 +13,8 @@
   },
   "scripts": {
     "build": "rimraf dist && tsgo -p tsconfig.build.json",
+    "build:cli": "rimraf dist/cli && tsgo -p tsconfig.cli.json",
+    "build:all": "rimraf dist && tsgo -p tsconfig.build.json && tsgo -p tsconfig.cli.json",
     "check": "biome check",
     "commit": "git-cz",
     "commitlint": "commitlint --edit",
@@ -24,8 +26,8 @@
     "lint:ci": "biome ci --diagnostic-level=error",
     "prepare": "node scripts/install-hooks.js",
     "start:dev:sentry": "NODE_OPTIONS=\"--import=./instrumentation.ts\" pnpm start:dev",
-    "cli": "dotenvx run -f .env -f .env.development -- bun src/cli/main.ts",
-    "cli:prod": "dotenvx run -f .env -f .env.development -- bun src/cli/main.ts",
+    "cli": "dotenvx run -f .env -f .env.development -- node dist/cli/main.js",
+    "cli:prod": "dotenvx run -f .env -f .env.production -- node dist/cli/main.js",
     "start": "dotenvx run -f .env -f .env.production -- node dist/main",
     "start:dev": "dotenvx run -f .env -f .env.development -- node dist/main.js",
     "test": "vitest",
@@ -57,6 +59,7 @@
     "rxjs": "^7.8.2",
     "title-case": "^4.3.2",
     "ts-pattern": "^5.9.0",
+    "yaml": "^2.9.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -73,7 +76,6 @@
     "@graphql-codegen/typescript-graphql-request": "^7.0.1",
     "@nestjs/schematics": "^11.1.0",
     "@nestjs/testing": "^11.1.23",
-    "@types/bun": "^1.3.14",
     "@types/node": "^25.9.1",
     "@typescript/native-preview": "7.0.0-dev.20260527.1",
     "@vitest/coverage-v8": "^4.1.7",

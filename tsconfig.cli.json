@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "**/*.spec.ts"],
+  "include": [
+    "src/global.d.ts",
+    "src/cli/**/*.ts",
+    "src/firebase/**/*.ts",
+    "src/encounters/**/*.ts",
+    "src/config/**/*.ts"
+  ],
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist"
+  }
+}

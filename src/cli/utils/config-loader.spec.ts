@@ -2,6 +2,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { stringify } from 'yaml';
 import { PartyStatus } from '../../firebase/models/signup.model.js';
 import { loadEncounterConfig } from './config-loader.js';
 
@@ -37,6 +38,13 @@ const validConfig = {
 describe('loadEncounterConfig', () => {
   it('loads and validates a JSON config file', () => {
     const filePath = writeConfig('enc.json', JSON.stringify(validConfig));
+    const result = loadEncounterConfig(filePath);
+    expect(result.id).toBe('DSR');
+    expect(result.progPoints).toHaveLength(2);
+  });
+
+  it('loads and validates a YAML config file', () => {
+    const filePath = writeConfig('enc.yaml', stringify(validConfig));
     const result = loadEncounterConfig(filePath);
     expect(result.id).toBe('DSR');
     expect(result.progPoints).toHaveLength(2);

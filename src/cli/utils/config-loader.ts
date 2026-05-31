@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { extname } from 'node:path';
+import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
 import { PartyStatus } from '../../firebase/models/signup.model.js';
 
@@ -34,7 +35,7 @@ export function loadEncounterConfig(filePath: string): EncounterConfig {
 
   let parsed: unknown;
   if (ext === '.yaml' || ext === '.yml') {
-    parsed = Bun.YAML.parse(raw);
+    parsed = parseYaml(raw);
   } else if (ext === '.json') {
     parsed = JSON.parse(raw);
   } else {
