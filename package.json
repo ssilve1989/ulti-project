@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "rimraf dist && tsgo -p tsconfig.build.json",
+    "build:cli": "rimraf dist/cli && tsgo -p tsconfig.cli.json",
     "check": "biome check",
     "commit": "git-cz",
     "commitlint": "commitlint --edit",
@@ -24,8 +25,8 @@
     "lint:ci": "biome ci --diagnostic-level=error",
     "prepare": "node scripts/install-hooks.js",
     "start:dev:sentry": "NODE_OPTIONS=\"--import=./instrumentation.ts\" pnpm start:dev",
-    "cli": "dotenvx run -f .env -f .env.development -- bun --env-file /dev/null src/cli/main.ts",
-    "cli:prod": "dotenvx run -f .env -f .env.production -- bun --env-file /dev/null src/cli/main.ts",
+    "cli": "dotenvx run -f .env -f .env.development -- node dist/cli/main.js",
+    "cli:prod": "dotenvx run -f .env -f .env.production -- node dist/cli/main.js",
     "start": "dotenvx run -f .env -f .env.production -- node dist/main",
     "start:dev": "dotenvx run -f .env -f .env.development -- node dist/main.js",
     "test": "vitest",
