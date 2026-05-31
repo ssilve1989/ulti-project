@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parse as parseYaml } from 'yaml';
+import { parse as parseYaml, stringify } from 'yaml';
 import { z } from 'zod';
 import { PartyStatus } from '../../firebase/models/signup.model.js';
 
@@ -55,7 +55,7 @@ export function writeEncounterYaml(
 ): void {
   mkdirSync(dirPath, { recursive: true });
   const filePath = join(dirPath, `${config.id}.yaml`);
-  const content = JSON.stringify(config, null, 2);
-  const withHeader = `${YAML_SCHEMA_HEADER}\n\n${content}\n`;
+  const content = stringify(config, { indent: 2 });
+  const withHeader = `${YAML_SCHEMA_HEADER}\n\n${content}`;
   writeFileSync(filePath, withHeader);
 }

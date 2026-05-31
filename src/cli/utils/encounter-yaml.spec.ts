@@ -42,15 +42,15 @@ describe('writeEncounterYaml', () => {
     expect(content).toMatch(
       /^# yaml-language-server: \$schema=\.\/encounter\.schema\.yaml/,
     );
-    expect(content).toContain('"id": "TOP"');
-    expect(content).toContain('"active": true');
+    expect(content).toContain('id: TOP');
+    expect(content).toContain('active: true');
   });
 
   it('creates the directory if it does not exist', () => {
     const nested = join(TMP_DIR, 'nested', 'dir');
     writeEncounterYaml(nested, sampleConfig);
     const content = readFileSync(join(nested, 'TOP.yaml'), 'utf-8');
-    expect(content).toContain('"id": "TOP"');
+    expect(content).toContain('id: TOP');
   });
 });
 
@@ -68,7 +68,7 @@ describe('readEncounterYaml', () => {
 
   it('throws on invalid content', () => {
     const filePath = join(TMP_DIR, 'bad.yaml');
-    writeFileSync(filePath, JSON.stringify({ id: 123, active: 'notbool' }));
+    writeFileSync(filePath, 'id: 123\nactive: notbool');
     expect(() => readEncounterYaml(filePath)).toThrow('Invalid encounter YAML');
   });
 });
