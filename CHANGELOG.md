@@ -1,5 +1,74 @@
 # Changelog
 
+## [3.0.0](https://github.com/ssilve1989/ulti-project/compare/v2.0.0...v3.0.0) (2026-05-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** Update deps to latest, some   only support ESM
+
+### Features
+
+* **clean-roles:** add slash command to clean roles from inactive members ([8db8512](https://github.com/ssilve1989/ulti-project/commit/8db8512d5cbc55f4948cde4bfd40206e2e928fdd))
+* **encounters:** add Dancing Mad (Ultimate) (DMU) ([ec4b410](https://github.com/ssilve1989/ulti-project/commit/ec4b410611f7815a0e88bba4a964baf1d6dc01f9))
+* **encounters:** enable multi-select when toggling prog points enablement ([#899](https://github.com/ssilve1989/ulti-project/issues/899)) ([6739f89](https://github.com/ssilve1989/ulti-project/commit/6739f891f636750efef2bfe627bce46409fda87a))
+* **encounters:** enhance prog point management with active/inactive toggles ([#896](https://github.com/ssilve1989/ulti-project/issues/896)) ([87eed6c](https://github.com/ssilve1989/ulti-project/commit/87eed6cb3f999454abecd1e72076278083e9ec53))
+* **search:** search command now shows results from at least selected prog point ([09e717c](https://github.com/ssilve1989/ulti-project/commit/09e717c2d9040b15decdefafd5961bc3be5ad7d4))
+* **signuos:** check fflogs date ([dd5e730](https://github.com/ssilve1989/ulti-project/commit/dd5e730cf28f7d21e17f1e8342de261703e913b6))
+* **signup:** add medal.tv support for ff-xiv-online prog proof ([#918](https://github.com/ssilve1989/ulti-project/issues/918)) ([be6bf57](https://github.com/ssilve1989/ulti-project/commit/be6bf57bce9ba65caff2b1d43d528ca76b31d11c))
+* **signups:** allow reviewers to provide signup decline reason ([#852](https://github.com/ssilve1989/ulti-project/issues/852)) ([708e5e2](https://github.com/ssilve1989/ulti-project/commit/708e5e25ecafd7f2a900ab3609b60841603582ae))
+* **slash-commands:** replace CQRS dispatch with decorator-based registry ([730bb4b](https://github.com/ssilve1989/ulti-project/commit/730bb4be0cdec22c1378445260e3bf04bcc6c149))
+
+
+### Bug Fixes
+
+* **async-queue:** track and clean up RxJS subscription on complete ([984e37b](https://github.com/ssilve1989/ulti-project/commit/984e37b64290af87167e18602679c1592c0ff14b))
+* **ci:** add repository config to renovate workflow ([9a1c957](https://github.com/ssilve1989/ulti-project/commit/9a1c9575a6edfb2054eb0979c1faf8982df42654))
+* **ci:** fix Renovate not updating pnpm lockfile ([#1253](https://github.com/ssilve1989/ulti-project/issues/1253)) ([09ab4fc](https://github.com/ssilve1989/ulti-project/commit/09ab4fcd00a93f2b508253c012d2b8214e134290))
+* **ci:** regenerate lockfile and fix Renovate to update it correctly ([c983dec](https://github.com/ssilve1989/ulti-project/commit/c983decc35d23e52c8621364b951a2aaa6b4ad24))
+* **ci:** work around pnpm 11 minimumReleaseAge strict-mode regression ([#1256](https://github.com/ssilve1989/ulti-project/issues/1256)) ([564647a](https://github.com/ssilve1989/ulti-project/commit/564647a6941751b0b1577ec3734f386a740d6485))
+* **clear-checker:** fixes clear-checker to run on all active encounters ([608bfb1](https://github.com/ssilve1989/ulti-project/commit/608bfb16e1ee7ca64984b0d3ccbe03c5218f57b4))
+* **clear-checker:** improve logging for signup removal ([9758d3b](https://github.com/ssilve1989/ulti-project/commit/9758d3bd23dbc9ffc3cf33842f820ac16ab27171))
+* **clear-checker:** replace Object.groupBy with Map.groupBy ([09ec623](https://github.com/ssilve1989/ulti-project/commit/09ec623943d2d5f9a7b3da618eea5c6d1600ab79))
+* **clear-checker:** use correct encounter for sheet removal ([fe00d61](https://github.com/ssilve1989/ulti-project/commit/fe00d61e3c06be29d7031e557d597f44ed13b380))
+* **config:** re-enable strictPropertyInitialization ([11c1ac5](https://github.com/ssilve1989/ulti-project/commit/11c1ac56a7fbe05d32c3b7632e9a92b7d1e4e00b))
+* **discord:** handle all client error events, not just the first ([50e0bd9](https://github.com/ssilve1989/ulti-project/commit/50e0bd990b460a0f69f4b14a4710c0d39bcdff39))
+* **discord:** proper sentry error handling ([04b0bd9](https://github.com/ssilve1989/ulti-project/commit/04b0bd9079b65ccefb22384dbb781360e6466402))
+* **docker:** replace corepack with pnpm standalone installer for Node 25 ([26d4de5](https://github.com/ssilve1989/ulti-project/commit/26d4de5204be514b85d95fb3054fa1335518992c))
+* **firebase:** add type cast to blacklist collection reference ([2546d3b](https://github.com/ssilve1989/ulti-project/commit/2546d3baaaf2f02fb4f5d5bb870cf4a8f1443580))
+* **jobs:** handle unhandled rejections and cron tick promise leaks ([e0c7e59](https://github.com/ssilve1989/ulti-project/commit/e0c7e597f50c0677232a0d91b88c26146c24f12a))
+* **lookup:** fixes layout of embed when there are no notes ([a7c1a51](https://github.com/ssilve1989/ulti-project/commit/a7c1a51ee70d0261c464d3dc932c074918b4a602))
+* **lookup:** fixes validation done during lookup command ([5bce37a](https://github.com/ssilve1989/ulti-project/commit/5bce37a06ffae05de8fb91ea9010a8f271544d49))
+* remove runOnInit for clear-checker ([bbb0fc8](https://github.com/ssilve1989/ulti-project/commit/bbb0fc8087a1616c20438f24902b76ebe5e58112))
+* **remove-signup:** show validation error instead of generic error ([a754ebc](https://github.com/ssilve1989/ulti-project/commit/a754ebcc732a1995417b21cffcbba5aa73f0ca7e))
+* resolve merge conflict artifacts in package.json and pnpm-lock.yaml ([8142338](https://github.com/ssilve1989/ulti-project/commit/8142338dd57ecad2debe7bcf0bded63470defde0))
+* **settings:** gracefully handle sheet metadata fetch failures in view ([9cc0c6d](https://github.com/ssilve1989/ulti-project/commit/9cc0c6dd60b85a5db36d15559371eed8771d9fa5))
+* **sheet-cleaner:** fixes sheet cleaner job for all encounters ([cd1c139](https://github.com/ssilve1989/ulti-project/commit/cd1c13986d62d4615ff0a9c40b0e2b606438f53f))
+* **signup:** add getFirstEmbed helper and guard Object.groupBy results ([770bd87](https://github.com/ssilve1989/ulti-project/commit/770bd874c88f5a3d0e8923e26003914279dffe1f))
+* **signup:** replace as any with proper ActionRowBuilder types ([48192a9](https://github.com/ssilve1989/ulti-project/commit/48192a98fcb29b86ff4c7fdd6555eed10004f9bd))
+* **signup:** resolve race condition in role assignment ([9986550](https://github.com/ssilve1989/ulti-project/commit/99865509fd6d33c66c92c43d3553d8afdec32d3c))
+* **signups:** enforce reviewer role requirement and improve error handling ([#888](https://github.com/ssilve1989/ulti-project/issues/888)) ([f9a668a](https://github.com/ssilve1989/ulti-project/commit/f9a668a9b34ed6a4604f5124c2450f091d102f47))
+* **signups:** optimize upsert to preserve existing data and reduce db reads ([#889](https://github.com/ssilve1989/ulti-project/issues/889)) ([6b018ca](https://github.com/ssilve1989/ulti-project/commit/6b018ca13b3e2280bd1dbc7db609967e3c56eefe))
+* suppress Unknown Member from occurring in Sentry ([9bd42d3](https://github.com/ssilve1989/ulti-project/commit/9bd42d3cf7264acabb04a8db83c2569c2a429778))
+* tsgo release exclude ([1947029](https://github.com/ssilve1989/ulti-project/commit/19470297cefd201de4cbdda3c475c858efca72a3))
+
+
+### Performance Improvements
+
+* **docker:** optimize final image to exclude source files ([#920](https://github.com/ssilve1989/ulti-project/issues/920)) ([cf061c7](https://github.com/ssilve1989/ulti-project/commit/cf061c7ea7a35be32a297336e2001615949cc8ee))
+* **sheets:** use Map lookup for prog point sort index ([6283261](https://github.com/ssilve1989/ulti-project/commit/62832619231de6308fa8b191f3afc65b4b003dad))
+* **signups:** optimize upsert method to reduce redundant reads ([#885](https://github.com/ssilve1989/ulti-project/issues/885)) ([26ee215](https://github.com/ssilve1989/ulti-project/commit/26ee21573aff3401fe74a62913c25d673f7ba9bb))
+
+
+### Reverts
+
+* **release-please:** undo attempts at adding more commit types ([8203472](https://github.com/ssilve1989/ulti-project/commit/82034725209979c1c13801ac13ac0bba2b0fcec6))
+
+
+### Miscellaneous Chores
+
+* **deps:** update graphql codegen (major) ([#1244](https://github.com/ssilve1989/ulti-project/issues/1244)) ([6616096](https://github.com/ssilve1989/ulti-project/commit/661609690b62061f7b2bb2c16e967fe8bdd9eee4))
+
 ## [2.0.0](https://github.com/ssilve1989/ulti-project/compare/v1.40.3...v2.0.0) (2026-05-30)
 
 
