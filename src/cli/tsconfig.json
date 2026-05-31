@@ -1,6 +1,12 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["./**/*.ts"],
+  "include": [
+    "./**/*.ts",
+    "../firebase/**/*.ts",
+    "../encounters/**/*.ts",
+    "../config/**/*.ts",
+    "../global.d.ts"
+  ],
   "compilerOptions": {
     "rootDir": "../../src"
   }

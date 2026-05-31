@@ -14,6 +14,7 @@
   "scripts": {
     "build": "rimraf dist && tsgo -p tsconfig.build.json",
     "build:cli": "rimraf dist/cli && tsgo -p tsconfig.cli.json",
+    "build:all": "rimraf dist && tsgo -p tsconfig.build.json && tsgo -p tsconfig.cli.json",
     "check": "biome check",
     "commit": "git-cz",
     "commitlint": "commitlint --edit",
