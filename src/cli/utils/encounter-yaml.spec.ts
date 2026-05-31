@@ -1,30 +1,13 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PartyStatus } from '../../firebase/models/signup.model.js';
 import {
   type EncounterYamlConfig,
   readEncounterYaml,
   writeEncounterYaml,
 } from './encounter-yaml.js';
-
-// Bun.YAML is only available in the Bun runtime; provide a minimal stub for
-// vitest (which runs under Node). JSON round-tripping is sufficient because
-// the tests care about schema validation, not YAML formatting.
-vi.stubGlobal('Bun', {
-  YAML: {
-    parse: (raw: string) => {
-      // Strip comment lines and blank lines that precede the JSON body
-      const stripped = raw
-        .split('\n')
-        .filter((line) => !line.startsWith('#') && line.trim() !== '')
-        .join('\n');
-      return JSON.parse(stripped);
-    },
-    stringify: (obj: unknown) => JSON.stringify(obj, null, 2),
-  },
-});
 
 const TMP_DIR = join(tmpdir(), 'cli-encounter-yaml-test');
 
