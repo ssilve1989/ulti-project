@@ -1,25 +1,26 @@
 ---
-to: src/slash-commands/<%=name%>/<%=name%>.command-handler.ts
+to: src/slash-commands/<%=name%>/handlers/<%=name%>.command-handler.ts
 ---
-import { Inject } from '@nestjs/common';
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import type { ChatInputCommandInteraction } from 'discord.js';
-import { ErrorService } from '../../error/error.service.js';
-import { <%= h.changeCase.pascal(name) %>Command } from './<%=name%>.command.js';
+import { ErrorService } from '../../../error/error.service.js';
+import { SlashCommand } from '../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../slash-command.interface.js';
+import { <%= h.changeCase.pascal(name) %>SlashCommand } from '../../<%=name%>.slash-command.js';
 
-@CommandHandler(<%= h.changeCase.pascal(name) %>Command)
-class <%= h.changeCase.pascal(name) %>CommandHandler implements ICommandHandler<<%= h.changeCase.pascal(name) %>Command> {
+@Injectable()
+@SlashCommand({ builder: <%= h.changeCase.pascal(name) %>SlashCommand })
+class <%= h.changeCase.pascal(name) %>CommandHandler implements ISlashCommand {
   constructor(
-    @Inject(ErrorService)
     private readonly errorService: ErrorService,
   ) {}
 
   @SentryTraced()
-  async execute(command: <%= h.changeCase.pascal(name) %>Command): Promise<void> {
-    const { interaction } = command;
-
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
     try {
       // TODO: Implement command logic
       await interaction.reply({

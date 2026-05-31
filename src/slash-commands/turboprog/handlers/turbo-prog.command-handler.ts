@@ -1,8 +1,9 @@
-import { CommandHandler } from '@nestjs/cqrs';
+import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { match, P } from 'ts-pattern';
+import { appConfig } from '../../../config/app.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import {
@@ -11,12 +12,15 @@ import {
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
-import { TurboProgCommand } from '../commands/turbo-prog.commands.js';
+import { createFinalPushSlashCommand } from '../../finalpush/final-push-signup.slash-command.js';
+import { SlashCommand } from '../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../slash-command.interface.js';
 import type { TurboProgEntry } from '../turbo-prog.interfaces.js';
 import {
   type TurboProgSignupSchema,
   turboProgSignupSchema,
 } from '../turbo-prog-signup.schema.js';
+import { createTurboProgSlashCommand } from '../turbo-prog-signup.slash-command.js';
 import {
   TURBO_PROG_INACTIVE,
   TURBO_PROG_MISSING_SIGNUPS_SHEETS,
@@ -35,8 +39,14 @@ type ProggerAllowedResponse =
       data: TurboProgEntry;
     };
 
-@CommandHandler(TurboProgCommand)
-class TurboProgCommandHandler {
+@Injectable()
+@SlashCommand({
+  builder: createTurboProgSlashCommand(appConfig.APPLICATION_MODE),
+})
+@SlashCommand({
+  builder: createFinalPushSlashCommand(appConfig.APPLICATION_MODE),
+})
+class TurboProgCommandHandler implements ISlashCommand {
   constructor(
     private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
@@ -44,7 +54,9 @@ class TurboProgCommandHandler {
   ) {}
 
   @SentryTraced()
-  async execute({ interaction }: TurboProgCommand) {
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
     const scope = Sentry.getCurrentScope();
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -56,7 +68,8 @@ class TurboProgCommandHandler {
     );
 
     if (!settings?.turboProgActive) {
-      return await interaction.editReply(TURBO_PROG_INACTIVE);
+      await interaction.editReply(TURBO_PROG_INACTIVE);
+      return;
     }
 
     if (settings.spreadsheetId && settings.turboProgSpreadsheetId) {
@@ -77,11 +90,13 @@ class TurboProgCommandHandler {
           validation.data,
           settings.turboProgSpreadsheetId,
         );
-        return await interaction.editReply(TURBO_PROG_SUBMISSION_APPROVED);
+        await interaction.editReply(TURBO_PROG_SUBMISSION_APPROVED);
+        return;
       }
 
       if (validation.error) {
-        return await interaction.editReply(validation.error);
+        await interaction.editReply(validation.error);
+        return;
       }
 
       scope.setExtra('validation', validation);
@@ -92,7 +107,7 @@ class TurboProgCommandHandler {
     scope.captureMessage(
       'one or more spreadsheet IDs are missing for turbo prog',
     );
-    return await interaction.editReply(TURBO_PROG_MISSING_SIGNUPS_SHEETS);
+    await interaction.editReply(TURBO_PROG_MISSING_SIGNUPS_SHEETS);
   }
 
   public isProggerAllowed(

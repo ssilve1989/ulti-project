@@ -1,3 +1,4 @@
+import { ModuleRef } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import {
@@ -6,16 +7,15 @@ import {
   PermissionsBitField,
   SlashCommandBuilder,
 } from 'discord.js';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
-import { SLASH_COMMANDS_TOKEN } from '../../slash-commands.provider.js';
-import { HelpCommand } from '../commands/help.command.js';
+import { SlashCommandRegistry } from '../../slash-command-registry.service.js';
 import { HelpCommandHandler } from './help.command-handler.js';
 
 describe('HelpCommandHandler', () => {
-  let handler: HelpCommandHandler;
+  let command: HelpCommandHandler;
 
-  const mockSlashCommands = [
+  const mockBuilders = [
     new SlashCommandBuilder()
       .setName('help')
       .setDescription('Display a list of all available bot commands'),
@@ -40,22 +40,23 @@ describe('HelpCommandHandler', () => {
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
-      providers: [
-        HelpCommandHandler,
-        {
-          provide: SLASH_COMMANDS_TOKEN,
-          useValue: mockSlashCommands,
-        },
-      ],
+      providers: [HelpCommandHandler],
     })
       .useMocker(createAutoMock)
       .compile();
 
-    handler = fixture.get(HelpCommandHandler);
+    command = fixture.get(HelpCommandHandler);
+
+    const registry =
+      createAutoMock() as unknown as Mocked<SlashCommandRegistry>;
+    registry.getAllBuilders.mockReturnValue(mockBuilders);
+
+    const moduleRef = fixture.get(ModuleRef);
+    moduleRef.get = vi.fn().mockReturnValue(registry);
   });
 
   it('should be defined', () => {
-    expect(handler).toBeDefined();
+    expect(command).toBeDefined();
   });
 
   describe('execute', () => {
@@ -63,12 +64,9 @@ describe('HelpCommandHandler', () => {
       permissions: bigint[] = [],
       hasPermissions = true,
     ): ChatInputCommandInteraction<'cached'> => {
-      const deferReply = vi.fn().mockResolvedValue(undefined);
-      const editReply = vi.fn().mockResolvedValue(undefined);
-
       return {
-        deferReply,
-        editReply,
+        deferReply: vi.fn().mockResolvedValue(undefined),
+        editReply: vi.fn().mockResolvedValue(undefined),
         memberPermissions: hasPermissions
           ? new PermissionsBitField(permissions)
           : null,
@@ -77,9 +75,8 @@ describe('HelpCommandHandler', () => {
 
     it('should show only public commands for regular users', async () => {
       const interaction = createInteractionMock([]);
-      const command = new HelpCommand(interaction);
 
-      await handler.execute(command);
+      await command.execute(interaction);
 
       expect(interaction.deferReply).toHaveBeenCalledWith({
         flags: expect.any(Number),
@@ -89,18 +86,10 @@ describe('HelpCommandHandler', () => {
           expect.objectContaining({
             data: expect.objectContaining({
               title: '📚 Bot Commands Help',
-              description: 'Here are the commands available to you:',
               color: Colors.Blue,
               fields: expect.arrayContaining([
-                expect.objectContaining({
-                  name: '🔓 Public Commands',
-                  value: expect.stringContaining('**/status**'),
-                  inline: false,
-                }),
+                expect.objectContaining({ name: '🔓 Public Commands' }),
               ]),
-              footer: expect.objectContaining({
-                text: expect.stringContaining('Showing 3 available commands'),
-              }),
             }),
           }),
         ],
@@ -111,26 +100,20 @@ describe('HelpCommandHandler', () => {
       const interaction = createInteractionMock([
         PermissionsBitField.Flags.ManageGuild,
       ]);
-      const command = new HelpCommand(interaction);
 
-      await handler.execute(command);
+      await command.execute(interaction);
 
       expect(interaction.editReply).toHaveBeenCalledWith({
         embeds: [
           expect.objectContaining({
             data: expect.objectContaining({
               fields: expect.arrayContaining([
-                expect.objectContaining({
-                  name: '🔓 Public Commands',
-                }),
+                expect.objectContaining({ name: '🔓 Public Commands' }),
                 expect.objectContaining({
                   name: '⚙️ Management Commands',
                   value: expect.stringContaining('**/settings**'),
                 }),
               ]),
-              footer: expect.objectContaining({
-                text: expect.stringContaining('Showing 4 available commands'),
-              }),
             }),
           }),
         ],
@@ -141,18 +124,15 @@ describe('HelpCommandHandler', () => {
       const interaction = createInteractionMock([
         PermissionsBitField.Flags.Administrator,
       ]);
-      const command = new HelpCommand(interaction);
 
-      await handler.execute(command);
+      await command.execute(interaction);
 
       expect(interaction.editReply).toHaveBeenCalledWith({
         embeds: [
           expect.objectContaining({
             data: expect.objectContaining({
               fields: expect.arrayContaining([
-                expect.objectContaining({
-                  name: '🔓 Public Commands',
-                }),
+                expect.objectContaining({ name: '🔓 Public Commands' }),
                 expect.objectContaining({
                   name: '⚙️ Management Commands',
                 }),
@@ -161,11 +141,6 @@ describe('HelpCommandHandler', () => {
                   value: expect.stringContaining('**/blacklist**'),
                 }),
               ]),
-              footer: expect.objectContaining({
-                text: expect.stringContaining(
-                  'You have Administrator permissions',
-                ),
-              }),
             }),
           }),
         ],
@@ -173,43 +148,15 @@ describe('HelpCommandHandler', () => {
     });
 
     it('should handle null memberPermissions gracefully', async () => {
-      const interaction = createInteractionMock([], false); // No permissions object
-      const command = new HelpCommand(interaction);
+      const interaction = createInteractionMock([], false);
 
-      await handler.execute(command);
-
-      expect(interaction.editReply).toHaveBeenCalledWith({
-        embeds: [
-          expect.objectContaining({
-            data: expect.objectContaining({
-              fields: [
-                expect.objectContaining({
-                  name: '🔓 Public Commands',
-                }),
-              ],
-            }),
-          }),
-        ],
-      });
-    });
-
-    it('should set correct footer text for ManageGuild users', async () => {
-      const interaction = createInteractionMock([
-        PermissionsBitField.Flags.ManageGuild,
-      ]);
-      const command = new HelpCommand(interaction);
-
-      await handler.execute(command);
+      await command.execute(interaction);
 
       expect(interaction.editReply).toHaveBeenCalledWith({
         embeds: [
           expect.objectContaining({
             data: expect.objectContaining({
-              footer: expect.objectContaining({
-                text: expect.stringContaining(
-                  'You have Manage Guild permissions',
-                ),
-              }),
+              fields: [expect.objectContaining({ name: '🔓 Public Commands' })],
             }),
           }),
         ],

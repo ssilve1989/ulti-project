@@ -6,8 +6,8 @@ import { SettingsCollection } from '../../../../firebase/collections/settings-co
 import { createAutoMock } from '../../../../test-utils/mock-factory.js';
 import { EditTurboProgCommandHandler } from './edit-turbo-prog.command-handler.js';
 
-describe('Edit Turbo Prog Command Handler', () => {
-  let handler: EditTurboProgCommandHandler;
+describe('EditTurboProgCommandHandler', () => {
+  let command: EditTurboProgCommandHandler;
   let settingsCollection: Mocked<SettingsCollection>;
   let errorService: Mocked<ErrorService>;
 
@@ -18,13 +18,13 @@ describe('Edit Turbo Prog Command Handler', () => {
       .useMocker(createAutoMock)
       .compile();
 
-    handler = fixture.get(EditTurboProgCommandHandler);
+    command = fixture.get(EditTurboProgCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
     errorService = fixture.get(ErrorService);
   });
 
   it('should be defined', () => {
-    expect(handler).toBeDefined();
+    expect(command).toBeDefined();
   });
 
   it('should update turbo prog settings', async () => {
@@ -39,19 +39,17 @@ describe('Edit Turbo Prog Command Handler', () => {
 
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
-    await handler.execute({
-      interaction: {
-        guildId,
-        options: {
-          getBoolean: (name: string, _required?: boolean) =>
-            name === 'active' ? active : null,
-          getString: (name: string) =>
-            name === 'spreadsheet-id' ? spreadsheetId : null,
-        },
-        deferReply: vi.fn(),
-        editReply: vi.fn(),
-      } as unknown as ChatInputCommandInteraction<'cached'>,
-    });
+    await command.execute({
+      guildId,
+      options: {
+        getBoolean: (name: string, _required?: boolean) =>
+          name === 'active' ? active : null,
+        getString: (name: string) =>
+          name === 'spreadsheet-id' ? spreadsheetId : null,
+      },
+      deferReply: vi.fn(),
+      editReply: vi.fn(),
+    } as unknown as ChatInputCommandInteraction<'cached'>);
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(
       guildId,
@@ -73,18 +71,16 @@ describe('Edit Turbo Prog Command Handler', () => {
 
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
-    await handler.execute({
-      interaction: {
-        guildId,
-        options: {
-          getBoolean: (name: string, _required?: boolean) =>
-            name === 'active' ? active : null,
-          getString: () => null,
-        },
-        deferReply: vi.fn(),
-        editReply: vi.fn(),
-      } as unknown as ChatInputCommandInteraction<'cached'>,
-    });
+    await command.execute({
+      guildId,
+      options: {
+        getBoolean: (name: string, _required?: boolean) =>
+          name === 'active' ? active : null,
+        getString: () => null,
+      },
+      deferReply: vi.fn(),
+      editReply: vi.fn(),
+    } as unknown as ChatInputCommandInteraction<'cached'>);
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(
       guildId,
@@ -112,7 +108,7 @@ describe('Edit Turbo Prog Command Handler', () => {
       editReply: vi.fn(),
     } as unknown as ChatInputCommandInteraction<'cached'>;
 
-    await handler.execute({ interaction });
+    await command.execute(interaction);
 
     expect(errorService.handleCommandError).toHaveBeenCalledWith(
       error,

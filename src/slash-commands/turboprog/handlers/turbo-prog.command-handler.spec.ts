@@ -49,7 +49,7 @@ const searchableCases: Pick<SignupDocument, 'status' | 'partyStatus'>[] = [
 ];
 
 describe('TurboProgCommandHandler', () => {
-  let handler: TurboProgCommandHandler;
+  let command: TurboProgCommandHandler;
   let sheetsService: Mocked<SheetsService>;
 
   beforeEach(async () => {
@@ -59,12 +59,12 @@ describe('TurboProgCommandHandler', () => {
       .useMocker(createAutoMock)
       .compile();
 
-    handler = fixture.get(TurboProgCommandHandler);
+    command = fixture.get(TurboProgCommandHandler);
     sheetsService = fixture.get(SheetsService);
   });
 
   it('is defined', () => {
-    expect(handler).toBeDefined();
+    expect(command).toBeDefined();
   });
 
   it.each(
@@ -85,7 +85,7 @@ describe('TurboProgCommandHandler', () => {
     });
 
     // Pass the signup directly to isProggerAllowed
-    const response = await handler.isProggerAllowed(
+    const response = await command.isProggerAllowed(
       options,
       'spreadsheetId',
       mockSignup,
@@ -115,7 +115,7 @@ describe('TurboProgCommandHandler', () => {
     });
 
     // Pass the signup directly to isProggerAllowed
-    const response = await handler.isProggerAllowed(
+    const response = await command.isProggerAllowed(
       options,
       'spreadsheetId',
       mockSignup,
@@ -143,11 +143,11 @@ describe('TurboProgCommandHandler', () => {
     });
 
     // Spy on the findCharacterRowValues method
-    const spy = vi.spyOn(handler as any, 'findCharacterRowValues');
+    const spy = vi.spyOn(command as any, 'findCharacterRowValues');
     spy.mockImplementationOnce(() => Promise.resolve({}));
 
     // Pass the signup directly to isProggerAllowed
-    await handler.isProggerAllowed(options, 'spreadsheetId', mockSignup);
+    await command.isProggerAllowed(options, 'spreadsheetId', mockSignup);
 
     expect(spy).toHaveBeenCalledWith(options, 'spreadsheetId', mockSignup);
   });
@@ -175,7 +175,7 @@ describe('TurboProgCommandHandler', () => {
     } as SignupDocument;
 
     // Call the private method directly
-    const response = await (handler as any).findCharacterRowValues(
+    const response = await (command as any).findCharacterRowValues(
       options,
       'spreadsheetId',
       mockSignup,
@@ -221,7 +221,7 @@ describe('TurboProgCommandHandler', () => {
     );
 
     // Call the private method directly
-    const response = await (handler as any).findCharacterRowValues(
+    const response = await (command as any).findCharacterRowValues(
       options,
       'spreadsheetId',
       mockSignup,
@@ -255,7 +255,7 @@ describe('TurboProgCommandHandler', () => {
 
     // Call the private method directly with an expect-to-throw wrapper
     await expect(
-      (handler as any).findCharacterRowValues(
+      (command as any).findCharacterRowValues(
         options,
         'spreadsheetId',
         mockSignup,

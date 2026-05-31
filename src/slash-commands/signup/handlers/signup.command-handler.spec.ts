@@ -31,12 +31,11 @@ import {
   SignupStatus,
 } from '../../../firebase/models/signup.model.js';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
-import { SignupCommand } from '../commands/signup.commands.js';
 import { SIGNUP_MESSAGES } from '../signup.consts.js';
 import { SignupCommandHandler } from './signup.command-handler.js';
 
 describe('Signup Command Handler', () => {
-  let handler: SignupCommandHandler;
+  let command: SignupCommandHandler;
   let interaction: Mocked<ChatInputCommandInteraction<'cached'>>;
   let confirmationInteraction: Mocked<Message<true>>;
   let settingsCollection: Mocked<SettingsCollection>;
@@ -57,7 +56,7 @@ describe('Signup Command Handler', () => {
       Message<true>
     >;
     discordServiceMock = fixture.get(DiscordService);
-    handler = fixture.get(SignupCommandHandler);
+    command = fixture.get(SignupCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
     signupCollectionMock = fixture.get(SignupCollection);
     fflogsServiceMock = fixture.get(FFLogsService);
@@ -100,7 +99,7 @@ describe('Signup Command Handler', () => {
   });
 
   test('is defined', () => {
-    expect(handler).toBeDefined();
+    expect(command).toBeDefined();
   });
 
   it('confirms a signup', async () => {
@@ -110,8 +109,7 @@ describe('Signup Command Handler', () => {
 
     interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
 
-    const command = new SignupCommand(interaction);
-    await handler.execute(command);
+    await command.execute(interaction);
 
     expect(interaction.deferReply).toHaveBeenCalledWith({
       flags: MessageFlags.Ephemeral,
@@ -140,8 +138,7 @@ describe('Signup Command Handler', () => {
       reviewMessageId: 'messageId123',
     } as SignupDocument);
 
-    const command = new SignupCommand(interaction);
-    await handler.execute(command);
+    await command.execute(interaction);
 
     expect(discordServiceMock.deleteMessage).toHaveBeenCalled();
 
@@ -167,8 +164,7 @@ describe('Signup Command Handler', () => {
       reviewMessageId: 'messageId123',
     } as SignupDocument);
 
-    const command = new SignupCommand(interaction);
-    await handler.execute(command);
+    await command.execute(interaction);
 
     expect(discordServiceMock.deleteMessage).not.toHaveBeenCalled();
   });
@@ -183,8 +179,7 @@ describe('Signup Command Handler', () => {
 
     interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
 
-    const command = new SignupCommand(interaction);
-    await handler.execute(command);
+    await command.execute(interaction);
 
     expect(errorService.handleCommandError).toHaveBeenCalledWith(
       expect.any(UnhandledButtonInteractionException),
@@ -202,8 +197,7 @@ describe('Signup Command Handler', () => {
 
     interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
 
-    const command = new SignupCommand(interaction);
-    await handler.execute(command);
+    await command.execute(interaction);
 
     expect(interaction.deferReply).toHaveBeenCalledWith({
       flags: MessageFlags.Ephemeral,
@@ -224,8 +218,7 @@ describe('Signup Command Handler', () => {
 
     interaction.editReply.mockResolvedValue(confirmationInteraction);
 
-    const command = new SignupCommand(interaction);
-    await handler.execute(command);
+    await command.execute(interaction);
 
     expect(interaction.deferReply).toHaveBeenCalledWith({
       flags: MessageFlags.Ephemeral,
@@ -241,8 +234,7 @@ describe('Signup Command Handler', () => {
   it('should not handle a signup if there is no review channel set', async () => {
     settingsCollection.getReviewChannel.mockResolvedValueOnce(undefined);
 
-    const command = new SignupCommand(interaction);
-    await handler.execute(command);
+    await command.execute(interaction);
 
     expect(interaction.deferReply).toHaveBeenCalledWith({
       flags: MessageFlags.Ephemeral,
@@ -285,8 +277,7 @@ describe('Signup Command Handler', () => {
         errorMessage: expiredReportError(35, 28),
       });
 
-      const command = new SignupCommand(interaction);
-      await handler.execute(command);
+      await command.execute(interaction);
 
       expect(fflogsServiceMock.validateReportAge).toHaveBeenCalledWith(
         'ABC123def456',
@@ -327,8 +318,7 @@ describe('Signup Command Handler', () => {
         }
       };
 
-      const command = new SignupCommand(interaction);
-      await handler.execute(command);
+      await command.execute(interaction);
 
       expect(fflogsServiceMock.validateReportAge).not.toHaveBeenCalled();
       expect(interaction.editReply).toHaveBeenCalledWith(
@@ -353,8 +343,7 @@ describe('Signup Command Handler', () => {
         reportDate: new Date(),
       });
 
-      const command = new SignupCommand(interaction);
-      await handler.execute(command);
+      await command.execute(interaction);
 
       expect(fflogsServiceMock.validateReportAge).toHaveBeenCalledWith(
         'ABC123def456',
@@ -394,8 +383,7 @@ describe('Signup Command Handler', () => {
         }
       };
 
-      const command = new SignupCommand(interaction);
-      await handler.execute(command);
+      await command.execute(interaction);
 
       expect(fflogsServiceMock.validateReportAge).not.toHaveBeenCalled();
     });
@@ -405,8 +393,7 @@ describe('Signup Command Handler', () => {
         new Error('API Error'),
       );
 
-      const command = new SignupCommand(interaction);
-      await handler.execute(command);
+      await command.execute(interaction);
 
       expect(fflogsServiceMock.validateReportAge).toHaveBeenCalledWith(
         'ABC123def456',

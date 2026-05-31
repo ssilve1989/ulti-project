@@ -1,7 +1,7 @@
-import { Logger } from '@nestjs/common';
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import {
   EmbedBuilder,
   type Guild,
@@ -13,6 +13,8 @@ import { ErrorService } from '../../../error/error.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { SignupStatus } from '../../../firebase/models/signup.model.js';
+import { SlashCommand } from '../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../slash-command.interface.js';
 import type {
   BaseRoleResult,
   CleanRolesResult,
@@ -21,12 +23,13 @@ import type {
   ProcessingContext,
   ProcessingStrategy,
 } from '../clean-roles.interfaces.js';
-import { CleanRolesCommand } from '../commands/clean-roles.command.js';
+import { CleanRolesSlashCommand } from '../clean-roles.slash-command.js';
 import { DryRunStrategy } from '../dry-run.strategy.js';
 import { NormalStrategy } from '../normal.strategy.js';
 
-@CommandHandler(CleanRolesCommand)
-class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
+@Injectable()
+@SlashCommand({ builder: CleanRolesSlashCommand })
+class CleanRolesCommandHandler implements ISlashCommand {
   private readonly logger = new Logger(CleanRolesCommandHandler.name);
 
   constructor(
@@ -37,7 +40,7 @@ class CleanRolesCommandHandler implements ICommandHandler<CleanRolesCommand> {
   ) {}
 
   @SentryTraced()
-  async execute({ interaction }: CleanRolesCommand) {
+  async execute(interaction: ChatInputCommandInteraction<'cached'>) {
     try {
       const scope = Sentry.getCurrentScope();
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });

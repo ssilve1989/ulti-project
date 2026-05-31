@@ -1,5 +1,5 @@
 import { Module, type OnApplicationBootstrap } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
+import { DiscoveryModule } from '@nestjs/core';
 import { appConfig } from '../config/app.js';
 import { DiscordModule } from '../discord/discord.module.js';
 import { ErrorModule } from '../error/error.module.js';
@@ -14,8 +14,8 @@ import { RemoveSignupModule } from './remove-signup/remove-signup.module.js';
 import { RetireModule } from './retire/retire.module.js';
 import { SearchModule } from './search/search.module.js';
 import { SettingsModule } from './settings/settings.module.js';
-import { SlashCommandsSharedModule } from './shared/slash-commands-shared.module.js';
 import { SignupModule } from './signup/signup.module.js';
+import { SlashCommandRegistry } from './slash-command-registry.service.js';
 import { SlashCommandsService } from './slash-commands.service.js';
 import { StatusModule } from './status/status.module.js';
 import { TurboProgModule } from './turboprog/turbo-prog.module.js';
@@ -23,10 +23,9 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
 @Module({
   imports: [
     DiscordModule,
+    DiscoveryModule,
     ErrorModule,
-    CqrsModule,
     RoleManagerModule,
-    SlashCommandsSharedModule,
     BlacklistModule,
     CleanRolesModule,
     EncountersSlashCommandModule,
@@ -41,7 +40,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     StatusModule,
     TurboProgModule,
   ],
-  providers: [SlashCommandsService],
+  providers: [SlashCommandsService, SlashCommandRegistry],
 })
 export class SlashCommandsModule implements OnApplicationBootstrap {
   constructor(private readonly service: SlashCommandsService) {}
@@ -49,7 +48,6 @@ export class SlashCommandsModule implements OnApplicationBootstrap {
   onApplicationBootstrap() {
     this.service.listenToCommands();
     if (appConfig.DISCORD_REFRESH_COMMANDS) {
-      // If we await here, the logs will be buffered since it's blocking application bootstrap
       this.service.registerCommands();
     }
   }

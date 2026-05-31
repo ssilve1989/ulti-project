@@ -6,8 +6,8 @@ import { SettingsCollection } from '../../../../firebase/collections/settings-co
 import { createAutoMock } from '../../../../test-utils/mock-factory.js';
 import { EditChannelsCommandHandler } from './edit-channels.command-handler.js';
 
-describe('Edit Channels Command Handler', () => {
-  let handler: EditChannelsCommandHandler;
+describe('EditChannelsCommandHandler', () => {
+  let command: EditChannelsCommandHandler;
   let settingsCollection: Mocked<SettingsCollection>;
   let errorService: Mocked<ErrorService>;
 
@@ -18,13 +18,13 @@ describe('Edit Channels Command Handler', () => {
       .useMocker(createAutoMock)
       .compile();
 
-    handler = fixture.get(EditChannelsCommandHandler);
+    command = fixture.get(EditChannelsCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
     errorService = fixture.get(ErrorService);
   });
 
   it('should be defined', () => {
-    expect(handler).toBeDefined();
+    expect(command).toBeDefined();
   });
 
   it('should update channel settings', async () => {
@@ -41,27 +41,25 @@ describe('Edit Channels Command Handler', () => {
 
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
-    await handler.execute({
-      interaction: {
-        guildId,
-        options: {
-          getChannel: (name: string) => {
-            switch (name) {
-              case 'signup-review-channel':
-                return { id: reviewChannelId };
-              case 'signup-public-channel':
-                return { id: signupChannelId };
-              case 'moderation-channel':
-                return { id: autoModChannelId };
-              default:
-                return null;
-            }
-          },
+    await command.execute({
+      guildId,
+      options: {
+        getChannel: (name: string) => {
+          switch (name) {
+            case 'signup-review-channel':
+              return { id: reviewChannelId };
+            case 'signup-public-channel':
+              return { id: signupChannelId };
+            case 'moderation-channel':
+              return { id: autoModChannelId };
+            default:
+              return null;
+          }
         },
-        deferReply: vi.fn(),
-        editReply: vi.fn(),
-      } as unknown as ChatInputCommandInteraction<'cached'>,
-    });
+      },
+      deferReply: vi.fn(),
+      editReply: vi.fn(),
+    } as unknown as ChatInputCommandInteraction<'cached'>);
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(
       guildId,
@@ -89,7 +87,7 @@ describe('Edit Channels Command Handler', () => {
       editReply: vi.fn(),
     } as unknown as ChatInputCommandInteraction<'cached'>;
 
-    await handler.execute({ interaction });
+    await command.execute(interaction);
 
     expect(errorService.handleCommandError).toHaveBeenCalledWith(
       error,

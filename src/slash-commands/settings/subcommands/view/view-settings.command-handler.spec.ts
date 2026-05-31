@@ -6,8 +6,8 @@ import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { createAutoMock } from '../../../../test-utils/mock-factory.js';
 import { ViewSettingsCommandHandler } from './view-settings.command-handler.js';
 
-describe('View Settings Command Handler', () => {
-  let handler: ViewSettingsCommandHandler;
+describe('ViewSettingsCommandHandler', () => {
+  let command: ViewSettingsCommandHandler;
   let settingsCollection: Mocked<SettingsCollection>;
   let sheetsService: Mocked<SheetsService>;
 
@@ -18,13 +18,13 @@ describe('View Settings Command Handler', () => {
       .useMocker(createAutoMock)
       .compile();
 
-    handler = fixture.get(ViewSettingsCommandHandler);
+    command = fixture.get(ViewSettingsCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
     sheetsService = fixture.get(SheetsService);
   });
 
   it('should be defined', () => {
-    expect(handler).toBeDefined();
+    expect(command).toBeDefined();
   });
 
   it('should reply with the configured settings', async () => {
@@ -38,7 +38,7 @@ describe('View Settings Command Handler', () => {
       progRoles: {},
     });
 
-    await handler.execute({ interaction });
+    await command.execute(interaction);
 
     expect(interaction.deferReply).toHaveBeenCalled();
     expect(interaction.editReply).toHaveBeenCalled();
@@ -58,7 +58,7 @@ describe('View Settings Command Handler', () => {
       new Error('The operation was aborted'),
     );
 
-    await handler.execute({ interaction });
+    await command.execute(interaction);
 
     const [{ embeds }] = vi.mocked(interaction.editReply).mock.calls.at(-1) as [
       { embeds: { data: { fields: unknown[] } }[] },

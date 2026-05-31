@@ -16,11 +16,10 @@ import { BlacklistCollection } from '../../../firebase/collections/blacklist-col
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../../firebase/models/signup.model.js';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
-import { LookupCommand } from '../commands/lookup.command.js';
 import { LookupCommandHandler } from './lookup.command-handler.js';
 
 describe('LookupCommandHandler', () => {
-  let handler: LookupCommandHandler;
+  let command: LookupCommandHandler;
   let interaction: ChatInputCommandInteraction<'cached'>;
   let signupsCollection: Mocked<SignupCollection>;
   let blacklistCollection: Mocked<BlacklistCollection>;
@@ -34,7 +33,7 @@ describe('LookupCommandHandler', () => {
       .useMocker(createAutoMock)
       .compile();
 
-    handler = fixture.get(LookupCommandHandler);
+    command = fixture.get(LookupCommandHandler);
     signupsCollection = fixture.get(SignupCollection);
     blacklistCollection = fixture.get(BlacklistCollection);
     errorService = fixture.get(ErrorService);
@@ -50,7 +49,7 @@ describe('LookupCommandHandler', () => {
   });
 
   it('should be defined', () => {
-    expect(handler).toBeDefined();
+    expect(command).toBeDefined();
   });
 
   it('should call the lookup service with the correct parameters', async () => {
@@ -75,9 +74,7 @@ describe('LookupCommandHandler', () => {
     // Return null so the user is not blacklisted
     blacklistCollection.search.mockResolvedValue(null as never);
 
-    const command = new LookupCommand(interaction);
-
-    await handler.execute(command);
+    await command.execute(interaction);
 
     expect(interaction.reply).toHaveBeenCalledWith({
       flags: MessageFlags.Ephemeral,
@@ -121,8 +118,7 @@ describe('LookupCommandHandler', () => {
     const signups: SignupDocument[] = [];
     signupsCollection.findAll.mockResolvedValue(signups);
 
-    const command = new LookupCommand(interaction);
-    await handler.execute(command);
+    await command.execute(interaction);
 
     expect(interaction.reply).toHaveBeenCalledWith({
       flags: MessageFlags.Ephemeral,
@@ -149,8 +145,7 @@ describe('LookupCommandHandler', () => {
     signupsCollection.findAll.mockRejectedValue(error);
     errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
 
-    const command = new LookupCommand(interaction);
-    await handler.execute(command);
+    await command.execute(interaction);
 
     expect(errorService.handleCommandError).toHaveBeenCalledWith(
       error,

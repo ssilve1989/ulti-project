@@ -1,19 +1,24 @@
-import { Logger } from '@nestjs/common';
-import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import { Colors, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getErrorMessage } from '../../../common/error-guards.js';
 import { DiscordService } from '../../../discord/discord.service.js';
-import { RetireCommand } from '../commands/retire.command.js';
+import { SlashCommand } from '../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../slash-command.interface.js';
+import { RetireSlashCommand } from '../retire.slash-command.js';
 
-@CommandHandler(RetireCommand)
-class RetireCommandHandler implements ICommandHandler<RetireCommand> {
+@Injectable()
+@SlashCommand({ builder: RetireSlashCommand })
+class RetireCommandHandler implements ISlashCommand {
   private readonly logger = new Logger(RetireCommandHandler.name);
 
   constructor(private readonly discordService: DiscordService) {}
 
   @SentryTraced()
-  async execute({ interaction }: RetireCommand): Promise<void> {
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const currentHelperRole = interaction.options.getRole(

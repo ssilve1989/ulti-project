@@ -1,4 +1,5 @@
-import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
+import { Injectable } from '@nestjs/common';
+import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
@@ -16,6 +17,7 @@ import {
   encounterField,
   worldField,
 } from '../../../common/components/fields.js';
+import { appConfig } from '../../../config/app.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
@@ -27,7 +29,8 @@ import {
 import { SheetsService } from '../../../sheets/sheets.service.js';
 import { SIGNUP_MESSAGES } from '../../signup/signup.consts.js';
 import { shouldDeleteReviewMessageForSignup } from '../../signup/signup.utils.js';
-import { RemoveSignupCommand } from '../commands/remove-signup.command.js';
+import { SlashCommand } from '../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../slash-command.interface.js';
 import {
   REMOVAL_MISSING_PERMISSIONS,
   REMOVAL_NO_DB_ENTRY,
@@ -39,6 +42,7 @@ import {
   type RemoveSignupSchema,
   removeSignupSchema,
 } from '../remove-signup.schema.js';
+import { createRemoveSignupSlashCommand } from '../remove-signup.slash-command.js';
 
 type RemoveSignupProps = {
   dto: RemoveSignupSchema;
@@ -47,10 +51,11 @@ type RemoveSignupProps = {
   spreadsheetId?: string;
 };
 
-@CommandHandler(RemoveSignupCommand)
-class RemoveSignupCommandHandler
-  implements ICommandHandler<RemoveSignupCommand>
-{
+@Injectable()
+@SlashCommand({
+  builder: createRemoveSignupSlashCommand(appConfig.APPLICATION_MODE),
+})
+class RemoveSignupCommandHandler implements ISlashCommand {
   constructor(
     private readonly discordService: DiscordService,
     private readonly settingsCollection: SettingsCollection,
@@ -60,7 +65,9 @@ class RemoveSignupCommandHandler
   ) {}
 
   @SentryTraced()
-  async execute({ interaction }: RemoveSignupCommand) {
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const optionsResult = this.getOptions(interaction);
@@ -88,13 +95,13 @@ class RemoveSignupCommandHandler
     );
 
     if (!settings) {
-      return interaction.editReply({
+      return void (await interaction.editReply({
         embeds: [
           embed
             .setColor(Colors.Red)
             .setDescription(SIGNUP_MESSAGES.MISSING_SETTINGS),
         ],
-      });
+      }));
     }
 
     const { spreadsheetId, reviewerRole } = settings;
@@ -108,13 +115,13 @@ class RemoveSignupCommandHandler
       );
 
       if (!canModify) {
-        return interaction.editReply({
+        return void (await interaction.editReply({
           embeds: [
             embed
               .setDescription(REMOVAL_MISSING_PERMISSIONS)
               .setColor(Colors.Red),
           ],
-        });
+        }));
       }
 
       const description = await this.removeSignup({

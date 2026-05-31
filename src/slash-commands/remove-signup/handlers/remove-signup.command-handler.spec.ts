@@ -44,7 +44,7 @@ const DEFAULT_SETTINGS = {
 describe('Remove Signup Command Handler', () => {
   let discordService: Mocked<DiscordService>;
   let eventBus: Mocked<EventBus>;
-  let handler: RemoveSignupCommandHandler;
+  let command: RemoveSignupCommandHandler;
   let interaction: ChatInputCommandInteraction<'cached'>;
   let settingsCollection: Mocked<SettingsCollection>;
   let sheetsService: Mocked<SheetsService>;
@@ -58,7 +58,7 @@ describe('Remove Signup Command Handler', () => {
       .compile();
 
     discordService = fixture.get(DiscordService);
-    handler = fixture.get(RemoveSignupCommandHandler);
+    command = fixture.get(RemoveSignupCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
     sheetsService = fixture.get(SheetsService);
     signupsCollection = fixture.get(SignupCollection);
@@ -86,7 +86,7 @@ describe('Remove Signup Command Handler', () => {
   });
 
   it('is defined', () => {
-    expect(handler).toBeDefined();
+    expect(command).toBeDefined();
   });
 
   it.each([
@@ -153,7 +153,7 @@ describe('Remove Signup Command Handler', () => {
       );
     }
 
-    await handler.execute({ interaction });
+    await command.execute(interaction);
 
     expect(interaction.editReply).toHaveBeenCalledWith({
       embeds: [
@@ -181,7 +181,7 @@ describe('Remove Signup Command Handler', () => {
       status: SignupStatus.APPROVED,
     } as SignupDocument);
 
-    await handler.execute({ interaction });
+    await command.execute(interaction);
     expect(sheetsService.removeSignup).toHaveBeenCalled();
   });
 
@@ -192,7 +192,7 @@ describe('Remove Signup Command Handler', () => {
       status: SignupStatus.PENDING,
     } as SignupDocument);
 
-    await handler.execute({ interaction });
+    await command.execute(interaction);
     expect(sheetsService.removeSignup).not.toHaveBeenCalled();
   });
 
@@ -217,7 +217,7 @@ describe('Remove Signup Command Handler', () => {
       editReply: vi.fn().mockResolvedValue(undefined),
     } as unknown as ChatInputCommandInteraction<'cached'>;
 
-    await handler.execute({ interaction: invalidWorldInteraction });
+    await command.execute(invalidWorldInteraction);
 
     expect(invalidWorldInteraction.editReply).toHaveBeenCalledWith({
       embeds: [
