@@ -32,7 +32,12 @@ jobs:
         with:
           repository: ssilve1989/github-releases-to-discord-action
           token: ${{ secrets.ULTI_PROJECT_PAT }}
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
       - run: pnpm install
       - run: pnpm build
       - name: Run Publish Release
