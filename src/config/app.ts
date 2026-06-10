@@ -19,7 +19,7 @@ export const appSchema = z.object({
     .default(['ultimate']),
   CLIENT_ID: z.string(),
   DISCORD_TOKEN: z.string(),
-  DISCORD_REFRESH_COMMANDS: z.coerce.boolean().default(false),
+  DISCORD_REFRESH_COMMANDS: z.stringbool().default(false),
   FFLOGS_API_ACCESS_TOKEN: z.string().optional(),
   GCP_PRIVATE_KEY: z.string(),
   GCP_ACCOUNT_EMAIL: z.string(),
