@@ -50,7 +50,7 @@
     "discord.js": "^14.26.4",
     "firebase-admin": "^13.10.0",
     "google-auth-library": "^10.6.2",
-    "graphql": "^16.14.1",
+    "graphql": "^16.14.2",
     "graphql-request": "^7.4.0",
     "nestjs-pino": "^4.6.1",
     "pino-http": "^11.0.0",
