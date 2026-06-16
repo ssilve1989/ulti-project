@@ -3,4 +3,44 @@ id: DMU
 name: Dancing Mad (Ultimate)
 description: "[DMU] Dancing Mad"
 active: true
-progPoints: []
+progPoints:
+  - id: Forsaken
+    label: "Phase 2: Forsaken"
+    partyStatus: "Prog Party"
+    active: true
+  - id: "Bowels of Agony"
+    label: "Phase 3: Bowels of Agony"
+    partyStatus: "Prog Party"
+    active: true
+  - id: "Black Hole"
+    label: "Phase 3: Black Hole"
+    partyStatus: "Prog Party"
+    active: true
+  - id: "Kefka Says"
+    label: "Phase 4: Kefka Says"
+    partyStatus: "Prog Party"
+    active: true
+  - id: "Chaotic Flood"
+    label: "Phase 5: Chaotic Flood"
+    partyStatus: "Clear Party"
+    active: true
+  - id: "Maddening 1"
+    label: "Phase 5: Maddening Orchestra 1"
+    partyStatus: "Clear Party"
+    active: true
+  - id: Celestriad
+    label: "Phase 5: Celestriad"
+    partyStatus: "Clear Party"
+    active: true
+  - id: "Maddening 2"
+    label: "Phase 5: Maddening Orchestra 2"
+    partyStatus: "Clear Party"
+    active: true
+  - id: "Exas"
+    label: "Phase5: Stray Apocalypse"
+    partyStatus: "Clear Party"
+    active: true
+  - id: "P5 Forsaken"
+    label: "Phase 5: Forsaken"
+    partyStatus: "Clear Party"
+    active: true
