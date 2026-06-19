@@ -18,14 +18,6 @@ minimumReleaseAge: 7200
 minimumReleaseAgeIgnoreMissingTime: true
 minimumReleaseAgeExclude:
   - typescript
-  - "@typescript/native-preview"
-  - "@typescript/native-preview-win32-x64"
-  - "@typescript/native-preview-win32-arm64"
-  - "@typescript/native-preview-linux-x64"
-  - "@typescript/native-preview-linux-arm"
-  - "@typescript/native-preview-linux-arm64"
-  - "@typescript/native-preview-darwin-x64"
-  - "@typescript/native-preview-darwin-arm64"
   # Renovate security update: @nestjs/core@11.1.18
   - "@nestjs/core@11.1.18"
   - '@typescript/typescript-aix-ppc64@7.0.1-rc'
