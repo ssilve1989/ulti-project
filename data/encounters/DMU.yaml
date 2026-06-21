@@ -30,7 +30,7 @@ progPoints:
     active: true
   - id: "Kefka Says"
     label: "Phase 4: Kefka Says"
-    partyStatus: "Clear Party"
+    partyStatus: "Prog Party"
     active: true
   - id: "P4 Enrage"
     label: "Phase 4: Enrage"
