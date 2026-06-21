@@ -8,20 +8,36 @@ progPoints:
     label: "Phase 2: Forsaken"
     partyStatus: "Prog Party"
     active: true
+  - id: "Trines/Enrage"
+    label: "Phase 2: Trines/Enrage"
+    partyStatus: "Prog Party"
+    active: true
   - id: "Bowels of Agony"
     label: "Phase 3: Bowels of Agony"
+    partyStatus: "Prog Party"
+    active: true
+  - id: "P3 Limit Cut"
+    label: "Phase 3: Limit Cut"
     partyStatus: "Prog Party"
     active: true
   - id: "Black Hole"
     label: "Phase 3: Black Hole"
     partyStatus: "Prog Party"
     active: true
-  - id: "Kefka Says"
-    label: "Phase 4: Kefka Says"
+  - id: "Enrage/Blizzard"
+    label: "Phase 3: Enrage/Blizzard"
     partyStatus: "Prog Party"
     active: true
-  - id: "Chaotic Flood"
-    label: "Phase 5: Chaotic Flood"
+  - id: "Kefka Says"
+    label: "Phase 4: Kefka Says"
+    partyStatus: "Clear Party"
+    active: true
+  - id: "P4 Enrage"
+    label: "Phase 4: Enrage"
+    partyStatus: "Clear Party"
+    active: true
+  - id: "Fresh/Flood"
+    label: "Phase 5: Fresh/Flood"
     partyStatus: "Clear Party"
     active: true
   - id: "Maddening 1"
@@ -37,10 +53,10 @@ progPoints:
     partyStatus: "Clear Party"
     active: true
   - id: "Exas"
-    label: "Phase5: Stray Apocalypse"
+    label: "Phase 5: Stray Apocalypse (Exas)"
     partyStatus: "Clear Party"
     active: true
-  - id: "P5 Forsaken"
-    label: "Phase 5: Forsaken"
+  - id: "Forsaken/Enrage"
+    label: "Phase 5: Forsaken/Enrage"
     partyStatus: "Clear Party"
     active: true
