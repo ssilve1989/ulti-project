@@ -132,7 +132,6 @@ describe('FFLogsService', () => {
     test('should handle report just over boundary', async () => {
       const overBoundaryDate = Temporal.Now.zonedDateTimeISO().subtract({
         days: 29,
-        hours: 1,
       }).epochMilliseconds;
       mockClient.reportData.mockResolvedValue({
         reportData: {
