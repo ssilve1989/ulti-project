@@ -12,8 +12,12 @@ progPoints:
     label: "Phase 2: Trines/Enrage"
     partyStatus: "Prog Party"
     active: true
-  - id: "Bowels of Agony+Limit Cut"
+  - id: "Bowels of Agony"
     label: "Phase 3: Bowels of Agony"
+    partyStatus: "Prog Party"
+    active: true
+  - id: "Limit Cut"
+    label: "Phase 3: Limit Cut"
     partyStatus: "Prog Party"
     active: true
   - id: "Black Hole"
