@@ -8,7 +8,7 @@ progPoints:
     label: "Phase 2: Forsaken"
     partyStatus: "Prog Party"
     active: true
-  - id: "Trines/Enrage"
+  - id: "Trines"
     label: "Phase 2: Trines/Enrage"
     partyStatus: "Prog Party"
     active: true
@@ -24,7 +24,7 @@ progPoints:
     label: "Phase 3: Black Hole"
     partyStatus: "Prog Party"
     active: true
-  - id: "Enrage/Blizzard"
+  - id: "Enrage"
     label: "Phase 3: Enrage/Blizzard"
     partyStatus: "Prog Party"
     active: true
@@ -36,7 +36,7 @@ progPoints:
     label: "Phase 4: Enrage"
     partyStatus: "Clear Party"
     active: true
-  - id: "Fresh/Flood"
+  - id: "Fresh"
     label: "Phase 5: Fresh/Flood"
     partyStatus: "Clear Party"
     active: true
@@ -56,7 +56,7 @@ progPoints:
     label: "Phase 5: Stray Apocalypse (Exas)"
     partyStatus: "Clear Party"
     active: true
-  - id: "Forsaken/Enrage"
+  - id: "P5 Forsaken"
     label: "Phase 5: Forsaken/Enrage"
     partyStatus: "Clear Party"
     active: true
