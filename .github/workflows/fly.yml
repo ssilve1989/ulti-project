@@ -19,7 +19,7 @@ jobs:
       - run: pnpm sentry:sourcemaps
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      - run: flyctl deploy --remote-only
+      - run: flyctl deploy --remote-only --ha=false
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
   publish-release-to-discord:
