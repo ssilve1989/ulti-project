@@ -10,6 +10,7 @@ export const EncounterIds = new Map<Encounter, number[]>([
   [Encounter.UWU, [1061, 1074, 1048, 1042]],
   [Encounter.UCOB, [1060, 1073, 1047, 1039]],
   [Encounter.FRU, [1079]],
+  [Encounter.DMU, [1085]],
 ]);
 
 export function expiredReportError(
