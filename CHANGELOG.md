@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/ssilve1989/ulti-project/compare/v2.1.0...v2.2.0) (2026-06-23)
+
+
+### Features
+
+* add DMU encounter id 1085 to EncounterIds map ([d9c9652](https://github.com/ssilve1989/ulti-project/commit/d9c9652b5a29e519dee4f512015925900a6a0646))
+
 ## [2.1.0](https://github.com/ssilve1989/ulti-project/compare/v2.0.1...v2.1.0) (2026-06-22)
 
 
