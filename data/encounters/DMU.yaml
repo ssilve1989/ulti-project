@@ -4,15 +4,15 @@ name: Dancing Mad (Ultimate)
 description: "[DMU] Dancing Mad"
 active: true
 progPoints:
-  - id: Forsaken
+  - id: "P2 Forsaken"
     label: "Phase 2: Forsaken"
     partyStatus: "Prog Party"
     active: true
-  - id: "Trines/Enrage"
+  - id: "P2 Trines"
     label: "Phase 2: Trines/Enrage"
     partyStatus: "Prog Party"
     active: true
-  - id: "Bowels of Agony"
+  - id: "P3 Bowels of Agony"
     label: "Phase 3: Bowels of Agony"
     partyStatus: "Prog Party"
     active: true
@@ -20,15 +20,15 @@ progPoints:
     label: "Phase 3: Limit Cut"
     partyStatus: "Prog Party"
     active: true
-  - id: "Black Hole"
+  - id: "P3 Black Hole"
     label: "Phase 3: Black Hole"
     partyStatus: "Prog Party"
     active: true
-  - id: "Enrage/Blizzard"
+  - id: "P3 Enrage"
     label: "Phase 3: Enrage/Blizzard"
     partyStatus: "Prog Party"
     active: true
-  - id: "Kefka Says"
+  - id: "P4 Kefka Says"
     label: "Phase 4: Kefka Says"
     partyStatus: "Prog Party"
     active: true
@@ -36,27 +36,27 @@ progPoints:
     label: "Phase 4: Enrage"
     partyStatus: "Clear Party"
     active: true
-  - id: "Fresh/Flood"
+  - id: "P5 Fresh"
     label: "Phase 5: Fresh/Flood"
     partyStatus: "Clear Party"
     active: true
-  - id: "Maddening 1"
+  - id: "P5 Maddening 1"
     label: "Phase 5: Maddening Orchestra 1"
     partyStatus: "Clear Party"
     active: true
-  - id: Celestriad
+  - id: "P5 Celestriad"
     label: "Phase 5: Celestriad"
     partyStatus: "Clear Party"
     active: true
-  - id: "Maddening 2"
+  - id: "P5 Maddening 2"
     label: "Phase 5: Maddening Orchestra 2"
     partyStatus: "Clear Party"
     active: true
-  - id: "Exas"
+  - id: "P5 Exas"
     label: "Phase 5: Stray Apocalypse (Exas)"
     partyStatus: "Clear Party"
     active: true
-  - id: "Forsaken/Enrage"
+  - id: "P5 Forsaken"
     label: "Phase 5: Forsaken/Enrage"
     partyStatus: "Clear Party"
     active: true

@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.2.0](https://github.com/ssilve1989/ulti-project/compare/v2.1.0...v2.2.0) (2026-06-23)
+
+
+### Features
+
+* add DMU encounter id 1085 to EncounterIds map ([d9c9652](https://github.com/ssilve1989/ulti-project/commit/d9c9652b5a29e519dee4f512015925900a6a0646))
+
+## [2.1.0](https://github.com/ssilve1989/ulti-project/compare/v2.0.1...v2.1.0) (2026-06-22)
+
+
+### Features
+
+* add/push DMU prog point config ([c6a6bd5](https://github.com/ssilve1989/ulti-project/commit/c6a6bd511a270939a09d4eb06679d15852fe6b39))
+
+
+### Bug Fixes
+
+* z.coerce.boolean to z.stringbool ([8450ca2](https://github.com/ssilve1989/ulti-project/commit/8450ca2ce680f4462ab9de73e66863eaca0ee891))
+
 ## [2.0.0](https://github.com/ssilve1989/ulti-project/compare/v1.40.3...v2.0.0) (2026-05-30)
 
 

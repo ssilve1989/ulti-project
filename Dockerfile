@@ -1,4 +1,4 @@
-FROM platformatic/node-caged:26-slim AS base
+FROM node:26-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN npm install --global corepack@latest
@@ -20,7 +20,7 @@ COPY src ./src
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm run build
 
-FROM platformatic/node-caged:26-slim
+FROM node:26-slim
 WORKDIR /app
 
 COPY package.json instrumentation.ts ./

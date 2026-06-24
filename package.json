@@ -1,6 +1,6 @@
 {
   "name": "ulti-project",
-  "version": "2.0.0",
+  "version": "2.2.0",
   "description": "Ulti-Project Discord Bot",
   "author": "Aeo <aeo.games14@gmail.com>",
   "type": "module",
@@ -38,10 +38,10 @@
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org ulti-project --project ulti-project-bot ./dist && sentry-cli sourcemaps upload --org ulti-project --project ulti-project-bot ./dist"
   },
   "dependencies": {
-    "@dotenvx/dotenvx": "^1.71.2",
+    "@dotenvx/dotenvx": "^1.73.1",
     "@googleapis/sheets": "^13.0.2",
-    "@nestjs/common": "^11.1.26",
-    "@nestjs/core": "^11.1.26",
+    "@nestjs/common": "^11.1.27",
+    "@nestjs/core": "^11.1.27",
     "@nestjs/cqrs": "^11.0.3",
     "@sentry/cli": "^3.4.3",
     "@sentry/nestjs": "^10.54.0",
@@ -64,30 +64,30 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.16",
+    "@biomejs/biome": "2.5.0",
     "@clack/prompts": "^1.5.1",
     "@commitlint/cli": "^21.0.2",
     "@commitlint/config-conventional": "^21.0.2",
     "@commitlint/cz-commitlint": "^21.0.2",
     "@commitlint/prompt-cli": "^21.0.2",
     "@flydotio/dockerfile": "^0.7.10",
-    "@graphql-codegen/cli": "7.1.2",
+    "@graphql-codegen/cli": "7.1.3",
     "@graphql-codegen/schema-ast": "^6.0.1",
     "@graphql-codegen/typescript": "6.0.2",
     "@graphql-codegen/typescript-graphql-request": "^7.1.0",
     "@nestjs/schematics": "^11.1.0",
-    "@nestjs/testing": "^11.1.26",
+    "@nestjs/testing": "^11.1.27",
     "@types/node": "^25.9.1",
-    "@vitest/coverage-v8": "^4.1.8",
-    "@vitest/ui": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/ui": "^4.1.9",
     "commander": "^14.0.3",
-    "commitizen": "^4.3.1",
+    "commitizen": "^4.3.2",
     "hygen": "^6.2.11",
     "lefthook": "^2.1.9",
     "rimraf": "^6.1.3",
     "source-map-support": "^0.5.21",
     "unplugin-swc": "^1.5.9",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   },
   "config": {
     "commitizen": {
