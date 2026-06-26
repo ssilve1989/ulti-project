@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.base.json",
+  // Core project: all application source AND its tests (everything except the
+  // CLI). It is `composite` because the cli project references it, so it emits
+  // declarations — to a throwaway dir, since type-checking rather than emit is
+  // the goal here. The production bundle is still produced by
+  // `tsconfig.build.json`. Tests are deliberately kept in this project (the same
+  // program as the code they exercise) so specs that reach private members via
+  // bracket notation keep full type information.
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "./src",
+    "outDir": "./.tsbuild/src"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "src/cli"]
+}

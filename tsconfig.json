@@ -1,35 +1,16 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  // Visit https://aka.ms/tsconfig to read more about this file
-  "compilerOptions": {
-    // File Layout
-    // "rootDir": "./src",
-    // "outDir": "./dist",
-    // Environment Settings
-    // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
-    // For nodejs:
-    "lib": ["esnext"],
-    "target": "esnext",
-    "types": ["node"],
-    // Other Outputs
-    "declaration": false,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "inlineSources": true,
-    "sourceMap": true,
-    // Set `sourceRoot` to  "/" to strip the build path prefix
-    // from generated source code references.
-    // This improves issue grouping in Sentry.
-    "sourceRoot": "/",
-    // Style Options
-    "forceConsistentCasingInFileNames": true,
-    // Recommended Options
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "noUncheckedSideEffectImports": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "verbatimModuleSyntax": true
-  }
+  // Solution-style root config. It owns no files of its own; it just wires the
+  // project graph together so `tsc -b` type-checks every file exactly once, in
+  // dependency order. The `cli` project references `src` and consumes its
+  // declarations instead of re-compiling the shared firebase/encounters/config
+  // modules. Tests live alongside the source they exercise (inside `src`) so
+  // specs that reach private members keep full type information. Shared compiler
+  // options live in `tsconfig.base.json`; the production build is driven by
+  // `tsconfig.build.json` and `tsconfig.cli.json`.
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.src.json" },
+    { "path": "./src/cli/tsconfig.json" }
+  ]
 }

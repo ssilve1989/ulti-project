@@ -34,7 +34,7 @@
     "test:ci": "CI=true vitest run --coverage",
     "test:cov": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p src/cli/tsconfig.json --noEmit",
+    "typecheck": "tsc -b",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org ulti-project --project ulti-project-bot ./dist && sentry-cli sourcemaps upload --org ulti-project --project ulti-project-bot ./dist"
   },
   "dependencies": {
@@ -50,6 +50,7 @@
     "discord.js": "^14.26.4",
     "firebase-admin": "^13.10.0",
     "google-auth-library": "^10.6.2",
+    "googleapis-common": "^8.0.1",
     "graphql": "^16.14.2",
     "graphql-request": "^7.4.0",
     "nestjs-pino": "^4.6.1",

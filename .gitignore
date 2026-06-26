@@ -51,3 +51,7 @@ pr-description.md
 ai-docs/
 .worktrees/
 .opencode
+
+# TypeScript project-references build artifacts
+.tsbuild/
+*.tsbuildinfo

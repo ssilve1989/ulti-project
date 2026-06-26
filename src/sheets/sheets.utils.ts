@@ -1,5 +1,6 @@
 import { type MethodOptions, sheets_v4 } from '@googleapis/sheets';
 import * as Sentry from '@sentry/nestjs';
+import type { GaxiosResponseWithHTTP2 } from 'googleapis-common';
 
 type GetSheetValuesProps = {
   spreadsheetId: string;
@@ -48,7 +49,10 @@ export function updateSheet(
   client: sheets_v4.Sheets,
   { spreadsheetId, type, values, range }: UpdateSheetProps,
   options?: MethodOptions,
-) {
+): Promise<
+  | GaxiosResponseWithHTTP2<sheets_v4.Schema$UpdateValuesResponse>
+  | GaxiosResponseWithHTTP2<sheets_v4.Schema$AppendValuesResponse>
+> {
   const payload = {
     spreadsheetId,
     range,
@@ -68,7 +72,9 @@ export function batchUpdate(
   spreadsheetId: string,
   requests: sheets_v4.Schema$Request[],
   options: MethodOptions = { timeout: 30_000 },
-) {
+): Promise<
+  GaxiosResponseWithHTTP2<sheets_v4.Schema$BatchUpdateSpreadsheetResponse>
+> {
   return client.spreadsheets.batchUpdate(
     {
       spreadsheetId,

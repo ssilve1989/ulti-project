@@ -1,13 +1,16 @@
 {
-  "extends": "../../tsconfig.json",
-  "include": [
-    "./**/*.ts",
-    "../firebase/**/*.ts",
-    "../encounters/**/*.ts",
-    "../config/**/*.ts",
-    "../global.d.ts"
-  ],
+  "extends": "../../tsconfig.base.json",
+  // CLI source. A leaf project that references the core `src` project; the
+  // shared firebase/encounters/config modules it imports are resolved from
+  // `src`'s declarations instead of being re-compiled here.
   "compilerOptions": {
-    "rootDir": "../../src"
-  }
+    "composite": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "..",
+    "outDir": "../../.tsbuild/cli"
+  },
+  "include": ["./**/*.ts", "../global.d.ts"],
+  "exclude": ["node_modules"],
+  "references": [{ "path": "../../tsconfig.src.json" }]
 }

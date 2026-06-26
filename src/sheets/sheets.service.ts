@@ -2,6 +2,7 @@ import { sheets_v4 } from '@googleapis/sheets';
 import { Injectable, Logger, type OnApplicationShutdown } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
+import type { GaxiosResponseWithHTTP2 } from 'googleapis-common';
 import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
@@ -171,7 +172,9 @@ class SheetsService implements OnApplicationShutdown {
     }: Pick<SignupDocument, 'encounter' | 'character' | 'world'>,
     spreadsheetId: string,
     partyTypes?: PartyTypes,
-  ) {
+  ): Promise<
+    0 | GaxiosResponseWithHTTP2<sheets_v4.Schema$BatchUpdateSpreadsheetResponse>
+  > {
     const types = partyTypes || (await this.getDefaultPartyTypes(encounter));
     const ranges = types.map((range) => SheetRanges[range]);
 
