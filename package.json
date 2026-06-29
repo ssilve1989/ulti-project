@@ -38,7 +38,7 @@
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org ulti-project --project ulti-project-bot ./dist && sentry-cli sourcemaps upload --org ulti-project --project ulti-project-bot ./dist"
   },
   "dependencies": {
-    "@dotenvx/dotenvx": "^1.74.2",
+    "@dotenvx/dotenvx": "^1.75.1",
     "@googleapis/sheets": "^13.0.2",
     "@nestjs/common": "^11.1.27",
     "@nestjs/core": "^11.1.27",
@@ -65,11 +65,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.1",
-    "@clack/prompts": "^1.5.1",
-    "@commitlint/cli": "^21.0.2",
-    "@commitlint/config-conventional": "^21.0.2",
-    "@commitlint/cz-commitlint": "^21.0.2",
-    "@commitlint/prompt-cli": "^21.0.2",
+    "@clack/prompts": "^1.6.0",
+    "@commitlint/cli": "^21.1.0",
+    "@commitlint/config-conventional": "^21.1.0",
+    "@commitlint/cz-commitlint": "^21.1.0",
+    "@commitlint/prompt-cli": "^21.1.0",
     "@flydotio/dockerfile": "^0.7.10",
     "@graphql-codegen/cli": "7.1.3",
     "@graphql-codegen/schema-ast": "^6.0.1",
