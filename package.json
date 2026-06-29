@@ -65,7 +65,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.0",
-    "@clack/prompts": "^1.5.1",
+    "@clack/prompts": "^1.6.0",
     "@commitlint/cli": "^21.1.0",
     "@commitlint/config-conventional": "^21.1.0",
     "@commitlint/cz-commitlint": "^21.1.0",
