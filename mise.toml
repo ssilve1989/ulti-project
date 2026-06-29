@@ -1,6 +1,6 @@
 [tools]
 pnpm       = "11.8.0"
 node       = "26.3.1"
-docker-cli = "29.6.0"
+docker-cli = "29.6.1"
 yamlfmt    = "0.21.0"
 flyctl = "latest"
