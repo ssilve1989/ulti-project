@@ -10,6 +10,7 @@ allowBuilds:
   "esbuild": true
   "nestjs-pino": true
   "protobufjs": false
+  '@sentry/node-cpu-profiler': true
 minimumReleaseAge: 7200
 # pnpm 11 made minimumReleaseAgeStrict default to true when minimumReleaseAge
 # is set explicitly, which surfaces ERR_PNPM_MISSING_TIME for packages whose
