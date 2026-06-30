@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import {
+  ActivityType,
   Client,
   Collection,
   DiscordAPIError,
@@ -23,6 +24,16 @@ class DiscordService {
 
   public getGuilds(): string[] {
     return this.client.guilds.cache.map((guild) => guild.id);
+  }
+
+  public setActivity({
+    type,
+    name,
+  }: {
+    type: ActivityType;
+    name: string;
+  }): void {
+    this.client.user?.setActivity({ type, name });
   }
 
   public async getGuildMember({
