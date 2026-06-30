@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/ssilve1989/ulti-project/compare/v2.2.0...v2.2.1) (2026-06-30)
+
+
+### Bug Fixes
+
+* **signup:** recover and retry decline-reason modal on token expiry ([#1352](https://github.com/ssilve1989/ulti-project/issues/1352)) ([ba32cbb](https://github.com/ssilve1989/ulti-project/commit/ba32cbb8fe54171808528b61364600944788dc0b))
+
 ## [2.2.0](https://github.com/ssilve1989/ulti-project/compare/v2.1.0...v2.2.0) (2026-06-23)
 
 
