@@ -5,6 +5,7 @@ import { SentryTraced } from '@sentry/nestjs';
 import {
   ActionRowBuilder,
   ComponentType,
+  DiscordAPIError,
   DiscordjsError,
   DiscordjsErrorCodes,
   type InteractionResponse,
@@ -28,6 +29,8 @@ import {
 } from './decline-reason.components.js';
 import { SignupDeclineReasonCollectedEvent } from './events/signup.events.js';
 import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
+
+export const MAX_MODAL_SHOW_ATTEMPTS = 3;
 
 @Injectable()
 export class DeclineReasonRequestService {
@@ -89,23 +92,45 @@ export class DeclineReasonRequestService {
     const timeout = 5 * 60 * 1000; // 5 minutes
 
     try {
-      const selectInteraction = await dmMessage.awaitMessageComponent({
-        filter: isSameUserFilter(reviewer),
-        componentType: ComponentType.StringSelect,
-        time: timeout,
-      });
+      let attempts = 0;
 
-      if (
-        selectInteraction.customId === `${DECLINE_REASON_SELECT_ID}-${signupId}`
-      ) {
-        await this.handleReasonSelection(
+      while (attempts < MAX_MODAL_SHOW_ATTEMPTS) {
+        const selectInteraction = await dmMessage.awaitMessageComponent({
+          filter: isSameUserFilter(reviewer),
+          componentType: ComponentType.StringSelect,
+          time: timeout,
+        });
+
+        if (
+          selectInteraction.customId !==
+          `${DECLINE_REASON_SELECT_ID}-${signupId}`
+        ) {
+          // Some other component interaction on this message — not a failed
+          // modal attempt, so it doesn't count against the retry budget.
+          continue;
+        }
+
+        const handled = await this.handleReasonSelection(
           selectInteraction as StringSelectMenuInteraction,
           signup,
           signupId,
           reviewer,
           reviewMessage,
         );
+
+        if (handled) {
+          return;
+        }
+
+        // Only reaches here when the modal failed to show (handleReasonSelection
+        // returned false) — counts toward the bounded retry budget.
+        attempts++;
       }
+
+      this.logger.warn(
+        `Gave up on the custom decline reason modal for signup ${signupId} after ${MAX_MODAL_SHOW_ATTEMPTS} attempts`,
+      );
+      this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
     } catch (error) {
       this.handleTimeoutError(
         error,
@@ -123,13 +148,27 @@ export class DeclineReasonRequestService {
     signupId: string,
     reviewer: User,
     reviewMessage: Message<true>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const selectedValue = interaction.values[0];
 
     if (selectedValue === CUSTOM_DECLINE_REASON_VALUE) {
       // Show modal for custom reason
       const modal = createCustomDeclineReasonModal(signupId);
-      await interaction.showModal(modal);
+
+      try {
+        await interaction.showModal(modal);
+      } catch (error) {
+        if (error instanceof DiscordAPIError && error.code === 10062) {
+          this.logger.warn(
+            `Modal token expired before it could be shown for signup ${signupId}, asking reviewer to retry`,
+          );
+          await interaction.user.send(
+            'That took a moment too long to open — please click the dropdown again to provide a custom decline reason.',
+          );
+          return false;
+        }
+        throw error;
+      }
 
       try {
         const modalInteraction = await interaction.awaitModalSubmit({
@@ -170,6 +209,8 @@ export class DeclineReasonRequestService {
         flags: MessageFlags.Ephemeral,
       });
     }
+
+    return true;
   }
 
   private async handleCustomReasonSubmit(
