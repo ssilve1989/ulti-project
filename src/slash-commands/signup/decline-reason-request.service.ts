@@ -92,23 +92,45 @@ export class DeclineReasonRequestService {
     const timeout = 5 * 60 * 1000; // 5 minutes
 
     try {
-      const selectInteraction = await dmMessage.awaitMessageComponent({
-        filter: isSameUserFilter(reviewer),
-        componentType: ComponentType.StringSelect,
-        time: timeout,
-      });
+      let attempts = 0;
 
-      if (
-        selectInteraction.customId === `${DECLINE_REASON_SELECT_ID}-${signupId}`
-      ) {
-        await this.handleReasonSelection(
+      while (attempts < MAX_MODAL_SHOW_ATTEMPTS) {
+        const selectInteraction = await dmMessage.awaitMessageComponent({
+          filter: isSameUserFilter(reviewer),
+          componentType: ComponentType.StringSelect,
+          time: timeout,
+        });
+
+        if (
+          selectInteraction.customId !==
+          `${DECLINE_REASON_SELECT_ID}-${signupId}`
+        ) {
+          // Some other component interaction on this message — not a failed
+          // modal attempt, so it doesn't count against the retry budget.
+          continue;
+        }
+
+        const handled = await this.handleReasonSelection(
           selectInteraction as StringSelectMenuInteraction,
           signup,
           signupId,
           reviewer,
           reviewMessage,
         );
+
+        if (handled) {
+          return;
+        }
+
+        // Only reaches here when the modal failed to show (handleReasonSelection
+        // returned false) — counts toward the bounded retry budget.
+        attempts++;
       }
+
+      this.logger.warn(
+        `Gave up on the custom decline reason modal for signup ${signupId} after ${MAX_MODAL_SHOW_ATTEMPTS} attempts`,
+      );
+      this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
     } catch (error) {
       this.handleTimeoutError(
         error,

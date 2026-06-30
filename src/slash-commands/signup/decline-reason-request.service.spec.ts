@@ -4,6 +4,7 @@ import { DiscordAPIError } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SignupDocument } from '../../firebase/models/signup.model.js';
 import { createAutoMock } from '../../test-utils/mock-factory.js';
+import { DECLINE_REASON_SELECT_ID } from './decline-reason.components.js';
 import {
   DeclineReasonRequestService,
   MAX_MODAL_SHOW_ATTEMPTS,
@@ -91,9 +92,64 @@ describe('DeclineReasonRequestService', () => {
     });
   });
 
-  describe('MAX_MODAL_SHOW_ATTEMPTS (reserved for retry loop, not yet implemented)', () => {
-    it('is exported with a sane default', () => {
-      expect(MAX_MODAL_SHOW_ATTEMPTS).toBeGreaterThan(1);
+  describe('handleDeclineReasonInteractions retry loop', () => {
+    const buildSelectInteraction = () =>
+      ({
+        customId: `${DECLINE_REASON_SELECT_ID}-${signupId}`,
+      }) as StringSelectMenuInteraction;
+
+    it('re-listens for a selection and retries after a recoverable modal failure', async () => {
+      const selectInteraction = buildSelectInteraction();
+      const awaitMessageComponent = vi
+        .fn()
+        .mockResolvedValue(selectInteraction);
+      const dmMessage = {
+        awaitMessageComponent,
+      } as unknown as Message<false>;
+
+      const handleReasonSelectionSpy = vi
+        .spyOn(service as any, 'handleReasonSelection')
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true);
+
+      await service['handleDeclineReasonInteractions'](
+        dmMessage,
+        signup,
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(awaitMessageComponent).toHaveBeenCalledTimes(2);
+      expect(handleReasonSelectionSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('gives up and dispatches a no-reason decline after exhausting retry attempts', async () => {
+      const selectInteraction = buildSelectInteraction();
+      const awaitMessageComponent = vi
+        .fn()
+        .mockResolvedValue(selectInteraction);
+      const dmMessage = {
+        awaitMessageComponent,
+      } as unknown as Message<false>;
+
+      vi.spyOn(service as any, 'handleReasonSelection').mockResolvedValue(
+        false,
+      );
+      const dispatchSpy = vi
+        .spyOn(service as any, 'dispatchDeclineReasonEvent')
+        .mockImplementation(() => undefined);
+
+      await service['handleDeclineReasonInteractions'](
+        dmMessage,
+        signup,
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(awaitMessageComponent).toHaveBeenCalledTimes(
+        MAX_MODAL_SHOW_ATTEMPTS,
+      );
+      expect(dispatchSpy).toHaveBeenCalledWith(signup, reviewer, reviewMessage);
     });
   });
 });
