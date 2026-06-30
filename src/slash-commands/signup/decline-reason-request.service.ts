@@ -5,6 +5,7 @@ import { SentryTraced } from '@sentry/nestjs';
 import {
   ActionRowBuilder,
   ComponentType,
+  DiscordAPIError,
   DiscordjsError,
   DiscordjsErrorCodes,
   type InteractionResponse,
@@ -28,6 +29,8 @@ import {
 } from './decline-reason.components.js';
 import { SignupDeclineReasonCollectedEvent } from './events/signup.events.js';
 import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
+
+export const MAX_MODAL_SHOW_ATTEMPTS = 3;
 
 @Injectable()
 export class DeclineReasonRequestService {
@@ -123,13 +126,27 @@ export class DeclineReasonRequestService {
     signupId: string,
     reviewer: User,
     reviewMessage: Message<true>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const selectedValue = interaction.values[0];
 
     if (selectedValue === CUSTOM_DECLINE_REASON_VALUE) {
       // Show modal for custom reason
       const modal = createCustomDeclineReasonModal(signupId);
-      await interaction.showModal(modal);
+
+      try {
+        await interaction.showModal(modal);
+      } catch (error) {
+        if (error instanceof DiscordAPIError && error.code === 10062) {
+          this.logger.warn(
+            `Modal token expired before it could be shown for signup ${signupId}, asking reviewer to retry`,
+          );
+          await interaction.user.send(
+            'That took a moment too long to open — please click the dropdown again to provide a custom decline reason.',
+          );
+          return false;
+        }
+        throw error;
+      }
 
       try {
         const modalInteraction = await interaction.awaitModalSubmit({
@@ -170,6 +187,8 @@ export class DeclineReasonRequestService {
         flags: MessageFlags.Ephemeral,
       });
     }
+
+    return true;
   }
 
   private async handleCustomReasonSubmit(
