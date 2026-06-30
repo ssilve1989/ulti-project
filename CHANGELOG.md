@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.2](https://github.com/ssilve1989/ulti-project/compare/v2.2.1...v2.2.2) (2026-06-30)
+
+
+### Bug Fixes
+
+* **ci:** remove conflicting pnpm version override in fly.yml ([5cb9475](https://github.com/ssilve1989/ulti-project/commit/5cb94752b4131914d56ea4f5f9aa2c360b73358e))
+
 ## [2.2.1](https://github.com/ssilve1989/ulti-project/compare/v2.2.0...v2.2.1) (2026-06-30)
 
 
