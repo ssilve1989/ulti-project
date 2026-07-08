@@ -21,8 +21,8 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
 
   async handle(event: SignupApprovedEvent) {
     const {
-      signup: { discordId, encounter, partyStatus },
-      settings: { progRoles, clearRoles },
+      signup: { discordId, encounter, partyStatus, progPoint },
+      settings: { progRoles, clearRoles, progPointRoles },
       message: { guildId },
     } = event;
 
@@ -57,6 +57,19 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
         // which is a little confusing, we should centralize how roles are managed
         .with(PartyStatus.Cleared, P.nullish, () => undefined)
         .exhaustive();
+
+      if (
+        partyStatus === PartyStatus.ProgParty ||
+        partyStatus === PartyStatus.EarlyProgParty ||
+        partyStatus === PartyStatus.ClearParty
+      ) {
+        await this.updateProgPointRoles({
+          discordId,
+          guildId,
+          progPoint,
+          mapping: progPointRoles?.[encounter],
+        });
+      }
     } catch (error) {
       const scope = Sentry.getCurrentScope();
       scope.setExtra('event', event);
@@ -85,6 +98,58 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
           this.logger.log(`Assigned role ${role} to ${member?.user.username}`);
         }
       }
+    }
+  }
+
+  private async updateProgPointRoles({
+    discordId,
+    guildId,
+    progPoint,
+    mapping,
+  }: {
+    discordId: string;
+    guildId: string;
+    progPoint?: string;
+    mapping?: Record<string, string>;
+  }) {
+    if (!mapping || !progPoint) {
+      return;
+    }
+
+    const newRole = mapping[progPoint];
+
+    if (!newRole) {
+      // unmapped prog point: leave existing prog point roles untouched
+      return;
+    }
+
+    const member = await this.discordService.getGuildMember({
+      memberId: discordId,
+      guildId,
+    });
+
+    if (!member) {
+      return;
+    }
+
+    // a role can be shared by several prog points (one role per phase),
+    // so never remove the role we are about to assign
+    const rolesToRemove = [...new Set(Object.values(mapping))].filter(
+      (roleId) => roleId !== newRole && member.roles.cache.has(roleId),
+    );
+
+    if (rolesToRemove.length > 0) {
+      await member.roles.remove(rolesToRemove);
+      this.logger.log(
+        `Removed prog point roles ${rolesToRemove.join(', ')} from ${member.user.username}`,
+      );
+    }
+
+    if (!member.roles.cache.has(newRole)) {
+      await member.roles.add(newRole);
+      this.logger.log(
+        `Assigned prog point role ${newRole} to ${member.user.username}`,
+      );
     }
   }
 }
