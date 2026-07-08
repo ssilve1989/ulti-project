@@ -90,10 +90,93 @@ describe('ViewSettingsCommandHandler', () => {
     ];
 
     const field = embeds[0].data.fields.find(
-      (f) => f.name === 'Prog Point Roles',
+      (f) => f.name === 'Prog Point Roles — TOP',
     );
 
-    expect(field?.value).toContain('**TOP — P1:** <@&role-p1>');
-    expect(field?.value).toContain('**TOP — P2:** <@&role-p2>');
+    expect(field?.value).toContain('**P1:** <@&role-p1>');
+    expect(field?.value).toContain('**P2:** <@&role-p2>');
+  });
+
+  it('renders a separate field per encounter with prog point role mappings', async () => {
+    const interaction =
+      createAutoMock() as unknown as ChatInputCommandInteraction<'cached'>;
+
+    settingsCollection.getSettings.mockResolvedValueOnce({
+      reviewChannel: '12345',
+      progPointRoles: {
+        TOP: { P1: 'role-p1' },
+        DSR: { P1: 'role-dsr-p1' },
+      },
+    });
+
+    await command.execute(interaction);
+
+    const [{ embeds }] = vi.mocked(interaction.editReply).mock.calls.at(-1) as [
+      { embeds: { data: { fields: { name: string; value: string }[] } }[] },
+    ];
+
+    const topField = embeds[0].data.fields.find(
+      (f) => f.name === 'Prog Point Roles — TOP',
+    );
+    const dsrField = embeds[0].data.fields.find(
+      (f) => f.name === 'Prog Point Roles — DSR',
+    );
+
+    expect(topField?.value).toContain('**P1:** <@&role-p1>');
+    expect(dsrField?.value).toContain('**P1:** <@&role-dsr-p1>');
+  });
+
+  it('truncates an oversized prog point role field to fit the embed limit', async () => {
+    const interaction =
+      createAutoMock() as unknown as ChatInputCommandInteraction<'cached'>;
+
+    const mapping: Record<string, string> = {};
+    for (let i = 0; i < 30; i++) {
+      mapping[`ProgPointWithALongIdentifier${i}`] =
+        `role-id-that-is-quite-long-${i}`;
+    }
+
+    settingsCollection.getSettings.mockResolvedValueOnce({
+      reviewChannel: '12345',
+      progPointRoles: {
+        TOP: mapping,
+      },
+    });
+
+    await command.execute(interaction);
+
+    const [{ embeds }] = vi.mocked(interaction.editReply).mock.calls.at(-1) as [
+      { embeds: { data: { fields: { name: string; value: string }[] } }[] },
+    ];
+
+    const field = embeds[0].data.fields.find(
+      (f) => f.name === 'Prog Point Roles — TOP',
+    );
+
+    expect(field?.value.length).toBeLessThanOrEqual(1024);
+    expect(field?.value).toMatch(/… and \d+ more$/);
+  });
+
+  it('renders a single "No roles set" field when no prog point roles are configured', async () => {
+    const interaction =
+      createAutoMock() as unknown as ChatInputCommandInteraction<'cached'>;
+
+    settingsCollection.getSettings.mockResolvedValueOnce({
+      reviewChannel: '12345',
+    });
+
+    await command.execute(interaction);
+
+    const [{ embeds }] = vi.mocked(interaction.editReply).mock.calls.at(-1) as [
+      { embeds: { data: { fields: { name: string; value: string }[] } }[] },
+    ];
+
+    const progPointFields = embeds[0].data.fields.filter((f) =>
+      f.name.startsWith('Prog Point Roles'),
+    );
+
+    expect(progPointFields).toEqual([
+      { name: 'Prog Point Roles', value: 'No roles set', inline: true },
+    ]);
   });
 });
