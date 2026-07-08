@@ -10,12 +10,23 @@ import {
 import type { Encounter } from './encounters.consts.js';
 import { EncountersService } from './encounters.service.js';
 
+export interface ProgPointSelectMenuOptions {
+  customId?: string;
+  includeCleared?: boolean;
+  multiSelect?: boolean;
+}
+
 @Injectable()
 export class EncountersComponentsService {
   constructor(private readonly encountersService: EncountersService) {}
 
   async createProgPointSelectMenu(
     encounter: Encounter,
+    {
+      customId = PROG_POINT_SELECT_ID,
+      includeCleared = true,
+      multiSelect = false,
+    }: ProgPointSelectMenuOptions = {},
   ): Promise<StringSelectMenuBuilder> {
     const progPoints = await this.encountersService.getProgPoints(encounter);
 
@@ -26,12 +37,19 @@ export class EncountersComponentsService {
       }),
     );
 
-    // Add the cleared option
-    options.push(CLEARED_OPTION);
+    if (includeCleared) {
+      options.push(CLEARED_OPTION);
+    }
 
-    return new StringSelectMenuBuilder()
-      .setCustomId(PROG_POINT_SELECT_ID)
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId(customId)
       .addOptions(options);
+
+    if (multiSelect) {
+      menu.setMinValues(1).setMaxValues(options.length);
+    }
+
+    return menu;
   }
 
   async getProgPointOptions(
