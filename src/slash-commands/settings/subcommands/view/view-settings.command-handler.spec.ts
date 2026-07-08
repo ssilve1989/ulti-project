@@ -71,4 +71,29 @@ describe('ViewSettingsCommandHandler', () => {
       }),
     );
   });
+
+  it('renders prog point role mappings', async () => {
+    const interaction =
+      createAutoMock() as unknown as ChatInputCommandInteraction<'cached'>;
+
+    settingsCollection.getSettings.mockResolvedValueOnce({
+      reviewChannel: '12345',
+      progPointRoles: {
+        TOP: { P1: 'role-p1', P2: 'role-p2' },
+      },
+    });
+
+    await command.execute(interaction);
+
+    const [{ embeds }] = vi.mocked(interaction.editReply).mock.calls.at(-1) as [
+      { embeds: { data: { fields: { name: string; value: string }[] } }[] },
+    ];
+
+    const field = embeds[0].data.fields.find(
+      (f) => f.name === 'Prog Point Roles',
+    );
+
+    expect(field?.value).toContain('**TOP — P1:** <@&role-p1>');
+    expect(field?.value).toContain('**TOP — P2:** <@&role-p2>');
+  });
 });

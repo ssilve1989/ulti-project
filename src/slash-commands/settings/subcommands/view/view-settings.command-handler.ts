@@ -10,6 +10,7 @@ import {
 } from 'discord.js';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
+import type { SettingsDocument } from '../../../../firebase/models/settings.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SlashCommand } from '../../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../../slash-command.interface.js';
@@ -34,6 +35,17 @@ function reduceRoleSettings(
       return acc;
     },
     [],
+  );
+}
+
+function reduceProgPointRoleSettings(
+  progPointRoles: SettingsDocument['progPointRoles'],
+): string[] {
+  return Object.entries(progPointRoles || {}).flatMap(([encounter, mapping]) =>
+    Object.entries(mapping ?? {}).map(
+      ([progPoint, roleId]) =>
+        `**${encounter} — ${progPoint}:** ${roleMention(roleId)}`,
+    ),
   );
 }
 
@@ -96,6 +108,7 @@ class ViewSettingsCommandHandler implements ISlashCommand {
         autoModChannelId,
         progRoles,
         clearRoles,
+        progPointRoles,
         reviewChannel,
         reviewerRole,
         signupChannel,
@@ -106,6 +119,7 @@ class ViewSettingsCommandHandler implements ISlashCommand {
 
       const progRoleSettings = reduceRoleSettings(progRoles);
       const clearRoleSettings = reduceRoleSettings(clearRoles);
+      const progPointRoleSettings = reduceProgPointRoleSettings(progPointRoles);
 
       const fields = [
         {
@@ -139,6 +153,13 @@ class ViewSettingsCommandHandler implements ISlashCommand {
           name: 'Prog Roles',
           value: progRoleSettings.length
             ? progRoleSettings.join('\n')
+            : 'No roles set',
+          inline: true,
+        },
+        {
+          name: 'Prog Point Roles',
+          value: progPointRoleSettings.length
+            ? progPointRoleSettings.join('\n')
             : 'No roles set',
           inline: true,
         },
