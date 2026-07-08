@@ -29,9 +29,14 @@ export class RemoveRolesCommandHandler
       ]);
 
       const roles = [
-        settings?.clearRoles?.[encounter],
-        settings?.progRoles?.[encounter],
-      ].filter(Boolean) as string[];
+        ...new Set(
+          [
+            settings?.clearRoles?.[encounter],
+            settings?.progRoles?.[encounter],
+            ...Object.values(settings?.progPointRoles?.[encounter] ?? {}),
+          ].filter((roleId): roleId is string => Boolean(roleId)),
+        ),
+      ];
 
       if (member && roles.length > 0) {
         await member.roles.remove(roles);
