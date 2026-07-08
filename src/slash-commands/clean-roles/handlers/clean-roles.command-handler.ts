@@ -128,7 +128,11 @@ class CleanRolesCommandHandler implements ISlashCommand {
   ): Promise<ProcessingContext> {
     const settings = await this.settingsCollection.getSettings(guildId);
 
-    if (!settings?.progRoles && !settings?.clearRoles) {
+    if (
+      !settings?.progRoles &&
+      !settings?.clearRoles &&
+      !settings?.progPointRoles
+    ) {
       throw new Error(
         'No clear/prog roles configured in settings. Use `/settings roles` to configure roles first.',
       );
@@ -137,6 +141,9 @@ class CleanRolesCommandHandler implements ISlashCommand {
     const allRoleIds = new Set([
       ...Object.values(settings.progRoles || {}),
       ...Object.values(settings.clearRoles || {}),
+      ...Object.values(settings.progPointRoles || {}).flatMap((mapping) =>
+        Object.values(mapping ?? {}),
+      ),
     ]);
 
     if (allRoleIds.size === 0) {
