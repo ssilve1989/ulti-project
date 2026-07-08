@@ -11,6 +11,10 @@ export enum Encounter {
   DMU = 'DMU',
 }
 
+export function isEncounter(value: string): value is Encounter {
+  return Object.values(Encounter).some((encounter) => encounter === value);
+}
+
 export const EncounterFriendlyDescription = Object.freeze({
   [Encounter.TOP]: '[TOP] The Omega Protocol',
   [Encounter.UWU]: '[UwU] The Weapons Refrain',

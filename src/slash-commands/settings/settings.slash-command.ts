@@ -73,6 +73,32 @@ export const EditEncounterRolesSubcommand = new SlashCommandSubcommandBuilder()
       .setRequired(true),
   );
 
+export const EditProgPointRolesSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('prog-point-roles')
+  .setDescription(
+    'Map an encounter’s prog points to a role assigned on approval',
+  )
+  .addStringOption((option) =>
+    option
+      .setName('encounter')
+      .setDescription('The encounter to configure prog point roles for')
+      .setRequired(true)
+      .addChoices(
+        ...Object.entries(Encounter).map(([name, value]) => ({
+          name,
+          value,
+        })),
+      ),
+  )
+  .addRoleOption((option) =>
+    option
+      .setName('role')
+      .setDescription(
+        'Role to assign for the selected prog points. Omit to remove their mappings',
+      )
+      .setRequired(false),
+  );
+
 export const EditSpreadsheetSubcommand = new SlashCommandSubcommandBuilder()
   .setName('spreadsheet')
   .setDescription('Edit spreadsheet settings')
@@ -112,6 +138,7 @@ export const SettingsSlashCommand = new SlashCommandBuilder()
   .addSubcommand(EditChannelsSubcommand)
   .addSubcommand(EditReviewerRoleSubcommand)
   .addSubcommand(EditEncounterRolesSubcommand)
+  .addSubcommand(EditProgPointRolesSubcommand)
   .addSubcommand(EditSpreadsheetSubcommand)
   .addSubcommand(EditTurboProgSubcommand)
   .addSubcommand(ViewSettingsSubcommand);
