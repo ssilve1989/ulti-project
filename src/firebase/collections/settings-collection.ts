@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
-import { CollectionReference, Firestore } from 'firebase-admin/firestore';
+import {
+  CollectionReference,
+  FieldPath,
+  Firestore,
+} from 'firebase-admin/firestore';
+import type { Encounter } from '../../encounters/encounters.consts.js';
 import { InjectFirestore } from '../firebase.decorators.js';
 import type { SettingsDocument } from '../models/settings.model.js';
 
@@ -39,6 +44,24 @@ class SettingsCollection {
       },
       { merge: true },
     );
+
+    await this.updateCache(guildId);
+  }
+
+  @SentryTraced()
+  public async setProgPointRoles(
+    guildId: string,
+    encounter: Encounter,
+    progPointRoles: Record<string, string>,
+  ) {
+    // mergeFields replaces exactly this encounter's map, so removed
+    // prog point keys don't linger the way they would with { merge: true }
+    await this.collection
+      .doc(guildId)
+      .set(
+        { progPointRoles: { [encounter]: progPointRoles } },
+        { mergeFields: [new FieldPath('progPointRoles', encounter)] },
+      );
 
     await this.updateCache(guildId);
   }
