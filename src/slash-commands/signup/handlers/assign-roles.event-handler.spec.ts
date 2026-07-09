@@ -8,6 +8,7 @@ import {
   PartyStatus,
   type SignupDocument,
 } from '../../../firebase/models/signup.model.js';
+import { ProgPointRolesService } from '../../../role-manager/prog-point-roles.service.js';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
 import { AssignRolesEventHandler } from './assign-roles.event-handler.js';
@@ -43,7 +44,7 @@ describe('AssignRolesEventHandler', () => {
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
-      providers: [AssignRolesEventHandler],
+      providers: [AssignRolesEventHandler, ProgPointRolesService],
     })
       .useMocker(createAutoMock)
       .compile();

@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nestjs';
 import { match, P } from 'ts-pattern';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { PartyStatus } from '../../../firebase/models/signup.model.js';
+import { ProgPointRolesService } from '../../../role-manager/prog-point-roles.service.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
 
 interface SetRoleParameters {
@@ -17,7 +18,10 @@ interface SetRoleParameters {
 class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
   private readonly logger = new Logger(AssignRolesEventHandler.name);
 
-  constructor(private readonly discordService: DiscordService) {}
+  constructor(
+    private readonly discordService: DiscordService,
+    private readonly progPointRolesService: ProgPointRolesService,
+  ) {}
 
   async handle(event: SignupApprovedEvent) {
     const {
@@ -116,13 +120,6 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
       return;
     }
 
-    const newRole = mapping[progPoint];
-
-    if (!newRole) {
-      // unmapped prog point: leave existing prog point roles untouched
-      return;
-    }
-
     const member = await this.discordService.getGuildMember({
       memberId: discordId,
       guildId,
@@ -132,25 +129,13 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
       return;
     }
 
-    // a role can be shared by several prog points (one role per phase),
-    // so never remove the role we are about to assign
-    const rolesToRemove = [...new Set(Object.values(mapping))].filter(
-      (roleId) => roleId !== newRole && member.roles.cache.has(roleId),
+    const changes = this.progPointRolesService.computeChanges(
+      member,
+      mapping,
+      progPoint,
     );
 
-    if (rolesToRemove.length > 0) {
-      await member.roles.remove(rolesToRemove);
-      this.logger.log(
-        `Removed prog point roles ${rolesToRemove.join(', ')} from ${member.user.username}`,
-      );
-    }
-
-    if (!member.roles.cache.has(newRole)) {
-      await member.roles.add(newRole);
-      this.logger.log(
-        `Assigned prog point role ${newRole} to ${member.user.username}`,
-      );
-    }
+    await this.progPointRolesService.applyChanges(member, changes);
   }
 }
 
