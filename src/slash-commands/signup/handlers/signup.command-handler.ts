@@ -58,8 +58,8 @@ const CLEAR_EMBED = {
   components: [],
 } as const;
 
-// Channel ID for name update instructions
-const NAME_UPDATE_CHANNEL_ID = '1264643007848906884';
+// TODO: Make this configurable at runtime
+const NAME_UPDATE_CHANNEL_ID = '1264643007848906884'; // Channel ID for name update instructions
 
 type FFLogsValidationResult =
   | { success: true }

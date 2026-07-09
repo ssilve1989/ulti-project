@@ -4,7 +4,11 @@ import {
   SlashCommandBuilder,
   SlashCommandSubcommandBuilder,
 } from 'discord.js';
-import { Encounter } from '../../encounters/encounters.consts.js';
+import { appConfig } from '../../config/app.js';
+import {
+  Encounter,
+  getEncounterChoicesForMode,
+} from '../../encounters/encounters.consts.js';
 
 export const EditChannelsSubcommand = new SlashCommandSubcommandBuilder()
   .setName('channels')
@@ -83,12 +87,7 @@ export const EditProgPointRolesSubcommand = new SlashCommandSubcommandBuilder()
       .setName('encounter')
       .setDescription('The encounter to configure prog point roles for')
       .setRequired(true)
-      .addChoices(
-        ...Object.entries(Encounter).map(([name, value]) => ({
-          name,
-          value,
-        })),
-      ),
+      .addChoices(...getEncounterChoicesForMode(appConfig.APPLICATION_MODE)),
   )
   .addRoleOption((option) =>
     option

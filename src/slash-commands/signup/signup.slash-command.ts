@@ -6,6 +6,7 @@ import { getEncounterChoicesForMode } from '../../encounters/encounters.consts.j
 // but we need to reference the name when handling the interaction
 export const SIGNUP_SLASH_COMMAND_NAME = 'signup';
 
+// TODO: This doesn't need to be a factory fn anymore, it can just access mode directly now
 export function createSignupSlashCommand(mode: ApplicationModeConfig) {
   return new SlashCommandBuilder()
     .setName(SIGNUP_SLASH_COMMAND_NAME)
