@@ -18,6 +18,7 @@ import { SignupModule } from './signup/signup.module.js';
 import { SlashCommandRegistry } from './slash-command-registry.service.js';
 import { SlashCommandsService } from './slash-commands.service.js';
 import { StatusModule } from './status/status.module.js';
+import { SyncProgRolesModule } from './sync-prog-roles/sync-prog-roles.module.js';
 import { TurboProgModule } from './turboprog/turbo-prog.module.js';
 
 @Module({
@@ -38,6 +39,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     SettingsModule,
     SignupModule,
     StatusModule,
+    SyncProgRolesModule,
     TurboProgModule,
   ],
   providers: [SlashCommandsService, SlashCommandRegistry],
