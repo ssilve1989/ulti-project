@@ -1,15 +1,94 @@
 import { Test } from '@nestjs/testing';
-import type { ChatInputCommandInteraction } from 'discord.js';
+import type {
+  ButtonInteraction,
+  ChatInputCommandInteraction,
+  StringSelectMenuInteraction,
+} from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import { Encounter } from '../../../../encounters/encounters.consts.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
+import type { SettingsDocument } from '../../../../firebase/models/settings.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { createAutoMock } from '../../../../test-utils/mock-factory.js';
 import { ViewSettingsCommandHandler } from './view-settings.command-handler.js';
+import {
+  SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID,
+  SETTINGS_VIEW_ENCOUNTER_SELECT_ID,
+  SETTINGS_VIEW_OVERVIEW_BUTTON_ID,
+  SETTINGS_VIEW_PROG_POINT_ROLES_BUTTON_ID,
+} from './view-settings.components.js';
+
+type EmbedPayload = {
+  embeds: {
+    data: {
+      title?: string;
+      description?: string;
+      fields?: { name: string; value: string }[];
+    };
+  }[];
+  components: { toJSON: () => { components: unknown[] } }[];
+};
 
 describe('ViewSettingsCommandHandler', () => {
   let command: ViewSettingsCommandHandler;
   let settingsCollection: Mocked<SettingsCollection>;
   let sheetsService: Mocked<SheetsService>;
+
+  const baseSettings: SettingsDocument = {
+    autoModChannelId: 'automod-chan',
+    reviewChannel: 'review-chan',
+    signupChannel: 'signup-chan',
+    reviewerRole: 'reviewer-role',
+    turboProgActive: true,
+    progRoles: { TOP: 'top-prog' },
+    clearRoles: { TOP: 'top-clear', DSR: 'dsr-clear' },
+    progPointRoles: { TOP: { P1: 'r1', P2: 'r2' }, DSR: { P3: 'r3' } },
+  };
+
+  function createInteraction() {
+    const interaction = createAutoMock() as unknown as Mocked<
+      ChatInputCommandInteraction<'cached'>
+    >;
+    const collector = createAutoMock();
+    const callbacks: {
+      collect?: (i: unknown) => Promise<void>;
+      end?: () => Promise<void>;
+    } = {};
+
+    collector.on.mockImplementation((event: string, cb: never) => {
+      if (event === 'collect') callbacks.collect = cb;
+      if (event === 'end') callbacks.end = cb;
+      return collector;
+    });
+
+    const replyMessage = createAutoMock();
+    replyMessage.createMessageComponentCollector.mockReturnValue(collector);
+
+    vi.mocked(interaction.editReply).mockResolvedValue(replyMessage as never);
+    interaction.user = { id: 'user123' } as never;
+
+    return { interaction, replyMessage, callbacks };
+  }
+
+  function createButtonInteraction(customId: string) {
+    const button = createAutoMock() as unknown as Mocked<ButtonInteraction>;
+    button.customId = customId;
+    button.isStringSelectMenu.mockReturnValue(false);
+    return button;
+  }
+
+  function createSelectInteraction(customId: string, values: string[]) {
+    const select =
+      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
+    select.customId = customId;
+    select.values = values;
+    select.isStringSelectMenu.mockReturnValue(true);
+    return select;
+  }
+
+  function lastReplyPayload(mock: { mock: { calls: unknown[][] } }) {
+    return mock.mock.calls.at(-1)?.[0] as EmbedPayload;
+  }
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({
@@ -27,42 +106,72 @@ describe('ViewSettingsCommandHandler', () => {
     expect(command).toBeDefined();
   });
 
-  it('should reply with the configured settings', async () => {
-    const interaction =
-      createAutoMock() as unknown as ChatInputCommandInteraction<'cached'>;
-
-    settingsCollection.getSettings.mockResolvedValueOnce({
-      reviewChannel: '12345',
-      reviewerRole: '67890',
-      signupChannel: '09876',
-      progRoles: {},
-    });
+  it('replies with an overview embed of core settings and role summary counts', async () => {
+    const { interaction } = createInteraction();
+    settingsCollection.getSettings.mockResolvedValueOnce(baseSettings);
 
     await command.execute(interaction);
 
-    expect(interaction.deferReply).toHaveBeenCalled();
-    expect(interaction.editReply).toHaveBeenCalled();
+    const { embeds, components } = lastReplyPayload(
+      vi.mocked(interaction.editReply),
+    );
+    const fields = embeds[0].data.fields ?? [];
+
+    expect(fields).toContainEqual(
+      expect.objectContaining({
+        name: 'Review Channel',
+        value: '<#review-chan>',
+      }),
+    );
+    expect(fields).toContainEqual(
+      expect.objectContaining({
+        name: 'Reviewer Role',
+        value: '<@&reviewer-role>',
+      }),
+    );
+    expect(fields).toContainEqual(
+      expect.objectContaining({
+        name: 'Prog Roles',
+        value: '1 encounter configured',
+      }),
+    );
+    expect(fields).toContainEqual(
+      expect.objectContaining({
+        name: 'Clear Roles',
+        value: '2 encounters configured',
+      }),
+    );
+    expect(fields).toContainEqual(
+      expect.objectContaining({
+        name: 'Prog Point Roles',
+        value: '2 encounters configured (3 prog points)',
+      }),
+    );
+
+    // no per-encounter prog point fields on the overview anymore
+    expect(fields.some((f) => f.name.startsWith('Prog Point Roles — '))).toBe(
+      false,
+    );
+
+    // a single nav button row
+    expect(components).toHaveLength(1);
+    expect(components[0].toJSON().components).toHaveLength(3);
   });
 
   it('replies with a fallback field when sheet metadata fetch fails', async () => {
-    const interaction =
-      createAutoMock() as unknown as ChatInputCommandInteraction<'cached'>;
+    const { interaction } = createInteraction();
 
     settingsCollection.getSettings.mockResolvedValueOnce({
-      reviewChannel: '12345',
-      progRoles: {},
+      ...baseSettings,
       spreadsheetId: 'sheet-abc',
     });
-
     sheetsService.getSheetMetadata.mockRejectedValueOnce(
       new Error('The operation was aborted'),
     );
 
     await command.execute(interaction);
 
-    const [{ embeds }] = vi.mocked(interaction.editReply).mock.calls.at(-1) as [
-      { embeds: { data: { fields: unknown[] } }[] },
-    ];
+    const { embeds } = lastReplyPayload(vi.mocked(interaction.editReply));
 
     expect(embeds[0].data.fields).toContainEqual(
       expect.objectContaining({
@@ -72,111 +181,174 @@ describe('ViewSettingsCommandHandler', () => {
     );
   });
 
-  it('renders prog point role mappings', async () => {
-    const interaction =
-      createAutoMock() as unknown as ChatInputCommandInteraction<'cached'>;
-
-    settingsCollection.getSettings.mockResolvedValueOnce({
-      reviewChannel: '12345',
-      progPointRoles: {
-        TOP: { P1: 'role-p1', P2: 'role-p2' },
-      },
-    });
+  it('shows prog and clear role mappings when the encounter roles button is clicked', async () => {
+    const { interaction, callbacks } = createInteraction();
+    settingsCollection.getSettings.mockResolvedValueOnce(baseSettings);
 
     await command.execute(interaction);
 
-    const [{ embeds }] = vi.mocked(interaction.editReply).mock.calls.at(-1) as [
-      { embeds: { data: { fields: { name: string; value: string }[] } }[] },
-    ];
-
-    const field = embeds[0].data.fields.find(
-      (f) => f.name === 'Prog Point Roles — TOP',
+    const button = createButtonInteraction(
+      SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID,
     );
+    await callbacks.collect?.(button);
 
-    expect(field?.value).toContain('**P1:** <@&role-p1>');
-    expect(field?.value).toContain('**P2:** <@&role-p2>');
+    expect(button.deferUpdate).toHaveBeenCalled();
+
+    const { embeds } = lastReplyPayload(vi.mocked(button.editReply));
+    const fields = embeds[0].data.fields ?? [];
+
+    expect(embeds[0].data.title).toBe('Settings — Encounter Roles');
+    expect(fields).toContainEqual(
+      expect.objectContaining({
+        name: 'Prog Roles',
+        value: '**TOP:** <@&top-prog>',
+      }),
+    );
+    expect(fields.find((f) => f.name === 'Clear Roles')?.value).toContain(
+      '**DSR:** <@&dsr-clear>',
+    );
   });
 
-  it('renders a separate field per encounter with prog point role mappings', async () => {
-    const interaction =
-      createAutoMock() as unknown as ChatInputCommandInteraction<'cached'>;
-
+  it('shows an encounter select menu when the prog point roles button is clicked', async () => {
+    const { interaction, callbacks } = createInteraction();
     settingsCollection.getSettings.mockResolvedValueOnce({
-      reviewChannel: '12345',
-      progPointRoles: {
-        TOP: { P1: 'role-p1' },
-        DSR: { P1: 'role-dsr-p1' },
-      },
+      ...baseSettings,
+      progPointRoles: { TOP: { P1: 'r1' }, DSR: {} },
     });
 
     await command.execute(interaction);
 
-    const [{ embeds }] = vi.mocked(interaction.editReply).mock.calls.at(-1) as [
-      { embeds: { data: { fields: { name: string; value: string }[] } }[] },
-    ];
-
-    const topField = embeds[0].data.fields.find(
-      (f) => f.name === 'Prog Point Roles — TOP',
+    const button = createButtonInteraction(
+      SETTINGS_VIEW_PROG_POINT_ROLES_BUTTON_ID,
     );
-    const dsrField = embeds[0].data.fields.find(
-      (f) => f.name === 'Prog Point Roles — DSR',
+    await callbacks.collect?.(button);
+
+    const { embeds, components } = lastReplyPayload(
+      vi.mocked(button.editReply),
     );
 
-    expect(topField?.value).toContain('**P1:** <@&role-p1>');
-    expect(dsrField?.value).toContain('**P1:** <@&role-dsr-p1>');
-  });
-
-  it('truncates an oversized prog point role field to fit the embed limit', async () => {
-    const interaction =
-      createAutoMock() as unknown as ChatInputCommandInteraction<'cached'>;
-
-    const mapping: Record<string, string> = {};
-    for (let i = 0; i < 30; i++) {
-      mapping[`ProgPointWithALongIdentifier${i}`] =
-        `role-id-that-is-quite-long-${i}`;
-    }
-
-    settingsCollection.getSettings.mockResolvedValueOnce({
-      reviewChannel: '12345',
-      progPointRoles: {
-        TOP: mapping,
-      },
-    });
-
-    await command.execute(interaction);
-
-    const [{ embeds }] = vi.mocked(interaction.editReply).mock.calls.at(-1) as [
-      { embeds: { data: { fields: { name: string; value: string }[] } }[] },
-    ];
-
-    const field = embeds[0].data.fields.find(
-      (f) => f.name === 'Prog Point Roles — TOP',
+    expect(embeds[0].data.description).toBe(
+      'Select an encounter below to view its prog point role mappings.',
     );
+    expect(components).toHaveLength(2);
 
-    expect(field?.value.length).toBeLessThanOrEqual(1024);
-    expect(field?.value).toMatch(/… and \d+ more$/);
-  });
-
-  it('renders a single "No roles set" field when no prog point roles are configured', async () => {
-    const interaction =
-      createAutoMock() as unknown as ChatInputCommandInteraction<'cached'>;
-
-    settingsCollection.getSettings.mockResolvedValueOnce({
-      reviewChannel: '12345',
-    });
-
-    await command.execute(interaction);
-
-    const [{ embeds }] = vi.mocked(interaction.editReply).mock.calls.at(-1) as [
-      { embeds: { data: { fields: { name: string; value: string }[] } }[] },
-    ];
-
-    const progPointFields = embeds[0].data.fields.filter((f) =>
-      f.name.startsWith('Prog Point Roles'),
-    );
-
-    expect(progPointFields).toEqual([
-      { name: 'Prog Point Roles', value: 'No roles set', inline: true },
+    // encounters with an empty mapping are not selectable
+    const selectRow = components[1].toJSON() as {
+      components: { options: { value: string }[] }[];
+    };
+    expect(selectRow.components[0].options).toEqual([
+      expect.objectContaining({ value: Encounter.TOP }),
     ]);
+  });
+
+  it('shows the selected encounter prog point role mappings', async () => {
+    const { interaction, callbacks } = createInteraction();
+    settingsCollection.getSettings.mockResolvedValueOnce(baseSettings);
+
+    await command.execute(interaction);
+
+    const select = createSelectInteraction(SETTINGS_VIEW_ENCOUNTER_SELECT_ID, [
+      Encounter.TOP,
+    ]);
+    await callbacks.collect?.(select);
+
+    const { embeds, components } = lastReplyPayload(
+      vi.mocked(select.editReply),
+    );
+
+    expect(embeds[0].data.title).toBe('Settings — Prog Point Roles — TOP');
+    expect(embeds[0].data.description).toContain('**P1:** <@&r1>');
+    expect(embeds[0].data.description).toContain('**P2:** <@&r2>');
+    expect(components).toHaveLength(2);
+  });
+
+  it('returns to the overview without re-fetching sheet metadata', async () => {
+    const { interaction, callbacks } = createInteraction();
+    settingsCollection.getSettings.mockResolvedValueOnce({
+      ...baseSettings,
+      spreadsheetId: 'sheet-abc',
+    });
+    sheetsService.getSheetMetadata.mockResolvedValue({
+      title: 'My Sheet',
+      url: 'https://sheets.example/abc',
+    } as never);
+
+    await command.execute(interaction);
+    const fetchCount = sheetsService.getSheetMetadata.mock.calls.length;
+
+    await callbacks.collect?.(
+      createButtonInteraction(SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID),
+    );
+    const overviewButton = createButtonInteraction(
+      SETTINGS_VIEW_OVERVIEW_BUTTON_ID,
+    );
+    await callbacks.collect?.(overviewButton);
+
+    const { embeds } = lastReplyPayload(vi.mocked(overviewButton.editReply));
+
+    expect(embeds[0].data.fields).toContainEqual(
+      expect.objectContaining({
+        name: 'Managed Spreadsheet',
+        value: '[My Sheet](https://sheets.example/abc)',
+      }),
+    );
+    expect(sheetsService.getSheetMetadata.mock.calls.length).toBe(fetchCount);
+  });
+
+  it('omits the select menu when no prog point roles are configured', async () => {
+    const { interaction, callbacks } = createInteraction();
+    settingsCollection.getSettings.mockResolvedValueOnce({
+      ...baseSettings,
+      progPointRoles: undefined,
+    });
+
+    await command.execute(interaction);
+
+    const button = createButtonInteraction(
+      SETTINGS_VIEW_PROG_POINT_ROLES_BUTTON_ID,
+    );
+    await callbacks.collect?.(button);
+
+    const { embeds, components } = lastReplyPayload(
+      vi.mocked(button.editReply),
+    );
+
+    expect(embeds[0].data.description).toBe('No prog point roles configured.');
+    expect(components).toHaveLength(1);
+  });
+
+  it('does not create a collector when no settings are found', async () => {
+    const { interaction, replyMessage } = createInteraction();
+    settingsCollection.getSettings.mockResolvedValueOnce(undefined);
+
+    await command.execute(interaction);
+
+    expect(interaction.editReply).toHaveBeenCalledWith('No settings found!');
+    expect(replyMessage.createMessageComponentCollector).not.toHaveBeenCalled();
+  });
+
+  it('removes the components when the collector ends', async () => {
+    const { interaction, callbacks } = createInteraction();
+    settingsCollection.getSettings.mockResolvedValueOnce(baseSettings);
+
+    await command.execute(interaction);
+    await callbacks.end?.();
+
+    expect(interaction.editReply).toHaveBeenLastCalledWith({
+      content: 'Settings view has expired. Run /settings view again if needed.',
+      components: [],
+    });
+  });
+
+  it('creates the collector scoped to the invoking user with a timeout', async () => {
+    const { interaction, replyMessage } = createInteraction();
+    settingsCollection.getSettings.mockResolvedValueOnce(baseSettings);
+
+    await command.execute(interaction);
+
+    expect(replyMessage.createMessageComponentCollector).toHaveBeenCalledWith({
+      filter: expect.any(Function),
+      time: 300000,
+    });
   });
 });

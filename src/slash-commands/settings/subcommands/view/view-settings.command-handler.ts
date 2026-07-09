@@ -1,94 +1,40 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
-import type { APIEmbedField, ChatInputCommandInteraction } from 'discord.js';
-import {
-  channelMention,
-  EmbedBuilder,
-  MessageFlags,
-  roleMention,
+import type {
+  ActionRowBuilder,
+  APIEmbedField,
+  ButtonBuilder,
+  ChatInputCommandInteraction,
+  StringSelectMenuBuilder,
 } from 'discord.js';
+import { MessageFlags } from 'discord.js';
+import { isSameUserFilter } from '../../../../common/collection-filters.js';
+import type { Encounter } from '../../../../encounters/encounters.consts.js';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import type { SettingsDocument } from '../../../../firebase/models/settings.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SlashCommand } from '../../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../../slash-command.interface.js';
 import { SettingsSlashCommand } from '../../settings.slash-command.js';
-
-function formatRole(roleId?: string) {
-  return roleId ? roleMention(roleId) : 'No Role Set';
-}
-
-function formatChannel(channelId?: string) {
-  return channelId ? channelMention(channelId) : 'No Channel Set';
-}
-
-function reduceRoleSettings(
-  roleSettings: Record<string, string | undefined> | undefined,
-): string[] {
-  return Object.entries(roleSettings || {}).reduce<string[]>(
-    (acc, [encounter, role]) => {
-      if (role) {
-        acc.push(`**${encounter}:** ${roleMention(role)}`);
-      }
-      return acc;
-    },
-    [],
-  );
-}
-
-const EMBED_FIELD_VALUE_LIMIT = 1024;
-
-function buildProgPointFieldValue(lines: string[]): string {
-  const full = lines.join('\n');
-  if (full.length <= EMBED_FIELD_VALUE_LIMIT) {
-    return full;
-  }
-
-  for (let keepCount = lines.length - 1; keepCount > 0; keepCount--) {
-    const omitted = lines.length - keepCount;
-    const candidate = `${lines
-      .slice(0, keepCount)
-      .join('\n')}\n… and ${omitted} more`;
-    if (candidate.length <= EMBED_FIELD_VALUE_LIMIT) {
-      return candidate;
-    }
-  }
-
-  return `… and ${lines.length} more`;
-}
-
-function reduceProgPointRoleSettings(
-  progPointRoles: SettingsDocument['progPointRoles'],
-): APIEmbedField[] {
-  const fields = Object.entries(progPointRoles || {}).reduce<APIEmbedField[]>(
-    (acc, [encounter, mapping]) => {
-      const lines = Object.entries(mapping ?? {}).map(
-        ([progPoint, roleId]) => `**${progPoint}:** ${roleMention(roleId)}`,
-      );
-
-      if (lines.length) {
-        acc.push({
-          name: `Prog Point Roles — ${encounter}`,
-          value: buildProgPointFieldValue(lines),
-          inline: true,
-        });
-      }
-
-      return acc;
-    },
-    [],
-  );
-
-  return fields.length
-    ? fields
-    : [{ name: 'Prog Point Roles', value: 'No roles set', inline: true }];
-}
+import {
+  buildEncounterRolesEmbed,
+  buildOverviewEmbed,
+  buildProgPointRolesEmbed,
+  createEncounterSelectRow,
+  createNavRow,
+  getConfiguredProgPointEncounters,
+  SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID,
+  SETTINGS_VIEW_ENCOUNTER_SELECT_ID,
+  SETTINGS_VIEW_OVERVIEW_BUTTON_ID,
+  SETTINGS_VIEW_PROG_POINT_ROLES_BUTTON_ID,
+} from './view-settings.components.js';
 
 @Injectable()
 @SlashCommand({ builder: SettingsSlashCommand, subcommand: 'view' })
 class ViewSettingsCommandHandler implements ISlashCommand {
+  private readonly logger = new Logger(ViewSettingsCommandHandler.name);
+
   constructor(
     private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
@@ -145,90 +91,108 @@ class ViewSettingsCommandHandler implements ISlashCommand {
           ),
       });
 
-      const {
-        autoModChannelId,
-        progRoles,
-        clearRoles,
-        progPointRoles,
-        reviewChannel,
-        reviewerRole,
-        signupChannel,
-        spreadsheetId,
-        turboProgActive,
-        turboProgSpreadsheetId,
-      } = settings;
+      // fetched once so navigating back to the overview never re-hits the Sheets API
+      const spreadsheetFields: APIEmbedField[] = [];
 
-      const progRoleSettings = reduceRoleSettings(progRoles);
-      const clearRoleSettings = reduceRoleSettings(clearRoles);
-      const progPointRoleFields = reduceProgPointRoleSettings(progPointRoles);
-
-      const fields = [
-        {
-          name: 'Auto-Moderation Channel',
-          value: formatChannel(autoModChannelId),
-          inline: true,
-        },
-        {
-          name: 'Review Channel',
-          value: formatChannel(reviewChannel),
-          inline: true,
-        },
-        {
-          name: 'Signup Channel',
-          value: formatChannel(signupChannel),
-          inline: true,
-        },
-        {
-          name: 'Reviewer Role',
-          value: formatRole(reviewerRole),
-          inline: true,
-        },
-        {
-          name: 'Clear Roles',
-          value: clearRoleSettings.length
-            ? clearRoleSettings.join('\n')
-            : 'No roles set',
-          inline: true,
-        },
-        {
-          name: 'Prog Roles',
-          value: progRoleSettings.length
-            ? progRoleSettings.join('\n')
-            : 'No roles set',
-          inline: true,
-        },
-        ...progPointRoleFields,
-        {
-          name: 'Turbo Prog Active',
-          value: turboProgActive ? 'Yes' : 'No',
-          inline: true,
-        },
-      ];
-
-      if (turboProgSpreadsheetId) {
-        fields.push(
+      if (settings.turboProgSpreadsheetId) {
+        spreadsheetFields.push(
           await this.buildSpreadsheetField(
             'Turbo Prog Spreadsheet',
-            turboProgSpreadsheetId,
+            settings.turboProgSpreadsheetId,
           ),
         );
       }
 
-      if (spreadsheetId) {
-        fields.push(
+      if (settings.spreadsheetId) {
+        spreadsheetFields.push(
           await this.buildSpreadsheetField(
             'Managed Spreadsheet',
-            spreadsheetId,
+            settings.spreadsheetId,
           ),
         );
       }
 
-      const embed = new EmbedBuilder()
-        .setTitle('Settings')
-        .setDescription('Ulti-Project Bot Settings')
-        .addFields(fields);
+      const configuredEncounters = getConfiguredProgPointEncounters(
+        settings.progPointRoles,
+      );
 
-      await interaction.editReply({ embeds: [embed] });
+      const replyMessage = await interaction.editReply({
+        embeds: [buildOverviewEmbed(settings, spreadsheetFields)],
+        components: [createNavRow('overview')],
+      });
+
+      const collector = replyMessage.createMessageComponentCollector({
+        filter: isSameUserFilter(interaction.user),
+        time: 300000, // 5 minutes timeout
+      });
+
+      let selectedEncounter: Encounter | null = null;
+
+      collector.on('collect', async (i) => {
+        await i.deferUpdate();
+
+        if (i.customId === SETTINGS_VIEW_OVERVIEW_BUTTON_ID) {
+          await i.editReply({
+            embeds: [buildOverviewEmbed(settings, spreadsheetFields)],
+            components: [createNavRow('overview')],
+          });
+        } else if (i.customId === SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID) {
+          await i.editReply({
+            embeds: [buildEncounterRolesEmbed(settings)],
+            components: [createNavRow('encounterRoles')],
+          });
+        } else if (i.customId === SETTINGS_VIEW_PROG_POINT_ROLES_BUTTON_ID) {
+          const components: (
+            | ActionRowBuilder<ButtonBuilder>
+            | ActionRowBuilder<StringSelectMenuBuilder>
+          )[] = [createNavRow('progPointRoles')];
+
+          // an empty select menu is a Discord API error, so omit the row entirely
+          if (configuredEncounters.length > 0) {
+            components.push(
+              createEncounterSelectRow(
+                configuredEncounters,
+                selectedEncounter ?? undefined,
+              ),
+            );
+          }
+
+          await i.editReply({
+            embeds: [
+              buildProgPointRolesEmbed(
+                settings,
+                selectedEncounter ?? undefined,
+              ),
+            ],
+            components,
+          });
+        } else if (
+          i.customId === SETTINGS_VIEW_ENCOUNTER_SELECT_ID &&
+          i.isStringSelectMenu()
+        ) {
+          selectedEncounter = i.values[0] as Encounter;
+
+          await i.editReply({
+            embeds: [buildProgPointRolesEmbed(settings, selectedEncounter)],
+            components: [
+              createNavRow('progPointRoles'),
+              createEncounterSelectRow(configuredEncounters, selectedEncounter),
+            ],
+          });
+        }
+      });
+
+      collector.on('end', async () => {
+        try {
+          await interaction.editReply({
+            content:
+              'Settings view has expired. Run /settings view again if needed.',
+            components: [],
+          });
+        } catch (error) {
+          this.logger.error('Failed to update expired settings view', error);
+        }
+      });
     } catch (error) {
       const errorEmbed = this.errorService.handleCommandError(
         error,
