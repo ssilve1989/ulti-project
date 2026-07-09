@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
-import type { ChatInputCommandInteraction } from 'discord.js';
+import type { APIEmbedField, ChatInputCommandInteraction } from 'discord.js';
 import {
   channelMention,
   EmbedBuilder,
@@ -10,6 +10,7 @@ import {
 } from 'discord.js';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
+import type { SettingsDocument } from '../../../../firebase/models/settings.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { SlashCommand } from '../../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../../slash-command.interface.js';
@@ -35,6 +36,54 @@ function reduceRoleSettings(
     },
     [],
   );
+}
+
+const EMBED_FIELD_VALUE_LIMIT = 1024;
+
+function buildProgPointFieldValue(lines: string[]): string {
+  const full = lines.join('\n');
+  if (full.length <= EMBED_FIELD_VALUE_LIMIT) {
+    return full;
+  }
+
+  for (let keepCount = lines.length - 1; keepCount > 0; keepCount--) {
+    const omitted = lines.length - keepCount;
+    const candidate = `${lines
+      .slice(0, keepCount)
+      .join('\n')}\n… and ${omitted} more`;
+    if (candidate.length <= EMBED_FIELD_VALUE_LIMIT) {
+      return candidate;
+    }
+  }
+
+  return `… and ${lines.length} more`;
+}
+
+function reduceProgPointRoleSettings(
+  progPointRoles: SettingsDocument['progPointRoles'],
+): APIEmbedField[] {
+  const fields = Object.entries(progPointRoles || {}).reduce<APIEmbedField[]>(
+    (acc, [encounter, mapping]) => {
+      const lines = Object.entries(mapping ?? {}).map(
+        ([progPoint, roleId]) => `**${progPoint}:** ${roleMention(roleId)}`,
+      );
+
+      if (lines.length) {
+        acc.push({
+          name: `Prog Point Roles — ${encounter}`,
+          value: buildProgPointFieldValue(lines),
+          inline: true,
+        });
+      }
+
+      return acc;
+    },
+    [],
+  );
+
+  return fields.length
+    ? fields
+    : [{ name: 'Prog Point Roles', value: 'No roles set', inline: true }];
 }
 
 @Injectable()
@@ -89,13 +138,18 @@ class ViewSettingsCommandHandler implements ISlashCommand {
         ].filter(Boolean).length,
         configuredRoles:
           Object.keys(settings.progRoles || {}).length +
-          Object.keys(settings.clearRoles || {}).length,
+          Object.keys(settings.clearRoles || {}).length +
+          Object.values(settings.progPointRoles || {}).reduce<number>(
+            (sum, mapping) => sum + Object.keys(mapping ?? {}).length,
+            0,
+          ),
       });
 
       const {
         autoModChannelId,
         progRoles,
         clearRoles,
+        progPointRoles,
         reviewChannel,
         reviewerRole,
         signupChannel,
@@ -106,6 +160,7 @@ class ViewSettingsCommandHandler implements ISlashCommand {
 
       const progRoleSettings = reduceRoleSettings(progRoles);
       const clearRoleSettings = reduceRoleSettings(clearRoles);
+      const progPointRoleFields = reduceProgPointRoleSettings(progPointRoles);
 
       const fields = [
         {
@@ -142,6 +197,7 @@ class ViewSettingsCommandHandler implements ISlashCommand {
             : 'No roles set',
           inline: true,
         },
+        ...progPointRoleFields,
         {
           name: 'Turbo Prog Active',
           value: turboProgActive ? 'Yes' : 'No',

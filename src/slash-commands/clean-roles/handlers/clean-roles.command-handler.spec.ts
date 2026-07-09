@@ -176,6 +176,37 @@ describe('CleanRolesCommandHandler', () => {
       expect(editReply).toHaveBeenCalledWith({ embeds: [mockErrorEmbed] });
     });
 
+    it('processes prog point roles when only progPointRoles is configured', async () => {
+      const guildsFetch = vi.fn().mockResolvedValue(createMockGuild());
+      Object.defineProperty(discordService, 'client', {
+        value: { guilds: { fetch: guildsFetch } },
+        writable: true,
+        configurable: true,
+      });
+
+      settingsCollection.getSettings = vi.fn().mockResolvedValue({
+        progPointRoles: {
+          TOP: { P1: 'prog-role-1', P2: 'pp-role-2' },
+        },
+      });
+
+      const { mock, editReply } = createInteractionMock();
+
+      await handler.execute(mock);
+
+      // guard passed (no error embed) and the sweep ran
+      expect(editReply).toHaveBeenCalledWith(
+        expect.stringContaining('Clean Roles Summary'),
+      );
+
+      const mockGuild = await guildsFetch.mock.results[0].value;
+      const fetchedRoleIds = vi
+        .mocked(mockGuild.roles.fetch)
+        .mock.calls.map(([roleId]: [unknown]) => roleId);
+      expect(fetchedRoleIds).toContain('prog-role-1');
+      expect(fetchedRoleIds).toContain('pp-role-2');
+    });
+
     it('should execute in normal mode and remove roles', async () => {
       const { mock, deferReply, editReply } = createInteractionMock({
         dryRun: false,

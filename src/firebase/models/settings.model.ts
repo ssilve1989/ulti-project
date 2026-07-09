@@ -17,4 +17,8 @@ export interface SettingsDocument extends DocumentData {
   clearRoles?: {
     [key in keyof typeof Encounter]?: string;
   };
+
+  progPointRoles?: {
+    [key in keyof typeof Encounter]?: Record<string, string>;
+  };
 }

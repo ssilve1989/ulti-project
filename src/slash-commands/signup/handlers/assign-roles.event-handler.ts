@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nestjs';
 import { match, P } from 'ts-pattern';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { PartyStatus } from '../../../firebase/models/signup.model.js';
+import { ProgPointRolesService } from '../../../role-manager/prog-point-roles.service.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
 
 interface SetRoleParameters {
@@ -17,12 +18,15 @@ interface SetRoleParameters {
 class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
   private readonly logger = new Logger(AssignRolesEventHandler.name);
 
-  constructor(private readonly discordService: DiscordService) {}
+  constructor(
+    private readonly discordService: DiscordService,
+    private readonly progPointRolesService: ProgPointRolesService,
+  ) {}
 
   async handle(event: SignupApprovedEvent) {
     const {
-      signup: { discordId, encounter, partyStatus },
-      settings: { progRoles, clearRoles },
+      signup: { discordId, encounter, partyStatus, progPoint },
+      settings: { progRoles, clearRoles, progPointRoles },
       message: { guildId },
     } = event;
 
@@ -57,6 +61,19 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
         // which is a little confusing, we should centralize how roles are managed
         .with(PartyStatus.Cleared, P.nullish, () => undefined)
         .exhaustive();
+
+      if (
+        partyStatus === PartyStatus.ProgParty ||
+        partyStatus === PartyStatus.EarlyProgParty ||
+        partyStatus === PartyStatus.ClearParty
+      ) {
+        await this.updateProgPointRoles({
+          discordId,
+          guildId,
+          progPoint,
+          mapping: progPointRoles?.[encounter],
+        });
+      }
     } catch (error) {
       const scope = Sentry.getCurrentScope();
       scope.setExtra('event', event);
@@ -86,6 +103,39 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
         }
       }
     }
+  }
+
+  private async updateProgPointRoles({
+    discordId,
+    guildId,
+    progPoint,
+    mapping,
+  }: {
+    discordId: string;
+    guildId: string;
+    progPoint?: string;
+    mapping?: Record<string, string>;
+  }) {
+    if (!mapping || !progPoint) {
+      return;
+    }
+
+    const member = await this.discordService.getGuildMember({
+      memberId: discordId,
+      guildId,
+    });
+
+    if (!member) {
+      return;
+    }
+
+    const changes = this.progPointRolesService.computeChanges(
+      member,
+      mapping,
+      progPoint,
+    );
+
+    await this.progPointRolesService.applyChanges(member, changes);
   }
 }
 

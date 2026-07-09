@@ -5,6 +5,7 @@ import { EncountersModule } from '../../encounters/encounters.module.js';
 import { ErrorModule } from '../../error/error.module.js';
 import { FfLogsModule } from '../../fflogs/fflogs.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
+import { RoleManagerModule } from '../../role-manager/role-manager.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
 import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import { AssignRolesEventHandler } from './handlers/assign-roles.event-handler.js';
@@ -24,6 +25,7 @@ import { SignupService } from './signup.service.js';
     ErrorModule,
     FfLogsModule,
     FirebaseModule,
+    RoleManagerModule,
     SheetsModule,
   ],
   providers: [

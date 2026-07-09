@@ -1,5 +1,7 @@
 import { Test } from '@nestjs/testing';
+import { FieldPath } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Encounter } from '../../encounters/encounters.consts.js';
 import { createAutoMock } from '../../test-utils/mock-factory.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { SettingsCollection } from './settings-collection.js';
@@ -87,5 +89,17 @@ describe.each([
       expect(collectionMock.doc).toHaveBeenCalledWith(guildId);
       expect(docMock.get).toHaveBeenCalled();
     }
+  });
+
+  it('should replace the encounter prog point roles map on setProgPointRoles', async () => {
+    const progPointRoles = { P1: 'role-1', P2: 'role-2' };
+
+    await service.setProgPointRoles(guildId, Encounter.TOP, progPointRoles);
+
+    expect(collectionMock.doc).toHaveBeenCalledWith(guildId);
+    expect(docMock.set).toHaveBeenCalledWith(
+      { progPointRoles: { [Encounter.TOP]: progPointRoles } },
+      { mergeFields: [new FieldPath('progPointRoles', Encounter.TOP)] },
+    );
   });
 });
