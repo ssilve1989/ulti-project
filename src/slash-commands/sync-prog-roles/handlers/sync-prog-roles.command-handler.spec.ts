@@ -168,7 +168,8 @@ describe('SyncProgRolesCommandHandler', () => {
 
     expect(member3.roles.add).not.toHaveBeenCalled();
     const summary = summaryValue(editReply);
-    expect(summary).toContain('**Skipped (no mapping/prog point):** 2');
+    expect(summary).toContain('**Skipped (no mapping/prog point):** 1');
+    expect(summary).toContain('**Skipped (inactive status):** 1');
     expect(summary).toContain('**Skipped (member left):** 1');
     expect(summary).toContain('**Members Changed:** 0');
   });

@@ -4,6 +4,7 @@ import type {
   APIEmbedField,
   ChatInputCommandInteraction,
   Guild,
+  GuildMember,
 } from 'discord.js';
 import {
   EmbedBuilder,
@@ -46,10 +47,26 @@ interface SyncResult {
   rolesAdded: number;
   rolesRemoved: number;
   skippedNoMapping: number;
+  skippedInactiveStatus: number;
   skippedNoMember: number;
   skippedNoChanges: number;
   errors: number;
   details: string[];
+}
+
+function isInactiveSignup(signup: SignupDocument): boolean {
+  return !signup.partyStatus || !ACTIVE_PARTY_STATUSES.has(signup.partyStatus);
+}
+
+function resolveEligibleMapping(
+  signup: SignupDocument,
+  progPointRoles: SettingsDocument['progPointRoles'],
+): Record<string, string> | undefined {
+  const mapping = progPointRoles?.[signup.encounter];
+  if (!mapping || !signup.progPoint || !mapping[signup.progPoint]) {
+    return undefined;
+  }
+  return mapping;
 }
 
 function formatDetail(
@@ -208,6 +225,7 @@ class SyncProgRolesCommandHandler implements ISlashCommand {
       rolesAdded: 0,
       rolesRemoved: 0,
       skippedNoMapping: 0,
+      skippedInactiveStatus: 0,
       skippedNoMember: 0,
       skippedNoChanges: 0,
       errors: 0,
@@ -217,15 +235,14 @@ class SyncProgRolesCommandHandler implements ISlashCommand {
     for (const signup of signups) {
       result.examined++;
 
-      const mapping = progPointRoles?.[signup.encounter];
+      if (isInactiveSignup(signup)) {
+        result.skippedInactiveStatus++;
+        continue;
+      }
 
-      if (
-        !mapping ||
-        !signup.progPoint ||
-        !mapping[signup.progPoint] ||
-        !signup.partyStatus ||
-        !ACTIVE_PARTY_STATUSES.has(signup.partyStatus)
-      ) {
+      const mapping = resolveEligibleMapping(signup, progPointRoles);
+
+      if (!mapping) {
         result.skippedNoMapping++;
         continue;
       }
@@ -248,26 +265,42 @@ class SyncProgRolesCommandHandler implements ISlashCommand {
         continue;
       }
 
-      try {
-        if (!dryRun) {
-          await this.progPointRolesService.applyChanges(member, changes);
-        }
-
-        result.changed++;
-        if (changes.roleToAdd) {
-          result.rolesAdded++;
-        }
-        result.rolesRemoved += changes.rolesToRemove.length;
-        result.details.push(formatDetail(signup, changes));
-      } catch (error) {
-        result.errors++;
-        this.errorService.captureError(error, {
-          message: `sync-prog-roles failed for ${signup.discordId} / ${signup.encounter}`,
-        });
-      }
+      await this.applyChange({ signup, member, changes, dryRun, result });
     }
 
     return result;
+  }
+
+  private async applyChange({
+    signup,
+    member,
+    changes,
+    dryRun,
+    result,
+  }: {
+    signup: SignupDocument;
+    member: GuildMember;
+    changes: ProgPointRoleChanges;
+    dryRun: boolean;
+    result: SyncResult;
+  }): Promise<void> {
+    try {
+      if (!dryRun) {
+        await this.progPointRolesService.applyChanges(member, changes);
+      }
+
+      result.changed++;
+      if (changes.roleToAdd) {
+        result.rolesAdded++;
+      }
+      result.rolesRemoved += changes.rolesToRemove.length;
+      result.details.push(formatDetail(signup, changes));
+    } catch (error) {
+      result.errors++;
+      this.errorService.captureError(error, {
+        message: `sync-prog-roles failed for ${signup.discordId} / ${signup.encounter}`,
+      });
+    }
   }
 
   private createSummaryEmbed(
@@ -285,6 +318,7 @@ class SyncProgRolesCommandHandler implements ISlashCommand {
           `**Roles Added:** ${result.rolesAdded}`,
           `**Roles Removed:** ${result.rolesRemoved}`,
           `**Skipped (no mapping/prog point):** ${result.skippedNoMapping}`,
+          `**Skipped (inactive status):** ${result.skippedInactiveStatus}`,
           `**Skipped (member left):** ${result.skippedNoMember}`,
           `**Skipped (already correct):** ${result.skippedNoChanges}`,
           `**Errors:** ${result.errors}`,
