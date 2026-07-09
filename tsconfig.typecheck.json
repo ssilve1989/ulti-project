@@ -1,0 +1,22 @@
+{
+  // Typecheck entrypoint: `tsc -b tsconfig.typecheck.json` builds the app and
+  // CLI projects (emitting dist/) and type-checks everything they don't cover:
+  // spec files and root-level config scripts. Deliberately NOT composite —
+  // build mode fully checks a non-composite noEmit root without emitting for it.
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules"],
+  "include": [
+    "src/**/*.spec.ts",
+    "codegen.ts",
+    "instrumentation.ts",
+    "vitest.config.ts"
+  ],
+  "compilerOptions": {
+    "noEmit": true,
+    "tsBuildInfoFile": "./dist/tsconfig.typecheck.tsbuildinfo"
+  },
+  "references": [
+    { "path": "./tsconfig.build.json" },
+    { "path": "./tsconfig.cli.json" }
+  ]
+}

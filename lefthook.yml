@@ -8,9 +8,9 @@ pre-commit:
     lint:
       glob: "*.{ts,json,html,yaml}"
       run: pnpm check --diagnostic-level=error
-    typecheck:
+    build-check:
       glob: "*.{ts,json,html,yaml}"
-      run: pnpm typecheck
+      run: pnpm build:check
     test:
       glob: "*.{ts,json,html,yaml}"
       run: pnpm test --run

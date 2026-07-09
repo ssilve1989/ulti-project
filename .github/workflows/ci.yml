@@ -22,13 +22,15 @@ jobs:
         env:
           FFLOGS_API_ACCESS_TOKEN: ${{ secrets.FFLOGS_API_ACCESS_TOKEN }}
       # These checks are mutually independent — they all consume the source and
-      # the codegen output but never each other's results (typecheck is
-      # --noEmit, build only writes dist/, test only writes coverage/, lint is
-      # read-only). Run them concurrently; the parallel block waits for all of
-      # them before continuing to the coverage upload.
+      # the codegen output but never each other's results (build:check writes
+      # dist/, test only writes coverage/, lint is read-only). Run them
+      # concurrently; the parallel block waits for all of them before
+      # continuing to the coverage upload. There is no separate typecheck +
+      # build pair: build:check is `tsc -b` over the project-reference graph,
+      # which compiles the app + CLI projects (emitting dist/) and type-checks
+      # specs and root config files in one pass.
       - parallel:
-          - run: pnpm typecheck
-          - run: pnpm build
+          - run: pnpm build:check
           - run: pnpm lint:ci
           - run: pnpm test:ci
       - name: Upload coverage reports to Codecov
