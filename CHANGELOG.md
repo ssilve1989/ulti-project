@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/ssilve1989/ulti-project/compare/v2.2.1...v2.3.0) (2026-07-09)
+
+
+### Features
+
+* assign roles by prog point on signup approval ([#1363](https://github.com/ssilve1989/ulti-project/issues/1363)) ([cf94f07](https://github.com/ssilve1989/ulti-project/commit/cf94f076da4f0258fdb4b946b064850c764906de))
+
 ## [2.2.1](https://github.com/ssilve1989/ulti-project/compare/v2.2.0...v2.2.1) (2026-06-30)
 
 
