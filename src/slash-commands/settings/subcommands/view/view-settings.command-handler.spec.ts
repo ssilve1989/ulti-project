@@ -6,6 +6,7 @@ import type {
 } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
+import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import type { SettingsDocument } from '../../../../firebase/models/settings.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
@@ -33,6 +34,7 @@ describe('ViewSettingsCommandHandler', () => {
   let command: ViewSettingsCommandHandler;
   let settingsCollection: Mocked<SettingsCollection>;
   let sheetsService: Mocked<SheetsService>;
+  let errorService: Mocked<ErrorService>;
 
   const baseSettings: SettingsDocument = {
     autoModChannelId: 'automod-chan',
@@ -100,6 +102,7 @@ describe('ViewSettingsCommandHandler', () => {
     command = fixture.get(ViewSettingsCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
     sheetsService = fixture.get(SheetsService);
+    errorService = fixture.get(ErrorService);
   });
 
   it('should be defined', () => {
@@ -338,6 +341,37 @@ describe('ViewSettingsCommandHandler', () => {
       content: 'Settings view has expired. Run /settings view again if needed.',
       components: [],
     });
+  });
+
+  it('captures component interaction errors instead of rejecting', async () => {
+    const { interaction, callbacks } = createInteraction();
+    settingsCollection.getSettings.mockResolvedValueOnce(baseSettings);
+
+    await command.execute(interaction);
+
+    const button = createButtonInteraction(SETTINGS_VIEW_OVERVIEW_BUTTON_ID);
+    vi.mocked(button.deferUpdate).mockRejectedValueOnce(
+      new Error('Unknown interaction'),
+    );
+
+    // an unhandled rejection here would crash the bot via the
+    // process-level unhandledRejection handler in main.ts
+    await expect(callbacks.collect?.(button)).resolves.toBeUndefined();
+    expect(errorService.captureError).toHaveBeenCalledWith(expect.any(Error));
+  });
+
+  it('ignores select values that are not valid encounters', async () => {
+    const { interaction, callbacks } = createInteraction();
+    settingsCollection.getSettings.mockResolvedValueOnce(baseSettings);
+
+    await command.execute(interaction);
+
+    const select = createSelectInteraction(SETTINGS_VIEW_ENCOUNTER_SELECT_ID, [
+      'NOT_AN_ENCOUNTER',
+    ]);
+    await callbacks.collect?.(select);
+
+    expect(select.editReply).not.toHaveBeenCalled();
   });
 
   it('creates the collector scoped to the invoking user with a timeout', async () => {

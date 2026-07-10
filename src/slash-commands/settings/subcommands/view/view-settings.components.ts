@@ -130,6 +130,26 @@ export function createEncounterSelectRow(
   return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu);
 }
 
+export function createProgPointSectionComponents(
+  configuredEncounters: Encounter[],
+  selected?: Encounter,
+): (
+  | ActionRowBuilder<ButtonBuilder>
+  | ActionRowBuilder<StringSelectMenuBuilder>
+)[] {
+  const components: (
+    | ActionRowBuilder<ButtonBuilder>
+    | ActionRowBuilder<StringSelectMenuBuilder>
+  )[] = [createNavRow('progPointRoles')];
+
+  // an empty select menu is a Discord API error, so omit the row entirely
+  if (configuredEncounters.length > 0) {
+    components.push(createEncounterSelectRow(configuredEncounters, selected));
+  }
+
+  return components;
+}
+
 function countConfiguredRoles(
   roleSettings: Record<string, string | undefined> | undefined,
 ): number {

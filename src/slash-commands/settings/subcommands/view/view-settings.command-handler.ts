@@ -1,16 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
-import type {
-  ActionRowBuilder,
-  APIEmbedField,
-  ButtonBuilder,
-  ChatInputCommandInteraction,
-  StringSelectMenuBuilder,
-} from 'discord.js';
+import type { APIEmbedField, ChatInputCommandInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import { isSameUserFilter } from '../../../../common/collection-filters.js';
-import type { Encounter } from '../../../../encounters/encounters.consts.js';
+import {
+  type Encounter,
+  isEncounter,
+} from '../../../../encounters/encounters.consts.js';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
@@ -21,8 +18,8 @@ import {
   buildEncounterRolesEmbed,
   buildOverviewEmbed,
   buildProgPointRolesEmbed,
-  createEncounterSelectRow,
   createNavRow,
+  createProgPointSectionComponents,
   getConfiguredProgPointEncounters,
   SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID,
   SETTINGS_VIEW_ENCOUNTER_SELECT_ID,
@@ -128,57 +125,53 @@ class ViewSettingsCommandHandler implements ISlashCommand {
 
       let selectedEncounter: Encounter | null = null;
 
+      // a rejection escaping this listener would hit the process-level
+      // unhandledRejection handler in main.ts and take the bot down
       collector.on('collect', async (i) => {
-        await i.deferUpdate();
+        try {
+          await i.deferUpdate();
 
-        if (i.customId === SETTINGS_VIEW_OVERVIEW_BUTTON_ID) {
-          await i.editReply({
-            embeds: [buildOverviewEmbed(settings, spreadsheetFields)],
-            components: [createNavRow('overview')],
-          });
-        } else if (i.customId === SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID) {
-          await i.editReply({
-            embeds: [buildEncounterRolesEmbed(settings)],
-            components: [createNavRow('encounterRoles')],
-          });
-        } else if (i.customId === SETTINGS_VIEW_PROG_POINT_ROLES_BUTTON_ID) {
-          const components: (
-            | ActionRowBuilder<ButtonBuilder>
-            | ActionRowBuilder<StringSelectMenuBuilder>
-          )[] = [createNavRow('progPointRoles')];
-
-          // an empty select menu is a Discord API error, so omit the row entirely
-          if (configuredEncounters.length > 0) {
-            components.push(
-              createEncounterSelectRow(
+          if (i.customId === SETTINGS_VIEW_OVERVIEW_BUTTON_ID) {
+            await i.editReply({
+              embeds: [buildOverviewEmbed(settings, spreadsheetFields)],
+              components: [createNavRow('overview')],
+            });
+          } else if (i.customId === SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID) {
+            await i.editReply({
+              embeds: [buildEncounterRolesEmbed(settings)],
+              components: [createNavRow('encounterRoles')],
+            });
+          } else if (i.customId === SETTINGS_VIEW_PROG_POINT_ROLES_BUTTON_ID) {
+            await i.editReply({
+              embeds: [
+                buildProgPointRolesEmbed(
+                  settings,
+                  selectedEncounter ?? undefined,
+                ),
+              ],
+              components: createProgPointSectionComponents(
                 configuredEncounters,
                 selectedEncounter ?? undefined,
               ),
-            );
-          }
+            });
+          } else if (
+            i.customId === SETTINGS_VIEW_ENCOUNTER_SELECT_ID &&
+            i.isStringSelectMenu() &&
+            isEncounter(i.values[0])
+          ) {
+            selectedEncounter = i.values[0];
 
-          await i.editReply({
-            embeds: [
-              buildProgPointRolesEmbed(
-                settings,
-                selectedEncounter ?? undefined,
+            await i.editReply({
+              embeds: [buildProgPointRolesEmbed(settings, selectedEncounter)],
+              components: createProgPointSectionComponents(
+                configuredEncounters,
+                selectedEncounter,
               ),
-            ],
-            components,
-          });
-        } else if (
-          i.customId === SETTINGS_VIEW_ENCOUNTER_SELECT_ID &&
-          i.isStringSelectMenu()
-        ) {
-          selectedEncounter = i.values[0] as Encounter;
-
-          await i.editReply({
-            embeds: [buildProgPointRolesEmbed(settings, selectedEncounter)],
-            components: [
-              createNavRow('progPointRoles'),
-              createEncounterSelectRow(configuredEncounters, selectedEncounter),
-            ],
-          });
+            });
+          }
+        } catch (error) {
+          this.logger.error('Failed to update settings view section', error);
+          this.errorService.captureError(error);
         }
       });
 
