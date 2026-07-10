@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.0](https://github.com/ssilve1989/ulti-project/compare/v2.3.0...v2.4.0) (2026-07-10)
+
+
+### Features
+
+* **settings:** improve settings view UX ([#1368](https://github.com/ssilve1989/ulti-project/issues/1368)) ([ea80f87](https://github.com/ssilve1989/ulti-project/commit/ea80f8729a61835b1832f8d5c224c2536b2ebc6b))
+
 ## [2.3.0](https://github.com/ssilve1989/ulti-project/compare/v2.2.1...v2.3.0) (2026-07-09)
 
 
