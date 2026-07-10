@@ -14,7 +14,7 @@
 - `pnpm lint` - Run Biome linter (must pass)
 - `pnpm check` - Run Biome check (includes lint + format)
 - `pnpm format` - Format code with Biome
-- `pnpm typecheck` - TypeScript type checking (must pass)
+- `pnpm build:check` - Type-check + compile via `tsc -b` project references; emits `dist/` (must pass)
 
 **Note:** When running linting with biome, use `biome check --fix` to also apply formatting fixes automatically.
 

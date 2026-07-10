@@ -4,7 +4,7 @@ Non-discoverable constraints and workflow gotchas. Everything else (stack, archi
 
 ## Commands
 
-- **Typecheck**: `pnpm typecheck` — uses `tsgo` (`@typescript/native-preview`), not `tsc`. Checks both `tsconfig.app.json` and `src/cli/tsconfig.json`.
+- **Typecheck**: `pnpm build:check` (there is no `typecheck` script) — runs `tsc -b tsconfig.typecheck.json` over the project-reference graph: builds the app (`tsconfig.build.json`) and CLI (`tsconfig.cli.json`) projects (this **emits `dist/`**) and type-checks specs + root config files. A pure no-emit check isn't possible: `tsc -b --noEmit` is rejected (TS6310) because referenced projects must emit their declarations.
 - **Auto-fix lint/format**: No npm script wraps `--fix`. Run `biome check --fix .` directly. `pnpm check` and `pnpm lint` only report errors.
 - **New slash command**: Use `pnpm g:slash-command` (hygen generator, templates in `_templates/slash-command/`). Don't copy-paste files manually.
 

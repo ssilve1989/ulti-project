@@ -18,6 +18,14 @@ type UpdateSheetProps = {
 } & GetSheetValuesProps;
 
 /**
+ * Portable subset of the Gaxios response returned by the Sheets client.
+ * Declaration emit (composite project) can't name the inferred
+ * `GaxiosResponseWithHTTP2` type from the transitive `googleapis-common`
+ * package (TS2883), so the exported helpers annotate with this instead.
+ */
+type SheetsResponse<T> = { data: T; status: number };
+
+/**
  * Gets the row values of a given sheet and range
  * @param client
  * @param param1
@@ -48,7 +56,12 @@ export function updateSheet(
   client: sheets_v4.Sheets,
   { spreadsheetId, type, values, range }: UpdateSheetProps,
   options?: MethodOptions,
-) {
+): Promise<
+  SheetsResponse<
+    | sheets_v4.Schema$UpdateValuesResponse
+    | sheets_v4.Schema$AppendValuesResponse
+  >
+> {
   const payload = {
     spreadsheetId,
     range,
@@ -68,7 +81,7 @@ export function batchUpdate(
   spreadsheetId: string,
   requests: sheets_v4.Schema$Request[],
   options: MethodOptions = { timeout: 30_000 },
-) {
+): Promise<SheetsResponse<sheets_v4.Schema$BatchUpdateSpreadsheetResponse>> {
   return client.spreadsheets.batchUpdate(
     {
       spreadsheetId,

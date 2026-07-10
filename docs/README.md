@@ -23,7 +23,7 @@ See [`CLAUDE.md`](../CLAUDE.md) at the project root for development commands (bu
 pnpm start:dev        # Start bot with hot reload
 pnpm test             # Run tests
 pnpm lint             # Lint with Biome
-pnpm typecheck        # TypeScript type checking
+pnpm build:check      # Type-check + compile (tsc -b, emits dist/)
 ```
 
 ## What the Bot Does

@@ -3,7 +3,11 @@
   "exclude": ["node_modules", "**/*.spec.ts", "src/cli"],
   "include": ["src/**/*.ts"],
   "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
     "rootDir": "./src",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo"
   }
 }

@@ -314,7 +314,7 @@ describe('CleanRolesCommandHandler', () => {
         processedRoles: [],
       };
 
-      const embed = handler['createDryRunEmbed'](result);
+      const embed: EmbedBuilder = handler['createDryRunEmbed'](result);
       const validationField = embed.data.fields?.find((f) =>
         f.name?.includes('Validation'),
       );
@@ -335,7 +335,7 @@ describe('CleanRolesCommandHandler', () => {
         processedRoles: [],
       };
 
-      const embed = handler['createDryRunEmbed'](result);
+      const embed: EmbedBuilder = handler['createDryRunEmbed'](result);
       const validationField = embed.data.fields?.find((f) =>
         f.name?.includes('Validation'),
       );
@@ -356,7 +356,7 @@ describe('CleanRolesCommandHandler', () => {
         processedRoles: [],
       };
 
-      const embed = handler['createDryRunEmbed'](result);
+      const embed: EmbedBuilder = handler['createDryRunEmbed'](result);
       const noChangesField = embed.data.fields?.find((f) =>
         f.name?.includes('No Changes'),
       );

@@ -1,15 +1,17 @@
 {
   "extends": "./tsconfig.json",
   "exclude": ["node_modules", "**/*.spec.ts"],
-  "include": [
-    "src/global.d.ts",
-    "src/cli/**/*.ts",
-    "src/firebase/**/*.ts",
-    "src/encounters/**/*.ts",
-    "src/config/**/*.ts"
-  ],
+  "include": ["src/cli/**/*.ts", "src/global.d.ts"],
   "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
     "rootDir": "./src",
-    "outDir": "./dist"
-  }
+    "outDir": "./dist",
+    // Must live under dist/cli so `rimraf dist/cli` in build:cli also resets
+    // the build info — otherwise tsc -b sees a stale "up to date" record and
+    // skips re-emitting the files rimraf just deleted.
+    "tsBuildInfoFile": "./dist/cli/tsconfig.cli.tsbuildinfo"
+  },
+  "references": [{ "path": "./tsconfig.build.json" }]
 }

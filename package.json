@@ -12,9 +12,10 @@
     "node": ">=22.23.1"
   },
   "scripts": {
-    "build": "rimraf dist && tsc -p tsconfig.build.json",
-    "build:cli": "rimraf dist/cli && tsc -p tsconfig.cli.json",
-    "build:all": "rimraf dist && tsc -p tsconfig.build.json && tsc -p tsconfig.cli.json",
+    "build": "rimraf dist && tsc -b tsconfig.build.json",
+    "build:cli": "rimraf dist/cli && tsc -b tsconfig.cli.json",
+    "build:all": "rimraf dist && tsc -b tsconfig.build.json tsconfig.cli.json",
+    "build:check": "tsc -b tsconfig.typecheck.json",
     "check": "biome check",
     "commit": "git-cz",
     "commitlint": "commitlint --edit",
@@ -34,7 +35,6 @@
     "test:ci": "CI=true vitest run --coverage",
     "test:cov": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p src/cli/tsconfig.json --noEmit",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org ulti-project --project ulti-project-bot ./dist && sentry-cli sourcemaps upload --org ulti-project --project ulti-project-bot ./dist"
   },
   "dependencies": {
