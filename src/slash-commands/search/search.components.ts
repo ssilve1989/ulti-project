@@ -1,4 +1,5 @@
 import {
+  ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
   type SelectMenuComponentOptionData,
@@ -13,6 +14,8 @@ import {
 export const SEARCH_ENCOUNTER_SELECTOR_ID = 'searchEncounterSelect';
 export const SEARCH_PROG_POINT_SELECT_ID = 'searchProgPointSelect';
 export const SEARCH_RESET_BUTTON_ID = 'searchResetButton';
+export const SEARCH_PREV_PAGE_BUTTON_ID = 'searchPrevPageButton';
+export const SEARCH_NEXT_PAGE_BUTTON_ID = 'searchNextPageButton';
 
 // Create select menu options for encounters based on application mode
 export const getEncounterOptions = (
@@ -56,3 +59,18 @@ export const createResetButton = () =>
     .setCustomId(SEARCH_RESET_BUTTON_ID)
     .setLabel('Reset Search')
     .setStyle(ButtonStyle.Secondary);
+
+// Create the prev/next pagination row for paged results
+export const createPaginationRow = (currentPage: number, totalPages: number) =>
+  new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(SEARCH_PREV_PAGE_BUTTON_ID)
+      .setLabel('Previous')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(currentPage === 0),
+    new ButtonBuilder()
+      .setCustomId(SEARCH_NEXT_PAGE_BUTTON_ID)
+      .setLabel('Next')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(currentPage === totalPages - 1),
+  );

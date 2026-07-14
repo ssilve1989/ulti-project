@@ -13,6 +13,8 @@ import { PartyStatus } from '../../../firebase/models/signup.model.js';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
 import {
   SEARCH_ENCOUNTER_SELECTOR_ID,
+  SEARCH_NEXT_PAGE_BUTTON_ID,
+  SEARCH_PREV_PAGE_BUTTON_ID,
   SEARCH_PROG_POINT_SELECT_ID,
   SEARCH_RESET_BUTTON_ID,
 } from '../search.components.js';
@@ -404,25 +406,120 @@ describe('SearchCommandHandler', () => {
     });
     expect(mockSignupsCollection.findAll).toHaveBeenCalledTimes(2);
 
-    // Verify the response contains multiple embeds
+    // Verify the response contains a single embed for the current page,
+    // plus a pagination row, rather than every page crammed into one message
     expect(mockProgPointSelect.editReply).toHaveBeenCalled();
     const editReplyCall = mockProgPointSelect.editReply.mock.calls[0][0] as any;
     expect(editReplyCall).toHaveProperty('embeds');
-    expect(editReplyCall.embeds).toHaveLength(2); // Should have 2 pages
+    expect(editReplyCall.embeds).toHaveLength(1);
 
-    // Verify first page
     const firstEmbed = editReplyCall.embeds[0];
     expect(firstEmbed.data).toHaveProperty('description');
     expect(firstEmbed.data.description).toContain('Found 10 player(s)');
     expect(firstEmbed.data.description).toContain('Page 1/2');
     expect(firstEmbed.data.fields).toHaveLength(24); // 8 players * 3 fields each
 
-    // Verify second page
-    const secondEmbed = editReplyCall.embeds[1];
-    expect(secondEmbed.data).toHaveProperty('description');
+    // reset row + pagination row
+    expect(editReplyCall.components).toHaveLength(2);
+    const paginationRow = editReplyCall.components[1];
+    const [prevButton, nextButton] = paginationRow.components;
+    expect(prevButton.data.custom_id).toBe(SEARCH_PREV_PAGE_BUTTON_ID);
+    expect(prevButton.data.disabled).toBe(true);
+    expect(nextButton.data.custom_id).toBe(SEARCH_NEXT_PAGE_BUTTON_ID);
+    expect(nextButton.data.disabled).toBe(false);
+
+    // Clicking Next should render page 2 with the remaining 2 players
+    const mockNextPage =
+      createAutoMock() as unknown as Mocked<ButtonInteraction>;
+    mockNextPage.customId = SEARCH_NEXT_PAGE_BUTTON_ID;
+
+    await collectorCallback!(mockNextPage);
+
+    expect(mockNextPage.editReply).toHaveBeenCalled();
+    const nextPageCall = mockNextPage.editReply.mock.calls[0][0] as any;
+    expect(nextPageCall.embeds).toHaveLength(1);
+    const secondEmbed = nextPageCall.embeds[0];
     expect(secondEmbed.data.description).toContain('Found 10 player(s)');
     expect(secondEmbed.data.description).toContain('Page 2/2');
     expect(secondEmbed.data.fields).toHaveLength(6); // 2 players * 3 fields each
+
+    const secondPaginationRow = nextPageCall.components[1];
+    const [prevButton2, nextButton2] = secondPaginationRow.components;
+    expect(prevButton2.data.disabled).toBe(false);
+    expect(nextButton2.data.disabled).toBe(true);
+  });
+
+  it('should not exceed the 10-embed Discord limit when results span more than 10 pages', async () => {
+    // Setup the collector
+    let collectorCallback: (i: any) => Promise<void>;
+    mockCollector.on.mockImplementation((event: string, callback: any) => {
+      if (event === 'collect') {
+        collectorCallback = callback;
+      }
+      return mockCollector;
+    });
+
+    // 90 signups -> 12 pages of 8 players, which used to overflow the
+    // 10-embed-per-message Discord limit when all pages were sent at once
+    const manySignups = Array.from({ length: 90 }, (_, i) => ({
+      character: `Char${i + 1}`,
+      world: 'TestWorld',
+      role: 'DPS',
+      discordId: `user${i + 1}`,
+      notes: '',
+      username: `user${i + 1}`,
+      progPoint: 'Clear',
+    }));
+
+    mockSignupsCollection.findAll.mockImplementation(
+      ({ progPoint }: { progPoint?: string }) =>
+        progPoint === 'Clear'
+          ? Promise.resolve(manySignups as any)
+          : Promise.resolve([]),
+    );
+
+    // Execute the command
+    await handler.execute(
+      mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
+    );
+
+    // Simulate encounter + prog point selection (Clear has no eligible
+    // higher prog points, so only one findAll call is made)
+    const mockEncounterSelect =
+      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
+    mockEncounterSelect.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
+    mockEncounterSelect.values = [Encounter.TOP];
+    mockEncounterSelect.isStringSelectMenu.mockReturnValue(true);
+    await collectorCallback!(mockEncounterSelect);
+
+    const mockProgPointSelect =
+      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
+    mockProgPointSelect.customId = SEARCH_PROG_POINT_SELECT_ID;
+    mockProgPointSelect.values = ['Clear'];
+    mockProgPointSelect.isStringSelectMenu.mockReturnValue(true);
+
+    await collectorCallback!(mockProgPointSelect);
+
+    const editReplyCall = mockProgPointSelect.editReply.mock.calls[0][0] as any;
+    expect(editReplyCall.embeds.length).toBeLessThanOrEqual(10);
+    expect(editReplyCall.embeds).toHaveLength(1);
+    expect(editReplyCall.embeds[0].data.description).toContain('Page 1/12');
+
+    // Paging all the way to the last page should never exceed 1 embed either
+    let lastInteraction = mockProgPointSelect;
+    for (let i = 0; i < 11; i++) {
+      const mockNext = createAutoMock() as unknown as Mocked<ButtonInteraction>;
+      mockNext.customId = SEARCH_NEXT_PAGE_BUTTON_ID;
+      await collectorCallback!(mockNext);
+      lastInteraction = mockNext as any;
+    }
+
+    const lastCall = lastInteraction.editReply.mock.calls[0][0] as any;
+    expect(lastCall.embeds).toHaveLength(1);
+    expect(lastCall.embeds[0].data.description).toContain('Page 12/12');
+    const lastPaginationRow = lastCall.components[1];
+    const [, lastNextButton] = lastPaginationRow.components;
+    expect(lastNextButton.data.disabled).toBe(true);
   });
 
   it('should handle reset button and return to initial state', async () => {

@@ -20,9 +20,12 @@ import { SlashCommand } from '../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../slash-command.interface.js';
 import {
   createEncounterSelectMenu,
+  createPaginationRow,
   createProgPointSelectMenu,
   createResetButton,
   SEARCH_ENCOUNTER_SELECTOR_ID,
+  SEARCH_NEXT_PAGE_BUTTON_ID,
+  SEARCH_PREV_PAGE_BUTTON_ID,
   SEARCH_PROG_POINT_SELECT_ID,
   SEARCH_RESET_BUTTON_ID,
 } from '../search.components.js';
@@ -72,6 +75,9 @@ class SearchCommandHandler implements ISlashCommand {
     // Keep track of the current state
     let selectedEncounter: Encounter | null = null;
     let selectedProgPoint: string | null = null;
+    let resultPages: SignupDocument[][] = [];
+    let totalResults = 0;
+    let currentPage = 0;
 
     collector.on('collect', async (i) => {
       await i.deferUpdate();
@@ -126,26 +132,45 @@ class SearchCommandHandler implements ISlashCommand {
           selectedProgPoint,
         );
 
-        // Format the results
-        const embeds = this.createResultsEmbed(
-          selectedEncounter as Encounter,
-          selectedProgPoint,
-          searchResults,
-        );
+        resultPages = this.paginateSignups(searchResults);
+        totalResults = searchResults.length;
+        currentPage = 0;
 
-        // Create a row with the reset button
-        const resetRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          createResetButton(),
+        await i.editReply(
+          this.buildResultsPage(
+            selectedEncounter as Encounter,
+            selectedProgPoint,
+            totalResults,
+            resultPages,
+            currentPage,
+          ),
         );
+      } else if (
+        i.customId === SEARCH_PREV_PAGE_BUTTON_ID ||
+        i.customId === SEARCH_NEXT_PAGE_BUTTON_ID
+      ) {
+        // Navigate between result pages
+        currentPage =
+          i.customId === SEARCH_PREV_PAGE_BUTTON_ID
+            ? Math.max(currentPage - 1, 0)
+            : Math.min(currentPage + 1, resultPages.length - 1);
 
-        await i.editReply({
-          embeds: embeds,
-          components: [resetRow],
-        });
+        await i.editReply(
+          this.buildResultsPage(
+            selectedEncounter as Encounter,
+            selectedProgPoint as string,
+            totalResults,
+            resultPages,
+            currentPage,
+          ),
+        );
       } else if (i.customId === SEARCH_RESET_BUTTON_ID) {
         // Reset the selections
         selectedEncounter = null;
         selectedProgPoint = null;
+        resultPages = [];
+        totalResults = 0;
+        currentPage = 0;
 
         // Return to initial state
         await i.editReply({
@@ -212,55 +237,93 @@ class SearchCommandHandler implements ISlashCommand {
   }
 
   /**
-   * Create an embed with the search results
+   * Split the search results into pages of PLAYERS_PER_PAGE signups each.
+   * Each player takes 3 fields (character, discord, spacer), and embeds have
+   * a 25 field limit, so we can show 8 players per page.
    */
-  private createResultsEmbed(
-    encounter: Encounter,
-    progPoint: string,
-    signups: SignupDocument[],
-  ): EmbedBuilder[] {
-    // If no results found
-    if (signups.length === 0) {
-      return [
-        new EmbedBuilder()
-          .setTitle('Search Results')
-          .setDescription(
-            `No signups found for ${encounter} at least at prog point: ${progPoint}`,
-          )
-          .setColor(Colors.Red),
-      ];
-    }
-
-    // Since each player takes 3 fields (character, discord, spacer),
-    // and embeds have a 25 field limit, we can show 8 players per embed
+  private paginateSignups(signups: SignupDocument[]): SignupDocument[][] {
     const PLAYERS_PER_PAGE = 8;
     const totalPages = Math.ceil(signups.length / PLAYERS_PER_PAGE);
 
-    // Create embeds for each page of results
     return Array.from({ length: totalPages }, (_, pageIndex) => {
       const startIdx = pageIndex * PLAYERS_PER_PAGE;
       const endIdx = Math.min(startIdx + PLAYERS_PER_PAGE, signups.length);
-      const pageSignups = signups.slice(startIdx, endIdx);
+      return signups.slice(startIdx, endIdx);
+    });
+  }
 
+  /**
+   * Build the embed + components payload for a single page of search results
+   */
+  private buildResultsPage(
+    encounter: Encounter,
+    progPoint: string,
+    totalResults: number,
+    resultPages: SignupDocument[][],
+    currentPage: number,
+  ) {
+    const resetRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      createResetButton(),
+    );
+
+    if (totalResults === 0) {
       const embed = new EmbedBuilder()
         .setTitle('Search Results')
         .setDescription(
-          `Found ${signups.length} player(s) for **${encounter}** at prog point: **${progPoint} or beyond**${
-            totalPages > 1 ? `\nPage ${pageIndex + 1}/${totalPages}` : ''
-          }`,
+          `No signups found for ${encounter} at least at prog point: ${progPoint}`,
         )
-        .setColor(Colors.Green);
+        .setColor(Colors.Red);
 
-      // Create fields for each player on this page using flatMap
-      const fields = pageSignups.flatMap((signup) => [
-        characterField(signup.character, { memberId: signup.discordId }),
-        { name: 'Role', value: signup.role, inline: true },
-        // biome-ignore lint/style/noNonNullAssertion: prog point won't be undefined here but we should improve types of Signups to fix this kind of issue
-        { name: 'Prog Point', value: signup.progPoint!, inline: true },
-      ]);
+      return { embeds: [embed], components: [resetRow] };
+    }
 
-      return embed.addFields(fields);
-    });
+    const totalPages = resultPages.length;
+    const embed = this.createResultsPageEmbed(
+      encounter,
+      progPoint,
+      totalResults,
+      resultPages[currentPage],
+      currentPage,
+      totalPages,
+    );
+
+    const components =
+      totalPages > 1
+        ? [resetRow, createPaginationRow(currentPage, totalPages)]
+        : [resetRow];
+
+    return { embeds: [embed], components };
+  }
+
+  /**
+   * Create the embed for a single page of search results
+   */
+  private createResultsPageEmbed(
+    encounter: Encounter,
+    progPoint: string,
+    totalResults: number,
+    pageSignups: SignupDocument[],
+    pageIndex: number,
+    totalPages: number,
+  ): EmbedBuilder {
+    const embed = new EmbedBuilder()
+      .setTitle('Search Results')
+      .setDescription(
+        `Found ${totalResults} player(s) for **${encounter}** at prog point: **${progPoint} or beyond**${
+          totalPages > 1 ? `\nPage ${pageIndex + 1}/${totalPages}` : ''
+        }`,
+      )
+      .setColor(Colors.Green);
+
+    // Create fields for each player on this page using flatMap
+    const fields = pageSignups.flatMap((signup) => [
+      characterField(signup.character, { memberId: signup.discordId }),
+      { name: 'Role', value: signup.role, inline: true },
+      // biome-ignore lint/style/noNonNullAssertion: prog point won't be undefined here but we should improve types of Signups to fix this kind of issue
+      { name: 'Prog Point', value: signup.progPoint!, inline: true },
+    ]);
+
+    return embed.addFields(fields);
   }
 }
 
