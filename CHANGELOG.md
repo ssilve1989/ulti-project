@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.5.0](https://github.com/ssilve1989/ulti-project/compare/v2.4.0...v2.5.0) (2026-07-14)
+
+
+### Features
+
+* **settings:** configurable blacklist notification channel list ([d6662c0](https://github.com/ssilve1989/ulti-project/commit/d6662c0331a4ade417fda5882b42aa66c5d4942d))
+
+
+### Bug Fixes
+
+* **search:** paginate results with prev/next buttons ([c982300](https://github.com/ssilve1989/ulti-project/commit/c982300ec4c0e567811ad44607f8d08953966d0e))
+
 ## [2.4.0](https://github.com/ssilve1989/ulti-project/compare/v2.3.0...v2.4.0) (2026-07-10)
 
 
