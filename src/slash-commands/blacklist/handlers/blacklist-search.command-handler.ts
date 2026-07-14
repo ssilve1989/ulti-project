@@ -6,9 +6,13 @@ import { DiscordService } from '../../../discord/discord.service.js';
 import { BlacklistCollection } from '../../../firebase/collections/blacklist-collection.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import type { BlacklistDocument } from '../../../firebase/models/blacklist.model.js';
+import { getBlacklistChannelIds } from '../../../firebase/models/settings.model.js';
 import type { SignupDocument } from '../../../firebase/models/signup.model.js';
 import { BlacklistSearchCommand } from '../blacklist.commands.js';
-import { createBlacklistEmbedFields } from '../blacklist.utils.js';
+import {
+  createBlacklistEmbedFields,
+  sendToBlacklistChannels,
+} from '../blacklist.utils.js';
 
 @CommandHandler(BlacklistSearchCommand)
 class BlacklistSearchCommandHandler
@@ -23,12 +27,12 @@ class BlacklistSearchCommandHandler
 
   async execute({ signup, guildId }: BlacklistSearchCommand) {
     const settings = await this.settingsCollection.getSettings(guildId);
-    if (!settings?.autoModChannelId) {
-      this.logger.warn(`No auto-mod channel set for guild ${guildId}`);
+    const channelIds = getBlacklistChannelIds(settings);
+
+    if (channelIds.length === 0) {
+      this.logger.warn(`No blacklist channels set for guild ${guildId}`);
       return;
     }
-
-    const { autoModChannelId, reviewChannel } = settings;
 
     // search to see if the signup is in the blacklist
     const match = await this.blacklistCollection.search({
@@ -39,17 +43,16 @@ class BlacklistSearchCommandHandler
 
     if (!match) return;
 
-    const channel = await this.discordService.getTextChannel({
-      guildId,
-      channelId: autoModChannelId,
-    });
-
     const embed = await this.createBlacklistEmbed(match, signup, {
       guildId,
-      reviewChannelId: reviewChannel,
+      reviewChannelId: settings?.reviewChannel,
     });
 
-    return await channel?.send({ embeds: [embed] });
+    await sendToBlacklistChannels(this.discordService, this.logger, {
+      guildId,
+      channelIds,
+      embed,
+    });
   }
 
   private async createBlacklistEmbed(

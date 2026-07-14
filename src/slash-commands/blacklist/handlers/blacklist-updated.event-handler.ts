@@ -1,15 +1,19 @@
+import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import { EmbedBuilder } from 'discord.js';
 import { createFields } from '../../../common/embed-helpers.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
-import { getDisplayName } from '../blacklist.utils.js';
+import { getBlacklistChannelIds } from '../../../firebase/models/settings.model.js';
+import { getDisplayName, sendToBlacklistChannels } from '../blacklist.utils.js';
 import { BlacklistUpdatedEvent } from '../events/blacklist.events.js';
 
 @EventsHandler(BlacklistUpdatedEvent)
 class BlacklistUpdatedEventHandler
   implements IEventHandler<BlacklistUpdatedEvent>
 {
+  private readonly logger = new Logger(BlacklistUpdatedEventHandler.name);
+
   constructor(
     private readonly settingsCollection: SettingsCollection,
     private readonly discordService: DiscordService,
@@ -19,12 +23,11 @@ class BlacklistUpdatedEventHandler
     data: { entry, type, guildId, triggeredBy },
   }: BlacklistUpdatedEvent) {
     const settings = await this.settingsCollection.getSettings(guildId);
+    const channelIds = getBlacklistChannelIds(settings);
 
-    if (!settings?.autoModChannelId) {
+    if (channelIds.length === 0) {
       return;
     }
-
-    const { autoModChannelId } = settings;
 
     const toFrom = type === 'added' ? 'to' : 'from';
     const displayName = await getDisplayName(this.discordService, {
@@ -65,12 +68,11 @@ class BlacklistUpdatedEventHandler
       })
       .addFields(fields);
 
-    const channel = await this.discordService.getTextChannel({
-      channelId: autoModChannelId,
+    await sendToBlacklistChannels(this.discordService, this.logger, {
       guildId,
+      channelIds,
+      embed,
     });
-
-    await channel?.send({ embeds: [embed] });
   }
 }
 
