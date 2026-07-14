@@ -5,6 +5,7 @@ export interface SettingsDocument extends DocumentData {
   reviewChannel?: string;
   reviewerRole?: string;
   autoModChannelId?: string;
+  blacklistChannelIds?: string[];
   signupChannel?: string;
   spreadsheetId?: string;
   turboProgActive?: boolean;
@@ -21,4 +22,19 @@ export interface SettingsDocument extends DocumentData {
   progPointRoles?: {
     [key in keyof typeof Encounter]?: Record<string, string>;
   };
+}
+
+/**
+ * Resolves the channels that should receive blacklist notifications.
+ * Guilds that predate `blacklistChannelIds` fall back to `autoModChannelId`;
+ * an explicitly saved empty list means notifications are intentionally off.
+ */
+export function getBlacklistChannelIds(
+  settings: SettingsDocument | undefined,
+): string[] {
+  if (settings?.blacklistChannelIds) {
+    return settings.blacklistChannelIds;
+  }
+
+  return settings?.autoModChannelId ? [settings.autoModChannelId] : [];
 }

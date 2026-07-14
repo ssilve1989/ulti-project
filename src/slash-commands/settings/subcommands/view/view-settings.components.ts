@@ -12,7 +12,10 @@ import {
   type Encounter,
   EncounterFriendlyDescription,
 } from '../../../../encounters/encounters.consts.js';
-import type { SettingsDocument } from '../../../../firebase/models/settings.model.js';
+import {
+  getBlacklistChannelIds,
+  type SettingsDocument,
+} from '../../../../firebase/models/settings.model.js';
 
 export const SETTINGS_VIEW_OVERVIEW_BUTTON_ID = 'settingsViewOverview';
 export const SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID =
@@ -186,10 +189,22 @@ export function buildOverviewEmbed(
     0,
   );
 
+  const blacklistChannelIds = getBlacklistChannelIds(settings);
+
   const fields: APIEmbedField[] = [
     {
       name: 'Auto-Moderation Channel',
       value: formatChannel(autoModChannelId),
+      inline: true,
+    },
+    {
+      name: 'Blacklist Channels',
+      value: blacklistChannelIds.length
+        ? buildTruncatedList(
+            blacklistChannelIds.map(channelMention),
+            EMBED_FIELD_VALUE_LIMIT,
+          )
+        : 'No Channels Set',
       inline: true,
     },
     {

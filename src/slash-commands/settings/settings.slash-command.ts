@@ -32,10 +32,17 @@ export const EditChannelsSubcommand = new SlashCommandSubcommandBuilder()
   .addChannelOption((option) =>
     option
       .setName('moderation-channel')
-      .setDescription('The channel to send automatic moderation messages to')
+      .setDescription(
+        'The channel for automatic moderation messages. Blacklist alerts use /settings blacklist-channels',
+      )
       .addChannelTypes(ChannelType.GuildText)
       .setRequired(false),
   );
+
+export const EditBlacklistChannelsSubcommand =
+  new SlashCommandSubcommandBuilder()
+    .setName('blacklist-channels')
+    .setDescription('Choose the channels that receive blacklist notifications');
 
 export const EditReviewerRoleSubcommand = new SlashCommandSubcommandBuilder()
   .setName('reviewer')
@@ -134,6 +141,7 @@ export const SettingsSlashCommand = new SlashCommandBuilder()
   .setName('settings')
   .setDescription('Configure/Review the bots roles and channel settings')
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+  .addSubcommand(EditBlacklistChannelsSubcommand)
   .addSubcommand(EditChannelsSubcommand)
   .addSubcommand(EditReviewerRoleSubcommand)
   .addSubcommand(EditEncounterRolesSubcommand)

@@ -126,6 +126,13 @@ describe('ViewSettingsCommandHandler', () => {
         value: '<#review-chan>',
       }),
     );
+    // falls back to the auto-mod channel while no blacklist list is configured
+    expect(fields).toContainEqual(
+      expect.objectContaining({
+        name: 'Blacklist Channels',
+        value: '<#automod-chan>',
+      }),
+    );
     expect(fields).toContainEqual(
       expect.objectContaining({
         name: 'Reviewer Role',
