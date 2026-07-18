@@ -30,7 +30,7 @@ class BlacklistCollection {
    * @param props
    * @returns the upserted document
    */
-  public async upsert(
+  public upsert(
     guildId: string,
     source: BlacklistDocument,
   ): Promise<BlacklistDocument> {
@@ -40,10 +40,14 @@ class BlacklistCollection {
     const collection = this.getCollection(guildId);
     const document = collection.doc(source.discordId);
 
-    await document.set(source, { merge: true });
-    const snapshot = await document.get();
+    return this.firestore.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(document);
+      const merged: BlacklistDocument = { ...snapshot.data(), ...source };
 
-    return snapshot.data()!;
+      transaction.set(document, merged);
+
+      return merged;
+    });
   }
 
   /**

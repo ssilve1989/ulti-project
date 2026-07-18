@@ -2,17 +2,6 @@
 
 This directory contains architecture documentation for the **ulti-project** — a Discord bot that manages FFXIV (Final Fantasy XIV) raid group signups, role assignment, and progression tracking.
 
-## Documents
-
-| Document | Description |
-|----------|-------------|
-| [Architecture Overview](./architecture-overview.md) | Big-picture system design: NestJS application context, module graph, CQRS, error handling, and core technology choices |
-| [Slash Commands](./slash-commands.md) | How Discord slash commands are structured, routed, and processed using the CQRS pattern |
-| [Data Layer](./data-layer.md) | Firebase/Firestore collections, document models, caching strategy, and data lifecycle |
-| [Integrations](./integrations.md) | External service integrations: Discord.js client, Google Sheets, and FF Logs GraphQL API |
-| [Scheduled Jobs](./scheduled-jobs.md) | Background cron jobs: clear checking, sheet maintenance, and invite cleanup |
-| [Configuration](./configuration.md) | Environment variables, Zod validation, APPLICATION_MODE, and deployment |
-
 ## Quick Start for Developers
 
 See [`CLAUDE.md`](../CLAUDE.md) at the project root for development commands (build, test, lint, etc.).
