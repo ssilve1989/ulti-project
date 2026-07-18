@@ -6,6 +6,8 @@ import { SettingsSubcommandHandler } from './settings-subcommand.handler.js';
 export abstract class SettingsEditCommandHandler<
   TOpts,
 > extends SettingsSubcommandHandler {
+  protected abstract readonly successMessage: string;
+
   protected abstract readOptions(
     interaction: ChatInputCommandInteraction<'cached'>,
   ): TOpts;
@@ -19,8 +21,6 @@ export abstract class SettingsEditCommandHandler<
     opts: TOpts,
     existing: SettingsDocument | undefined,
   ): Partial<SettingsDocument>;
-
-  protected abstract successMessage(opts: TOpts): string;
 
   protected async handle(
     interaction: ChatInputCommandInteraction<'cached'>,
@@ -38,6 +38,6 @@ export abstract class SettingsEditCommandHandler<
       ...this.buildPatch(opts, settings),
     });
 
-    await interaction.editReply(this.successMessage(opts));
+    await interaction.editReply(this.successMessage);
   }
 }

@@ -28,9 +28,7 @@ class EditReviewerCommandHandler extends SettingsEditCommandHandler<ReviewerOpti
     return { reviewerRole: role.id };
   }
 
-  protected successMessage(): string {
-    return 'Reviewer role updated!';
-  }
+  protected readonly successMessage = 'Reviewer role updated!';
 }
 
 export { EditReviewerCommandHandler };

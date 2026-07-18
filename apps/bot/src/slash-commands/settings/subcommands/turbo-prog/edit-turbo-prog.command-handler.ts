@@ -39,9 +39,7 @@ class EditTurboProgCommandHandler extends SettingsEditCommandHandler<TurboProgOp
     };
   }
 
-  protected successMessage(): string {
-    return 'Turbo prog settings updated!';
-  }
+  protected readonly successMessage = 'Turbo prog settings updated!';
 }
 
 export { EditTurboProgCommandHandler };

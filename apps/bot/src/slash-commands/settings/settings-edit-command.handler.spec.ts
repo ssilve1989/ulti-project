@@ -13,6 +13,8 @@ interface TestOpts {
 
 @Injectable()
 class TestEditHandler extends SettingsEditCommandHandler<TestOpts> {
+  protected readonly successMessage = 'updated: from-options';
+
   readOptionsImpl = vi.fn<() => TestOpts>().mockReturnValue({
     value: 'from-options',
   });
@@ -25,7 +27,6 @@ class TestEditHandler extends SettingsEditCommandHandler<TestOpts> {
       spreadsheetId: `${existing?.spreadsheetId ?? ''}${opts.value}`,
     }),
   );
-  successMessageImpl = vi.fn((opts: TestOpts) => `updated: ${opts.value}`);
 
   protected readOptions(): TestOpts {
     return this.readOptionsImpl();
@@ -37,10 +38,6 @@ class TestEditHandler extends SettingsEditCommandHandler<TestOpts> {
 
   protected buildPatch(opts: TestOpts, existing: SettingsDocument | undefined) {
     return this.buildPatchImpl(opts, existing);
-  }
-
-  protected successMessage(opts: TestOpts): string {
-    return this.successMessageImpl(opts);
   }
 }
 
@@ -84,7 +81,7 @@ describe('SettingsEditCommandHandler', () => {
     });
   });
 
-  it('calls readOptions -> scopeContext -> buildPatch -> successMessage with consistent opts', async () => {
+  it('calls readOptions -> scopeContext -> buildPatch with consistent opts', async () => {
     settingsCollection.getSettings.mockResolvedValueOnce({
       spreadsheetId: 'existing-',
     });
@@ -102,10 +99,9 @@ describe('SettingsEditCommandHandler', () => {
     expect(handler.buildPatchImpl).toHaveBeenCalledWith(opts, {
       spreadsheetId: 'existing-',
     });
-    expect(handler.successMessageImpl).toHaveBeenCalledWith(opts);
   });
 
-  it('replies with successMessage() after upserting', async () => {
+  it('replies with successMessage after upserting', async () => {
     settingsCollection.getSettings.mockResolvedValueOnce(undefined);
 
     const interaction = {

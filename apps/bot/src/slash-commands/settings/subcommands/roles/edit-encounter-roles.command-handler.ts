@@ -51,9 +51,7 @@ class EditEncounterRolesCommandHandler extends SettingsEditCommandHandler<Encoun
     };
   }
 
-  protected successMessage(): string {
-    return 'Encounter roles updated!';
-  }
+  protected readonly successMessage = 'Encounter roles updated!';
 }
 
 export { EditEncounterRolesCommandHandler };
