@@ -1,64 +1,60 @@
 import { Injectable } from '@nestjs/common';
-import * as Sentry from '@sentry/nestjs';
-import { SentryTraced } from '@sentry/nestjs';
 import type { ChatInputCommandInteraction } from 'discord.js';
-import { MessageFlags } from 'discord.js';
-import { ErrorService } from '../../../../error/error.service.js';
-import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SlashCommand } from '../../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../../slash-command.interface.js';
 import { SettingsSlashCommand } from '../../settings.slash-command.js';
+import { SettingsEditCommandHandler } from '../../settings-edit-command.handler.js';
+
+interface ChannelsOptions {
+  reviewChannelId: string | undefined;
+  signupChannelId: string | undefined;
+  autoModChannelId: string | undefined;
+}
 
 @Injectable()
 @SlashCommand({ builder: SettingsSlashCommand, subcommand: 'channels' })
-class EditChannelsCommandHandler implements ISlashCommand {
-  constructor(
-    private readonly settingsCollection: SettingsCollection,
-    private readonly errorService: ErrorService,
-  ) {}
-
-  @SentryTraced()
-  async execute(
+class EditChannelsCommandHandler extends SettingsEditCommandHandler<ChannelsOptions> {
+  protected readOptions(
     interaction: ChatInputCommandInteraction<'cached'>,
-  ): Promise<void> {
-    const scope = Sentry.getCurrentScope();
-    try {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-      const reviewChannel = interaction.options.getChannel(
-        'signup-review-channel',
-      );
-      const signupChannel = interaction.options.getChannel(
-        'signup-public-channel',
-      );
-      const autoModChannelId =
-        interaction.options.getChannel('moderation-channel');
+  ): ChannelsOptions {
+    return {
+      reviewChannelId: interaction.options.getChannel('signup-review-channel')
+        ?.id,
+      signupChannelId: interaction.options.getChannel('signup-public-channel')
+        ?.id,
+      autoModChannelId:
+        interaction.options.getChannel('moderation-channel')?.id,
+    };
+  }
 
-      // Add command-specific context
-      scope.setContext('channel_update', {
-        hasReviewChannel: !!reviewChannel,
-        hasSignupChannel: !!signupChannel,
+  protected scopeContext({
+    reviewChannelId,
+    signupChannelId,
+    autoModChannelId,
+  }: ChannelsOptions) {
+    return {
+      name: 'channel_update',
+      context: {
+        hasReviewChannel: !!reviewChannelId,
+        hasSignupChannel: !!signupChannelId,
         hasAutoModChannel: !!autoModChannelId,
-      });
+      },
+    };
+  }
 
-      const settings = await this.settingsCollection.getSettings(
-        interaction.guildId,
-      );
+  protected buildPatch({
+    reviewChannelId,
+    signupChannelId,
+    autoModChannelId,
+  }: ChannelsOptions) {
+    return {
+      reviewChannel: reviewChannelId,
+      signupChannel: signupChannelId,
+      autoModChannelId,
+    };
+  }
 
-      await this.settingsCollection.upsert(interaction.guildId, {
-        ...settings,
-        reviewChannel: reviewChannel?.id,
-        signupChannel: signupChannel?.id,
-        autoModChannelId: autoModChannelId?.id,
-      });
-
-      await interaction.editReply('Channel settings updated!');
-    } catch (error) {
-      const errorEmbed = this.errorService.handleCommandError(
-        error,
-        interaction,
-      );
-      await interaction.editReply({ embeds: [errorEmbed] });
-    }
+  protected successMessage(): string {
+    return 'Channel settings updated!';
   }
 }
 
