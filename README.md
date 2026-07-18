@@ -12,17 +12,3 @@ The bot provides Discord-based tooling for organizing FFXIV raid progression gro
 - **Clear checking** — A daily job queries FF Logs to automatically remove signups from players who have cleared the encounter
 - **Moderation** — Blacklist management, role cleanup utilities, and audit logging to a mod channel
 
-## Quick Start for Developers
-
-See [`CLAUDE.md`](./CLAUDE.md) at the project root for development commands (build, test, lint, etc.).
-
-**Key commands:**
-
-```sh
-pnpm start:dev        # Start bot with hot reload
-pnpm test             # Run tests
-pnpm lint             # Lint with Biome
-pnpm build:check      # Type-check + compile (tsc -b, emits dist/)
-```
-
-See [`docs/README.md`](./docs/README.md) for further architecture documentation.
