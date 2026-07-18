@@ -27,9 +27,7 @@ class EditSpreadsheetCommandHandler extends SettingsEditCommandHandler<Spreadshe
     return { spreadsheetId };
   }
 
-  protected successMessage(): string {
-    return 'Spreadsheet settings updated!';
-  }
+  protected readonly successMessage = 'Spreadsheet settings updated!';
 }
 
 export { EditSpreadsheetCommandHandler };

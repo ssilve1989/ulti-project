@@ -53,9 +53,7 @@ class EditChannelsCommandHandler extends SettingsEditCommandHandler<ChannelsOpti
     };
   }
 
-  protected successMessage(): string {
-    return 'Channel settings updated!';
-  }
+  protected readonly successMessage = 'Channel settings updated!';
 }
 
 export { EditChannelsCommandHandler };
