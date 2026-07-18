@@ -11,6 +11,7 @@ export default defineConfig({
       exclude: [
         'src/slash-commands/**/*{-command.ts,.command.ts}',
         '**/*.module.ts',
+        'src/cli/**',
       ],
       provider: 'v8',
     },
