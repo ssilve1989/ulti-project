@@ -41,9 +41,8 @@ class BlacklistCollection {
     const document = collection.doc(source.discordId);
 
     await document.set(source, { merge: true });
-    const snapshot = await document.get();
 
-    return snapshot.data()!;
+    return source;
   }
 
   /**
