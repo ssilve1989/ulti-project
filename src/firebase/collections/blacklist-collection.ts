@@ -41,8 +41,16 @@ class BlacklistCollection {
     const document = collection.doc(source.discordId);
 
     await document.set(source, { merge: true });
+    const snapshot = await document.get();
+    const data = snapshot.data();
 
-    return source;
+    if (!data) {
+      throw new Error(
+        `Failed to read back blacklist document ${source.discordId} after upsert`,
+      );
+    }
+
+    return data;
   }
 
   /**
