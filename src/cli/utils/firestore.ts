@@ -49,15 +49,20 @@ export async function getAllProgPoints(
   return snapshot.docs.map((doc) => doc.data());
 }
 
-export async function clearProgPoints(
+export async function replaceProgPoints(
   db: Firestore,
   encounterId: string,
+  progPoints: ProgPointDocument[],
 ): Promise<void> {
-  const snapshot = await progPointsRef(db, encounterId).get();
-  if (snapshot.empty) return;
+  const ref = progPointsRef(db, encounterId);
+  const existing = await ref.get();
+
   const batch = db.batch();
-  for (const doc of snapshot.docs) {
+  for (const doc of existing.docs) {
     batch.delete(doc.ref);
+  }
+  for (const progPoint of progPoints) {
+    batch.set(ref.doc(progPoint.id), progPoint);
   }
   await batch.commit();
 }

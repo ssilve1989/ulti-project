@@ -11,8 +11,7 @@ import {
   readEncounterYaml,
 } from '../../../utils/encounter-yaml.js';
 import {
-  addProgPoint,
-  clearProgPoints,
+  replaceProgPoints,
   upsertEncounter,
 } from '../../../utils/firestore.js';
 
@@ -53,12 +52,12 @@ async function pushEncounter(
   };
 
   await upsertEncounter(db, config.id, encounterData);
-  await clearProgPoints(db, config.id);
 
-  const progPoints = config.progPoints ?? [];
-  for (const [i, pp] of progPoints.entries()) {
-    await addProgPoint(db, config.id, { ...pp, order: i });
-  }
+  const progPoints = (config.progPoints ?? []).map((pp, i) => ({
+    ...pp,
+    order: i,
+  }));
+  await replaceProgPoints(db, config.id, progPoints);
 }
 
 async function pushWithConfirmation(
