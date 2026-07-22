@@ -48,12 +48,12 @@ progPoints:
     label: "Phase 5: Celestriad"
     partyStatus: "Clear Party"
     active: true
-  - id: "P5 Maddening 2"
-    label: "Phase 5: Maddening Orchestra 2"
-    partyStatus: "Clear Party"
-    active: true
   - id: "P5 Exas"
     label: "Phase 5: Stray Apocalypse (Exas)"
+    partyStatus: "Clear Party"
+    active: true
+  - id: "P5 Maddening 2"
+    label: "Phase 5: Maddening Orchestra 2"
     partyStatus: "Clear Party"
     active: true
   - id: "P5 Forsaken"
