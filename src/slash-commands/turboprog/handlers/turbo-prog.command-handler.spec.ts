@@ -67,90 +67,93 @@ describe('TurboProgCommandHandler', () => {
     expect(command).toBeDefined();
   });
 
-  it.each(
-    approvedCases,
-  )('should return allowed for $status $partyStatus signups', async (signup) => {
-    // Include role in the mock to ensure it's used properly in mapSignupToRowData
-    const mockSignup = {
-      ...signup,
-      role: 'TestRole',
-      progPoint: 'TestProgPoint',
-      character: 'TestCharacter',
-      encounter: Encounter.DSR,
-      discordId: 'testDiscordId',
-    } as SignupDocument;
-
-    const options = turboProgSignupSchema.parse({
-      encounter: Encounter.DSR,
-    });
-
-    // Pass the signup directly to isProggerAllowed
-    const response = await command.isProggerAllowed(
-      options,
-      'spreadsheetId',
-      mockSignup,
-    );
-
-    expect(response).toEqual({
-      allowed: true,
-      data: expect.objectContaining({
-        job: 'TestRole', // Check that role is properly mapped to job
+  it.each(approvedCases)(
+    'should return allowed for $status $partyStatus signups',
+    async (signup) => {
+      // Include role in the mock to ensure it's used properly in mapSignupToRowData
+      const mockSignup = {
+        ...signup,
+        role: 'TestRole',
         progPoint: 'TestProgPoint',
         character: 'TestCharacter',
-      }),
-    });
-  });
+        encounter: Encounter.DSR,
+        discordId: 'testDiscordId',
+      } as SignupDocument;
 
-  it.each(
-    declinedCases,
-  )('should return rejected for $status $partyStatus signups', async (signup) => {
-    const mockSignup = {
-      ...signup,
-      encounter: Encounter.DSR,
-      discordId: 'testDiscordId',
-    } as SignupDocument;
+      const options = turboProgSignupSchema.parse({
+        encounter: Encounter.DSR,
+      });
 
-    const options = turboProgSignupSchema.parse({
-      encounter: Encounter.DSR,
-    });
+      // Pass the signup directly to isProggerAllowed
+      const response = await command.isProggerAllowed(
+        options,
+        'spreadsheetId',
+        mockSignup,
+      );
 
-    // Pass the signup directly to isProggerAllowed
-    const response = await command.isProggerAllowed(
-      options,
-      'spreadsheetId',
-      mockSignup,
-    );
+      expect(response).toEqual({
+        allowed: true,
+        data: expect.objectContaining({
+          job: 'TestRole', // Check that role is properly mapped to job
+          progPoint: 'TestProgPoint',
+          character: 'TestCharacter',
+        }),
+      });
+    },
+  );
 
-    expect(response).toEqual({
-      allowed: undefined,
-      error: TURBO_PROG_SIGNUP_INVALID,
-    });
-  });
+  it.each(declinedCases)(
+    'should return rejected for $status $partyStatus signups',
+    async (signup) => {
+      const mockSignup = {
+        ...signup,
+        encounter: Encounter.DSR,
+        discordId: 'testDiscordId',
+      } as SignupDocument;
 
-  it.each(
-    searchableCases,
-  )('should search the sheet for signups for $status $partyStatus signups', async (signup) => {
-    const mockSignup = {
-      ...signup,
-      encounter: Encounter.DSR,
-      discordId: 'testDiscordId',
-      character: 'TestCharacter',
-      world: 'TestWorld',
-    } as SignupDocument;
+      const options = turboProgSignupSchema.parse({
+        encounter: Encounter.DSR,
+      });
 
-    const options = turboProgSignupSchema.parse({
-      encounter: Encounter.DSR,
-    });
+      // Pass the signup directly to isProggerAllowed
+      const response = await command.isProggerAllowed(
+        options,
+        'spreadsheetId',
+        mockSignup,
+      );
 
-    // Spy on the findCharacterRowValues method
-    const spy = vi.spyOn(command as any, 'findCharacterRowValues');
-    spy.mockImplementationOnce(() => Promise.resolve({}));
+      expect(response).toEqual({
+        allowed: undefined,
+        error: TURBO_PROG_SIGNUP_INVALID,
+      });
+    },
+  );
 
-    // Pass the signup directly to isProggerAllowed
-    await command.isProggerAllowed(options, 'spreadsheetId', mockSignup);
+  it.each(searchableCases)(
+    'should search the sheet for signups for $status $partyStatus signups',
+    async (signup) => {
+      const mockSignup = {
+        ...signup,
+        encounter: Encounter.DSR,
+        discordId: 'testDiscordId',
+        character: 'TestCharacter',
+        world: 'TestWorld',
+      } as SignupDocument;
 
-    expect(spy).toHaveBeenCalledWith(options, 'spreadsheetId', mockSignup);
-  });
+      const options = turboProgSignupSchema.parse({
+        encounter: Encounter.DSR,
+      });
+
+      // Spy on the findCharacterRowValues method
+      const spy = vi.spyOn(command as any, 'findCharacterRowValues');
+      spy.mockImplementationOnce(() => Promise.resolve({}));
+
+      // Pass the signup directly to isProggerAllowed
+      await command.isProggerAllowed(options, 'spreadsheetId', mockSignup);
+
+      expect(spy).toHaveBeenCalledWith(options, 'spreadsheetId', mockSignup);
+    },
+  );
 
   it('should handle character row values lookup correctly', async () => {
     // Mock the SheetsService response

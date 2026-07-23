@@ -133,45 +133,48 @@ describe('Remove Signup Command Handler', () => {
       settings: DEFAULT_SETTINGS,
       signup: new DocumentNotFoundException(),
     },
-  ])('$case', async ({
-    settings,
-    hasRole = true,
-    color,
-    description,
-    signup = {},
-    publish,
-  }) => {
-    settingsCollection.getSettings.mockResolvedValueOnce(settings);
-    discordService.userHasRole.mockResolvedValue(hasRole);
+  ])(
+    '$case',
+    async ({
+      settings,
+      hasRole = true,
+      color,
+      description,
+      signup = {},
+      publish,
+    }) => {
+      settingsCollection.getSettings.mockResolvedValueOnce(settings);
+      discordService.userHasRole.mockResolvedValue(hasRole);
 
-    if (signup instanceof DocumentNotFoundException) {
-      signupsCollection.findOneOrFail.mockRejectedValue(signup);
-    } else {
-      signupsCollection.findOne.mockResolvedValue(signup as SignupDocument);
-      signupsCollection.findOneOrFail.mockResolvedValueOnce(
-        signup as SignupDocument,
-      );
-    }
+      if (signup instanceof DocumentNotFoundException) {
+        signupsCollection.findOneOrFail.mockRejectedValue(signup);
+      } else {
+        signupsCollection.findOne.mockResolvedValue(signup as SignupDocument);
+        signupsCollection.findOneOrFail.mockResolvedValueOnce(
+          signup as SignupDocument,
+        );
+      }
 
-    await command.execute(interaction);
+      await command.execute(interaction);
 
-    expect(interaction.editReply).toHaveBeenCalledWith({
-      embeds: [
-        {
-          data: {
-            title: 'Remove Signup',
-            color,
-            description,
-            fields: fieldExpectations,
+      expect(interaction.editReply).toHaveBeenCalledWith({
+        embeds: [
+          {
+            data: {
+              title: 'Remove Signup',
+              color,
+              description,
+              fields: fieldExpectations,
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
 
-    if (publish !== false) {
-      expect(eventBus.publish).toHaveBeenCalled();
-    }
-  });
+      if (publish !== false) {
+        expect(eventBus.publish).toHaveBeenCalled();
+      }
+    },
+  );
 
   it('calls removeSignup from SheetService if spreadsheetId is set and signup has been approved', async () => {
     settingsCollection.getSettings.mockResolvedValue(DEFAULT_SETTINGS);

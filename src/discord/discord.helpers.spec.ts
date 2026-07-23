@@ -84,24 +84,21 @@ describe('safeReply', () => {
     },
   ];
 
-  it.each(
-    testCases,
-  )('calls $expectedMethod when interaction is $scenario', async ({
-    interactionProps,
-    expectedMethod,
-    resolvedValue,
-  }) => {
-    const methodFn = vi.fn().mockResolvedValue(resolvedValue);
-    const interaction = {
-      deferred: interactionProps.deferred,
-      replied: interactionProps.replied,
-      editReply: expectedMethod === 'editReply' ? methodFn : vi.fn(),
-      followUp: expectedMethod === 'followUp' ? methodFn : vi.fn(),
-      reply: expectedMethod === 'reply' ? methodFn : vi.fn(),
-    } as unknown as ChatInputCommandInteraction;
+  it.each(testCases)(
+    'calls $expectedMethod when interaction is $scenario',
+    async ({ interactionProps, expectedMethod, resolvedValue }) => {
+      const methodFn = vi.fn().mockResolvedValue(resolvedValue);
+      const interaction = {
+        deferred: interactionProps.deferred,
+        replied: interactionProps.replied,
+        editReply: expectedMethod === 'editReply' ? methodFn : vi.fn(),
+        followUp: expectedMethod === 'followUp' ? methodFn : vi.fn(),
+        reply: expectedMethod === 'reply' ? methodFn : vi.fn(),
+      } as unknown as ChatInputCommandInteraction;
 
-    const result = await safeReply(interaction, payload);
-    expect(methodFn).toHaveBeenCalledWith(payload);
-    expect(result).toBe(resolvedValue);
-  });
+      const result = await safeReply(interaction, payload);
+      expect(methodFn).toHaveBeenCalledWith(payload);
+      expect(result).toBe(resolvedValue);
+    },
+  );
 });
