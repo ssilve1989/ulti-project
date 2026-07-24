@@ -10,4 +10,3 @@ const sheetsSchema = z.object({
 });
 
 export const sheetsConfig = sheetsSchema.parse(process.env);
-export type SheetsConfig = typeof sheetsConfig;

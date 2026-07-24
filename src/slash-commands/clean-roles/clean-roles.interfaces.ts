@@ -1,7 +1,7 @@
 import type { Guild, Role } from 'discord.js';
 import type { SignupDocument } from '../../firebase/models/signup.model.js';
 
-export interface MemberToRemove {
+interface MemberToRemove {
   id: string;
   displayName: string;
   username: string;
@@ -22,7 +22,7 @@ export interface NormalRoleResult extends BaseRoleResult {
   // No additional properties needed for normal execution
 }
 
-export interface BaseCleanRolesResult {
+interface BaseCleanRolesResult {
   totalRolesProcessed: number;
   totalMembersProcessed: number;
   totalRolesRemoved: number;

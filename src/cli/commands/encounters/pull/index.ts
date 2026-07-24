@@ -12,7 +12,7 @@ import {
   getAllProgPoints,
 } from '../../../utils/firestore.js';
 
-export async function runPull(db: Firestore): Promise<void> {
+async function runPull(db: Firestore): Promise<void> {
   clack.intro('Pull Encounters');
 
   const dirPath = join(process.cwd(), 'data', 'encounters');

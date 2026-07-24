@@ -10,7 +10,7 @@ import {
   getEncounterChoicesForMode,
 } from '../../encounters/encounters.consts.js';
 
-export const EditChannelsSubcommand = new SlashCommandSubcommandBuilder()
+const EditChannelsSubcommand = new SlashCommandSubcommandBuilder()
   .setName('channels')
   .setDescription('Edit channel settings')
   .addChannelOption((option) =>
@@ -39,12 +39,11 @@ export const EditChannelsSubcommand = new SlashCommandSubcommandBuilder()
       .setRequired(false),
   );
 
-export const EditBlacklistChannelsSubcommand =
-  new SlashCommandSubcommandBuilder()
-    .setName('blacklist-channels')
-    .setDescription('Choose the channels that receive blacklist notifications');
+const EditBlacklistChannelsSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('blacklist-channels')
+  .setDescription('Choose the channels that receive blacklist notifications');
 
-export const EditReviewerRoleSubcommand = new SlashCommandSubcommandBuilder()
+const EditReviewerRoleSubcommand = new SlashCommandSubcommandBuilder()
   .setName('reviewer')
   .setDescription('Edit reviewer role settings')
   .addRoleOption((option) =>
@@ -56,7 +55,7 @@ export const EditReviewerRoleSubcommand = new SlashCommandSubcommandBuilder()
       .setRequired(true),
   );
 
-export const EditEncounterRolesSubcommand = new SlashCommandSubcommandBuilder()
+const EditEncounterRolesSubcommand = new SlashCommandSubcommandBuilder()
   .setName('encounter-roles')
   .setDescription('Edit encounter roles')
   .addStringOption((option) =>
@@ -84,7 +83,7 @@ export const EditEncounterRolesSubcommand = new SlashCommandSubcommandBuilder()
       .setRequired(true),
   );
 
-export const EditProgPointRolesSubcommand = new SlashCommandSubcommandBuilder()
+const EditProgPointRolesSubcommand = new SlashCommandSubcommandBuilder()
   .setName('prog-point-roles')
   .setDescription(
     'Map an encounter’s prog points to a role assigned on approval',
@@ -105,7 +104,7 @@ export const EditProgPointRolesSubcommand = new SlashCommandSubcommandBuilder()
       .setRequired(false),
   );
 
-export const EditSpreadsheetSubcommand = new SlashCommandSubcommandBuilder()
+const EditSpreadsheetSubcommand = new SlashCommandSubcommandBuilder()
   .setName('spreadsheet')
   .setDescription('Edit spreadsheet settings')
   .addStringOption((option) =>
@@ -117,7 +116,7 @@ export const EditSpreadsheetSubcommand = new SlashCommandSubcommandBuilder()
       .setRequired(true),
   );
 
-export const EditTurboProgSubcommand = new SlashCommandSubcommandBuilder()
+const EditTurboProgSubcommand = new SlashCommandSubcommandBuilder()
   .setName('turbo-prog')
   .setDescription('Edit turbo prog settings')
   .addBooleanOption((option) =>
@@ -133,7 +132,7 @@ export const EditTurboProgSubcommand = new SlashCommandSubcommandBuilder()
       .setRequired(false),
   );
 
-export const ViewSettingsSubcommand = new SlashCommandSubcommandBuilder()
+const ViewSettingsSubcommand = new SlashCommandSubcommandBuilder()
   .setName('view')
   .setDescription('view the current bot settings');
 

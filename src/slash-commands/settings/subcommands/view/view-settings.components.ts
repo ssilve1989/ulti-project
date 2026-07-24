@@ -32,15 +32,15 @@ export type SettingsViewSection =
 const EMBED_FIELD_VALUE_LIMIT = 1024;
 const EMBED_DESCRIPTION_LIMIT = 4096;
 
-export function formatRole(roleId?: string) {
+function formatRole(roleId?: string) {
   return roleId ? roleMention(roleId) : 'No Role Set';
 }
 
-export function formatChannel(channelId?: string) {
+function formatChannel(channelId?: string) {
   return channelId ? channelMention(channelId) : 'No Channel Set';
 }
 
-export function reduceRoleSettings(
+function reduceRoleSettings(
   roleSettings: Record<string, string | undefined> | undefined,
 ): string[] {
   return Object.entries(roleSettings || {}).reduce<string[]>(

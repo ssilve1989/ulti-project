@@ -4,7 +4,7 @@ import { getEncounterChoicesForMode } from '../../encounters/encounters.consts.j
 
 // Extracted as its own variable since the command itself is dynamically created
 // but we need to reference the name when handling the interaction
-export const SIGNUP_SLASH_COMMAND_NAME = 'signup';
+const SIGNUP_SLASH_COMMAND_NAME = 'signup';
 
 // TODO: This doesn't need to be a factory fn anymore, it can just access mode directly now
 export function createSignupSlashCommand(mode: ApplicationModeConfig) {

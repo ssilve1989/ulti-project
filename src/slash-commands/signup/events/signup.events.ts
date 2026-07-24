@@ -9,13 +9,6 @@ export class SignupCreatedEvent {
   ) {}
 }
 
-export class SignupReviewCreatedEvent {
-  constructor(
-    public readonly signup: SignupDocument,
-    public readonly messageId: string,
-  ) {}
-}
-
 export class SignupApprovedEvent {
   constructor(
     public readonly signup: SignupDocument,

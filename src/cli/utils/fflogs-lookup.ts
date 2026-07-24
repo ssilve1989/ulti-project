@@ -76,7 +76,3 @@ export async function searchFflogsEncounters(
   const lower = query.toLowerCase();
   return all.filter((e) => e.name.toLowerCase().includes(lower));
 }
-
-export function clearFflogsCache(): void {
-  cachedResults = null;
-}

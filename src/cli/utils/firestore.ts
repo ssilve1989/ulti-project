@@ -67,69 +67,10 @@ export async function replaceProgPoints(
   await batch.commit();
 }
 
-export async function getNextProgPointOrder(
-  db: Firestore,
-  encounterId: string,
-): Promise<number> {
-  const snapshot = await progPointsRef(db, encounterId)
-    .orderBy('order', 'desc')
-    .limit(1)
-    .get();
-  if (snapshot.empty) return 0;
-  return snapshot.docs[0].data().order + 1;
-}
-
 export async function addProgPoint(
   db: Firestore,
   encounterId: string,
   progPoint: ProgPointDocument,
 ): Promise<void> {
   await progPointsRef(db, encounterId).doc(progPoint.id).set(progPoint);
-}
-
-export async function updateProgPoint(
-  db: Firestore,
-  encounterId: string,
-  progPointId: string,
-  updates: Partial<ProgPointDocument>,
-): Promise<void> {
-  await progPointsRef(db, encounterId)
-    .doc(progPointId)
-    .set(updates, { merge: true });
-}
-
-export async function deleteProgPoint(
-  db: Firestore,
-  encounterId: string,
-  progPointId: string,
-): Promise<void> {
-  const ref = progPointsRef(db, encounterId);
-  const doc = await ref.doc(progPointId).get();
-  const data = doc.data();
-  if (!data) throw new Error(`Prog point ${progPointId} not found`);
-
-  await ref.doc(progPointId).delete();
-
-  // Reorder remaining prog points to close the gap
-  const snapshot = await ref.where('order', '>', data.order).get();
-  if (!snapshot.empty) {
-    const batch = db.batch();
-    for (const d of snapshot.docs) {
-      batch.update(d.ref, { order: d.data().order - 1 });
-    }
-    await batch.commit();
-  }
-}
-
-export async function reorderProgPoints(
-  db: Firestore,
-  encounterId: string,
-  ordered: Array<{ id: string; order: number }>,
-): Promise<void> {
-  const ref = progPointsRef(db, encounterId);
-  const batch = db.batch();
-  for (const { id, order } of ordered) {
-    batch.update(ref.doc(id), { order });
-  }
-  await batch.commit();
 }

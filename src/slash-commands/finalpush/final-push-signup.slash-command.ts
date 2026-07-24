@@ -2,7 +2,7 @@ import { PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import type { ApplicationModeConfig } from '../../config/app.js';
 import { getEncounterChoicesForMode } from '../../encounters/encounters.consts.js';
 
-export const FINAL_PUSH_SLASH_COMMAND_NAME = 'final-push';
+const FINAL_PUSH_SLASH_COMMAND_NAME = 'final-push';
 
 export function createFinalPushSlashCommand(mode: ApplicationModeConfig) {
   return new SlashCommandBuilder()

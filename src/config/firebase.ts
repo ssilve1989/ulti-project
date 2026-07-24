@@ -5,4 +5,3 @@ const firebaseSchema = z.object({
 });
 
 export const firebaseConfig = firebaseSchema.parse(process.env);
-export type FirebaseConfig = typeof firebaseConfig;

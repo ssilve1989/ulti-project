@@ -16,7 +16,7 @@ const EncounterYamlProgPointSchema = z.object({
   active: z.boolean(),
 });
 
-export const EncounterYamlConfigSchema = z.object({
+const EncounterYamlConfigSchema = z.object({
   id: z
     .string()
     .min(1)

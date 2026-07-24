@@ -15,7 +15,7 @@ import {
   upsertEncounter,
 } from '../../../utils/firestore.js';
 
-export interface PushCommandOptions {
+interface PushCommandOptions {
   dryRun?: boolean;
   yes?: boolean;
 }
@@ -90,7 +90,7 @@ async function pushWithConfirmation(
   }
 }
 
-export async function runPush(
+async function runPush(
   db: Firestore,
   encounterId: string | undefined,
   opts: PushCommandOptions,

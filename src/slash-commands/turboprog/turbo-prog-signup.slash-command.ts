@@ -3,7 +3,7 @@ import type { ApplicationModeConfig } from '../../config/app.js';
 import { getEncounterChoicesForMode } from '../../encounters/encounters.consts.js';
 
 // TODO: abstract common options between this and /signup
-export const TURBO_PROG_SLASH_COMMAND_NAME = 'turbo-prog';
+const TURBO_PROG_SLASH_COMMAND_NAME = 'turbo-prog';
 
 export function createTurboProgSlashCommand(mode: ApplicationModeConfig) {
   return new SlashCommandBuilder()
