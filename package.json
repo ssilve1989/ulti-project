@@ -24,7 +24,6 @@
     "g:slash-command": "hygen slash-command new",
     "graphql:codegen": "graphql-codegen --config codegen.ts",
     "knip": "knip",
-    "knip:ci": "knip --no-exit-code",
     "lint": "biome lint --diagnostic-level=error",
     "lint:ci": "biome ci --diagnostic-level=error",
     "prepare": "node scripts/install-hooks.js",
