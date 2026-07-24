@@ -12,7 +12,7 @@ const ProgPointSchema = z.object({
   ),
 });
 
-export const EncounterConfigSchema = z.object({
+const EncounterConfigSchema = z.object({
   id: z
     .string()
     .min(1)

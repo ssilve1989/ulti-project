@@ -18,7 +18,7 @@ export interface AddCommandOptions {
   fflogsEncounterId?: string;
 }
 
-export async function runAdd(
+async function runAdd(
   db: Firestore,
   fflogsToken: string | undefined,
   opts: AddCommandOptions,

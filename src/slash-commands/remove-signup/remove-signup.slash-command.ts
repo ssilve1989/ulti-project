@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 import type { ApplicationModeConfig } from '../../config/app.js';
 import { getEncounterChoicesForMode } from '../../encounters/encounters.consts.js';
 
-export const REMOVE_SIGNUP_SLASH_COMMAND_NAME = 'remove-signup';
+const REMOVE_SIGNUP_SLASH_COMMAND_NAME = 'remove-signup';
 
 export function createRemoveSignupSlashCommand(mode: ApplicationModeConfig) {
   return new SlashCommandBuilder()

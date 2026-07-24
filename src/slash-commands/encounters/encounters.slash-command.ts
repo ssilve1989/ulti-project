@@ -5,7 +5,7 @@ import {
 } from 'discord.js';
 import { Encounter } from '../../encounters/encounters.consts.js';
 
-export const ViewEncounterSubcommand = new SlashCommandSubcommandBuilder()
+const ViewEncounterSubcommand = new SlashCommandSubcommandBuilder()
   .setName('view')
   .setDescription('View the configuration of an encounter')
   .addStringOption((option) =>

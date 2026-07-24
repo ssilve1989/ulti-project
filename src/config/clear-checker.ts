@@ -5,4 +5,3 @@ const clearCheckerSchema = z.object({
 });
 
 export const clearCheckerConfig = clearCheckerSchema.parse(process.env);
-export type ClearCheckerConfig = z.infer<typeof clearCheckerSchema>;

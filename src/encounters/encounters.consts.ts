@@ -45,14 +45,14 @@ export type ProgPointOption = {
   partyStatus: PartyStatus;
 };
 
-export interface EncounterChoice {
+interface EncounterChoice {
   name: string;
   value: Encounter;
   mode: ApplicationMode;
 }
 
 // The list of choices to be used in slash commands
-export const ENCOUNTER_CHOICES: Readonly<EncounterChoice>[] = [
+const ENCOUNTER_CHOICES: Readonly<EncounterChoice>[] = [
   {
     name: 'The Omega Protocol (Ultimate)',
     value: Encounter.TOP,

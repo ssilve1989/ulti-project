@@ -97,10 +97,7 @@ async function viewAllEncounters(db: Firestore): Promise<void> {
   clack.log.info(lines.join('\n'));
 }
 
-export async function runView(
-  db: Firestore,
-  encounterId?: string,
-): Promise<void> {
+async function runView(db: Firestore, encounterId?: string): Promise<void> {
   clack.intro('View Encounter');
 
   const spinner = clack.spinner();

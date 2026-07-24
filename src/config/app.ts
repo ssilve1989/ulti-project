@@ -33,5 +33,4 @@ export const appSchema = z.object({
 });
 
 export const appConfig = appSchema.parse(process.env);
-export type AppConfig = typeof appConfig;
 export type ApplicationModeConfig = typeof appConfig.APPLICATION_MODE;

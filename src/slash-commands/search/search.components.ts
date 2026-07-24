@@ -18,7 +18,7 @@ export const SEARCH_PREV_PAGE_BUTTON_ID = 'searchPrevPageButton';
 export const SEARCH_NEXT_PAGE_BUTTON_ID = 'searchNextPageButton';
 
 // Create select menu options for encounters based on application mode
-export const getEncounterOptions = (
+const getEncounterOptions = (
   mode: ApplicationModeConfig,
 ): SelectMenuComponentOptionData[] => {
   const choices = getEncounterChoicesForMode(mode);

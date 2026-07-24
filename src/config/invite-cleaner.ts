@@ -5,4 +5,3 @@ const inviteCleanerSchema = z.object({
 });
 
 export const inviteCleanerConfig = inviteCleanerSchema.parse(process.env);
-export type InviteCleanerConfig = typeof inviteCleanerConfig;

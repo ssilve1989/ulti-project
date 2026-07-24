@@ -1,11 +1,5 @@
 import type { Logger } from '@nestjs/common';
-import {
-  type APIEmbedField,
-  type CacheType,
-  type ChatInputCommandInteraction,
-  type EmbedBuilder,
-  userMention,
-} from 'discord.js';
+import { type APIEmbedField, type EmbedBuilder, userMention } from 'discord.js';
 import { titleCase } from 'title-case';
 import type { DiscordService } from '../../discord/discord.service.js';
 import type { BlacklistDocument } from '../../firebase/models/blacklist.model.js';
@@ -39,19 +33,6 @@ export async function sendToBlacklistChannels(
       }
     }),
   );
-}
-
-export function getDiscordId(
-  interaction: ChatInputCommandInteraction<CacheType>,
-): string | null {
-  const discordUser = interaction.options.getUser('user');
-  const discordUserIdString = interaction.options.getString('discord-id');
-
-  if (discordUser) {
-    return discordUser.id;
-  }
-
-  return discordUserIdString;
 }
 
 export async function getDisplayName(

@@ -3,11 +3,11 @@ import { resolve } from 'node:path';
 
 // Resolve paths relative to the project root (three levels up from src/cli/utils/)
 const ROOT = resolve(import.meta.dirname, '..', '..', '..');
-export const ENCOUNTERS_CONSTS_PATH = resolve(
+const ENCOUNTERS_CONSTS_PATH = resolve(
   ROOT,
   'src/encounters/encounters.consts.ts',
 );
-export const FFLOGS_CONSTS_PATH = resolve(ROOT, 'src/fflogs/fflogs.consts.ts');
+const FFLOGS_CONSTS_PATH = resolve(ROOT, 'src/fflogs/fflogs.consts.ts');
 
 export interface SourceChange {
   file: string;
@@ -31,7 +31,7 @@ export function readEncountersConsts(): string {
   return readFileSync(ENCOUNTERS_CONSTS_PATH, 'utf-8');
 }
 
-export function readFflogsConsts(): string {
+function readFflogsConsts(): string {
   return readFileSync(FFLOGS_CONSTS_PATH, 'utf-8');
 }
 
@@ -181,11 +181,11 @@ export function addToEncounterIds(
 
 // ─── Writers ─────────────────────────────────────────────────────────────────
 
-export function writeEncountersConsts(source: string): void {
+function writeEncountersConsts(source: string): void {
   writeFileSync(ENCOUNTERS_CONSTS_PATH, source, 'utf-8');
 }
 
-export function writeFflogsConsts(source: string): void {
+function writeFflogsConsts(source: string): void {
   writeFileSync(FFLOGS_CONSTS_PATH, source, 'utf-8');
 }
 
