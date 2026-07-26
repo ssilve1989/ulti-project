@@ -40,7 +40,7 @@ export async function getSheetValues(
       spreadsheetId,
       range,
     },
-    { timeout: 15_000 },
+    { timeout: 30_000 },
   );
 
   return response.data.values;
