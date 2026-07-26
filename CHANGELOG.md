@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.6.0](https://github.com/ssilve1989/ulti-project/compare/v2.5.0...v2.6.0) (2026-07-26)
+
+
+### Features
+
+* integrate knip for unused code detection ([6c7f404](https://github.com/ssilve1989/ulti-project/commit/6c7f404923cd82ab3a9fd679aee94c7faa3c54dd))
+
+
+### Bug Fixes
+
+* **sheets:** raise getSheetValues timeout to 30s ([2616ed4](https://github.com/ssilve1989/ulti-project/commit/2616ed4c6a0857c9e2811fd64cd077c8b3f068b8))
+
 ## [2.5.0](https://github.com/ssilve1989/ulti-project/compare/v2.4.0...v2.5.0) (2026-07-14)
 
 
