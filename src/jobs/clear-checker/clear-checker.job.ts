@@ -9,6 +9,7 @@ import * as Sentry from '@sentry/nestjs';
 import { CronJob } from 'cron';
 import { EmbedBuilder } from 'discord.js';
 import {
+  catchError,
   EMPTY,
   filter,
   firstValueFrom,
@@ -37,6 +38,52 @@ import {
 import { SheetsService } from '../../sheets/sheets.service.js';
 import { RemoveSignupEvent } from '../../slash-commands/remove-signup/remove-signup.events.js';
 import { createJob, jobDateFormatter } from '../jobs.consts.js';
+
+// Discord caps an embed field value at 1024 characters. Overflowing it rejects
+// the whole message, which would swallow the entire summary rather than just
+// the tail of this list.
+const EMBED_FIELD_LIMIT = 1024;
+
+const SHEET_FAILURE_FIELD_NAME =
+  ':warning: Could not be removed from the spreadsheet';
+
+const SHEET_FAILURE_PREAMBLE =
+  'These were removed from the database, but their spreadsheet rows remain and need manual cleanup:\n';
+
+const overflowMarker = (count: number) => `\n…and ${count} more`;
+
+/**
+ * Renders the signups whose spreadsheet rows could not be removed, truncated to
+ * fit inside a single embed field.
+ */
+function formatSheetFailures(signups: SignupDocument[]): string {
+  const lines = signups.map(
+    ({ character, world, encounter }) =>
+      `${character} (${world}) — ${encounter}`,
+  );
+
+  const full = SHEET_FAILURE_PREAMBLE + lines.join('\n');
+
+  if (full.length <= EMBED_FIELD_LIMIT) return full;
+
+  // Reserve the widest marker the list could produce, so the result is under
+  // the limit no matter how many entries end up being dropped.
+  const reserved = overflowMarker(signups.length).length;
+  const kept: string[] = [];
+  let length = SHEET_FAILURE_PREAMBLE.length;
+
+  for (const line of lines) {
+    if (length + line.length + 1 + reserved > EMBED_FIELD_LIMIT) break;
+    kept.push(line);
+    length += line.length + 1;
+  }
+
+  return (
+    SHEET_FAILURE_PREAMBLE +
+    kept.join('\n') +
+    overflowMarker(lines.length - kept.length)
+  );
+}
 
 @Injectable()
 class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -90,7 +137,18 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
           mergeMap((job) => (job?.enabled ? of(guild) : EMPTY)),
         );
       }),
-      mergeMap((guildId) => this.processGuild(guildId)),
+      // contain a failure to the guild that caused it - without this, one
+      // guild's error tears down the shared stream and silently skips the rest
+      mergeMap((guildId) =>
+        this.processGuild(guildId).pipe(
+          catchError((error: unknown) => {
+            this.errorService.captureError(error, {
+              message: `clear-checker failed for guild ${guildId}`,
+            });
+            return EMPTY;
+          }),
+        ),
+      ),
     );
 
     return lastValueFrom(task$, { defaultValue: undefined });
@@ -116,8 +174,8 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
       filter((signup) => !!signup),
       toArray(),
       mergeMap(async (results) => {
-        await this.removeSignups(results, guildId);
-        await this.publishResults(results, guildId);
+        const sheetFailures = await this.removeSignups(results, guildId);
+        await this.publishResults(results, guildId, sheetFailures);
         return results;
       }),
       tap((results) => this.publishEvents(results, guildId)),
@@ -160,10 +218,22 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     return undefined;
   }
 
+  /**
+   * Removes the given signups from the spreadsheet, Discord and the database.
+   *
+   * Firestore is the system of record and the spreadsheet is a denormalized
+   * read-mirror, so a failed sheet removal must not block the authoritative
+   * delete - the googleapis client has already exhausted its own retries by the
+   * time we see the error. The affected signups are returned so the summary can
+   * name the rows that were left behind for manual cleanup.
+   *
+   * @returns the signups whose spreadsheet rows could not be removed
+   */
   private async removeSignups(signups: SignupDocument[], guildId: string) {
     this.logger.log(`removing ${signups.length} signups`);
 
     const settings = await this.settingsCollection.getSettings(guildId);
+    const sheetFailures: SignupDocument[] = [];
 
     if (settings?.spreadsheetId) {
       // Group signups by encounter since each call to batchRemoveClearedSignups handles one encounter
@@ -174,11 +244,19 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
 
       // Process each encounter group separately
       for (const [encounter, encounterSignups] of signupsByEncounter) {
-        await this.sheetsService.batchRemoveClearedSignups(encounterSignups, {
-          encounter,
-          spreadsheetId: settings.spreadsheetId,
-          partyTypes: [PartyStatus.ClearParty, PartyStatus.ProgParty],
-        });
+        try {
+          await this.sheetsService.batchRemoveClearedSignups(encounterSignups, {
+            encounter,
+            spreadsheetId: settings.spreadsheetId,
+            partyTypes: [PartyStatus.ClearParty, PartyStatus.ProgParty],
+          });
+        } catch (error: unknown) {
+          this.logger.error(
+            `failed to remove ${encounterSignups.length} cleared signups from the ${encounter} spreadsheet`,
+            error,
+          );
+          sheetFailures.push(...encounterSignups);
+        }
       }
     }
 
@@ -197,6 +275,8 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
         `successfully removed signup ${signup.character} - ${signup.encounter}`,
       );
     }
+
+    return sheetFailures;
   }
 
   private removeSignupFromDiscord({
@@ -235,7 +315,12 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
       });
   }
 
-  private async publishResults(results: SignupDocument[], guildId: string) {
+  private async publishResults(
+    results: SignupDocument[],
+    guildId: string,
+    sheetFailures: SignupDocument[],
+  ) {
+    // sheetFailures is a subset of results, so it cannot be non-empty here
     if (results.length === 0) return;
 
     const settings = await this.settingsCollection.getSettings(guildId);
@@ -248,6 +333,13 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
       .setTitle(':broom: Clear Checker :broom:')
       .setDescription(`${results.length} signups have been removed!`)
       .setTimestamp();
+
+    if (sheetFailures.length > 0) {
+      embed.addFields({
+        name: SHEET_FAILURE_FIELD_NAME,
+        value: formatSheetFailures(sheetFailures),
+      });
+    }
 
     const channel = await this.discordService.getTextChannel({
       guildId,
