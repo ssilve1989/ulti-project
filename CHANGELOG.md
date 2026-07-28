@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.1](https://github.com/ssilve1989/ulti-project/compare/v2.6.0...v2.6.1) (2026-07-28)
+
+
+### Bug Fixes
+
+* **clear-checker:** keep removing signups when a sheet write fails ([c75b504](https://github.com/ssilve1989/ulti-project/commit/c75b504d4ca1f85ea3ac9793f62665c09b7239b3))
+
 ## [2.6.0](https://github.com/ssilve1989/ulti-project/compare/v2.5.0...v2.6.0) (2026-07-26)
 
 
