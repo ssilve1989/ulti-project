@@ -27,17 +27,21 @@ Run the CLI command to push your changes to Firestore:
 
 ```bash
 # Sync all encounters
-pnpm cli encounters push
+pnpm cli --guild <guildId> encounters push
 
 # Sync a specific encounter
-pnpm cli encounters push FRU
+pnpm cli --guild <guildId> encounters push FRU
 
 # Dry-run to preview changes
-pnpm cli encounters push --dry-run
+pnpm cli --guild <guildId> encounters push --dry-run
 
 # Skip confirmation prompts
-pnpm cli encounters push --yes
+pnpm cli --guild <guildId> encounters push --yes
 ```
+
+Encounters are stored per-guild at `guilds/{guildId}/encounters`, so every CLI
+command needs to know which guild to write to. Set `GUILD_ID` in your env file to
+drop the `--guild` flag from these commands.
 
 The CLI will:
 - Load and validate all YAML files against `encounter.schema.yaml`
@@ -58,5 +62,6 @@ This is automatically added when using the CLI to create new encounters.
 ## Notes
 
 - Always sync changes via the CLI after editing YAML files—the database will not automatically reflect file changes
+- A push writes to one guild. Repeat it per `--guild` to roll the same encounter out to several guilds
 - The `progPoints` order in the YAML determines their display order in the application
 - Removing a progression point from the YAML and syncing will delete it from Firestore

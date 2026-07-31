@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type { CollectionReference, Firestore } from 'firebase-admin/firestore';
+import type { Firestore } from 'firebase-admin/firestore';
 import type { JobType } from '../../../jobs/jobs.consts.js';
 import { InjectFirestore } from '../../firebase.decorators.js';
+import { guildCollection } from '../../firebase.paths.js';
 import type { JobDocument } from './job.model.js';
 
 @Injectable()
@@ -26,9 +27,7 @@ class JobCollection {
   }
 
   private getCollection(guildId: string) {
-    return this.firestore.collection(
-      `guilds/${guildId}/jobs`,
-    ) as CollectionReference<JobDocument>;
+    return guildCollection<JobDocument>(this.firestore, guildId, 'jobs');
   }
 }
 

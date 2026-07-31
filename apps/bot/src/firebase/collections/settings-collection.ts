@@ -2,24 +2,20 @@ import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import type { Encounter } from '@ulti-project/shared';
 import {
-  CollectionReference,
+  type DocumentReference,
   FieldPath,
   Firestore,
 } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
+import { guildDoc } from '../firebase.paths.js';
 import type { SettingsDocument } from '../models/settings.model.js';
 
 @Injectable()
 class SettingsCollection {
-  private readonly collection: CollectionReference<SettingsDocument>;
   private readonly logger = new Logger(SettingsCollection.name);
   private readonly cache = new Map<string, unknown>();
 
-  constructor(@InjectFirestore() firestore: Firestore) {
-    this.collection = firestore.collection(
-      'settings',
-    ) as CollectionReference<SettingsDocument>;
-  }
+  constructor(@InjectFirestore() private readonly firestore: Firestore) {}
 
   @SentryTraced()
   public async upsert(
@@ -36,7 +32,7 @@ class SettingsCollection {
         ? undefined
         : clearRoles;
 
-    await this.collection.doc(guildId).set(
+    await this.getDocument(guildId).set(
       {
         ...settings,
         progRoles: progRolesUpdate,
@@ -56,12 +52,10 @@ class SettingsCollection {
   ) {
     // mergeFields replaces exactly this encounter's map, so removed
     // prog point keys don't linger the way they would with { merge: true }
-    await this.collection
-      .doc(guildId)
-      .set(
-        { progPointRoles: { [encounter]: progPointRoles } },
-        { mergeFields: [new FieldPath('progPointRoles', encounter)] },
-      );
+    await this.getDocument(guildId).set(
+      { progPointRoles: { [encounter]: progPointRoles } },
+      { mergeFields: [new FieldPath('progPointRoles', encounter)] },
+    );
 
     await this.updateCache(guildId);
   }
@@ -75,7 +69,7 @@ class SettingsCollection {
       return Promise.resolve(cachedValue);
     }
 
-    const doc = await this.collection.doc(guildId).get();
+    const doc = await this.getDocument(guildId).get();
 
     this.cache.set(key, doc.data());
 
@@ -91,13 +85,24 @@ class SettingsCollection {
   private async updateCache(guildId: string) {
     const key = this.cacheKey(guildId);
     try {
-      const settings = await this.collection.doc(guildId).get();
+      const settings = await this.getDocument(guildId).get();
       this.cache.set(key, settings.data());
     } catch (e: unknown) {
       this.logger.warn(`failed to update cache: invalidating key ${key}`);
       this.logger.error(e);
       this.cache.delete(this.cacheKey(guildId));
     }
+  }
+
+  /**
+   * Settings are stored as fields on the guild document itself rather than in a
+   * subcollection, so reading them costs a single document get.
+   */
+  private getDocument(guildId: string): DocumentReference<SettingsDocument> {
+    return guildDoc(
+      this.firestore,
+      guildId,
+    ) as DocumentReference<SettingsDocument>;
   }
 
   private cacheKey = (guildId: string) => `settings:${guildId}`;

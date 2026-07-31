@@ -92,7 +92,7 @@ class SendSignupReviewCommandHandler
     ]);
 
     // update firebase with the message that correlates to this signup
-    await this.repository.setReviewMessageId(signup, message.id);
+    await this.repository.setReviewMessageId(guildId, signup, message.id);
     return message.id;
   }
 

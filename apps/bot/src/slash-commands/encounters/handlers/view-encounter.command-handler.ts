@@ -43,12 +43,12 @@ export class ViewEncounterCommandHandler implements ISlashCommand {
   }
 
   private async showSingleEncounter(
-    interaction: ChatInputCommandInteraction,
+    interaction: ChatInputCommandInteraction<'cached'>,
     encounterId: string,
   ): Promise<void> {
     const [encounter, progPoints] = await Promise.all([
-      this.encountersService.getEncounter(encounterId),
-      this.encountersService.getAllProgPoints(encounterId),
+      this.encountersService.getEncounter(interaction.guildId, encounterId),
+      this.encountersService.getAllProgPoints(interaction.guildId, encounterId),
     ]);
 
     if (!encounter) {
@@ -122,7 +122,7 @@ export class ViewEncounterCommandHandler implements ISlashCommand {
   }
 
   private async showAllEncounters(
-    interaction: ChatInputCommandInteraction,
+    interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<void> {
     const embed = new EmbedBuilder()
       .setTitle('All Encounters Overview')
@@ -133,8 +133,14 @@ export class ViewEncounterCommandHandler implements ISlashCommand {
       async ([key, encounterId]) => {
         try {
           const [encounter, progPoints] = await Promise.all([
-            this.encountersService.getEncounter(encounterId),
-            this.encountersService.getAllProgPoints(encounterId),
+            this.encountersService.getEncounter(
+              interaction.guildId,
+              encounterId,
+            ),
+            this.encountersService.getAllProgPoints(
+              interaction.guildId,
+              encounterId,
+            ),
           ]);
 
           return {

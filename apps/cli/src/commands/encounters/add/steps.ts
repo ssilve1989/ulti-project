@@ -109,6 +109,7 @@ export async function applySourceEditsStep(
 
 async function seedProgPoints(
   db: Firestore,
+  guildId: string,
   config: EncounterConfig,
 ): Promise<void> {
   if (!config.progPoints || config.progPoints.length === 0) return;
@@ -126,7 +127,7 @@ async function seedProgPoints(
         order: i,
         active: true,
       };
-      await addProgPoint(db, config.id, progPoint);
+      await addProgPoint(db, guildId, config.id, progPoint);
       addedCount++;
     }
     ppSpinner.stop(`Added ${addedCount} prog points`);
@@ -144,6 +145,7 @@ async function seedProgPoints(
 
 export async function seedFirestoreStep(
   db: Firestore,
+  guildId: string,
   config: EncounterConfig,
   opts: AddCommandOptions,
 ): Promise<void> {
@@ -152,7 +154,7 @@ export async function seedFirestoreStep(
     : cancelIfCancel(await clack.confirm({ message: 'Seed Firestore?' }));
   if (!seed) return;
 
-  const existing = await getEncounter(db, config.id);
+  const existing = await getEncounter(db, guildId, config.id);
   if (existing) {
     const overwrite = opts.yes
       ? true
@@ -170,7 +172,7 @@ export async function seedFirestoreStep(
   const encSpinner = clack.spinner();
   encSpinner.start('Creating encounter document...');
   try {
-    await upsertEncounter(db, config.id, {
+    await upsertEncounter(db, guildId, config.id, {
       name: config.name,
       description: config.description,
       active: true,
@@ -187,7 +189,7 @@ export async function seedFirestoreStep(
     process.exit(1);
   }
 
-  await seedProgPoints(db, config);
+  await seedProgPoints(db, guildId, config);
 }
 
 export { planSourceEdits };

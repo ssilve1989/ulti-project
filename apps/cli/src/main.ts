@@ -1,17 +1,23 @@
 import * as clack from '@clack/prompts';
 import { Command } from 'commander';
 import { registerEncountersCommand } from './commands/encounters/index.ts';
+import { registerMigrateCommand } from './commands/migrate/index.ts';
 import { initCtx } from './config.ts';
 
 const program = new Command()
   .name('pnpm cli')
-  .description('Ulti-Project management CLI');
+  .description('Ulti-Project management CLI')
+  .option(
+    '--guild <guildId>',
+    'Guild to operate on (defaults to $GUILD_ID). All data is scoped to guilds/<guildId>.',
+  );
 
 program.hook('preAction', () => {
-  initCtx();
+  initCtx(program.opts().guild);
 });
 
 registerEncountersCommand(program);
+registerMigrateCommand(program);
 
 await program.parseAsync().catch((error: unknown) => {
   clack.log.error(error instanceof Error ? error.message : String(error));

@@ -6,38 +6,39 @@ import type {
 } from '@ulti-project/shared';
 import { CollectionReference, Firestore } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
+import { guildCollection } from '../firebase.paths.js';
 
 @Injectable()
 class EncountersCollection {
-  private readonly collection: CollectionReference<EncounterDocument>;
   private readonly logger = new Logger(EncountersCollection.name);
   private readonly cache = new Map<string, unknown>();
 
-  constructor(@InjectFirestore() private readonly firestore: Firestore) {
-    this.collection = firestore.collection(
-      'encounters',
-    ) as CollectionReference<EncounterDocument>;
-  }
+  constructor(@InjectFirestore() private readonly firestore: Firestore) {}
 
   @SentryTraced()
-  async getActiveEncounters(): Promise<(EncounterDocument & { id: string })[]> {
+  async getActiveEncounters(
+    guildId: string,
+  ): Promise<(EncounterDocument & { id: string })[]> {
     // TODO: strengthen this type to be use the typesafe Encounters somehow?
-    const snapshot = await this.collection.where('active', '==', true).get();
+    const snapshot = await this.getCollection(guildId)
+      .where('active', '==', true)
+      .get();
     return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
   }
 
   @SentryTraced()
   async getEncounter(
+    guildId: string,
     encounterId: string,
   ): Promise<EncounterDocument | undefined> {
-    const cacheKey = this.encounterCacheKey(encounterId);
+    const cacheKey = this.encounterCacheKey(guildId, encounterId);
     const cached = this.cache.get(cacheKey) as EncounterDocument | undefined;
 
     if (cached) {
       return { ...cached, id: encounterId };
     }
 
-    const doc = await this.collection.doc(encounterId).get();
+    const doc = await this.getCollection(guildId).doc(encounterId).get();
     const data = doc.data();
 
     if (data) {
@@ -51,37 +52,40 @@ class EncountersCollection {
 
   @SentryTraced()
   public async upsertEncounter(
+    guildId: string,
     encounterId: string,
     encounter: Partial<EncounterDocument>,
   ): Promise<void> {
-    await this.collection.doc(encounterId).set(encounter, { merge: true });
-    await this.updateEncounterCache(encounterId);
+    await this.getCollection(guildId)
+      .doc(encounterId)
+      .set(encounter, { merge: true });
+    await this.updateEncounterCache(guildId, encounterId);
   }
 
   @SentryTraced()
   public async getProgPoints(
+    guildId: string,
     encounterId: string,
   ): Promise<ProgPointDocument[]> {
-    const allProgPoints = await this.getAllProgPoints(encounterId);
+    const allProgPoints = await this.getAllProgPoints(guildId, encounterId);
     return allProgPoints.filter((p) => p.active);
   }
 
   @SentryTraced()
   public async getAllProgPoints(
+    guildId: string,
     encounterId: string,
   ): Promise<ProgPointDocument[]> {
-    const cacheKey = this.progPointsCacheKey(encounterId);
+    const cacheKey = this.progPointsCacheKey(guildId, encounterId);
     const cached = this.cache.get(cacheKey) as ProgPointDocument[] | undefined;
 
     if (cached) {
       return cached;
     }
 
-    const progPointsCollection = this.collection
-      .doc(encounterId)
-      .collection('prog-points') as CollectionReference<ProgPointDocument>;
-
-    const snapshot = await progPointsCollection.orderBy('order').get();
+    const snapshot = await this.getProgPointsCollection(guildId, encounterId)
+      .orderBy('order')
+      .get();
 
     const progPoints = snapshot.docs.map((doc) => doc.data());
 
@@ -92,47 +96,50 @@ class EncountersCollection {
 
   @SentryTraced()
   public async addProgPoint(
+    guildId: string,
     encounterId: string,
     progPoint: ProgPointDocument,
   ): Promise<void> {
-    const progPointsCollection = this.collection
-      .doc(encounterId)
-      .collection('prog-points') as CollectionReference<ProgPointDocument>;
-
-    await progPointsCollection.doc(progPoint.id).set(progPoint);
-    await this.updateProgPointsCache(encounterId);
+    await this.getProgPointsCollection(guildId, encounterId)
+      .doc(progPoint.id)
+      .set(progPoint);
+    await this.updateProgPointsCache(guildId, encounterId);
   }
 
   @SentryTraced()
   public async updateProgPoint(
+    guildId: string,
     encounterId: string,
     progPointId: string,
     updates: Partial<ProgPointDocument>,
   ): Promise<void> {
-    const progPointsCollection = this.collection
-      .doc(encounterId)
-      .collection('prog-points') as CollectionReference<ProgPointDocument>;
-
-    await progPointsCollection.doc(progPointId).set(updates, { merge: true });
-    await this.updateProgPointsCache(encounterId);
+    await this.getProgPointsCollection(guildId, encounterId)
+      .doc(progPointId)
+      .set(updates, { merge: true });
+    await this.updateProgPointsCache(guildId, encounterId);
   }
 
   @SentryTraced()
   public async deactivateProgPoint(
+    guildId: string,
     encounterId: string,
     progPointId: string,
   ): Promise<void> {
-    await this.updateProgPoint(encounterId, progPointId, { active: false });
+    await this.updateProgPoint(guildId, encounterId, progPointId, {
+      active: false,
+    });
   }
 
   @SentryTraced()
   public async deleteProgPoint(
+    guildId: string,
     encounterId: string,
     progPointId: string,
   ): Promise<void> {
-    const progPointsCollection = this.collection
-      .doc(encounterId)
-      .collection('prog-points') as CollectionReference<ProgPointDocument>;
+    const progPointsCollection = this.getProgPointsCollection(
+      guildId,
+      encounterId,
+    );
 
     // Get the prog point to delete to find its order
     const progPointDoc = await progPointsCollection.doc(progPointId).get();
@@ -146,19 +153,25 @@ class EncountersCollection {
     await progPointsCollection.doc(progPointId).delete();
 
     // Reorder remaining prog points to fill the gap
-    await this.reorderAfterDeletion(encounterId, progPointToDelete.order);
+    await this.reorderAfterDeletion(
+      guildId,
+      encounterId,
+      progPointToDelete.order,
+    );
 
-    await this.updateProgPointsCache(encounterId);
+    await this.updateProgPointsCache(guildId, encounterId);
   }
 
   @SentryTraced()
   public async toggleProgPointActive(
+    guildId: string,
     encounterId: string,
     progPointId: string,
   ): Promise<void> {
-    const progPointsCollection = this.collection
-      .doc(encounterId)
-      .collection('prog-points') as CollectionReference<ProgPointDocument>;
+    const progPointsCollection = this.getProgPointsCollection(
+      guildId,
+      encounterId,
+    );
 
     const doc = await progPointsCollection.doc(progPointId).get();
     const progPoint = doc.data();
@@ -171,17 +184,19 @@ class EncountersCollection {
       .doc(progPointId)
       .update({ active: !progPoint.active });
 
-    await this.updateProgPointsCache(encounterId);
+    await this.updateProgPointsCache(guildId, encounterId);
   }
 
   @SentryTraced()
   public async reorderProgPoints(
+    guildId: string,
     encounterId: string,
     progPointsWithNewOrder: Array<{ id: string; order: number }>,
   ): Promise<void> {
-    const progPointsCollection = this.collection
-      .doc(encounterId)
-      .collection('prog-points') as CollectionReference<ProgPointDocument>;
+    const progPointsCollection = this.getProgPointsCollection(
+      guildId,
+      encounterId,
+    );
 
     const batch = this.firestore.batch();
 
@@ -191,16 +206,15 @@ class EncountersCollection {
     }
 
     await batch.commit();
-    await this.updateProgPointsCache(encounterId);
+    await this.updateProgPointsCache(guildId, encounterId);
   }
 
   @SentryTraced()
-  public async getNextProgPointOrder(encounterId: string): Promise<number> {
-    const progPointsCollection = this.collection
-      .doc(encounterId)
-      .collection('prog-points') as CollectionReference<ProgPointDocument>;
-
-    const snapshot = await progPointsCollection
+  public async getNextProgPointOrder(
+    guildId: string,
+    encounterId: string,
+  ): Promise<number> {
+    const snapshot = await this.getProgPointsCollection(guildId, encounterId)
       .orderBy('order', 'desc')
       .limit(1)
       .get();
@@ -215,15 +229,12 @@ class EncountersCollection {
 
   @SentryTraced()
   private async reorderAfterDeletion(
+    guildId: string,
     encounterId: string,
     deletedOrder: number,
   ): Promise<void> {
-    const progPointsCollection = this.collection
-      .doc(encounterId)
-      .collection('prog-points') as CollectionReference<ProgPointDocument>;
-
     // Get all prog points with order greater than the deleted one
-    const snapshot = await progPointsCollection
+    const snapshot = await this.getProgPointsCollection(guildId, encounterId)
       .where('order', '>', deletedOrder)
       .get();
 
@@ -242,10 +253,13 @@ class EncountersCollection {
     await batch.commit();
   }
 
-  private async updateEncounterCache(encounterId: string): Promise<void> {
-    const cacheKey = this.encounterCacheKey(encounterId);
+  private async updateEncounterCache(
+    guildId: string,
+    encounterId: string,
+  ): Promise<void> {
+    const cacheKey = this.encounterCacheKey(guildId, encounterId);
     try {
-      const doc = await this.collection.doc(encounterId).get();
+      const doc = await this.getCollection(guildId).doc(encounterId).get();
       const data = doc.data();
       if (data) {
         this.cache.set(cacheKey, { ...data, id: doc.id });
@@ -259,17 +273,18 @@ class EncountersCollection {
     }
   }
 
-  private async updateProgPointsCache(encounterId: string): Promise<void> {
-    const cacheKey = this.progPointsCacheKey(encounterId);
+  private async updateProgPointsCache(
+    guildId: string,
+    encounterId: string,
+  ): Promise<void> {
+    const cacheKey = this.progPointsCacheKey(guildId, encounterId);
     try {
       // Clear cache first to avoid infinite recursion
       this.cache.delete(cacheKey);
 
-      const progPointsCollection = this.collection
-        .doc(encounterId)
-        .collection('prog-points') as CollectionReference<ProgPointDocument>;
-
-      const snapshot = await progPointsCollection.orderBy('order').get();
+      const snapshot = await this.getProgPointsCollection(guildId, encounterId)
+        .orderBy('order')
+        .get();
 
       const progPoints = snapshot.docs.map((doc) => doc.data());
       this.cache.set(cacheKey, progPoints);
@@ -282,10 +297,31 @@ class EncountersCollection {
     }
   }
 
-  private encounterCacheKey = (encounterId: string) =>
-    `encounter:${encounterId}`;
-  private progPointsCacheKey = (encounterId: string) =>
-    `progpoints:${encounterId}`;
+  private getCollection(
+    guildId: string,
+  ): CollectionReference<EncounterDocument> {
+    return guildCollection<EncounterDocument>(
+      this.firestore,
+      guildId,
+      'encounters',
+    );
+  }
+
+  private getProgPointsCollection(
+    guildId: string,
+    encounterId: string,
+  ): CollectionReference<ProgPointDocument> {
+    return this.getCollection(guildId)
+      .doc(encounterId)
+      .collection('prog-points') as CollectionReference<ProgPointDocument>;
+  }
+
+  // Cache keys are guild-scoped so two guilds that share an encounter id don't
+  // serve each other's prog points.
+  private encounterCacheKey = (guildId: string, encounterId: string) =>
+    `encounter:${guildId}:${encounterId}`;
+  private progPointsCacheKey = (guildId: string, encounterId: string) =>
+    `progpoints:${guildId}:${encounterId}`;
 }
 
 export { EncountersCollection };

@@ -163,6 +163,7 @@ class RemoveSignupCommandHandler implements ISlashCommand {
 
     if (spreadsheetId && validStatus) {
       const response = await this.sheetsService.removeSignup(
+        guildId,
         dto,
         spreadsheetId,
       );
@@ -194,7 +195,7 @@ class RemoveSignupCommandHandler implements ISlashCommand {
       }
     }
 
-    await this.signupsRepository.removeSignup(dto);
+    await this.signupsRepository.removeSignup(guildId, dto);
     return description;
   }
 
@@ -250,7 +251,7 @@ class RemoveSignupCommandHandler implements ISlashCommand {
       guildId,
     });
 
-    const signup = await this.signupsRepository.findOneOrFail({
+    const signup = await this.signupsRepository.findOneOrFail(guildId, {
       character,
       encounter,
       world,

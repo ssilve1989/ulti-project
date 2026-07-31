@@ -33,6 +33,7 @@ function getEncounterYamlPaths(encounterId?: string): string[] {
 
 async function pushEncounter(
   db: Firestore,
+  guildId: string,
   config: EncounterYamlConfig,
 ): Promise<void> {
   const encounterData: Partial<EncounterDocument> = {
@@ -52,17 +53,18 @@ async function pushEncounter(
     }),
   };
 
-  await upsertEncounter(db, config.id, encounterData);
+  await upsertEncounter(db, guildId, config.id, encounterData);
 
   const progPoints = (config.progPoints ?? []).map((pp, i) => ({
     ...pp,
     order: i,
   }));
-  await replaceProgPoints(db, config.id, progPoints);
+  await replaceProgPoints(db, guildId, config.id, progPoints);
 }
 
 async function pushWithConfirmation(
   db: Firestore,
+  guildId: string,
   config: EncounterYamlConfig,
   yes: boolean | undefined,
 ): Promise<boolean> {
@@ -80,7 +82,7 @@ async function pushWithConfirmation(
   spinner.start(`Pushing ${config.id}...`);
 
   try {
-    await pushEncounter(db, config);
+    await pushEncounter(db, guildId, config);
     const count = config.progPoints?.length ?? 0;
     spinner.stop(`Pushed ${config.id} (${count} prog points)`);
     return true;
@@ -93,6 +95,7 @@ async function pushWithConfirmation(
 
 async function runPush(
   db: Firestore,
+  guildId: string,
   encounterId: string | undefined,
   opts: PushCommandOptions,
 ): Promise<void> {
@@ -125,7 +128,7 @@ async function runPush(
   let pushed = 0;
 
   for (const config of configs) {
-    const didPush = await pushWithConfirmation(db, config, opts.yes);
+    const didPush = await pushWithConfirmation(db, guildId, config, opts.yes);
     if (didPush) pushed++;
   }
 
@@ -140,7 +143,7 @@ export function registerPushCommand(encountersCmd: Command): void {
     .option('--yes', 'Skip confirmation prompts')
     .action(
       async (encounterId: string | undefined, opts: PushCommandOptions) => {
-        await runPush(ctx.db, encounterId, opts);
+        await runPush(ctx.db, ctx.guildId, encounterId, opts);
       },
     );
 }

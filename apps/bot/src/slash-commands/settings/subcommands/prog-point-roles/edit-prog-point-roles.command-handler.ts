@@ -42,6 +42,7 @@ class EditProgPointRolesCommandHandler implements ISlashCommand {
 
       const menu =
         await this.encountersComponentsService.createProgPointSelectMenu(
+          interaction.guildId,
           encounter,
           {
             customId: PROG_POINT_ROLES_SELECT_ID,

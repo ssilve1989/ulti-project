@@ -128,7 +128,7 @@ class SignupCommandHandler implements ISlashCommand {
     interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<SignupDocument | undefined> {
     const [signup, reviewChannelId] = await Promise.all([
-      this.repository.upsert(request),
+      this.repository.upsert(interaction.guildId, request),
       this.settingsService.getReviewChannel(interaction.guildId),
     ]);
 

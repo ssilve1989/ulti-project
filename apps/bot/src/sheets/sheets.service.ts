@@ -62,12 +62,14 @@ class SheetsService implements OnApplicationShutdown {
 
   /**
    * Upsert a signup into the spreadsheet. If the character is already signed up, it will update the row
+   * @param guildId
    * @param signup
    * @param spreadsheetId
    * @returns
    */
   @SentryTraced()
   public upsertSignup(
+    guildId: string,
     { partyStatus, ...signup }: SignupDocument,
     spreadsheetId: string,
   ) {
@@ -79,11 +81,11 @@ class SheetsService implements OnApplicationShutdown {
       case PartyStatus.ProgParty:
       case PartyStatus.EarlyProgParty:
         return this.signupQueue.add(() =>
-          this.upsertRow(signup, spreadsheetId, partyStatus),
+          this.upsertRow(guildId, signup, spreadsheetId, partyStatus),
         );
       case PartyStatus.Cleared:
         return this.signupQueue.add(() =>
-          this.removeSignup(signup, spreadsheetId),
+          this.removeSignup(guildId, signup, spreadsheetId),
         );
       default: {
         const msg = `unknown party type: ${partyStatus} for character: ${signup.character}`;
@@ -165,6 +167,7 @@ class SheetsService implements OnApplicationShutdown {
 
   @SentryTraced()
   public async removeSignup(
+    guildId: string,
     {
       encounter,
       character,
@@ -173,7 +176,8 @@ class SheetsService implements OnApplicationShutdown {
     spreadsheetId: string,
     partyTypes?: PartyTypes,
   ) {
-    const types = partyTypes || (await this.getDefaultPartyTypes(encounter));
+    const types =
+      partyTypes || (await this.getDefaultPartyTypes(guildId, encounter));
     const ranges = types.map((range) => SheetRanges[range]);
 
     const requests = await Promise.all(
@@ -444,6 +448,7 @@ class SheetsService implements OnApplicationShutdown {
 
   @SentryTraced()
   private async upsertRow(
+    guildId: string,
     signup: Omit<SignupDocument, 'partyStatus'>,
     spreadsheetId: string,
     partyStatus: NonClearedPartyStatus,
@@ -451,10 +456,12 @@ class SheetsService implements OnApplicationShutdown {
     const { encounter, character, world } = signup;
     const cellValues = this.getCellValues(signup);
 
-    const isProgEncounter = await this.isProgEncounter(encounter);
+    const isProgEncounter = await this.isProgEncounter(guildId, encounter);
     if (isProgEncounter && partyStatus === PartyStatus.ClearParty) {
       // if its a clear party we need to check if we are moving them from prog to clear
-      await this.removeSignup(signup, spreadsheetId, [PartyStatus.ProgParty]);
+      await this.removeSignup(guildId, signup, spreadsheetId, [
+        PartyStatus.ProgParty,
+      ]);
     }
 
     const ranges = SheetRanges[partyStatus];
@@ -516,9 +523,15 @@ class SheetsService implements OnApplicationShutdown {
     return [titleCase(character), titleCase(world), role, progPoint];
   }
 
-  private async isProgEncounter(encounter: Encounter): Promise<boolean> {
+  private async isProgEncounter(
+    guildId: string,
+    encounter: Encounter,
+  ): Promise<boolean> {
     try {
-      const progPoints = await this.encountersService.getProgPoints(encounter);
+      const progPoints = await this.encountersService.getProgPoints(
+        guildId,
+        encounter,
+      );
       // An encounter is considered a "prog encounter" if it has multiple prog points
       // indicating different stages of progression
       return progPoints.length > 1;
@@ -529,9 +542,10 @@ class SheetsService implements OnApplicationShutdown {
   }
 
   private async getDefaultPartyTypes(
+    guildId: string,
     encounter: Encounter,
   ): Promise<NonClearedPartyStatus[]> {
-    const isProgEncounter = await this.isProgEncounter(encounter);
+    const isProgEncounter = await this.isProgEncounter(guildId, encounter);
     return isProgEncounter
       ? [PartyStatus.ProgParty, PartyStatus.ClearParty]
       : [PartyStatus.ClearParty];
@@ -539,9 +553,11 @@ class SheetsService implements OnApplicationShutdown {
 
   @SentryTraced()
   public async cleanSheet({
+    guildId,
     spreadsheetId,
     encounter,
   }: {
+    guildId: string;
     spreadsheetId: string;
     encounter: Encounter;
   }): Promise<void> {
@@ -577,8 +593,10 @@ class SheetsService implements OnApplicationShutdown {
         row.values.some((cell) => cell),
       );
 
-      const progPointsFromDB =
-        await this.encountersService.getProgPoints(encounter);
+      const progPointsFromDB = await this.encountersService.getProgPoints(
+        guildId,
+        encounter,
+      );
       const progPoints = progPointsFromDB
         .sort((a, b) => a.order - b.order)
         .map((p) => p.id);

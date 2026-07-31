@@ -61,18 +61,19 @@ describe.each([{ cache: true }, { cache: false }])(
 
       await service.upsert(guildId, settings);
 
-      expect(firestoreMock.collection).toHaveBeenCalledWith('settings');
+      // settings live on the guild document itself, not a subcollection
+      expect(firestoreMock.collection).toHaveBeenCalledWith('guilds');
       expect(collectionMock.doc).toHaveBeenCalledWith(guildId);
       expect(docMock.set).toHaveBeenCalledWith(settings, { merge: true });
     });
 
     it('should call getReviewChannel with correct arguments', async () => {
       await service.getReviewChannel(guildId);
-      expect(firestoreMock.collection).toHaveBeenCalledWith('settings');
 
       if (cache) {
         expect(collectionMock.doc).not.toHaveBeenCalled();
       } else {
+        expect(firestoreMock.collection).toHaveBeenCalledWith('guilds');
         expect(collectionMock.doc).toHaveBeenCalledWith(guildId);
         expect(docMock.get).toHaveBeenCalled();
       }
@@ -80,11 +81,11 @@ describe.each([{ cache: true }, { cache: false }])(
 
     it('should call getSettings with correct arguments', async () => {
       await service.getSettings(guildId);
-      expect(firestoreMock.collection).toHaveBeenCalledWith('settings');
 
       if (cache) {
         expect(collectionMock.doc).not.toHaveBeenCalled();
       } else {
+        expect(firestoreMock.collection).toHaveBeenCalledWith('guilds');
         expect(collectionMock.doc).toHaveBeenCalledWith(guildId);
         expect(docMock.get).toHaveBeenCalled();
       }

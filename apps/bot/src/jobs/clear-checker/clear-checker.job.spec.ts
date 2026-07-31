@@ -160,6 +160,7 @@ describe('ClearCheckerJob', () => {
       );
       expect(signupsCollection.removeSignup).toHaveBeenCalledTimes(1);
       expect(signupsCollection.removeSignup).toHaveBeenCalledWith(
+        GUILD_ID,
         expect.objectContaining({ character: 'Active Char' }),
       );
     });
@@ -196,6 +197,7 @@ describe('ClearCheckerJob', () => {
       expect(errorService.captureError).toHaveBeenCalledTimes(1);
       expect(signupsCollection.removeSignup).toHaveBeenCalledTimes(1);
       expect(signupsCollection.removeSignup).toHaveBeenCalledWith(
+        GUILD_ID,
         expect.objectContaining({ character: 'Cleared Char' }),
       );
     });
@@ -224,7 +226,7 @@ describe('ClearCheckerJob', () => {
         REVIEW_CHANNEL,
         'review-message-1',
       );
-      expect(signupsCollection.removeSignup).toHaveBeenCalledWith({
+      expect(signupsCollection.removeSignup).toHaveBeenCalledWith(GUILD_ID, {
         character: 'Test Character',
         world: 'Jenova',
         encounter: Encounter.TOP,
@@ -280,6 +282,20 @@ describe('ClearCheckerJob', () => {
       await job.checkClears();
 
       expect(signupsCollection.findAll).toHaveBeenCalledTimes(2);
+    });
+
+    it('reads signups and encounters scoped to each guild', async () => {
+      discordService.getGuilds.mockReturnValue([GUILD_ID, OTHER_GUILD_ID]);
+      signupsCollection.findAll.mockResolvedValue([]);
+
+      await job.checkClears();
+
+      for (const guildId of [GUILD_ID, OTHER_GUILD_ID]) {
+        expect(signupsCollection.findAll).toHaveBeenCalledWith(guildId, {});
+        expect(encountersCollection.getActiveEncounters).toHaveBeenCalledWith(
+          guildId,
+        );
+      }
     });
   });
 
