@@ -153,7 +153,7 @@ class CleanRolesCommandHandler implements ISlashCommand {
     const guild = await this.discordService.client.guilds.fetch(guildId);
     await guild.members.fetch();
 
-    const activeSignups = await this.signupCollection.findByStatusIn([
+    const activeSignups = await this.signupCollection.findByStatusIn(guildId, [
       SignupStatus.APPROVED,
       SignupStatus.UPDATE_PENDING,
     ]);

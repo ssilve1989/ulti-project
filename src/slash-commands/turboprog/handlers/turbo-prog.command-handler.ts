@@ -74,7 +74,7 @@ class TurboProgCommandHandler implements ISlashCommand {
 
     if (settings.spreadsheetId && settings.turboProgSpreadsheetId) {
       // Find signup by discordId and encounter instead of character name
-      const signup = await this.signupCollection.findOne({
+      const signup = await this.signupCollection.findOne(interaction.guildId, {
         discordId: interaction.user.id,
         encounter: options.encounter,
       });

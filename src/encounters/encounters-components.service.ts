@@ -21,6 +21,7 @@ export class EncountersComponentsService {
   constructor(private readonly encountersService: EncountersService) {}
 
   async createProgPointSelectMenu(
+    guildId: string,
     encounter: Encounter,
     {
       customId = PROG_POINT_SELECT_ID,
@@ -28,7 +29,10 @@ export class EncountersComponentsService {
       multiSelect = false,
     }: ProgPointSelectMenuOptions = {},
   ): Promise<StringSelectMenuBuilder> {
-    const progPoints = await this.encountersService.getProgPoints(encounter);
+    const progPoints = await this.encountersService.getProgPoints(
+      guildId,
+      encounter,
+    );
 
     const options: SelectMenuComponentOptionData[] = progPoints.map(
       (progPoint) => ({
@@ -53,9 +57,13 @@ export class EncountersComponentsService {
   }
 
   async getProgPointOptions(
+    guildId: string,
     encounter: Encounter,
   ): Promise<SelectMenuComponentOptionData[]> {
-    const progPoints = await this.encountersService.getProgPoints(encounter);
+    const progPoints = await this.encountersService.getProgPoints(
+      guildId,
+      encounter,
+    );
 
     const options: SelectMenuComponentOptionData[] = progPoints.map(
       (progPoint) => ({

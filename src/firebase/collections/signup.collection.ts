@@ -9,6 +9,7 @@ import {
 } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
+import { guildCollection } from '../firebase.paths.js';
 import {
   type CreateSignupDocumentProps,
   type SignupCompositeKeyProps as SignupCompositeKey,
@@ -18,13 +19,7 @@ import {
 
 @Injectable()
 class SignupCollection {
-  private readonly collection: CollectionReference<SignupDocument>;
-
-  constructor(@InjectFirestore() private readonly firestore: Firestore) {
-    this.collection = this.firestore.collection(
-      'signups',
-    ) as CollectionReference<SignupDocument>;
-  }
+  constructor(@InjectFirestore() private readonly firestore: Firestore) {}
 
   @SentryTraced()
   public static getKeyForSignup({ discordId, encounter }: SignupCompositeKey) {
@@ -37,10 +32,11 @@ class SignupCollection {
    */
   @SentryTraced()
   public async upsert(
+    guildId: string,
     props: CreateSignupDocumentProps,
   ): Promise<SignupDocument> {
     const key = SignupCollection.getKeyForSignup(props);
-    const document = this.collection.doc(key);
+    const document = this.getCollection(guildId).doc(key);
     const expiresAt = Timestamp.fromMillis(
       Temporal.Now.zonedDateTimeISO().add({ days: 28 }).epochMilliseconds,
     );
@@ -75,24 +71,29 @@ class SignupCollection {
   }
 
   @SentryTraced()
-  public async findById(id: string): Promise<SignupDocument | undefined> {
-    const snapshot = await this.collection.doc(id).get();
+  public async findById(
+    guildId: string,
+    id: string,
+  ): Promise<SignupDocument | undefined> {
+    const snapshot = await this.getCollection(guildId).doc(id).get();
     return snapshot.data();
   }
 
   @SentryTraced()
   public async findOne(
+    guildId: string,
     query: Partial<SignupDocument>,
   ): Promise<SignupDocument | undefined> {
-    const snapshot = await this.where(query).limit(1).get();
+    const snapshot = await this.where(guildId, query).limit(1).get();
     return snapshot.docs.at(0)?.data();
   }
 
   @SentryTraced()
   public async findOneOrFail(
+    guildId: string,
     query: Partial<SignupDocument>,
   ): Promise<SignupDocument> {
-    const signup = await this.findOne(query);
+    const signup = await this.findOne(guildId, query);
 
     if (!signup) {
       throw new DocumentNotFoundException(query);
@@ -103,25 +104,29 @@ class SignupCollection {
 
   @SentryTraced()
   public async findAll(
+    guildId: string,
     query: Partial<SignupDocument>,
   ): Promise<SignupDocument[]> {
-    const snapshot = await this.where(query).get();
+    const snapshot = await this.where(guildId, query).get();
     return snapshot.docs.map((doc) => doc.data() as SignupDocument);
   }
 
   @SentryTraced()
   public async findByStatusIn(
+    guildId: string,
     statuses: SignupStatus[],
   ): Promise<SignupDocument[]> {
-    const snapshot = await this.collection
+    const snapshot = await this.getCollection(guildId)
       .where('status', 'in', statuses)
       .get();
     return snapshot.docs.map((doc) => doc.data() as SignupDocument);
   }
 
   @SentryTraced()
-  public async findByReviewId(reviewMessageId: string) {
-    const snapshot = await this.where({ reviewMessageId }).limit(1).get();
+  public async findByReviewId(guildId: string, reviewMessageId: string) {
+    const snapshot = await this.where(guildId, { reviewMessageId })
+      .limit(1)
+      .get();
 
     if (snapshot.empty) {
       throw new DocumentNotFoundException({ reviewMessageId });
@@ -139,6 +144,7 @@ class SignupCollection {
    */
   @SentryTraced()
   public updateSignupStatus(
+    guildId: string,
     status: SignupStatus,
     {
       partyStatus,
@@ -147,12 +153,14 @@ class SignupCollection {
     }: SignupCompositeKey & Pick<SignupDocument, 'progPoint' | 'partyStatus'>,
     reviewedBy: string,
   ) {
-    return this.collection.doc(SignupCollection.getKeyForSignup(key)).update({
-      status,
-      progPoint,
-      reviewedBy,
-      partyStatus,
-    });
+    return this.getCollection(guildId)
+      .doc(SignupCollection.getKeyForSignup(key))
+      .update({
+        status,
+        progPoint,
+        reviewedBy,
+        partyStatus,
+      });
   }
 
   /**
@@ -162,33 +170,45 @@ class SignupCollection {
    * @returns
    */
   @SentryTraced()
-  public setReviewMessageId(signup: SignupCompositeKey, messageId: string) {
+  public setReviewMessageId(
+    guildId: string,
+    signup: SignupCompositeKey,
+    messageId: string,
+  ) {
     const key = SignupCollection.getKeyForSignup(signup);
 
-    return this.collection.doc(key).update({
+    return this.getCollection(guildId).doc(key).update({
       reviewMessageId: messageId,
     });
   }
 
   @SentryTraced()
   public updateDeclineReason(
+    guildId: string,
     signup: SignupCompositeKey,
     declineReason: string,
   ) {
     const key = SignupCollection.getKeyForSignup(signup);
 
-    return this.collection.doc(key).update({
+    return this.getCollection(guildId).doc(key).update({
       declineReason,
     });
   }
 
   @SentryTraced()
-  public async removeSignup<T>({
-    character,
-    world,
-    encounter,
-  }: Exact<T, Pick<SignupDocument, 'character' | 'encounter' | 'world'>>) {
-    const snapshot = await this.where({ character, encounter, world }).get();
+  public async removeSignup<T>(
+    guildId: string,
+    {
+      character,
+      world,
+      encounter,
+    }: Exact<T, Pick<SignupDocument, 'character' | 'encounter' | 'world'>>,
+  ) {
+    const snapshot = await this.where(guildId, {
+      character,
+      encounter,
+      world,
+    }).get();
     return Promise.all(snapshot.docs.map((doc) => doc.ref.delete()));
   }
 
@@ -197,8 +217,8 @@ class SignupCollection {
    * @param props
    * @returns
    */
-  private where(props: Partial<SignupDocument>) {
-    let query: Query = this.collection;
+  private where(guildId: string, props: Partial<SignupDocument>) {
+    let query: Query = this.getCollection(guildId);
 
     for (const [key, value] of Object.entries(props)) {
       if (!value) continue;
@@ -206,6 +226,10 @@ class SignupCollection {
     }
 
     return query as Query<SignupDocument, DocumentData>;
+  }
+
+  private getCollection(guildId: string): CollectionReference<SignupDocument> {
+    return guildCollection<SignupDocument>(this.firestore, guildId, 'signups');
   }
 }
 

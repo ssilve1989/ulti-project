@@ -20,6 +20,7 @@ export interface AddCommandOptions {
 
 async function runAdd(
   db: Firestore,
+  guildId: string,
   fflogsToken: string | undefined,
   opts: AddCommandOptions,
 ): Promise<void> {
@@ -45,7 +46,7 @@ async function runAdd(
   }
 
   await applySourceEditsStep(sourceEdits, opts);
-  await seedFirestoreStep(db, config, opts);
+  await seedFirestoreStep(db, guildId, config, opts);
 
   clack.outro(`Encounter '${config.id}' added successfully.`);
 }
@@ -62,6 +63,6 @@ export function registerAddCommand(encountersCmd: Command): void {
       'Comma-separated FF Logs encounter IDs',
     )
     .action(async (opts: AddCommandOptions) => {
-      await runAdd(ctx.db, ctx.fflogsToken, opts);
+      await runAdd(ctx.db, ctx.guildId, ctx.fflogsToken, opts);
     });
 }

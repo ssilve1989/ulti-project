@@ -46,7 +46,10 @@ describe('EncountersComponentsService', () => {
 
       mockEncountersService.getProgPoints.mockResolvedValue(mockProgPoints);
 
-      const menu = await service.createProgPointSelectMenu(Encounter.DSR);
+      const menu = await service.createProgPointSelectMenu(
+        'test-guild',
+        Encounter.DSR,
+      );
 
       expect(menu.options).toHaveLength(3); // 2 prog points + cleared option
       expect(menu.options[0].data.label).toBe('Phase 1');
@@ -77,7 +80,10 @@ describe('EncountersComponentsService', () => {
 
       mockEncountersService.getProgPoints.mockResolvedValue(mockProgPoints);
 
-      const options = await service.getProgPointOptions(Encounter.TOP);
+      const options = await service.getProgPointOptions(
+        'test-guild',
+        Encounter.TOP,
+      );
 
       expect(options).toHaveLength(3);
       expect(options).toEqual([

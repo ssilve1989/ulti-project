@@ -112,7 +112,7 @@ describe('SyncProgRolesCommandHandler', () => {
 
     await handler.execute(interaction);
 
-    expect(signupCollection.findByStatusIn).toHaveBeenCalledWith([
+    expect(signupCollection.findByStatusIn).toHaveBeenCalledWith(guildId, [
       SignupStatus.APPROVED,
       SignupStatus.UPDATE_PENDING,
     ]);
