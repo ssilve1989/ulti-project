@@ -65,7 +65,7 @@ class LookupCommandHandler implements ISlashCommand {
         world: dto.world,
       });
 
-      const results = await this.signupsCollection.findAll(dto);
+      const results = await this.signupsCollection.findAll(guildId, dto);
 
       const withBlacklistInfo = await Promise.all(
         results.map((r) => this.mapBlacklistInfo(guildId, r)),

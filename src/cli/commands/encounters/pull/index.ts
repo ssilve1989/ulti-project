@@ -12,7 +12,7 @@ import {
   getAllProgPoints,
 } from '../../../utils/firestore.js';
 
-async function runPull(db: Firestore): Promise<void> {
+async function runPull(db: Firestore, guildId: string): Promise<void> {
   clack.intro('Pull Encounters');
 
   const dirPath = join(process.cwd(), 'data', 'encounters');
@@ -22,7 +22,7 @@ async function runPull(db: Firestore): Promise<void> {
 
   let encounters: Awaited<ReturnType<typeof getAllActiveEncounters>>;
   try {
-    encounters = await getAllActiveEncounters(db);
+    encounters = await getAllActiveEncounters(db, guildId);
     fetchSpinner.stop(`Found ${encounters.length} active encounter(s)`);
   } catch (error) {
     fetchSpinner.stop('Failed');
@@ -40,7 +40,7 @@ async function runPull(db: Firestore): Promise<void> {
     spinner.start(`Pulling ${enc.id}...`);
 
     try {
-      const progPoints = await getAllProgPoints(db, enc.id);
+      const progPoints = await getAllProgPoints(db, guildId, enc.id);
 
       const yamlConfig: EncounterYamlConfig = {
         id: enc.id,
@@ -83,7 +83,7 @@ export function registerPullCommand(encountersCmd: Command): void {
     .command('pull')
     .description('Pull all active encounters from Firestore to YAML files')
     .action(async () => {
-      const { db } = ctx;
-      await runPull(db);
+      const { db, guildId } = ctx;
+      await runPull(db, guildId);
     });
 }

@@ -12,6 +12,7 @@ import { EncountersService } from './encounters.service.js';
 describe('EncountersService', () => {
   let service: EncountersService;
   let mockEncountersCollection: Mocked<EncountersCollection>;
+  const guildId = 'test-guild';
 
   beforeEach(async () => {
     mockEncountersCollection =
@@ -81,7 +82,11 @@ describe('EncountersService', () => {
       mockEncountersCollection.getProgPoints.mockResolvedValue([]);
 
       await expect(
-        service.getPartyStatusForProgPoint('test-encounter', 'non-existent'),
+        service.getPartyStatusForProgPoint(
+          guildId,
+          'test-encounter',
+          'non-existent',
+        ),
       ).rejects.toThrow(
         'Prog point not found: non-existent for encounter: test-encounter',
       );
@@ -99,6 +104,7 @@ describe('EncountersService', () => {
       mockEncountersCollection.getProgPoints.mockResolvedValue(mockProgPoints);
 
       const result = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'prog1',
       );
@@ -111,6 +117,7 @@ describe('EncountersService', () => {
       mockEncountersCollection.getProgPoints.mockResolvedValue(mockProgPoints);
 
       const result = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'clear1',
       );
@@ -132,6 +139,7 @@ describe('EncountersService', () => {
 
       // Test early prog party (before prog threshold)
       const earlyResult = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'early1',
       );
@@ -139,6 +147,7 @@ describe('EncountersService', () => {
 
       // Test prog party (at prog threshold)
       const progResult = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'prog1',
       );
@@ -146,6 +155,7 @@ describe('EncountersService', () => {
 
       // Test prog party (between prog and clear threshold)
       const progResult2 = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'prog2',
       );
@@ -153,6 +163,7 @@ describe('EncountersService', () => {
 
       // Test clear party (at clear threshold)
       const clearResult = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'clear1',
       );
@@ -160,6 +171,7 @@ describe('EncountersService', () => {
 
       // Test clear party (after clear threshold)
       const clearResult2 = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'clear2',
       );
@@ -171,18 +183,21 @@ describe('EncountersService', () => {
 
       // Should return the direct party status from each prog point
       const earlyResult = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'early1',
       );
       expect(earlyResult).toBe(PartyStatus.EarlyProgParty);
 
       const progResult = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'prog1',
       );
       expect(progResult).toBe(PartyStatus.ProgParty);
 
       const clearResult = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'clear1',
       );
@@ -194,18 +209,21 @@ describe('EncountersService', () => {
 
       // Should return the direct party status from each prog point
       const earlyResult = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'early1',
       );
       expect(earlyResult).toBe(PartyStatus.EarlyProgParty);
 
       const progResult = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'prog1',
       );
       expect(progResult).toBe(PartyStatus.ProgParty);
 
       const clearResult = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'clear1',
       );
@@ -243,18 +261,21 @@ describe('EncountersService', () => {
 
       // Should return the direct party status from each prog point
       const earlyResult = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'point1',
       );
       expect(earlyResult).toBe(PartyStatus.EarlyProgParty);
 
       const progResult = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'point2',
       );
       expect(progResult).toBe(PartyStatus.EarlyProgParty);
 
       const clearResult = await service.getPartyStatusForProgPoint(
+        guildId,
         'test-encounter',
         'point3',
       );
@@ -290,9 +311,13 @@ describe('EncountersService', () => {
 
       mockEncountersCollection.getProgPoints.mockResolvedValue(mockProgPoints);
 
-      const result = await service.getProgPointsAsOptions('test-encounter');
+      const result = await service.getProgPointsAsOptions(
+        guildId,
+        'test-encounter',
+      );
 
       expect(mockEncountersCollection.getProgPoints).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
       );
       expect(result).toEqual({
@@ -314,7 +339,10 @@ describe('EncountersService', () => {
     it('should return empty object when no prog points exist', async () => {
       mockEncountersCollection.getProgPoints.mockResolvedValue([]);
 
-      const result = await service.getProgPointsAsOptions('test-encounter');
+      const result = await service.getProgPointsAsOptions(
+        guildId,
+        'test-encounter',
+      );
 
       expect(result).toEqual({});
     });
@@ -330,9 +358,13 @@ describe('EncountersService', () => {
       };
       mockEncountersCollection.getEncounter.mockResolvedValue(mockEncounter);
 
-      const result = await service.getProgPartyThreshold('test-encounter');
+      const result = await service.getProgPartyThreshold(
+        guildId,
+        'test-encounter',
+      );
 
       expect(mockEncountersCollection.getEncounter).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
       );
       expect(result).toBe('prog-point-1');
@@ -346,7 +378,10 @@ describe('EncountersService', () => {
       };
       mockEncountersCollection.getEncounter.mockResolvedValue(mockEncounter);
 
-      const result = await service.getProgPartyThreshold('test-encounter');
+      const result = await service.getProgPartyThreshold(
+        guildId,
+        'test-encounter',
+      );
 
       expect(result).toBeUndefined();
     });
@@ -354,7 +389,10 @@ describe('EncountersService', () => {
     it('should return undefined when encounter does not exist for prog party threshold', async () => {
       mockEncountersCollection.getEncounter.mockResolvedValue(undefined);
 
-      const result = await service.getProgPartyThreshold('test-encounter');
+      const result = await service.getProgPartyThreshold(
+        guildId,
+        'test-encounter',
+      );
 
       expect(result).toBeUndefined();
     });
@@ -368,9 +406,13 @@ describe('EncountersService', () => {
       };
       mockEncountersCollection.getEncounter.mockResolvedValue(mockEncounter);
 
-      const result = await service.getClearPartyThreshold('test-encounter');
+      const result = await service.getClearPartyThreshold(
+        guildId,
+        'test-encounter',
+      );
 
       expect(mockEncountersCollection.getEncounter).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
       );
       expect(result).toBe('clear-point-1');
@@ -384,7 +426,10 @@ describe('EncountersService', () => {
       };
       mockEncountersCollection.getEncounter.mockResolvedValue(mockEncounter);
 
-      const result = await service.getClearPartyThreshold('test-encounter');
+      const result = await service.getClearPartyThreshold(
+        guildId,
+        'test-encounter',
+      );
 
       expect(result).toBeUndefined();
     });
@@ -392,7 +437,10 @@ describe('EncountersService', () => {
     it('should return undefined when encounter does not exist for clear party threshold', async () => {
       mockEncountersCollection.getEncounter.mockResolvedValue(undefined);
 
-      const result = await service.getClearPartyThreshold('test-encounter');
+      const result = await service.getClearPartyThreshold(
+        guildId,
+        'test-encounter',
+      );
 
       expect(result).toBeUndefined();
     });
@@ -402,9 +450,10 @@ describe('EncountersService', () => {
     it('should reorder prog points with correct order indices', async () => {
       const progPointIds = ['point3', 'point1', 'point2'];
 
-      await service.reorderProgPoints('test-encounter', progPointIds);
+      await service.reorderProgPoints(guildId, 'test-encounter', progPointIds);
 
       expect(mockEncountersCollection.reorderProgPoints).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
         [
           { id: 'point3', order: 0 },
@@ -417,9 +466,10 @@ describe('EncountersService', () => {
     it('should handle empty prog point array', async () => {
       const progPointIds: string[] = [];
 
-      await service.reorderProgPoints('test-encounter', progPointIds);
+      await service.reorderProgPoints(guildId, 'test-encounter', progPointIds);
 
       expect(mockEncountersCollection.reorderProgPoints).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
         [],
       );
@@ -428,9 +478,10 @@ describe('EncountersService', () => {
     it('should handle single prog point', async () => {
       const progPointIds = ['single-point'];
 
-      await service.reorderProgPoints('test-encounter', progPointIds);
+      await service.reorderProgPoints(guildId, 'test-encounter', progPointIds);
 
       expect(mockEncountersCollection.reorderProgPoints).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
         [{ id: 'single-point', order: 0 }],
       );
@@ -463,10 +514,15 @@ describe('EncountersService', () => {
         clearPartyThreshold: 'clear1',
       };
 
-      await service.initializeEncounter('test-encounter', encounterData);
+      await service.initializeEncounter(
+        guildId,
+        'test-encounter',
+        encounterData,
+      );
 
       // Verify encounter document creation
       expect(mockEncountersCollection.upsertEncounter).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
         {
           name: 'Ultimate Test Encounter',
@@ -481,6 +537,7 @@ describe('EncountersService', () => {
       expect(mockEncountersCollection.addProgPoint).toHaveBeenCalledTimes(3);
       expect(mockEncountersCollection.addProgPoint).toHaveBeenNthCalledWith(
         1,
+        guildId,
         'test-encounter',
         {
           id: 'early1',
@@ -492,6 +549,7 @@ describe('EncountersService', () => {
       );
       expect(mockEncountersCollection.addProgPoint).toHaveBeenNthCalledWith(
         2,
+        guildId,
         'test-encounter',
         {
           id: 'prog1',
@@ -503,6 +561,7 @@ describe('EncountersService', () => {
       );
       expect(mockEncountersCollection.addProgPoint).toHaveBeenNthCalledWith(
         3,
+        guildId,
         'test-encounter',
         {
           id: 'clear1',
@@ -527,9 +586,14 @@ describe('EncountersService', () => {
         ],
       };
 
-      await service.initializeEncounter('test-encounter', encounterData);
+      await service.initializeEncounter(
+        guildId,
+        'test-encounter',
+        encounterData,
+      );
 
       expect(mockEncountersCollection.upsertEncounter).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
         {
           name: 'Simple Encounter',
@@ -541,6 +605,7 @@ describe('EncountersService', () => {
       );
 
       expect(mockEncountersCollection.addProgPoint).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
         {
           id: 'point1',
@@ -559,9 +624,14 @@ describe('EncountersService', () => {
         progPoints: [],
       };
 
-      await service.initializeEncounter('test-encounter', encounterData);
+      await service.initializeEncounter(
+        guildId,
+        'test-encounter',
+        encounterData,
+      );
 
       expect(mockEncountersCollection.upsertEncounter).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
         {
           name: 'Empty Encounter',
@@ -585,9 +655,10 @@ describe('EncountersService', () => {
       };
       mockEncountersCollection.getEncounter.mockResolvedValue(mockEncounter);
 
-      const result = await service.getEncounter('test-id');
+      const result = await service.getEncounter(guildId, 'test-id');
 
       expect(mockEncountersCollection.getEncounter).toHaveBeenCalledWith(
+        guildId,
         'test-id',
       );
       expect(result).toBe(mockEncounter);
@@ -605,9 +676,10 @@ describe('EncountersService', () => {
       ];
       mockEncountersCollection.getProgPoints.mockResolvedValue(mockProgPoints);
 
-      const result = await service.getProgPoints('test-id');
+      const result = await service.getProgPoints(guildId, 'test-id');
 
       expect(mockEncountersCollection.getProgPoints).toHaveBeenCalledWith(
+        guildId,
         'test-id',
       );
       expect(result).toBe(mockProgPoints);
@@ -623,12 +695,13 @@ describe('EncountersService', () => {
       // Mock the getNextProgPointOrder method
       mockEncountersCollection.getNextProgPointOrder.mockResolvedValue(5);
 
-      await service.addProgPoint('test-encounter', progPointData);
+      await service.addProgPoint(guildId, 'test-encounter', progPointData);
 
       expect(
         mockEncountersCollection.getNextProgPointOrder,
-      ).toHaveBeenCalledWith('test-encounter');
+      ).toHaveBeenCalledWith(guildId, 'test-encounter');
       expect(mockEncountersCollection.addProgPoint).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
         {
           id: 'test1',
@@ -644,12 +717,14 @@ describe('EncountersService', () => {
       const updates = { label: 'Updated Label' };
 
       await service.updateProgPoint(
+        guildId,
         'test-encounter',
         'test-prog-point',
         updates,
       );
 
       expect(mockEncountersCollection.updateProgPoint).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
         'test-prog-point',
         updates,
@@ -657,18 +732,28 @@ describe('EncountersService', () => {
     });
 
     it('should delegate deactivateProgPoint to collection', async () => {
-      await service.deactivateProgPoint('test-encounter', 'test-prog-point');
+      await service.deactivateProgPoint(
+        guildId,
+        'test-encounter',
+        'test-prog-point',
+      );
 
       expect(mockEncountersCollection.deactivateProgPoint).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
         'test-prog-point',
       );
     });
 
     it('should delegate setProgPartyThreshold to collection', async () => {
-      await service.setProgPartyThreshold('test-encounter', 'test-prog-point');
+      await service.setProgPartyThreshold(
+        guildId,
+        'test-encounter',
+        'test-prog-point',
+      );
 
       expect(mockEncountersCollection.upsertEncounter).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
         {
           progPartyThreshold: 'test-prog-point',
@@ -677,9 +762,14 @@ describe('EncountersService', () => {
     });
 
     it('should delegate setClearPartyThreshold to collection', async () => {
-      await service.setClearPartyThreshold('test-encounter', 'test-prog-point');
+      await service.setClearPartyThreshold(
+        guildId,
+        'test-encounter',
+        'test-prog-point',
+      );
 
       expect(mockEncountersCollection.upsertEncounter).toHaveBeenCalledWith(
+        guildId,
         'test-encounter',
         {
           clearPartyThreshold: 'test-prog-point',

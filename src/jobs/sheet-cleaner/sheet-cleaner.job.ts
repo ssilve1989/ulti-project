@@ -83,11 +83,14 @@ class SheetCleanerJob implements OnApplicationBootstrap, OnApplicationShutdown {
             // but nothing else uses that right now. Encounters in the signup slash command
             // are still hardcoded. They ideally should be managed dynamically as well, but require runtime
             // changes to update the slash command.
-            return from(this.encountersCollection.getActiveEncounters()).pipe(
+            return from(
+              this.encountersCollection.getActiveEncounters(guild),
+            ).pipe(
               mergeMap((encounters) => encounters),
               concatMap((encounter) =>
                 this.sheetsService
                   .cleanSheet({
+                    guildId: guild,
                     spreadsheetId,
                     encounter: encounter.id as Encounter,
                   })

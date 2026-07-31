@@ -100,6 +100,7 @@ class SearchCommandHandler implements ISlashCommand {
         // Create a row with the prog point selection menu
         const progPointOptions =
           await this.encountersService.getProgPointsAsOptions(
+            interaction.guildId,
             selectedEncounter,
           );
 
@@ -128,6 +129,7 @@ class SearchCommandHandler implements ISlashCommand {
 
         // Search for signups matching the encounter and prog point
         const searchResults = await this.searchSignups(
+          interaction.guildId,
           selectedEncounter as Encounter,
           selectedProgPoint,
         );
@@ -197,9 +199,16 @@ class SearchCommandHandler implements ISlashCommand {
   /**
    * Search for signups matching the encounter and prog point (at least)
    */
-  private async searchSignups(encounter: Encounter, progPoint: string) {
+  private async searchSignups(
+    guildId: string,
+    encounter: Encounter,
+    progPoint: string,
+  ) {
     // Get all prog points for the encounter
-    const allProgPoints = await this.encountersService.getProgPoints(encounter);
+    const allProgPoints = await this.encountersService.getProgPoints(
+      guildId,
+      encounter,
+    );
 
     // Find the order of the selected prog point
     const selectedOrder = allProgPoints.find((p) => p.id === progPoint)?.order;
@@ -224,7 +233,7 @@ class SearchCommandHandler implements ISlashCommand {
     // Query for signups with any of the eligible prog points
     // Using multiple queries since Firestore has limitations on complex queries
     const signupPromises = eligibleProgPoints.map((progPointId) =>
-      this.signupsCollection.findAll({
+      this.signupsCollection.findAll(guildId, {
         encounter,
         progPoint: progPointId,
       }),

@@ -14,18 +14,25 @@ export class EncountersService {
 
   constructor(private readonly encountersCollection: EncountersCollection) {}
 
-  public getProgPoints(encounterId: string): Promise<ProgPointDocument[]> {
-    return this.encountersCollection.getProgPoints(encounterId);
+  public getProgPoints(
+    guildId: string,
+    encounterId: string,
+  ): Promise<ProgPointDocument[]> {
+    return this.encountersCollection.getProgPoints(guildId, encounterId);
   }
 
-  public getAllProgPoints(encounterId: string): Promise<ProgPointDocument[]> {
-    return this.encountersCollection.getAllProgPoints(encounterId);
+  public getAllProgPoints(
+    guildId: string,
+    encounterId: string,
+  ): Promise<ProgPointDocument[]> {
+    return this.encountersCollection.getAllProgPoints(guildId, encounterId);
   }
 
   public async getProgPointsAsOptions(
+    guildId: string,
     encounterId: string,
   ): Promise<Record<string, ProgPointOption>> {
-    const progPoints = await this.getProgPoints(encounterId);
+    const progPoints = await this.getProgPoints(guildId, encounterId);
 
     return progPoints.reduce(
       (acc, progPoint) => {
@@ -40,12 +47,14 @@ export class EncountersService {
   }
 
   public getEncounter(
+    guildId: string,
     encounterId: string,
   ): Promise<EncounterDocument | undefined> {
-    return this.encountersCollection.getEncounter(encounterId);
+    return this.encountersCollection.getEncounter(guildId, encounterId);
   }
 
   public async addProgPoint(
+    guildId: string,
     encounterId: string,
     progPointData: {
       id: string;
@@ -53,8 +62,10 @@ export class EncountersService {
       partyStatus: PartyStatus;
     },
   ): Promise<void> {
-    const nextOrder =
-      await this.encountersCollection.getNextProgPointOrder(encounterId);
+    const nextOrder = await this.encountersCollection.getNextProgPointOrder(
+      guildId,
+      encounterId,
+    );
 
     const progPoint: ProgPointDocument = {
       ...progPointData,
@@ -62,18 +73,24 @@ export class EncountersService {
       active: true,
     };
 
-    await this.encountersCollection.addProgPoint(encounterId, progPoint);
+    await this.encountersCollection.addProgPoint(
+      guildId,
+      encounterId,
+      progPoint,
+    );
     this.logger.log(
       `Added prog point ${progPointData.id} to encounter ${encounterId}`,
     );
   }
 
   public async updateProgPoint(
+    guildId: string,
     encounterId: string,
     progPointId: string,
     updates: Partial<Pick<ProgPointDocument, 'label' | 'partyStatus'>>,
   ): Promise<void> {
     await this.encountersCollection.updateProgPoint(
+      guildId,
       encounterId,
       progPointId,
       updates,
@@ -84,10 +101,12 @@ export class EncountersService {
   }
 
   public async deactivateProgPoint(
+    guildId: string,
     encounterId: string,
     progPointId: string,
   ): Promise<void> {
     await this.encountersCollection.deactivateProgPoint(
+      guildId,
       encounterId,
       progPointId,
     );
@@ -97,12 +116,16 @@ export class EncountersService {
   }
 
   public async deleteProgPoint(
+    guildId: string,
     encounterId: string,
     progPointId: string,
   ): Promise<void> {
     // Enhanced validation for deletion - check threshold dependencies
-    const encounter = await this.encountersCollection.getEncounter(encounterId);
-    const allProgPoints = await this.getAllProgPoints(encounterId);
+    const encounter = await this.encountersCollection.getEncounter(
+      guildId,
+      encounterId,
+    );
+    const allProgPoints = await this.getAllProgPoints(guildId, encounterId);
     const progPoint = allProgPoints.find((p) => p.id === progPointId);
 
     if (!progPoint) {
@@ -121,19 +144,27 @@ export class EncountersService {
       }
     }
 
-    await this.encountersCollection.deleteProgPoint(encounterId, progPointId);
+    await this.encountersCollection.deleteProgPoint(
+      guildId,
+      encounterId,
+      progPointId,
+    );
     this.logger.log(
       `Permanently deleted prog point ${progPointId} from encounter ${encounterId}`,
     );
   }
 
   public async toggleProgPointActive(
+    guildId: string,
     encounterId: string,
     progPointId: string,
   ): Promise<void> {
     // Check if prog point is used as a threshold before deactivating
-    const encounter = await this.encountersCollection.getEncounter(encounterId);
-    const allProgPoints = await this.getAllProgPoints(encounterId);
+    const encounter = await this.encountersCollection.getEncounter(
+      guildId,
+      encounterId,
+    );
+    const allProgPoints = await this.getAllProgPoints(guildId, encounterId);
     const progPoint = allProgPoints.find((p) => p.id === progPointId);
 
     if (!progPoint) {
@@ -164,6 +195,7 @@ export class EncountersService {
     }
 
     await this.encountersCollection.toggleProgPointActive(
+      guildId,
       encounterId,
       progPointId,
     );
@@ -175,6 +207,7 @@ export class EncountersService {
   }
 
   public async reorderProgPoints(
+    guildId: string,
     encounterId: string,
     progPointIds: string[],
   ): Promise<void> {
@@ -184,6 +217,7 @@ export class EncountersService {
     }));
 
     await this.encountersCollection.reorderProgPoints(
+      guildId,
       encounterId,
       progPointsWithNewOrder,
     );
@@ -191,10 +225,11 @@ export class EncountersService {
   }
 
   public async setProgPartyThreshold(
+    guildId: string,
     encounterId: string,
     progPointId: string,
   ): Promise<void> {
-    await this.encountersCollection.upsertEncounter(encounterId, {
+    await this.encountersCollection.upsertEncounter(guildId, encounterId, {
       progPartyThreshold: progPointId,
     });
     this.logger.log(
@@ -203,10 +238,11 @@ export class EncountersService {
   }
 
   public async setClearPartyThreshold(
+    guildId: string,
     encounterId: string,
     progPointId: string,
   ): Promise<void> {
-    await this.encountersCollection.upsertEncounter(encounterId, {
+    await this.encountersCollection.upsertEncounter(guildId, encounterId, {
       clearPartyThreshold: progPointId,
     });
     this.logger.log(
@@ -215,24 +251,27 @@ export class EncountersService {
   }
 
   public async getProgPartyThreshold(
+    guildId: string,
     encounterId: string,
   ): Promise<string | undefined> {
-    const encounter = await this.getEncounter(encounterId);
+    const encounter = await this.getEncounter(guildId, encounterId);
     return encounter?.progPartyThreshold;
   }
 
   public async getClearPartyThreshold(
+    guildId: string,
     encounterId: string,
   ): Promise<string | undefined> {
-    const encounter = await this.getEncounter(encounterId);
+    const encounter = await this.getEncounter(guildId, encounterId);
     return encounter?.clearPartyThreshold;
   }
 
   public async getPartyStatusForProgPoint(
+    guildId: string,
     encounterId: string,
     progPointId: string,
   ): Promise<PartyStatus> {
-    const progPoints = await this.getProgPoints(encounterId);
+    const progPoints = await this.getProgPoints(guildId, encounterId);
 
     const progPoint = progPoints.find((p) => p.id === progPointId);
     if (!progPoint) {
@@ -253,6 +292,7 @@ export class EncountersService {
   }
 
   public async initializeEncounter(
+    guildId: string,
     encounterId: string,
     encounterData: {
       name: string;
@@ -267,7 +307,7 @@ export class EncountersService {
     },
   ): Promise<void> {
     // Create or update the encounter document
-    await this.encountersCollection.upsertEncounter(encounterId, {
+    await this.encountersCollection.upsertEncounter(guildId, encounterId, {
       name: encounterData.name,
       description: encounterData.description,
       active: true,
@@ -284,7 +324,11 @@ export class EncountersService {
         active: true,
       };
 
-      await this.encountersCollection.addProgPoint(encounterId, progPoint);
+      await this.encountersCollection.addProgPoint(
+        guildId,
+        encounterId,
+        progPoint,
+      );
     }
 
     this.logger.log(

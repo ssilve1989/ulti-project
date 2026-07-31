@@ -8,6 +8,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
+import { guildCollection } from '../firebase.paths.js';
 import type { BlacklistDocument } from '../models/blacklist.model.js';
 
 type BlacklistDocumentKeys = Pick<
@@ -108,9 +109,11 @@ class BlacklistCollection {
   private getCollection(
     guildId: string,
   ): CollectionReference<BlacklistDocument> {
-    return this.firestore.collection(
-      `blacklist/${guildId}/documents`,
-    ) as CollectionReference<BlacklistDocument>;
+    return guildCollection<BlacklistDocument>(
+      this.firestore,
+      guildId,
+      'blacklist',
+    );
   }
 }
 

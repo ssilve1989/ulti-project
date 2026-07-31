@@ -185,7 +185,10 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
     // TODO: If for some reason this throws and there is no signup, we should inform the person performing the interaction
     // that there is no associated signup anymore
-    const signup = await this.repository.findByReviewId(message.id);
+    const signup = await this.repository.findByReviewId(
+      message.guildId,
+      message.id,
+    );
 
     if (signup.reviewedBy) {
       this.logger.log(
@@ -247,8 +250,17 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     settings: SettingsDocument,
   ): Promise<SignupApprovedEvent> {
     const progPoint = await this.confirmProgPoint(signup, message, user);
-    const confirmedSignup = await this.buildConfirmedSignup(signup, progPoint);
-    await this.persistApprovedSignup(confirmedSignup, settings, user);
+    const confirmedSignup = await this.buildConfirmedSignup(
+      message.guildId,
+      signup,
+      progPoint,
+    );
+    await this.persistApprovedSignup(
+      message.guildId,
+      confirmedSignup,
+      settings,
+      user,
+    );
 
     return new SignupApprovedEvent(confirmedSignup, settings, user, message);
   }
@@ -260,15 +272,21 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   ): Promise<string | undefined> {
     const sourceEmbed = getFirstEmbed(message);
 
-    return await this.requestProgPointConfirmation(signup, sourceEmbed, user);
+    return await this.requestProgPointConfirmation(
+      message.guildId,
+      signup,
+      sourceEmbed,
+      user,
+    );
   }
 
   private async buildConfirmedSignup(
+    guildId: string,
     signup: SignupDocument,
     progPoint: string | undefined,
   ): Promise<SignupDocument> {
     const partyStatus = progPoint
-      ? await this.getPartyStatus(signup.encounter, progPoint)
+      ? await this.getPartyStatus(guildId, signup.encounter, progPoint)
       : undefined;
 
     return {
@@ -279,12 +297,14 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async persistApprovedSignup(
+    guildId: string,
     confirmedSignup: SignupDocument,
     settings: SettingsDocument,
     user: User,
   ): Promise<void> {
     if (settings.spreadsheetId) {
       await this.sheetsService.upsertSignup(
+        guildId,
         confirmedSignup,
         settings.spreadsheetId,
       );
@@ -293,13 +313,14 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     const hasCleared = confirmedSignup.partyStatus === PartyStatus.Cleared;
 
     if (hasCleared) {
-      await this.repository.removeSignup({
+      await this.repository.removeSignup(guildId, {
         character: confirmedSignup.character,
         world: confirmedSignup.world,
         encounter: confirmedSignup.encounter,
       });
     } else {
       await this.repository.updateSignupStatus(
+        guildId,
         SignupStatus.APPROVED,
         confirmedSignup,
         user.username,
@@ -314,6 +335,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   ): Promise<SignupDeclinedEvent> {
     // Update signup status immediately (for sequential reaction processing)
     await this.repository.updateSignupStatus(
+      message.guildId,
       SignupStatus.DECLINED,
       signup,
       user.username,
@@ -357,11 +379,12 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
   @SentryTraced()
   private async requestProgPointConfirmation(
+    guildId: string,
     signup: SignupDocument,
     sourceEmbed: Embed,
     user: User,
   ): Promise<string | undefined> {
-    const menu = await this.createProgPointMenu(signup.encounter);
+    const menu = await this.createProgPointMenu(guildId, signup.encounter);
     const embed = buildProgPointConfirmationEmbed(
       sourceEmbed,
       signup.progPoint,
@@ -377,10 +400,12 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async createProgPointMenu(
+    guildId: string,
     encounter: Encounter,
   ): Promise<ActionRowBuilder<StringSelectMenuBuilder>> {
     const menu =
       await this.encountersComponentsService.createProgPointSelectMenu(
+        guildId,
         encounter,
       );
     return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu);
@@ -424,6 +449,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async getPartyStatus(
+    guildId: string,
     encounter: Encounter,
     progPoint: string,
   ): Promise<PartyStatus> {
@@ -432,6 +458,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     }
 
     return await this.encountersService.getPartyStatusForProgPoint(
+      guildId,
       encounter,
       progPoint,
     );

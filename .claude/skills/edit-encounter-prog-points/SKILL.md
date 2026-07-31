@@ -92,17 +92,20 @@ clearPartyThreshold: "P5: Fulgent 1"      # Minimum prog point for a "clear part
 
 ```bash
 # Sync a specific encounter (recommended)
-pnpm cli encounters push FRU
+pnpm cli --guild <guildId> encounters push FRU
 
 # Sync all encounters (use cautiously)
-pnpm cli encounters push
+pnpm cli --guild <guildId> encounters push
 
 # Preview changes without syncing (dry-run)
-pnpm cli encounters push --dry-run
+pnpm cli --guild <guildId> encounters push --dry-run
 
 # Skip confirmation prompts (useful for automation)
-pnpm cli encounters push FRU --yes
+pnpm cli --guild <guildId> encounters push FRU --yes
 ```
+
+Encounters live at `guilds/{guildId}/encounters`, so a push always targets one
+guild. `--guild` can be omitted if `GUILD_ID` is set in the env file.
 
 **What the sync does:**
 1. Validates YAML against schema
@@ -135,7 +138,7 @@ Invalid encounter YAML:
 
 | Mistake | Why It Breaks | Fix |
 |---------|---------------|-----|
-| Edit YAML, don't run sync | Changes never reach Firestore; bot shows old data | Always run `pnpm cli encounters push ENCOUNTER_ID` |
+| Edit YAML, don't run sync | Changes never reach Firestore; bot shows old data | Always run `pnpm cli --guild <guildId> encounters push ENCOUNTER_ID` |
 | Use `Prog Party` in code but `progParty` in YAML | Schema validation fails, sync rejects file | Use exact enum: `Prog Party` with space and capitals |
 | Rename prog point id but forget threshold update | Thresholds reference broken id | If `progPartyThreshold: "P3: Old Name"` and you rename it, update the threshold field too |
 | Delete prog point without checking thresholds | Thresholds may reference deleted id; bot breaks silently | Before deleting, check if `progPartyThreshold` or `clearPartyThreshold` reference it; update thresholds first |
@@ -166,7 +169,7 @@ progPoints:
 
 Then sync:
 ```bash
-pnpm cli encounters push FRU
+pnpm cli --guild <guildId> encounters push FRU
 ```
 
 Output: `Pushed FRU (N prog points)` where N includes your new point.
@@ -189,7 +192,7 @@ progPartyThreshold: "P3: Curtain Call"  # Updated to match new id
 
 Then sync:
 ```bash
-pnpm cli encounters push FRU
+pnpm cli --guild <guildId> encounters push FRU
 ```
 
 ## Red Flags - Stop and Validate
@@ -223,7 +226,7 @@ Have I made the YAML changes?
 ├─ NO: Make them now
 └─ YES: Continue
 
-Am I about to run pnpm cli encounters push?
+Am I about to run pnpm cli --guild <guildId> encounters push?
 ├─ NO: Stop. This step is mandatory.
 └─ YES: Do it now, observe the output
 ```

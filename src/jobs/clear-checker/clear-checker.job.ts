@@ -156,8 +156,8 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
 
   private processGuild(guildId: string) {
     return forkJoin({
-      signups: this.signupsCollection.findAll({}),
-      encounters: this.encountersCollection.getActiveEncounters(),
+      signups: this.signupsCollection.findAll(guildId, {}),
+      encounters: this.encountersCollection.getActiveEncounters(guildId),
     }).pipe(
       mergeMap(({ signups, encounters }) => {
         const encounterIds = new Set<Encounter>(
@@ -268,7 +268,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
           reviewMessageId: signup.reviewMessageId,
           character: signup.character,
         }),
-        this.removeSignupFromDatabase(signup),
+        this.removeSignupFromDatabase(guildId, signup),
       ]);
 
       this.logger.log(
@@ -301,9 +301,9 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
       });
   }
 
-  private removeSignupFromDatabase(signup: SignupDocument) {
+  private removeSignupFromDatabase(guildId: string, signup: SignupDocument) {
     return this.signupsCollection
-      .removeSignup({
+      .removeSignup(guildId, {
         character: signup.character,
         world: signup.world,
         encounter: signup.encounter,
