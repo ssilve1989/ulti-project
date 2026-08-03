@@ -50,7 +50,7 @@
     "cron": "^4.4.0",
     "discord.js": "^14.27.0",
     "firebase-admin": "^14.2.0",
-    "google-auth-library": "^10.9.0",
+    "google-auth-library": "^10.9.1",
     "graphql": "^16.14.2",
     "graphql-request": "^7.4.0",
     "nestjs-pino": "^4.6.1",
