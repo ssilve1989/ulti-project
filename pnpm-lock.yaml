@@ -42,8 +42,8 @@ importers:
         specifier: ^14.2.0
         version: 14.2.0(supports-color@7.2.0)
       google-auth-library:
-        specifier: ^10.9.0
-        version: 10.9.0(supports-color@7.2.0)
+        specifier: ^10.9.1
+        version: 10.9.1(supports-color@7.2.0)
       graphql:
         specifier: ^16.14.2
         version: 16.14.2
@@ -3030,8 +3030,8 @@ packages:
     resolution: {integrity: sha512-7ABviyMOlX5hIVD60YOfHw4/CxOfBhyduaYB+wbFWCWoni4N7SLcV46hrVRktuBbZjFC9ONyqamZITN7q3n32w==}
     engines: {node: '>=18'}
 
-  google-auth-library@10.9.0:
-    resolution: {integrity: sha512-xtvUqvINPhTaBm7nXqlYPcrMHJPm1lCNdSovxnKKhTm+4JsvQ+KGVYJViLoH9Yxu8w+T0Qv5HubzYT9BLrppJg==}
+  google-auth-library@10.9.1:
+    resolution: {integrity: sha512-i1ydyHrqcIxXkWh/uBmVkzCvIuq5yiK2ATndIe5XxKholrG/MTYP9xGYka4sQhrbIAgGjL2B6NOE7rFaiF3fXw==}
     engines: {node: '>=18'}
 
   google-auth-library@9.15.1:
@@ -7505,7 +7505,7 @@ snapshots:
       '@firebase/database-compat': 2.1.4
       '@firebase/database-types': 1.0.20
       fast-deep-equal: 3.1.3
-      google-auth-library: 10.9.0(supports-color@7.2.0)
+      google-auth-library: 10.9.1(supports-color@7.2.0)
       jsonwebtoken: 9.0.3
       jwks-rsa: 4.1.0(supports-color@7.2.0)
     optionalDependencies:
@@ -7705,7 +7705,7 @@ snapshots:
       - supports-color
     optional: true
 
-  google-auth-library@10.9.0(supports-color@7.2.0):
+  google-auth-library@10.9.1(supports-color@7.2.0):
     dependencies:
       base64-js: 1.5.1
       ecdsa-sig-formatter: 1.0.11
@@ -7755,7 +7755,7 @@ snapshots:
     dependencies:
       extend: 3.0.2
       gaxios: 7.1.4(supports-color@7.2.0)
-      google-auth-library: 10.9.0(supports-color@7.2.0)
+      google-auth-library: 10.9.1(supports-color@7.2.0)
       qs: 6.15.2
       url-template: 2.0.8
     transitivePeerDependencies:
