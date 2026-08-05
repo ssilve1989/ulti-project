@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.2](https://github.com/ssilve1989/ulti-project/compare/v2.6.1...v2.6.2) (2026-08-05)
+
+
+### Bug Fixes
+
+* **signup:** clarify name mismatch reduces run selection chances ([ff7aac5](https://github.com/ssilve1989/ulti-project/commit/ff7aac5e6338e6c4829523ef9515054fa49e0096))
+
 ## [2.6.1](https://github.com/ssilve1989/ulti-project/compare/v2.6.0...v2.6.1) (2026-07-28)
 
 
