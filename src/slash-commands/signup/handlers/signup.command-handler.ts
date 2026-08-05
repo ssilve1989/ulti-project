@@ -230,7 +230,7 @@ class SignupCommandHandler implements ISlashCommand {
       // display a warning that their name does not match. it could be a spelling mistake
       embed.addFields({
         name: '⚠️ Name Mismatch Warning',
-        value: `Your Discord display name \`${displayName}\` doesn't match your submitted character name \`${titleCase(character)}\`. Please be sure this is correct before confirming.\n\nNames can be updated by visting the ${channelLink(NAME_UPDATE_CHANNEL_ID)} channel. Please refer to the pinned FAQ for more information.`,
+        value: `Your Discord display name \`${displayName}\` doesn't match your submitted character name \`${titleCase(character)}\`. **This reduces your chances of being picked for a run.** Please be sure this is correct before confirming.\n\nNames can be updated by visiting the ${channelLink(NAME_UPDATE_CHANNEL_ID)} channel. Please refer to the pinned FAQ for more information.`,
         inline: false,
       });
     }
