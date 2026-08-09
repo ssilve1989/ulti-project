@@ -142,14 +142,14 @@ class RemoveSignupCommandHandler implements ISlashCommand {
         .otherwise(() => {
           throw error;
         });
-    } finally {
-      this.eventBus.publish(
-        new RemoveSignupEvent(options, {
-          guildId: interaction.guildId,
-          discordId: interaction.user.id,
-        }),
-      );
     }
+
+    this.eventBus.publish(
+      new RemoveSignupEvent(options, {
+        guildId: interaction.guildId,
+        discordId: interaction.user.id,
+      }),
+    );
   }
 
   private async removeSignup({

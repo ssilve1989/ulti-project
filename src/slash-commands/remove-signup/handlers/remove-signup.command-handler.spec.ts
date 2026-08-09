@@ -102,6 +102,7 @@ describe('Remove Signup Command Handler', () => {
       description: REMOVAL_MISSING_PERMISSIONS,
       hasRole: false,
       settings: DEFAULT_SETTINGS,
+      publish: false,
     },
     {
       case: 'User Not Allowed',
@@ -110,6 +111,7 @@ describe('Remove Signup Command Handler', () => {
       hasRole: false,
       settings: DEFAULT_SETTINGS,
       signup: { discordId: '2' },
+      publish: false,
     },
     {
       case: 'Role Removes Successfully',
