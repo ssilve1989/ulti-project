@@ -5,9 +5,10 @@ import type {
   StringSelectMenuInteraction,
 } from 'discord.js';
 import { MessageFlags } from 'discord.js';
-import { beforeEach, describe, expect, it, type Mocked } from 'vitest';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { EncountersService } from '../../../encounters/encounters.service.js';
+import { ErrorService } from '../../../error/error.service.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { PartyStatus } from '../../../firebase/models/signup.model.js';
 import { createAutoMock } from '../../../test-utils/mock-factory.js';
@@ -24,6 +25,7 @@ describe('SearchCommandHandler', () => {
   let handler: SearchCommandHandler;
   let mockSignupsCollection: Mocked<SignupCollection>;
   let mockEncountersService: Mocked<EncountersService>;
+  let mockErrorService: Mocked<ErrorService>;
   let mockInteraction: Mocked<ChatInputCommandInteraction>;
   let mockCollector: ReturnType<typeof createAutoMock>;
   let mockReplyMessage: ReturnType<typeof createAutoMock>;
@@ -33,6 +35,7 @@ describe('SearchCommandHandler', () => {
       createAutoMock() as unknown as Mocked<SignupCollection>;
     mockEncountersService =
       createAutoMock() as unknown as Mocked<EncountersService>;
+    mockErrorService = createAutoMock() as unknown as Mocked<ErrorService>;
     mockInteraction =
       createAutoMock() as unknown as Mocked<ChatInputCommandInteraction>;
 
@@ -84,6 +87,7 @@ describe('SearchCommandHandler', () => {
         SearchCommandHandler,
         { provide: SignupCollection, useValue: mockSignupsCollection },
         { provide: EncountersService, useValue: mockEncountersService },
+        { provide: ErrorService, useValue: mockErrorService },
       ],
     }).compile();
 
@@ -574,6 +578,38 @@ describe('SearchCommandHandler', () => {
     // Verify the response returns to initial state
     expect(mockButtonInteraction.deferUpdate).toHaveBeenCalled();
     expect(mockButtonInteraction.editReply).toHaveBeenCalled();
+  });
+
+  it('captures component interaction errors instead of rejecting', async () => {
+    let collectorCallback: (i: unknown) => Promise<void>;
+    mockCollector.on.mockImplementation((event: string, callback: unknown) => {
+      if (event === 'collect') {
+        collectorCallback = callback as (i: unknown) => Promise<void>;
+      }
+      return mockCollector;
+    });
+
+    await handler.execute(
+      mockInteraction as unknown as ChatInputCommandInteraction<'cached'>,
+    );
+
+    const mockSelectInteraction =
+      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
+    mockSelectInteraction.customId = SEARCH_ENCOUNTER_SELECTOR_ID;
+    mockSelectInteraction.values = [Encounter.TOP];
+    mockSelectInteraction.isStringSelectMenu.mockReturnValue(true);
+    vi.mocked(mockSelectInteraction.deferUpdate).mockRejectedValueOnce(
+      new Error('Unknown interaction'),
+    );
+
+    // an unhandled rejection here would crash the bot via the
+    // process-level unhandledRejection handler in main.ts
+    await expect(
+      collectorCallback!(mockSelectInteraction),
+    ).resolves.toBeUndefined();
+    expect(mockErrorService.captureError).toHaveBeenCalledWith(
+      expect.any(Error),
+    );
   });
 
   it('should handle collector end event', async () => {

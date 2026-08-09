@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
-import type { ChatInputCommandInteraction } from 'discord.js';
+import type {
+  ChatInputCommandInteraction,
+  MessageComponentInteraction,
+} from 'discord.js';
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -14,6 +17,7 @@ import { characterField } from '../../../common/components/fields.js';
 import { type ApplicationModeConfig, appConfig } from '../../../config/app.js';
 import { Encounter } from '../../../encounters/encounters.consts.js';
 import { EncountersService } from '../../../encounters/encounters.service.js';
+import { ErrorService } from '../../../error/error.service.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import type { SignupDocument } from '../../../firebase/models/signup.model.js';
 import { SlashCommand } from '../../slash-command.decorator.js';
@@ -31,6 +35,14 @@ import {
 } from '../search.components.js';
 import { SearchSlashCommand } from '../search.slash-command.js';
 
+type SearchSessionState = {
+  selectedEncounter: Encounter | null;
+  selectedProgPoint: string | null;
+  resultPages: SignupDocument[][];
+  totalResults: number;
+  currentPage: number;
+};
+
 @Injectable()
 @SlashCommand({ builder: SearchSlashCommand })
 class SearchCommandHandler implements ISlashCommand {
@@ -40,6 +52,7 @@ class SearchCommandHandler implements ISlashCommand {
   constructor(
     private readonly signupsCollection: SignupCollection,
     private readonly encountersService: EncountersService,
+    private readonly errorService: ErrorService,
   ) {
     this.applicationMode = appConfig.APPLICATION_MODE;
   }
@@ -73,110 +86,31 @@ class SearchCommandHandler implements ISlashCommand {
     });
 
     // Keep track of the current state
-    let selectedEncounter: Encounter | null = null;
-    let selectedProgPoint: string | null = null;
-    let resultPages: SignupDocument[][] = [];
-    let totalResults = 0;
-    let currentPage = 0;
+    const state: SearchSessionState = {
+      selectedEncounter: null,
+      selectedProgPoint: null,
+      resultPages: [],
+      totalResults: 0,
+      currentPage: 0,
+    };
 
+    // a rejection escaping this listener would hit the process-level
+    // unhandledRejection handler in main.ts and take the bot down
     collector.on('collect', async (i) => {
-      await i.deferUpdate();
-
-      if (
-        i.customId === SEARCH_ENCOUNTER_SELECTOR_ID &&
-        i.isStringSelectMenu()
-      ) {
-        // User selected an encounter
-        selectedEncounter = i.values[0] as Encounter;
-        selectedProgPoint = null;
-
-        const embed = new EmbedBuilder()
-          .setTitle('Search Signups')
-          .setDescription(
-            `Selected encounter: ${selectedEncounter}\nNow select a prog point`,
-          )
-          .setColor(Colors.Blue);
-
-        // Create a row with the prog point selection menu
-        const progPointOptions =
-          await this.encountersService.getProgPointsAsOptions(
-            selectedEncounter,
-          );
-
-        const progPointSelectMenu = createProgPointSelectMenu(progPointOptions);
-
-        const progPointRow =
-          new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-            progPointSelectMenu,
-          );
-
-        // Create a row with the reset button
-        const resetRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          createResetButton(),
+      try {
+        await i.deferUpdate();
+        await this.handleSearchComponentInteraction(
+          i,
+          state,
+          initialEmbed,
+          initialRow,
         );
-
-        await i.editReply({
-          embeds: [embed],
-          components: [progPointRow, resetRow],
-        });
-      } else if (
-        i.customId === SEARCH_PROG_POINT_SELECT_ID &&
-        i.isStringSelectMenu()
-      ) {
-        // User selected a prog point
-        selectedProgPoint = i.values[0];
-
-        // Search for signups matching the encounter and prog point
-        const searchResults = await this.searchSignups(
-          selectedEncounter as Encounter,
-          selectedProgPoint,
+      } catch (error) {
+        this.logger.error(
+          'Failed to handle search component interaction',
+          error,
         );
-
-        resultPages = this.paginateSignups(searchResults);
-        totalResults = searchResults.length;
-        currentPage = 0;
-
-        await i.editReply(
-          this.buildResultsPage(
-            selectedEncounter as Encounter,
-            selectedProgPoint,
-            totalResults,
-            resultPages,
-            currentPage,
-          ),
-        );
-      } else if (
-        i.customId === SEARCH_PREV_PAGE_BUTTON_ID ||
-        i.customId === SEARCH_NEXT_PAGE_BUTTON_ID
-      ) {
-        // Navigate between result pages
-        currentPage =
-          i.customId === SEARCH_PREV_PAGE_BUTTON_ID
-            ? Math.max(currentPage - 1, 0)
-            : Math.min(currentPage + 1, resultPages.length - 1);
-
-        await i.editReply(
-          this.buildResultsPage(
-            selectedEncounter as Encounter,
-            selectedProgPoint as string,
-            totalResults,
-            resultPages,
-            currentPage,
-          ),
-        );
-      } else if (i.customId === SEARCH_RESET_BUTTON_ID) {
-        // Reset the selections
-        selectedEncounter = null;
-        selectedProgPoint = null;
-        resultPages = [];
-        totalResults = 0;
-        currentPage = 0;
-
-        // Return to initial state
-        await i.editReply({
-          embeds: [initialEmbed],
-          components: [initialRow],
-        });
+        this.errorService.captureError(error);
       }
     });
 
@@ -192,6 +126,107 @@ class SearchCommandHandler implements ISlashCommand {
         this.logger.error('Failed to update expired search message', error);
       }
     });
+  }
+
+  private async handleSearchComponentInteraction(
+    i: MessageComponentInteraction<'cached'>,
+    state: SearchSessionState,
+    initialEmbed: EmbedBuilder,
+    initialRow: ActionRowBuilder<StringSelectMenuBuilder>,
+  ): Promise<void> {
+    if (i.customId === SEARCH_ENCOUNTER_SELECTOR_ID && i.isStringSelectMenu()) {
+      // User selected an encounter
+      state.selectedEncounter = i.values[0] as Encounter;
+      state.selectedProgPoint = null;
+
+      const embed = new EmbedBuilder()
+        .setTitle('Search Signups')
+        .setDescription(
+          `Selected encounter: ${state.selectedEncounter}\nNow select a prog point`,
+        )
+        .setColor(Colors.Blue);
+
+      // Create a row with the prog point selection menu
+      const progPointOptions =
+        await this.encountersService.getProgPointsAsOptions(
+          state.selectedEncounter,
+        );
+
+      const progPointSelectMenu = createProgPointSelectMenu(progPointOptions);
+
+      const progPointRow =
+        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+          progPointSelectMenu,
+        );
+
+      // Create a row with the reset button
+      const resetRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        createResetButton(),
+      );
+
+      await i.editReply({
+        embeds: [embed],
+        components: [progPointRow, resetRow],
+      });
+    } else if (
+      i.customId === SEARCH_PROG_POINT_SELECT_ID &&
+      i.isStringSelectMenu()
+    ) {
+      // User selected a prog point
+      state.selectedProgPoint = i.values[0];
+
+      // Search for signups matching the encounter and prog point
+      const searchResults = await this.searchSignups(
+        state.selectedEncounter as Encounter,
+        state.selectedProgPoint,
+      );
+
+      state.resultPages = this.paginateSignups(searchResults);
+      state.totalResults = searchResults.length;
+      state.currentPage = 0;
+
+      await i.editReply(
+        this.buildResultsPage(
+          state.selectedEncounter as Encounter,
+          state.selectedProgPoint,
+          state.totalResults,
+          state.resultPages,
+          state.currentPage,
+        ),
+      );
+    } else if (
+      i.customId === SEARCH_PREV_PAGE_BUTTON_ID ||
+      i.customId === SEARCH_NEXT_PAGE_BUTTON_ID
+    ) {
+      // Navigate between result pages
+      state.currentPage =
+        i.customId === SEARCH_PREV_PAGE_BUTTON_ID
+          ? Math.max(state.currentPage - 1, 0)
+          : Math.min(state.currentPage + 1, state.resultPages.length - 1);
+
+      await i.editReply(
+        this.buildResultsPage(
+          state.selectedEncounter as Encounter,
+          state.selectedProgPoint as string,
+          state.totalResults,
+          state.resultPages,
+          state.currentPage,
+        ),
+      );
+    } else if (i.customId === SEARCH_RESET_BUTTON_ID) {
+      // Reset the selections
+      state.selectedEncounter = null;
+      state.selectedProgPoint = null;
+      state.resultPages = [];
+      state.totalResults = 0;
+      state.currentPage = 0;
+
+      // Return to initial state
+      await i.editReply({
+        embeds: [initialEmbed],
+        components: [initialRow],
+      });
+    }
   }
 
   /**
