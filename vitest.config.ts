@@ -1,8 +1,9 @@
 import swc from 'unplugin-swc';
-import { defineConfig } from 'vitest/config';
+import { defaultExclude, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    exclude: [...defaultExclude, '.worktrees/**'],
     chaiConfig: {
       truncateThreshold: 80,
     },
