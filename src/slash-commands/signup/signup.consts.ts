@@ -49,11 +49,11 @@ export const SIGNUP_REVIEW_REACTIONS: Record<SignupStatusValues, string> = {
 // this weird strict equality wheras regex just looks at the hostname portion?
 // In any case, we just use regexes for now
 export const PROG_PROOF_HOSTS_WHITELIST = [
-  /fflogs.com/,
-  /streamable.com/,
-  /twitch.tv/,
-  /youtube.com/,
-  /medal\.tv\/games\/ff-xiv-online/,
+  /fflogs.com$/,
+  /streamable.com$/,
+  /twitch.tv$/,
+  /youtube.com$/,
+  /medal\.tv$/,
 ];
 
 // which makes us need to do this mapping for presentation

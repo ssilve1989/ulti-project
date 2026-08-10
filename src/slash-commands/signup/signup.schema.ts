@@ -30,23 +30,22 @@ export const signupSchema = z
     notes: z.string().nullish(),
 
     proofOfProgLink: z
-      .string()
-      .nullish()
-      .transform((val) => {
-        if (!val) return null;
-        if (!val.startsWith('http')) return `https://${val}`;
-        return val;
-      })
-      .pipe(
-        z
-          .url()
-          .refine(
-            (url) =>
-              PROG_PROOF_HOSTS_WHITELIST.some((regex) => regex.test(url)),
-            WHITELIST_VALIDATION_ERROR,
-          )
-          .nullable(),
-      ),
+      .preprocess(
+        (val) => {
+          if (typeof val !== 'string') return val;
+          return /^https?:\/\//i.test(val) ? val : `https://${val}`;
+        },
+        z.union(
+          PROG_PROOF_HOSTS_WHITELIST.map((pattern) =>
+            z.url({
+              hostname: pattern,
+              error: WHITELIST_VALIDATION_ERROR,
+              normalize: true,
+            }),
+          ),
+        ),
+      )
+      .nullable(),
 
     screenshot: z.string().nullish().default(null),
 
