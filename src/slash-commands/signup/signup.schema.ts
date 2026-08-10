@@ -12,6 +12,12 @@ type SignupFields = Omit<
   'status' | 'partyStatus' | 'expiresAt' | 'availability'
 >;
 
+function isWhitelistedHostname(hostname: string): boolean {
+  return PROG_PROOF_HOSTS_WHITELIST.some(
+    (host) => hostname === host || hostname.endsWith(`.${host}`),
+  );
+}
+
 export const signupSchema = z
   .object({
     character: z
@@ -35,15 +41,16 @@ export const signupSchema = z
           if (typeof val !== 'string') return val;
           return /^https?:\/\//i.test(val) ? val : `https://${val}`;
         },
-        z.union(
-          PROG_PROOF_HOSTS_WHITELIST.map((pattern) =>
-            z.url({
-              hostname: pattern,
-              error: WHITELIST_VALIDATION_ERROR,
-              normalize: true,
-            }),
+        z
+          .url({ normalize: true })
+          .pipe(
+            z
+              .string()
+              .refine(
+                (url) => isWhitelistedHostname(new URL(url).hostname),
+                WHITELIST_VALIDATION_ERROR,
+              ),
           ),
-        ),
       )
       .nullable(),
 
