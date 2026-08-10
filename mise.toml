@@ -1,5 +1,5 @@
 [tools]
-pnpm = "11.18.0"
+pnpm = "11.20.0"
 node = "26.7.0"
 docker-cli = "29.7.1"
 yamlfmt = "0.21.0"
