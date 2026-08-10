@@ -45,22 +45,21 @@ export const SIGNUP_REVIEW_REACTIONS: Record<SignupStatusValues, string> = {
   UPDATE_PENDING: ':question:',
 };
 
-// string validation via IsUrl does not work the same as regex. It does like
-// this weird strict equality wheras regex just looks at the hostname portion?
-// In any case, we just use regexes for now
+// Valid proof-of-prog link hosts. Matching is done against the URL hostname
+// and only accepts the exact host or a genuine subdomain (e.g.
+// "www.fflogs.com"). A lookalike domain that merely ends with one of these
+// (e.g. "evilfflogs.com") or a whitelisted host sitting inside a malicious
+// domain (e.g. "fflogs.com.evil.com") is rejected.
 export const PROG_PROOF_HOSTS_WHITELIST = [
-  /fflogs.com$/,
-  /streamable.com$/,
-  /twitch.tv$/,
-  /youtube.com$/,
-  /medal\.tv$/,
+  'fflogs.com',
+  'streamable.com',
+  'twitch.tv',
+  'youtube.com',
+  'medal.tv',
 ];
 
-// which makes us need to do this mapping for presentation
 export const WHITELIST_VALIDATION_ERROR = `A link must be from one of these domains:
-${PROG_PROOF_HOSTS_WHITELIST.map((v) => v.source.replaceAll('/', '')).join(
-  '\n',
-)}`;
+${PROG_PROOF_HOSTS_WHITELIST.join('\n')}`;
 
 // Predefined decline reasons for signup reviews
 export const SIGNUP_DECLINE_REASONS_CONFIG: ReadonlyArray<{
