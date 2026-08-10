@@ -1,9 +1,15 @@
 import { Test } from '@nestjs/testing';
-import type { ChatInputCommandInteraction, Message, Role } from 'discord.js';
+import type {
+  ChatInputCommandInteraction,
+  EmbedBuilder,
+  Message,
+  Role,
+} from 'discord.js';
 import { StringSelectMenuBuilder } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { Encounter } from '../../../../encounters/encounters.consts.js';
 import { EncountersComponentsService } from '../../../../encounters/encounters-components.service.js';
+import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { createAutoMock } from '../../../../test-utils/mock-factory.js';
 import {
@@ -15,6 +21,7 @@ describe('EditProgPointRolesCommandHandler', () => {
   let command: EditProgPointRolesCommandHandler;
   let settingsCollection: Mocked<SettingsCollection>;
   let encountersComponentsService: Mocked<EncountersComponentsService>;
+  let errorService: Mocked<ErrorService>;
 
   const guildId = 'guild-123';
   const roleId = 'role-456';
@@ -56,6 +63,7 @@ describe('EditProgPointRolesCommandHandler', () => {
     command = fixture.get(EditProgPointRolesCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
     encountersComponentsService = fixture.get(EncountersComponentsService);
+    errorService = fixture.get(ErrorService);
 
     encountersComponentsService.createProgPointSelectMenu.mockResolvedValue(
       new StringSelectMenuBuilder()
@@ -118,6 +126,31 @@ describe('EditProgPointRolesCommandHandler', () => {
       customId: PROG_POINT_ROLES_SELECT_ID,
       includeCleared: false,
       multiSelect: true,
+    });
+  });
+
+  it('clears the select menu when handling the interaction throws', async () => {
+    const selection = createSelection(['P1']);
+    const error = new Error('firestore down');
+    const mockErrorEmbed = {} as EmbedBuilder;
+
+    settingsCollection.getSettings.mockRejectedValue(error);
+    errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
+
+    const interaction = createInteraction({
+      role: { id: roleId } as unknown as Role,
+      selection,
+    });
+
+    await command.execute(interaction);
+
+    expect(errorService.handleCommandError).toHaveBeenCalledWith(
+      error,
+      interaction,
+    );
+    expect(interaction.editReply).toHaveBeenLastCalledWith({
+      embeds: [mockErrorEmbed],
+      components: [],
     });
   });
 });
