@@ -90,6 +90,19 @@ describe('SlashCommandsService', () => {
       expect(registry.dispatch).not.toHaveBeenCalled();
     });
 
+    it('does not let a failed restarting reply become an unhandled rejection while draining', async () => {
+      drainService.isDraining = vi.fn().mockReturnValue(true);
+      const handler = getInteractionHandler();
+      const interaction = createInteractionMock({
+        reply: vi.fn().mockRejectedValue(new Error('discord api error')),
+      });
+
+      await expect(handler(interaction)).resolves.not.toThrow();
+
+      expect(interaction.reply).toHaveBeenCalledTimes(1);
+      expect(registry.dispatch).not.toHaveBeenCalled();
+    });
+
     it('dispatches and tracks the command when not draining', async () => {
       drainService.isDraining = vi.fn().mockReturnValue(false);
       const handler = getInteractionHandler();

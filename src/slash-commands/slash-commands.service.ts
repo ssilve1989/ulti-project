@@ -38,7 +38,7 @@ class SlashCommandsService {
   ) {}
 
   listenToCommands() {
-    this.client.on(Events.InteractionCreate, (interaction) => {
+    this.client.on(Events.InteractionCreate, async (interaction) => {
       if (!(interaction.isChatInputCommand() && interaction.inGuild())) {
         return;
       }
@@ -47,9 +47,17 @@ class SlashCommandsService {
         this.logger.debug(
           `rejecting command during shutdown: ${interaction.commandName}`,
         );
-        return safeReply(interaction, {
-          embeds: [this.createRestartingEmbed()],
-        });
+        try {
+          await safeReply(interaction, {
+            embeds: [this.createRestartingEmbed()],
+          });
+        } catch (replyError) {
+          this.logger.debug(
+            { replyError },
+            'failed to send restarting reply during shutdown',
+          );
+        }
+        return;
       }
 
       return this.drainService.track(
