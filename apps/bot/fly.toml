@@ -19,6 +19,7 @@ processes = ['app']
 cpu_kind = 'shared'
 cpus = 1
 memory_mb = 1024
+kill_timeout = '30s'
 
 [env]
 GCP_PROJECT_ID = "ulti-project-407621"
