@@ -88,4 +88,14 @@ describe('SlashCommandDrainService', () => {
 
     await expect(service.onModuleDestroy()).resolves.toBeUndefined();
   });
+
+  it('clears the timeout timer when drain completes before timeout', async () => {
+    const task = Promise.resolve('done');
+    service.track(task);
+
+    await service.onModuleDestroy();
+
+    // Verify no timers are pending (the 25s timeout should have been cleared)
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });
