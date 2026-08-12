@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.6.3](https://github.com/ssilve1989/ulti-project/compare/v2.6.2...v2.6.3) (2026-08-12)
+
+
+### Bug Fixes
+
+* prevent remove-signup event from publishing under all errors ([9276436](https://github.com/ssilve1989/ulti-project/commit/9276436ac4b6646a37a790e19f5a7584b644c428))
+* prevent search collector failures from crashing the app ([7438153](https://github.com/ssilve1989/ulti-project/commit/7438153b6e0557b1aa677ee93a99ef02dc58a519))
+* **signup:** block lookalike prog proof domains and restore validation error ([79651f6](https://github.com/ssilve1989/ulti-project/commit/79651f6d77b806592db49c630c97b3c3615c2d10))
+* **signup:** harden url validation during signups ([67a1c30](https://github.com/ssilve1989/ulti-project/commit/67a1c30e49f561f9a96a9839f923b3f07415d0c0))
+
 ## [2.6.2](https://github.com/ssilve1989/ulti-project/compare/v2.6.1...v2.6.2) (2026-08-05)
 
 
