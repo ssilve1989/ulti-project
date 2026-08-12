@@ -34,13 +34,15 @@ class SlashCommandDrainService implements OnModuleDestroy {
       () => true as const,
     );
 
-    let timerId: ReturnType<typeof setTimeout>;
+    let timerId: ReturnType<typeof setTimeout> | undefined;
     const timedOut = new Promise<false>((resolve) => {
       timerId = setTimeout(() => resolve(false), SHUTDOWN_DRAIN_TIMEOUT_MS);
     });
 
     const finishedInTime = await Promise.race([drained, timedOut]);
-    clearTimeout(timerId!);
+    if (timerId !== undefined) {
+      clearTimeout(timerId);
+    }
 
     if (!finishedInTime) {
       this.logger.warn(
