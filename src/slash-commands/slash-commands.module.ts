@@ -15,6 +15,7 @@ import { RetireModule } from './retire/retire.module.js';
 import { SearchModule } from './search/search.module.js';
 import { SettingsModule } from './settings/settings.module.js';
 import { SignupModule } from './signup/signup.module.js';
+import { SlashCommandDrainService } from './slash-command-drain.service.js';
 import { SlashCommandRegistry } from './slash-command-registry.service.js';
 import { SlashCommandsService } from './slash-commands.service.js';
 import { StatusModule } from './status/status.module.js';
@@ -42,7 +43,11 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     SyncProgRolesModule,
     TurboProgModule,
   ],
-  providers: [SlashCommandsService, SlashCommandRegistry],
+  providers: [
+    SlashCommandsService,
+    SlashCommandRegistry,
+    SlashCommandDrainService,
+  ],
 })
 export class SlashCommandsModule implements OnApplicationBootstrap {
   constructor(private readonly service: SlashCommandsService) {}
