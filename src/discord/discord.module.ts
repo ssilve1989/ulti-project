@@ -5,7 +5,7 @@ import {
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import { ActivityType, Client, Events, Options } from 'discord.js';
+import { Client, Events, Options } from 'discord.js';
 import { first, firstValueFrom, fromEvent } from 'rxjs';
 import { appConfig } from '../config/app.js';
 import { INTENTS, PARTIALS } from './discord.consts.js';
@@ -75,11 +75,6 @@ class DiscordModule implements OnApplicationBootstrap, OnApplicationShutdown {
   constructor(@InjectDiscordClient() private client: Client) {}
 
   onApplicationBootstrap() {
-    this.client.user?.setActivity({
-      type: ActivityType.Listening,
-      name: 'Slashcommands!',
-    });
-
     fromEvent(this.client, Events.CacheSweep).subscribe({
       next: (msg) => this.logger.log(msg),
       error: (err) => {
