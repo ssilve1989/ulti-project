@@ -51,3 +51,4 @@ pr-description.md
 ai-docs/
 .worktrees/
 .opencode
+.claude/journal/
