@@ -12,8 +12,8 @@ importers:
         specifier: ^2.21.0
         version: 2.21.0
       '@googleapis/sheets':
-        specifier: ^13.0.2
-        version: 13.0.2(supports-color@7.2.0)
+        specifier: ^14.0.0
+        version: 14.0.0(supports-color@7.2.0)
       '@nestjs/common':
         specifier: ^11.2.1
         version: 11.2.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
@@ -693,8 +693,8 @@ packages:
     resolution: {integrity: sha512-n2FjE7NAOYyshogdc7KQOl/VZb4sneqPjWouSyia9CMDdMhRX5+RIbqalNmC7LOLzuLAN89VlF2HvG8na9G+zQ==}
     engines: {node: '>=14'}
 
-  '@googleapis/sheets@13.0.2':
-    resolution: {integrity: sha512-b1tBlMcfvNEziM4DZCikLOc9iqSlgCK1e5bMKtNQIADRXr1CQmbkHV3ZBVvTsFsjLErgihqO58Itn/kzCnSZ0A==}
+  '@googleapis/sheets@14.0.0':
+    resolution: {integrity: sha512-fANEl4RQohsPYUWhcLSYyUyE8A8bRfvw/bp8h0t8VDQqTgdQ3itZBkty4nddtdqCAvNDpA+KM66OejVKDd6aFg==}
     engines: {node: '>=12.0.0'}
 
   '@graphql-codegen/add@7.1.0':
@@ -5188,7 +5188,7 @@ snapshots:
       - supports-color
     optional: true
 
-  '@googleapis/sheets@13.0.2(supports-color@7.2.0)':
+  '@googleapis/sheets@14.0.0(supports-color@7.2.0)':
     dependencies:
       googleapis-common: 8.0.1(supports-color@7.2.0)
     transitivePeerDependencies:
