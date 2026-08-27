@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.4](https://github.com/ssilve1989/ulti-project/compare/v2.6.3...v2.6.4) (2026-08-27)
+
+
+### Bug Fixes
+
+* **sheets:** grow sheet by 50 rows on grid-limit error and retry ([#1448](https://github.com/ssilve1989/ulti-project/issues/1448)) ([25714d7](https://github.com/ssilve1989/ulti-project/commit/25714d79991a1394a693fe52c0ef12bb6c4305b7))
+
 ## [2.6.3](https://github.com/ssilve1989/ulti-project/compare/v2.6.2...v2.6.3) (2026-08-12)
 
 
