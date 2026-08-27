@@ -25,6 +25,43 @@ type UpdateSheetProps = {
  */
 type SheetsResponse<T> = { data: T; status: number };
 
+const GRID_LIMIT_EXCEEDED_PATTERN = /exceeds grid limits/i;
+const ROWS_TO_ADD_ON_GRID_LIMIT = 50;
+
+function isGridLimitExceededError(error: unknown): boolean {
+  return (
+    Error.isError(error) && GRID_LIMIT_EXCEEDED_PATTERN.test(error.message)
+  );
+}
+
+/**
+ * `values.update`/`values.append` reject any range past the sheet's current
+ * row count instead of growing it, so a full signup sheet throws
+ * "exceeds grid limits" rather than writing the row.
+ */
+async function growSheetRows(
+  client: sheets_v4.Sheets,
+  spreadsheetId: string,
+  range: string,
+): Promise<void> {
+  const sheetName = range.split('!')[0];
+  const sheetId = await getSheetIdByName(client, spreadsheetId, sheetName);
+
+  if (sheetId == null) {
+    return;
+  }
+
+  await batchUpdate(client, spreadsheetId, [
+    {
+      appendDimension: {
+        sheetId,
+        dimension: 'ROWS',
+        length: ROWS_TO_ADD_ON_GRID_LIMIT,
+      },
+    },
+  ]);
+}
+
 /**
  * Gets the row values of a given sheet and range
  * @param client
@@ -52,7 +89,7 @@ export async function getSheetValues(
  * @param props
  * @returns
  */
-export function updateSheet(
+export async function updateSheet(
   client: sheets_v4.Sheets,
   { spreadsheetId, type, values, range }: UpdateSheetProps,
   options?: MethodOptions,
@@ -71,9 +108,21 @@ export function updateSheet(
     },
   };
 
-  return type === 'update'
-    ? client.spreadsheets.values.update(payload, options)
-    : client.spreadsheets.values.append(payload, options);
+  const sendRequest = () =>
+    type === 'update'
+      ? client.spreadsheets.values.update(payload, options)
+      : client.spreadsheets.values.append(payload, options);
+
+  try {
+    return await sendRequest();
+  } catch (error) {
+    if (!isGridLimitExceededError(error)) {
+      throw error;
+    }
+
+    await growSheetRows(client, spreadsheetId, range);
+    return sendRequest();
+  }
 }
 
 export function batchUpdate(
