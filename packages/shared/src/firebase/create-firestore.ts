@@ -13,13 +13,15 @@ export interface CreateFirestoreConfig {
 
 export function createFirestore(config: CreateFirestoreConfig): Firestore {
   const app: App = initializeApp(
-    {
-      credential: cert({
-        clientEmail: config.clientEmail,
-        privateKey: config.privateKey,
-        projectId: config.projectId,
-      }),
-    },
+    process.env.FIRESTORE_EMULATOR_HOST
+      ? { projectId: config.projectId }
+      : {
+          credential: cert({
+            clientEmail: config.clientEmail,
+            privateKey: config.privateKey,
+            projectId: config.projectId,
+          }),
+        },
     config.appName ?? '[DEFAULT]',
   );
 
