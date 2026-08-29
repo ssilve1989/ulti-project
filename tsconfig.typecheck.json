@@ -11,7 +11,8 @@
   "include": [
     "apps/bot/codegen.ts",
     "vitest.config.ts",
-    "apps/bot/instrumentation.ts"
+    "apps/bot/instrumentation.ts",
+    "scripts/seed-emulator.ts"
   ],
   "compilerOptions": {
     "noEmit": true,

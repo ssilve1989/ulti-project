@@ -31,6 +31,7 @@
     "test:ci": "CI=true vitest run --coverage",
     "test:cov": "vitest run --coverage",
     "test:ui": "vitest --ui",
+    "seed:emulator": "dotenvx run -fk .env.keys -f apps/bot/.env.development -f .env -- tsx scripts/seed-emulator.ts",
     "emulators": "firebase emulators:start --import=./.emulator-data --export-on-exit=./.emulator-data"
   },
   "devDependencies": {
@@ -40,9 +41,11 @@
     "@commitlint/cz-commitlint": "catalog:",
     "@dotenvx/dotenvx": "catalog:",
     "@types/node": "catalog:",
+    "@ulti-project/shared": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/ui": "catalog:",
     "commitizen": "catalog:",
+    "firebase-admin": "catalog:",
     "firebase-tools": "catalog:",
     "knip": "catalog:",
     "lefthook": "catalog:",
