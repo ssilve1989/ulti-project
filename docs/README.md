@@ -21,6 +21,7 @@ The bot and CLI run against a local Firestore emulator, not a shared cloud proje
 
 - A local Java runtime (the Firestore emulator is JVM-based)
 - `.env.development` with `FIRESTORE_EMULATOR_HOST=localhost:8080` and `GCP_PROJECT_ID=ulti-project-emulator` set (matches `.firebaserc`). `GCP_ACCOUNT_EMAIL`/`GCP_PRIVATE_KEY` can be any non-empty placeholder value — they're ignored once `FIRESTORE_EMULATOR_HOST` is set. Leave `FIRESTORE_DATABASE_ID` unset.
+- `pnpm build` (or `pnpm build:all`) run at least once — `pnpm cli` runs the compiled `dist/cli/main.js`, which doesn't exist on a fresh clone.
 
 Each time you start fresh (or after clearing `.emulator-data/`):
 
@@ -32,6 +33,8 @@ pnpm start:dev                    # or: pnpm cli
 ```
 
 Emulator data persists across restarts in `.emulator-data/` (gitignored). Inspect it live at the Emulator UI: http://localhost:4000
+
+If `pnpm cli encounters push --yes`, `pnpm seed:emulator`, or the bot itself hangs with no output or error, check that `pnpm emulators` is actually running first — the Admin SDK doesn't fail fast against an unreachable `FIRESTORE_EMULATOR_HOST`, it retries with backoff, so a missing emulator looks like a silent hang rather than a clear connection error.
 
 ## What the Bot Does
 
