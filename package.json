@@ -31,7 +31,7 @@
     "test:ci": "CI=true vitest run --coverage",
     "test:cov": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "seed:emulator": "dotenvx run -fk .env.keys -f apps/bot/.env.development -f .env -- tsx scripts/seed-emulator.ts",
+    "seed:emulator": "dotenvx run -fk .env.keys -f apps/bot/.env.development -f .env -- node scripts/seed-emulator.ts",
     "emulators": "firebase emulators:start --import=./.emulator-data --export-on-exit=./.emulator-data"
   },
   "devDependencies": {
@@ -49,7 +49,6 @@
     "firebase-tools": "catalog:",
     "knip": "catalog:",
     "lefthook": "catalog:",
-    "tsx": "^4.23.12",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"

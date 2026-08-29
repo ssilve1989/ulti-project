@@ -1,3 +1,6 @@
+// Runs as plain `node scripts/seed-emulator.ts` (no ts-node/tsx). Node's
+// native TS support strips this file and executes @ulti-project/shared
+// straight from its TS source, so no prior build is required.
 import {
   createFirestore,
   Encounter,
