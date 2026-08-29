@@ -1,5 +1,5 @@
 ---
-to: src/slash-commands/<%=name%>/<%=name%>.slash-command.ts
+to: apps/bot/src/slash-commands/<%=name%>/<%=name%>.slash-command.ts
 ---
 import { SlashCommandBuilder } from 'discord.js';
 

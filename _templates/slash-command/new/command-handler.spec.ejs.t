@@ -1,5 +1,5 @@
 ---
-to: src/slash-commands/<%=name%>/handlers/<%=name%>.command-handler.spec.ts
+to: apps/bot/src/slash-commands/<%=name%>/handlers/<%=name%>.command-handler.spec.ts
 ---
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

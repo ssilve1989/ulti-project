@@ -1,22 +1,20 @@
 {
-  // Typecheck entrypoint: `tsc -b tsconfig.typecheck.json` builds the app and
-  // CLI projects (emitting dist/) and type-checks everything they don't cover:
-  // spec files and root-level config scripts. Deliberately NOT composite —
-  // build mode fully checks a non-composite noEmit root without emitting for it.
+  // Orchestration typecheck root: `tsc -b tsconfig.typecheck.json` builds the
+  // bot app project (and @ulti-project/shared via the reference graph) and
+  // type-checks root-level config scripts. Spec/unit-checks live in each
+  // package's own build:check (bot: apps/bot/tsconfig.typecheck.json, cli:
+  // apps/cli/tsconfig.json). Deliberately NOT composite — build mode fully
+  // checks a non-composite noEmit root without emitting for it.
+  "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "./tsconfig.json",
   "exclude": ["node_modules"],
-  "include": [
-    "src/**/*.spec.ts",
-    "codegen.ts",
-    "instrumentation.ts",
-    "vitest.config.ts"
-  ],
+  "include": ["codegen.ts", "vitest.config.ts", "apps/bot/instrumentation.ts"],
   "compilerOptions": {
     "noEmit": true,
-    "tsBuildInfoFile": "./dist/tsconfig.typecheck.tsbuildinfo"
+    "tsBuildInfoFile": "dist/tsconfig.typecheck.tsbuildinfo"
   },
   "references": [
-    { "path": "./tsconfig.build.json" },
-    { "path": "./tsconfig.cli.json" }
+    { "path": "./apps/bot/tsconfig.build.json" },
+    { "path": "./packages/shared/tsconfig.json" }
   ]
 }

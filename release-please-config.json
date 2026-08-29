@@ -1,0 +1,7 @@
+{
+  "packages": {
+    "apps/bot": {
+      "release-type": "node"
+    }
+  }
+}

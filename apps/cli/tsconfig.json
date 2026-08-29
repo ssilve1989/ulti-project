@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // Native-TS package: runs directly from source via `node apps/cli/src/main.ts`
+  // (no emit). Standalone graph root for `tsc -b`; references @ulti-project/shared
+  // so it type-checks against the shared d.ts output.
+  "extends": "../../tsconfig.json",
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "noEmit": true,
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
+  },
+  "references": [{ "path": "../../packages/shared" }]
+}

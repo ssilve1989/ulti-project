@@ -10,11 +10,11 @@ const config: CodegenConfig = {
       experimentalFragmentVariables: true,
     },
   },
-  documents: ['src/**/*.graphql', 'src/fflogs/queries.ts'],
+  documents: ['apps/bot/src/**/*.graphql', 'apps/bot/src/fflogs/queries.ts'],
   ignoreNoDocuments: true,
   emitLegacyCommonJSImports: false,
   generates: {
-    './src/fflogs/graphql/schema.graphql': {
+    './apps/bot/src/fflogs/graphql/schema.graphql': {
       plugins: ['schema-ast'],
       config: {
         includeDirectives: true,
@@ -22,7 +22,7 @@ const config: CodegenConfig = {
       },
     },
 
-    './src/fflogs/graphql/sdk.ts': {
+    './apps/bot/src/fflogs/graphql/sdk.ts': {
       plugins: [
         'typescript',
         'typescript-operations',

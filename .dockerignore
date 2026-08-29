@@ -1,18 +1,20 @@
 # compiled output
-/dist
-/node_modules
+**/dist
+**/node_modules
 
 # Git
 .git
 
-# CLI tooling (dev-only, not part of the application container)
-src/cli
+# CLI tooling (dev-only, not part of the application container) — but its
+# manifest is required for the workspace install
+apps/cli/*
+!apps/cli/package.json
 
 # Test files
 /coverage
 /.nyc_output
 test
-src/**/*.spec.ts
+**/*.spec.ts
 
 # Logs
 logs
@@ -41,7 +43,7 @@ fly.toml
 vitest.config.ts
 codegen.ts
 schema.graphql
-tsconfig.app.json
+.graphqlrc.yml
 
 # IDEs and editors
 /.idea
