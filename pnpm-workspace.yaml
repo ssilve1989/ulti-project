@@ -16,6 +16,7 @@ allowBuilds:
   nestjs-pino: true
   protobufjs: false
   "@sentry/node-cpu-profiler": true
+  re2: false
 minimumReleaseAge: 7200
 minimumReleaseAgeIgnoreMissingTime: true
 minimumReleaseAgeExclude:
