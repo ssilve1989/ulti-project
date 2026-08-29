@@ -119,6 +119,12 @@ progPoints:
 - **New instance bootstrap** — push a full directory of YAML files to seed a fresh Firestore
 - **Dry-run safety** — validate changes before committing them to Firestore
 
+### Design notes
+
+**No NestJS** — the CLI bootstraps its own Firebase connection via `createFirestore()` directly, avoiding NestJS startup overhead (~1–2s) and not loading the Discord bot's dependency graph (Discord.js, Sentry, etc.).
+
+**String editing over AST** — source-file edits to `encounters.consts.ts` and `fflogs.consts.ts` use targeted string manipulation rather than an AST parser (e.g. `ts-morph`). The target files are small and consistently formatted; pulling in a ~15MB parser is not worth the dependency cost.
+
 ### What still requires a code change
 
 - Adding an encounter to the `Encounter` enum (for Discord slash command choices)
