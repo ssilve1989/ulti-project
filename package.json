@@ -30,7 +30,8 @@
     "test": "vitest",
     "test:ci": "CI=true vitest run --coverage",
     "test:cov": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "emulators": "firebase emulators:start --import=./.emulator-data --export-on-exit=./.emulator-data"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
@@ -42,8 +43,10 @@
     "@vitest/coverage-v8": "catalog:",
     "@vitest/ui": "catalog:",
     "commitizen": "catalog:",
+    "firebase-tools": "catalog:",
     "knip": "catalog:",
     "lefthook": "catalog:",
+    "tsx": "^4.23.12",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
