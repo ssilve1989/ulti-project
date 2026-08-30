@@ -15,12 +15,23 @@ directive @include(
 ) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
 
 """
+Indicates that an Input Object is a OneOf Input Object (and thus requires exactly one of its fields be provided).
+"""
+directive @oneOf on INPUT_OBJECT
+
+"""
 Directs the executor to skip this field or fragment when the `if` argument is true.
 """
 directive @skip(
   """Skipped when true."""
   if: Boolean!
 ) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+"""Exposes a URL that specifies the behavior of this scalar."""
+directive @specifiedBy(
+  """The URL that specifies the behavior of this scalar."""
+  url: String!
+) on SCALAR
 
 """
 A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.
@@ -33,6 +44,8 @@ type __Directive {
   isRepeatable: Boolean!
   locations: [__DirectiveLocation!]!
   args(includeDeprecated: Boolean = false): [__InputValue!]!
+  isDeprecated: Boolean!
+  deprecationReason: String
 }
 
 """
@@ -95,6 +108,9 @@ enum __DirectiveLocation {
 
   """Location adjacent to an input object field definition."""
   INPUT_FIELD_DEFINITION
+
+  """Location adjacent to a directive definition."""
+  DIRECTIVE_DEFINITION
 }
 
 """
@@ -158,7 +174,7 @@ type __Schema {
   subscriptionType: __Type
 
   """A list of all directives supported by this server."""
-  directives: [__Directive!]!
+  directives(includeDeprecated: Boolean! = false): [__Directive!]!
 }
 
 """
@@ -241,14 +257,14 @@ type ArchonViewModels {
   cmsNavigation(currentSlug: String): JSON
   contactPage: JSON
   downloadPage: JSON
-  fightPage(categorySlug: String!, cutoffSlug: Int, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, pullSlug: String, reportSlug: String!, throughputSlug: String, userId: Int): JSON
-  fightPageContent(categorySlug: String!, cutoffSlug: Int, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, pullSlug: String, reportSlug: String!, sectionComponentNames: [String!]!, throughputSlug: String, userId: Int): JSON
+  fightPage(categorySlug: String!, cutoffSlug: Int, damageFilterSlug: String, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, pullSlug: String, reportSlug: String!, throughputSlug: String, userId: Int): JSON
+  fightPageContent(categorySlug: String!, cutoffSlug: Int, damageFilterSlug: String, deathSlug: Int = null, fightSlug: String!, gameSlug: String!, phaseSlug: String, playerSlug: String, pullSlug: String, reportSlug: String!, sectionComponentNames: [String!]!, throughputSlug: String, userId: Int): JSON
   footer: JSON
   game(buildsZoneTypeSlug: String = null): JSON
   gamePage: JSON
   gameSlugs: JSON
   googleAnalytics: JSON
-  header(gameSlug: String): JSON
+  header(gameSlug: String, locale: String): JSON
   headerTitle: JSON
   indexPage: JSON
   pageOfArticlePreviews(articleCategorySlug: String, pageNumber: Int, siteName: String): JSON
@@ -261,6 +277,7 @@ type ArchonViewModels {
   translations(keys: [String]): JSON
   user: JSON
   userFromDesktopClientToken(desktopClientToken: String!): JSON
+  videoTermsOfServicePage: JSON
 }
 
 """
@@ -1350,6 +1367,8 @@ type Guild {
   ): CharacterPagination!
   """The name of the guild."""
   name: String!
+  """The owning parent guild for this static, if one exists."""
+  parentGuild: Guild
   """The server that the guild belongs to."""
   server: Server!
   """The statics that belong to this Free Company."""
@@ -1614,7 +1633,7 @@ type PhaseTransition {
   """
   The report-relative timestamp of the transition into the phase. The phase ends at the beginning of the next phase, or at the end of the fight.
   """
-  startTime: Int!
+  startTime: Float!
 }
 
 """Attendance for a specific player on a specific raid night."""
@@ -2397,6 +2416,21 @@ type ReportComponentMutation {
     contents: String!
     key: String!
   ): Boolean
+  """
+  Create or update a report component. If a key is provided and a matching component owned by the current user exists, all fields are updated. If the key is not provided, or if it is provided but no matching component exists, a new component is created. If the provided key belongs to another user, an error is returned. Returns the KEY of the component.
+  """
+  upsert(
+    """The script contents of the component, in JavaScript."""
+    contents: String!
+    """
+    The key of an existing component to update. If omitted, a new component is created with an auto-generated key.
+    """
+    key: String
+    """A human-readable name for the component."""
+    name: String!
+    """Whether the component is protected from deletion."""
+    protected: Boolean!
+  ): String!
 }
 
 """

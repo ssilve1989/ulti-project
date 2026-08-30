@@ -1,12 +1,11 @@
-import type { GraphQLClient, RequestOptions } from 'graphql-request';
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+import { type GraphQLClient, type RequestOptions } from 'graphql-request';
 import type { DocumentNode } from 'graphql';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
-export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
-export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
-export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
-export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 type GraphQLClientRequestHeaders = RequestOptions['requestHeaders'];
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -64,6 +63,7 @@ export type ArchonViewModels = {
   readonly translations: Maybe<Scalars['JSON']['output']>;
   readonly user: Maybe<Scalars['JSON']['output']>;
   readonly userFromDesktopClientToken: Maybe<Scalars['JSON']['output']>;
+  readonly videoTermsOfServicePage: Maybe<Scalars['JSON']['output']>;
 };
 
 
@@ -190,6 +190,7 @@ export type ArchonViewModelsCmsNavigationArgs = {
 export type ArchonViewModelsFightPageArgs = {
   categorySlug: Scalars['String']['input'];
   cutoffSlug: InputMaybe<Scalars['Int']['input']>;
+  damageFilterSlug: InputMaybe<Scalars['String']['input']>;
   deathSlug?: InputMaybe<Scalars['Int']['input']>;
   fightSlug: Scalars['String']['input'];
   gameSlug: Scalars['String']['input'];
@@ -205,6 +206,7 @@ export type ArchonViewModelsFightPageArgs = {
 export type ArchonViewModelsFightPageContentArgs = {
   categorySlug: Scalars['String']['input'];
   cutoffSlug: InputMaybe<Scalars['Int']['input']>;
+  damageFilterSlug: InputMaybe<Scalars['String']['input']>;
   deathSlug?: InputMaybe<Scalars['Int']['input']>;
   fightSlug: Scalars['String']['input'];
   gameSlug: Scalars['String']['input'];
@@ -225,6 +227,7 @@ export type ArchonViewModelsGameArgs = {
 
 export type ArchonViewModelsHeaderArgs = {
   gameSlug: InputMaybe<Scalars['String']['input']>;
+  locale: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -1003,6 +1006,8 @@ export type Guild = {
   readonly members: CharacterPagination;
   /** The name of the guild. */
   readonly name: Scalars['String']['output'];
+  /** The owning parent guild for this static, if one exists. */
+  readonly parentGuild: Maybe<Guild>;
   /** The server that the guild belongs to. */
   readonly server: Server;
   /** The statics that belong to this Free Company. */
@@ -1257,7 +1262,7 @@ export type PhaseTransition = {
   /** The 1-indexed id of the phase. Phase IDs are absolute within a fight: phases with the same ID correspond to the same semantic phase. */
   readonly id: Scalars['Int']['output'];
   /** The report-relative timestamp of the transition into the phase. The phase ends at the beginning of the next phase, or at the end of the fight. */
-  readonly startTime: Scalars['Int']['output'];
+  readonly startTime: Scalars['Float']['output'];
 };
 
 /** Attendance for a specific player on a specific raid night. */
@@ -1700,6 +1705,8 @@ export type ReportComponentMutation = {
   readonly setDeletionProtected: Maybe<Scalars['Boolean']['output']>;
   /** Update the script contents of a report component, replacing the old contents. True is returned on success, errors are thrown on failure. */
   readonly updateContents: Maybe<Scalars['Boolean']['output']>;
+  /** Create or update a report component. If a key is provided and a matching component owned by the current user exists, all fields are updated. If the key is not provided, or if it is provided but no matching component exists, a new component is created. If the provided key belongs to another user, an error is returned. Returns the KEY of the component. */
+  readonly upsert: Scalars['String']['output'];
 };
 
 
@@ -1723,6 +1730,14 @@ export type ReportComponentMutationSetDeletionProtectedArgs = {
 export type ReportComponentMutationUpdateContentsArgs = {
   contents: Scalars['String']['input'];
   key: Scalars['String']['input'];
+};
+
+
+export type ReportComponentMutationUpsertArgs = {
+  contents: Scalars['String']['input'];
+  key: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  protected: Scalars['Boolean']['input'];
 };
 
 /** Filter input events of a report component to a range of time within a report. */
@@ -2290,26 +2305,26 @@ export type Zone = {
 };
 
 export type CharacterDataQueryVariables = Exact<{
-  name: InputMaybe<Scalars['String']['input']>;
-  server: InputMaybe<Scalars['String']['input']>;
-  region: InputMaybe<Scalars['String']['input']>;
+  name: string | null | undefined;
+  server: string | null | undefined;
+  region: string | null | undefined;
 }>;
 
 
-export type CharacterDataQuery = { readonly __typename: 'Query', readonly characterData: { readonly __typename: 'CharacterData', readonly character: { readonly __typename: 'Character', readonly hidden: boolean, readonly id: number, readonly lodestoneID: number, readonly name: string, readonly zoneRankings: unknown | null } | null } | null };
+export type CharacterDataQuery = { readonly __typename: 'Query', readonly characterData: { readonly __typename: 'CharacterData', readonly character: { readonly __typename: 'Character', readonly hidden: boolean, readonly id: number, readonly lodestoneID: number, readonly name: string, readonly zoneRankings: unknown } | null } | null };
 
 export type EncounterRankingsQueryVariables = Exact<{
-  name: InputMaybe<Scalars['String']['input']>;
-  server: InputMaybe<Scalars['String']['input']>;
-  region: InputMaybe<Scalars['String']['input']>;
-  encounterID: InputMaybe<Scalars['Int']['input']>;
+  name: string | null | undefined;
+  server: string | null | undefined;
+  region: string | null | undefined;
+  encounterID: number | null | undefined;
 }>;
 
 
-export type EncounterRankingsQuery = { readonly __typename: 'Query', readonly characterData: { readonly __typename: 'CharacterData', readonly character: { readonly __typename: 'Character', readonly id: number, readonly name: string, readonly encounterRankings: unknown | null } | null } | null };
+export type EncounterRankingsQuery = { readonly __typename: 'Query', readonly characterData: { readonly __typename: 'CharacterData', readonly character: { readonly __typename: 'Character', readonly id: number, readonly name: string, readonly encounterRankings: unknown } | null } | null };
 
 export type ReportDataQueryVariables = Exact<{
-  code: Scalars['String']['input'];
+  code: string;
 }>;
 
 
