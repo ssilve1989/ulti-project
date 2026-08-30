@@ -4,3 +4,7 @@ node = "26.7.0"
 docker-cli = "29.7.2"
 yamlfmt = "0.21.0"
 flyctl = "latest"
+
+[tasks."deploy:bot"]
+description = "Deploy the bot to Fly.io"
+run = "flyctl deploy --remote-only --ha=false --config ./apps/bot/fly.toml --dockerfile ./apps/bot/Dockerfile"
