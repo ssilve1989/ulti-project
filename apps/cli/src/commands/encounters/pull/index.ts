@@ -11,11 +11,12 @@ import {
   getAllActiveEncounters,
   getAllProgPoints,
 } from '../../../utils/firestore.ts';
+import { REPO_ROOT } from '../../../utils/repo-root.ts';
 
 async function runPull(db: Firestore): Promise<void> {
   clack.intro('Pull Encounters');
 
-  const dirPath = join(process.cwd(), 'data', 'encounters');
+  const dirPath = join(REPO_ROOT, 'data', 'encounters');
 
   const fetchSpinner = clack.spinner();
   fetchSpinner.start('Fetching active encounters...');

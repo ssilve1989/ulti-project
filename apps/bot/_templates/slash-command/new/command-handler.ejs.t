@@ -1,5 +1,5 @@
 ---
-to: apps/bot/src/slash-commands/<%=name%>/handlers/<%=name%>.command-handler.ts
+to: src/slash-commands/<%=name%>/handlers/<%=name%>.command-handler.ts
 ---
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';

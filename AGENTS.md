@@ -17,7 +17,10 @@ pnpm workspace: `apps/*` (deployable applications) + `packages/*` (libraries).
 - **Build**: `pnpm build` builds the bot (and `@ulti-project/shared` via the reference graph). `pnpm build:all` builds every package (`pnpm -r --if-present run build`). The CLI runs straight from source — there is no CLI build step.
 - **Run the CLI**: `pnpm cli` / `pnpm cli:prod` (no build needed).
 - **Auto-fix lint/format**: No npm script wraps `--fix`. Run `biome check --fix .` directly. `pnpm check` and `pnpm lint` only report errors.
-- **New slash command**: Use `pnpm g:slash-command` (hygen generator, templates in `_templates/slash-command/`). Don't copy-paste files manually.
+- **New slash command**: Use `pnpm g:slash-command` (hygen generator, templates in `apps/bot/_templates/slash-command/`). Don't copy-paste files manually.
+- **App scripts run from the package dir, not the repo root**: root scripts delegate via `pnpm --filter` shims, so `process.cwd()` inside a script is the package dir. The CLI never uses `process.cwd()` for repo-relative paths — use `REPO_ROOT` (`apps/cli/src/utils/repo-root.ts`).
+- **Env files are co-located per app**: copies of `.env`, `.env.development`, `.env.production` (gitignored) live in `apps/bot/` and `apps/cli/` next to the scripts that read them. Root `start*`/`cli*` scripts are just `pnpm --filter` shims and run those copies.
+- **Deploy config is in `apps/bot/`**: `Dockerfile`, `fly.toml`, `codegen.ts`, `.graphqlrc.yml`, `schema.graphql`. Fly/Docker builds still run from the repo root (`flyctl deploy --config ./apps/bot/fly.toml --dockerfile ./apps/bot/Dockerfile`, `docker build -f apps/bot/Dockerfile .`).
 
 ## Workflow
 

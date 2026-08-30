@@ -1,5 +1,5 @@
 ---
-to: apps/bot/src/slash-commands/<%=name%>/<%=name%>.module.ts
+to: src/slash-commands/<%=name%>/<%=name%>.module.ts
 ---
 import { Module } from '@nestjs/common';
 import { ErrorModule } from '../../error/error.module.js';

@@ -14,6 +14,7 @@ import {
   replaceProgPoints,
   upsertEncounter,
 } from '../../../utils/firestore.ts';
+import { REPO_ROOT } from '../../../utils/repo-root.ts';
 
 interface PushCommandOptions {
   dryRun?: boolean;
@@ -21,7 +22,7 @@ interface PushCommandOptions {
 }
 
 function getEncounterYamlPaths(encounterId?: string): string[] {
-  const dir = join(process.cwd(), 'data', 'encounters');
+  const dir = join(REPO_ROOT, 'data', 'encounters');
   if (encounterId) {
     return [join(dir, `${encounterId}.yaml`)];
   }

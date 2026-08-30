@@ -8,7 +8,11 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "./tsconfig.json",
   "exclude": ["node_modules"],
-  "include": ["codegen.ts", "vitest.config.ts", "apps/bot/instrumentation.ts"],
+  "include": [
+    "apps/bot/codegen.ts",
+    "vitest.config.ts",
+    "apps/bot/instrumentation.ts"
+  ],
   "compilerOptions": {
     "noEmit": true,
     "tsBuildInfoFile": "dist/tsconfig.typecheck.tsbuildinfo"

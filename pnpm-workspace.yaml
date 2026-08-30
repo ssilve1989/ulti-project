@@ -1,7 +1,6 @@
 packages:
   - "apps/*"
   - "packages/*"
-
 strictDepBuilds: false
 allowBuilds:
   "@biomejs/biome": true
