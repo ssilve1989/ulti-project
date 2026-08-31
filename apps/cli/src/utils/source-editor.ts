@@ -1,13 +1,17 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { REPO_ROOT } from './repo-root.ts';
 
-// Resolve paths relative to the project root (three levels up from src/cli/utils/)
-const ROOT = resolve(import.meta.dirname, '..', '..', '..');
+// Post-migration these consts live in different workspace packages: the
+// Encounter consts are shared, the fflogs consts belong to the bot.
 const ENCOUNTERS_CONSTS_PATH = resolve(
-  ROOT,
-  'src/encounters/encounters.consts.ts',
+  REPO_ROOT,
+  'packages/shared/src/encounters/encounters.consts.ts',
 );
-const FFLOGS_CONSTS_PATH = resolve(ROOT, 'src/fflogs/fflogs.consts.ts');
+const FFLOGS_CONSTS_PATH = resolve(
+  REPO_ROOT,
+  'apps/bot/src/fflogs/fflogs.consts.ts',
+);
 
 export interface SourceChange {
   file: string;
@@ -52,24 +56,24 @@ export function detectCurrentUltimates(source: string): string[] {
 
 // ─── Mutators (pure: take source string, return updated string) ──────────────
 
-/** Appends `  KEY = 'VALUE',` inside the Encounter enum block. */
-export function addToEncounterEnum(
+/** Appends `  KEY: 'VALUE',` inside the `Encounter` const object. */
+export function addToEncounterConst(
   source: string,
   key: string,
   value: string,
 ): string {
-  const marker = 'export enum Encounter {';
+  const marker = 'export const Encounter = {';
   const startIdx = source.indexOf(marker);
   if (startIdx === -1)
-    throw new Error('Could not find Encounter enum in encounters.consts.ts');
+    throw new Error('Could not find Encounter const in encounters.consts.ts');
 
-  const closingIdx = source.indexOf('\n}', startIdx);
+  const closingIdx = source.indexOf('\n} as const;', startIdx);
   if (closingIdx === -1)
-    throw new Error('Could not find closing brace of Encounter enum');
+    throw new Error('Could not find closing brace of Encounter const');
 
   return (
     source.slice(0, closingIdx) +
-    `\n  ${key} = '${value}',` +
+    `\n  ${key}: '${value}',` +
     source.slice(closingIdx)
   );
 }
@@ -128,8 +132,7 @@ export function addToEncounterChoices(
   key: string,
   mode: string,
 ): string {
-  const marker =
-    'export const ENCOUNTER_CHOICES: Readonly<EncounterChoice>[] = [';
+  const marker = 'const ENCOUNTER_CHOICES: Readonly<EncounterChoice>[] = [';
   const startIdx = source.indexOf(marker);
   if (startIdx === -1)
     throw new Error('Could not find ENCOUNTER_CHOICES in encounters.consts.ts');
@@ -197,33 +200,36 @@ function writeFflogsConsts(source: string): void {
 export function planSourceEdits(edits: EncounterSourceEdits): SourceChange[] {
   const changes: SourceChange[] = [];
 
+  const encountersFile = 'packages/shared/src/encounters/encounters.consts.ts';
+  const fflogsFile = 'apps/bot/src/fflogs/fflogs.consts.ts';
+
   changes.push({
-    file: 'src/encounters/encounters.consts.ts',
-    description: `+ Encounter enum: ${edits.id} = '${edits.value}'`,
+    file: encountersFile,
+    description: `+ Encounter const: ${edits.id}: '${edits.value}'`,
   });
   changes.push({
-    file: 'src/encounters/encounters.consts.ts',
+    file: encountersFile,
     description: `+ EncounterFriendlyDescription: [Encounter.${edits.id}]: '${edits.name}'`,
   });
   if (edits.emoji) {
     changes.push({
-      file: 'src/encounters/encounters.consts.ts',
+      file: encountersFile,
       description: `+ EncounterEmoji: [Encounter.${edits.id}]: '${edits.emoji}'`,
     });
   }
   changes.push({
-    file: 'src/encounters/encounters.consts.ts',
+    file: encountersFile,
     description: `+ ENCOUNTER_CHOICES: { name: '${edits.name}', value: Encounter.${edits.id}, mode: '${edits.mode}' }`,
   });
   if (edits.ultimateToFlip) {
     changes.push({
-      file: 'src/encounters/encounters.consts.ts',
+      file: encountersFile,
       description: `~ ENCOUNTER_CHOICES[${edits.ultimateToFlip}]: mode 'ultimate' → 'legacy'`,
     });
   }
   if (edits.fflogsIds && edits.fflogsIds.length > 0) {
     changes.push({
-      file: 'src/fflogs/fflogs.consts.ts',
+      file: fflogsFile,
       description: `+ EncounterIds: [Encounter.${edits.id}, [${edits.fflogsIds.join(', ')}]]`,
     });
   }
@@ -238,7 +244,7 @@ export function planSourceEdits(edits: EncounterSourceEdits): SourceChange[] {
 export function applySourceEdits(edits: EncounterSourceEdits): void {
   // Compute the full updated encounters.consts.ts before writing
   let encountersSource = readEncountersConsts();
-  encountersSource = addToEncounterEnum(
+  encountersSource = addToEncounterConst(
     encountersSource,
     edits.id,
     edits.value,

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   addToEncounterChoices,
+  addToEncounterConst,
   addToEncounterEmoji,
-  addToEncounterEnum,
   addToEncounterFriendlyDescription,
   addToEncounterIds,
   detectCurrentUltimates,
@@ -13,10 +13,10 @@ import {
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
-const ENCOUNTER_ENUM_SOURCE = `export enum Encounter {
-  TOP = 'TOP',
-  FRU = 'FRU',
-}`;
+const ENCOUNTER_CONST_SOURCE = `export const Encounter = {
+  TOP: 'TOP',
+  FRU: 'FRU',
+} as const;`;
 
 const FRIENDLY_DESC_SOURCE = `export const EncounterFriendlyDescription = Object.freeze({
   [Encounter.TOP]: '[TOP] The Omega Protocol',
@@ -26,7 +26,7 @@ const EMOJI_SOURCE = `export const EncounterEmoji: Record<string, string> = Obje
   [Encounter.TOP]: '123456',
 });`;
 
-const CHOICES_SOURCE = `export const ENCOUNTER_CHOICES: Readonly<EncounterChoice>[] = [
+const CHOICES_SOURCE = `const ENCOUNTER_CHOICES: Readonly<EncounterChoice>[] = [
   {
     name: '[TOP] The Omega Protocol',
     value: Encounter.TOP,
@@ -66,18 +66,18 @@ export const MORE: Readonly<EncounterChoice>[] = [
 
 // ─── addToEncounterEnum ─────────────────────────────────────────────────────
 
-describe('addToEncounterEnum', () => {
+describe('addToEncounterConst', () => {
   it('appends a new entry before the closing brace', () => {
-    const result = addToEncounterEnum(ENCOUNTER_ENUM_SOURCE, 'DSR', 'DSR');
-    expect(result).toContain("  DSR = 'DSR',");
-    expect(result.indexOf("DSR = 'DSR'")).toBeGreaterThan(
-      result.indexOf("FRU = 'FRU'"),
+    const result = addToEncounterConst(ENCOUNTER_CONST_SOURCE, 'DSR', 'DSR');
+    expect(result).toContain("  DSR: 'DSR',");
+    expect(result.indexOf("DSR: 'DSR'")).toBeGreaterThan(
+      result.indexOf("FRU: 'FRU'"),
     );
   });
 
-  it('throws when enum marker is missing', () => {
-    expect(() => addToEncounterEnum('const x = 1;', 'A', 'B')).toThrow(
-      'Could not find Encounter enum',
+  it('throws when const marker is missing', () => {
+    expect(() => addToEncounterConst('const x = 1;', 'A', 'B')).toThrow(
+      'Could not find Encounter const',
     );
   });
 });
@@ -185,7 +185,7 @@ describe('planSourceEdits', () => {
     expect(changes).toHaveLength(3);
     expect(changes.map((c) => c.description)).toEqual(
       expect.arrayContaining([
-        expect.stringContaining('Encounter enum'),
+        expect.stringContaining('Encounter const'),
         expect.stringContaining('EncounterFriendlyDescription'),
         expect.stringContaining('ENCOUNTER_CHOICES'),
       ]),
