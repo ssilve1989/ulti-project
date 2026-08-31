@@ -76,7 +76,7 @@
     "@graphql-codegen/typescript-graphql-request": "^7.1.0",
     "@graphql-codegen/typescript-operations": "6.1.6",
     "@nestjs/testing": "^11.2.1",
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.3.0",
     "@vitest/coverage-v8": "^4.1.11",
     "@vitest/ui": "^4.1.11",
     "commander": "^15.0.0",
