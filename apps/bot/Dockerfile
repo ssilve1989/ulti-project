@@ -1,49 +1,39 @@
+# Build context MUST be the repository root — this Dockerfile needs the whole
+# pnpm workspace (root manifest, pnpm-lock.yaml, pnpm-workspace.yaml, every
+# package). Invoke it as one of:
+#   flyctl deploy --config ./apps/bot/fly.toml --dockerfile ./apps/bot/Dockerfile   # from repo root
+#   docker build -f apps/bot/Dockerfile .                                           # from repo root
+#   mise run deploy:bot
+#
+# Layout follows the pnpm "build multiple images in a monorepo" recipe
+# (https://pnpm.io/docker): install + build the whole workspace once, then
+# `pnpm deploy` a self-contained, symlink-free bundle for the bot alone.
+
 FROM node:26.7-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN npm install --global corepack@latest
-RUN corepack enable pnpm
-
-LABEL fly_launch_runtime="NestJS"
-
-WORKDIR /app
-# All workspace manifests + lockfile so `pnpm install --frozen-lockfile` can
-# link the workspaces. scripts/ is needed by the prepare hook.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
-COPY apps/bot/package.json ./apps/bot/package.json
-COPY apps/cli/package.json ./apps/cli/package.json
-COPY packages/shared/package.json ./packages/shared/package.json
-COPY scripts ./scripts
-
-FROM base AS prod-deps
-ENV NODE_ENV="production"
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --prod --frozen-lockfile
+# corepack is no longer bundled with Node 26; install it, then activate the
+# pnpm version pinned in the root package.json "packageManager" field.
+RUN npm install --global corepack@latest && corepack enable pnpm
+WORKDIR /usr/src/app
 
 FROM base AS build
-COPY apps/bot ./apps/bot
-COPY apps/cli ./apps/cli
-COPY packages/shared ./packages/shared
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
+COPY . .
+# Fail early with a clear message if the build context was not the repo root.
+RUN test -f pnpm-workspace.yaml && test -d apps/bot \
+  || { echo "ERROR: Docker build context must be the repository root"; exit 1; }
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm run build:all
+# Prune to a production bundle containing only the bot's own dist,
+# @ulti-project/shared, and third-party prod dependencies. --legacy: this
+# workspace does not opt into injected workspace packages.
+RUN pnpm deploy --filter=@ulti-project/bot --prod --legacy /prod/bot
 
-FROM node:26.7-slim
-WORKDIR /app
+FROM node:26.7-slim AS runner
+LABEL fly_launch_runtime="NestJS"
 ENV NODE_ENV="production"
-
-COPY package.json ./
-COPY apps/bot/package.json ./apps/bot/package.json
-COPY apps/bot/instrumentation.ts ./apps/bot/instrumentation.ts
-COPY packages/shared/package.json ./packages/shared/package.json
-# Workspace links live per-consumer: bot's deps + the @ulti-project/shared
-# symlink are in apps/bot/node_modules, backed by the pruned virtual store at
-# node_modules/.pnpm. Both must ship for resolution to work in the container.
-COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=prod-deps /app/apps/bot/node_modules ./apps/bot/node_modules
-COPY --from=prod-deps /app/packages/shared/node_modules ./packages/shared/node_modules
-COPY --from=build /app/apps/bot/dist ./apps/bot/dist
-# Native-TS package: runtime ships the erasable source; the workspace symlink
-# in apps/bot/node_modules resolves @ulti-project/shared to this directory.
-COPY --from=build /app/packages/shared/src ./packages/shared/src
+WORKDIR /prod/bot
+COPY --from=build /prod/bot ./
 
 EXPOSE 3000
-CMD [ "node", "--import", "./apps/bot/instrumentation.ts", "apps/bot/dist/main.js" ]
+CMD ["node", "--import", "./instrumentation.ts", "dist/main.js"]
