@@ -5,6 +5,9 @@ docker-cli = "29.7.2"
 yamlfmt = "0.21.0"
 flyctl = "latest"
 
+# SENTRY_AUTH_TOKEN is optional: when set, the image build injects + uploads
+# Sentry sourcemaps; when unset, the --build-secret flag is omitted entirely and
+# the Dockerfile step skips itself.
 [tasks."deploy:bot"]
 description = "Deploy the bot to Fly.io"
-run = "flyctl deploy --remote-only --ha=false --config ./apps/bot/fly.toml --dockerfile ./apps/bot/Dockerfile"
+run = "flyctl deploy --remote-only --ha=false --config ./apps/bot/fly.toml --dockerfile ./apps/bot/Dockerfile ${SENTRY_AUTH_TOKEN:+--build-secret sentry_auth=\"$SENTRY_AUTH_TOKEN\"}"
