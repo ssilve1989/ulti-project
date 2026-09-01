@@ -35,7 +35,7 @@
     "test:ui": "vitest --ui"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.9",
+    "@biomejs/biome": "2.5.10",
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
     "@commitlint/cz-commitlint": "^21.2.2",
@@ -43,10 +43,10 @@
     "@vitest/coverage-v8": "^4.1.11",
     "@vitest/ui": "^4.1.11",
     "commitizen": "^4.3.2",
-    "knip": "^6.32.2",
+    "knip": "^6.32.3",
     "lefthook": "^2.1.10",
     "typescript": "7.0.2",
-    "vite": "^8.2.1",
+    "vite": "^8.2.2",
     "vitest": "^4.1.11"
   },
   "config": {
