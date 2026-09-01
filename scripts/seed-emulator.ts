@@ -17,6 +17,9 @@ if (!process.env.FIRESTORE_EMULATOR_HOST) {
   process.exit(1);
 }
 
+// The settings doc is keyed by Discord guild id; fall back to the dev guild.
+const guildId = process.env.GUILD_ID ?? '913492538516717578';
+
 const db = createFirestore({
   clientEmail: 'emulator',
   privateKey: 'emulator',
@@ -99,13 +102,34 @@ const signups: Record<string, SignupDocument> = {
   },
 };
 
+interface SettingsDocument {
+  spreadsheetId: string;
+  signupChannel: string;
+  reviewerRole: string;
+  reviewChannel: string;
+  modChannelId: string;
+  autoModChannelId: string;
+}
+
+const settings: SettingsDocument = {
+  spreadsheetId: '1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY',
+  signupChannel: '1162558500891787304',
+  reviewerRole: '1115675576502591528',
+  reviewChannel: '1241388598054621256',
+  modChannelId: '1260946020603396116',
+  autoModChannelId: '1260944459294707754',
+};
+
 async function seed(): Promise<void> {
   const batch = db.batch();
   for (const [key, signup] of Object.entries(signups)) {
     batch.set(db.collection('signups').doc(key), signup);
   }
+  batch.set(db.collection('settings').doc(guildId), settings);
   await batch.commit();
-  console.log(`Seeded ${Object.keys(signups).length} signups.`);
+  console.log(
+    `Seeded ${Object.keys(signups).length} signups and settings for guild ${guildId}.`,
+  );
 }
 
 await seed();
