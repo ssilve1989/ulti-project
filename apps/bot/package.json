@@ -7,10 +7,6 @@
   "private": true,
   "license": "UNLICENSED",
   "main": "dist/main.js",
-  "files": [
-    "dist",
-    "instrumentation.ts"
-  ],
   "engines": {
     "node": ">=26.0.0"
   },
