@@ -20,6 +20,17 @@ RUN test -f pnpm-workspace.yaml && test -d apps/bot \
   || { echo "ERROR: Docker build context must be the repository root"; exit 1; }
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm run build:all
+# Inject Sentry Debug IDs into apps/bot/dist and upload the maps here, so the
+# injected .js is exactly what the image ships (a copy injected on the CI runner
+# would be discarded by this rebuild). The `sentry_auth` secret is optional —
+# builds without it (e.g. the PR "Test Build Docker Image" workflow) just skip.
+RUN --mount=type=secret,id=sentry_auth \
+  if [ -s /run/secrets/sentry_auth ]; then \
+    SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth)" \
+      pnpm --filter @ulti-project/bot run sentry:sourcemaps; \
+  else \
+    echo "sentry_auth build secret absent — skipping Sentry sourcemap upload"; \
+  fi
 
 # Production dependency tree, pruned to the bot + its workspace deps.
 # `--filter @ulti-project/bot...` drops apps/cli's exclusive deps from the image.
