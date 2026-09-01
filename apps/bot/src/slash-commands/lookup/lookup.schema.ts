@@ -1,0 +1,25 @@
+import type { SignupDocument } from '@ulti-project/shared';
+import { z } from 'zod';
+import { NorthAmericanWorlds } from '../../worlds/consts.js';
+
+type LookupFields = Pick<SignupDocument, 'character'> & {
+  world?: SignupDocument['world'];
+};
+
+export const lookupSchema = z.object({
+  character: z
+    .string()
+    .min(1)
+    .transform((str) => str.toLowerCase()),
+
+  world: z
+    .string()
+    .nullish()
+    .transform((str) => str?.toLowerCase())
+    .refine(
+      (val) => !val || NorthAmericanWorlds.has(val),
+      'Invalid World. Please check the spelling and make sure it is a valid world in the NA Region',
+    ),
+}) satisfies z.Schema<LookupFields>;
+
+export type LookupSchema = z.infer<typeof lookupSchema>;

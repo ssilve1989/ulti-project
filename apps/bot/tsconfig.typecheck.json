@@ -1,0 +1,18 @@
+{
+  // Typecheck entrypoint for the bot package: `tsc -b tsconfig.typecheck.json`
+  // builds the app project (emitting apps/bot/dist/) and type-checks the spec
+  // files the build excludes. Deliberately NOT composite — build mode fully
+  // checks a non-composite noEmit root without emitting for it.
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.json",
+  "include": ["src/**/*.spec.ts"],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "noEmit": true,
+    "tsBuildInfoFile": "dist/tsconfig.typecheck.tsbuildinfo"
+  },
+  "references": [
+    { "path": "./tsconfig.build.json" },
+    { "path": "../../packages/shared" }
+  ]
+}

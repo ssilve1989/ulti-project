@@ -51,21 +51,27 @@ Choices in these commands are driven by the hardcoded `Encounter` enum — addin
 
 ### New: `pnpm cli` — a local admin tool
 
-A self-contained Bun CLI (`src/cli/`) that connects directly to Firestore using the same GCP credentials as the bot. Runs locally, no deployment required.
+A self-contained CLI in the `@ulti-project/cli` workspace package (`apps/cli/`),
+run by Node directly from `.ts` source (no build step), that connects directly to
+Firestore using the same GCP credentials as the bot. Runs locally, no deployment
+required.
 
 ```
-src/cli/
+apps/cli/src/
 ├── main.ts                    # Commander root + preAction ctx init
 ├── config.ts                  # CliContext, ctx singleton
 ├── commands/encounters/
 │   ├── add/                   # Interactive wizard or --config <yaml>
-│   ├── manage-prog-points/    # Manage individual prog points
 │   ├── pull/                  # Firestore → data/encounters/*.yaml
 │   ├── push/                  # data/encounters/*.yaml → Firestore
 │   └── view/                  # Read-only Firestore dump
 └── utils/
+    ├── config-loader.ts       # Loads + validates an encounter YAML config
     ├── encounter-yaml.ts      # EncounterYamlConfig schema + read/write
-    └── firestore.ts           # Direct Firestore helpers
+    ├── fflogs-lookup.ts       # Resolves FFLogs encounter IDs
+    ├── firestore.ts           # Direct Firestore helpers
+    ├── repo-root.ts           # REPO_ROOT (walks up to pnpm-workspace.yaml)
+    └── source-editor.ts       # Rewrites the shared encounter consts on `add`
 ```
 
 ### New commands: `encounters pull` / `encounters push`

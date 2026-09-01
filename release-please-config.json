@@ -1,0 +1,9 @@
+{
+  "last-release-sha": "84b8230ca189dad2a9255e096c96b9a803e0e1ad",
+  "include-component-in-tag": false,
+  "packages": {
+    "apps/bot": {
+      "release-type": "node"
+    }
+  }
+}

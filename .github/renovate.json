@@ -15,7 +15,9 @@
   "separateMajorMinor": true,
   "rangeStrategy": "bump",
 
-  "ignorePaths": ["node_modules/**"],
+  "postUpdateOptions": ["pnpmDedupe"],
+
+  "ignorePaths": ["**/node_modules/**"],
 
   "vulnerabilityAlerts": {
     "enabled": true,

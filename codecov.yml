@@ -10,6 +10,9 @@ comment:
   require_changes: true
 codecov:
   require_ci_to_pass: false
+# Keep in sync with `test.coverage.exclude` in vitest.config.ts
 ignore:
-  - src/slash-commands/**/*-command.ts # Ignore call slash command builder commands from coverage
-  - src/cli/**
+  - apps/bot/src/slash-commands/**/*-command.ts # slash command builders
+  - apps/bot/src/slash-commands/**/*.command.ts # CQRS command DTOs
+  - "**/*.module.ts"
+  - apps/cli/** # CLI has its own specs; excluded from the bot coverage report

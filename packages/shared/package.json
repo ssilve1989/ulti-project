@@ -1,0 +1,29 @@
+{
+  "name": "@ulti-project/shared",
+  "version": "1.0.0",
+  "description": "Shared types, models, constants, and firestore helpers for Ulti-Project",
+  "type": "module",
+  "private": true,
+  "license": "UNLICENSED",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "build:check": "tsc -b"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.3.0"
+  }
+}

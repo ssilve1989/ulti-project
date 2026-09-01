@@ -1,0 +1,30 @@
+{
+  "name": "@ulti-project/cli",
+  "version": "1.0.0",
+  "description": "CLI tooling for Ulti-Project",
+  "type": "module",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "scripts": {
+    "cli": "dotenvx run -f .env -f .env.development -- node src/main.ts",
+    "cli:prod": "dotenvx run -f .env -f .env.production -- node src/main.ts",
+    "build:check": "tsc -b"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.7.0",
+    "@ulti-project/shared": "workspace:*",
+    "commander": "^15.0.0",
+    "firebase-admin": "^14.3.0",
+    "graphql-request": "^7.4.0",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@dotenvx/dotenvx": "^2.21.0",
+    "@types/node": "^26.2.0",
+    "vitest": "^4.1.11"
+  }
+}
