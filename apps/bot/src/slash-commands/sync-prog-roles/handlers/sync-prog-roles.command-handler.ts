@@ -175,10 +175,10 @@ class SyncProgRolesCommandHandler implements ISlashCommand {
         return;
       }
 
-      const signups = await this.signupCollection.findByStatusIn([
-        SignupStatus.APPROVED,
-        SignupStatus.UPDATE_PENDING,
-      ]);
+      const signups = await this.signupCollection.findByStatusIn(
+        interaction.guildId,
+        [SignupStatus.APPROVED, SignupStatus.UPDATE_PENDING],
+      );
 
       const guild = await this.discordService.client.guilds.fetch(
         interaction.guildId,

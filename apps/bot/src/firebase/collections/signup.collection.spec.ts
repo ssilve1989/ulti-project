@@ -28,6 +28,10 @@ describe('Signup Repository', () => {
   let repository: SignupCollection;
   let collection: Mocked<CollectionReference<DocumentData>>;
   let doc: Mocked<DocumentReference<DocumentData>>;
+  let firestoreCollection: ReturnType<typeof vi.fn>;
+  let guildsDoc: ReturnType<typeof vi.fn>;
+  let guildSubcollection: ReturnType<typeof vi.fn>;
+  const guildId = 'guildId';
   const signupRequest = SIGNUP_KEY as unknown as SignupSchema;
 
   beforeEach(async () => {
@@ -42,8 +46,13 @@ describe('Signup Repository', () => {
       doc: vi.fn().mockReturnValue(doc),
     } as unknown as Mocked<CollectionReference<DocumentData>>;
 
+    // guilds/{guildId}/signups
+    guildSubcollection = vi.fn().mockReturnValue(collection);
+    guildsDoc = vi.fn().mockReturnValue({ collection: guildSubcollection });
+    firestoreCollection = vi.fn().mockReturnValue({ doc: guildsDoc });
+
     const firestore = {
-      collection: vi.fn().mockReturnValue(collection),
+      collection: firestoreCollection,
     } as unknown as Firestore;
 
     const fixture = await Test.createTestingModule({
@@ -58,6 +67,14 @@ describe('Signup Repository', () => {
     repository = fixture.get(SignupCollection);
   });
 
+  it('scopes the collection to guilds/{guildId}/signups', async () => {
+    await repository.setReviewMessageId(guildId, SIGNUP_KEY, 'messageId');
+
+    expect(firestoreCollection).toHaveBeenCalledWith('guilds');
+    expect(guildsDoc).toHaveBeenCalledWith(guildId);
+    expect(guildSubcollection).toHaveBeenCalledWith('signups');
+  });
+
   it('should call update if document exists', async () => {
     const existingData = {
       ...signupRequest,
@@ -69,7 +86,7 @@ describe('Signup Repository', () => {
       data: () => existingData,
     } as unknown as DocumentSnapshot);
 
-    const result = await repository.upsert(signupRequest);
+    const result = await repository.upsert(guildId, signupRequest);
 
     expect(doc.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -100,7 +117,7 @@ describe('Signup Repository', () => {
       data: () => existingData,
     } as unknown as DocumentSnapshot);
 
-    const result = await repository.upsert(signupRequest);
+    const result = await repository.upsert(guildId, signupRequest);
 
     expect(doc.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -120,7 +137,7 @@ describe('Signup Repository', () => {
       data: () => null,
     } as unknown as DocumentSnapshot);
 
-    const result = await repository.upsert(signupRequest);
+    const result = await repository.upsert(guildId, signupRequest);
 
     expect(doc.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -138,6 +155,7 @@ describe('Signup Repository', () => {
 
   it('should call updateSignupStatus with the correct arguments', async () => {
     await repository.updateSignupStatus(
+      guildId,
       SignupStatus.APPROVED,
       SIGNUP_KEY,
       'reviewedBy',
@@ -150,7 +168,7 @@ describe('Signup Repository', () => {
   });
 
   it('should call setReviewMessageId with the correct arguments', async () => {
-    await repository.setReviewMessageId(SIGNUP_KEY, 'messageId');
+    await repository.setReviewMessageId(guildId, SIGNUP_KEY, 'messageId');
 
     expect(doc.update).toHaveBeenCalledWith({
       reviewMessageId: 'messageId',
@@ -180,7 +198,7 @@ describe('Signup Repository', () => {
 
       mockFetch(false, signup);
 
-      const result = await repository.findByReviewId(reviewMessageId);
+      const result = await repository.findByReviewId(guildId, reviewMessageId);
 
       expect(result).toEqual(signup);
     });
@@ -189,7 +207,7 @@ describe('Signup Repository', () => {
       mockFetch(true, {} as SignupDocument);
 
       return expect(
-        repository.findByReviewId('reviewMessageId'),
+        repository.findByReviewId(guildId, 'reviewMessageId'),
       ).rejects.toThrow(DocumentNotFoundException);
     });
   });

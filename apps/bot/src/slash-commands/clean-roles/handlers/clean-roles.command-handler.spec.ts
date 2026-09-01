@@ -217,10 +217,10 @@ describe('CleanRolesCommandHandler', () => {
       expect(deferReply).toHaveBeenCalledWith({
         flags: MessageFlags.Ephemeral,
       });
-      expect(signupCollection.findByStatusIn).toHaveBeenCalledWith([
-        SignupStatus.APPROVED,
-        SignupStatus.UPDATE_PENDING,
-      ]);
+      expect(signupCollection.findByStatusIn).toHaveBeenCalledWith(
+        'guild-123',
+        [SignupStatus.APPROVED, SignupStatus.UPDATE_PENDING],
+      );
       expect(editReply).toHaveBeenCalledWith(
         expect.stringContaining('Clean Roles Summary'),
       );

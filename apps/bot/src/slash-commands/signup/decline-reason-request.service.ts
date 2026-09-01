@@ -243,6 +243,7 @@ export class DeclineReasonRequestService {
   ): Promise<void> {
     try {
       await this.signupCollection.updateDeclineReason(
+        reviewMessage.guildId,
         { discordId: signup.discordId, encounter: signup.encounter },
         declineReason,
       );

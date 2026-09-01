@@ -37,11 +37,12 @@ function formatProgPointRow(
 
 async function viewSingleEncounter(
   db: Firestore,
+  guildId: string,
   encounterId: string,
 ): Promise<void> {
   const [encounter, progPoints] = await Promise.all([
-    getEncounter(db, encounterId),
-    getAllProgPoints(db, encounterId),
+    getEncounter(db, guildId, encounterId),
+    getAllProgPoints(db, guildId, encounterId),
   ]);
 
   if (!encounter) {
@@ -70,8 +71,11 @@ async function viewSingleEncounter(
   );
 }
 
-async function viewAllEncounters(db: Firestore): Promise<void> {
-  const active = await getAllActiveEncounters(db);
+async function viewAllEncounters(
+  db: Firestore,
+  guildId: string,
+): Promise<void> {
+  const active = await getAllActiveEncounters(db, guildId);
 
   if (active.length === 0) {
     clack.log.warn('No active encounters found in Firestore.');
@@ -84,7 +88,7 @@ async function viewAllEncounters(db: Firestore): Promise<void> {
   ];
 
   for (const enc of active) {
-    const progPoints = await getAllProgPoints(db, enc.id);
+    const progPoints = await getAllProgPoints(db, guildId, enc.id);
     const hasProg = enc.progPartyThreshold ? '✅' : '❌';
     const hasClear = enc.clearPartyThreshold ? '✅' : '❌';
     const name =
@@ -97,7 +101,11 @@ async function viewAllEncounters(db: Firestore): Promise<void> {
   clack.log.info(lines.join('\n'));
 }
 
-async function runView(db: Firestore, encounterId?: string): Promise<void> {
+async function runView(
+  db: Firestore,
+  guildId: string,
+  encounterId?: string,
+): Promise<void> {
   clack.intro('View Encounter');
 
   const spinner = clack.spinner();
@@ -106,9 +114,9 @@ async function runView(db: Firestore, encounterId?: string): Promise<void> {
   try {
     spinner.stop('');
     if (encounterId) {
-      await viewSingleEncounter(db, encounterId);
+      await viewSingleEncounter(db, guildId, encounterId);
     } else {
-      await viewAllEncounters(db);
+      await viewAllEncounters(db, guildId);
     }
   } catch (error) {
     spinner.stop('Failed');
@@ -124,7 +132,7 @@ export function registerViewCommand(encountersCmd: Command): void {
     .command('view [encounter-id]')
     .description('View encounter configuration from Firestore')
     .action(async (encounterId?: string) => {
-      const { db } = ctx;
-      await runView(db, encounterId);
+      const { db, guildId } = ctx;
+      await runView(db, guildId, encounterId);
     });
 }

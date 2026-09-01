@@ -317,11 +317,11 @@ describe('SearchCommandHandler', () => {
     await collectorCallback!(mockProgPointSelect);
 
     // Verify the search was performed for at least the selected prog point
-    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith('guild123', {
       encounter: Encounter.TOP,
       progPoint: 'P6 Enrage',
     });
-    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith('guild123', {
       encounter: Encounter.TOP,
       progPoint: 'Clear',
     });
@@ -365,7 +365,7 @@ describe('SearchCommandHandler', () => {
 
     // Mock findAll to return different signups based on prog point
     mockSignupsCollection.findAll.mockImplementation(
-      ({ progPoint }: { progPoint?: string }) => {
+      (_guildId: string, { progPoint }: { progPoint?: string }) => {
         if (progPoint === 'P6 Enrage') {
           return Promise.resolve(p6SignupsMock as any);
         }
@@ -399,11 +399,11 @@ describe('SearchCommandHandler', () => {
     await collectorCallback!(mockProgPointSelect);
 
     // Verify the search was performed for at least the selected prog point
-    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith('guild123', {
       encounter: Encounter.TOP,
       progPoint: 'P6 Enrage',
     });
-    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith('guild123', {
       encounter: Encounter.TOP,
       progPoint: 'Clear',
     });
@@ -475,7 +475,7 @@ describe('SearchCommandHandler', () => {
     }));
 
     mockSignupsCollection.findAll.mockImplementation(
-      ({ progPoint }: { progPoint?: string }) =>
+      (_guildId: string, { progPoint }: { progPoint?: string }) =>
         progPoint === 'Clear'
           ? Promise.resolve(manySignups as any)
           : Promise.resolve([]),
@@ -673,7 +673,7 @@ describe('SearchCommandHandler', () => {
 
     // Mock findAll to return different results for different prog points
     mockSignupsCollection.findAll.mockImplementation(
-      ({ progPoint }: { progPoint?: string }) => {
+      (_guildId: string, { progPoint }: { progPoint?: string }) => {
         if (progPoint === 'P6 Enrage') return Promise.resolve(p6Signups as any);
         if (progPoint === 'Clear') return Promise.resolve(clearSignups as any);
         return Promise.resolve([]);
@@ -729,11 +729,11 @@ describe('SearchCommandHandler', () => {
     await collectorCallback!(mockProgPointSelect);
 
     // Verify the search was performed for all prog points >= P6 Enrage (order 1)
-    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith('guild123', {
       encounter: Encounter.TOP,
       progPoint: 'P6 Enrage',
     });
-    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith('guild123', {
       encounter: Encounter.TOP,
       progPoint: 'Clear',
     });
@@ -791,7 +791,7 @@ describe('SearchCommandHandler', () => {
     await collectorCallback!(mockProgPointSelect);
 
     // Verify the search was performed only for Clear (highest order)
-    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith({
+    expect(mockSignupsCollection.findAll).toHaveBeenCalledWith('guild123', {
       encounter: Encounter.TOP,
       progPoint: 'Clear',
     });

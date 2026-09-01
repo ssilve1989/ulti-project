@@ -40,7 +40,10 @@ describe('EncountersComponentsService', () => {
   });
 
   it('builds a single-select menu with the cleared option by default', async () => {
-    const menu = await service.createProgPointSelectMenu(Encounter.TOP);
+    const menu = await service.createProgPointSelectMenu(
+      'test-guild',
+      Encounter.TOP,
+    );
 
     expect(menu.data.custom_id).toBe(PROG_POINT_SELECT_ID);
     expect(menu.options.map((o) => o.data.value)).toEqual([
@@ -52,11 +55,15 @@ describe('EncountersComponentsService', () => {
   });
 
   it('builds a multi-select menu without cleared when configured', async () => {
-    const menu = await service.createProgPointSelectMenu(Encounter.TOP, {
-      customId: 'customSelect',
-      includeCleared: false,
-      multiSelect: true,
-    });
+    const menu = await service.createProgPointSelectMenu(
+      'test-guild',
+      Encounter.TOP,
+      {
+        customId: 'customSelect',
+        includeCleared: false,
+        multiSelect: true,
+      },
+    );
 
     expect(menu.data.custom_id).toBe('customSelect');
     expect(menu.options.map((o) => o.data.value)).toEqual(['P1', 'P2']);

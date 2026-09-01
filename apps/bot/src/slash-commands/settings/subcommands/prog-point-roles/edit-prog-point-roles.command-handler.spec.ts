@@ -114,7 +114,7 @@ describe('EditProgPointRolesCommandHandler', () => {
 
     expect(
       encountersComponentsService.createProgPointSelectMenu,
-    ).toHaveBeenCalledWith(Encounter.TOP, {
+    ).toHaveBeenCalledWith(guildId, Encounter.TOP, {
       customId: PROG_POINT_ROLES_SELECT_ID,
       includeCleared: false,
       multiSelect: true,
