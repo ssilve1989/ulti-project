@@ -19,7 +19,6 @@
     "commitlint": "commitlint --edit",
     "docker:build": "pnpm --filter @ulti-project/bot docker:build",
     "format": "biome format --write",
-    "g:slash-command": "pnpm --filter @ulti-project/bot g:slash-command",
     "graphql:codegen": "pnpm --filter @ulti-project/bot graphql:codegen",
     "knip": "knip",
     "lint": "biome lint --diagnostic-level=error",

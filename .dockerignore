@@ -28,11 +28,10 @@ lerna-debug.log*
 # OS
 .DS_Store
 
-# Documentation & templates
+# Documentation
 docs
 data
 *.md
-apps/bot/_templates
 
 # Dev tooling configs (not needed at runtime)
 biome.json
