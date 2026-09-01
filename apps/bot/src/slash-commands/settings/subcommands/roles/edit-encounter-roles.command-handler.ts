@@ -1,68 +1,57 @@
 import { Injectable } from '@nestjs/common';
-import * as Sentry from '@sentry/nestjs';
-import { SentryTraced } from '@sentry/nestjs';
-import type { ChatInputCommandInteraction } from 'discord.js';
-import { MessageFlags } from 'discord.js';
-import { ErrorService } from '../../../../error/error.service.js';
-import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
+import type { ChatInputCommandInteraction, Role } from 'discord.js';
+import type { SettingsDocument } from '../../../../firebase/models/settings.model.js';
 import { SlashCommand } from '../../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../../slash-command.interface.js';
 import { SettingsSlashCommand } from '../../settings.slash-command.js';
+import { SettingsEditCommandHandler } from '../../settings-edit-command.handler.js';
+
+interface EncounterRolesOptions {
+  encounter: string;
+  progRole: Role;
+  clearRole: Role;
+}
 
 @Injectable()
 @SlashCommand({ builder: SettingsSlashCommand, subcommand: 'encounter-roles' })
-class EditEncounterRolesCommandHandler implements ISlashCommand {
-  constructor(
-    private readonly settingsCollection: SettingsCollection,
-    private readonly errorService: ErrorService,
-  ) {}
-
-  @SentryTraced()
-  async execute(
+class EditEncounterRolesCommandHandler extends SettingsEditCommandHandler<EncounterRolesOptions> {
+  protected readOptions(
     interaction: ChatInputCommandInteraction<'cached'>,
-  ): Promise<void> {
-    const scope = Sentry.getCurrentScope();
-    try {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  ): EncounterRolesOptions {
+    return {
+      encounter: interaction.options.getString('encounter', true),
+      progRole: interaction.options.getRole('prog-role', true),
+      clearRole: interaction.options.getRole('clear-role', true),
+    };
+  }
 
-      const encounter = interaction.options.getString('encounter', true);
-      const progRole = interaction.options.getRole('prog-role', true);
-      const clearRole = interaction.options.getRole('clear-role', true);
-
-      // Add command-specific context
-      scope.setContext('encounter_roles_update', {
+  protected scopeContext({
+    encounter,
+    progRole,
+    clearRole,
+  }: EncounterRolesOptions) {
+    return {
+      name: 'encounter_roles_update',
+      context: {
         encounter,
         progRoleId: progRole.id,
         progRoleName: progRole.name,
         clearRoleId: clearRole.id,
         clearRoleName: clearRole.name,
-      });
-
-      const settings = await this.settingsCollection.getSettings(
-        interaction.guildId,
-      );
-
-      await this.settingsCollection.upsert(interaction.guildId, {
-        ...settings,
-        progRoles: {
-          ...settings?.progRoles,
-          [encounter]: progRole.id,
-        },
-        clearRoles: {
-          ...settings?.clearRoles,
-          [encounter]: clearRole.id,
-        },
-      });
-
-      await interaction.editReply('Encounter roles updated!');
-    } catch (error) {
-      const errorEmbed = this.errorService.handleCommandError(
-        error,
-        interaction,
-      );
-      await interaction.editReply({ embeds: [errorEmbed] });
-    }
+      },
+    };
   }
+
+  protected buildPatch(
+    { encounter, progRole, clearRole }: EncounterRolesOptions,
+    existing: SettingsDocument | undefined,
+  ) {
+    return {
+      progRoles: { ...existing?.progRoles, [encounter]: progRole.id },
+      clearRoles: { ...existing?.clearRoles, [encounter]: clearRole.id },
+    };
+  }
+
+  protected readonly successMessage = 'Encounter roles updated!';
 }
 
 export { EditEncounterRolesCommandHandler };
