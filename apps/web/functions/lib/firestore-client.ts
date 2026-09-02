@@ -1,3 +1,5 @@
+import { importPKCS8, SignJWT } from 'jose';
+
 export interface FirestoreEnv {
   GCP_PROJECT_ID: string;
   GCP_SERVICE_ACCOUNT_EMAIL?: string;
@@ -72,45 +74,6 @@ export function resetAccessTokenCache(): void {
   cachedToken = null;
 }
 
-function base64url(input: ArrayBuffer | string): string {
-  const bytes =
-    typeof input === 'string'
-      ? new TextEncoder().encode(input)
-      : new Uint8Array(input);
-  return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-}
-
-function pemToPkcs8(pem: string): ArrayBuffer {
-  const body = pem.replace(/-----(BEGIN|END) PRIVATE KEY-----|\\n|\s+/g, '');
-  return Uint8Array.from(atob(body), (char) => char.charCodeAt(0)).buffer;
-}
-
-async function signJwt(
-  claim: Record<string, unknown>,
-  privateKeyPem: string,
-): Promise<string> {
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const payload = `${base64url(JSON.stringify(header))}.${base64url(
-    JSON.stringify(claim),
-  )}`;
-  const key = await crypto.subtle.importKey(
-    'pkcs8',
-    pemToPkcs8(privateKeyPem),
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const signature = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    key,
-    new TextEncoder().encode(payload),
-  );
-  return `${payload}.${base64url(signature)}`;
-}
-
 export async function getAccessToken(env: FirestoreEnv): Promise<string> {
   if (cachedToken && cachedToken.expiresAt > Date.now()) {
     return cachedToken.value;
@@ -124,17 +87,15 @@ export async function getAccessToken(env: FirestoreEnv): Promise<string> {
     throw new Error('missing GCP service account credentials');
   }
 
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  const assertion = await signJwt(
-    {
-      iss: email,
-      scope: DATASTORE_SCOPE,
-      aud: TOKEN_URI,
-      iat: nowSeconds,
-      exp: nowSeconds + 3600,
-    },
-    privateKey,
-  );
+  // `\n` escapes survive some secret stores as literal backslash-n.
+  const key = await importPKCS8(privateKey.replace(/\\n/g, '\n'), 'RS256');
+  const assertion = await new SignJWT({ scope: DATASTORE_SCOPE })
+    .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
+    .setIssuer(email)
+    .setAudience(TOKEN_URI)
+    .setIssuedAt()
+    .setExpirationTime('1h')
+    .sign(key);
 
   const response = await fetch(TOKEN_URI, {
     method: 'POST',

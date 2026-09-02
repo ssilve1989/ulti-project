@@ -184,6 +184,9 @@ importers:
       '@ulti-project/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      jose:
+        specifier: 6.2.3
+        version: 6.2.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: 5.20260828.1

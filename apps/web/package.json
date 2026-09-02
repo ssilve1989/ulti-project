@@ -13,7 +13,8 @@
     "dev": "wrangler pages dev"
   },
   "dependencies": {
-    "@ulti-project/shared": "workspace:*"
+    "@ulti-project/shared": "workspace:*",
+    "jose": "6.2.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260828.1",
