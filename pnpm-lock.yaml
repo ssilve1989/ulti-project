@@ -180,6 +180,10 @@ importers:
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   apps/web:
+    dependencies:
+      '@ulti-project/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
     devDependencies:
       '@cloudflare/workers-types':
         specifier: 5.20260828.1
