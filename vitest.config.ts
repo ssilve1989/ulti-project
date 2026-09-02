@@ -17,11 +17,16 @@ export default defineConfig({
       truncateThreshold: 80,
     },
     coverage: {
-      include: ['apps/bot/src/**/*.ts', 'packages/shared/src/**/*.ts'],
+      include: [
+        'apps/bot/src/**/*.ts',
+        'packages/shared/src/**/*.ts',
+        'apps/web/functions/**/*.ts',
+      ],
       exclude: [
         'apps/bot/src/slash-commands/**/*{-command.ts,.command.ts}',
         '**/*.module.ts',
         'apps/cli/**',
+        'apps/web/functions/**/*.spec.ts',
       ],
       provider: 'v8',
     },

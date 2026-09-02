@@ -31,7 +31,8 @@
     "test": "vitest",
     "test:ci": "CI=true vitest run --coverage",
     "test:cov": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "web:dev": "pnpm --filter @ulti-project/web dev"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.10",
