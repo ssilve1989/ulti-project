@@ -4,7 +4,9 @@ import {
   documentId,
   type FirestoreRestDocument,
   getAccessToken,
+  getDocument,
   resetAccessTokenCache,
+  runQuery,
   UpstreamError,
 } from './firestore-client.ts';
 
@@ -176,5 +178,178 @@ describe('getAccessToken', () => {
     await expect(
       getAccessToken({ GCP_PROJECT_ID: 'proj' }),
     ).rejects.not.toBeInstanceOf(UpstreamError);
+  });
+});
+
+describe('runQuery', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    resetAccessTokenCache();
+    fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const query = {
+    from: [{ collectionId: 'encounters' }],
+    where: {
+      fieldFilter: {
+        field: { fieldPath: 'active' },
+        op: 'EQUAL',
+        value: { booleanValue: true },
+      },
+    },
+  };
+
+  it('POSTs the structured query with a bearer token and returns documents', async () => {
+    const { pem } = await makePrivateKeyPem();
+    fetchMock.mockImplementation((url: string) => {
+      if (url === 'https://oauth2.googleapis.com/token') {
+        return new Response(
+          JSON.stringify({ access_token: 'tok-abc', expires_in: 3600 }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify([
+          { readTime: '2026-01-01T00:00:00Z' },
+          {
+            document: {
+              name: 'projects/p/databases/(default)/documents/encounters/FRU',
+              fields: { name: { stringValue: 'FRU' } },
+            },
+          },
+        ]),
+        { status: 200 },
+      );
+    });
+
+    const docs = await runQuery(
+      {
+        GCP_PROJECT_ID: 'p',
+        GCP_SERVICE_ACCOUNT_EMAIL: 'sa@p.iam.gserviceaccount.com',
+        GCP_SERVICE_ACCOUNT_PRIVATE_KEY: pem,
+      },
+      query,
+    );
+
+    expect(docs).toHaveLength(1);
+    expect(docs[0].name).toContain('/encounters/FRU');
+
+    const firestoreCall = fetchMock.mock.calls.find(
+      ([url]) => url !== 'https://oauth2.googleapis.com/token',
+    );
+    if (!firestoreCall) {
+      throw new Error('expected a Firestore fetch call');
+    }
+    expect(firestoreCall[0]).toBe(
+      'https://firestore.googleapis.com/v1/projects/p/databases/(default)/documents:runQuery',
+    );
+    expect(firestoreCall[1].headers.Authorization).toBe('Bearer tok-abc');
+    expect(JSON.parse(firestoreCall[1].body)).toEqual({
+      structuredQuery: query,
+    });
+  });
+
+  it('uses the emulator URL with no auth when FIRESTORE_EMULATOR_HOST is set', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify([]), { status: 200 }),
+    );
+
+    await runQuery(
+      { GCP_PROJECT_ID: 'p', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080' },
+      query,
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(
+      'http://127.0.0.1:8080/v1/projects/p/databases/(default)/documents:runQuery',
+    );
+    expect(init.headers.Authorization).toBeUndefined();
+  });
+
+  it('throws UpstreamError on a non-2xx Firestore response', async () => {
+    fetchMock.mockResolvedValue(new Response('boom', { status: 503 }));
+
+    await expect(
+      runQuery(
+        { GCP_PROJECT_ID: 'p', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080' },
+        query,
+      ),
+    ).rejects.toBeInstanceOf(UpstreamError);
+  });
+
+  it('throws UpstreamError when fetch itself rejects', async () => {
+    fetchMock.mockRejectedValue(new TypeError('network down'));
+
+    await expect(
+      runQuery(
+        { GCP_PROJECT_ID: 'p', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080' },
+        query,
+      ),
+    ).rejects.toBeInstanceOf(UpstreamError);
+  });
+});
+
+describe('getDocument', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    resetAccessTokenCache();
+    fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns the document on 200 (emulator)', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          name: 'projects/p/databases/(default)/documents/encounters/FRU',
+          fields: { name: { stringValue: 'FRU' } },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const doc = await getDocument(
+      { GCP_PROJECT_ID: 'p', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080' },
+      'encounters/FRU',
+    );
+
+    expect(doc?.name).toContain('/encounters/FRU');
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'http://127.0.0.1:8080/v1/projects/p/databases/(default)/documents/encounters/FRU',
+    );
+  });
+
+  it('returns null on 404', async () => {
+    fetchMock.mockResolvedValue(new Response('{}', { status: 404 }));
+
+    const doc = await getDocument(
+      { GCP_PROJECT_ID: 'p', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080' },
+      'encounters/NOPE',
+    );
+
+    expect(doc).toBeNull();
+  });
+
+  it('throws UpstreamError on other non-2xx', async () => {
+    fetchMock.mockResolvedValue(new Response('err', { status: 500 }));
+
+    await expect(
+      getDocument(
+        { GCP_PROJECT_ID: 'p', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080' },
+        'encounters/FRU',
+      ),
+    ).rejects.toBeInstanceOf(UpstreamError);
   });
 });

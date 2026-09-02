@@ -163,3 +163,73 @@ export async function getAccessToken(env: FirestoreEnv): Promise<string> {
   };
   return cachedToken.value;
 }
+
+function documentsBaseUrl(env: FirestoreEnv): string {
+  const path = `/v1/projects/${env.GCP_PROJECT_ID}/databases/(default)/documents`;
+  return env.FIRESTORE_EMULATOR_HOST
+    ? `http://${env.FIRESTORE_EMULATOR_HOST}${path}`
+    : `https://firestore.googleapis.com${path}`;
+}
+
+async function firestoreHeaders(
+  env: FirestoreEnv,
+): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+  };
+  if (!env.FIRESTORE_EMULATOR_HOST) {
+    headers.Authorization = `Bearer ${await getAccessToken(env)}`;
+  }
+  return headers;
+}
+
+export async function runQuery(
+  env: FirestoreEnv,
+  structuredQuery: StructuredQuery,
+): Promise<FirestoreRestDocument[]> {
+  let response: Response;
+  try {
+    response = await fetch(`${documentsBaseUrl(env)}:runQuery`, {
+      method: 'POST',
+      headers: await firestoreHeaders(env),
+      body: JSON.stringify({ structuredQuery }),
+    });
+  } catch (cause) {
+    throw new UpstreamError('firestore runQuery request failed', { cause });
+  }
+
+  if (!response.ok) {
+    throw new UpstreamError(`firestore runQuery returned ${response.status}`);
+  }
+
+  const rows = (await response.json()) as Array<{
+    document?: FirestoreRestDocument;
+  }>;
+  return rows
+    .map((row) => row.document)
+    .filter((doc): doc is FirestoreRestDocument => doc !== undefined);
+}
+
+export async function getDocument(
+  env: FirestoreEnv,
+  path: string,
+): Promise<FirestoreRestDocument | null> {
+  let response: Response;
+  try {
+    response = await fetch(`${documentsBaseUrl(env)}/${path}`, {
+      method: 'GET',
+      headers: await firestoreHeaders(env),
+    });
+  } catch (cause) {
+    throw new UpstreamError('firestore getDocument request failed', { cause });
+  }
+
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new UpstreamError(
+      `firestore getDocument returned ${response.status}`,
+    );
+  }
+
+  return (await response.json()) as FirestoreRestDocument;
+}
