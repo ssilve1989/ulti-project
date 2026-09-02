@@ -16,9 +16,8 @@ export interface CliContext {
   fflogsToken: string | undefined;
 }
 
-// Initialized by main.ts preAction hook before any command action runs.
+// TODO: Refactor this, its AI slop garbage
 export let ctx!: CliContext;
-
 export function initCtx(): void {
   const result = cliConfigSchema.safeParse(process.env);
   if (!result.success) {

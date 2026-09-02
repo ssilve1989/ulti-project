@@ -9,7 +9,7 @@
     "node": ">=26.0.0"
   },
   "scripts": {
-    "cli": "dotenvx run -f .env -f .env.development -- node src/main.ts",
+    "cli": "dotenvx run -fk ../../.env.keys -f .env.development -f ../../.env -- node src/main.ts",
     "cli:prod": "dotenvx run -f .env -f .env.production -- node src/main.ts",
     "build:check": "tsc -b"
   },
