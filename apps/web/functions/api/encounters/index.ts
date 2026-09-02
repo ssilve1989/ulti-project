@@ -3,6 +3,7 @@ import {
   decodeFields,
   documentId,
   type FirestoreEnv,
+  getString,
   runQuery,
 } from '../../lib/firestore-client.ts';
 
@@ -31,9 +32,8 @@ export const onRequestGet: PagesFunction<FirestoreEnv> = (context) =>
       const fields = decodeFields(doc);
       const encounter: PublicEncounter = {
         id: documentId(doc),
-        name: typeof fields.name === 'string' ? fields.name : '',
-        description:
-          typeof fields.description === 'string' ? fields.description : '',
+        name: getString(fields, 'name'),
+        description: getString(fields, 'description'),
       };
       if (typeof fields.mode === 'string') encounter.mode = fields.mode;
       if (typeof fields.emoji === 'string') encounter.emoji = fields.emoji;

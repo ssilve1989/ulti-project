@@ -17,14 +17,11 @@ export interface FirestoreValue {
 export interface FirestoreRestDocument {
   name: string;
   fields?: Record<string, FirestoreValue>;
-  createTime?: string;
-  updateTime?: string;
 }
 
 export interface StructuredQuery {
   from: Array<{ collectionId: string }>;
   where?: unknown;
-  limit?: number;
 }
 
 function decodeValue(value: FirestoreValue): unknown {
@@ -49,6 +46,16 @@ export function decodeFields(
   return out;
 }
 
+/** Read a string field from a decoded document, falling back when absent or non-string. */
+export function getString(
+  fields: Record<string, unknown>,
+  key: string,
+  fallback = '',
+): string {
+  const value = fields[key];
+  return typeof value === 'string' ? value : fallback;
+}
+
 export function documentId(doc: FirestoreRestDocument): string {
   const segments = doc.name.split('/');
   return segments[segments.length - 1] ?? '';
@@ -70,28 +77,15 @@ function base64url(input: ArrayBuffer | string): string {
     typeof input === 'string'
       ? new TextEncoder().encode(input)
       : new Uint8Array(input);
-  let binary = '';
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary)
+  return btoa(String.fromCharCode(...bytes))
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/, '');
 }
 
 function pemToPkcs8(pem: string): ArrayBuffer {
-  const body = pem
-    .replace(/\\n/g, '\n')
-    .replace(/-----BEGIN PRIVATE KEY-----/, '')
-    .replace(/-----END PRIVATE KEY-----/, '')
-    .replace(/\s+/g, '');
-  const binary = atob(body);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
+  const body = pem.replace(/-----(BEGIN|END) PRIVATE KEY-----|\\n|\s+/g, '');
+  return Uint8Array.from(atob(body), (char) => char.charCodeAt(0)).buffer;
 }
 
 async function signJwt(
@@ -125,6 +119,8 @@ export async function getAccessToken(env: FirestoreEnv): Promise<string> {
   const email = env.GCP_SERVICE_ACCOUNT_EMAIL;
   const privateKey = env.GCP_SERVICE_ACCOUNT_PRIVATE_KEY;
   if (!email || !privateKey) {
+    // A plain Error (not UpstreamError): missing secrets are a deploy
+    // misconfiguration → 500, not a transient upstream failure → cached 502.
     throw new Error('missing GCP service account credentials');
   }
 
@@ -164,39 +160,44 @@ export async function getAccessToken(env: FirestoreEnv): Promise<string> {
   return cachedToken.value;
 }
 
-function documentsBaseUrl(env: FirestoreEnv): string {
-  const path = `/v1/projects/${env.GCP_PROJECT_ID}/databases/(default)/documents`;
-  return env.FIRESTORE_EMULATOR_HOST
-    ? `http://${env.FIRESTORE_EMULATOR_HOST}${path}`
-    : `https://firestore.googleapis.com${path}`;
-}
-
-async function firestoreHeaders(
+/**
+ * One network primitive for the Firestore REST API. Decides emulator-vs-production
+ * (URL + whether to attach a bearer token) once, and wraps transport failures as
+ * `UpstreamError`. `suffix` is appended to `.../databases/(default)/documents`
+ * (e.g. `:runQuery`, `/encounters/FRU`).
+ */
+async function firestoreFetch(
   env: FirestoreEnv,
-): Promise<Record<string, string>> {
+  suffix: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const emulator = env.FIRESTORE_EMULATOR_HOST;
+  const base = emulator
+    ? `http://${emulator}`
+    : 'https://firestore.googleapis.com';
   const headers: Record<string, string> = {
     'content-type': 'application/json',
   };
-  if (!env.FIRESTORE_EMULATOR_HOST) {
+  if (!emulator) {
     headers.Authorization = `Bearer ${await getAccessToken(env)}`;
   }
-  return headers;
+
+  const url = `${base}/v1/projects/${env.GCP_PROJECT_ID}/databases/(default)/documents${suffix}`;
+  try {
+    return await fetch(url, { ...init, headers });
+  } catch (cause) {
+    throw new UpstreamError('firestore request failed', { cause });
+  }
 }
 
 export async function runQuery(
   env: FirestoreEnv,
   structuredQuery: StructuredQuery,
 ): Promise<FirestoreRestDocument[]> {
-  let response: Response;
-  try {
-    response = await fetch(`${documentsBaseUrl(env)}:runQuery`, {
-      method: 'POST',
-      headers: await firestoreHeaders(env),
-      body: JSON.stringify({ structuredQuery }),
-    });
-  } catch (cause) {
-    throw new UpstreamError('firestore runQuery request failed', { cause });
-  }
+  const response = await firestoreFetch(env, ':runQuery', {
+    method: 'POST',
+    body: JSON.stringify({ structuredQuery }),
+  });
 
   if (!response.ok) {
     throw new UpstreamError(`firestore runQuery returned ${response.status}`);
@@ -214,15 +215,7 @@ export async function getDocument(
   env: FirestoreEnv,
   path: string,
 ): Promise<FirestoreRestDocument | null> {
-  let response: Response;
-  try {
-    response = await fetch(`${documentsBaseUrl(env)}/${path}`, {
-      method: 'GET',
-      headers: await firestoreHeaders(env),
-    });
-  } catch (cause) {
-    throw new UpstreamError('firestore getDocument request failed', { cause });
-  }
+  const response = await firestoreFetch(env, `/${path}`, { method: 'GET' });
 
   if (response.status === 404) return null;
   if (!response.ok) {

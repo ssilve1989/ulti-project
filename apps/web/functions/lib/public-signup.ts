@@ -1,4 +1,5 @@
 import type { SignupDocument } from '@ulti-project/shared';
+import { getString } from './firestore-client.ts';
 
 export interface PublicSignup {
   character: string;
@@ -18,16 +19,12 @@ const ALLOWLIST = [
   'partyStatus',
 ] as const satisfies readonly (keyof SignupDocument)[];
 
-function asString(value: unknown): string {
-  return typeof value === 'string' ? value : '';
-}
-
 export function toPublicSignup(fields: Record<string, unknown>): PublicSignup {
   return {
-    character: asString(fields.character),
-    world: asString(fields.world),
-    role: asString(fields.role),
-    progPoint: asString(fields.progPoint),
-    partyStatus: asString(fields.partyStatus),
+    character: getString(fields, 'character'),
+    world: getString(fields, 'world'),
+    role: getString(fields, 'role'),
+    progPoint: getString(fields, 'progPoint'),
+    partyStatus: getString(fields, 'partyStatus'),
   } satisfies Record<(typeof ALLOWLIST)[number], string>;
 }
