@@ -9,6 +9,7 @@ describe('createBlacklistChannelsSelectRow', () => {
   it('builds a multi-select channel menu restricted to text channels', () => {
     const row = createBlacklistChannelsSelectRow([]).toJSON();
 
+    // biome-ignore lint/nursery/noUnsafeTypeAssertion: narrows an ActionRowBuilder.toJSON() component union to the ChannelSelect component this row is built from
     const [menu] = row.components as {
       type: ComponentType;
       custom_id: string;
@@ -27,6 +28,7 @@ describe('createBlacklistChannelsSelectRow', () => {
   it('pre-selects the current channels as default values', () => {
     const row = createBlacklistChannelsSelectRow(['chan-1', 'chan-2']).toJSON();
 
+    // biome-ignore lint/nursery/noUnsafeTypeAssertion: narrows an ActionRowBuilder.toJSON() component union to the ChannelSelect component this row is built from
     const [menu] = row.components as {
       default_values?: { id: string; type: string }[];
     }[];

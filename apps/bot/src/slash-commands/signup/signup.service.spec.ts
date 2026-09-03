@@ -1,11 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import type { SignupDocument } from '@ulti-project/shared';
 import type { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
+import type { WriteResult } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
-import { createAutoMock } from '../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+  withInternals,
+} from '../../test-utils/mock-factory.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
 
@@ -30,28 +36,28 @@ describe('SignupService', () => {
     repository = fixture.get(SignupCollection);
     discordService = fixture.get(DiscordService);
 
-    messageReaction = {
-      message: {
+    messageReaction = mockOf<MessageReaction>({
+      message: mockOf<Message<boolean>>({
         id: 'messageId',
         edit: vi.fn().mockResolvedValue(undefined),
         inGuild: vi.fn().mockReturnValue(true),
-      } as unknown as Message<boolean>,
-      emoji: {
+      }),
+      emoji: mockOf<ReactionEmoji>({
         name: 'emojiName',
-      } as unknown as ReactionEmoji,
-    } as unknown as MessageReaction;
+      }),
+    });
 
-    user = {
+    user = mockOf<User>({
       id: 'userId',
       displayAvatarURL: () => 'http://someurl.com',
       toString: () => '<@someuser>',
-    } as unknown as User;
-    settings = {} as SettingsDocument;
-    signup = {
+    });
+    settings = partialMock<SettingsDocument>({});
+    signup = partialMock<SignupDocument>({
       reviewMessageId: 'messageId',
       reviewedBy: undefined,
       discordId: 'abc123',
-    } as SignupDocument;
+    });
   });
 
   it('should be defined', () => {
@@ -65,7 +71,13 @@ describe('SignupService', () => {
     messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
 
     const spy = vi
-      .spyOn(service, 'handleApprovedReaction' as any)
+      .spyOn(
+        withInternals<{
+          handleApprovedReaction: (...args: unknown[]) => Promise<unknown>;
+          handleDeclinedReaction: (...args: unknown[]) => Promise<unknown>;
+        }>(service),
+        'handleApprovedReaction',
+      )
       .mockResolvedValue({});
 
     await service['handleReaction'](messageReaction, user, settings);
@@ -83,10 +95,20 @@ describe('SignupService', () => {
 
     repository.findByReviewId.mockResolvedValueOnce(signup);
     discordService.getDisplayName.mockResolvedValueOnce('someuser');
-    repository.updateSignupStatus.mockResolvedValueOnce({} as any);
-    vi.spyOn(messageReaction.message, 'edit').mockResolvedValueOnce({} as any);
+    repository.updateSignupStatus.mockResolvedValueOnce(
+      mockOf<WriteResult>({}),
+    );
+    vi.spyOn(messageReaction.message, 'edit').mockResolvedValueOnce(
+      mockOf<Awaited<ReturnType<(typeof messageReaction.message)['edit']>>>({}),
+    );
 
-    const handleDeclineSpy = vi.spyOn(service, 'handleDeclinedReaction' as any);
+    const handleDeclineSpy = vi.spyOn(
+      withInternals<{
+        handleApprovedReaction: (...args: unknown[]) => Promise<unknown>;
+        handleDeclinedReaction: (...args: unknown[]) => Promise<unknown>;
+      }>(service),
+      'handleDeclinedReaction',
+    );
 
     await service['handleReaction'](messageReaction, user, settings);
 
@@ -105,7 +127,13 @@ describe('SignupService', () => {
 
     messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
 
-    const spy = vi.spyOn(service, 'handleApprovedReaction' as any);
+    const spy = vi.spyOn(
+      withInternals<{
+        handleApprovedReaction: (...args: unknown[]) => Promise<unknown>;
+        handleDeclinedReaction: (...args: unknown[]) => Promise<unknown>;
+      }>(service),
+      'handleApprovedReaction',
+    );
     await service['handleReaction'](messageReaction, user, settings);
 
     expect(spy).not.toHaveBeenCalled();

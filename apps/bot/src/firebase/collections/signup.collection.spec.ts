@@ -14,7 +14,11 @@ import type {
 } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import type { SignupSchema } from '../../slash-commands/signup/signup.schema.js';
-import { createAutoMock } from '../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+} from '../../test-utils/mock-factory.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import { SignupCollection } from './signup.collection.js';
@@ -28,23 +32,21 @@ describe('Signup Repository', () => {
   let repository: SignupCollection;
   let collection: Mocked<CollectionReference<DocumentData>>;
   let doc: Mocked<DocumentReference<DocumentData>>;
-  const signupRequest = SIGNUP_KEY as unknown as SignupSchema;
+  const signupRequest = partialMock<SignupSchema>(SIGNUP_KEY);
 
   beforeEach(async () => {
-    doc = createAutoMock() as unknown as Mocked<
-      DocumentReference<DocumentData>
-    >;
+    doc = createAutoMock<DocumentReference<DocumentData>>();
 
-    collection = {
+    collection = mockOf<Mocked<CollectionReference<DocumentData>>>({
       get: vi.fn(),
       where: vi.fn(),
       limit: vi.fn(),
       doc: vi.fn().mockReturnValue(doc),
-    } as unknown as Mocked<CollectionReference<DocumentData>>;
+    });
 
-    const firestore = {
+    const firestore = mockOf<Firestore>({
       collection: vi.fn().mockReturnValue(collection),
-    } as unknown as Firestore;
+    });
 
     const fixture = await Test.createTestingModule({
       providers: [
@@ -64,10 +66,12 @@ describe('Signup Repository', () => {
       status: SignupStatus.APPROVED,
       reviewedBy: 'someReviewer',
     };
-    doc.get.mockResolvedValueOnce({
-      exists: true,
-      data: () => existingData,
-    } as unknown as DocumentSnapshot);
+    doc.get.mockResolvedValueOnce(
+      mockOf<DocumentSnapshot>({
+        exists: true,
+        data: () => existingData,
+      }),
+    );
 
     const result = await repository.upsert(signupRequest);
 
@@ -95,10 +99,12 @@ describe('Signup Repository', () => {
       status: SignupStatus.PENDING,
       reviewedBy: null,
     };
-    doc.get.mockResolvedValueOnce({
-      exists: true,
-      data: () => existingData,
-    } as unknown as DocumentSnapshot);
+    doc.get.mockResolvedValueOnce(
+      mockOf<DocumentSnapshot>({
+        exists: true,
+        data: () => existingData,
+      }),
+    );
 
     const result = await repository.upsert(signupRequest);
 
@@ -115,10 +121,12 @@ describe('Signup Repository', () => {
   });
 
   it('should call create if the document does not exist', async () => {
-    doc.get.mockResolvedValueOnce({
-      exists: false,
-      data: () => null,
-    } as unknown as DocumentSnapshot);
+    doc.get.mockResolvedValueOnce(
+      mockOf<DocumentSnapshot>({
+        exists: false,
+        data: () => null,
+      }),
+    );
 
     const result = await repository.upsert(signupRequest);
 
@@ -159,24 +167,26 @@ describe('Signup Repository', () => {
 
   describe('#findByReviewId', () => {
     const mockFetch = (empty: boolean, signup: SignupDocument) => {
-      collection.where.mockReturnValueOnce({
-        limit: () => ({
-          get: () =>
-            Promise.resolve({
-              empty,
-              docs: [{ data: () => signup }],
-            }),
+      collection.where.mockReturnValueOnce(
+        mockOf<Query<DocumentData>>({
+          limit: () => ({
+            get: () =>
+              Promise.resolve({
+                empty,
+                docs: [{ data: () => signup }],
+              }),
+          }),
         }),
-      } as unknown as Query<DocumentData>);
+      );
     };
 
     it('should return a signup by review if exists', async () => {
       const reviewMessageId = 'reviewMessageId';
-      const signup = {
+      const signup = partialMock<SignupDocument>({
         ...SIGNUP_KEY,
         reviewMessageId,
         status: SignupStatus.PENDING,
-      } as SignupDocument;
+      });
 
       mockFetch(false, signup);
 
@@ -186,7 +196,7 @@ describe('Signup Repository', () => {
     });
 
     it('should throw an error if no signup exists', () => {
-      mockFetch(true, {} as SignupDocument);
+      mockFetch(true, partialMock<SignupDocument>({}));
 
       return expect(
         repository.findByReviewId('reviewMessageId'),

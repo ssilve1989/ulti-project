@@ -3,7 +3,7 @@ import type { User } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
-import { createAutoMock } from '../../../test-utils/mock-factory.js';
+import { createAutoMock, mockOf } from '../../../test-utils/mock-factory.js';
 import { BlacklistUpdatedEvent } from '../events/blacklist.events.js';
 import { BlacklistUpdatedEventHandler } from './blacklist-updated.event-handler.js';
 
@@ -13,10 +13,10 @@ describe('BlacklistUpdatedEventHandler', () => {
   let discordService: Mocked<DiscordService>;
 
   const guildId = 'guild-1';
-  const triggeredBy = {
+  const triggeredBy = mockOf<User>({
     id: 'mod-1',
     displayAvatarURL: () => 'https://cdn.example/avatar.png',
-  } as unknown as User;
+  });
 
   const event = new BlacklistUpdatedEvent({
     guildId,
@@ -30,8 +30,14 @@ describe('BlacklistUpdatedEventHandler', () => {
     },
   });
 
+  type MockTextChannel = NonNullable<
+    Awaited<ReturnType<DiscordService['getTextChannel']>>
+  >;
+
   function mockChannel() {
-    return { send: vi.fn().mockResolvedValue(undefined) };
+    return mockOf<MockTextChannel>({
+      send: vi.fn().mockResolvedValue(undefined),
+    });
   }
 
   beforeEach(async () => {
@@ -77,8 +83,8 @@ describe('BlacklistUpdatedEventHandler', () => {
     const channel1 = mockChannel();
     const channel2 = mockChannel();
     discordService.getTextChannel
-      .mockResolvedValueOnce(channel1 as never)
-      .mockResolvedValueOnce(channel2 as never);
+      .mockResolvedValueOnce(channel1)
+      .mockResolvedValueOnce(channel2);
 
     await handler.handle(event);
 
@@ -100,7 +106,7 @@ describe('BlacklistUpdatedEventHandler', () => {
     });
 
     const channel = mockChannel();
-    discordService.getTextChannel.mockResolvedValueOnce(channel as never);
+    discordService.getTextChannel.mockResolvedValueOnce(channel);
 
     await handler.handle(event);
 
@@ -116,13 +122,13 @@ describe('BlacklistUpdatedEventHandler', () => {
       blacklistChannelIds: ['broken-chan', 'chan-2'],
     });
 
-    const brokenChannel = {
+    const brokenChannel = mockOf<MockTextChannel>({
       send: vi.fn().mockRejectedValue(new Error('Missing Permissions')),
-    };
+    });
     const channel2 = mockChannel();
     discordService.getTextChannel
-      .mockResolvedValueOnce(brokenChannel as never)
-      .mockResolvedValueOnce(channel2 as never);
+      .mockResolvedValueOnce(brokenChannel)
+      .mockResolvedValueOnce(channel2);
 
     await expect(handler.handle(event)).resolves.toBeUndefined();
     expect(channel2.send).toHaveBeenCalledTimes(1);

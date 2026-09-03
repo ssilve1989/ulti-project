@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
-import type { SignupDocument } from '@ulti-project/shared';
+import { type SignupDocument, typedCollection } from '@ulti-project/shared';
 import { Firestore } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../../firebase/firebase.decorators.js';
 
@@ -15,11 +15,13 @@ class StatusService {
    */
   @SentryTraced()
   public async getSignups(discordId: string): Promise<SignupDocument[]> {
-    const snapshot = await this.firestore
-      .collection('signups')
+    const snapshot = await typedCollection<SignupDocument>(
+      this.firestore,
+      'signups',
+    )
       .where('discordId', '==', discordId)
       .get();
-    return snapshot.docs.map((doc) => doc.data() as SignupDocument);
+    return snapshot.docs.map((doc) => doc.data());
   }
 }
 

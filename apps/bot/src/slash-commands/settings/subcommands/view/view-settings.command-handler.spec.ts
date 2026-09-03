@@ -3,14 +3,16 @@ import { Encounter } from '@ulti-project/shared';
 import type {
   ButtonInteraction,
   ChatInputCommandInteraction,
+  Message,
   StringSelectMenuInteraction,
+  User,
 } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import type { SettingsDocument } from '../../../../firebase/models/settings.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
-import { createAutoMock } from '../../../../test-utils/mock-factory.js';
+import { createAutoMock, mockOf } from '../../../../test-utils/mock-factory.js';
 import { ViewSettingsCommandHandler } from './view-settings.command-handler.js';
 import {
   SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID,
@@ -48,9 +50,7 @@ describe('ViewSettingsCommandHandler', () => {
   };
 
   function createInteraction() {
-    const interaction = createAutoMock() as unknown as Mocked<
-      ChatInputCommandInteraction<'cached'>
-    >;
+    const interaction = createAutoMock<ChatInputCommandInteraction<'cached'>>();
     const collector = createAutoMock();
     const callbacks: {
       collect?: (i: unknown) => Promise<void>;
@@ -66,22 +66,23 @@ describe('ViewSettingsCommandHandler', () => {
     const replyMessage = createAutoMock();
     replyMessage.createMessageComponentCollector.mockReturnValue(collector);
 
-    vi.mocked(interaction.editReply).mockResolvedValue(replyMessage as never);
-    interaction.user = { id: 'user123' } as never;
+    vi.mocked(interaction.editReply).mockResolvedValue(
+      mockOf<Message<true>>(replyMessage),
+    );
+    interaction.user = mockOf<User>({ id: 'user123' });
 
     return { interaction, replyMessage, callbacks };
   }
 
   function createButtonInteraction(customId: string) {
-    const button = createAutoMock() as unknown as Mocked<ButtonInteraction>;
+    const button = createAutoMock<ButtonInteraction>();
     button.customId = customId;
     button.isStringSelectMenu.mockReturnValue(false);
     return button;
   }
 
   function createSelectInteraction(customId: string, values: string[]) {
-    const select =
-      createAutoMock() as unknown as Mocked<StringSelectMenuInteraction>;
+    const select = createAutoMock<StringSelectMenuInteraction>();
     select.customId = customId;
     select.values = values;
     select.isStringSelectMenu.mockReturnValue(true);
@@ -89,6 +90,7 @@ describe('ViewSettingsCommandHandler', () => {
   }
 
   function lastReplyPayload(mock: { mock: { calls: unknown[][] } }) {
+    // biome-ignore lint/nursery/noUnsafeTypeAssertion: asserts the concrete editReply payload shape this handler produces; the mock's own signature is the broad discord.js union
     return mock.mock.calls.at(-1)?.[0] as EmbedPayload;
   }
 
@@ -243,6 +245,7 @@ describe('ViewSettingsCommandHandler', () => {
     expect(components).toHaveLength(2);
 
     // encounters with an empty mapping are not selectable
+    // biome-ignore lint/nursery/noUnsafeTypeAssertion: narrows an ActionRowBuilder.toJSON() component union to the StringSelect row this section builds
     const selectRow = components[1].toJSON() as {
       components: { options: { value: string }[] }[];
     };
@@ -281,7 +284,7 @@ describe('ViewSettingsCommandHandler', () => {
     sheetsService.getSheetMetadata.mockResolvedValue({
       title: 'My Sheet',
       url: 'https://sheets.example/abc',
-    } as never);
+    });
 
     await command.execute(interaction);
     const fetchCount = sheetsService.getSheetMetadata.mock.calls.length;

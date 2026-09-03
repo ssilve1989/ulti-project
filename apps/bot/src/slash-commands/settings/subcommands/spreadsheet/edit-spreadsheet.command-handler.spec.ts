@@ -3,7 +3,7 @@ import type { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { createAutoMock } from '../../../../test-utils/mock-factory.js';
+import { createAutoMock, mockOf } from '../../../../test-utils/mock-factory.js';
 import { EditSpreadsheetCommandHandler } from './edit-spreadsheet.command-handler.js';
 
 describe('EditSpreadsheetCommandHandler', () => {
@@ -37,15 +37,17 @@ describe('EditSpreadsheetCommandHandler', () => {
 
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
-    await command.execute({
-      guildId,
-      options: {
-        getString: (name: string, _required?: boolean) =>
-          name === 'spreadsheet-id' ? spreadsheetId : null,
-      },
-      deferReply: vi.fn(),
-      editReply: vi.fn(),
-    } as unknown as ChatInputCommandInteraction<'cached'>);
+    await command.execute(
+      mockOf<ChatInputCommandInteraction<'cached'>>({
+        guildId,
+        options: {
+          getString: (name: string, _required?: boolean) =>
+            name === 'spreadsheet-id' ? spreadsheetId : null,
+        },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      }),
+    );
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(
       guildId,
@@ -57,12 +59,12 @@ describe('EditSpreadsheetCommandHandler', () => {
 
   it('should handle errors gracefully', async () => {
     const error = new Error('Test error');
-    const mockErrorEmbed = {} as EmbedBuilder;
+    const mockErrorEmbed = mockOf<EmbedBuilder>({});
 
     settingsCollection.getSettings.mockRejectedValueOnce(error);
     errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
 
-    const interaction = {
+    const interaction = mockOf<ChatInputCommandInteraction<'cached'>>({
       guildId: '12345',
       options: {
         getString: (_name: string, _requiredd?: boolean) =>
@@ -70,7 +72,7 @@ describe('EditSpreadsheetCommandHandler', () => {
       },
       deferReply: vi.fn(),
       editReply: vi.fn(),
-    } as unknown as ChatInputCommandInteraction<'cached'>;
+    });
 
     await command.execute(interaction);
 

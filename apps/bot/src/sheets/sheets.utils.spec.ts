@@ -1,5 +1,6 @@
 import type { sheets_v4 } from '@googleapis/sheets';
 import { describe, expect, it, vi } from 'vitest';
+import { mockOf } from '../test-utils/mock-factory.js';
 import { updateSheet } from './sheets.utils.js';
 
 function createClient({
@@ -9,7 +10,7 @@ function createClient({
   update?: ReturnType<typeof vi.fn>;
   append?: ReturnType<typeof vi.fn>;
 } = {}) {
-  return {
+  return mockOf<sheets_v4.Sheets>({
     spreadsheets: {
       get: vi.fn().mockResolvedValue({
         data: { sheets: [{ properties: { title: 'DMU', sheetId: 42 } }] },
@@ -20,7 +21,7 @@ function createClient({
         append: append ?? vi.fn().mockResolvedValue({ data: {}, status: 200 }),
       },
     },
-  } as unknown as sheets_v4.Sheets;
+  });
 }
 
 const GRID_LIMIT_ERROR = new Error(

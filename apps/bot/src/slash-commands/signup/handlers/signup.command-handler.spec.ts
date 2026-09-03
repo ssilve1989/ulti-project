@@ -30,7 +30,11 @@ import { expiredReportError } from '../../../fflogs/fflogs.consts.js';
 import { FFLogsService } from '../../../fflogs/fflogs.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import { createAutoMock } from '../../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+} from '../../../test-utils/mock-factory.js';
 import { SIGNUP_MESSAGES } from '../signup.consts.js';
 import { SignupCommandHandler } from './signup.command-handler.js';
 
@@ -49,12 +53,10 @@ describe('Signup Command Handler', () => {
       providers: [SignupCommandHandler],
     })
       .useMocker(createAutoMock)
-      .setLogger(createAutoMock() as unknown as LoggerService)
+      .setLogger(createAutoMock<LoggerService>())
       .compile();
 
-    confirmationInteraction = createAutoMock() as unknown as Mocked<
-      Message<true>
-    >;
+    confirmationInteraction = createAutoMock<Message<true>>();
     discordServiceMock = fixture.get(DiscordService);
     command = fixture.get(SignupCommandHandler);
     settingsCollection = fixture.get(SettingsCollection);
@@ -62,10 +64,10 @@ describe('Signup Command Handler', () => {
     fflogsServiceMock = fixture.get(FFLogsService);
     errorService = fixture.get(ErrorService);
 
-    interaction = {
+    interaction = mockOf<Mocked<ChatInputCommandInteraction<'cached'>>>({
       user: { username: 'Test User', id: '123456' },
       options: {
-        getString: (value: string) => {
+        getString: vi.fn((value: string) => {
           switch (value) {
             case 'encounter':
               return Encounter.DSR;
@@ -81,16 +83,18 @@ describe('Signup Command Handler', () => {
               return PartyStatus.ClearParty;
             case 'prog-point':
               return 'all the progs';
+            default:
+              return null;
           }
-        },
+        }),
         getAttachment: () => null,
       },
       deferReply: vi.fn().mockResolvedValue(undefined),
       editReply: vi.fn().mockResolvedValue(undefined),
-    } as unknown as Mocked<ChatInputCommandInteraction<'cached'>>;
+    });
 
     discordServiceMock.getDisplayName.mockResolvedValue('Test Character');
-    errorService.handleCommandError.mockReturnValue({} as EmbedBuilder);
+    errorService.handleCommandError.mockReturnValue(mockOf<EmbedBuilder>({}));
     settingsCollection.getReviewChannel.mockResolvedValue('review-channel-id');
     fflogsServiceMock.validateReportAge.mockResolvedValue({
       isValid: true,
@@ -103,9 +107,11 @@ describe('Signup Command Handler', () => {
   });
 
   it('confirms a signup', async () => {
-    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce({
-      customId: 'confirm',
-    } as unknown as ChannelSelectMenuInteraction<'cached'>);
+    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
+      mockOf<ChannelSelectMenuInteraction<'cached'>>({
+        customId: 'confirm',
+      }),
+    );
 
     interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
 
@@ -126,16 +132,20 @@ describe('Signup Command Handler', () => {
   it.each([SignupStatus.PENDING, SignupStatus.UPDATE_PENDING])(
     'deletes a prior review message on confirm if it exists and has status %s',
     async (status) => {
-      confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce({
-        customId: 'confirm',
-        guildId: 'g123',
-      } as unknown as ChannelSelectMenuInteraction<'cached'>);
+      confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
+        mockOf<ChannelSelectMenuInteraction<'cached'>>({
+          customId: 'confirm',
+          guildId: 'g123',
+        }),
+      );
 
       interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
-      signupCollectionMock.upsert.mockResolvedValueOnce({
-        status,
-        reviewMessageId: 'messageId123',
-      } as SignupDocument);
+      signupCollectionMock.upsert.mockResolvedValueOnce(
+        partialMock<SignupDocument>({
+          status,
+          reviewMessageId: 'messageId123',
+        }),
+      );
 
       await command.execute(interaction);
 
@@ -152,16 +162,20 @@ describe('Signup Command Handler', () => {
   it.each([SignupStatus.APPROVED, SignupStatus.DECLINED])(
     'does not call delete if the prior approval has status %s',
     async (status) => {
-      confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce({
-        customId: 'confirm',
-        guildId: 'g123',
-      } as unknown as ChannelSelectMenuInteraction<'cached'>);
+      confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
+        mockOf<ChannelSelectMenuInteraction<'cached'>>({
+          customId: 'confirm',
+          guildId: 'g123',
+        }),
+      );
 
       interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
-      signupCollectionMock.upsert.mockResolvedValueOnce({
-        status,
-        reviewMessageId: 'messageId123',
-      } as SignupDocument);
+      signupCollectionMock.upsert.mockResolvedValueOnce(
+        partialMock<SignupDocument>({
+          status,
+          reviewMessageId: 'messageId123',
+        }),
+      );
 
       await command.execute(interaction);
 
@@ -170,12 +184,14 @@ describe('Signup Command Handler', () => {
   );
 
   it('handles UnhandledButtonInteractionException with ErrorService', async () => {
-    const mockErrorEmbed = {} as EmbedBuilder;
+    const mockErrorEmbed = mockOf<EmbedBuilder>({});
     errorService.handleCommandError.mockReturnValue(mockErrorEmbed);
 
-    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce({
-      customId: 'foo',
-    } as unknown as ChannelSelectMenuInteraction<'cached'>);
+    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
+      mockOf<ChannelSelectMenuInteraction<'cached'>>({
+        customId: 'foo',
+      }),
+    );
 
     interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
 
@@ -191,9 +207,11 @@ describe('Signup Command Handler', () => {
   });
 
   it('handles cancelling a signup', async () => {
-    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce({
-      customId: 'cancel',
-    } as unknown as ChannelSelectMenuInteraction<'cached'>);
+    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
+      mockOf<ChannelSelectMenuInteraction<'cached'>>({
+        customId: 'cancel',
+      }),
+    );
 
     interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
 
@@ -212,9 +230,11 @@ describe('Signup Command Handler', () => {
   });
 
   it('handles a timeout', async () => {
-    confirmationInteraction.awaitMessageComponent.mockRejectedValueOnce({
-      code: DiscordjsErrorCodes.InteractionCollectorError,
-    } as unknown as DiscordjsError);
+    confirmationInteraction.awaitMessageComponent.mockRejectedValueOnce(
+      mockOf<DiscordjsError>({
+        code: DiscordjsErrorCodes.InteractionCollectorError,
+      }),
+    );
 
     interaction.editReply.mockResolvedValue(confirmationInteraction);
 
@@ -247,28 +267,30 @@ describe('Signup Command Handler', () => {
   describe('FFLogs Validation', () => {
     beforeEach(() => {
       settingsCollection.getReviewChannel.mockResolvedValue('123456789');
-      errorService.handleCommandError.mockReturnValue({} as EmbedBuilder);
+      errorService.handleCommandError.mockReturnValue(mockOf<EmbedBuilder>({}));
       // Set up default values for FFLogs tests
-      (interaction.options.getString as any) = (key: string) => {
-        switch (key) {
-          case 'character':
-            return 'Test Character';
-          case 'encounter':
-            return 'FRU';
-          case 'prog-proof-link':
-            return 'https://fflogs.com/reports/ABC123def456';
-          case 'prog-point':
-            return 'P1';
-          case 'job':
-            return 'DPS';
-          case 'world':
-            return 'Gilgamesh';
-          case 'notes':
-            return null;
-          default:
-            return null;
-        }
-      };
+      vi.mocked(interaction.options.getString).mockImplementation(
+        (key: string) => {
+          switch (key) {
+            case 'character':
+              return 'Test Character';
+            case 'encounter':
+              return 'FRU';
+            case 'prog-proof-link':
+              return 'https://fflogs.com/reports/ABC123def456';
+            case 'prog-point':
+              return 'P1';
+            case 'job':
+              return 'DPS';
+            case 'world':
+              return 'Gilgamesh';
+            case 'notes':
+              return null;
+            default:
+              return null;
+          }
+        },
+      );
     });
 
     test('should fail validation for old FFLogs report', async () => {
@@ -297,26 +319,28 @@ describe('Signup Command Handler', () => {
     });
 
     test('should handle malformed FFLogs URLs', async () => {
-      (interaction.options.getString as any) = (key: string) => {
-        switch (key) {
-          case 'character':
-            return 'Test Character';
-          case 'encounter':
-            return 'FRU';
-          case 'prog-proof-link':
-            return 'https://fflogs.com/invalid-url';
-          case 'prog-point':
-            return 'P1';
-          case 'job':
-            return 'DPS';
-          case 'world':
-            return 'Gilgamesh';
-          case 'notes':
-            return null;
-          default:
-            return null;
-        }
-      };
+      vi.mocked(interaction.options.getString).mockImplementation(
+        (key: string) => {
+          switch (key) {
+            case 'character':
+              return 'Test Character';
+            case 'encounter':
+              return 'FRU';
+            case 'prog-proof-link':
+              return 'https://fflogs.com/invalid-url';
+            case 'prog-point':
+              return 'P1';
+            case 'job':
+              return 'DPS';
+            case 'world':
+              return 'Gilgamesh';
+            case 'notes':
+              return null;
+            default:
+              return null;
+          }
+        },
+      );
 
       await command.execute(interaction);
 
@@ -362,26 +386,28 @@ describe('Signup Command Handler', () => {
     });
 
     test('should skip FFLogs validation for non-FFLogs URLs', async () => {
-      (interaction.options.getString as any) = (key: string) => {
-        switch (key) {
-          case 'character':
-            return 'Test Character';
-          case 'encounter':
-            return 'FRU';
-          case 'prog-proof-link':
-            return 'https://youtube.com/watch?v=test';
-          case 'prog-point':
-            return 'P1';
-          case 'job':
-            return 'DPS';
-          case 'world':
-            return 'Gilgamesh';
-          case 'notes':
-            return null;
-          default:
-            return null;
-        }
-      };
+      vi.mocked(interaction.options.getString).mockImplementation(
+        (key: string) => {
+          switch (key) {
+            case 'character':
+              return 'Test Character';
+            case 'encounter':
+              return 'FRU';
+            case 'prog-proof-link':
+              return 'https://youtube.com/watch?v=test';
+            case 'prog-point':
+              return 'P1';
+            case 'job':
+              return 'DPS';
+            case 'world':
+              return 'Gilgamesh';
+            case 'notes':
+              return null;
+            default:
+              return null;
+          }
+        },
+      );
 
       await command.execute(interaction);
 

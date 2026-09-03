@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../discord/discord.service.js';
 import { SettingsCollection } from '../firebase/collections/settings-collection.js';
 import { RemoveRolesCommand } from '../slash-commands/signup/commands/signup.commands.js';
-import { createAutoMock } from '../test-utils/mock-factory.js';
+import { createAutoMock, mockOf } from '../test-utils/mock-factory.js';
 import { RemoveRolesCommandHandler } from './remove-roles.command-handler.js';
 
 describe('RemoveRolesCommandHandler', () => {
@@ -34,7 +34,7 @@ describe('RemoveRolesCommandHandler', () => {
     };
 
     discordService.getGuildMember.mockResolvedValue(
-      member as unknown as GuildMember,
+      mockOf<GuildMember>(member),
     );
   });
 

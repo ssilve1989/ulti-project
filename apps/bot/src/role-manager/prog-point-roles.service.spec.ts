@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import type { GuildMember } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAutoMock } from '../test-utils/mock-factory.js';
+import { createAutoMock, mockOf } from '../test-utils/mock-factory.js';
 import { ProgPointRolesService } from './prog-point-roles.service.js';
 
 describe('ProgPointRolesService', () => {
@@ -15,7 +15,7 @@ describe('ProgPointRolesService', () => {
     };
   };
 
-  const asMember = () => member as unknown as GuildMember;
+  const asMember = () => mockOf<GuildMember>(member);
 
   beforeEach(async () => {
     const fixture = await Test.createTestingModule({

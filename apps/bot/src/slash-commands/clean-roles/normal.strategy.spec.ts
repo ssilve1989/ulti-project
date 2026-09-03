@@ -1,7 +1,18 @@
 import { Logger } from '@nestjs/common';
-import { GuildMember, GuildMemberRoleManager, Role, User } from 'discord.js';
+import type { SignupDocument } from '@ulti-project/shared';
+import type {
+  Guild,
+  GuildMember,
+  GuildMemberRoleManager,
+  Role,
+  User,
+} from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAutoMock } from '../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+} from '../../test-utils/mock-factory.js';
 import type {
   NormalRoleResult,
   ProcessingContext,
@@ -13,45 +24,45 @@ describe('NormalStrategy', () => {
   let mockLogger: Logger;
 
   beforeEach(() => {
-    mockLogger = createAutoMock() as unknown as Logger;
+    mockLogger = createAutoMock<Logger>();
     strategy = new NormalStrategy(mockLogger);
   });
 
   describe('processRole', () => {
     it('should process role and remove roles from members without active signups', async () => {
-      const mockUser1 = { username: 'user1' } as User;
-      const mockUser2 = { username: 'user2' } as User;
+      const mockUser1 = mockOf<User>({ username: 'user1' });
+      const mockUser2 = mockOf<User>({ username: 'user2' });
 
-      const mockRoleManager1 = {
+      const mockRoleManager1 = mockOf<GuildMemberRoleManager>({
         remove: vi.fn().mockResolvedValue(undefined),
-      } as unknown as GuildMemberRoleManager;
+      });
 
-      const mockRoleManager2 = {
+      const mockRoleManager2 = mockOf<GuildMemberRoleManager>({
         remove: vi.fn().mockResolvedValue(undefined),
-      } as unknown as GuildMemberRoleManager;
+      });
 
-      const mockMember1 = {
+      const mockMember1 = mockOf<GuildMember>({
         id: 'member-1',
         displayName: 'Member One',
         user: mockUser1,
         roles: mockRoleManager1,
-      } as GuildMember;
+      });
 
-      const mockMember2 = {
+      const mockMember2 = mockOf<GuildMember>({
         id: 'member-2',
         displayName: 'Member Two',
         user: mockUser2,
         roles: mockRoleManager2,
-      } as GuildMember;
+      });
 
-      const mockRole = {
+      const mockRole = mockOf<Role>({
         id: 'role-1',
         name: 'Test Role',
         members: new Map([
           ['member-1', mockMember1],
           ['member-2', mockMember2],
         ]),
-      } as unknown as Role;
+      });
 
       const activeSignupDiscordIds = new Set(['member-1']); // Only member-1 has active signup
 
@@ -78,11 +89,11 @@ describe('NormalStrategy', () => {
     });
 
     it('should handle empty role', async () => {
-      const mockRole = {
+      const mockRole = mockOf<Role>({
         id: 'role-1',
         name: 'Empty Role',
         members: new Map(),
-      } as unknown as Role;
+      });
 
       const activeSignupDiscordIds = new Set<string>();
 
@@ -100,23 +111,23 @@ describe('NormalStrategy', () => {
     });
 
     it('should not remove roles from members with active signups', async () => {
-      const mockUser1 = { username: 'user1' } as User;
-      const mockRoleManager1 = {
+      const mockUser1 = mockOf<User>({ username: 'user1' });
+      const mockRoleManager1 = mockOf<GuildMemberRoleManager>({
         remove: vi.fn().mockResolvedValue(undefined),
-      } as unknown as GuildMemberRoleManager;
+      });
 
-      const mockMember1 = {
+      const mockMember1 = mockOf<GuildMember>({
         id: 'member-1',
         displayName: 'Member One',
         user: mockUser1,
         roles: mockRoleManager1,
-      } as GuildMember;
+      });
 
-      const mockRole = {
+      const mockRole = mockOf<Role>({
         id: 'role-1',
         name: 'Test Role',
         members: new Map([['member-1', mockMember1]]),
-      } as unknown as Role;
+      });
 
       const activeSignupDiscordIds = new Set(['member-1']); // Member has active signup
 
@@ -136,23 +147,23 @@ describe('NormalStrategy', () => {
     });
 
     it('should handle role removal errors gracefully', async () => {
-      const mockUser1 = { username: 'user1' } as User;
-      const mockRoleManager1 = {
+      const mockUser1 = mockOf<User>({ username: 'user1' });
+      const mockRoleManager1 = mockOf<GuildMemberRoleManager>({
         remove: vi.fn().mockRejectedValue(new Error('Discord API error')),
-      } as unknown as GuildMemberRoleManager;
+      });
 
-      const mockMember1 = {
+      const mockMember1 = mockOf<GuildMember>({
         id: 'member-1',
         displayName: 'Member One',
         user: mockUser1,
         roles: mockRoleManager1,
-      } as GuildMember;
+      });
 
-      const mockRole = {
+      const mockRole = mockOf<Role>({
         id: 'role-1',
         name: 'Test Role',
         members: new Map([['member-1', mockMember1]]),
-      } as unknown as Role;
+      });
 
       const activeSignupDiscordIds = new Set<string>(); // No active signups
 
@@ -194,10 +205,10 @@ describe('NormalStrategy', () => {
       ];
 
       const context: ProcessingContext = {
-        guild: {} as any,
+        guild: mockOf<Guild>({}),
         guildId: 'guild-1',
         allRoleIds: new Set(['role-1', 'role-2']),
-        activeSignups: [{}, {}, {}] as any[], // 3 active signups
+        activeSignups: partialMock<SignupDocument[]>([{}, {}, {}]), // 3 active signups
         activeSignupDiscordIds: new Set(['user-4', 'user-5']), // 2 unique Discord IDs with signups
         allMembersWithRoles: new Set([
           'user-1',
@@ -226,10 +237,10 @@ describe('NormalStrategy', () => {
       const processedRoles: NormalRoleResult[] = [];
 
       const context: ProcessingContext = {
-        guild: {} as any,
+        guild: mockOf<Guild>({}),
         guildId: 'guild-1',
         allRoleIds: new Set(),
-        activeSignups: [] as any[],
+        activeSignups: [],
         activeSignupDiscordIds: new Set(),
         allMembersWithRoles: new Set(),
       };

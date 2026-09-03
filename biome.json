@@ -42,7 +42,9 @@
         "noEvolvingTypes": "error",
         "useAwait": "error"
       },
-      "nursery": {}
+      "nursery": {
+        "noUnsafeTypeAssertion": "error"
+      }
     }
   },
   "formatter": {

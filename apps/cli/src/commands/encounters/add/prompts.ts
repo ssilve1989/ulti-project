@@ -14,19 +14,22 @@ async function promptFflogsIds(
   }
 
   type FflogsMethod = 'search' | 'manual' | 'skip';
+  type FflogsMethodOption = { value: FflogsMethod; label: string };
 
-  const searchOption = fflogsToken
-    ? [{ value: 'search' as FflogsMethod, label: 'Search FF Logs by name' }]
+  const searchOption: FflogsMethodOption[] = fflogsToken
+    ? [{ value: 'search', label: 'Search FF Logs by name' }]
     : [];
+
+  const options: FflogsMethodOption[] = [
+    ...searchOption,
+    { value: 'manual', label: 'Enter manually' },
+    { value: 'skip', label: 'Skip for now' },
+  ];
 
   const method = cancelIfCancel(
     await clack.select<FflogsMethod>({
       message: 'FF Logs encounter IDs:',
-      options: [
-        ...searchOption,
-        { value: 'manual' as FflogsMethod, label: 'Enter manually' },
-        { value: 'skip' as FflogsMethod, label: 'Skip for now' },
-      ],
+      options,
     }),
   );
 
@@ -81,7 +84,7 @@ async function promptFflogsIds(
     }),
   );
 
-  return selected as number[];
+  return selected;
 }
 
 async function promptProgPoints(): Promise<
@@ -186,14 +189,14 @@ export async function buildConfigFromPrompts(
       message: 'Application mode:',
       options: [
         {
-          value: 'ultimate' as AppMode,
+          value: 'ultimate',
           label: 'ultimate — current active ultimate',
         },
         {
-          value: 'legacy' as AppMode,
+          value: 'legacy',
           label: 'legacy — past/retired encounter',
         },
-        { value: 'savage' as AppMode, label: 'savage' },
+        { value: 'savage', label: 'savage' },
       ],
     }),
   );

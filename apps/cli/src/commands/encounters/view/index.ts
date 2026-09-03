@@ -1,7 +1,7 @@
 import * as clack from '@clack/prompts';
 import {
-  Encounter,
   EncounterFriendlyDescription,
+  isEncounter,
   PartyStatus,
 } from '@ulti-project/shared';
 import type { Command } from 'commander';
@@ -88,7 +88,11 @@ async function viewAllEncounters(db: Firestore): Promise<void> {
     const hasProg = enc.progPartyThreshold ? '✅' : '❌';
     const hasClear = enc.clearPartyThreshold ? '✅' : '❌';
     const name =
-      enc.name ?? EncounterFriendlyDescription[enc.id as Encounter] ?? enc.id;
+      enc.name ??
+      (isEncounter(enc.id)
+        ? EncounterFriendlyDescription[enc.id]
+        : undefined) ??
+      enc.id;
     lines.push(
       `  ${enc.id.padEnd(8)} ${name.padEnd(36)} ${String(progPoints.length).padEnd(12)} prog:${hasProg} clear:${hasClear}`,
     );

@@ -14,8 +14,7 @@ describe('EncountersService', () => {
   let mockEncountersCollection: Mocked<EncountersCollection>;
 
   beforeEach(async () => {
-    mockEncountersCollection =
-      createAutoMock() as unknown as Mocked<EncountersCollection>;
+    mockEncountersCollection = createAutoMock<EncountersCollection>();
 
     const module = await Test.createTestingModule({
       providers: [

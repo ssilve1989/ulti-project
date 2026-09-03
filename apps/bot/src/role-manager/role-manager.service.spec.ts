@@ -1,12 +1,13 @@
 import type { ChatInputCommandInteraction, User } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockOf } from '../test-utils/mock-factory.js';
 import { RoleManagerService } from './role-manager.service.js';
 
 describe('RoleManagerService', () => {
   let roleManagerService: RoleManagerService;
   let mockSettingsCollection: any;
   let mockDiscordService: any;
-  let mockInteraction: Partial<ChatInputCommandInteraction>;
+  let mockInteraction: ChatInputCommandInteraction<'cached'>;
 
   beforeEach(() => {
     mockSettingsCollection = {
@@ -17,12 +18,10 @@ describe('RoleManagerService', () => {
       userHasRole: vi.fn(),
     };
 
-    mockInteraction = {
+    mockInteraction = mockOf<ChatInputCommandInteraction<'cached'>>({
       guildId: 'test-guild-id',
-      user: {
-        id: 'test-user-id',
-      } as User,
-    } as Partial<ChatInputCommandInteraction>;
+      user: mockOf<User>({ id: 'test-user-id' }),
+    });
 
     roleManagerService = new RoleManagerService(
       mockSettingsCollection,
@@ -35,7 +34,7 @@ describe('RoleManagerService', () => {
       mockSettingsCollection.getSettings.mockResolvedValue(null);
 
       const result = await roleManagerService.validateRole(
-        mockInteraction as ChatInputCommandInteraction<'cached'>,
+        mockInteraction,
         'someRole',
       );
 
@@ -52,7 +51,7 @@ describe('RoleManagerService', () => {
       });
 
       const result = await roleManagerService.validateRole(
-        mockInteraction as ChatInputCommandInteraction<'cached'>,
+        mockInteraction,
         'someRole',
       );
 
@@ -70,7 +69,7 @@ describe('RoleManagerService', () => {
       mockDiscordService.userHasRole.mockResolvedValue(true);
 
       const result = await roleManagerService.validateRole(
-        mockInteraction as ChatInputCommandInteraction<'cached'>,
+        mockInteraction,
         'someRole',
       );
 
@@ -89,7 +88,7 @@ describe('RoleManagerService', () => {
       mockDiscordService.userHasRole.mockResolvedValue(false);
 
       const result = await roleManagerService.validateRole(
-        mockInteraction as ChatInputCommandInteraction<'cached'>,
+        mockInteraction,
         'someRole',
       );
 

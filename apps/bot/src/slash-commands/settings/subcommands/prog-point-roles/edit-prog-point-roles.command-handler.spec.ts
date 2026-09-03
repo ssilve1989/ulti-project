@@ -5,7 +5,7 @@ import { StringSelectMenuBuilder } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { EncountersComponentsService } from '../../../../encounters/encounters-components.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { createAutoMock } from '../../../../test-utils/mock-factory.js';
+import { createAutoMock, mockOf } from '../../../../test-utils/mock-factory.js';
 import {
   EditProgPointRolesCommandHandler,
   PROG_POINT_ROLES_SELECT_ID,
@@ -30,11 +30,11 @@ describe('EditProgPointRolesCommandHandler', () => {
     role: Role | null;
     selection: ReturnType<typeof createSelection>;
   }) => {
-    const message = {
+    const message = mockOf<Message<true>>({
       awaitMessageComponent: vi.fn().mockResolvedValue(options.selection),
-    } as unknown as Message<true>;
+    });
 
-    return {
+    return mockOf<ChatInputCommandInteraction<'cached'>>({
       guildId,
       user: { id: 'admin-1' },
       deferReply: vi.fn().mockResolvedValue(undefined),
@@ -43,7 +43,7 @@ describe('EditProgPointRolesCommandHandler', () => {
         getString: vi.fn().mockReturnValue(Encounter.TOP),
         getRole: vi.fn().mockReturnValue(options.role),
       },
-    } as unknown as ChatInputCommandInteraction<'cached'>;
+    });
   };
 
   beforeEach(async () => {
@@ -69,7 +69,7 @@ describe('EditProgPointRolesCommandHandler', () => {
   });
 
   it('maps the selected prog points to the given role', async () => {
-    const role = { id: roleId } as unknown as Role;
+    const role = mockOf<Role>({ id: roleId });
     const selection = createSelection(['P1', 'P2']);
 
     settingsCollection.getSettings.mockResolvedValue({
@@ -109,7 +109,7 @@ describe('EditProgPointRolesCommandHandler', () => {
     settingsCollection.getSettings.mockResolvedValue(undefined);
 
     await command.execute(
-      createInteraction({ role: { id: roleId } as unknown as Role, selection }),
+      createInteraction({ role: mockOf<Role>({ id: roleId }), selection }),
     );
 
     expect(

@@ -3,7 +3,12 @@ import type { SignupDocument } from '@ulti-project/shared';
 import type { Message, StringSelectMenuInteraction, User } from 'discord.js';
 import { DiscordAPIError } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAutoMock } from '../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+  withInternals,
+} from '../../test-utils/mock-factory.js';
 import { DECLINE_REASON_SELECT_ID } from './decline-reason.components.js';
 import {
   DeclineReasonRequestService,
@@ -37,12 +42,12 @@ describe('DeclineReasonRequestService', () => {
 
     service = fixture.get(DeclineReasonRequestService);
 
-    signup = {
+    signup = partialMock<SignupDocument>({
       discordId: 'abc123',
       encounter: 'DSR',
-    } as SignupDocument;
-    reviewer = { id: 'reviewerId' } as User;
-    reviewMessage = {} as Message<true>;
+    });
+    reviewer = mockOf<User>({ id: 'reviewerId' });
+    reviewMessage = mockOf<Message<true>>({});
     signupId = `${signup.discordId}-${signup.encounter}`;
   });
 
@@ -53,11 +58,11 @@ describe('DeclineReasonRequestService', () => {
   describe('handleReasonSelection', () => {
     it('returns false and asks the reviewer to retry when the modal token has already expired', async () => {
       const userSend = vi.fn().mockResolvedValue(undefined);
-      const interaction = {
+      const interaction = mockOf<StringSelectMenuInteraction>({
         values: [CUSTOM_DECLINE_REASON_VALUE],
         showModal: vi.fn().mockRejectedValue(unknownInteractionError()),
         user: { send: userSend },
-      } as unknown as StringSelectMenuInteraction;
+      });
 
       const result = await service['handleReasonSelection'](
         interaction,
@@ -74,11 +79,11 @@ describe('DeclineReasonRequestService', () => {
     });
 
     it('rethrows errors from showModal that are not a 10062', async () => {
-      const interaction = {
+      const interaction = mockOf<StringSelectMenuInteraction>({
         values: [CUSTOM_DECLINE_REASON_VALUE],
         showModal: vi.fn().mockRejectedValue(new Error('boom')),
         user: { send: vi.fn() },
-      } as unknown as StringSelectMenuInteraction;
+      });
 
       await expect(
         service['handleReasonSelection'](
@@ -94,21 +99,27 @@ describe('DeclineReasonRequestService', () => {
 
   describe('handleDeclineReasonInteractions retry loop', () => {
     const buildSelectInteraction = () =>
-      ({
+      mockOf<StringSelectMenuInteraction>({
         customId: `${DECLINE_REASON_SELECT_ID}-${signupId}`,
-      }) as StringSelectMenuInteraction;
+      });
 
     it('re-listens for a selection and retries after a recoverable modal failure', async () => {
       const selectInteraction = buildSelectInteraction();
       const awaitMessageComponent = vi
         .fn()
         .mockResolvedValue(selectInteraction);
-      const dmMessage = {
+      const dmMessage = mockOf<Message<false>>({
         awaitMessageComponent,
-      } as unknown as Message<false>;
+      });
 
       const handleReasonSelectionSpy = vi
-        .spyOn(service as any, 'handleReasonSelection')
+        .spyOn(
+          withInternals<{
+            handleReasonSelection: (...args: unknown[]) => Promise<unknown>;
+            dispatchDeclineReasonEvent: (...args: unknown[]) => unknown;
+          }>(service),
+          'handleReasonSelection',
+        )
         .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(true);
 
@@ -128,15 +139,25 @@ describe('DeclineReasonRequestService', () => {
       const awaitMessageComponent = vi
         .fn()
         .mockResolvedValue(selectInteraction);
-      const dmMessage = {
+      const dmMessage = mockOf<Message<false>>({
         awaitMessageComponent,
-      } as unknown as Message<false>;
+      });
 
-      vi.spyOn(service as any, 'handleReasonSelection').mockResolvedValue(
-        false,
-      );
+      vi.spyOn(
+        withInternals<{
+          handleReasonSelection: (...args: unknown[]) => Promise<unknown>;
+          dispatchDeclineReasonEvent: (...args: unknown[]) => unknown;
+        }>(service),
+        'handleReasonSelection',
+      ).mockResolvedValue(false);
       const dispatchSpy = vi
-        .spyOn(service as any, 'dispatchDeclineReasonEvent')
+        .spyOn(
+          withInternals<{
+            handleReasonSelection: (...args: unknown[]) => Promise<unknown>;
+            dispatchDeclineReasonEvent: (...args: unknown[]) => unknown;
+          }>(service),
+          'dispatchDeclineReasonEvent',
+        )
         .mockImplementation(() => undefined);
 
       await service['handleDeclineReasonInteractions'](

@@ -17,7 +17,7 @@ function isISlashCommand(instance: unknown): instance is ISlashCommand {
     typeof instance === 'object' &&
     instance !== null &&
     'execute' in instance &&
-    typeof (instance as Record<string, unknown>).execute === 'function'
+    typeof instance.execute === 'function'
   );
 }
 

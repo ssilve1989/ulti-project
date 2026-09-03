@@ -1,5 +1,7 @@
+import type { SignupDocument } from '@ulti-project/shared';
 import { PartyStatus, SignupStatus } from '@ulti-project/shared';
 import { describe, expect, test } from 'vitest';
+import { partialMock } from '../../test-utils/mock-factory.js';
 import {
   extractFflogsReportCode,
   hasClearedStatus,
@@ -51,7 +53,7 @@ describe('shouldDeleteReviewMessageForSignup', () => {
     [SignupStatus.UPDATE_PENDING, true],
     [SignupStatus.APPROVED, false],
   ])('should return %s for %s status', (status, expected) => {
-    const signup = { status } as any;
+    const signup = partialMock<SignupDocument>({ status });
     expect(shouldDeleteReviewMessageForSignup(signup)).toBe(expected);
   });
 });

@@ -186,7 +186,7 @@ class SheetsService implements OnApplicationShutdown {
       ),
     );
 
-    const filtered = requests.filter(Boolean) as sheets_v4.Schema$Request[];
+    const filtered = requests.filter((request) => request != null);
     return filtered.length && batchUpdate(this.client, spreadsheetId, filtered);
   }
 
@@ -412,7 +412,7 @@ class SheetsService implements OnApplicationShutdown {
     spreadsheetId: string,
   ) {
     const sheetName = sheetsConfig.TURBO_PROG_SHEET_NAME;
-    const range = TurboProgSheetRanges[encounter as Encounter];
+    const range = TurboProgSheetRanges[encounter];
 
     const { rowIndex, sheetValues } = await findCharacterRowIndex(this.client, {
       spreadsheetId,

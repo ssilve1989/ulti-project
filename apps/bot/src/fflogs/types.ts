@@ -17,6 +17,6 @@ export function isEncounterRankings(data: unknown): data is EncounterRankings {
     typeof data === 'object' &&
     data !== null &&
     'totalKills' in data &&
-    typeof (data as Record<string, unknown>).totalKills === 'number'
+    typeof data.totalKills === 'number'
   );
 }

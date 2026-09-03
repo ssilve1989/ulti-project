@@ -4,7 +4,7 @@ import { DiscordService } from '../../../discord/discord.service.js';
 import { BlacklistCollection } from '../../../firebase/collections/blacklist-collection.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import type { BlacklistDocument } from '../../../firebase/models/blacklist.model.js';
-import { createAutoMock } from '../../../test-utils/mock-factory.js';
+import { createAutoMock, mockOf } from '../../../test-utils/mock-factory.js';
 import { BlacklistSearchCommand } from '../blacklist.commands.js';
 import { BlacklistSearchCommandHandler } from './blacklist-search.command-handler.js';
 
@@ -31,8 +31,14 @@ describe('BlacklistSearchCommandHandler', () => {
     lodestoneId: null,
   };
 
+  type MockTextChannel = NonNullable<
+    Awaited<ReturnType<DiscordService['getTextChannel']>>
+  >;
+
   function mockChannel() {
-    return { send: vi.fn().mockResolvedValue(undefined) };
+    return mockOf<MockTextChannel>({
+      send: vi.fn().mockResolvedValue(undefined),
+    });
   }
 
   beforeEach(async () => {
@@ -80,8 +86,8 @@ describe('BlacklistSearchCommandHandler', () => {
     const channel1 = mockChannel();
     const channel2 = mockChannel();
     discordService.getTextChannel
-      .mockResolvedValueOnce(channel1 as never)
-      .mockResolvedValueOnce(channel2 as never);
+      .mockResolvedValueOnce(channel1)
+      .mockResolvedValueOnce(channel2);
 
     await handler.execute(command);
 
@@ -104,7 +110,7 @@ describe('BlacklistSearchCommandHandler', () => {
     blacklistCollection.search.mockResolvedValueOnce(match);
 
     const channel = mockChannel();
-    discordService.getTextChannel.mockResolvedValueOnce(channel as never);
+    discordService.getTextChannel.mockResolvedValueOnce(channel);
 
     await handler.execute(command);
 
@@ -135,7 +141,7 @@ describe('BlacklistSearchCommandHandler', () => {
     const channel2 = mockChannel();
     discordService.getTextChannel
       .mockRejectedValueOnce(new Error('Missing Access'))
-      .mockResolvedValueOnce(channel2 as never);
+      .mockResolvedValueOnce(channel2);
 
     await expect(handler.execute(command)).resolves.toBeUndefined();
     expect(channel2.send).toHaveBeenCalledTimes(1);

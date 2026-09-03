@@ -35,7 +35,7 @@ class SlashCommandsService {
 
   listenToCommands() {
     this.client.on(Events.InteractionCreate, (interaction) => {
-      if (!(interaction.isChatInputCommand() && interaction.inGuild())) {
+      if (!(interaction.isChatInputCommand() && interaction.inCachedGuild())) {
         return;
       }
 
@@ -57,9 +57,7 @@ class SlashCommandsService {
                   `dispatching command: ${interaction.commandName}`,
                 );
 
-                await this.registry.dispatch(
-                  interaction as ChatInputCommandInteraction<'cached'>,
-                );
+                await this.registry.dispatch(interaction);
                 span.setStatus({ code: 1 });
               } catch (err) {
                 await this.handleCommandError(err, interaction);

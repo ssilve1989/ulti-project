@@ -105,13 +105,13 @@ class DiscordService {
   }
 
   public getEmojis(emojiNames: string[]): GuildEmoji[] {
-    return emojiNames.reduce((emojis, name) => {
+    return emojiNames.reduce<GuildEmoji[]>((emojis, name) => {
       const emoji = this.client.emojis.cache.find((e) => e.name === name);
       if (emoji) {
         emojis.push(emoji);
       }
       return emojis;
-    }, [] as GuildEmoji[]);
+    }, []);
   }
 
   public async deleteMessage(

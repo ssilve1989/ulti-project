@@ -1,6 +1,6 @@
 import { sheets } from '@googleapis/sheets';
 import { Module } from '@nestjs/common';
-import { Compute, GoogleAuth } from 'google-auth-library';
+import { GoogleAuth } from 'google-auth-library';
 import { appConfig } from '../config/app.js';
 import { sheetsConfig } from '../config/sheets.js';
 import { EncountersModule } from '../encounters/encounters.module.js';
@@ -16,7 +16,7 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
     SheetsService,
     {
       provide: SHEETS_CLIENT,
-      useFactory: async () => {
+      useFactory: () => {
         const client = new GoogleAuth({
           scopes: SCOPES,
           credentials: {
@@ -26,10 +26,9 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
           },
         });
 
-        const auth = (await client.getClient()) as Compute;
         return sheets({
           version: 'v4',
-          auth,
+          auth: client,
           http2: sheetsConfig.GOOGLE_APIS_HTTP2,
           timeout: 20_000,
           retry: true,

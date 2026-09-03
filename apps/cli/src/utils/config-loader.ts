@@ -7,9 +7,7 @@ import { z } from 'zod';
 const ProgPointSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
-  partyStatus: z.enum(
-    Object.values(PartyStatus) as [PartyStatus, ...PartyStatus[]],
-  ),
+  partyStatus: z.enum(PartyStatus),
 });
 
 const EncounterConfigSchema = z.object({

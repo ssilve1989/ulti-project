@@ -7,8 +7,8 @@ import {
   PermissionsBitField,
   SlashCommandBuilder,
 } from 'discord.js';
-import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
-import { createAutoMock } from '../../../test-utils/mock-factory.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createAutoMock, mockOf } from '../../../test-utils/mock-factory.js';
 import { SlashCommandRegistry } from '../../slash-command-registry.service.js';
 import { HelpCommandHandler } from './help.command-handler.js';
 
@@ -47,8 +47,7 @@ describe('HelpCommandHandler', () => {
 
     command = fixture.get(HelpCommandHandler);
 
-    const registry =
-      createAutoMock() as unknown as Mocked<SlashCommandRegistry>;
+    const registry = createAutoMock<SlashCommandRegistry>();
     registry.getAllBuilders.mockReturnValue(mockBuilders);
 
     const moduleRef = fixture.get(ModuleRef);
@@ -64,13 +63,13 @@ describe('HelpCommandHandler', () => {
       permissions: bigint[] = [],
       hasPermissions = true,
     ): ChatInputCommandInteraction<'cached'> => {
-      return {
+      return mockOf<ChatInputCommandInteraction<'cached'>>({
         deferReply: vi.fn().mockResolvedValue(undefined),
         editReply: vi.fn().mockResolvedValue(undefined),
         memberPermissions: hasPermissions
           ? new PermissionsBitField(permissions)
           : null,
-      } as unknown as ChatInputCommandInteraction<'cached'>;
+      });
     };
 
     it('should show only public commands for regular users', async () => {

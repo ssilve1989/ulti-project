@@ -4,7 +4,11 @@ import type { Message, User } from 'discord.js';
 import { Colors } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
-import { createAutoMock } from '../../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+} from '../../../test-utils/mock-factory.js';
 import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
@@ -15,11 +19,11 @@ describe('SignupEmbedEventHandler', () => {
   let handler: UpdateApprovalEmbedEventHandler;
   let message: Message<true>;
 
-  const reviewedBy = {
+  const reviewedBy = mockOf<User>({
     id: '12345',
     displayAvatarURL: () => 'http://test-url.png',
     toString: () => '<@12345>',
-  } as unknown as User;
+  });
 
   const cases = [
     {
@@ -27,8 +31,8 @@ describe('SignupEmbedEventHandler', () => {
       case: 'handles an approval event',
       createEvent: (msg: Message<true>) =>
         new SignupApprovedEvent(
-          createAutoMock() as unknown as SignupDocument,
-          createAutoMock() as unknown as SignupDocument,
+          createAutoMock<SignupDocument>(),
+          createAutoMock<SignupDocument>(),
           reviewedBy,
           msg,
         ),
@@ -39,7 +43,7 @@ describe('SignupEmbedEventHandler', () => {
       case: 'handles a declined event',
       createEvent: (msg: Message<true>) =>
         new SignupDeclinedEvent(
-          { discordId: '12345' } as SignupDocument,
+          partialMock<SignupDocument>({ discordId: '12345' }),
           reviewedBy,
           msg,
         ),
@@ -49,11 +53,11 @@ describe('SignupEmbedEventHandler', () => {
   ];
 
   beforeEach(async () => {
-    message = {
+    message = mockOf<Message<true>>({
       guildId: '',
       edit: vi.fn().mockResolvedValue(undefined),
       embeds: [{}],
-    } as unknown as Message<true>;
+    });
 
     const fixture = await Test.createTestingModule({
       providers: [UpdateApprovalEmbedEventHandler],

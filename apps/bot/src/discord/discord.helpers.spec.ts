@@ -4,6 +4,7 @@ import type {
   PartialUser,
 } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
+import { mockOf } from '../test-utils/mock-factory.js';
 import {
   CacheTime,
   hydrateReaction,
@@ -14,40 +15,40 @@ import {
 describe('Discord Helper Methods', () => {
   it('hydrates a partial reaction', async () => {
     const fetch = vi.fn().mockResolvedValue({});
-    const reaction = {
+    const reaction = mockOf<PartialMessageReaction>({
       partial: true,
       fetch,
-    } as unknown as PartialMessageReaction;
+    });
 
     await hydrateReaction(reaction);
     expect(fetch).toHaveBeenCalled();
   });
 
   it('returns the given reaction if not partial', () => {
-    const reaction = {
+    const reaction = mockOf<PartialMessageReaction>({
       partial: undefined,
-    } as unknown as PartialMessageReaction;
+    });
 
     return expect(hydrateReaction(reaction)).resolves.toBe(reaction);
   });
 
   it('hydrates a partial user', async () => {
     const fetch = vi.fn().mockResolvedValue({});
-    const user = {
+    const user = mockOf<PartialUser>({
       partial: true,
       fetch,
       toString: () => '<@foo>',
-    } as unknown as PartialUser;
+    });
 
     await hydrateUser(user);
     expect(fetch).toHaveBeenCalled();
   });
 
   it('returns the given user if not partial', () => {
-    const user = {
+    const user = mockOf<PartialUser>({
       partial: undefined,
       toString: () => '<@foo>',
-    } as unknown as PartialUser;
+    });
 
     return expect(hydrateUser(user)).resolves.toBe(user);
   });
@@ -88,13 +89,13 @@ describe('safeReply', () => {
     'calls $expectedMethod when interaction is $scenario',
     async ({ interactionProps, expectedMethod, resolvedValue }) => {
       const methodFn = vi.fn().mockResolvedValue(resolvedValue);
-      const interaction = {
+      const interaction = mockOf<ChatInputCommandInteraction>({
         deferred: interactionProps.deferred,
         replied: interactionProps.replied,
         editReply: expectedMethod === 'editReply' ? methodFn : vi.fn(),
         followUp: expectedMethod === 'followUp' ? methodFn : vi.fn(),
         reply: expectedMethod === 'reply' ? methodFn : vi.fn(),
-      } as unknown as ChatInputCommandInteraction;
+      });
 
       const result = await safeReply(interaction, payload);
       expect(methodFn).toHaveBeenCalledWith(payload);

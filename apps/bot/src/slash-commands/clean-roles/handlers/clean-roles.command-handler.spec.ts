@@ -1,20 +1,19 @@
 import { Test } from '@nestjs/testing';
 import { SignupStatus } from '@ulti-project/shared';
-import {
+import type {
   ChatInputCommandInteraction,
-  EmbedBuilder,
   Guild,
   GuildMember,
-  MessageFlags,
   Role,
   User,
 } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import { createAutoMock } from '../../../test-utils/mock-factory.js';
+import { createAutoMock, mockOf } from '../../../test-utils/mock-factory.js';
 import { CleanRolesCommandHandler } from './clean-roles.command-handler.js';
 
 describe('CleanRolesCommandHandler', () => {
@@ -51,14 +50,14 @@ describe('CleanRolesCommandHandler', () => {
       const deferReply = vi.fn().mockResolvedValue(undefined);
       const editReply = vi.fn().mockResolvedValue(undefined);
 
-      const mock = {
+      const mock = mockOf<ChatInputCommandInteraction<'cached'>>({
         deferReply,
         editReply,
         guildId,
         options: {
           getBoolean: vi.fn().mockReturnValue(dryRun),
         },
-      } as unknown as ChatInputCommandInteraction<'cached'>;
+      });
 
       return {
         mock,
@@ -85,40 +84,40 @@ describe('CleanRolesCommandHandler', () => {
     ];
 
     const createMockGuild = () => {
-      const mockUser1 = { username: 'userone' } as User;
-      const mockUser2 = { username: 'userfour' } as User;
+      const mockUser1 = mockOf<User>({ username: 'userone' });
+      const mockUser2 = mockOf<User>({ username: 'userfour' });
 
-      const mockMember1 = {
+      const mockMember1 = mockOf<GuildMember>({
         id: 'user-1',
         displayName: 'User One',
         user: mockUser1,
         roles: { remove: vi.fn().mockResolvedValue(undefined) },
-      } as unknown as GuildMember;
+      });
 
-      const mockMember2 = {
+      const mockMember2 = mockOf<GuildMember>({
         id: 'user-4', // No active signup
         displayName: 'User Four',
         user: mockUser2,
         roles: { remove: vi.fn().mockResolvedValue(undefined) },
-      } as unknown as GuildMember;
+      });
 
-      const mockRole = {
+      const mockRole = mockOf<Role>({
         id: 'prog-role-1',
         name: 'Ultimate Prog',
         members: new Map([
           ['user-1', mockMember1],
           ['user-4', mockMember2],
         ]),
-      } as unknown as Role;
+      });
 
-      return {
+      return mockOf<Guild>({
         roles: {
           fetch: vi.fn().mockResolvedValue(mockRole),
         },
         members: {
           fetch: vi.fn().mockResolvedValue(undefined),
         },
-      } as unknown as Guild;
+      });
     };
 
     beforeEach(() => {
@@ -140,7 +139,7 @@ describe('CleanRolesCommandHandler', () => {
     });
 
     it('should handle settings with no roles configured', async () => {
-      const mockErrorEmbed = {} as EmbedBuilder;
+      const mockErrorEmbed = mockOf<EmbedBuilder>({});
 
       settingsCollection.getSettings = vi.fn().mockResolvedValue({});
       errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);
@@ -157,7 +156,7 @@ describe('CleanRolesCommandHandler', () => {
     });
 
     it('should handle empty role configuration', async () => {
-      const mockErrorEmbed = {} as EmbedBuilder;
+      const mockErrorEmbed = mockOf<EmbedBuilder>({});
 
       settingsCollection.getSettings = vi.fn().mockResolvedValue({
         progRoles: {},
@@ -244,7 +243,7 @@ describe('CleanRolesCommandHandler', () => {
     it('should handle errors gracefully', async () => {
       const { mock, editReply } = createInteractionMock();
       const error = new Error('Database error');
-      const mockErrorEmbed = {} as EmbedBuilder;
+      const mockErrorEmbed = mockOf<EmbedBuilder>({});
 
       settingsCollection.getSettings = vi.fn().mockRejectedValue(error);
       errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);
@@ -258,7 +257,7 @@ describe('CleanRolesCommandHandler', () => {
     it('should handle settings-related errors with specific message', async () => {
       const { mock, editReply } = createInteractionMock();
       const error = new Error('No clear/prog roles configured in settings');
-      const mockErrorEmbed = {} as EmbedBuilder;
+      const mockErrorEmbed = mockOf<EmbedBuilder>({});
 
       settingsCollection.getSettings = vi.fn().mockRejectedValue(error);
       errorService.handleCommandError = vi.fn().mockReturnValue(mockErrorEmbed);
@@ -457,7 +456,7 @@ describe('CleanRolesCommandHandler', () => {
 
   describe('collectMembersWithRoles', () => {
     it('should collect unique member IDs from all roles', async () => {
-      const mockGuild = {
+      const mockGuild = mockOf<Guild>({
         roles: {
           fetch: vi
             .fn()
@@ -474,7 +473,7 @@ describe('CleanRolesCommandHandler', () => {
               ]),
             }),
         },
-      } as unknown as Guild;
+      });
 
       const roleIds = new Set(['role-1', 'role-2']);
       const members = await handler['collectMembersWithRoles'](
@@ -487,7 +486,7 @@ describe('CleanRolesCommandHandler', () => {
     });
 
     it('should handle roles that do not exist', async () => {
-      const mockGuild = {
+      const mockGuild = mockOf<Guild>({
         roles: {
           fetch: vi
             .fn()
@@ -496,7 +495,7 @@ describe('CleanRolesCommandHandler', () => {
             })
             .mockResolvedValueOnce(null), // Role not found
         },
-      } as unknown as Guild;
+      });
 
       const roleIds = new Set(['role-1', 'nonexistent-role']);
       const members = await handler['collectMembersWithRoles'](

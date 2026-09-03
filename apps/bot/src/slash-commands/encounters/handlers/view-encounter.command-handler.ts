@@ -3,6 +3,7 @@ import { SentryTraced } from '@sentry/nestjs';
 import {
   Encounter,
   EncounterFriendlyDescription,
+  isEncounter,
   PartyStatus,
 } from '@ulti-project/shared';
 import type { ChatInputCommandInteraction } from 'discord.js';
@@ -60,16 +61,14 @@ export class ViewEncounterCommandHandler implements ISlashCommand {
 
     const sortedProgPoints = [...progPoints].sort((a, b) => a.order - b.order);
 
-    const groupedProgPoints = sortedProgPoints.reduce(
-      (acc, progPoint) => {
-        if (!acc[progPoint.partyStatus]) {
-          acc[progPoint.partyStatus] = [];
-        }
-        acc[progPoint.partyStatus].push(progPoint);
-        return acc;
-      },
-      {} as Record<PartyStatus, typeof progPoints>,
-    );
+    const groupedProgPoints = sortedProgPoints.reduce<
+      Partial<Record<PartyStatus, typeof progPoints>>
+    >((acc, progPoint) => {
+      const bucket = acc[progPoint.partyStatus] ?? [];
+      bucket.push(progPoint);
+      acc[progPoint.partyStatus] = bucket;
+      return acc;
+    }, {});
 
     const progThresholdPoint = progPoints.find(
       (p) => p.id === encounter.progPartyThreshold,
@@ -97,9 +96,10 @@ export class ViewEncounterCommandHandler implements ISlashCommand {
         },
       );
 
-    for (const [status, points] of Object.entries(groupedProgPoints)) {
-      if (points.length > 0) {
-        const statusEmoji = this.getStatusEmoji(status as PartyStatus);
+    for (const status of Object.values(PartyStatus)) {
+      const points = groupedProgPoints[status];
+      if (points && points.length > 0) {
+        const statusEmoji = this.getStatusEmoji(status);
         const pointsList = points
           .map((p) => {
             const activeIcon = p.active ? '✅' : '❌';
@@ -176,9 +176,9 @@ export class ViewEncounterCommandHandler implements ISlashCommand {
         const status = encounter ? '✅ Configured' : '⚠️ Partial data';
         const description =
           encounter?.name ||
-          EncounterFriendlyDescription[
-            encounter?.id as keyof typeof EncounterFriendlyDescription
-          ];
+          (encounter && isEncounter(encounter.id)
+            ? EncounterFriendlyDescription[encounter.id]
+            : undefined);
 
         embed.addFields({
           name: `${status} ${key}`,
