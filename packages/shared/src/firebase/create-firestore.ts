@@ -14,7 +14,7 @@ export interface CreateFirestoreConfig {
 export function createFirestore(config: CreateFirestoreConfig): Firestore {
   const app: App = initializeApp(
     process.env.FIRESTORE_EMULATOR_HOST
-      ? { projectId: config.projectId }
+      ? { projectId: 'demo-ulti-project' }
       : {
           credential: cert({
             clientEmail: config.clientEmail,
