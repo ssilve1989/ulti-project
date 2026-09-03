@@ -19,8 +19,8 @@ pnpm build:check      # Type-check + compile (tsc -b, emits dist/)
 
 The bot and CLI run against a local Firestore emulator, not a shared cloud project. One-time prerequisites:
 
-- A local Java runtime (the Firestore emulator is JVM-based)
-- `apps/bot/.env.development` and `apps/cli/.env.development` with `FIRESTORE_EMULATOR_HOST=localhost:8080` and `GCP_PROJECT_ID=ulti-project-emulator` set (matches `.firebaserc`). `GCP_ACCOUNT_EMAIL`/`GCP_PRIVATE_KEY` can be any non-empty placeholder value — they're ignored once `FIRESTORE_EMULATOR_HOST` is set. Leave `FIRESTORE_DATABASE_ID` unset.
+- A local Java runtime (the Firestore emulator is JVM-based) — `mise install` provides it (`java` is pinned in `mise.toml`).
+- The repo-root `.env.keys` file (gitignored — get it from a maintainer). No per-developer env edits are needed: `apps/bot/.env.development` and `apps/cli/.env.development` are committed encrypted and already set `FIRESTORE_EMULATOR_HOST=localhost:8080` and `GCP_PROJECT_ID=demo-ulti-project` (matching `.firebaserc`), and the real `GCP_ACCOUNT_EMAIL`/`GCP_PRIVATE_KEY` from the root `.env` are ignored once `FIRESTORE_EMULATOR_HOST` is set.
 - `pnpm seed:emulator` and `pnpm cli` run straight from TypeScript source via `node` (no build step); only `pnpm start:dev` needs a prior `pnpm build`.
 
 Each time you start fresh (or after clearing `.emulator-data/`):
