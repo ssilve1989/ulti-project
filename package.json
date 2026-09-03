@@ -33,20 +33,20 @@
     "test:ui": "vitest --ui"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.10",
-    "@commitlint/cli": "^21.2.2",
-    "@commitlint/config-conventional": "^21.2.2",
-    "@commitlint/cz-commitlint": "^21.2.2",
-    "@dotenvx/dotenvx": "^2.21.0",
-    "@types/node": "^26.2.0",
-    "@vitest/coverage-v8": "^4.1.11",
-    "@vitest/ui": "^4.1.11",
-    "commitizen": "^4.3.2",
-    "knip": "^6.32.3",
-    "lefthook": "^2.1.10",
-    "typescript": "7.0.2",
-    "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "@biomejs/biome": "catalog:",
+    "@commitlint/cli": "catalog:",
+    "@commitlint/config-conventional": "catalog:",
+    "@commitlint/cz-commitlint": "catalog:",
+    "@dotenvx/dotenvx": "catalog:",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/ui": "catalog:",
+    "commitizen": "catalog:",
+    "knip": "catalog:",
+    "lefthook": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   },
   "config": {
     "commitizen": {
