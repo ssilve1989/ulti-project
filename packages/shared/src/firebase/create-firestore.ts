@@ -8,7 +8,6 @@ export interface CreateFirestoreConfig {
   privateKey: string;
   projectId: string;
   databaseId?: string;
-  appName?: string;
 }
 
 export function createFirestore(config: CreateFirestoreConfig): Firestore {
@@ -22,7 +21,6 @@ export function createFirestore(config: CreateFirestoreConfig): Firestore {
             projectId: config.projectId,
           }),
         },
-    config.appName ?? '[DEFAULT]',
   );
 
   const firestore = config.databaseId
