@@ -3,6 +3,8 @@ import * as Sentry from '@sentry/nestjs';
 import {
   ChatInputCommandInteraction,
   Client,
+  Colors,
+  EmbedBuilder,
   Events,
   REST,
   Routes,
@@ -21,6 +23,7 @@ import { appConfig } from '../config/app.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { safeReply } from '../discord/discord.helpers.js';
 import { ErrorService } from '../error/error.service.js';
+import { SlashCommandDrainService } from './slash-command-drain.service.js';
 import { SlashCommandRegistry } from './slash-command-registry.service.js';
 
 @Injectable()
@@ -31,46 +34,66 @@ class SlashCommandsService {
     @InjectDiscordClient() private readonly client: Client,
     private readonly registry: SlashCommandRegistry,
     private readonly errorService: ErrorService,
+    private readonly drainService: SlashCommandDrainService,
   ) {}
 
   listenToCommands() {
-    this.client.on(Events.InteractionCreate, (interaction) => {
+    this.client.on(Events.InteractionCreate, async (interaction) => {
       if (!(interaction.isChatInputCommand() && interaction.inGuild())) {
         return;
       }
 
-      return Sentry.startNewTrace(() => {
-        return Sentry.startSpanManual(
-          { name: interaction.commandName, op: 'command' },
-          (span) => {
-            return Sentry.withScope(async (scope) => {
-              scope.setUser({
-                userId: interaction.user.id,
-                username: interaction.user.username,
-              });
-
-              scope.setTag('command', interaction.commandName);
-              scope.setTag('guild_id', interaction.guildId);
-
-              try {
-                this.logger.debug(
-                  `dispatching command: ${interaction.commandName}`,
-                );
-
-                await this.registry.dispatch(
-                  interaction as ChatInputCommandInteraction<'cached'>,
-                );
-                span.setStatus({ code: 1 });
-              } catch (err) {
-                await this.handleCommandError(err, interaction);
-                span.setStatus({ code: 2 });
-              } finally {
-                span.end();
-              }
-            });
-          },
+      if (this.drainService.isDraining()) {
+        this.logger.debug(
+          `rejecting command during shutdown: ${interaction.commandName}`,
         );
-      });
+        try {
+          await safeReply(interaction, {
+            embeds: [this.createRestartingEmbed()],
+          });
+        } catch (replyError) {
+          this.logger.debug(
+            { replyError },
+            'failed to send restarting reply during shutdown',
+          );
+        }
+        return;
+      }
+
+      return this.drainService.track(
+        Sentry.startNewTrace(() => {
+          return Sentry.startSpanManual(
+            { name: interaction.commandName, op: 'command' },
+            (span) => {
+              return Sentry.withScope(async (scope) => {
+                scope.setUser({
+                  userId: interaction.user.id,
+                  username: interaction.user.username,
+                });
+
+                scope.setTag('command', interaction.commandName);
+                scope.setTag('guild_id', interaction.guildId);
+
+                try {
+                  this.logger.debug(
+                    `dispatching command: ${interaction.commandName}`,
+                  );
+
+                  await this.registry.dispatch(
+                    interaction as ChatInputCommandInteraction<'cached'>,
+                  );
+                  span.setStatus({ code: 1 });
+                } catch (err) {
+                  await this.handleCommandError(err, interaction);
+                  span.setStatus({ code: 2 });
+                } finally {
+                  span.end();
+                }
+              });
+            },
+          );
+        }),
+      );
     });
   }
 
@@ -137,6 +160,16 @@ class SlashCommandsService {
         'Failed to send error response',
       );
     }
+  }
+
+  private createRestartingEmbed(): EmbedBuilder {
+    return new EmbedBuilder()
+      .setColor(Colors.Blurple)
+      .setTitle('Restarting')
+      .setDescription(
+        'The bot is restarting to deploy an update. Please try again in a few seconds.',
+      )
+      .setTimestamp();
   }
 }
 

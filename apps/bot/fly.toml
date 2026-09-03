@@ -5,6 +5,7 @@
 
 app = 'ulti-project-bot'
 primary_region = 'lax'
+kill_timeout = 30
 
 [build]
 
