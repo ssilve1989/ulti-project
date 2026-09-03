@@ -14,7 +14,11 @@ import { SettingsCollection } from '../../../firebase/collections/settings-colle
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { DocumentNotFoundException } from '../../../firebase/firebase.exceptions.js';
 import { SheetsService } from '../../../sheets/sheets.service.js';
-import { createAutoMock } from '../../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+} from '../../../test-utils/mock-factory.js';
 import { SIGNUP_MESSAGES } from '../../signup/signup.consts.js';
 import {
   REMOVAL_MISSING_PERMISSIONS,
@@ -62,8 +66,8 @@ describe('Remove Signup Command Handler', () => {
     signupsCollection = fixture.get(SignupCollection);
     eventBus = fixture.get(EventBus);
 
-    interaction = {
-      user: { id: '1', toString: () => '<@1>' } as unknown as User,
+    interaction = mockOf<ChatInputCommandInteraction<'cached'>>({
+      user: mockOf<User>({ id: '1', toString: () => '<@1>' }),
       options: {
         getString: (key: string) => {
           switch (key) {
@@ -80,7 +84,7 @@ describe('Remove Signup Command Handler', () => {
       },
       deferReply: vi.fn().mockResolvedValue(undefined),
       editReply: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ChatInputCommandInteraction<'cached'>;
+    });
   });
 
   it('is defined', () => {
@@ -149,9 +153,11 @@ describe('Remove Signup Command Handler', () => {
       if (signup instanceof DocumentNotFoundException) {
         signupsCollection.findOneOrFail.mockRejectedValue(signup);
       } else {
-        signupsCollection.findOne.mockResolvedValue(signup as SignupDocument);
+        signupsCollection.findOne.mockResolvedValue(
+          partialMock<SignupDocument>(signup),
+        );
         signupsCollection.findOneOrFail.mockResolvedValueOnce(
-          signup as SignupDocument,
+          partialMock<SignupDocument>(signup),
         );
       }
 
@@ -180,9 +186,9 @@ describe('Remove Signup Command Handler', () => {
     settingsCollection.getSettings.mockResolvedValue(DEFAULT_SETTINGS);
     discordService.userHasRole.mockResolvedValue(true);
 
-    signupsCollection.findOneOrFail.mockResolvedValueOnce({
-      status: SignupStatus.APPROVED,
-    } as SignupDocument);
+    signupsCollection.findOneOrFail.mockResolvedValueOnce(
+      partialMock<SignupDocument>({ status: SignupStatus.APPROVED }),
+    );
 
     await command.execute(interaction);
     expect(sheetsService.removeSignup).toHaveBeenCalled();
@@ -191,17 +197,19 @@ describe('Remove Signup Command Handler', () => {
   it('does not call removeSignup from SheetService if the signup has not been approved', async () => {
     settingsCollection.getSettings.mockResolvedValue(DEFAULT_SETTINGS);
 
-    signupsCollection.findOneOrFail.mockResolvedValueOnce({
-      status: SignupStatus.PENDING,
-    } as SignupDocument);
+    signupsCollection.findOneOrFail.mockResolvedValueOnce(
+      partialMock<SignupDocument>({ status: SignupStatus.PENDING }),
+    );
 
     await command.execute(interaction);
     expect(sheetsService.removeSignup).not.toHaveBeenCalled();
   });
 
   it('responds with validation error when invalid world is provided', async () => {
-    const invalidWorldInteraction = {
-      user: { id: '1', toString: () => '<@1>' } as unknown as User,
+    const invalidWorldInteraction = mockOf<
+      ChatInputCommandInteraction<'cached'>
+    >({
+      user: mockOf<User>({ id: '1', toString: () => '<@1>' }),
       options: {
         getString: (key: string) => {
           switch (key) {
@@ -218,7 +226,7 @@ describe('Remove Signup Command Handler', () => {
       },
       deferReply: vi.fn().mockResolvedValue(undefined),
       editReply: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ChatInputCommandInteraction<'cached'>;
+    });
 
     await command.execute(invalidWorldInteraction);
 

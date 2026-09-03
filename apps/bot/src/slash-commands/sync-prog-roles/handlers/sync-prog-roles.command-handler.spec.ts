@@ -5,12 +5,24 @@ import {
   SignupStatus,
 } from '@ulti-project/shared';
 import type { ChatInputCommandInteraction } from 'discord.js';
-import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  type Mocked,
+  vi,
+} from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { ProgPointRolesService } from '../../../role-manager/prog-point-roles.service.js';
-import { createAutoMock } from '../../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+} from '../../../test-utils/mock-factory.js';
 import { SyncProgRolesCommandHandler } from './sync-prog-roles.command-handler.js';
 
 type EmbedReply = {
@@ -35,14 +47,14 @@ describe('SyncProgRolesCommandHandler', () => {
   });
 
   const createSignup = (overrides: Partial<SignupDocument>): SignupDocument =>
-    ({
+    partialMock<SignupDocument>({
       discordId: 'user-1',
       encounter: 'TOP',
       progPoint: 'P2',
       partyStatus: PartyStatus.ProgParty,
       status: SignupStatus.APPROVED,
       ...overrides,
-    }) as SignupDocument;
+    });
 
   const wireGuild = (members: Map<string, ReturnType<typeof createMember>>) => {
     const guild = {
@@ -60,19 +72,23 @@ describe('SyncProgRolesCommandHandler', () => {
   };
 
   const createInteraction = (dryRun = false) => {
-    const editReply = vi.fn().mockResolvedValue(undefined);
-    const interaction = {
+    const editReply = vi.fn<(reply: EmbedReply) => Promise<void>>();
+    const interaction = mockOf<ChatInputCommandInteraction<'cached'>>({
       guildId,
       deferReply: vi.fn().mockResolvedValue(undefined),
       editReply,
       options: { getBoolean: vi.fn().mockReturnValue(dryRun) },
-    } as unknown as ChatInputCommandInteraction<'cached'>;
+    });
     return { interaction, editReply };
   };
 
-  const summaryValue = (editReply: ReturnType<typeof vi.fn>) => {
-    const [reply] = editReply.mock.calls.at(-1) as [EmbedReply];
-    const field = reply.embeds[0].data.fields.find((f) => f.name === 'Summary');
+  const summaryValue = (
+    editReply: Mock<(reply: EmbedReply) => Promise<void>>,
+  ) => {
+    const reply = editReply.mock.calls.at(-1)?.[0];
+    const field = reply?.embeds[0].data.fields.find(
+      (f) => f.name === 'Summary',
+    );
     return field?.value ?? '';
   };
 

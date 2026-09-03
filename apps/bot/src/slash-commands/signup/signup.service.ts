@@ -415,7 +415,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         reply.isStringSelectMenu()
       ) {
         await reply.followUp('Confirmation Received!');
-        return reply.values.at(0) as string;
+        return reply.values.at(0);
       }
     } finally {
       // remove the select component regardless of success or error

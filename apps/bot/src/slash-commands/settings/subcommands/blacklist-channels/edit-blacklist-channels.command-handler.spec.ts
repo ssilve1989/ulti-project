@@ -2,11 +2,12 @@ import { Test } from '@nestjs/testing';
 import type {
   ChannelSelectMenuInteraction,
   ChatInputCommandInteraction,
+  Message,
 } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { createAutoMock } from '../../../../test-utils/mock-factory.js';
+import { createAutoMock, mockOf } from '../../../../test-utils/mock-factory.js';
 import { BLACKLIST_CHANNELS_SELECT_ID } from './blacklist-channels.components.js';
 import { EditBlacklistChannelsCommandHandler } from './edit-blacklist-channels.command-handler.js';
 
@@ -23,9 +24,7 @@ describe('EditBlacklistChannelsCommandHandler', () => {
   let errorService: Mocked<ErrorService>;
 
   function createInteraction() {
-    const interaction = createAutoMock() as unknown as Mocked<
-      ChatInputCommandInteraction<'cached'>
-    >;
+    const interaction = createAutoMock<ChatInputCommandInteraction<'cached'>>();
     const collector = createAutoMock();
     const callbacks: {
       collect?: (i: unknown) => Promise<void>;
@@ -41,7 +40,9 @@ describe('EditBlacklistChannelsCommandHandler', () => {
     const replyMessage = createAutoMock();
     replyMessage.createMessageComponentCollector.mockReturnValue(collector);
 
-    vi.mocked(interaction.editReply).mockResolvedValue(replyMessage as never);
+    vi.mocked(interaction.editReply).mockResolvedValue(
+      mockOf<Message<true>>(replyMessage),
+    );
     Object.assign(interaction, {
       guildId: 'guild-1',
       user: { id: 'user123' },
@@ -51,8 +52,7 @@ describe('EditBlacklistChannelsCommandHandler', () => {
   }
 
   function createSelectInteraction(customId: string, values: string[]) {
-    const select =
-      createAutoMock() as unknown as Mocked<ChannelSelectMenuInteraction>;
+    const select = createAutoMock<ChannelSelectMenuInteraction>();
     select.customId = customId;
     select.values = values;
     select.isChannelSelectMenu.mockReturnValue(true);
@@ -60,6 +60,7 @@ describe('EditBlacklistChannelsCommandHandler', () => {
   }
 
   function lastReplyPayload(mock: { mock: { calls: unknown[][] } }) {
+    // biome-ignore lint/nursery/noUnsafeTypeAssertion: asserts the concrete editReply payload shape this handler produces; the mock's own signature is the broad discord.js union
     return mock.mock.calls.at(-1)?.[0] as ReplyPayload;
   }
 

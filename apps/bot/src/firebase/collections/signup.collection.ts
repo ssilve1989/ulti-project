@@ -5,6 +5,7 @@ import {
   type SignupCompositeKeyProps as SignupCompositeKey,
   type SignupDocument,
   SignupStatus,
+  typedCollection,
 } from '@ulti-project/shared';
 import {
   type CollectionReference,
@@ -21,9 +22,10 @@ class SignupCollection {
   private readonly collection: CollectionReference<SignupDocument>;
 
   constructor(@InjectFirestore() private readonly firestore: Firestore) {
-    this.collection = this.firestore.collection(
+    this.collection = typedCollection<SignupDocument>(
+      this.firestore,
       'signups',
-    ) as CollectionReference<SignupDocument>;
+    );
   }
 
   @SentryTraced()
@@ -106,7 +108,7 @@ class SignupCollection {
     query: Partial<SignupDocument>,
   ): Promise<SignupDocument[]> {
     const snapshot = await this.where(query).get();
-    return snapshot.docs.map((doc) => doc.data() as SignupDocument);
+    return snapshot.docs.map((doc) => doc.data());
   }
 
   @SentryTraced()
@@ -116,7 +118,7 @@ class SignupCollection {
     const snapshot = await this.collection
       .where('status', 'in', statuses)
       .get();
-    return snapshot.docs.map((doc) => doc.data() as SignupDocument);
+    return snapshot.docs.map((doc) => doc.data());
   }
 
   @SentryTraced()
@@ -198,14 +200,14 @@ class SignupCollection {
    * @returns
    */
   private where(props: Partial<SignupDocument>) {
-    let query: Query = this.collection;
+    let query: Query<SignupDocument, DocumentData> = this.collection;
 
     for (const [key, value] of Object.entries(props)) {
       if (!value) continue;
       query = query.where(key, '==', value);
     }
 
-    return query as Query<SignupDocument, DocumentData>;
+    return query;
   }
 }
 

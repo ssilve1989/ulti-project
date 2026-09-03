@@ -14,7 +14,7 @@ const baseRequest = {
 };
 
 function parse(
-  overrides: Partial<Record<'proofOfProgLink' | 'screenshot', string | null>>,
+  overrides: Partial<Record<'proofOfProgLink' | 'screenshot', unknown>>,
 ) {
   return signupSchema.safeParse({ ...baseRequest, ...overrides });
 }
@@ -143,7 +143,7 @@ describe('proofOfProgLink validation', () => {
       ['surrounding whitespace', '  https://fflogs.com/reports/ABC123  '],
       ['non-string value', 123],
     ])('should reject %s', (_, url) => {
-      expect(parse({ proofOfProgLink: url as string }).success).toBe(false);
+      expect(parse({ proofOfProgLink: url }).success).toBe(false);
     });
   });
 

@@ -11,7 +11,11 @@ import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { MissingChannelException } from '../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
-import { createAutoMock } from '../../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+} from '../../../test-utils/mock-factory.js';
 import { SendSignupReviewCommandHandler } from './send-signup-review.command-handler.js';
 
 describe('Send Signup Review Command Handler', () => {
@@ -39,7 +43,7 @@ describe('Send Signup Review Command Handler', () => {
       providers: [SendSignupReviewCommandHandler],
     })
       .useMocker(createAutoMock)
-      .setLogger(createAutoMock() as unknown as LoggerService)
+      .setLogger(createAutoMock<LoggerService>())
       .compile();
 
     handler = fixture.get(SendSignupReviewCommandHandler);
@@ -53,7 +57,10 @@ describe('Send Signup Review Command Handler', () => {
 
     settingsCollection.getReviewChannel.mockResolvedValueOnce(undefined);
 
-    await handler.execute({ signup: {} as SignupDocument, guildId: '' });
+    await handler.execute({
+      signup: partialMock<SignupDocument>({}),
+      guildId: '',
+    });
 
     expect(settingsCollection.getReviewChannel).toHaveBeenCalled();
     expect(spy).not.toHaveBeenCalled();
@@ -65,10 +72,12 @@ describe('Send Signup Review Command Handler', () => {
       .mockResolvedValue('reviewMessageId');
 
     settingsCollection.getReviewChannel.mockResolvedValueOnce('#foo');
-    discordServiceMock.getGuildMember.mockResolvedValueOnce({
-      displayAvatarURL: () => 'http://foo',
-      toString: () => '<@ay>',
-    } as unknown as GuildMember);
+    discordServiceMock.getGuildMember.mockResolvedValueOnce(
+      mockOf<GuildMember>({
+        displayAvatarURL: () => 'http://foo',
+        toString: () => '<@ay>',
+      }),
+    );
 
     await handler.execute({
       signup,
@@ -85,12 +94,12 @@ describe('Send Signup Review Command Handler', () => {
 
     return expect(() =>
       handler.execute({
-        signup: {
+        signup: partialMock<SignupDocument>({
           encounter: Encounter.DSR,
           status: SignupStatus.PENDING,
           character: 'foo',
           world: 'bar',
-        } as SignupDocument,
+        }),
         guildId: '',
       }),
     ).rejects.toThrow(MissingChannelException);

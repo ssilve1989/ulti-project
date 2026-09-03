@@ -1,20 +1,22 @@
-import type {
-  EncounterDocument,
-  ProgPointDocument,
+import {
+  type EncounterDocument,
+  type ProgPointDocument,
+  typedCollection,
 } from '@ulti-project/shared';
 import type { CollectionReference, Firestore } from 'firebase-admin/firestore';
 
 function encountersRef(db: Firestore): CollectionReference<EncounterDocument> {
-  return db.collection('encounters') as CollectionReference<EncounterDocument>;
+  return typedCollection<EncounterDocument>(db, 'encounters');
 }
 
 function progPointsRef(
   db: Firestore,
   encounterId: string,
 ): CollectionReference<ProgPointDocument> {
-  return encountersRef(db)
-    .doc(encounterId)
-    .collection('prog-points') as CollectionReference<ProgPointDocument>;
+  return typedCollection<ProgPointDocument>(
+    encountersRef(db).doc(encounterId),
+    'prog-points',
+  );
 }
 
 export async function getEncounter(

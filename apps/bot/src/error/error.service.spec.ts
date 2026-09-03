@@ -1,7 +1,12 @@
 import { Test } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
-import { Colors, EmbedBuilder } from 'discord.js';
+import {
+  type ChatInputCommandInteraction,
+  Colors,
+  EmbedBuilder,
+} from 'discord.js';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { mockOf } from '../test-utils/mock-factory.js';
 import { ErrorService } from './error.service.js';
 
 // Mock Sentry
@@ -12,11 +17,11 @@ vi.mock('@sentry/nestjs', () => ({
 }));
 
 // Mock Discord interaction
-const mockInteraction = {
+const mockInteraction = mockOf<ChatInputCommandInteraction>({
   commandName: 'test-command',
   user: { id: 'user123' },
   guildId: 'guild456',
-} as any;
+});
 
 describe('ErrorService', () => {
   let service: ErrorService;
@@ -89,10 +94,10 @@ describe('ErrorService', () => {
 
     test('should handle interaction without guild', () => {
       const error = new Error('Test error');
-      const interactionWithoutGuild = {
+      const interactionWithoutGuild = mockOf<ChatInputCommandInteraction>({
         ...mockInteraction,
         guildId: null,
-      };
+      });
 
       service.handleCommandError(error, interactionWithoutGuild);
 

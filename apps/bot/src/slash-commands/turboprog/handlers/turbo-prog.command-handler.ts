@@ -125,7 +125,7 @@ class TurboProgCommandHandler implements ISlashCommand {
             [SignupStatus.APPROVED, PartyStatus.ClearParty],
             [SignupStatus.APPROVED, PartyStatus.ProgParty],
             () => ({
-              allowed: true as true,
+              allowed: true as const,
               data: this.mapSignupToRowData(signup, options),
             }),
           )

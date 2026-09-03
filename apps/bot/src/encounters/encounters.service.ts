@@ -27,7 +27,7 @@ export class EncountersService {
   ): Promise<Record<string, ProgPointOption>> {
     const progPoints = await this.getProgPoints(encounterId);
 
-    return progPoints.reduce(
+    return progPoints.reduce<Record<string, ProgPointOption>>(
       (acc, progPoint) => {
         acc[progPoint.id] = {
           label: progPoint.label,
@@ -35,7 +35,7 @@ export class EncountersService {
         };
         return acc;
       },
-      {} as Record<string, ProgPointOption>,
+      {},
     );
   }
 

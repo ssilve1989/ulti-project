@@ -5,7 +5,7 @@ import {
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import type { Encounter } from '@ulti-project/shared';
+import { isEncounter } from '@ulti-project/shared';
 import type { CronJob } from 'cron';
 import {
   concatMap,
@@ -85,17 +85,19 @@ class SheetCleanerJob implements OnApplicationBootstrap, OnApplicationShutdown {
             // changes to update the slash command.
             return from(this.encountersCollection.getActiveEncounters()).pipe(
               mergeMap((encounters) => encounters),
-              concatMap((encounter) =>
-                this.sheetsService
+              concatMap((encounter) => {
+                if (!isEncounter(encounter.id)) return EMPTY;
+
+                return this.sheetsService
                   .cleanSheet({
                     spreadsheetId,
-                    encounter: encounter.id as Encounter,
+                    encounter: encounter.id,
                   })
                   .catch((err) => {
                     Sentry.getCurrentScope().captureException(err);
                     return EMPTY;
-                  }),
-              ),
+                  });
+              }),
             );
           }),
         );

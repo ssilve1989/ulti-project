@@ -1,6 +1,7 @@
 import {
   type Encounter,
   EncounterFriendlyDescription,
+  isEncounter,
 } from '@ulti-project/shared';
 import type { APIEmbedField } from 'discord.js';
 import {
@@ -78,8 +79,8 @@ export function getConfiguredProgPointEncounters(
 ): Encounter[] {
   return Object.entries(progPointRoles ?? {}).reduce<Encounter[]>(
     (acc, [encounter, mapping]) => {
-      if (Object.keys(mapping ?? {}).length > 0) {
-        acc.push(encounter as Encounter);
+      if (isEncounter(encounter) && Object.keys(mapping ?? {}).length > 0) {
+        acc.push(encounter);
       }
       return acc;
     },

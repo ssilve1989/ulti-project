@@ -1,9 +1,10 @@
 import { Test } from '@nestjs/testing';
-import { Collection, Invite } from 'discord.js';
+import { Collection, type Invite } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { JobCollection } from '../../firebase/collections/job/job.collection.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
+import { mockOf } from '../../test-utils/mock-factory.js';
 import { InviteCleanerJob } from './invite-cleaner.job.js';
 
 describe('InviteCleanerJob', () => {
@@ -55,24 +56,26 @@ describe('InviteCleanerJob', () => {
       vi.spyOn(settingsCollection, 'getSettings').mockResolvedValue({
         autoModChannelId: 'mod-channel',
       });
-      vi.spyOn(discordService, 'getTextChannel').mockResolvedValue({
-        send: vi.fn().mockResolvedValue(undefined),
-      } as any);
+      vi.spyOn(discordService, 'getTextChannel').mockResolvedValue(
+        mockOf<
+          NonNullable<Awaited<ReturnType<DiscordService['getTextChannel']>>>
+        >({ send: vi.fn().mockResolvedValue(undefined) }),
+      );
     });
 
     it('should delete invites older than 2 weeks', async () => {
       // Create mock invites
-      const oldInvite = {
+      const oldInvite = mockOf<Invite>({
         createdTimestamp: twoWeeksAgo - 1000, // Older than 2 weeks
         code: 'old-invite',
         delete: vi.fn().mockResolvedValue(undefined),
-      } as unknown as Invite;
+      });
 
-      const newInvite = {
+      const newInvite = mockOf<Invite>({
         createdTimestamp: Date.now(), // Fresh invite
         code: 'new-invite',
         delete: vi.fn().mockResolvedValue(undefined),
-      } as unknown as Invite;
+      });
 
       // Create mock collection
       const invites = new Collection<string, Invite>();
@@ -91,11 +94,11 @@ describe('InviteCleanerJob', () => {
 
     it('should handle failed deletions gracefully', async () => {
       // Create mock invite that will fail to delete
-      const oldInvite = {
+      const oldInvite = mockOf<Invite>({
         createdTimestamp: twoWeeksAgo - 1000,
         code: 'old-invite',
         delete: vi.fn().mockRejectedValue(new Error('Delete failed')),
-      } as unknown as Invite;
+      });
 
       // Create mock collection
       const invites = new Collection<string, Invite>();

@@ -4,7 +4,7 @@ import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import type { SignupDocument } from '@ulti-project/shared';
-import { Encounter, EncounterFriendlyDescription } from '@ulti-project/shared';
+import { EncounterFriendlyDescription } from '@ulti-project/shared';
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -171,7 +171,7 @@ class SignupCommandHandler implements ISlashCommand {
   }: ChatInputCommandInteraction):
     | [SignupSchema, undefined]
     | [undefined, ZodError<SignupSchema>] {
-    const encounter = options.getString('encounter', true) as Encounter;
+    const encounter = options.getString('encounter', true);
 
     const request = {
       character: options.getString('character', true),

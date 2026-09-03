@@ -9,7 +9,11 @@ import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
 import { ProgPointRolesService } from '../../../role-manager/prog-point-roles.service.js';
-import { createAutoMock } from '../../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+} from '../../../test-utils/mock-factory.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
 import { AssignRolesEventHandler } from './assign-roles.event-handler.js';
 
@@ -32,14 +36,14 @@ describe('AssignRolesEventHandler', () => {
     settings: SettingsDocument,
   ) =>
     new SignupApprovedEvent(
-      {
+      partialMock<SignupDocument>({
         discordId: 'user-1',
         encounter: Encounter.TOP,
         ...signup,
-      } as SignupDocument,
+      }),
       settings,
-      {} as User,
-      { guildId } as Message<true>,
+      mockOf<User>({}),
+      mockOf<Message<true>>({ guildId }),
     );
 
   beforeEach(async () => {
@@ -62,7 +66,7 @@ describe('AssignRolesEventHandler', () => {
     };
 
     discordService.getGuildMember.mockResolvedValue(
-      member as unknown as GuildMember,
+      mockOf<GuildMember>(member),
     );
   });
 

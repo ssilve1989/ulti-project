@@ -102,7 +102,11 @@ class HelpCommandHandler implements ISlashCommand {
     canManageGuild: boolean,
   ): EmbedBuilder {
     const { publicCommands, manageGuildCommands, adminCommands } =
-      commands.reduce(
+      commands.reduce<{
+        publicCommands: CommandInfo[];
+        manageGuildCommands: CommandInfo[];
+        adminCommands: CommandInfo[];
+      }>(
         (acc, cmd) => {
           if (cmd.permissionLevel === 'public') {
             acc.publicCommands.push(cmd);
@@ -114,9 +118,9 @@ class HelpCommandHandler implements ISlashCommand {
           return acc;
         },
         {
-          publicCommands: [] as CommandInfo[],
-          manageGuildCommands: [] as CommandInfo[],
-          adminCommands: [] as CommandInfo[],
+          publicCommands: [],
+          manageGuildCommands: [],
+          adminCommands: [],
         },
       );
 

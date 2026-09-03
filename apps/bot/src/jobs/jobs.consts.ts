@@ -2,7 +2,13 @@ import * as Sentry from '@sentry/nestjs';
 import { CronJob, type CronJobParams } from 'cron';
 import { USTimeZones } from '../common/time-zones.js';
 
-const DEFAULT_JOB_OPTIONS: Partial<CronJobParams> = {
+// The jobs in this repo are all scheduled by time zone, never by UTC offset.
+// `CronJobParams` is a union of a `timeZone` arm and a mutually exclusive
+// `utcOffset` arm; pinning to the `timeZone` arm lets the defaults merge with a
+// caller's params without an assertion.
+type TimeZoneCronJobParams = Extract<CronJobParams, { utcOffset?: never }>;
+
+const DEFAULT_JOB_OPTIONS: Partial<TimeZoneCronJobParams> = {
   timeZone: USTimeZones.PACIFIC,
   start: false,
   waitForCompletion: true,
@@ -14,12 +20,13 @@ const DEFAULT_JOB_OPTIONS: Partial<CronJobParams> = {
  * @param params
  * @returns
  */
-export function createJob(name: JobType, params: CronJobParams): CronJob {
+export function createJob(
+  name: JobType,
+  params: TimeZoneCronJobParams,
+): CronJob {
   const CronJobWithCheckIn = Sentry.cron.instrumentCron(CronJob, name);
-  return CronJobWithCheckIn.from({
-    ...DEFAULT_JOB_OPTIONS,
-    ...params,
-  } as CronJobParams);
+  const options: TimeZoneCronJobParams = { ...DEFAULT_JOB_OPTIONS, ...params };
+  return CronJobWithCheckIn.from(options);
 }
 
 export const jobDateFormatter = new Intl.DateTimeFormat('en-US', {

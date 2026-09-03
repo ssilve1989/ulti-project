@@ -3,7 +3,7 @@ import type { ChatInputCommandInteraction } from 'discord.js';
 import { Colors } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
-import { createAutoMock } from '../../../test-utils/mock-factory.js';
+import { createAutoMock, mockOf } from '../../../test-utils/mock-factory.js';
 import { RetireCommandHandler } from './retire.command-handler.js';
 
 describe('RetireCommandHandler', () => {
@@ -50,7 +50,7 @@ describe('RetireCommandHandler', () => {
       const editReply = vi.fn().mockResolvedValue(undefined);
 
       return {
-        mock: {
+        mock: mockOf<ChatInputCommandInteraction<'cached'>>({
           deferReply,
           editReply,
           guildId,
@@ -69,7 +69,7 @@ describe('RetireCommandHandler', () => {
               };
             },
           },
-        } as unknown as ChatInputCommandInteraction<'cached'>,
+        }),
         deferReply,
         editReply,
       };

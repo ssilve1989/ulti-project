@@ -198,24 +198,23 @@ class RemoveSignupCommandHandler implements ISlashCommand {
     return description;
   }
 
-  private createValidationErrorEmbed(error: z.ZodError): EmbedBuilder {
-    const treeified = z.treeifyError(error) as {
-      errors: string[];
-      properties: Record<string, { errors: string[] }>;
-    };
+  private createValidationErrorEmbed(
+    error: z.ZodError<RemoveSignupSchema>,
+  ): EmbedBuilder {
+    const treeified = z.treeifyError(error);
     const errorMessages: string[] = [];
 
-    if (treeified.properties.character) {
+    if (treeified.properties?.character) {
       errorMessages.push(
         `**Character**: ${treeified.properties.character.errors.join(', ')}`,
       );
     }
-    if (treeified.properties.world) {
+    if (treeified.properties?.world) {
       errorMessages.push(
         `**World**: ${treeified.properties.world.errors.join(', ')}`,
       );
     }
-    if (treeified.properties.encounter) {
+    if (treeified.properties?.encounter) {
       errorMessages.push(
         `**Encounter**: ${treeified.properties.encounter.errors.join(', ')}`,
       );

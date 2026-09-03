@@ -2,7 +2,10 @@ import { Test } from '@nestjs/testing';
 import { Encounter } from '@ulti-project/shared';
 import { FieldPath } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAutoMock } from '../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  withInternals,
+} from '../../test-utils/mock-factory.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { SettingsCollection } from './settings-collection.js';
 
@@ -52,7 +55,10 @@ describe.each([{ cache: true }, { cache: false }])(
       service = module.get<SettingsCollection>(SettingsCollection);
       // Mock the cache behavior by setting up service internal cache
       if (cache) {
-        (service as any).cache.set('settings:guildId', {});
+        withInternals<{ cache: Map<string, unknown> }>(service).cache.set(
+          'settings:guildId',
+          {},
+        );
       }
     });
 

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
+import { typedCollection } from '@ulti-project/shared';
 import {
   type CollectionReference,
   type DocumentData,
@@ -108,9 +109,10 @@ class BlacklistCollection {
   private getCollection(
     guildId: string,
   ): CollectionReference<BlacklistDocument> {
-    return this.firestore.collection(
+    return typedCollection<BlacklistDocument>(
+      this.firestore,
       `blacklist/${guildId}/documents`,
-    ) as CollectionReference<BlacklistDocument>;
+    );
   }
 }
 

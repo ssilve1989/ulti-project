@@ -111,7 +111,7 @@ export class DeclineReasonRequestService {
         }
 
         const handled = await this.handleReasonSelection(
-          selectInteraction as StringSelectMenuInteraction,
+          selectInteraction,
           signup,
           signupId,
           reviewer,

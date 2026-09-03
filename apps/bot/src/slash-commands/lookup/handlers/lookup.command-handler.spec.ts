@@ -15,7 +15,11 @@ import {
 import { ErrorService } from '../../../error/error.service.js';
 import { BlacklistCollection } from '../../../firebase/collections/blacklist-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import { createAutoMock } from '../../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+} from '../../../test-utils/mock-factory.js';
 import { LookupCommandHandler } from './lookup.command-handler.js';
 
 describe('LookupCommandHandler', () => {
@@ -38,10 +42,10 @@ describe('LookupCommandHandler', () => {
     blacklistCollection = fixture.get(BlacklistCollection);
     errorService = fixture.get(ErrorService);
 
-    interaction = {
+    interaction = mockOf<ChatInputCommandInteraction<'cached'>>({
       options: { getString: getStringMock },
       reply: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ChatInputCommandInteraction<'cached'>;
+    });
   });
 
   afterEach(() => {
@@ -54,13 +58,13 @@ describe('LookupCommandHandler', () => {
 
   it('should call the lookup service with the correct parameters', async () => {
     const signups: SignupDocument[] = [
-      {
+      partialMock<SignupDocument>({
         character: 'aeo arcanist',
         world: 'jenova',
         encounter: Encounter.DSR,
         notes: 'Test notes',
         progPoint: 'P6',
-      } as SignupDocument,
+      }),
     ];
 
     getStringMock.mockImplementation((key) => {
@@ -72,7 +76,7 @@ describe('LookupCommandHandler', () => {
     signupsCollection.findAll.mockResolvedValue(signups);
 
     // Return null so the user is not blacklisted
-    blacklistCollection.search.mockResolvedValue(null as never);
+    blacklistCollection.search.mockResolvedValue(undefined);
 
     await command.execute(interaction);
 
@@ -134,7 +138,7 @@ describe('LookupCommandHandler', () => {
 
   it('should handle errors gracefully', async () => {
     const error = new Error('Database error');
-    const mockErrorEmbed = {} as EmbedBuilder;
+    const mockErrorEmbed = mockOf<EmbedBuilder>({});
 
     getStringMock.mockImplementation((key) => {
       if (key === 'character') return 'Test Character';

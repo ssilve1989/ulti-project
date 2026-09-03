@@ -8,6 +8,7 @@ import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import {
   Encounter,
+  isEncounter,
   PartyStatus,
   type SignupDocument,
 } from '@ulti-project/shared';
@@ -161,7 +162,7 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     }).pipe(
       mergeMap(({ signups, encounters }) => {
         const encounterIds = new Set<Encounter>(
-          encounters.map((encounter) => encounter.id as Encounter),
+          encounters.map((encounter) => encounter.id).filter(isEncounter),
         );
 
         return from(signups).pipe(

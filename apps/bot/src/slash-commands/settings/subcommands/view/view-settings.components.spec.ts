@@ -15,6 +15,7 @@ describe('view-settings components', () => {
     it('disables and highlights the active section button', () => {
       const row = createNavRow('encounterRoles').toJSON();
 
+      // biome-ignore lint/nursery/noUnsafeTypeAssertion: narrows an ActionRowBuilder.toJSON() component union to the button components this row is built from
       const [overview, encounterRoles, progPointRoles] = row.components as {
         custom_id: string;
         style: ButtonStyle;
@@ -57,6 +58,7 @@ describe('view-settings components', () => {
         Encounter.DSR,
       ).toJSON();
 
+      // biome-ignore lint/nursery/noUnsafeTypeAssertion: narrows an ActionRowBuilder.toJSON() component union to the StringSelect component this row is built from
       const [menu] = row.components as {
         options: { value: string; default?: boolean }[];
       }[];

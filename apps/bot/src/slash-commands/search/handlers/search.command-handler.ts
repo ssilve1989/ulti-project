@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import type { SignupDocument } from '@ulti-project/shared';
-import { Encounter } from '@ulti-project/shared';
+import { Encounter, isEncounter } from '@ulti-project/shared';
 import type {
   ChatInputCommandInteraction,
   MessageComponentInteraction,
+  StringSelectMenuInteraction,
 } from 'discord.js';
 import {
   ActionRowBuilder,
@@ -135,65 +136,12 @@ class SearchCommandHandler implements ISlashCommand {
     initialRow: ActionRowBuilder<StringSelectMenuBuilder>,
   ): Promise<void> {
     if (i.customId === SEARCH_ENCOUNTER_SELECTOR_ID && i.isStringSelectMenu()) {
-      // User selected an encounter
-      state.selectedEncounter = i.values[0] as Encounter;
-      state.selectedProgPoint = null;
-
-      const embed = new EmbedBuilder()
-        .setTitle('Search Signups')
-        .setDescription(
-          `Selected encounter: ${state.selectedEncounter}\nNow select a prog point`,
-        )
-        .setColor(Colors.Blue);
-
-      // Create a row with the prog point selection menu
-      const progPointOptions =
-        await this.encountersService.getProgPointsAsOptions(
-          state.selectedEncounter,
-        );
-
-      const progPointSelectMenu = createProgPointSelectMenu(progPointOptions);
-
-      const progPointRow =
-        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-          progPointSelectMenu,
-        );
-
-      // Create a row with the reset button
-      const resetRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        createResetButton(),
-      );
-
-      await i.editReply({
-        embeds: [embed],
-        components: [progPointRow, resetRow],
-      });
+      await this.handleEncounterSelected(i, state);
     } else if (
       i.customId === SEARCH_PROG_POINT_SELECT_ID &&
       i.isStringSelectMenu()
     ) {
-      // User selected a prog point
-      state.selectedProgPoint = i.values[0];
-
-      // Search for signups matching the encounter and prog point
-      const searchResults = await this.searchSignups(
-        state.selectedEncounter as Encounter,
-        state.selectedProgPoint,
-      );
-
-      state.resultPages = this.paginateSignups(searchResults);
-      state.totalResults = searchResults.length;
-      state.currentPage = 0;
-
-      await i.editReply(
-        this.buildResultsPage(
-          state.selectedEncounter as Encounter,
-          state.selectedProgPoint,
-          state.totalResults,
-          state.resultPages,
-          state.currentPage,
-        ),
-      );
+      await this.handleProgPointSelected(i, state);
     } else if (
       i.customId === SEARCH_PREV_PAGE_BUTTON_ID ||
       i.customId === SEARCH_NEXT_PAGE_BUTTON_ID
@@ -204,10 +152,15 @@ class SearchCommandHandler implements ISlashCommand {
           ? Math.max(state.currentPage - 1, 0)
           : Math.min(state.currentPage + 1, state.resultPages.length - 1);
 
+      if (!state.selectedEncounter || state.selectedProgPoint === null) {
+        this.logger.warn('Page navigation before a search was run');
+        return;
+      }
+
       await i.editReply(
         this.buildResultsPage(
-          state.selectedEncounter as Encounter,
-          state.selectedProgPoint as string,
+          state.selectedEncounter,
+          state.selectedProgPoint,
           state.totalResults,
           state.resultPages,
           state.currentPage,
@@ -229,6 +182,83 @@ class SearchCommandHandler implements ISlashCommand {
     }
   }
 
+  private async handleEncounterSelected(
+    i: StringSelectMenuInteraction<'cached'>,
+    state: SearchSessionState,
+  ): Promise<void> {
+    const [selectedEncounter] = i.values;
+    if (!isEncounter(selectedEncounter)) {
+      this.logger.warn(
+        `Ignoring unrecognised encounter selection: ${selectedEncounter}`,
+      );
+      return;
+    }
+    state.selectedEncounter = selectedEncounter;
+    state.selectedProgPoint = null;
+
+    const embed = new EmbedBuilder()
+      .setTitle('Search Signups')
+      .setDescription(
+        `Selected encounter: ${selectedEncounter}\nNow select a prog point`,
+      )
+      .setColor(Colors.Blue);
+
+    // Create a row with the prog point selection menu
+    const progPointOptions =
+      await this.encountersService.getProgPointsAsOptions(selectedEncounter);
+
+    const progPointSelectMenu = createProgPointSelectMenu(progPointOptions);
+
+    const progPointRow =
+      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+        progPointSelectMenu,
+      );
+
+    // Create a row with the reset button
+    const resetRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      createResetButton(),
+    );
+
+    await i.editReply({
+      embeds: [embed],
+      components: [progPointRow, resetRow],
+    });
+  }
+
+  private async handleProgPointSelected(
+    i: StringSelectMenuInteraction<'cached'>,
+    state: SearchSessionState,
+  ): Promise<void> {
+    const [selectedProgPoint] = i.values;
+    state.selectedProgPoint = selectedProgPoint;
+
+    if (!state.selectedEncounter) {
+      this.logger.warn('Prog point selected before an encounter');
+      return;
+    }
+    const { selectedEncounter } = state;
+
+    // Search for signups matching the encounter and prog point
+    const searchResults = await this.searchSignups(
+      selectedEncounter,
+      selectedProgPoint,
+    );
+
+    state.resultPages = this.paginateSignups(searchResults);
+    state.totalResults = searchResults.length;
+    state.currentPage = 0;
+
+    await i.editReply(
+      this.buildResultsPage(
+        selectedEncounter,
+        selectedProgPoint,
+        state.totalResults,
+        state.resultPages,
+        state.currentPage,
+      ),
+    );
+  }
+
   /**
    * Search for signups matching the encounter and prog point (at least)
    */
@@ -244,12 +274,12 @@ class SearchCommandHandler implements ISlashCommand {
     }
 
     // Get all prog points with order >= selected prog point order
-    const eligibleProgPoints = allProgPoints.reduce((acc, p) => {
+    const eligibleProgPoints = allProgPoints.reduce<string[]>((acc, p) => {
       if (p.order >= selectedOrder) {
         acc.push(p.id);
       }
       return acc;
-    }, [] as string[]);
+    }, []);
 
     // If no eligible prog points, return empty array
     if (eligibleProgPoints.length === 0) {

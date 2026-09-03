@@ -7,7 +7,11 @@ import {
 } from '@ulti-project/shared';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { SheetsService } from '../../../sheets/sheets.service.js';
-import { createAutoMock } from '../../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  partialMock,
+  withInternals,
+} from '../../../test-utils/mock-factory.js';
 import { turboProgSignupSchema } from '../turbo-prog-signup.schema.js';
 import { TURBO_PROG_SIGNUP_INVALID } from '../turboprog.consts.js';
 import { TurboProgCommandHandler } from './turbo-prog.command-handler.js';
@@ -71,14 +75,14 @@ describe('TurboProgCommandHandler', () => {
     'should return allowed for $status $partyStatus signups',
     async (signup) => {
       // Include role in the mock to ensure it's used properly in mapSignupToRowData
-      const mockSignup = {
+      const mockSignup = partialMock<SignupDocument>({
         ...signup,
         role: 'TestRole',
         progPoint: 'TestProgPoint',
         character: 'TestCharacter',
         encounter: Encounter.DSR,
         discordId: 'testDiscordId',
-      } as SignupDocument;
+      });
 
       const options = turboProgSignupSchema.parse({
         encounter: Encounter.DSR,
@@ -105,11 +109,11 @@ describe('TurboProgCommandHandler', () => {
   it.each(declinedCases)(
     'should return rejected for $status $partyStatus signups',
     async (signup) => {
-      const mockSignup = {
+      const mockSignup = partialMock<SignupDocument>({
         ...signup,
         encounter: Encounter.DSR,
         discordId: 'testDiscordId',
-      } as SignupDocument;
+      });
 
       const options = turboProgSignupSchema.parse({
         encounter: Encounter.DSR,
@@ -132,20 +136,25 @@ describe('TurboProgCommandHandler', () => {
   it.each(searchableCases)(
     'should search the sheet for signups for $status $partyStatus signups',
     async (signup) => {
-      const mockSignup = {
+      const mockSignup = partialMock<SignupDocument>({
         ...signup,
         encounter: Encounter.DSR,
         discordId: 'testDiscordId',
         character: 'TestCharacter',
         world: 'TestWorld',
-      } as SignupDocument;
+      });
 
       const options = turboProgSignupSchema.parse({
         encounter: Encounter.DSR,
       });
 
       // Spy on the findCharacterRowValues method
-      const spy = vi.spyOn(command as any, 'findCharacterRowValues');
+      const spy = vi.spyOn(
+        withInternals<{
+          findCharacterRowValues: (...args: unknown[]) => Promise<unknown>;
+        }>(command),
+        'findCharacterRowValues',
+      );
       spy.mockImplementationOnce(() => Promise.resolve({}));
 
       // Pass the signup directly to isProggerAllowed
@@ -170,19 +179,17 @@ describe('TurboProgCommandHandler', () => {
     });
 
     // Create a mock signup to pass directly
-    const mockSignup = {
+    const mockSignup = partialMock<SignupDocument>({
       encounter: Encounter.DSR,
       character: 'TestCharacter',
       world: 'TestWorld',
       discordId: 'testDiscordId',
-    } as SignupDocument;
+    });
 
     // Call the private method directly
-    const response = await (command as any).findCharacterRowValues(
-      options,
-      'spreadsheetId',
-      mockSignup,
-    );
+    const response = await withInternals<{
+      findCharacterRowValues: (...args: unknown[]) => Promise<unknown>;
+    }>(command).findCharacterRowValues(options, 'spreadsheetId', mockSignup);
 
     // Verify the sheets service was called correctly
     expect(sheetsService.findCharacterRowValues).toHaveBeenCalledWith(
@@ -211,24 +218,20 @@ describe('TurboProgCommandHandler', () => {
     });
 
     // Create a mock signup without required sheet data
-    const mockSignup = {
+    const mockSignup = partialMock<SignupDocument>({
       encounter: Encounter.DSR,
       character: 'TestCharacter',
       world: 'TestWorld',
       discordId: 'testDiscordId',
-    } as SignupDocument;
+    });
 
     // Mock the sheet service to return null (no data found)
-    sheetsService.findCharacterRowValues.mockResolvedValueOnce(
-      null as unknown as string[],
-    );
+    sheetsService.findCharacterRowValues.mockResolvedValueOnce(undefined);
 
     // Call the private method directly
-    const response = await (command as any).findCharacterRowValues(
-      options,
-      'spreadsheetId',
-      mockSignup,
-    );
+    const response = await withInternals<{
+      findCharacterRowValues: (...args: unknown[]) => Promise<unknown>;
+    }>(command).findCharacterRowValues(options, 'spreadsheetId', mockSignup);
 
     expect(response).toEqual({
       allowed: undefined,
@@ -243,12 +246,12 @@ describe('TurboProgCommandHandler', () => {
     });
 
     // Create a mock signup
-    const mockSignup = {
+    const mockSignup = partialMock<SignupDocument>({
       encounter: Encounter.DSR,
       character: 'TestCharacter',
       world: 'TestWorld',
       discordId: 'testDiscordId',
-    } as SignupDocument;
+    });
 
     // Mock the sheet service to return invalid data
     sheetsService.findCharacterRowValues.mockResolvedValueOnce([
@@ -258,11 +261,9 @@ describe('TurboProgCommandHandler', () => {
 
     // Call the private method directly with an expect-to-throw wrapper
     await expect(
-      (command as any).findCharacterRowValues(
-        options,
-        'spreadsheetId',
-        mockSignup,
-      ),
+      withInternals<{
+        findCharacterRowValues: (...args: unknown[]) => Promise<unknown>;
+      }>(command).findCharacterRowValues(options, 'spreadsheetId', mockSignup),
     ).rejects.toThrow(
       /Data found on Google Sheet is not in the correct format/,
     );

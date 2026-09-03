@@ -1,7 +1,12 @@
 import { Logger } from '@nestjs/common';
-import { GuildMember, Role, User } from 'discord.js';
+import type { SignupDocument } from '@ulti-project/shared';
+import type { Guild, GuildMember, Role, User } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createAutoMock } from '../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+} from '../../test-utils/mock-factory.js';
 import type {
   DryRunRoleResult,
   ProcessingContext,
@@ -13,35 +18,35 @@ describe('DryRunStrategy', () => {
   let mockLogger: Logger;
 
   beforeEach(() => {
-    mockLogger = createAutoMock() as unknown as Logger;
+    mockLogger = createAutoMock<Logger>();
     strategy = new DryRunStrategy(mockLogger);
   });
 
   describe('processRole', () => {
     it('should process role and return dry run result with members to remove', async () => {
-      const mockUser1 = { username: 'user1' } as User;
-      const mockUser2 = { username: 'user2' } as User;
+      const mockUser1 = mockOf<User>({ username: 'user1' });
+      const mockUser2 = mockOf<User>({ username: 'user2' });
 
-      const mockMember1 = {
+      const mockMember1 = mockOf<GuildMember>({
         id: 'member-1',
         displayName: 'Member One',
         user: mockUser1,
-      } as GuildMember;
+      });
 
-      const mockMember2 = {
+      const mockMember2 = mockOf<GuildMember>({
         id: 'member-2',
         displayName: 'Member Two',
         user: mockUser2,
-      } as GuildMember;
+      });
 
-      const mockRole = {
+      const mockRole = mockOf<Role>({
         id: 'role-1',
         name: 'Test Role',
         members: new Map([
           ['member-1', mockMember1],
           ['member-2', mockMember2],
         ]),
-      } as unknown as Role;
+      });
 
       const activeSignupDiscordIds = new Set(['member-1']); // Only member-1 has active signup
 
@@ -66,11 +71,11 @@ describe('DryRunStrategy', () => {
     });
 
     it('should handle empty role', async () => {
-      const mockRole = {
+      const mockRole = mockOf<Role>({
         id: 'role-1',
         name: 'Empty Role',
         members: new Map(),
-      } as unknown as Role;
+      });
 
       const activeSignupDiscordIds = new Set<string>();
 
@@ -89,18 +94,18 @@ describe('DryRunStrategy', () => {
     });
 
     it('should not remove members with active signups', async () => {
-      const mockUser1 = { username: 'user1' } as User;
-      const mockMember1 = {
+      const mockUser1 = mockOf<User>({ username: 'user1' });
+      const mockMember1 = mockOf<GuildMember>({
         id: 'member-1',
         displayName: 'Member One',
         user: mockUser1,
-      } as GuildMember;
+      });
 
-      const mockRole = {
+      const mockRole = mockOf<Role>({
         id: 'role-1',
         name: 'Test Role',
         members: new Map([['member-1', mockMember1]]),
-      } as unknown as Role;
+      });
 
       const activeSignupDiscordIds = new Set(['member-1']); // Member has active signup
 
@@ -144,10 +149,10 @@ describe('DryRunStrategy', () => {
       ];
 
       const context: ProcessingContext = {
-        guild: {} as any,
+        guild: mockOf<Guild>({}),
         guildId: 'guild-1',
         allRoleIds: new Set(['role-1', 'role-2']),
-        activeSignups: [{}, {}, {}] as any[], // 3 active signups
+        activeSignups: partialMock<SignupDocument[]>([{}, {}, {}]), // 3 active signups
         activeSignupDiscordIds: new Set(['user-4', 'user-5']), // 2 unique Discord IDs with signups
         allMembersWithRoles: new Set([
           'user-1',
@@ -176,10 +181,10 @@ describe('DryRunStrategy', () => {
       const processedRoles: DryRunRoleResult[] = [];
 
       const context: ProcessingContext = {
-        guild: {} as any,
+        guild: mockOf<Guild>({}),
         guildId: 'guild-1',
         allRoleIds: new Set(),
-        activeSignups: [] as any[],
+        activeSignups: [],
         activeSignupDiscordIds: new Set(),
         allMembersWithRoles: new Set(),
       };

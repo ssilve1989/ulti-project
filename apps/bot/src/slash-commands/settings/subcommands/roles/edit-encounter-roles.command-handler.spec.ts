@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import type { ChatInputCommandInteraction, Role } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { createAutoMock } from '../../../../test-utils/mock-factory.js';
+import { createAutoMock, mockOf } from '../../../../test-utils/mock-factory.js';
 import { EditEncounterRolesCommandHandler } from './edit-encounter-roles.command-handler.js';
 
 describe('EditEncounterRolesCommandHandler', () => {
@@ -37,31 +37,33 @@ describe('EditEncounterRolesCommandHandler', () => {
 
     settingsCollection.getSettings.mockResolvedValueOnce(existingSettings);
 
-    await command.execute({
-      guildId,
-      options: {
-        getString: (name: string, _required?: boolean) =>
-          name === 'encounter' ? encounter : null,
-        getRole: (name: string, _required?: boolean) => {
-          switch (name) {
-            case 'prog-role':
-              return {
-                id: progRoleId,
-                toString: () => `<@&${progRoleId}>`,
-              } as unknown as Role;
-            case 'clear-role':
-              return {
-                id: clearRoleId,
-                toString: () => `<@&${clearRoleId}>`,
-              } as unknown as Role;
-            default:
-              return null;
-          }
+    await command.execute(
+      mockOf<ChatInputCommandInteraction<'cached'>>({
+        guildId,
+        options: {
+          getString: (name: string, _required?: boolean) =>
+            name === 'encounter' ? encounter : null,
+          getRole: (name: string, _required?: boolean) => {
+            switch (name) {
+              case 'prog-role':
+                return mockOf<Role>({
+                  id: progRoleId,
+                  toString: () => `<@&${progRoleId}>`,
+                });
+              case 'clear-role':
+                return mockOf<Role>({
+                  id: clearRoleId,
+                  toString: () => `<@&${clearRoleId}>`,
+                });
+              default:
+                return null;
+            }
+          },
         },
-      },
-      deferReply: vi.fn(),
-      editReply: vi.fn(),
-    } as unknown as ChatInputCommandInteraction<'cached'>);
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      }),
+    );
 
     expect(settingsCollection.upsert).toHaveBeenCalledWith(
       guildId,

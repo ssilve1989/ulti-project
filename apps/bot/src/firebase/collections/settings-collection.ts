@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
-import type { Encounter } from '@ulti-project/shared';
+import { type Encounter, typedCollection } from '@ulti-project/shared';
 import {
   CollectionReference,
   FieldPath,
@@ -13,12 +13,10 @@ import type { SettingsDocument } from '../models/settings.model.js';
 class SettingsCollection {
   private readonly collection: CollectionReference<SettingsDocument>;
   private readonly logger = new Logger(SettingsCollection.name);
-  private readonly cache = new Map<string, unknown>();
+  private readonly cache = new Map<string, SettingsDocument | undefined>();
 
   constructor(@InjectFirestore() firestore: Firestore) {
-    this.collection = firestore.collection(
-      'settings',
-    ) as CollectionReference<SettingsDocument>;
+    this.collection = typedCollection<SettingsDocument>(firestore, 'settings');
   }
 
   @SentryTraced()
@@ -69,7 +67,7 @@ class SettingsCollection {
   @SentryTraced()
   public async getSettings(guildId: string) {
     const key = this.cacheKey(guildId);
-    const cachedValue = this.cache.get(key) as SettingsDocument | undefined;
+    const cachedValue = this.cache.get(key);
 
     if (cachedValue) {
       return Promise.resolve(cachedValue);

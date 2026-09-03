@@ -19,7 +19,11 @@ import { SettingsCollection } from '../../firebase/collections/settings-collecti
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import { RemoveSignupEvent } from '../../slash-commands/remove-signup/remove-signup.events.js';
-import { createAutoMock } from '../../test-utils/mock-factory.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+} from '../../test-utils/mock-factory.js';
 import { ClearCheckerJob } from './clear-checker.job.js';
 
 const GUILD_ID = 'guild-1';
@@ -35,7 +39,7 @@ const DEFAULT_SETTINGS = {
 };
 
 function createSignup(overrides: Partial<SignupDocument> = {}): SignupDocument {
-  return {
+  return partialMock<SignupDocument>({
     character: 'Test Character',
     discordId: 'discord-1',
     encounter: Encounter.TOP,
@@ -46,7 +50,7 @@ function createSignup(overrides: Partial<SignupDocument> = {}): SignupDocument {
     username: 'testuser',
     world: 'Jenova',
     ...overrides,
-  } as SignupDocument;
+  });
 }
 
 function activeEncounter(id: Encounter) {
@@ -71,7 +75,7 @@ describe('ClearCheckerJob', () => {
       providers: [ClearCheckerJob],
     })
       .useMocker(createAutoMock)
-      .setLogger(createAutoMock() as unknown as LoggerService)
+      .setLogger(createAutoMock<LoggerService>())
       .compile();
 
     job = fixture.get(ClearCheckerJob);
@@ -91,7 +95,11 @@ describe('ClearCheckerJob', () => {
     // character has cleared, and every downstream removal succeeds.
     discordService.getGuilds.mockReturnValue([GUILD_ID]);
     discordService.deleteMessage.mockResolvedValue(undefined);
-    discordService.getTextChannel.mockResolvedValue({ send } as never);
+    discordService.getTextChannel.mockResolvedValue(
+      mockOf<
+        NonNullable<Awaited<ReturnType<DiscordService['getTextChannel']>>>
+      >({ send }),
+    );
     jobCollection.getJob.mockResolvedValue({ enabled: true });
     settingsCollection.getSettings.mockResolvedValue(DEFAULT_SETTINGS);
     encountersCollection.getActiveEncounters.mockResolvedValue(
@@ -502,10 +510,10 @@ describe('ClearCheckerJob', () => {
     it('starts the cron job on bootstrap and stops it on shutdown', () => {
       const start = vi
         .spyOn(job['job'], 'start')
-        .mockImplementation(() => undefined as never);
+        .mockImplementation(() => undefined);
       const stop = vi
         .spyOn(job['job'], 'stop')
-        .mockImplementation(() => Promise.resolve() as never);
+        .mockImplementation(() => Promise.resolve());
 
       job.onApplicationBootstrap();
       expect(start).toHaveBeenCalled();

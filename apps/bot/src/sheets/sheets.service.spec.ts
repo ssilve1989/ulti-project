@@ -4,6 +4,7 @@ import { Encounter, PartyStatus } from '@ulti-project/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EncountersService } from '../encounters/encounters.service.js';
 import { ErrorService } from '../error/error.service.js';
+import { mockOf, withInternals } from '../test-utils/mock-factory.js';
 import { SHEETS_CLIENT } from './sheets.consts.js';
 import { SheetsService } from './sheets.service.js';
 import * as sheetsUtils from './sheets.utils.js';
@@ -78,13 +79,15 @@ describe('Sheets Service', () => {
     it('returns sheet title and URL when sheet exists', async () => {
       const spy = vi.spyOn(client.spreadsheets, 'get');
       // Cast the mock response to any to avoid type errors
-      spy.mockResolvedValueOnce({
-        data: {
-          properties: {
-            title: 'Test Spreadsheet',
+      spy.mockResolvedValueOnce(
+        mockOf<Awaited<ReturnType<typeof client.spreadsheets.get>>>({
+          data: {
+            properties: {
+              title: 'Test Spreadsheet',
+            },
           },
-        },
-      } as any);
+        }),
+      );
 
       const result = await service.getSheetMetadata('test-id');
       expect(result).toMatchObject({
@@ -105,7 +108,13 @@ describe('Sheets Service', () => {
       // Spy on the private method getRemoveRequestsForRange
       // Return an empty array [] for each call, not an array of empty arrays
       const getRemoveRequestsForRangeSpy = vi
-        .spyOn(service as any, 'getRemoveRequestsForRange')
+        .spyOn(
+          withInternals<{
+            getRemoveRequestsForRange: (...args: unknown[]) => Promise<unknown>;
+            upsertTurboProgRow: (...args: unknown[]) => Promise<unknown>;
+          }>(service),
+          'getRemoveRequestsForRange',
+        )
         .mockResolvedValue([]);
 
       const testSignups = [
@@ -133,13 +142,19 @@ describe('Sheets Service', () => {
       // Mock batchUpdate
       const batchUpdateSpy = vi
         .spyOn(sheetsUtils, 'batchUpdate')
-        .mockResolvedValue({} as any);
+        .mockResolvedValue(
+          mockOf<Awaited<ReturnType<typeof sheetsUtils.batchUpdate>>>({}),
+        );
 
       // Return a non-empty array of requests
       const mockRequest = { updateCells: { range: { sheetId: 123 } } };
-      vi.spyOn(service as any, 'getRemoveRequestsForRange').mockResolvedValue([
-        mockRequest,
-      ]);
+      vi.spyOn(
+        withInternals<{
+          getRemoveRequestsForRange: (...args: unknown[]) => Promise<unknown>;
+          upsertTurboProgRow: (...args: unknown[]) => Promise<unknown>;
+        }>(service),
+        'getRemoveRequestsForRange',
+      ).mockResolvedValue([mockRequest]);
 
       const testSignups = [{ character: 'TestChar', world: 'TestWorld' }];
 
@@ -161,7 +176,13 @@ describe('Sheets Service', () => {
     it('should queue and execute the upsert operation', async () => {
       // Mock the private method that does the actual work
       const upsertTurboProgRowSpy = vi
-        .spyOn(service as any, 'upsertTurboProgRow')
+        .spyOn(
+          withInternals<{
+            getRemoveRequestsForRange: (...args: unknown[]) => Promise<unknown>;
+            upsertTurboProgRow: (...args: unknown[]) => Promise<unknown>;
+          }>(service),
+          'upsertTurboProgRow',
+        )
         .mockResolvedValue(undefined);
 
       const mockEntry = {
@@ -188,7 +209,8 @@ describe('Sheets Service', () => {
 
     it('should skip if encounter does not support TurboProg', async () => {
       // Mock an encounter that doesn't have a range defined
-      const mockEncounter = 'UNSUPPORTED' as Encounter;
+      // TOP has no range configured, so it exercises the unsupported path
+      const mockEncounter = Encounter.TOP;
 
       // Mock findCharacterRowIndex - should not be called
       const findCharacterRowIndexSpy = vi.spyOn(
@@ -212,7 +234,7 @@ describe('Sheets Service', () => {
       // Mock the TurboProgSheetRanges
       const mockRange = { start: 'A', end: 'D' };
       const originalRanges = { ...TurboProgSheetRanges };
-      (TurboProgSheetRanges as any)[Encounter.DSR] = mockRange;
+      TurboProgSheetRanges[Encounter.DSR] = mockRange;
 
       // Mock findCharacterRowIndex to return a row
       vi.spyOn(sheetsUtils, 'findCharacterRowIndex').mockResolvedValue({
@@ -226,7 +248,11 @@ describe('Sheets Service', () => {
       // Spy on batchUpdate
       const batchUpdateSpy = vi
         .spyOn(client.spreadsheets, 'batchUpdate')
-        .mockResolvedValue({} as any);
+        .mockResolvedValue(
+          mockOf<Awaited<ReturnType<typeof client.spreadsheets.batchUpdate>>>(
+            {},
+          ),
+        );
 
       await service.removeTurboProgEntry(
         {
@@ -262,7 +288,7 @@ describe('Sheets Service', () => {
       // Mock the TurboProgSheetRanges
       const mockRange = { start: 'A', end: 'D' };
       const originalRanges = { ...TurboProgSheetRanges };
-      (TurboProgSheetRanges as any)[Encounter.DSR] = mockRange;
+      TurboProgSheetRanges[Encounter.DSR] = mockRange;
 
       // Mock findCharacterRowIndex to return -1 (not found)
       vi.spyOn(sheetsUtils, 'findCharacterRowIndex').mockResolvedValue({
@@ -295,7 +321,7 @@ describe('Sheets Service', () => {
       // Mock the TurboProgSheetRanges
       const mockRange = { start: 'A', end: 'D' };
       const originalRanges = { ...TurboProgSheetRanges };
-      (TurboProgSheetRanges as any)[Encounter.DSR] = mockRange;
+      TurboProgSheetRanges[Encounter.DSR] = mockRange;
 
       // Mock findCharacterRowIndex to return a row
       vi.spyOn(sheetsUtils, 'findCharacterRowIndex').mockResolvedValue({
@@ -306,7 +332,9 @@ describe('Sheets Service', () => {
       // Mock updateSheet
       const updateSheetSpy = vi
         .spyOn(sheetsUtils, 'updateSheet')
-        .mockResolvedValue({} as any);
+        .mockResolvedValue(
+          mockOf<Awaited<ReturnType<typeof sheetsUtils.updateSheet>>>({}),
+        );
 
       const mockEntry = {
         character: 'TestChar',
@@ -336,7 +364,7 @@ describe('Sheets Service', () => {
       // Mock the TurboProgSheetRanges
       const mockRange = { start: 'A', end: 'D' };
       const originalRanges = { ...TurboProgSheetRanges };
-      (TurboProgSheetRanges as any)[Encounter.DSR] = mockRange;
+      TurboProgSheetRanges[Encounter.DSR] = mockRange;
 
       // Mock findCharacterRowIndex to return not found
       vi.spyOn(sheetsUtils, 'findCharacterRowIndex').mockResolvedValue({
@@ -347,7 +375,9 @@ describe('Sheets Service', () => {
       // Mock updateSheet
       const updateSheetSpy = vi
         .spyOn(sheetsUtils, 'updateSheet')
-        .mockResolvedValue({} as any);
+        .mockResolvedValue(
+          mockOf<Awaited<ReturnType<typeof sheetsUtils.updateSheet>>>({}),
+        );
 
       const mockEntry = {
         character: 'NewChar',
