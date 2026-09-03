@@ -14,17 +14,17 @@
     "build:check": "tsc -b"
   },
   "dependencies": {
-    "@clack/prompts": "^1.7.0",
+    "@clack/prompts": "catalog:",
     "@ulti-project/shared": "workspace:*",
-    "commander": "^15.0.0",
-    "firebase-admin": "^14.3.0",
-    "graphql-request": "^7.4.0",
-    "yaml": "^2.9.0",
-    "zod": "^4.4.3"
+    "commander": "catalog:",
+    "firebase-admin": "catalog:",
+    "graphql-request": "catalog:",
+    "yaml": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@dotenvx/dotenvx": "^2.21.0",
-    "@types/node": "^26.2.0",
-    "vitest": "^4.1.11"
+    "@dotenvx/dotenvx": "catalog:",
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
   }
 }
