@@ -5,6 +5,7 @@ import {
   createFirestore,
   Encounter,
   PartyStatus,
+  type SettingsDocument,
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
@@ -23,7 +24,7 @@ const guildId = process.env.GUILD_ID ?? '913492538516717578';
 const db = createFirestore({
   clientEmail: 'emulator',
   privateKey: 'emulator',
-  projectId: process.env.GCP_PROJECT_ID ?? 'ulti-project-emulator',
+  projectId: 'demo-ulti-project',
 });
 
 function getKey(discordId: string, encounter: Encounter): string {
@@ -102,21 +103,11 @@ const signups: Record<string, SignupDocument> = {
   },
 };
 
-interface SettingsDocument {
-  spreadsheetId: string;
-  signupChannel: string;
-  reviewerRole: string;
-  reviewChannel: string;
-  modChannelId: string;
-  autoModChannelId: string;
-}
-
 const settings: SettingsDocument = {
   spreadsheetId: '1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY',
   signupChannel: '1162558500891787304',
   reviewerRole: '1115675576502591528',
   reviewChannel: '1241388598054621256',
-  modChannelId: '1260946020603396116',
   autoModChannelId: '1260944459294707754',
 };
 

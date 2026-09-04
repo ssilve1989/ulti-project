@@ -1,6 +1,5 @@
-import type { SignupDocument } from '@ulti-project/shared';
+import type { SettingsDocument, SignupDocument } from '@ulti-project/shared';
 import { Message, User } from 'discord.js';
-import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
 
 export class SignupCreatedEvent {
   constructor(

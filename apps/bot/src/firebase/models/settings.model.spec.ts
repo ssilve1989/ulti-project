@@ -1,5 +1,5 @@
+import { getBlacklistChannelIds } from '@ulti-project/shared';
 import { describe, expect, it } from 'vitest';
-import { getBlacklistChannelIds } from './settings.model.js';
 
 describe('getBlacklistChannelIds', () => {
   it('returns the configured channel list when set', () => {

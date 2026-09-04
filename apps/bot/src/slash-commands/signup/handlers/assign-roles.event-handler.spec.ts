@@ -2,12 +2,12 @@ import { Test } from '@nestjs/testing';
 import {
   Encounter,
   PartyStatus,
+  type SettingsDocument,
   type SignupDocument,
 } from '@ulti-project/shared';
 import type { GuildMember, Message, User } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
-import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
 import { ProgPointRolesService } from '../../../role-manager/prog-point-roles.service.js';
 import {
   createAutoMock,

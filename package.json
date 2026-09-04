@@ -32,7 +32,7 @@
     "test:cov": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "seed:emulator": "dotenvx run -fk .env.keys -f apps/bot/.env.development -f .env -- node scripts/seed-emulator.ts",
-    "emulators": "firebase emulators:start --import=./.emulator-data --export-on-exit=./.emulator-data"
+    "emulators": "firebase emulators:start --project demo-ulti-project --import=./.emulator-data --export-on-exit=./.emulator-data"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import {
   PartyStatus,
+  type SettingsDocument,
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
@@ -21,7 +22,6 @@ import { DiscordService } from '../../../discord/discord.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
 import {
   type ProgPointRoleChanges,
   ProgPointRolesService,

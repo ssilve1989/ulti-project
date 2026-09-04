@@ -1,5 +1,5 @@
-import { Encounter } from '@ulti-project/shared';
 import type { DocumentData } from 'firebase-admin/firestore';
+import { Encounter } from '../../encounters/encounters.consts.ts';
 
 export interface SettingsDocument extends DocumentData {
   reviewChannel?: string;

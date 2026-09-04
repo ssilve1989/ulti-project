@@ -1,10 +1,10 @@
 import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
+import { getBlacklistChannelIds } from '@ulti-project/shared';
 import { EmbedBuilder } from 'discord.js';
 import { createFields } from '../../../common/embed-helpers.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
-import { getBlacklistChannelIds } from '../../../firebase/models/settings.model.js';
 import { getDisplayName, sendToBlacklistChannels } from '../blacklist.utils.js';
 import { BlacklistUpdatedEvent } from '../events/blacklist.events.js';
 

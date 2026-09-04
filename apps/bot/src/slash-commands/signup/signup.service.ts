@@ -10,6 +10,7 @@ import { SentryTraced } from '@sentry/nestjs';
 import {
   Encounter,
   PartyStatus,
+  type SettingsDocument,
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
@@ -50,7 +51,6 @@ import { EncountersComponentsService } from '../../encounters/encounters-compone
 import { ErrorService } from '../../error/error.service.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import {

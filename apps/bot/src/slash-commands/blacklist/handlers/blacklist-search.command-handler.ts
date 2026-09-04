@@ -1,13 +1,15 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
-import type { SignupDocument } from '@ulti-project/shared';
+import {
+  getBlacklistChannelIds,
+  type SignupDocument,
+} from '@ulti-project/shared';
 import { EmbedBuilder } from 'discord.js';
 import { getMessageLink } from '../../../discord/discord.consts.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { BlacklistCollection } from '../../../firebase/collections/blacklist-collection.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import type { BlacklistDocument } from '../../../firebase/models/blacklist.model.js';
-import { getBlacklistChannelIds } from '../../../firebase/models/settings.model.js';
 import { BlacklistSearchCommand } from '../blacklist.commands.js';
 import {
   createBlacklistEmbedFields,

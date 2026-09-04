@@ -1,11 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import type { SignupDocument } from '@ulti-project/shared';
+import type { SettingsDocument, SignupDocument } from '@ulti-project/shared';
 import type { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
 import type { WriteResult } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import {
   createAutoMock,
   mockOf,

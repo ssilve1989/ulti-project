@@ -11,8 +11,10 @@ export interface CreateFirestoreConfig {
 }
 
 export function createFirestore(config: CreateFirestoreConfig): Firestore {
+  const isEmulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
+
   const app: App = initializeApp(
-    process.env.FIRESTORE_EMULATOR_HOST
+    isEmulator
       ? { projectId: 'demo-ulti-project' }
       : {
           credential: cert({
@@ -23,9 +25,13 @@ export function createFirestore(config: CreateFirestoreConfig): Firestore {
         },
   );
 
-  const firestore = config.databaseId
-    ? getFirestore(app, config.databaseId)
-    : getFirestore(app);
+  // The emulator only serves the (default) database; a real per-env
+  // databaseId from config would point at a database that doesn't exist
+  // there, so it's only honored against live Firestore.
+  const firestore =
+    !isEmulator && config.databaseId
+      ? getFirestore(app, config.databaseId)
+      : getFirestore(app);
 
   firestore.settings({ ignoreUndefinedProperties: true });
 
