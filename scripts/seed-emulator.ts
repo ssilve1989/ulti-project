@@ -103,6 +103,9 @@ const signups: Record<string, SignupDocument> = {
   },
 };
 
+// spreadsheetId is a real dev/test spreadsheet, not production — only
+// Firestore is emulated, so approving a seeded signup locally intentionally
+// exercises the live Google Sheets write path against this sheet.
 const settings: SettingsDocument = {
   spreadsheetId: '1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY',
   signupChannel: '1162558500891787304',
