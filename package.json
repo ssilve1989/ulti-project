@@ -31,8 +31,9 @@
     "test:ci": "CI=true vitest run --coverage",
     "test:cov": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "seed:emulator": "dotenvx run -fk .env.keys -f apps/bot/.env.development -f .env -- node scripts/seed-emulator.ts",
-    "emulators": "firebase emulators:start --project demo-ulti-project --import=./.emulator-data --export-on-exit=./.emulator-data"
+    "seed:emulator": "pnpm cli encounters push --yes && dotenvx run -fk .env.keys -f apps/bot/.env.development -f .env -- node scripts/seed-emulator.ts",
+    "emulators": "firebase emulators:start --project demo-ulti-project --import=./.emulator-data --export-on-exit=./.emulator-data",
+    "emulators:reset": "FIRESTORE_EMULATOR_HOST=localhost:8080 firebase firestore:delete --all-collections --project demo-ulti-project -f"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
