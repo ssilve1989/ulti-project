@@ -1,7 +1,9 @@
 import {
   type Encounter,
   EncounterFriendlyDescription,
+  getBlacklistChannelIds,
   isEncounter,
+  type SettingsDocument,
 } from '@ulti-project/shared';
 import type { APIEmbedField } from 'discord.js';
 import {
@@ -13,10 +15,6 @@ import {
   roleMention,
   StringSelectMenuBuilder,
 } from 'discord.js';
-import {
-  getBlacklistChannelIds,
-  type SettingsDocument,
-} from '../../../../firebase/models/settings.model.js';
 
 export const SETTINGS_VIEW_OVERVIEW_BUTTON_ID = 'settingsViewOverview';
 export const SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID =

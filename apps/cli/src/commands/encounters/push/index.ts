@@ -21,13 +21,13 @@ interface PushCommandOptions {
   yes?: boolean;
 }
 
-function getEncounterYamlPaths(encounterId?: string): string[] {
+export function getEncounterYamlPaths(encounterId?: string): string[] {
   const dir = join(REPO_ROOT, 'data', 'encounters');
   if (encounterId) {
     return [join(dir, `${encounterId}.yaml`)];
   }
   return readdirSync(dir)
-    .filter((f) => f.endsWith('.yaml'))
+    .filter((f) => f.endsWith('.yaml') && f !== 'encounter.schema.yaml')
     .map((f) => join(dir, f));
 }
 

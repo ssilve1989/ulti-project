@@ -22,6 +22,8 @@ lerna-debug.log*
 /coverage
 /.nyc_output
 
+.emulator-data/
+
 # IDEs and editors
 /.idea
 .project

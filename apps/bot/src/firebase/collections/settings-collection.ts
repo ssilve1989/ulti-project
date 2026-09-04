@@ -1,13 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
-import { type Encounter, typedCollection } from '@ulti-project/shared';
+import {
+  type Encounter,
+  type SettingsDocument,
+  typedCollection,
+} from '@ulti-project/shared';
 import {
   CollectionReference,
   FieldPath,
   Firestore,
 } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
-import type { SettingsDocument } from '../models/settings.model.js';
 
 @Injectable()
 class SettingsCollection {

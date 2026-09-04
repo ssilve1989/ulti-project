@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
+import { getBlacklistChannelIds } from '@ulti-project/shared';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { channelMention, MessageFlags } from 'discord.js';
 import { isSameUserFilter } from '../../../../common/collection-filters.js';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { getBlacklistChannelIds } from '../../../../firebase/models/settings.model.js';
 import { SlashCommand } from '../../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../../slash-command.interface.js';
 import { SettingsSlashCommand } from '../../settings.slash-command.js';

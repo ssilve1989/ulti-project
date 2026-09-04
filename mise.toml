@@ -4,6 +4,7 @@ node = "26.7.0"
 docker-cli = "29.7.2"
 yamlfmt = "0.21.0"
 flyctl = "latest"
+java = "openjdk-25.0.2"
 
 # SENTRY_AUTH_TOKEN is optional: when set, the image build injects + uploads
 # Sentry sourcemaps; when unset, the --build-secret flag is omitted entirely and

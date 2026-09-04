@@ -32,7 +32,6 @@ export function initCtx(): void {
     privateKey: config.GCP_PRIVATE_KEY,
     projectId: config.GCP_PROJECT_ID,
     databaseId: config.FIRESTORE_DATABASE_ID,
-    appName: 'cli',
   });
   ctx = { db, fflogsToken: config.FFLOGS_API_ACCESS_TOKEN };
 }

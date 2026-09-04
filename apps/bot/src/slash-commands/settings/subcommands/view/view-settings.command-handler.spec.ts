@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { Encounter } from '@ulti-project/shared';
+import { Encounter, type SettingsDocument } from '@ulti-project/shared';
 import type {
   ButtonInteraction,
   ChatInputCommandInteraction,
@@ -10,7 +10,6 @@ import type {
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import type { SettingsDocument } from '../../../../firebase/models/settings.model.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
 import { createAutoMock, mockOf } from '../../../../test-utils/mock-factory.js';
 import { ViewSettingsCommandHandler } from './view-settings.command-handler.js';

@@ -16,6 +16,7 @@ allowBuilds:
   nestjs-pino: true
   protobufjs: false
   "@sentry/node-cpu-profiler": true
+  re2: false
 minimumReleaseAge: 7200
 minimumReleaseAgeIgnoreMissingTime: true
 minimumReleaseAgeExclude:
@@ -69,6 +70,7 @@ catalog:
   cron: ^4.4.0
   discord.js: ^14.27.0
   firebase-admin: ^14.3.0
+  firebase-tools: ^15.28.1
   google-auth-library: ^10.9.1
   graphql: ^16.14.2
   graphql-request: ^7.4.0
