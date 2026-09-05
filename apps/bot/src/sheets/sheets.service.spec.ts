@@ -204,7 +204,11 @@ describe('Sheets Service', () => {
 
   describe('#removeTurboProgEntry', () => {
     afterEach(() => {
-      vi.resetAllMocks();
+      // Restore only the spies this block installs on real modules
+      // (`sheetsUtils`, the Sheets client). `vi.resetAllMocks()` would wipe
+      // every mock in the shared registry — a cross-file hazard under
+      // `test.isolate: false`.
+      vi.restoreAllMocks();
     });
 
     it('should skip if encounter does not support TurboProg', async () => {

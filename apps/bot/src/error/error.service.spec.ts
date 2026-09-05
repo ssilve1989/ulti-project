@@ -1,22 +1,27 @@
 import { Test } from '@nestjs/testing';
-import * as Sentry from '@sentry/nestjs';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import {
-  type ChatInputCommandInteraction,
-  Colors,
-  EmbedBuilder,
-} from 'discord.js';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  type Mock,
+  type MockInstance,
+  test,
+  vi,
+} from 'vitest';
 import { mockOf } from '../test-utils/mock-factory.js';
-import { ErrorService } from './error.service.js';
 
-// Mock Sentry
-vi.mock('@sentry/nestjs', () => ({
-  getCurrentScope: vi.fn().mockReturnValue({
-    captureException: vi.fn(),
-  }),
-}));
+// The suite runs with `test.isolate: false`, so the module registry is shared
+// across spec files. A hoisted `vi.mock('@sentry/nestjs')` cannot rebind
+// `error.service.ts` once another spec has evaluated it against the real
+// package, so instead we reset the registry and re-import the service against a
+// `vi.doMock`'d Sentry in `beforeEach`. `discord.js` is re-imported from the
+// same fresh graph so `instanceof` checks stay meaningful.
+type ErrorServiceModule = typeof import('./error.service.js');
+type DiscordModule = typeof import('discord.js');
 
-// Mock Discord interaction
+// Mock Discord interaction (plain data — no class identity involved)
 const mockInteraction = mockOf<ChatInputCommandInteraction>({
   commandName: 'test-command',
   user: { id: 'user123' },
@@ -24,23 +29,40 @@ const mockInteraction = mockOf<ChatInputCommandInteraction>({
 });
 
 describe('ErrorService', () => {
-  let service: ErrorService;
-  let loggerErrorSpy: any;
+  let service: InstanceType<ErrorServiceModule['ErrorService']>;
+  let EmbedBuilder: DiscordModule['EmbedBuilder'];
+  let Colors: DiscordModule['Colors'];
+  let captureException: Mock;
+  let loggerErrorSpy: MockInstance<() => void>;
 
   beforeEach(async () => {
+    vi.resetModules();
+
+    captureException = vi.fn();
+    vi.doMock('@sentry/nestjs', () => ({
+      getCurrentScope: vi.fn(() => ({ captureException })),
+    }));
+
+    ({ EmbedBuilder, Colors } = await import('discord.js'));
+    const { ErrorService } = await import('./error.service.js');
+
     const module = await Test.createTestingModule({
       providers: [ErrorService],
     }).compile();
 
-    service = module.get<ErrorService>(ErrorService);
+    service = module.get(ErrorService);
 
     // Mock the logger to suppress console output during tests
     loggerErrorSpy = vi
       .spyOn(service['logger'], 'error')
       .mockImplementation(() => {});
+  });
 
-    // Clear mock calls
-    vi.clearAllMocks();
+  afterEach(() => {
+    // Don't leave the `@sentry/nestjs` doMock or re-evaluated modules in the
+    // shared registry for the next spec file.
+    vi.doUnmock('@sentry/nestjs');
+    vi.resetModules();
   });
 
   describe('handleCommandError', () => {
@@ -49,9 +71,7 @@ describe('ErrorService', () => {
 
       service.handleCommandError(error, mockInteraction);
 
-      expect(Sentry.getCurrentScope().captureException).toHaveBeenCalledWith(
-        error,
-      );
+      expect(captureException).toHaveBeenCalledWith(error);
     });
 
     test('should return error embed with default message', () => {
@@ -113,9 +133,7 @@ describe('ErrorService', () => {
 
       const result = service.handleCommandError(error, mockInteraction);
 
-      expect(Sentry.getCurrentScope().captureException).toHaveBeenCalledWith(
-        error,
-      );
+      expect(captureException).toHaveBeenCalledWith(error);
       expect(result).toBeInstanceOf(EmbedBuilder);
     });
 
@@ -124,7 +142,7 @@ describe('ErrorService', () => {
 
       service.handleCommandError(error, mockInteraction, { capture: false });
 
-      expect(Sentry.getCurrentScope().captureException).not.toHaveBeenCalled();
+      expect(captureException).not.toHaveBeenCalled();
     });
 
     test('should skip logging when log option is false', () => {
@@ -142,9 +160,7 @@ describe('ErrorService', () => {
 
       service.captureError(error);
 
-      expect(Sentry.getCurrentScope().captureException).toHaveBeenCalledWith(
-        error,
-      );
+      expect(captureException).toHaveBeenCalledWith(error);
     });
 
     test('should log error by default', () => {
@@ -160,7 +176,7 @@ describe('ErrorService', () => {
 
       service.captureError(error, { capture: false });
 
-      expect(Sentry.getCurrentScope().captureException).not.toHaveBeenCalled();
+      expect(captureException).not.toHaveBeenCalled();
     });
 
     test('should skip logging when log option is false', () => {
@@ -176,9 +192,7 @@ describe('ErrorService', () => {
 
       service.captureError(error);
 
-      expect(Sentry.getCurrentScope().captureException).toHaveBeenCalledWith(
-        error,
-      );
+      expect(captureException).toHaveBeenCalledWith(error);
       expect(loggerErrorSpy).toHaveBeenCalledWith('Error: String error');
     });
 
@@ -187,7 +201,7 @@ describe('ErrorService', () => {
 
       service.captureError(error, { capture: false, log: false });
 
-      expect(Sentry.getCurrentScope().captureException).not.toHaveBeenCalled();
+      expect(captureException).not.toHaveBeenCalled();
       expect(loggerErrorSpy).not.toHaveBeenCalled();
     });
   });

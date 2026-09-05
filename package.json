@@ -28,8 +28,9 @@
     "start:dev": "pnpm --filter @ulti-project/bot start:dev",
     "start:dev:sentry": "pnpm --filter @ulti-project/bot start:dev:sentry",
     "test": "vitest",
-    "test:ci": "CI=true vitest run --coverage",
+    "test:ci": "CI=true vitest run --coverage --sequence.shuffle",
     "test:cov": "vitest run --coverage",
+    "test:shuffle": "vitest run --sequence.shuffle",
     "test:ui": "vitest --ui"
   },
   "devDependencies": {
