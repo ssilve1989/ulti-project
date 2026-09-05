@@ -120,6 +120,13 @@ describe('LookupCommandHandler', () => {
 
   it('should show no results found message when no signups are found', async () => {
     const signups: SignupDocument[] = [];
+
+    getStringMock.mockImplementation((key) => {
+      if (key === 'character') return 'Test Character';
+      if (key === 'world') return 'Jenova';
+      return null;
+    });
+
     signupsCollection.findAll.mockResolvedValue(signups);
 
     await command.execute(interaction);
