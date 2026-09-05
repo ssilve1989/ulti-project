@@ -41,6 +41,13 @@ minimumReleaseAgeExclude:
   - "@typescript/typescript-sunos-x64@7.0.2"
   - "@typescript/typescript-win32-arm64@7.0.2"
   - "@typescript/typescript-win32-x64@7.0.2"
+  - "vitest@5.0.0"
+  - "@vitest/coverage-v8@5.0.0"
+  - "@vitest/ui@5.0.0"
+  - "@vitest/mocker@5.0.0"
+  - "@vitest/pretty-format@5.0.0"
+  - "@vitest/spy@5.0.0"
+  - "@vitest/utils@5.0.0"
 catalog:
   "@biomejs/biome": 2.5.10
   "@clack/prompts": ^1.7.0
@@ -62,8 +69,8 @@ catalog:
   "@sentry/nestjs": ^10.70.0
   "@sentry/profiling-node": ^10.70.0
   "@types/node": ^26.2.0
-  "@vitest/coverage-v8": ^4.1.11
-  "@vitest/ui": ^4.1.11
+  "@vitest/coverage-v8": ^5.0.0
+  "@vitest/ui": ^5.0.0
   commander: ^15.0.0
   commitizen: ^4.3.2
   cron: ^4.4.0
@@ -83,6 +90,6 @@ catalog:
   ts-pattern: ^5.9.0
   typescript: 7.0.2
   vite: ^8.2.2
-  vitest: ^4.1.11
+  vitest: ^5.0.0
   yaml: ^2.9.0
   zod: ^4.4.3
