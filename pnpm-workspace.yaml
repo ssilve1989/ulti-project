@@ -79,7 +79,7 @@ catalog:
   google-auth-library: ^10.9.1
   graphql: ^16.14.2
   graphql-request: ^7.4.0
-  knip: ^6.32.3
+  knip: ^6.34.0
   lefthook: ^2.1.12
   nestjs-pino: ^4.6.1
   pino-http: ^11.0.0
