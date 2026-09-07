@@ -80,7 +80,7 @@ catalog:
   graphql: ^16.14.2
   graphql-request: ^7.4.0
   knip: ^6.32.3
-  lefthook: ^2.1.10
+  lefthook: ^2.1.12
   nestjs-pino: ^4.6.1
   pino-http: ^11.0.0
   pino-pretty: ^13.1.3
