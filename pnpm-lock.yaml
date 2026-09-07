@@ -22,8 +22,8 @@ catalogs:
       specifier: ^21.2.2
       version: 21.2.2
     '@dotenvx/dotenvx':
-      specifier: ^2.21.0
-      version: 2.21.0
+      specifier: ^2.23.0
+      version: 2.23.0
     '@googleapis/sheets':
       specifier: ^14.0.0
       version: 14.0.0
@@ -157,7 +157,7 @@ importers:
         version: 21.2.2(@types/node@26.2.0)(commitizen@4.3.2(@types/node@26.2.0)(typescript@7.0.2))(inquirer@12.5.2(@types/node@26.2.0))(typescript@7.0.2)
       '@dotenvx/dotenvx':
         specifier: 'catalog:'
-        version: 2.21.0
+        version: 2.23.0
       '@types/node':
         specifier: 'catalog:'
         version: 26.2.0
@@ -254,7 +254,7 @@ importers:
     devDependencies:
       '@dotenvx/dotenvx':
         specifier: 'catalog:'
-        version: 2.21.0
+        version: 2.23.0
       '@graphql-codegen/cli':
         specifier: 'catalog:'
         version: 7.3.1(@types/node@26.2.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@7.0.2)
@@ -309,7 +309,7 @@ importers:
     devDependencies:
       '@dotenvx/dotenvx':
         specifier: 'catalog:'
-        version: 2.21.0
+        version: 2.23.0
       '@types/node':
         specifier: 'catalog:'
         version: 26.2.0
@@ -614,8 +614,8 @@ packages:
     resolution: {integrity: sha512-wPlQDxEmlDg5IxhJPuxXr3Vy9AjYq5xCvFWGJyD7w7Np8ZGu+Mc+97LCoEc/+AYCo2IDpKioiH0/c/mj5ZR9Uw==}
     engines: {node: '>=16.11.0'}
 
-  '@dotenvx/dotenvx@2.21.0':
-    resolution: {integrity: sha512-BL6yuTmYeK2ak9YLpiBEI4Xuf9YkTJJH+DKK53CqR+TPaF5RiJ4VJpOy1pWjjipbZH9dcpfkkjf/PonJ+zcbFg==}
+  '@dotenvx/dotenvx@2.23.0':
+    resolution: {integrity: sha512-LkiCs5ZpGIy+jn85YJKEYKPZkq8QwZegYviwr8w4eFTq+Fb2+j+hFldWpdhppPmFP8ut0cplxL4EEoW06Rzfhw==}
     hasBin: true
 
   '@dotenvx/primitives@2.2.0':
@@ -4881,7 +4881,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@dotenvx/dotenvx@2.21.0':
+  '@dotenvx/dotenvx@2.23.0':
     dependencies:
       '@dotenvx/primitives': 2.2.0
       '@dotenvx/tooling': 1.0.3
