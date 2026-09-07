@@ -6,7 +6,7 @@
   "license": "UNLICENSED",
   "packageManager": "pnpm@11.22.0",
   "engines": {
-    "node": ">=26.0.0"
+    "node": ">=26.8.1"
   },
   "scripts": {
     "build": "pnpm --filter @ulti-project/bot build",

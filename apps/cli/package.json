@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "engines": {
-    "node": ">=26.0.0"
+    "node": ">=26.8.1"
   },
   "scripts": {
     "cli": "dotenvx run -fk ../../.env.keys -f .env.development -f ../../.env -- node src/main.ts",

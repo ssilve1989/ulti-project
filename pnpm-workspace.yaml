@@ -68,7 +68,7 @@ catalog:
   "@sentry/cli": ^3.6.2
   "@sentry/nestjs": ^10.70.0
   "@sentry/profiling-node": ^10.70.0
-  "@types/node": ^26.2.0
+  "@types/node": ^26.4.1
   "@vitest/coverage-v8": ^5.0.0
   "@vitest/ui": ^5.0.0
   commander: ^15.0.0
