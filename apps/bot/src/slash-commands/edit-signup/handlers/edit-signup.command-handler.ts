@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
@@ -39,6 +39,7 @@ import { ErrorService } from '../../../error/error.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
+import { DeclineReasonRequestService } from '../../signup/decline-reason-request.service.js';
 import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
@@ -85,6 +86,7 @@ interface EditDiff {
 class EditSignupCommandHandler implements ISlashCommand {
   private static readonly COLLECT_TIMEOUT = 120_000;
   private static readonly CONFIRM_TIMEOUT = 60_000;
+  private readonly logger = new Logger(EditSignupCommandHandler.name);
 
   constructor(
     private readonly discordService: DiscordService,
@@ -93,6 +95,7 @@ class EditSignupCommandHandler implements ISlashCommand {
     private readonly encountersService: EncountersService,
     private readonly encountersComponentsService: EncountersComponentsService,
     private readonly mutationService: SignupMutationService,
+    private readonly declineReasonRequestService: DeclineReasonRequestService,
     private readonly eventBus: EventBus,
     private readonly errorService: ErrorService,
   ) {}
@@ -498,6 +501,14 @@ class EditSignupCommandHandler implements ISlashCommand {
     this.eventBus.publish(
       new SignupDeclinedEvent(signup, reviewer, reviewMessage),
     );
+    this.declineReasonRequestService
+      .requestDeclineReason(signup, reviewer, reviewMessage)
+      .catch((error) => {
+        this.logger.error(
+          error,
+          `Failed to request decline reason for edited signup ${signup.discordId}-${signup.encounter}`,
+        );
+      });
   }
 
   /** Only the rows that actually change, so neither embed overstates the edit. */

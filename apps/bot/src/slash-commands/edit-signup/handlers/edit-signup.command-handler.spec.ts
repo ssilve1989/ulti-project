@@ -30,6 +30,7 @@ import {
   mockOf,
   partialMock,
 } from '../../../test-utils/mock-factory.js';
+import { DeclineReasonRequestService } from '../../signup/decline-reason-request.service.js';
 import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
@@ -151,6 +152,7 @@ describe('Edit Signup Command Handler', () => {
   let encountersService: Mocked<EncountersService>;
   let encountersComponentsService: Mocked<EncountersComponentsService>;
   let mutationService: Mocked<SignupMutationService>;
+  let declineReasonRequestService: Mocked<DeclineReasonRequestService>;
   let eventBus: Mocked<EventBus>;
   let errorService: Mocked<ErrorService>;
   let interaction: Mocked<ChatInputCommandInteraction<'cached'>>;
@@ -172,6 +174,7 @@ describe('Edit Signup Command Handler', () => {
     encountersService = fixture.get(EncountersService);
     encountersComponentsService = fixture.get(EncountersComponentsService);
     mutationService = fixture.get(SignupMutationService);
+    declineReasonRequestService = fixture.get(DeclineReasonRequestService);
     eventBus = fixture.get(EventBus);
     errorService = fixture.get(ErrorService);
 
@@ -493,7 +496,7 @@ describe('Edit Signup Command Handler', () => {
     expect(errorService.handleCommandError).not.toHaveBeenCalled();
   });
 
-  it('flips APPROVED→DECLINED and publishes SignupDeclinedEvent without a DM', async () => {
+  it('flips APPROVED→DECLINED, publishes SignupDeclinedEvent and DMs the reviewer the decline-reason picker', async () => {
     signupCollection.findAll.mockResolvedValue([
       makeSignup({ status: SignupStatus.APPROVED }),
     ]);
@@ -509,6 +512,57 @@ describe('Edit Signup Command Handler', () => {
     expect(mutationService.applyApproval).not.toHaveBeenCalled();
     expect(eventBus.publish).toHaveBeenCalledWith(
       expect.any(SignupDeclinedEvent),
+    );
+    expect(
+      declineReasonRequestService.requestDeclineReason,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ status: SignupStatus.APPROVED }),
+      interaction.user,
+      reviewMessage,
+    );
+  });
+
+  it('does not request a decline reason on the approve path', async () => {
+    signupCollection.findAll.mockResolvedValue([
+      makeSignup({ status: SignupStatus.APPROVED, progPoint: 'P1' }),
+    ]);
+    mutationService.buildConfirmedSignup.mockResolvedValue(
+      makeSignup({ progPoint: 'P2' }),
+    );
+
+    const executePromise = command.execute(interaction);
+    await drive({ progPoint: 'P2', decision: 'approve' });
+    await executePromise;
+
+    expect(
+      declineReasonRequestService.requestDeclineReason,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('still resolves and replies success when requestDeclineReason rejects', async () => {
+    signupCollection.findAll.mockResolvedValue([
+      makeSignup({ status: SignupStatus.APPROVED }),
+    ]);
+    declineReasonRequestService.requestDeclineReason.mockRejectedValue(
+      new Error('DM failed'),
+    );
+
+    const executePromise = command.execute(interaction);
+    await drive({ decision: 'decline' });
+    await expect(executePromise).resolves.toBeUndefined();
+
+    expect(mutationService.applyDecline).toHaveBeenCalled();
+    expect(errorService.handleCommandError).not.toHaveBeenCalled();
+    expect(interaction.editReply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        embeds: [
+          expect.objectContaining({
+            data: expect.objectContaining({
+              title: EDIT_SIGNUP_MESSAGES.SUCCESS_TITLE,
+            }),
+          }),
+        ],
+      }),
     );
   });
 
