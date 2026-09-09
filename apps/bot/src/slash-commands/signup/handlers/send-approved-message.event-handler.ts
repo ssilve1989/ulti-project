@@ -16,6 +16,7 @@ import {
 } from '../../../common/components/fields.js';
 import { ClearReactions } from '../../../common/emojis/emojis.js';
 import { DiscordService } from '../../../discord/discord.service.js';
+import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
 
 @EventsHandler(SignupApprovedEvent)
@@ -24,7 +25,10 @@ class SendApprovedMessageEventHandler
 {
   private readonly logger = new Logger(SendApprovedMessageEventHandler.name);
 
-  constructor(private readonly discordService: DiscordService) {}
+  constructor(
+    private readonly discordService: DiscordService,
+    private readonly repository: SignupCollection,
+  ) {}
 
   async handle(event: SignupApprovedEvent) {
     try {
@@ -76,6 +80,8 @@ class SendApprovedMessageEventHandler
 
     if (hasCleared) {
       await this.addReactions(message);
+    } else {
+      await this.repository.setApprovalMessageId(signup, message.id);
     }
   }
 
