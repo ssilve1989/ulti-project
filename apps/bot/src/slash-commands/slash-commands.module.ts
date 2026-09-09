@@ -6,6 +6,7 @@ import { ErrorModule } from '../error/error.module.js';
 import { RoleManagerModule } from '../role-manager/role-manager.module.js';
 import { BlacklistModule } from './blacklist/blacklist.module.js';
 import { CleanRolesModule } from './clean-roles/clean-roles.module.js';
+import { EditSignupModule } from './edit-signup/edit-signup.module.js';
 import { EncountersSlashCommandModule } from './encounters/encounters.module.js';
 import { HelpModule } from './help/help.module.js';
 import { LookupModule } from './lookup/lookup.module.js';
@@ -34,6 +35,7 @@ import { TurboProgModule } from './turboprog/turbo-prog.module.js';
     LookupModule,
     RemoveRoleModule,
     RemoveSignupModule,
+    EditSignupModule,
     RetireModule,
     SearchModule,
     SettingsModule,

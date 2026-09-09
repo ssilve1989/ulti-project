@@ -14,6 +14,11 @@ export interface ProgPointSelectMenuOptions {
   customId?: string;
   includeCleared?: boolean;
   multiSelect?: boolean;
+  /**
+   * When set, the option whose `value` matches is pre-selected
+   * (`default: true`). Used to seed the menu with a signup's current prog point.
+   */
+  defaultValue?: string;
 }
 
 @Injectable()
@@ -26,19 +31,25 @@ export class EncountersComponentsService {
       customId = PROG_POINT_SELECT_ID,
       includeCleared = true,
       multiSelect = false,
+      defaultValue,
     }: ProgPointSelectMenuOptions = {},
   ): Promise<StringSelectMenuBuilder> {
     const progPoints = await this.encountersService.getProgPoints(encounter);
 
+    const withDefault = (
+      option: SelectMenuComponentOptionData,
+    ): SelectMenuComponentOptionData =>
+      defaultValue !== undefined && option.value === defaultValue
+        ? { ...option, default: true }
+        : option;
+
     const options: SelectMenuComponentOptionData[] = progPoints.map(
-      (progPoint) => ({
-        label: progPoint.label,
-        value: progPoint.id,
-      }),
+      (progPoint) =>
+        withDefault({ label: progPoint.label, value: progPoint.id }),
     );
 
     if (includeCleared) {
-      options.push(CLEARED_OPTION);
+      options.push(withDefault(CLEARED_OPTION));
     }
 
     const menu = new StringSelectMenuBuilder()

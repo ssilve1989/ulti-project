@@ -43,6 +43,7 @@ import { SignupMutationService } from './signup-mutation.service.js';
     SignupService,
     UpdateApprovalEmbedEventHandler,
   ],
+  exports: [SignupMutationService],
 })
 class SignupModule {}
 
