@@ -64,7 +64,10 @@ class SendApprovedMessageEventHandler
 
     const hasCleared = signup.partyStatus === PartyStatus.Cleared;
 
-    const content = this.getMessageContent(hasCleared, signup.encounter);
+    const content = `${userMention(signup.discordId)} ${this.getMessageContent(
+      hasCleared,
+      signup.encounter,
+    )}`;
 
     const embed = await this.createEmbed(
       guildId,
@@ -73,10 +76,26 @@ class SendApprovedMessageEventHandler
       signup,
     );
 
-    const message = await channel.send({
-      content: `${userMention(signup.discordId)} ${content}`,
-      embeds: [embed],
-    });
+    const payload = { content, embeds: [embed] };
+
+    // The approval announcement is an upsert: if we already posted one, edit it
+    // in place so a re-run of SignupApprovedEvent updates the public post rather
+    // than duplicating it. `approvalMessageId` is only ever stored on the
+    // non-cleared path, so this branch never has to touch reactions.
+    if (signup.approvalMessageId) {
+      const existing = await this.discordService.fetchMessage(
+        guildId,
+        signupChannel,
+        signup.approvalMessageId,
+      );
+
+      if (existing) {
+        await existing.edit(payload);
+        return;
+      }
+    }
+
+    const message = await channel.send(payload);
 
     if (hasCleared) {
       await this.addReactions(message);
