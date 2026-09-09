@@ -1,23 +1,22 @@
-import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { PartyStatus } from '@ulti-project/shared';
-import { match, P } from 'ts-pattern';
+import type { GuildMember } from 'discord.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { ProgPointRolesService } from '../../../role-manager/prog-point-roles.service.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
 
-interface SetRoleParameters {
-  discordId: string;
-  guildId: string;
-  role?: string;
-  action: 'add' | 'remove';
-}
+// The party statuses this handler acts on. `Cleared` (and any status added
+// later) is deliberately excluded: role removal for a cleared signup is owned
+// by the cleared saga (`RemoveRolesCommandHandler`).
+const ACTIVE_PARTY_STATUSES = new Set<PartyStatus>([
+  PartyStatus.EarlyProgParty,
+  PartyStatus.ProgParty,
+  PartyStatus.ClearParty,
+]);
 
 @EventsHandler(SignupApprovedEvent)
 class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
-  private readonly logger = new Logger(AssignRolesEventHandler.name);
-
   constructor(
     private readonly discordService: DiscordService,
     private readonly progPointRolesService: ProgPointRolesService,
@@ -30,50 +29,30 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
       message: { guildId },
     } = event;
 
+    if (!partyStatus || !ACTIVE_PARTY_STATUSES.has(partyStatus)) {
+      return;
+    }
+
     const progRole = progRoles?.[encounter];
     const clearRole = clearRoles?.[encounter];
+    const mapping = progPointRoles?.[encounter];
+
+    if (!progRole && !clearRole && !mapping) {
+      return;
+    }
 
     try {
-      await match(partyStatus)
-        .with(PartyStatus.ClearParty, async () => {
-          await this.updateRole({
-            discordId,
-            guildId,
-            action: 'remove',
-            role: progRole,
-          });
-          await this.updateRole({
-            discordId,
-            guildId,
-            role: clearRole,
-            action: 'add',
-          });
-        })
-        .with(PartyStatus.ProgParty, PartyStatus.EarlyProgParty, () =>
-          this.updateRole({
-            discordId,
-            guildId,
-            action: 'add',
-            role: progRole,
-          }),
-        )
-        // this case is actually handled by the RemoveRolesCommandHandler
-        // which is a little confusing, we should centralize how roles are managed
-        .with(PartyStatus.Cleared, P.nullish, () => undefined)
-        .exhaustive();
+      const member = await this.discordService.getGuildMember({
+        memberId: discordId,
+        guildId,
+      });
 
-      if (
-        partyStatus === PartyStatus.ProgParty ||
-        partyStatus === PartyStatus.EarlyProgParty ||
-        partyStatus === PartyStatus.ClearParty
-      ) {
-        await this.updateProgPointRoles({
-          discordId,
-          guildId,
-          progPoint,
-          mapping: progPointRoles?.[encounter],
-        });
+      if (!member) {
+        return;
       }
+
+      await this.reconcileCoarseRole(member, partyStatus, progRole, clearRole);
+      await this.reconcileProgPointRole(member, progPoint, mapping);
     } catch (error) {
       const scope = Sentry.getCurrentScope();
       scope.setExtra('event', event);
@@ -81,51 +60,42 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
     }
   }
 
-  private async updateRole({
-    discordId,
-    guildId,
-    role,
-    action,
-  }: SetRoleParameters) {
-    if (role) {
-      const member = await this.discordService.getGuildMember({
-        memberId: discordId,
-        guildId,
-      });
+  /**
+   * Reconcile the member's single coarse role for this encounter against the
+   * one `partyStatus` implies — `clearRole` for `ClearParty`, `progRole`
+   * otherwise. A stale coarse role is stripped even when the target status has
+   * no role configured; the two coarse roles are the only candidates.
+   */
+  private async reconcileCoarseRole(
+    member: GuildMember,
+    partyStatus: PartyStatus,
+    progRole: string | undefined,
+    clearRole: string | undefined,
+  ): Promise<void> {
+    const desiredRole =
+      partyStatus === PartyStatus.ClearParty ? clearRole : progRole;
 
-      if (member) {
-        if (action === 'remove') {
-          await member.roles.remove(role);
-          this.logger.log(`Removed role ${role} from ${member?.user.username}`);
-        } else if (action === 'add') {
-          await member.roles.add(role);
-          this.logger.log(`Assigned role ${role} to ${member?.user.username}`);
-        }
-      }
-    }
+    const changes = this.progPointRolesService.reconcileRole(
+      member,
+      [progRole, clearRole],
+      desiredRole,
+      { pruneWhenNoDesired: true },
+    );
+
+    await this.progPointRolesService.applyChanges(member, changes);
   }
 
-  private async updateProgPointRoles({
-    discordId,
-    guildId,
-    progPoint,
-    mapping,
-  }: {
-    discordId: string;
-    guildId: string;
-    progPoint?: string;
-    mapping?: Record<string, string>;
-  }) {
+  /**
+   * Reconcile the member's prog-point role against the mapped role for their
+   * current prog point. An unmapped prog point maps to no role, so any held
+   * mapped role for this encounter is stripped (`pruneUnmapped`).
+   */
+  private async reconcileProgPointRole(
+    member: GuildMember,
+    progPoint: string | undefined,
+    mapping: Record<string, string> | undefined,
+  ): Promise<void> {
     if (!mapping || !progPoint) {
-      return;
-    }
-
-    const member = await this.discordService.getGuildMember({
-      memberId: discordId,
-      guildId,
-    });
-
-    if (!member) {
       return;
     }
 
@@ -133,6 +103,7 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
       member,
       mapping,
       progPoint,
+      { pruneUnmapped: true },
     );
 
     await this.progPointRolesService.applyChanges(member, changes);

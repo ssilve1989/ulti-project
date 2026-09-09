@@ -82,6 +82,8 @@ describe('AssignRolesEventHandler', () => {
   });
 
   it('swaps prog role for clear role on clear party status (existing behavior)', async () => {
+    member.roles.cache.set('prog-role', {});
+
     await handler.handle(
       createEvent(
         { partyStatus: PartyStatus.ClearParty, progPoint: 'P4' },
@@ -89,8 +91,95 @@ describe('AssignRolesEventHandler', () => {
       ),
     );
 
-    expect(member.roles.remove).toHaveBeenCalledWith('prog-role');
+    expect(member.roles.remove).toHaveBeenCalledWith(['prog-role']);
     expect(member.roles.add).toHaveBeenCalledWith('clear-role');
+  });
+
+  it('removes a stale clear role when a signup is downgraded to prog party', async () => {
+    member.roles.cache.set('clear-role', {});
+
+    await handler.handle(
+      createEvent(
+        { partyStatus: PartyStatus.ProgParty, progPoint: 'P2' },
+        { progRoles: { TOP: 'prog-role' }, clearRoles: { TOP: 'clear-role' } },
+      ),
+    );
+
+    expect(member.roles.remove).toHaveBeenCalledWith(['clear-role']);
+    expect(member.roles.add).toHaveBeenCalledWith('prog-role');
+  });
+
+  it('removes a stale clear role on early prog party too', async () => {
+    member.roles.cache.set('clear-role', {});
+
+    await handler.handle(
+      createEvent(
+        { partyStatus: PartyStatus.EarlyProgParty, progPoint: 'P1' },
+        { progRoles: { TOP: 'prog-role' }, clearRoles: { TOP: 'clear-role' } },
+      ),
+    );
+
+    expect(member.roles.remove).toHaveBeenCalledWith(['clear-role']);
+    expect(member.roles.add).toHaveBeenCalledWith('prog-role');
+  });
+
+  it('does not re-add the prog role when the member already has it', async () => {
+    member.roles.cache.set('prog-role', {});
+
+    await handler.handle(
+      createEvent(
+        { partyStatus: PartyStatus.ProgParty, progPoint: 'P2' },
+        { progRoles: { TOP: 'prog-role' } },
+      ),
+    );
+
+    expect(member.roles.add).not.toHaveBeenCalled();
+    expect(member.roles.remove).not.toHaveBeenCalled();
+  });
+
+  it('adds the prog role and removes nothing when the member holds neither coarse role', async () => {
+    await handler.handle(
+      createEvent(
+        { partyStatus: PartyStatus.ProgParty },
+        { progRoles: { TOP: 'prog-role' }, clearRoles: { TOP: 'clear-role' } },
+      ),
+    );
+
+    expect(member.roles.add).toHaveBeenCalledWith('prog-role');
+    expect(member.roles.remove).not.toHaveBeenCalled();
+  });
+
+  it('adds the clear role and removes the prog role on clear party (reconcile)', async () => {
+    member.roles.cache.set('prog-role', {});
+
+    await handler.handle(
+      createEvent(
+        { partyStatus: PartyStatus.ClearParty },
+        { progRoles: { TOP: 'prog-role' }, clearRoles: { TOP: 'clear-role' } },
+      ),
+    );
+
+    expect(member.roles.add).toHaveBeenCalledWith('clear-role');
+    expect(member.roles.remove).toHaveBeenCalledWith(['prog-role']);
+  });
+
+  it("leaves another encounter's coarse roles untouched", async () => {
+    member.roles.cache.set('top-prog-role', {});
+    member.roles.cache.set('uwu-prog-role', {});
+
+    await handler.handle(
+      createEvent(
+        { partyStatus: PartyStatus.ClearParty, encounter: Encounter.TOP },
+        {
+          progRoles: { TOP: 'top-prog-role', UWU: 'uwu-prog-role' },
+          clearRoles: { TOP: 'top-clear-role' },
+        },
+      ),
+    );
+
+    expect(member.roles.remove).toHaveBeenCalledWith(['top-prog-role']);
+    expect(member.roles.remove).not.toHaveBeenCalledWith('uwu-prog-role');
+    expect(member.roles.add).toHaveBeenCalledWith('top-clear-role');
   });
 
   it('adds the mapped prog point role and removes other held mapped roles', async () => {
@@ -129,9 +218,21 @@ describe('AssignRolesEventHandler', () => {
     expect(member.roles.add).not.toHaveBeenCalled();
   });
 
-  it('is a no-op for an unmapped prog point', async () => {
+  it('removes a stale mapped prog point role when moved to an unmapped prog point', async () => {
     member.roles.cache.set('role-p1', {});
 
+    await handler.handle(
+      createEvent(
+        { partyStatus: PartyStatus.ProgParty, progPoint: 'P9' },
+        { progPointRoles: { TOP: { P1: 'role-p1', P2: 'role-p2' } } },
+      ),
+    );
+
+    expect(member.roles.remove).toHaveBeenCalledWith(['role-p1']);
+    expect(member.roles.add).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op for an unmapped prog point when no mapped role is held', async () => {
     await handler.handle(
       createEvent(
         { partyStatus: PartyStatus.ProgParty, progPoint: 'P9' },
