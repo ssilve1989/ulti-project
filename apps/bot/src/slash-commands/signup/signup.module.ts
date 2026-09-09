@@ -9,6 +9,7 @@ import { RoleManagerModule } from '../../role-manager/role-manager.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
 import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import { AssignRolesEventHandler } from './handlers/assign-roles.event-handler.js';
+import { ClearApprovalMessageOnDeclineEventHandler } from './handlers/clear-approval-message-on-decline.event-handler.js';
 import { SendApprovedMessageEventHandler } from './handlers/send-approved-message.event-handler.js';
 import { SendSignupReviewCommandHandler } from './handlers/send-signup-review.command-handler.js';
 import { SignupCommandHandler } from './handlers/signup.command-handler.js';
@@ -31,6 +32,7 @@ import { SignupMutationService } from './signup-mutation.service.js';
   ],
   providers: [
     AssignRolesEventHandler,
+    ClearApprovalMessageOnDeclineEventHandler,
     DeclineReasonRequestService,
     SendApprovedMessageEventHandler,
     SendSignupReviewCommandHandler,

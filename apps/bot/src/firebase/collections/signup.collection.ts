@@ -10,6 +10,7 @@ import {
 import {
   type CollectionReference,
   type DocumentData,
+  FieldValue,
   Firestore,
   type Query,
   Timestamp,
@@ -184,6 +185,21 @@ class SignupCollection {
 
     return this.collection.doc(key).update({
       approvalMessageId: messageId,
+    });
+  }
+
+  /**
+   * Clears the stored "Signup Approved" announcement id. Called when an
+   * approved signup is later declined and its public post has been removed.
+   * @param signup
+   * @returns
+   */
+  @SentryTraced()
+  public clearApprovalMessageId(signup: SignupCompositeKey) {
+    const key = SignupCollection.getKeyForSignup(signup);
+
+    return this.collection.doc(key).update({
+      approvalMessageId: FieldValue.delete(),
     });
   }
 
