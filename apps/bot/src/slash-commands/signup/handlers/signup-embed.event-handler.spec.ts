@@ -60,6 +60,7 @@ describe('SignupEmbedEventHandler', () => {
           partialMock<SignupDocument>({ discordId: '12345' }),
           reviewedBy,
           msg,
+          'decline',
         ),
       footer: 'Declined by Test User',
       content: 'Declined <@12345>',

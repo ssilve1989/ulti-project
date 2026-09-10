@@ -43,7 +43,6 @@ import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
 } from '../../signup/events/signup.events.js';
-import { ReviewDmFlowService } from '../../signup/review-dm-flow.service.js';
 import { SignupMutationService } from '../../signup/signup-mutation.service.js';
 import { SlashCommand } from '../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../slash-command.interface.js';
@@ -94,7 +93,6 @@ class EditSignupCommandHandler implements ISlashCommand {
     private readonly encountersService: EncountersService,
     private readonly encountersComponentsService: EncountersComponentsService,
     private readonly mutationService: SignupMutationService,
-    private readonly reviewDmFlowService: ReviewDmFlowService,
     private readonly eventBus: EventBus,
     private readonly errorService: ErrorService,
   ) {}
@@ -490,24 +488,12 @@ class EditSignupCommandHandler implements ISlashCommand {
           'edit',
         ),
       );
-      // Non-blocking: the flow swallows and reports its own failures.
-      void this.reviewDmFlowService.requestApprovalComment(
-        confirmed,
-        reviewer,
-        reviewMessage,
-      );
       return;
     }
 
     await this.mutationService.applyDecline(signup, reviewer);
     this.eventBus.publish(
-      new SignupDeclinedEvent(signup, reviewer, reviewMessage),
-    );
-    // Non-blocking: the flow swallows and reports its own failures.
-    void this.reviewDmFlowService.requestDeclineReason(
-      signup,
-      reviewer,
-      reviewMessage,
+      new SignupDeclinedEvent(signup, reviewer, reviewMessage, 'edit'),
     );
   }
 

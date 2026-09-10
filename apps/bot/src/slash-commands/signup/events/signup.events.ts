@@ -10,14 +10,15 @@ export class SignupCreatedEvent {
 }
 
 /**
- * Which flow produced the approval:
- * - `'approval'` — the standard reaction-review flow. A public "Signup
- *   Approved" announcement is always posted fresh.
- * - `'edit'` — the `/edit-signup` command correcting an already-reviewed
- *   signup in place. The existing announcement (if any) is edited rather
- *   than a second one being posted.
+ * Which flow produced the review decision:
+ * - `'approval'` / `'decline'` — the standard reaction-review flow. Only this
+ *   flow offers the reviewer the optional comment / decline-reason follow-up DM.
+ * - `'edit'` — the `/edit-signup` command correcting an already-reviewed signup
+ *   in place: the existing announcement is edited rather than re-posted, and no
+ *   follow-up DM is offered.
  */
 export type SignupApprovalKind = 'approval' | 'edit';
+export type SignupDeclineKind = 'decline' | 'edit';
 
 export class SignupApprovedEvent {
   constructor(
@@ -34,24 +35,7 @@ export class SignupDeclinedEvent {
     public readonly signup: SignupDocument,
     public readonly reviewedBy: User,
     public readonly message: Message<true>,
-  ) {}
-}
-
-export class SignupDeclineReasonCollectedEvent {
-  constructor(
-    public readonly signup: SignupDocument,
-    public readonly reviewedBy: User,
-    public readonly message: Message<true>,
-    public readonly declineReason?: string,
-  ) {}
-}
-
-export class SignupApprovalCommentCollectedEvent {
-  constructor(
-    public readonly signup: SignupDocument,
-    public readonly reviewedBy: User,
-    public readonly message: Message<true>,
-    public readonly approvalComment: string,
+    public readonly kind: SignupDeclineKind,
   ) {}
 }
 

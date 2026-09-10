@@ -203,18 +203,10 @@ class SignupCollection {
     });
   }
 
-  @SentryTraced()
-  public updateDeclineReason(
-    signup: SignupCompositeKey,
-    declineReason: string,
-  ) {
-    const key = SignupCollection.getKeyForSignup(signup);
-
-    return this.collection.doc(key).update({
-      declineReason,
-    });
-  }
-
+  /**
+   * Standalone writes for the reviewer's optional follow-up annotations. Both
+   * are collected asynchronously, after the review status is already persisted.
+   */
   @SentryTraced()
   public updateApprovalComment(
     signup: SignupCompositeKey,
@@ -222,9 +214,17 @@ class SignupCollection {
   ) {
     const key = SignupCollection.getKeyForSignup(signup);
 
-    return this.collection.doc(key).update({
-      approvalComment,
-    });
+    return this.collection.doc(key).update({ approvalComment });
+  }
+
+  @SentryTraced()
+  public updateDeclineReason(
+    signup: SignupCompositeKey,
+    declineReason: string,
+  ) {
+    const key = SignupCollection.getKeyForSignup(signup);
+
+    return this.collection.doc(key).update({ declineReason });
   }
 
   @SentryTraced()

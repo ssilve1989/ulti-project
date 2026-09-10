@@ -157,19 +157,27 @@ describe('Signup Repository', () => {
     });
   });
 
-  it('should call setReviewMessageId with the correct arguments', async () => {
-    await repository.setReviewMessageId(SIGNUP_KEY, 'messageId');
-
-    expect(doc.update).toHaveBeenCalledWith({
-      reviewMessageId: 'messageId',
-    });
-  });
-
   it('should call updateApprovalComment with the correct arguments', async () => {
     await repository.updateApprovalComment(SIGNUP_KEY, 'nice proof, welcome');
 
     expect(doc.update).toHaveBeenCalledWith({
       approvalComment: 'nice proof, welcome',
+    });
+  });
+
+  it('should call updateDeclineReason with the correct arguments', async () => {
+    await repository.updateDeclineReason(SIGNUP_KEY, 'Not enough logs');
+
+    expect(doc.update).toHaveBeenCalledWith({
+      declineReason: 'Not enough logs',
+    });
+  });
+
+  it('should call setReviewMessageId with the correct arguments', async () => {
+    await repository.setReviewMessageId(SIGNUP_KEY, 'messageId');
+
+    expect(doc.update).toHaveBeenCalledWith({
+      reviewMessageId: 'messageId',
     });
   });
 

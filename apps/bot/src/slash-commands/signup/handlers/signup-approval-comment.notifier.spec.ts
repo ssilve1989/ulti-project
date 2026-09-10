@@ -4,7 +4,7 @@ import {
   PartyStatus,
   type SignupDocument,
 } from '@ulti-project/shared';
-import type { Message, User } from 'discord.js';
+import type { Message } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import {
@@ -12,11 +12,10 @@ import {
   mockOf,
   partialMock,
 } from '../../../test-utils/mock-factory.js';
-import { SignupApprovalCommentCollectedEvent } from '../events/signup.events.js';
-import { SignupApprovalCommentEventHandler } from './signup-approval-comment.event-handler.js';
+import { SignupApprovalCommentNotifier } from './signup-approval-comment.notifier.js';
 
-describe('SignupApprovalCommentEventHandler', () => {
-  let handler: SignupApprovalCommentEventHandler;
+describe('SignupApprovalCommentNotifier', () => {
+  let notifier: SignupApprovalCommentNotifier;
   let discordService: Mocked<DiscordService>;
   let message: Message<true>;
   let signup: SignupDocument;
@@ -25,12 +24,12 @@ describe('SignupApprovalCommentEventHandler', () => {
     message = mockOf<Message<true>>({ id: 'review-message', embeds: [{}] });
 
     const fixture = await Test.createTestingModule({
-      providers: [SignupApprovalCommentEventHandler],
+      providers: [SignupApprovalCommentNotifier],
     })
       .useMocker(createAutoMock)
       .compile();
 
-    handler = fixture.get(SignupApprovalCommentEventHandler);
+    notifier = fixture.get(SignupApprovalCommentNotifier);
     discordService = fixture.get(DiscordService);
 
     signup = partialMock<SignupDocument>({
@@ -40,18 +39,11 @@ describe('SignupApprovalCommentEventHandler', () => {
   });
 
   it('is defined', () => {
-    expect(handler).toBeDefined();
+    expect(notifier).toBeDefined();
   });
 
   it('DMs the user an approval message containing the reviewer comment', async () => {
-    const event = new SignupApprovalCommentCollectedEvent(
-      signup,
-      mockOf<User>({}),
-      message,
-      'great logs — see you in prog',
-    );
-
-    await handler.handle(event);
+    await notifier.notify(signup, message, 'great logs — see you in prog');
 
     expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
       'user-1',
@@ -66,19 +58,42 @@ describe('SignupApprovalCommentEventHandler', () => {
     );
   });
 
+  it('drops the reviewer-facing prompt from the copied review embed', async () => {
+    const reviewMessage = mockOf<Message<true>>({
+      id: 'review-message',
+      embeds: [
+        {
+          title: 'Signup Approval - DSR',
+          description: 'Please react to approve ✅ or deny ❌ the request',
+        },
+      ],
+    });
+
+    await notifier.notify(signup, reviewMessage, 'welcome aboard');
+
+    expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        embeds: [
+          expect.objectContaining({
+            data: expect.not.objectContaining({
+              description: expect.anything(),
+            }),
+          }),
+        ],
+      }),
+    );
+  });
+
   it('sends the DM with only content when the review message has no embed', async () => {
     const embedlessMessage = mockOf<Message<true>>({
       id: 'review-message',
       embeds: [],
     });
-    const event = new SignupApprovalCommentCollectedEvent(
-      signup,
-      mockOf<User>({}),
-      embedlessMessage,
-      'no embed but still approved',
-    );
 
-    await expect(handler.handle(event)).resolves.toBeUndefined();
+    await expect(
+      notifier.notify(signup, embedlessMessage, 'no embed but still approved'),
+    ).resolves.toBeUndefined();
 
     const payload = vi.mocked(discordService.sendDirectMessage).mock
       .calls[0][1];
@@ -96,14 +111,8 @@ describe('SignupApprovalCommentEventHandler', () => {
       encounter: 'DSR',
       partyStatus: PartyStatus.Cleared,
     });
-    const event = new SignupApprovalCommentCollectedEvent(
-      clearedSignup,
-      mockOf<User>({}),
-      message,
-      'gg on the clear',
-    );
 
-    await handler.handle(event);
+    await notifier.notify(clearedSignup, message, 'gg on the clear');
 
     expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
       'user-1',
@@ -136,13 +145,8 @@ describe('SignupApprovalCommentEventHandler', () => {
       new Error('Cannot send messages to this user'),
     );
 
-    const event = new SignupApprovalCommentCollectedEvent(
-      signup,
-      mockOf<User>({}),
-      message,
-      'welcome aboard',
-    );
-
-    await expect(handler.handle(event)).resolves.toBeUndefined();
+    await expect(
+      notifier.notify(signup, message, 'welcome aboard'),
+    ).resolves.toBeUndefined();
   });
 });

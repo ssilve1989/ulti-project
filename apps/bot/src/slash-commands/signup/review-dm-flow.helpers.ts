@@ -12,16 +12,19 @@ import {
 const UNKNOWN_INTERACTION_CODE = 10062;
 
 /**
- * Attach the signup + reviewer context to the current Sentry scope and capture
- * `error`. Shared by the approval-comment and decline-reason review-DM flows.
+ * Attach the signup (and reviewer, when known) to the current Sentry scope and
+ * capture `error`. Shared by the review-DM collect flows and the notifiers that
+ * deliver their result.
  */
 export function reportReviewFlowError(
   error: unknown,
-  context: { signup: SignupDocument; reviewer: User },
+  context: { signup: SignupDocument; reviewer?: User },
 ): void {
   const scope = Sentry.getCurrentScope();
   scope.setExtra('signup', context.signup);
-  scope.setExtra('reviewer', context.reviewer);
+  if (context.reviewer) {
+    scope.setExtra('reviewer', context.reviewer);
+  }
   scope.captureException(error);
 }
 

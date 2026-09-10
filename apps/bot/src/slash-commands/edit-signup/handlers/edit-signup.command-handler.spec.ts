@@ -34,7 +34,6 @@ import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
 } from '../../signup/events/signup.events.js';
-import { ReviewDmFlowService } from '../../signup/review-dm-flow.service.js';
 import { SignupMutationService } from '../../signup/signup-mutation.service.js';
 import { EDIT_SIGNUP_MESSAGES } from '../edit-signup.consts.js';
 import { EditSignupCommandHandler } from './edit-signup.command-handler.js';
@@ -152,7 +151,6 @@ describe('Edit Signup Command Handler', () => {
   let encountersService: Mocked<EncountersService>;
   let encountersComponentsService: Mocked<EncountersComponentsService>;
   let mutationService: Mocked<SignupMutationService>;
-  let reviewDmFlowService: Mocked<ReviewDmFlowService>;
   let eventBus: Mocked<EventBus>;
   let errorService: Mocked<ErrorService>;
   let interaction: Mocked<ChatInputCommandInteraction<'cached'>>;
@@ -174,7 +172,6 @@ describe('Edit Signup Command Handler', () => {
     encountersService = fixture.get(EncountersService);
     encountersComponentsService = fixture.get(EncountersComponentsService);
     mutationService = fixture.get(SignupMutationService);
-    reviewDmFlowService = fixture.get(ReviewDmFlowService);
     eventBus = fixture.get(EventBus);
     errorService = fixture.get(ErrorService);
 
@@ -500,14 +497,14 @@ describe('Edit Signup Command Handler', () => {
     expect(errorService.handleCommandError).not.toHaveBeenCalled();
   });
 
-  it('flips APPROVED→DECLINED, publishes SignupDeclinedEvent and DMs the reviewer the decline-reason picker', async () => {
+  it('flips APPROVED→DECLINED and publishes SignupDeclinedEvent, with no follow-up DM', async () => {
     signupCollection.findAll.mockResolvedValue([
       makeSignup({ status: SignupStatus.APPROVED }),
     ]);
 
     const executePromise = command.execute(interaction);
     await drive({ decision: 'decline' });
-    await executePromise;
+    await expect(executePromise).resolves.toBeUndefined();
 
     expect(mutationService.applyDecline).toHaveBeenCalledWith(
       expect.objectContaining({ status: SignupStatus.APPROVED }),
@@ -517,72 +514,6 @@ describe('Edit Signup Command Handler', () => {
     expect(eventBus.publish).toHaveBeenCalledWith(
       expect.any(SignupDeclinedEvent),
     );
-    expect(reviewDmFlowService.requestDeclineReason).toHaveBeenCalledWith(
-      expect.objectContaining({ status: SignupStatus.APPROVED }),
-      interaction.user,
-      reviewMessage,
-    );
-  });
-
-  it('does not request a decline reason on the approve path', async () => {
-    signupCollection.findAll.mockResolvedValue([
-      makeSignup({ status: SignupStatus.APPROVED, progPoint: 'P1' }),
-    ]);
-    mutationService.buildConfirmedSignup.mockResolvedValue(
-      makeSignup({ progPoint: 'P2' }),
-    );
-
-    const executePromise = command.execute(interaction);
-    await drive({ progPoint: 'P2', decision: 'approve' });
-    await executePromise;
-
-    expect(reviewDmFlowService.requestDeclineReason).not.toHaveBeenCalled();
-  });
-
-  it('requests an optional approval comment from the reviewer on the approve path', async () => {
-    signupCollection.findAll.mockResolvedValue([
-      makeSignup({ status: SignupStatus.APPROVED, progPoint: 'P1' }),
-    ]);
-    const confirmed = makeSignup({ progPoint: 'P2' });
-    mutationService.buildConfirmedSignup.mockResolvedValue(confirmed);
-
-    const executePromise = command.execute(interaction);
-    await drive({ progPoint: 'P2', decision: 'approve' });
-    await executePromise;
-
-    expect(reviewDmFlowService.requestApprovalComment).toHaveBeenCalledWith(
-      confirmed,
-      interaction.user,
-      reviewMessage,
-    );
-  });
-
-  it('does not request an approval comment on the decline path', async () => {
-    signupCollection.findAll.mockResolvedValue([
-      makeSignup({ status: SignupStatus.APPROVED }),
-    ]);
-
-    const executePromise = command.execute(interaction);
-    await drive({ decision: 'decline' });
-    await executePromise;
-
-    expect(reviewDmFlowService.requestApprovalComment).not.toHaveBeenCalled();
-  });
-
-  it('does not block the success reply on the fire-and-forget decline reason request', async () => {
-    signupCollection.findAll.mockResolvedValue([
-      makeSignup({ status: SignupStatus.APPROVED }),
-    ]);
-    // The request never settles — the edit flow must not wait on it.
-    reviewDmFlowService.requestDeclineReason.mockReturnValue(
-      new Promise<void>(() => undefined),
-    );
-
-    const executePromise = command.execute(interaction);
-    await drive({ decision: 'decline' });
-    await expect(executePromise).resolves.toBeUndefined();
-
-    expect(mutationService.applyDecline).toHaveBeenCalled();
     expect(errorService.handleCommandError).not.toHaveBeenCalled();
     expect(interaction.editReply).toHaveBeenCalledWith(
       expect.objectContaining({

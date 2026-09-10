@@ -49,7 +49,6 @@ import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
 } from './events/signup.events.js';
-import { ReviewDmFlowService } from './review-dm-flow.service.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import {
   getErrorReplyMessage,
@@ -69,7 +68,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   private subscription?: Subscription;
 
   constructor(
-    private readonly reviewDmFlowService: ReviewDmFlowService,
     private readonly discordService: DiscordService,
     private readonly encountersComponentsService: EncountersComponentsService,
     private readonly eventBus: EventBus,
@@ -238,20 +236,16 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User,
     settings: SettingsDocument,
   ): Promise<SignupApprovedEvent> {
+    // Confirm the prog point (a failure here aborts the whole approval), then
+    // persist and publish immediately — the public announcement, roles, and
+    // embed all follow from the event. The optional reviewer comment is a
+    // detached side-effect handled off `SignupApprovedEvent`.
     const progPoint = await this.confirmProgPoint(signup, message, user);
     const confirmedSignup = await this.mutationService.buildConfirmedSignup(
       signup,
       progPoint,
     );
     await this.mutationService.applyApproval(confirmedSignup, settings, user);
-
-    // Fire the optional approval-comment request (non-blocking, self-contained:
-    // it swallows and reports its own failures), mirroring the decline-reason flow.
-    void this.reviewDmFlowService.requestApprovalComment(
-      confirmedSignup,
-      user,
-      message,
-    );
 
     return new SignupApprovedEvent(
       confirmedSignup,
@@ -277,15 +271,12 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     message: Message<true>,
     user: User,
   ): Promise<SignupDeclinedEvent> {
-    // Update signup status immediately (for sequential reaction processing)
+    // Persist + publish immediately — the embed footer flips and the approval
+    // message is cleared off the event. The reviewer's optional decline reason
+    // is a detached side-effect handled off `SignupDeclinedEvent`.
     await this.mutationService.applyDecline(signup, user);
 
-    // Fire decline reason request with event dispatch context (non-blocking,
-    // self-contained: it swallows and reports its own failures).
-    void this.reviewDmFlowService.requestDeclineReason(signup, user, message);
-
-    // Return event immediately for embed footer update
-    return new SignupDeclinedEvent(signup, user, message);
+    return new SignupDeclinedEvent(signup, user, message, 'decline');
   }
 
   private async handleError(

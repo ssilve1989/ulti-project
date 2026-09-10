@@ -12,8 +12,10 @@ import {
   partialMock,
   withInternals,
 } from '../../test-utils/mock-factory.js';
-import { SignupApprovedEvent } from './events/signup.events.js';
-import { ReviewDmFlowService } from './review-dm-flow.service.js';
+import {
+  SignupApprovedEvent,
+  SignupDeclinedEvent,
+} from './events/signup.events.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
 import { SignupMutationService } from './signup-mutation.service.js';
@@ -29,7 +31,6 @@ describe('SignupService', () => {
   let discordService: Mocked<DiscordService>;
   let mutationService: Mocked<SignupMutationService>;
   let eventBus: Mocked<EventBus>;
-  let reviewDmFlowService: Mocked<ReviewDmFlowService>;
 
   beforeEach(async () => {
     const fixture: TestingModule = await Test.createTestingModule({
@@ -43,7 +44,6 @@ describe('SignupService', () => {
     discordService = fixture.get(DiscordService);
     mutationService = fixture.get(SignupMutationService);
     eventBus = fixture.get(EventBus);
-    reviewDmFlowService = fixture.get(ReviewDmFlowService);
 
     messageReaction = mockOf<MessageReaction>({
       message: mockOf<Message<boolean>>({
@@ -132,32 +132,7 @@ describe('SignupService', () => {
     );
   });
 
-  it('requests an optional approval comment from the reviewer with the confirmed signup', async () => {
-    repository.findByReviewId.mockResolvedValue(signup);
-    messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
-
-    const confirmedSignup = partialMock<SignupDocument>({
-      ...signup,
-      progPoint: 'p3-thordan',
-    });
-    vi.spyOn(
-      withInternals<{
-        confirmProgPoint: (...args: unknown[]) => Promise<string | undefined>;
-      }>(service),
-      'confirmProgPoint',
-    ).mockResolvedValue('p3-thordan');
-    mutationService.buildConfirmedSignup.mockResolvedValue(confirmedSignup);
-
-    await service['handleReaction'](messageReaction, user, settings);
-
-    expect(reviewDmFlowService.requestApprovalComment).toHaveBeenCalledWith(
-      confirmedSignup,
-      user,
-      messageReaction.message,
-    );
-  });
-
-  it('does not block the approved event on the fire-and-forget approval comment request', async () => {
+  it('persists the approval before publishing the event, and does not collect a comment inline', async () => {
     repository.findByReviewId.mockResolvedValue(signup);
     messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
 
@@ -168,21 +143,37 @@ describe('SignupService', () => {
       'confirmProgPoint',
     ).mockResolvedValue('p3-thordan');
     mutationService.buildConfirmedSignup.mockResolvedValue(signup);
-    // The request never settles — handleReaction must not wait on it.
-    reviewDmFlowService.requestApprovalComment.mockReturnValue(
-      new Promise<void>(() => undefined),
-    );
+
+    await service['handleReaction'](messageReaction, user, settings);
+
+    // The approval-comment DM is a detached side-effect off SignupApprovedEvent,
+    // not run inline here.
+    const persistedAt =
+      mutationService.applyApproval.mock.invocationCallOrder[0];
+    const publishedAt = eventBus.publish.mock.invocationCallOrder[0];
+    expect(persistedAt).toBeLessThan(publishedAt);
+  });
+
+  it('aborts the approval without persisting when prog-point confirmation fails', async () => {
+    repository.findByReviewId.mockResolvedValue(signup);
+    messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
+
+    vi.spyOn(
+      withInternals<{
+        confirmProgPoint: (...args: unknown[]) => Promise<string | undefined>;
+      }>(service),
+      'confirmProgPoint',
+    ).mockRejectedValue(new Error('prog point timed out'));
 
     await expect(
       service['handleReaction'](messageReaction, user, settings),
-    ).resolves.not.toThrow();
+    ).rejects.toThrow('prog point timed out');
 
-    expect(eventBus.publish).toHaveBeenCalledWith(
-      expect.any(SignupApprovedEvent),
-    );
+    expect(mutationService.applyApproval).not.toHaveBeenCalled();
+    expect(eventBus.publish).not.toHaveBeenCalled();
   });
 
-  it('should handle a declined reaction', async () => {
+  it('persists the decline and publishes SignupDeclinedEvent before any reason collection', async () => {
     messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.DECLINED;
 
     repository.findByReviewId.mockResolvedValueOnce(signup);
@@ -191,22 +182,20 @@ describe('SignupService', () => {
       mockOf<Awaited<ReturnType<(typeof messageReaction.message)['edit']>>>({}),
     );
 
-    const handleDeclineSpy = vi.spyOn(
-      withInternals<{
-        handleApprovedReaction: (...args: unknown[]) => Promise<unknown>;
-        handleDeclinedReaction: (...args: unknown[]) => Promise<unknown>;
-      }>(service),
-      'handleDeclinedReaction',
-    );
-
     await service['handleReaction'](messageReaction, user, settings);
 
-    expect(handleDeclineSpy).toHaveBeenCalledWith(
-      signup,
-      messageReaction.message,
-      user,
-    );
     expect(mutationService.applyDecline).toHaveBeenCalledWith(signup, user);
+    expect(eventBus.publish).toHaveBeenCalledWith(
+      expect.any(SignupDeclinedEvent),
+    );
+    expect(eventBus.publish).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'decline' }),
+    );
+
+    const persistedAt =
+      mutationService.applyDecline.mock.invocationCallOrder[0];
+    const publishedAt = eventBus.publish.mock.invocationCallOrder[0];
+    expect(persistedAt).toBeLessThan(publishedAt);
   });
 
   it('should return early if a signup has been reviewed', async () => {
