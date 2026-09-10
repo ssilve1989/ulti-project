@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.5](https://github.com/ssilve1989/ulti-project/compare/v2.6.4...v2.6.5) (2026-09-10)
+
+
+### Performance Improvements
+
+* **test:** run vitest with isolate: false ([97264a5](https://github.com/ssilve1989/ulti-project/commit/97264a5604a2880610ee4f1c895c5b090a016e05))
+
 ## [2.6.4](https://github.com/ssilve1989/ulti-project/compare/v2.6.3...v2.6.4) (2026-08-27)
 
 
