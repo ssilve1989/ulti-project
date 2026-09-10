@@ -24,18 +24,7 @@ jobs:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout private action repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          repository: ssilve1989/github-releases-to-discord-action
-          token: ${{ secrets.ULTI_PROJECT_PAT }}
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version-file: .nvmrc
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - run: pnpm install
-      - run: pnpm build
       - name: Run Publish Release
-        uses: ./
+        uses: ssilve1989/github-releases-to-discord-action@52ce4c8c459fea604fed6afb6f5191304ca1df84 # v2.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_RELEASES_WEBHOOK_URL }}
