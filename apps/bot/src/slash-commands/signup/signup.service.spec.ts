@@ -1,7 +1,7 @@
+import { EventBus } from '@nestjs/cqrs';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { SignupDocument } from '@ulti-project/shared';
 import type { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
-import type { WriteResult } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
@@ -12,8 +12,10 @@ import {
   partialMock,
   withInternals,
 } from '../../test-utils/mock-factory.js';
+import { SignupApprovedEvent } from './events/signup.events.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
+import { SignupMutationService } from './signup-mutation.service.js';
 
 // TODO: Actually assert approval/decline functionality, not just that they were called
 describe('SignupService', () => {
@@ -24,6 +26,8 @@ describe('SignupService', () => {
   let signup: SignupDocument;
   let repository: Mocked<SignupCollection>;
   let discordService: Mocked<DiscordService>;
+  let mutationService: Mocked<SignupMutationService>;
+  let eventBus: Mocked<EventBus>;
 
   beforeEach(async () => {
     const fixture: TestingModule = await Test.createTestingModule({
@@ -35,6 +39,8 @@ describe('SignupService', () => {
     service = fixture.get(SignupService);
     repository = fixture.get(SignupCollection);
     discordService = fixture.get(DiscordService);
+    mutationService = fixture.get(SignupMutationService);
+    eventBus = fixture.get(EventBus);
 
     messageReaction = mockOf<MessageReaction>({
       message: mockOf<Message<boolean>>({
@@ -90,14 +96,44 @@ describe('SignupService', () => {
     );
   });
 
+  it('delegates approval persistence to the mutation service and publishes an approved event', async () => {
+    repository.findByReviewId.mockResolvedValue(signup);
+    messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
+
+    const confirmedSignup = partialMock<SignupDocument>({
+      ...signup,
+      progPoint: 'p3-thordan',
+    });
+
+    vi.spyOn(
+      withInternals<{
+        confirmProgPoint: (...args: unknown[]) => Promise<string | undefined>;
+      }>(service),
+      'confirmProgPoint',
+    ).mockResolvedValue('p3-thordan');
+    mutationService.buildConfirmedSignup.mockResolvedValue(confirmedSignup);
+
+    await service['handleReaction'](messageReaction, user, settings);
+
+    expect(mutationService.buildConfirmedSignup).toHaveBeenCalledWith(
+      signup,
+      'p3-thordan',
+    );
+    expect(mutationService.applyApproval).toHaveBeenCalledWith(
+      confirmedSignup,
+      settings,
+      user,
+    );
+    expect(eventBus.publish).toHaveBeenCalledWith(
+      expect.any(SignupApprovedEvent),
+    );
+  });
+
   it('should handle a declined reaction', async () => {
     messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.DECLINED;
 
     repository.findByReviewId.mockResolvedValueOnce(signup);
     discordService.getDisplayName.mockResolvedValueOnce('someuser');
-    repository.updateSignupStatus.mockResolvedValueOnce(
-      mockOf<WriteResult>({}),
-    );
     vi.spyOn(messageReaction.message, 'edit').mockResolvedValueOnce(
       mockOf<Awaited<ReturnType<(typeof messageReaction.message)['edit']>>>({}),
     );
@@ -117,6 +153,7 @@ describe('SignupService', () => {
       messageReaction.message,
       user,
     );
+    expect(mutationService.applyDecline).toHaveBeenCalledWith(signup, user);
   });
 
   it('should return early if a signup has been reviewed', async () => {

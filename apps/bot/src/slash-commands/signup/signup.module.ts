@@ -16,6 +16,7 @@ import { SignupDeclineReasonEventHandler } from './handlers/signup-decline-reaso
 import { UpdateApprovalEmbedEventHandler } from './handlers/signup-embed.event-handler.js';
 import { SignupSagas } from './signup.sagas.js';
 import { SignupService } from './signup.service.js';
+import { SignupMutationService } from './signup-mutation.service.js';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { SignupService } from './signup.service.js';
     SendSignupReviewCommandHandler,
     SignupCommandHandler,
     SignupDeclineReasonEventHandler,
+    SignupMutationService,
     SignupSagas,
     SignupService,
     UpdateApprovalEmbedEventHandler,

@@ -7,12 +7,7 @@ import {
 import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
-import {
-  Encounter,
-  PartyStatus,
-  type SignupDocument,
-  SignupStatus,
-} from '@ulti-project/shared';
+import { Encounter, type SignupDocument } from '@ulti-project/shared';
 import {
   ActionRowBuilder,
   Embed,
@@ -45,13 +40,11 @@ import {
 } from '../../discord/discord.helpers.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { PROG_POINT_SELECT_ID } from '../../encounters/encounters.components.js';
-import { EncountersService } from '../../encounters/encounters.service.js';
 import { EncountersComponentsService } from '../../encounters/encounters-components.service.js';
 import { ErrorService } from '../../error/error.service.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
-import { SheetsService } from '../../sheets/sheets.service.js';
 import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import {
   SignupApprovedEvent,
@@ -64,6 +57,7 @@ import {
   isBotReaction,
   isValidReactionEmoji,
 } from './signup.utils.js';
+import { SignupMutationService } from './signup-mutation.service.js';
 
 type ReactionEvent = {
   reaction: MessageReaction | PartialMessageReaction;
@@ -79,11 +73,10 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     private readonly declineReasonRequestService: DeclineReasonRequestService,
     private readonly discordService: DiscordService,
     private readonly encountersComponentsService: EncountersComponentsService,
-    private readonly encountersService: EncountersService,
     private readonly eventBus: EventBus,
+    private readonly mutationService: SignupMutationService,
     private readonly repository: SignupCollection,
     private readonly settingsCollection: SettingsCollection,
-    private readonly sheetsService: SheetsService,
     private readonly errorService: ErrorService,
   ) {}
 
@@ -247,8 +240,11 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     settings: SettingsDocument,
   ): Promise<SignupApprovedEvent> {
     const progPoint = await this.confirmProgPoint(signup, message, user);
-    const confirmedSignup = await this.buildConfirmedSignup(signup, progPoint);
-    await this.persistApprovedSignup(confirmedSignup, settings, user);
+    const confirmedSignup = await this.mutationService.buildConfirmedSignup(
+      signup,
+      progPoint,
+    );
+    await this.mutationService.applyApproval(confirmedSignup, settings, user);
 
     return new SignupApprovedEvent(confirmedSignup, settings, user, message);
   }
@@ -263,61 +259,13 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     return await this.requestProgPointConfirmation(signup, sourceEmbed, user);
   }
 
-  private async buildConfirmedSignup(
-    signup: SignupDocument,
-    progPoint: string | undefined,
-  ): Promise<SignupDocument> {
-    const partyStatus = progPoint
-      ? await this.getPartyStatus(signup.encounter, progPoint)
-      : undefined;
-
-    return {
-      ...signup,
-      progPoint,
-      partyStatus,
-    };
-  }
-
-  private async persistApprovedSignup(
-    confirmedSignup: SignupDocument,
-    settings: SettingsDocument,
-    user: User,
-  ): Promise<void> {
-    if (settings.spreadsheetId) {
-      await this.sheetsService.upsertSignup(
-        confirmedSignup,
-        settings.spreadsheetId,
-      );
-    }
-
-    const hasCleared = confirmedSignup.partyStatus === PartyStatus.Cleared;
-
-    if (hasCleared) {
-      await this.repository.removeSignup({
-        character: confirmedSignup.character,
-        world: confirmedSignup.world,
-        encounter: confirmedSignup.encounter,
-      });
-    } else {
-      await this.repository.updateSignupStatus(
-        SignupStatus.APPROVED,
-        confirmedSignup,
-        user.username,
-      );
-    }
-  }
-
   private async handleDeclinedReaction(
     signup: SignupDocument,
     message: Message<true>,
     user: User,
   ): Promise<SignupDeclinedEvent> {
     // Update signup status immediately (for sequential reaction processing)
-    await this.repository.updateSignupStatus(
-      SignupStatus.DECLINED,
-      signup,
-      user.username,
-    );
+    await this.mutationService.applyDecline(signup, user);
 
     // Fire decline reason request with event dispatch context (non-blocking)
     this.declineReasonRequestService
@@ -421,20 +369,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       // remove the select component regardless of success or error
       await message.edit({ components: [] });
     }
-  }
-
-  private async getPartyStatus(
-    encounter: Encounter,
-    progPoint: string,
-  ): Promise<PartyStatus> {
-    if (progPoint === PartyStatus.Cleared) {
-      return PartyStatus.Cleared;
-    }
-
-    return await this.encountersService.getPartyStatusForProgPoint(
-      encounter,
-      progPoint,
-    );
   }
 }
 
