@@ -198,16 +198,17 @@ export class DeclineReasonRequestService {
         );
       }
     } else {
-      // Use predefined reason
+      // Use predefined reason. Defer first: updateSignupWithDeclineReason is a
+      // Firestore round-trip that can outlast the interaction-ack window.
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       await this.updateSignupWithDeclineReason(
         signup,
         selectedValue,
         reviewer,
         reviewMessage,
       );
-      await interaction.reply({
+      await interaction.editReply({
         content: `✅ Decline reason recorded: "${selectedValue}"`,
-        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -224,15 +225,17 @@ export class DeclineReasonRequestService {
       CUSTOM_DECLINE_REASON_INPUT_ID,
     );
 
+    // Defer before the Firestore write so a slow write can't invalidate the
+    // modal-submit token by the time we reply.
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     await this.updateSignupWithDeclineReason(
       signup,
       customReason,
       reviewer,
       reviewMessage,
     );
-    await interaction.reply({
+    await interaction.editReply({
       content: `✅ Custom decline reason recorded: "${customReason}"`,
-      flags: MessageFlags.Ephemeral,
     });
   }
 
@@ -302,11 +305,13 @@ export class DeclineReasonRequestService {
       this.logger.warn(context);
       // Dispatch event on timeout with no decline reason
       this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
-    } else {
-      // Re-throw non-timeout errors
-      this.reportError(error, { signup, reviewer });
-      throw error;
+      return;
     }
+
+    // Any other failure is terminal: capture it once, here. Nothing downstream
+    // of the fire-and-forget entrypoint consumes a rejection.
+    this.reportError(error, { signup, reviewer });
+    this.logger.error(error, context);
   }
 
   private reportError(

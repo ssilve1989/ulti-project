@@ -1,8 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import type { SignupDocument } from '@ulti-project/shared';
-import type { Message, StringSelectMenuInteraction, User } from 'discord.js';
-import { DiscordAPIError } from 'discord.js';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  Message,
+  ModalSubmitInteraction,
+  StringSelectMenuInteraction,
+  User,
+} from 'discord.js';
+import { DiscordAPIError, MessageFlags } from 'discord.js';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import {
   createAutoMock,
   mockOf,
@@ -16,6 +22,9 @@ import {
 } from './decline-reason-request.service.js';
 import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
 
+const callOrder = (fn: (...args: never[]) => unknown): number =>
+  vi.mocked(fn).mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY;
+
 const unknownInteractionError = () =>
   new DiscordAPIError(
     { message: 'Unknown interaction', code: 10062 },
@@ -28,6 +37,7 @@ const unknownInteractionError = () =>
 
 describe('DeclineReasonRequestService', () => {
   let service: DeclineReasonRequestService;
+  let signupCollection: Mocked<SignupCollection>;
   let signup: SignupDocument;
   let reviewer: User;
   let reviewMessage: Message<true>;
@@ -41,6 +51,7 @@ describe('DeclineReasonRequestService', () => {
       .compile();
 
     service = fixture.get(DeclineReasonRequestService);
+    signupCollection = fixture.get(SignupCollection);
 
     signup = partialMock<SignupDocument>({
       discordId: 'abc123',
@@ -94,6 +105,75 @@ describe('DeclineReasonRequestService', () => {
           reviewMessage,
         ),
       ).rejects.toThrow('boom');
+    });
+
+    it('defers before the write and edits the reply for a predefined reason', async () => {
+      const interaction = mockOf<StringSelectMenuInteraction>({
+        values: ['Not enough logs'],
+        deferReply: vi.fn().mockResolvedValue(undefined),
+        editReply: vi.fn().mockResolvedValue(undefined),
+        reply: vi.fn().mockResolvedValue(undefined),
+      });
+
+      await service['handleReasonSelection'](
+        interaction,
+        signup,
+        signupId,
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(interaction.deferReply).toHaveBeenCalledWith({
+        flags: MessageFlags.Ephemeral,
+      });
+      expect(interaction.reply).not.toHaveBeenCalled();
+      expect(signupCollection.updateDeclineReason).toHaveBeenCalledWith(
+        { discordId: 'abc123', encounter: 'DSR' },
+        'Not enough logs',
+      );
+
+      expect(callOrder(interaction.deferReply)).toBeLessThan(
+        callOrder(signupCollection.updateDeclineReason),
+      );
+      expect(callOrder(signupCollection.updateDeclineReason)).toBeLessThan(
+        callOrder(interaction.editReply),
+      );
+    });
+  });
+
+  describe('handleCustomReasonSubmit', () => {
+    it('defers before the write and edits the reply', async () => {
+      const interaction = mockOf<ModalSubmitInteraction>({
+        fields: {
+          getTextInputValue: () => 'prog looks thin, try again next tier',
+        },
+        deferReply: vi.fn().mockResolvedValue(undefined),
+        editReply: vi.fn().mockResolvedValue(undefined),
+        reply: vi.fn().mockResolvedValue(undefined),
+      });
+
+      await service['handleCustomReasonSubmit'](
+        interaction,
+        signup,
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(interaction.deferReply).toHaveBeenCalledWith({
+        flags: MessageFlags.Ephemeral,
+      });
+      expect(interaction.reply).not.toHaveBeenCalled();
+      expect(signupCollection.updateDeclineReason).toHaveBeenCalledWith(
+        { discordId: 'abc123', encounter: 'DSR' },
+        'prog looks thin, try again next tier',
+      );
+
+      expect(callOrder(interaction.deferReply)).toBeLessThan(
+        callOrder(signupCollection.updateDeclineReason),
+      );
+      expect(callOrder(signupCollection.updateDeclineReason)).toBeLessThan(
+        callOrder(interaction.editReply),
+      );
     });
   });
 
@@ -171,6 +251,63 @@ describe('DeclineReasonRequestService', () => {
         MAX_MODAL_SHOW_ATTEMPTS,
       );
       expect(dispatchSpy).toHaveBeenCalledWith(signup, reviewer, reviewMessage);
+    });
+
+    it('still dispatches a no-reason decline when the collector times out', async () => {
+      const timeoutError = Object.assign(
+        new Error('Collector received no interactions'),
+        { code: 'InteractionCollectorError' },
+      );
+      const awaitMessageComponent = vi.fn().mockRejectedValue(timeoutError);
+      const dmMessage = mockOf<Message<false>>({ awaitMessageComponent });
+      const dispatchSpy = vi
+        .spyOn(
+          withInternals<{
+            dispatchDeclineReasonEvent: (...args: unknown[]) => unknown;
+          }>(service),
+          'dispatchDeclineReasonEvent',
+        )
+        .mockImplementation(() => undefined);
+
+      await service['handleDeclineReasonInteractions'](
+        dmMessage,
+        signup,
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(dispatchSpy).toHaveBeenCalledWith(signup, reviewer, reviewMessage);
+    });
+
+    it('captures a non-timeout collector error once and does not rethrow or dispatch', async () => {
+      const awaitMessageComponent = vi
+        .fn()
+        .mockRejectedValue(new Error('kaboom'));
+      const dmMessage = mockOf<Message<false>>({ awaitMessageComponent });
+      const reportError = vi.spyOn(
+        withInternals<{ reportError: (...args: unknown[]) => void }>(service),
+        'reportError',
+      );
+      const dispatchSpy = vi
+        .spyOn(
+          withInternals<{
+            dispatchDeclineReasonEvent: (...args: unknown[]) => unknown;
+          }>(service),
+          'dispatchDeclineReasonEvent',
+        )
+        .mockImplementation(() => undefined);
+
+      await expect(
+        service['handleDeclineReasonInteractions'](
+          dmMessage,
+          signup,
+          reviewer,
+          reviewMessage,
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(reportError).toHaveBeenCalledTimes(1);
+      expect(dispatchSpy).not.toHaveBeenCalled();
     });
   });
 });
