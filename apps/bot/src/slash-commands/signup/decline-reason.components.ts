@@ -75,6 +75,6 @@ export const createDeclineReasonRequestEmbed = (
     })
     .setColor(Colors.Orange)
     .setFooter({
-      text: 'This request will timeout in 5 minutes',
+      text: 'Each step in this request times out after 5 minutes of inactivity.',
     });
 };

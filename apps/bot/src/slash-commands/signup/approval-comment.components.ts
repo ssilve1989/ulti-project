@@ -73,6 +73,6 @@ export const createApprovalCommentRequestEmbed = (
     })
     .setColor(Colors.Green)
     .setFooter({
-      text: 'This request will timeout in 5 minutes',
+      text: 'Each step in this request times out after 5 minutes of inactivity.',
     });
 };
