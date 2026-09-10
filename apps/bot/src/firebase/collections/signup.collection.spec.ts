@@ -165,6 +165,14 @@ describe('Signup Repository', () => {
     });
   });
 
+  it('should call updateApprovalComment with the correct arguments', async () => {
+    await repository.updateApprovalComment(SIGNUP_KEY, 'nice proof, welcome');
+
+    expect(doc.update).toHaveBeenCalledWith({
+      approvalComment: 'nice proof, welcome',
+    });
+  });
+
   describe('#findByReviewId', () => {
     const mockFetch = (empty: boolean, signup: SignupDocument) => {
       collection.where.mockReturnValueOnce(

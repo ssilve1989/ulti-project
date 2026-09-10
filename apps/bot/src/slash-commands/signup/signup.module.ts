@@ -7,12 +7,14 @@ import { FfLogsModule } from '../../fflogs/fflogs.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { RoleManagerModule } from '../../role-manager/role-manager.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
+import { ApprovalCommentRequestService } from './approval-comment-request.service.js';
 import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import { AssignRolesEventHandler } from './handlers/assign-roles.event-handler.js';
 import { ClearApprovalMessageOnDeclineEventHandler } from './handlers/clear-approval-message-on-decline.event-handler.js';
 import { SendApprovedMessageEventHandler } from './handlers/send-approved-message.event-handler.js';
 import { SendSignupReviewCommandHandler } from './handlers/send-signup-review.command-handler.js';
 import { SignupCommandHandler } from './handlers/signup.command-handler.js';
+import { SignupApprovalCommentEventHandler } from './handlers/signup-approval-comment.event-handler.js';
 import { SignupDeclineReasonEventHandler } from './handlers/signup-decline-reason.event-handler.js';
 import { UpdateApprovalEmbedEventHandler } from './handlers/signup-embed.event-handler.js';
 import { SignupSagas } from './signup.sagas.js';
@@ -31,11 +33,13 @@ import { SignupMutationService } from './signup-mutation.service.js';
     SheetsModule,
   ],
   providers: [
+    ApprovalCommentRequestService,
     AssignRolesEventHandler,
     ClearApprovalMessageOnDeclineEventHandler,
     DeclineReasonRequestService,
     SendApprovedMessageEventHandler,
     SendSignupReviewCommandHandler,
+    SignupApprovalCommentEventHandler,
     SignupCommandHandler,
     SignupDeclineReasonEventHandler,
     SignupMutationService,
@@ -43,7 +47,11 @@ import { SignupMutationService } from './signup-mutation.service.js';
     SignupService,
     UpdateApprovalEmbedEventHandler,
   ],
-  exports: [DeclineReasonRequestService, SignupMutationService],
+  exports: [
+    ApprovalCommentRequestService,
+    DeclineReasonRequestService,
+    SignupMutationService,
+  ],
 })
 class SignupModule {}
 

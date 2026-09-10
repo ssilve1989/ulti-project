@@ -39,6 +39,7 @@ import { ErrorService } from '../../../error/error.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
+import { ApprovalCommentRequestService } from '../../signup/approval-comment-request.service.js';
 import { DeclineReasonRequestService } from '../../signup/decline-reason-request.service.js';
 import {
   SignupApprovedEvent,
@@ -96,6 +97,7 @@ class EditSignupCommandHandler implements ISlashCommand {
     private readonly encountersComponentsService: EncountersComponentsService,
     private readonly mutationService: SignupMutationService,
     private readonly declineReasonRequestService: DeclineReasonRequestService,
+    private readonly approvalCommentRequestService: ApprovalCommentRequestService,
     private readonly eventBus: EventBus,
     private readonly errorService: ErrorService,
   ) {}
@@ -500,6 +502,14 @@ class EditSignupCommandHandler implements ISlashCommand {
           'edit',
         ),
       );
+      this.approvalCommentRequestService
+        .requestApprovalComment(confirmed, reviewer, reviewMessage)
+        .catch((error) => {
+          this.logger.error(
+            error,
+            `Failed to request approval comment for edited signup ${signup.discordId}-${signup.encounter}`,
+          );
+        });
       return;
     }
 

@@ -53,6 +53,8 @@ export interface SignupDocument {
   world: string;
   // reason provided by reviewer when declining a signup
   declineReason?: string;
+  // optional comment provided by reviewer when approving a signup, DM'd to the user
+  approvalComment?: string;
   expiresAt: Timestamp;
 }
 
@@ -61,6 +63,7 @@ export type CreateSignupDocumentProps = Omit<
   | 'status'
   | 'expiresAt'
   | 'declineReason'
+  | 'approvalComment'
   | 'approvalMessageId'
   | 'availability'
 >;

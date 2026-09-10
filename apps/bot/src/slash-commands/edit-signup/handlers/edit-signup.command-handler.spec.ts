@@ -30,6 +30,7 @@ import {
   mockOf,
   partialMock,
 } from '../../../test-utils/mock-factory.js';
+import { ApprovalCommentRequestService } from '../../signup/approval-comment-request.service.js';
 import { DeclineReasonRequestService } from '../../signup/decline-reason-request.service.js';
 import {
   SignupApprovedEvent,
@@ -153,6 +154,7 @@ describe('Edit Signup Command Handler', () => {
   let encountersComponentsService: Mocked<EncountersComponentsService>;
   let mutationService: Mocked<SignupMutationService>;
   let declineReasonRequestService: Mocked<DeclineReasonRequestService>;
+  let approvalCommentRequestService: Mocked<ApprovalCommentRequestService>;
   let eventBus: Mocked<EventBus>;
   let errorService: Mocked<ErrorService>;
   let interaction: Mocked<ChatInputCommandInteraction<'cached'>>;
@@ -175,6 +177,7 @@ describe('Edit Signup Command Handler', () => {
     encountersComponentsService = fixture.get(EncountersComponentsService);
     mutationService = fixture.get(SignupMutationService);
     declineReasonRequestService = fixture.get(DeclineReasonRequestService);
+    approvalCommentRequestService = fixture.get(ApprovalCommentRequestService);
     eventBus = fixture.get(EventBus);
     errorService = fixture.get(ErrorService);
 
@@ -540,6 +543,36 @@ describe('Edit Signup Command Handler', () => {
 
     expect(
       declineReasonRequestService.requestDeclineReason,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('requests an optional approval comment from the reviewer on the approve path', async () => {
+    signupCollection.findAll.mockResolvedValue([
+      makeSignup({ status: SignupStatus.APPROVED, progPoint: 'P1' }),
+    ]);
+    const confirmed = makeSignup({ progPoint: 'P2' });
+    mutationService.buildConfirmedSignup.mockResolvedValue(confirmed);
+
+    const executePromise = command.execute(interaction);
+    await drive({ progPoint: 'P2', decision: 'approve' });
+    await executePromise;
+
+    expect(
+      approvalCommentRequestService.requestApprovalComment,
+    ).toHaveBeenCalledWith(confirmed, interaction.user, reviewMessage);
+  });
+
+  it('does not request an approval comment on the decline path', async () => {
+    signupCollection.findAll.mockResolvedValue([
+      makeSignup({ status: SignupStatus.APPROVED }),
+    ]);
+
+    const executePromise = command.execute(interaction);
+    await drive({ decision: 'decline' });
+    await executePromise;
+
+    expect(
+      approvalCommentRequestService.requestApprovalComment,
     ).not.toHaveBeenCalled();
   });
 

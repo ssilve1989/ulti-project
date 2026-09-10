@@ -45,6 +45,7 @@ import { ErrorService } from '../../error/error.service.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
+import { ApprovalCommentRequestService } from './approval-comment-request.service.js';
 import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import {
   SignupApprovedEvent,
@@ -69,6 +70,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   private subscription?: Subscription;
 
   constructor(
+    private readonly approvalCommentRequestService: ApprovalCommentRequestService,
     private readonly declineReasonRequestService: DeclineReasonRequestService,
     private readonly discordService: DiscordService,
     private readonly encountersComponentsService: EncountersComponentsService,
@@ -244,6 +246,17 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       progPoint,
     );
     await this.mutationService.applyApproval(confirmedSignup, settings, user);
+
+    // Fire the optional approval-comment request (non-blocking), mirroring the
+    // decline-reason flow.
+    this.approvalCommentRequestService
+      .requestApprovalComment(confirmedSignup, user, message)
+      .catch((error) => {
+        this.logger.error(
+          error,
+          `Failed to request approval comment for signup ${signup.discordId}-${signup.encounter}`,
+        );
+      });
 
     return new SignupApprovedEvent(
       confirmedSignup,

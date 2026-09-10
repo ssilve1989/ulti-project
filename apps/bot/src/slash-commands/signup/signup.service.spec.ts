@@ -12,6 +12,7 @@ import {
   partialMock,
   withInternals,
 } from '../../test-utils/mock-factory.js';
+import { ApprovalCommentRequestService } from './approval-comment-request.service.js';
 import { SignupApprovedEvent } from './events/signup.events.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
@@ -28,6 +29,7 @@ describe('SignupService', () => {
   let discordService: Mocked<DiscordService>;
   let mutationService: Mocked<SignupMutationService>;
   let eventBus: Mocked<EventBus>;
+  let approvalCommentRequestService: Mocked<ApprovalCommentRequestService>;
 
   beforeEach(async () => {
     const fixture: TestingModule = await Test.createTestingModule({
@@ -41,6 +43,7 @@ describe('SignupService', () => {
     discordService = fixture.get(DiscordService);
     mutationService = fixture.get(SignupMutationService);
     eventBus = fixture.get(EventBus);
+    approvalCommentRequestService = fixture.get(ApprovalCommentRequestService);
 
     messageReaction = mockOf<MessageReaction>({
       message: mockOf<Message<boolean>>({
@@ -124,6 +127,53 @@ describe('SignupService', () => {
       settings,
       user,
     );
+    expect(eventBus.publish).toHaveBeenCalledWith(
+      expect.any(SignupApprovedEvent),
+    );
+  });
+
+  it('requests an optional approval comment from the reviewer with the confirmed signup', async () => {
+    repository.findByReviewId.mockResolvedValue(signup);
+    messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
+
+    const confirmedSignup = partialMock<SignupDocument>({
+      ...signup,
+      progPoint: 'p3-thordan',
+    });
+    vi.spyOn(
+      withInternals<{
+        confirmProgPoint: (...args: unknown[]) => Promise<string | undefined>;
+      }>(service),
+      'confirmProgPoint',
+    ).mockResolvedValue('p3-thordan');
+    mutationService.buildConfirmedSignup.mockResolvedValue(confirmedSignup);
+
+    await service['handleReaction'](messageReaction, user, settings);
+
+    expect(
+      approvalCommentRequestService.requestApprovalComment,
+    ).toHaveBeenCalledWith(confirmedSignup, user, messageReaction.message);
+  });
+
+  it('still publishes the approved event when requesting the approval comment rejects', async () => {
+    repository.findByReviewId.mockResolvedValue(signup);
+    messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
+
+    vi.spyOn(
+      withInternals<{
+        confirmProgPoint: (...args: unknown[]) => Promise<string | undefined>;
+      }>(service),
+      'confirmProgPoint',
+    ).mockResolvedValue('p3-thordan');
+    mutationService.buildConfirmedSignup.mockResolvedValue(signup);
+    approvalCommentRequestService.requestApprovalComment.mockRejectedValue(
+      new Error('DM failed'),
+    );
+
+    await expect(
+      service['handleReaction'](messageReaction, user, settings),
+    ).resolves.not.toThrow();
+
     expect(eventBus.publish).toHaveBeenCalledWith(
       expect.any(SignupApprovedEvent),
     );

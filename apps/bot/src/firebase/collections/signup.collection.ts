@@ -216,6 +216,18 @@ class SignupCollection {
   }
 
   @SentryTraced()
+  public updateApprovalComment(
+    signup: SignupCompositeKey,
+    approvalComment: string,
+  ) {
+    const key = SignupCollection.getKeyForSignup(signup);
+
+    return this.collection.doc(key).update({
+      approvalComment,
+    });
+  }
+
+  @SentryTraced()
   public async removeSignup<T>({
     character,
     world,
