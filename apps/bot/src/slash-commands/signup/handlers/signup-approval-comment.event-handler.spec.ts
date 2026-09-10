@@ -1,7 +1,11 @@
 import { Test } from '@nestjs/testing';
-import type { SignupDocument } from '@ulti-project/shared';
+import {
+  EncounterFriendlyDescription,
+  PartyStatus,
+  type SignupDocument,
+} from '@ulti-project/shared';
 import type { Message, User } from 'discord.js';
-import { beforeEach, describe, expect, it, type Mocked } from 'vitest';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import {
   createAutoMock,
@@ -58,6 +62,71 @@ describe('SignupApprovalCommentEventHandler', () => {
             data: expect.objectContaining({ title: 'Signup Approved' }),
           }),
         ],
+      }),
+    );
+  });
+
+  it('sends the DM with only content when the review message has no embed', async () => {
+    const embedlessMessage = mockOf<Message<true>>({
+      id: 'review-message',
+      embeds: [],
+    });
+    const event = new SignupApprovalCommentCollectedEvent(
+      signup,
+      mockOf<User>({}),
+      embedlessMessage,
+      'no embed but still approved',
+    );
+
+    await expect(handler.handle(event)).resolves.toBeUndefined();
+
+    const payload = vi.mocked(discordService.sendDirectMessage).mock
+      .calls[0][1];
+    expect(payload).toEqual(
+      expect.objectContaining({
+        content: expect.stringContaining('no embed but still approved'),
+      }),
+    );
+    expect(payload).not.toHaveProperty('embeds');
+  });
+
+  it('uses clear-congratulations wording for a cleared signup', async () => {
+    const clearedSignup = partialMock<SignupDocument>({
+      discordId: 'user-1',
+      encounter: 'DSR',
+      partyStatus: PartyStatus.Cleared,
+    });
+    const event = new SignupApprovalCommentCollectedEvent(
+      clearedSignup,
+      mockOf<User>({}),
+      message,
+      'gg on the clear',
+    );
+
+    await handler.handle(event);
+
+    expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        content: expect.stringContaining('Congratulations on clearing'),
+        embeds: [
+          expect.objectContaining({
+            data: expect.objectContaining({ title: 'Congratulations!' }),
+          }),
+        ],
+      }),
+    );
+
+    const payload = vi.mocked(discordService.sendDirectMessage).mock
+      .calls[0][1];
+    expect(payload).toEqual(
+      expect.objectContaining({
+        content: expect.stringContaining(EncounterFriendlyDescription.DSR),
+      }),
+    );
+    expect(payload).toEqual(
+      expect.objectContaining({
+        content: expect.stringContaining('gg on the clear'),
       }),
     );
   });

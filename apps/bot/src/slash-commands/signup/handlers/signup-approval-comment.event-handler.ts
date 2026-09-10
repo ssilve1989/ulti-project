@@ -1,8 +1,11 @@
 import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
+import {
+  EncounterFriendlyDescription,
+  PartyStatus,
+} from '@ulti-project/shared';
 import { EmbedBuilder } from 'discord.js';
-import { getFirstEmbed } from '../../../discord/discord.helpers.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SignupApprovalCommentCollectedEvent } from '../events/signup.events.js';
 
@@ -33,16 +36,27 @@ export class SignupApprovalCommentEventHandler
     message,
     approvalComment,
   }: SignupApprovalCommentCollectedEvent) {
-    const embed = EmbedBuilder.from(getFirstEmbed(message)).setTitle(
-      'Signup Approved',
-    );
+    const hasCleared = signup.partyStatus === PartyStatus.Cleared;
+    const encounter = EncounterFriendlyDescription[signup.encounter];
 
-    const content = `Good news — your signup for **${signup.encounter}** has been approved! 🎉\n\n**Note from the reviewer:**\n> ${approvalComment}`;
+    const lead = hasCleared
+      ? `Congratulations on clearing **${encounter}**! 🎉`
+      : `Good news — your signup for **${encounter}** has been approved! 🎉`;
+    const content = `${lead}\n\n**Note from the reviewer:**\n> ${approvalComment}`;
 
-    await this.discordService.sendDirectMessage(signup.discordId, {
-      content,
-      embeds: [embed],
-    });
+    // The review message's embed is a nice-to-have; a cleared or edited review
+    // message may have none, and that must not block the DM.
+    const source = message.embeds.at(0);
+    const payload: { content: string; embeds?: EmbedBuilder[] } = { content };
+    if (source) {
+      payload.embeds = [
+        EmbedBuilder.from(source).setTitle(
+          hasCleared ? 'Congratulations!' : 'Signup Approved',
+        ),
+      ];
+    }
+
+    await this.discordService.sendDirectMessage(signup.discordId, payload);
 
     this.logger.log(
       `Sent approval comment message to user ${signup.discordId} for signup ${signup.discordId}-${signup.encounter}`,
