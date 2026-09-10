@@ -4,7 +4,7 @@ import {
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
-import { DiscordjsErrorCodes, Embed, EmbedBuilder } from 'discord.js';
+import { DiscordjsErrorCodes } from 'discord.js';
 import { match, P } from 'ts-pattern';
 import { DocumentNotFoundException } from '../../firebase/firebase.exceptions.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
@@ -68,23 +68,4 @@ export function getErrorReplyMessage(error: unknown): string {
       () => SIGNUP_MESSAGES.PROG_DM_TIMEOUT,
     )
     .otherwise(() => SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR);
-}
-
-export function buildProgPointConfirmationEmbed(
-  sourceEmbed: Embed,
-  existingProgPoint?: string,
-): EmbedBuilder {
-  const embedBuilder = EmbedBuilder.from(sourceEmbed);
-
-  if (existingProgPoint) {
-    embedBuilder.addFields([
-      {
-        name: 'Previously Approved Prog Point',
-        value: existingProgPoint,
-        inline: true,
-      },
-    ]);
-  }
-
-  return embedBuilder;
 }

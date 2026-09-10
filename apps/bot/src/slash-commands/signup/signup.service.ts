@@ -59,7 +59,6 @@ import {
 } from './events/signup.events.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import {
-  buildProgPointConfirmationEmbed,
   getErrorReplyMessage,
   isBotReaction,
   isValidReactionEmoji,
@@ -362,10 +361,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User,
   ): Promise<string | undefined> {
     const menu = await this.createProgPointMenu(signup.encounter);
-    const embed = buildProgPointConfirmationEmbed(
-      sourceEmbed,
-      signup.progPoint,
-    );
+    const embed = EmbedBuilder.from(sourceEmbed);
 
     const message = await this.sendProgPointConfirmationMessage(
       user,
