@@ -44,6 +44,7 @@ describe('AssignRolesEventHandler', () => {
       settings,
       mockOf<User>({}),
       mockOf<Message<true>>({ guildId }),
+      'approval',
     );
 
   beforeEach(async () => {

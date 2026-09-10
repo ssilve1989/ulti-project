@@ -35,6 +35,20 @@ describe('SignupEmbedEventHandler', () => {
           createAutoMock<SignupDocument>(),
           reviewedBy,
           msg,
+          'approval',
+        ),
+      footer: 'Approved by Test User',
+    },
+    {
+      color: Colors.Green,
+      case: 'handles an approval event raised by /edit-signup',
+      createEvent: (msg: Message<true>) =>
+        new SignupApprovedEvent(
+          createAutoMock<SignupDocument>(),
+          createAutoMock<SignupDocument>(),
+          reviewedBy,
+          msg,
+          'edit',
         ),
       footer: 'Approved by Test User',
     },
