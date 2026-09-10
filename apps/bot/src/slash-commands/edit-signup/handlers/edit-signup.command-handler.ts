@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
@@ -39,12 +39,11 @@ import { ErrorService } from '../../../error/error.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
-import { ApprovalCommentRequestService } from '../../signup/approval-comment-request.service.js';
-import { DeclineReasonRequestService } from '../../signup/decline-reason-request.service.js';
 import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
 } from '../../signup/events/signup.events.js';
+import { ReviewDmFlowService } from '../../signup/review-dm-flow.service.js';
 import { SignupMutationService } from '../../signup/signup-mutation.service.js';
 import { SlashCommand } from '../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../slash-command.interface.js';
@@ -87,7 +86,6 @@ interface EditDiff {
 class EditSignupCommandHandler implements ISlashCommand {
   private static readonly COLLECT_TIMEOUT = 120_000;
   private static readonly CONFIRM_TIMEOUT = 60_000;
-  private readonly logger = new Logger(EditSignupCommandHandler.name);
 
   constructor(
     private readonly discordService: DiscordService,
@@ -96,8 +94,7 @@ class EditSignupCommandHandler implements ISlashCommand {
     private readonly encountersService: EncountersService,
     private readonly encountersComponentsService: EncountersComponentsService,
     private readonly mutationService: SignupMutationService,
-    private readonly declineReasonRequestService: DeclineReasonRequestService,
-    private readonly approvalCommentRequestService: ApprovalCommentRequestService,
+    private readonly reviewDmFlowService: ReviewDmFlowService,
     private readonly eventBus: EventBus,
     private readonly errorService: ErrorService,
   ) {}
@@ -493,14 +490,12 @@ class EditSignupCommandHandler implements ISlashCommand {
           'edit',
         ),
       );
-      this.approvalCommentRequestService
-        .requestApprovalComment(confirmed, reviewer, reviewMessage)
-        .catch((error) => {
-          this.logger.error(
-            error,
-            `Failed to request approval comment for edited signup ${signup.discordId}-${signup.encounter}`,
-          );
-        });
+      // Non-blocking: the flow swallows and reports its own failures.
+      void this.reviewDmFlowService.requestApprovalComment(
+        confirmed,
+        reviewer,
+        reviewMessage,
+      );
       return;
     }
 
@@ -508,14 +503,12 @@ class EditSignupCommandHandler implements ISlashCommand {
     this.eventBus.publish(
       new SignupDeclinedEvent(signup, reviewer, reviewMessage),
     );
-    this.declineReasonRequestService
-      .requestDeclineReason(signup, reviewer, reviewMessage)
-      .catch((error) => {
-        this.logger.error(
-          error,
-          `Failed to request decline reason for edited signup ${signup.discordId}-${signup.encounter}`,
-        );
-      });
+    // Non-blocking: the flow swallows and reports its own failures.
+    void this.reviewDmFlowService.requestDeclineReason(
+      signup,
+      reviewer,
+      reviewMessage,
+    );
   }
 
   /** Only the rows that actually change, so neither embed overstates the edit. */

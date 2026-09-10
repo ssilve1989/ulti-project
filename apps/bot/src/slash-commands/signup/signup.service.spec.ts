@@ -12,8 +12,8 @@ import {
   partialMock,
   withInternals,
 } from '../../test-utils/mock-factory.js';
-import { ApprovalCommentRequestService } from './approval-comment-request.service.js';
 import { SignupApprovedEvent } from './events/signup.events.js';
+import { ReviewDmFlowService } from './review-dm-flow.service.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
 import { SignupMutationService } from './signup-mutation.service.js';
@@ -29,7 +29,7 @@ describe('SignupService', () => {
   let discordService: Mocked<DiscordService>;
   let mutationService: Mocked<SignupMutationService>;
   let eventBus: Mocked<EventBus>;
-  let approvalCommentRequestService: Mocked<ApprovalCommentRequestService>;
+  let reviewDmFlowService: Mocked<ReviewDmFlowService>;
 
   beforeEach(async () => {
     const fixture: TestingModule = await Test.createTestingModule({
@@ -43,7 +43,7 @@ describe('SignupService', () => {
     discordService = fixture.get(DiscordService);
     mutationService = fixture.get(SignupMutationService);
     eventBus = fixture.get(EventBus);
-    approvalCommentRequestService = fixture.get(ApprovalCommentRequestService);
+    reviewDmFlowService = fixture.get(ReviewDmFlowService);
 
     messageReaction = mockOf<MessageReaction>({
       message: mockOf<Message<boolean>>({
@@ -150,12 +150,14 @@ describe('SignupService', () => {
 
     await service['handleReaction'](messageReaction, user, settings);
 
-    expect(
-      approvalCommentRequestService.requestApprovalComment,
-    ).toHaveBeenCalledWith(confirmedSignup, user, messageReaction.message);
+    expect(reviewDmFlowService.requestApprovalComment).toHaveBeenCalledWith(
+      confirmedSignup,
+      user,
+      messageReaction.message,
+    );
   });
 
-  it('still publishes the approved event when requesting the approval comment rejects', async () => {
+  it('does not block the approved event on the fire-and-forget approval comment request', async () => {
     repository.findByReviewId.mockResolvedValue(signup);
     messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
 
@@ -166,8 +168,9 @@ describe('SignupService', () => {
       'confirmProgPoint',
     ).mockResolvedValue('p3-thordan');
     mutationService.buildConfirmedSignup.mockResolvedValue(signup);
-    approvalCommentRequestService.requestApprovalComment.mockRejectedValue(
-      new Error('DM failed'),
+    // The request never settles — handleReaction must not wait on it.
+    reviewDmFlowService.requestApprovalComment.mockReturnValue(
+      new Promise<void>(() => undefined),
     );
 
     await expect(

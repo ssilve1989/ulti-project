@@ -45,12 +45,11 @@ import { ErrorService } from '../../error/error.service.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
-import { ApprovalCommentRequestService } from './approval-comment-request.service.js';
-import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
 } from './events/signup.events.js';
+import { ReviewDmFlowService } from './review-dm-flow.service.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import {
   getErrorReplyMessage,
@@ -70,8 +69,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   private subscription?: Subscription;
 
   constructor(
-    private readonly approvalCommentRequestService: ApprovalCommentRequestService,
-    private readonly declineReasonRequestService: DeclineReasonRequestService,
+    private readonly reviewDmFlowService: ReviewDmFlowService,
     private readonly discordService: DiscordService,
     private readonly encountersComponentsService: EncountersComponentsService,
     private readonly eventBus: EventBus,
@@ -247,16 +245,13 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     );
     await this.mutationService.applyApproval(confirmedSignup, settings, user);
 
-    // Fire the optional approval-comment request (non-blocking), mirroring the
-    // decline-reason flow.
-    this.approvalCommentRequestService
-      .requestApprovalComment(confirmedSignup, user, message)
-      .catch((error) => {
-        this.logger.error(
-          error,
-          `Failed to request approval comment for signup ${signup.discordId}-${signup.encounter}`,
-        );
-      });
+    // Fire the optional approval-comment request (non-blocking, self-contained:
+    // it swallows and reports its own failures), mirroring the decline-reason flow.
+    void this.reviewDmFlowService.requestApprovalComment(
+      confirmedSignup,
+      user,
+      message,
+    );
 
     return new SignupApprovedEvent(
       confirmedSignup,
@@ -285,15 +280,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     // Update signup status immediately (for sequential reaction processing)
     await this.mutationService.applyDecline(signup, user);
 
-    // Fire decline reason request with event dispatch context (non-blocking)
-    this.declineReasonRequestService
-      .requestDeclineReason(signup, user, message)
-      .catch((error) => {
-        this.logger.error(
-          error,
-          `Failed to request decline reason for signup ${signup.discordId}-${signup.encounter}`,
-        );
-      });
+    // Fire decline reason request with event dispatch context (non-blocking,
+    // self-contained: it swallows and reports its own failures).
+    void this.reviewDmFlowService.requestDeclineReason(signup, user, message);
 
     // Return event immediately for embed footer update
     return new SignupDeclinedEvent(signup, user, message);

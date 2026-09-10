@@ -7,8 +7,6 @@ import { FfLogsModule } from '../../fflogs/fflogs.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { RoleManagerModule } from '../../role-manager/role-manager.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
-import { ApprovalCommentRequestService } from './approval-comment-request.service.js';
-import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import { AssignRolesEventHandler } from './handlers/assign-roles.event-handler.js';
 import { ClearApprovalMessageOnDeclineEventHandler } from './handlers/clear-approval-message-on-decline.event-handler.js';
 import { SendApprovedMessageEventHandler } from './handlers/send-approved-message.event-handler.js';
@@ -17,6 +15,7 @@ import { SignupCommandHandler } from './handlers/signup.command-handler.js';
 import { SignupApprovalCommentEventHandler } from './handlers/signup-approval-comment.event-handler.js';
 import { SignupDeclineReasonEventHandler } from './handlers/signup-decline-reason.event-handler.js';
 import { UpdateApprovalEmbedEventHandler } from './handlers/signup-embed.event-handler.js';
+import { ReviewDmFlowService } from './review-dm-flow.service.js';
 import { SignupSagas } from './signup.sagas.js';
 import { SignupService } from './signup.service.js';
 import { SignupMutationService } from './signup-mutation.service.js';
@@ -33,10 +32,9 @@ import { SignupMutationService } from './signup-mutation.service.js';
     SheetsModule,
   ],
   providers: [
-    ApprovalCommentRequestService,
     AssignRolesEventHandler,
     ClearApprovalMessageOnDeclineEventHandler,
-    DeclineReasonRequestService,
+    ReviewDmFlowService,
     SendApprovedMessageEventHandler,
     SendSignupReviewCommandHandler,
     SignupApprovalCommentEventHandler,
@@ -47,11 +45,7 @@ import { SignupMutationService } from './signup-mutation.service.js';
     SignupService,
     UpdateApprovalEmbedEventHandler,
   ],
-  exports: [
-    ApprovalCommentRequestService,
-    DeclineReasonRequestService,
-    SignupMutationService,
-  ],
+  exports: [ReviewDmFlowService, SignupMutationService],
 })
 class SignupModule {}
 
