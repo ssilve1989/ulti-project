@@ -8,6 +8,7 @@ import type {
 } from 'discord.js';
 import { DiscordAPIError, MessageFlags } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import { MAX_MODAL_SHOW_ATTEMPTS } from '../../common/discord-interaction.guards.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import {
   createAutoMock,
@@ -16,10 +17,7 @@ import {
   withInternals,
 } from '../../test-utils/mock-factory.js';
 import { DECLINE_REASON_SELECT_ID } from './decline-reason.components.js';
-import {
-  DeclineReasonRequestService,
-  MAX_MODAL_SHOW_ATTEMPTS,
-} from './decline-reason-request.service.js';
+import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
 
 const callOrder = (fn: (...args: never[]) => unknown): number =>
@@ -174,6 +172,69 @@ describe('DeclineReasonRequestService', () => {
       expect(callOrder(signupCollection.updateDeclineReason)).toBeLessThan(
         callOrder(interaction.editReply),
       );
+    });
+
+    it('still dispatches the decline reason when the Firestore write fails', async () => {
+      signupCollection.updateDeclineReason.mockRejectedValue(
+        new Error('firestore down'),
+      );
+      const dispatchSpy = vi
+        .spyOn(
+          withInternals<{
+            dispatchDeclineReasonEvent: (...args: unknown[]) => unknown;
+          }>(service),
+          'dispatchDeclineReasonEvent',
+        )
+        .mockImplementation(() => undefined);
+      const interaction = mockOf<ModalSubmitInteraction>({
+        fields: { getTextInputValue: () => 'not enough recent prog' },
+        deferReply: vi.fn().mockResolvedValue(undefined),
+        editReply: vi.fn().mockResolvedValue(undefined),
+      });
+
+      await service['handleCustomReasonSubmit'](
+        interaction,
+        signup,
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        signup,
+        reviewer,
+        reviewMessage,
+        'not enough recent prog',
+      );
+      expect(interaction.editReply).toHaveBeenCalled();
+    });
+
+    it('treats a whitespace-only custom reason as a no-reason decline', async () => {
+      const dispatchSpy = vi
+        .spyOn(
+          withInternals<{
+            dispatchDeclineReasonEvent: (...args: unknown[]) => unknown;
+          }>(service),
+          'dispatchDeclineReasonEvent',
+        )
+        .mockImplementation(() => undefined);
+      const interaction = mockOf<ModalSubmitInteraction>({
+        fields: { getTextInputValue: () => '   ' },
+        deferReply: vi.fn().mockResolvedValue(undefined),
+        editReply: vi.fn().mockResolvedValue(undefined),
+      });
+
+      await service['handleCustomReasonSubmit'](
+        interaction,
+        signup,
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(signupCollection.updateDeclineReason).not.toHaveBeenCalled();
+      expect(dispatchSpy).toHaveBeenCalledWith(signup, reviewer, reviewMessage);
+      expect(interaction.editReply).toHaveBeenCalledWith({
+        content: expect.stringMatching(/without a specific reason/i),
+      });
     });
   });
 

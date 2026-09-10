@@ -34,9 +34,6 @@ import {
 } from './review-dm-flow.helpers.js';
 import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
 
-// Re-exported for spec imports that still reach for it here.
-export { MAX_MODAL_SHOW_ATTEMPTS };
-
 @Injectable()
 export class DeclineReasonRequestService {
   private readonly logger = new Logger(DeclineReasonRequestService.name);
@@ -221,13 +218,24 @@ export class DeclineReasonRequestService {
     reviewer: User,
     reviewMessage: Message<true>,
   ): Promise<void> {
-    const customReason = interaction.fields.getTextInputValue(
-      CUSTOM_DECLINE_REASON_INPUT_ID,
-    );
+    const customReason = interaction.fields
+      .getTextInputValue(CUSTOM_DECLINE_REASON_INPUT_ID)
+      .trim();
 
-    // Defer before the Firestore write so a slow write can't invalidate the
+    // Defer before any Firestore write so a slow write can't invalidate the
     // modal-submit token by the time we reply.
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    if (!customReason) {
+      // Blank submission — fall back to the no-reason decline, same as a
+      // selection timeout. The user is still notified of the decline.
+      this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
+      await interaction.editReply({
+        content: '✅ Decline sent without a specific reason.',
+      });
+      return;
+    }
+
     await this.updateSignupWithDeclineReason(
       signup,
       customReason,
@@ -245,6 +253,9 @@ export class DeclineReasonRequestService {
     reviewer: User,
     reviewMessage: Message<true>,
   ): Promise<void> {
+    // The reason reaches the declined user via the dispatched event. A transient
+    // Firestore failure must not drop it — persist best-effort, then dispatch
+    // regardless.
     try {
       await this.signupCollection.updateDeclineReason(
         { discordId: signup.discordId, encounter: signup.encounter },
@@ -254,14 +265,6 @@ export class DeclineReasonRequestService {
       this.logger.log(
         `Updated signup ${signup.discordId}-${signup.encounter} with decline reason: ${declineReason}`,
       );
-
-      // Dispatch the decline reason event with the collected reason
-      this.dispatchDeclineReasonEvent(
-        signup,
-        reviewer,
-        reviewMessage,
-        declineReason,
-      );
     } catch (error) {
       this.reportError(error, { signup, reviewer });
       this.logger.error(
@@ -269,6 +272,13 @@ export class DeclineReasonRequestService {
         `Failed to update signup ${signup.discordId}-${signup.encounter} with decline reason`,
       );
     }
+
+    this.dispatchDeclineReasonEvent(
+      signup,
+      reviewer,
+      reviewMessage,
+      declineReason,
+    );
   }
 
   private dispatchDeclineReasonEvent(

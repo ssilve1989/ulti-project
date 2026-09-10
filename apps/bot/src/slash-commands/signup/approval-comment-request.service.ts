@@ -37,9 +37,6 @@ import {
   showModalOrAskRetry,
 } from './review-dm-flow.helpers.js';
 
-// Re-exported for spec imports that still reach for it here.
-export { MAX_MODAL_SHOW_ATTEMPTS };
-
 @Injectable()
 export class ApprovalCommentRequestService {
   private readonly logger = new Logger(ApprovalCommentRequestService.name);
@@ -224,40 +221,43 @@ export class ApprovalCommentRequestService {
     // interaction-ack window; deferring first keeps the later reply valid.
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    try {
-      if (!(await this.isSignupStillApproved(signup))) {
-        await interaction.editReply({
-          content:
-            'ℹ️ This signup is no longer approved, so your comment was not sent.',
-        });
-        return;
-      }
+    if (!(await this.isSignupStillApproved(signup))) {
+      await interaction.editReply({
+        content:
+          'ℹ️ This signup is no longer approved, so your comment was not sent.',
+      });
+      return;
+    }
 
+    // Once the comment is in hand it reaches the user via the dispatched event.
+    // A transient Firestore failure must not drop it — persist best-effort, then
+    // dispatch regardless and tell the reviewer if the record write failed.
+    let recorded = true;
+    try {
       await this.persistApprovalComment(signup, comment);
     } catch (error) {
+      recorded = false;
       this.reportError(error, { signup, reviewer });
       this.logger.error(
         error,
         `Failed to record approval comment for signup ${signup.discordId}-${signup.encounter}`,
       );
-      await interaction.editReply({
-        content:
-          '⚠️ Something went wrong saving your comment — it was not sent to the user.',
-      });
-      return;
     }
 
     this.dispatchApprovalCommentEvent(signup, reviewer, reviewMessage, comment);
 
     await interaction.editReply({
-      content: `✅ Comment saved — it'll reach the user with their approval:\n>>> ${comment}`,
+      content: recorded
+        ? `✅ Comment saved — it'll reach the user with their approval:\n>>> ${comment}`
+        : `⚠️ Sent to the user, but it couldn't be saved to the signup record:\n>>> ${comment}`,
     });
   }
 
   /**
    * A late modal submit can land minutes after the reviewer opened it, by which
    * time the signup may have been declined, removed, or edited. Re-read it so we
-   * don't DM the user an "approved" note for a signup that no longer is.
+   * don't DM the user an "approved" note for a signup that no longer is. If the
+   * lookup itself fails we fail open — a blip must not block the comment.
    */
   private async isSignupStillApproved(
     signup: SignupDocument,
@@ -268,14 +268,22 @@ export class ApprovalCommentRequestService {
       return true;
     }
 
-    const current = await this.signupCollection.findById(
-      SignupCollection.getKeyForSignup({
-        discordId: signup.discordId,
-        encounter: signup.encounter,
-      }),
-    );
+    try {
+      const current = await this.signupCollection.findById(
+        SignupCollection.getKeyForSignup({
+          discordId: signup.discordId,
+          encounter: signup.encounter,
+        }),
+      );
 
-    return current?.status === SignupStatus.APPROVED;
+      return current?.status === SignupStatus.APPROVED;
+    } catch (error) {
+      this.logger.warn(
+        `Could not re-check approval state for signup ${signup.discordId}-${signup.encounter}; proceeding with the comment`,
+      );
+      this.logger.error(error);
+      return true;
+    }
   }
 
   private async persistApprovalComment(

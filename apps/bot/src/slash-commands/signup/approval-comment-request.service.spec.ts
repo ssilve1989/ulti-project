@@ -13,6 +13,7 @@ import type {
 } from 'discord.js';
 import { DiscordAPIError, MessageFlags } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import { MAX_MODAL_SHOW_ATTEMPTS } from '../../common/discord-interaction.guards.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import {
@@ -26,10 +27,7 @@ import {
   APPROVAL_COMMENT_MODAL_ID,
   APPROVAL_COMMENT_SKIP_BUTTON_ID,
 } from './approval-comment.components.js';
-import {
-  ApprovalCommentRequestService,
-  MAX_MODAL_SHOW_ATTEMPTS,
-} from './approval-comment-request.service.js';
+import { ApprovalCommentRequestService } from './approval-comment-request.service.js';
 import { SignupApprovalCommentCollectedEvent } from './events/signup.events.js';
 
 const callOrder = (fn: (...args: never[]) => unknown): number =>
@@ -214,7 +212,7 @@ describe('ApprovalCommentRequestService', () => {
       expect(wroteAt).toBeLessThan(editedAt);
     });
 
-    it('tells the reviewer the comment was not sent when the Firestore write fails', async () => {
+    it('still delivers the comment but warns the reviewer when the Firestore write fails', async () => {
       signupCollection.updateApprovalComment.mockRejectedValue(
         new Error('firestore down'),
       );
@@ -233,10 +231,35 @@ describe('ApprovalCommentRequestService', () => {
       );
 
       expect(handled).toBe(true);
-      expect(eventBus.publish).not.toHaveBeenCalled();
+      // The comment still reaches the user via the dispatched event.
+      expect(eventBus.publish).toHaveBeenCalledWith(
+        expect.any(SignupApprovalCommentCollectedEvent),
+      );
       expect(modalSubmit.editReply).toHaveBeenCalledWith({
-        content: expect.stringMatching(/went wrong|not sent/i),
+        content: expect.stringMatching(/couldn't be saved|not be saved/i),
       });
+    });
+
+    it('proceeds with the comment when the approval re-check lookup fails', async () => {
+      signupCollection.findById.mockRejectedValue(new Error('lookup down'));
+      const modalSubmit = buildModalSubmit('great logs, welcome!');
+      const interaction = addButtonInteraction(
+        'great logs, welcome!',
+        modalSubmit,
+      );
+
+      await service['handleButtonInteraction'](
+        interaction,
+        signup,
+        signupId,
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(signupCollection.updateApprovalComment).toHaveBeenCalled();
+      expect(eventBus.publish).toHaveBeenCalledWith(
+        expect.any(SignupApprovalCommentCollectedEvent),
+      );
     });
 
     it('does not claim delivery in the success reply', async () => {
