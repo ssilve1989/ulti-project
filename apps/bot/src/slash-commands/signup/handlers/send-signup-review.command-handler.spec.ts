@@ -5,7 +5,7 @@ import {
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
-import type { GuildMember } from 'discord.js';
+import type { GuildMember, Message } from 'discord.js';
 import { Timestamp } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { MissingChannelException } from '../../../discord/discord.exceptions.js';
@@ -103,5 +103,61 @@ describe('Send Signup Review Command Handler', () => {
         guildId: '',
       }),
     ).rejects.toThrow(MissingChannelException);
+  });
+
+  describe('createSignupApprovalEmbed', () => {
+    let send: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      send = vi.fn().mockResolvedValue(
+        mockOf<Message<true>>({
+          id: 'review-message-id',
+          react: vi.fn().mockResolvedValue(undefined),
+        }),
+      );
+
+      discordServiceMock.getTextChannel.mockResolvedValue(
+        mockOf<
+          NonNullable<
+            Awaited<ReturnType<typeof discordServiceMock.getTextChannel>>
+          >
+        >({ send }),
+      );
+    });
+
+    it('includes the previously approved prog point field when the signup has one', async () => {
+      await handler.sendSignupForApproval(
+        {
+          ...signup,
+          progPoint: 'p3-thordan',
+          status: SignupStatus.UPDATE_PENDING,
+        },
+        '#channel',
+        'guildId',
+      );
+
+      const embed = send.mock.calls[0][0].embeds[0];
+      expect(embed.data.fields).toEqual(
+        expect.arrayContaining([
+          {
+            name: 'Previously Approved Prog Point',
+            value: 'p3-thordan',
+            inline: true,
+          },
+        ]),
+      );
+    });
+
+    it('omits the previously approved prog point field when the signup has none', async () => {
+      await handler.sendSignupForApproval(signup, '#channel', 'guildId');
+
+      const embed = send.mock.calls[0][0].embeds[0];
+      expect(
+        embed.data.fields?.some(
+          (field: { name: string }) =>
+            field.name === 'Previously Approved Prog Point',
+        ),
+      ).toBe(false);
+    });
   });
 });
