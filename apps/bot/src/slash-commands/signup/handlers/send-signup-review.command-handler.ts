@@ -9,7 +9,6 @@ import {
 import { EmbedBuilder, GuildMember, userMention } from 'discord.js';
 import {
   characterField,
-  emptyField,
   worldField,
 } from '../../../common/components/fields.js';
 import { createFields } from '../../../common/embed-helpers.js';
@@ -123,7 +122,6 @@ class SendSignupReviewCommandHandler
         value: progPoint,
         inline: true,
       },
-      emptyField(),
       {
         name: 'Prog Proof Link',
         value: proofOfProgLink,
