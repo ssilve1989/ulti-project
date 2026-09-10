@@ -15,6 +15,14 @@ WORKDIR /usr/src/app
 
 # Compile the bot (and @ulti-project/shared, via the project-reference graph).
 FROM base AS build
+# ca-certificates: sentry-cli is a Rust binary that verifies sentry.io's TLS
+# cert against the OS trust store, which node:*-slim (Debian slim) omits. Node's
+# own HTTP stack ships a bundled CA set, so only this stage — where sentry-cli
+# runs — needs the package. Without it the upload fails with curl error 60
+# ("unable to get local issuer certificate").
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 COPY . .
 RUN test -f pnpm-workspace.yaml && test -d apps/bot \
   || { echo "ERROR: Docker build context must be the repository root"; exit 1; }
@@ -46,15 +54,26 @@ WORKDIR /usr/src/app
 # pnpm's per-consumer layout: the bot resolves @ulti-project/shared through the
 # symlink in apps/bot/node_modules (-> packages/shared); the .pnpm virtual store
 # under the root node_modules backs every third-party resolution.
+#
+# Why this hand-assembled layout instead of `pnpm deploy` into one self-contained
+# dir: @ulti-project/shared is native-TS — its package "exports" resolve to
+# ./src/index.ts and Node strips the types at runtime. Node *refuses* to strip
+# types for any .ts file whose realpath is under a node_modules directory
+# (ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING), and there is no opt-in flag —
+# nodejs/node#57215 was closed as not planned. `pnpm deploy` (and any bundler
+# that vendors workspace deps) places shared's real files under
+# node_modules/@ulti-project/shared, so the bot crashes on first import. Keeping
+# packages/shared/ at its own top-level path, reached via the pnpm symlink whose
+# realpath is NOT inside node_modules, is the only layout Node will run.
 COPY --from=prod-deps /usr/src/app/node_modules ./node_modules
 COPY --from=prod-deps /usr/src/app/apps/bot/node_modules ./apps/bot/node_modules
 COPY --from=prod-deps /usr/src/app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=prod-deps /usr/src/app/package.json ./package.json
 COPY --from=prod-deps /usr/src/app/apps/bot/package.json ./apps/bot/package.json
 COPY --from=prod-deps /usr/src/app/packages/shared/package.json ./packages/shared/package.json
-# Bot: compiled output + the Sentry preload. @ulti-project/shared is native-TS —
-# ship its erasable source; Node strips types at runtime via the exports "default"
-# condition (dist holds only the .d.ts, used at build time).
+# Bot: compiled output + the Sentry preload. packages/shared/src lands at its
+# own top-level path (NOT under node_modules — see the type-stripping note
+# above); dist/ there holds only the emitted .d.ts, used at build time.
 COPY --from=build /usr/src/app/apps/bot/dist ./apps/bot/dist
 COPY --from=build /usr/src/app/apps/bot/instrumentation.ts ./apps/bot/instrumentation.ts
 COPY --from=build /usr/src/app/packages/shared/src ./packages/shared/src
