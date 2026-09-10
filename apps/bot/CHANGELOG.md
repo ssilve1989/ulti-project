@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.6](https://github.com/ssilve1989/ulti-project/compare/v2.6.5...v2.6.6) (2026-09-10)
+
+
+### Bug Fixes
+
+* **bot:** install ca-certificates in Docker build stage for sentry-cli ([89218f1](https://github.com/ssilve1989/ulti-project/commit/89218f1e5411bdf111fae10735db5cbd36f3bc18))
+
 ## [2.6.5](https://github.com/ssilve1989/ulti-project/compare/v2.6.4...v2.6.5) (2026-09-10)
 
 
