@@ -20,7 +20,10 @@ import {
   APPROVAL_COMMENT_MODAL_ID,
   APPROVAL_COMMENT_SKIP_BUTTON_ID,
 } from './approval-comment.components.js';
-import { CUSTOM_DECLINE_REASON_MODAL_ID } from './decline-reason.components.js';
+import {
+  CUSTOM_DECLINE_REASON_MODAL_ID,
+  DECLINE_REASON_SELECT_ID,
+} from './decline-reason.components.js';
 import { ReviewDmFlowService } from './review-dm-flow.service.js';
 import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
 
@@ -201,7 +204,7 @@ describe('ReviewDmFlowService', () => {
   describe('collectDeclineReason', () => {
     const select = (value: string, submit?: ModalSubmitInteraction) =>
       mockOf<StringSelectMenuInteraction>({
-        customId: `declineReasonSelect-${signupId}`,
+        customId: `${DECLINE_REASON_SELECT_ID}-${signupId}`,
         values: [value],
         showModal: vi.fn().mockResolvedValue(undefined),
         reply: vi.fn().mockResolvedValue(undefined),
