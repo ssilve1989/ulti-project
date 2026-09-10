@@ -84,6 +84,51 @@ describe('SendApprovedMessageEventHandler', () => {
     );
   });
 
+  it('edits the existing announcement in place when approvalMessageId resolves a message', async () => {
+    const existing = mockOf<Message<true>>({
+      edit: vi.fn().mockResolvedValue(undefined),
+    });
+    discordService.fetchMessage.mockResolvedValue(existing);
+
+    const event = createEvent({
+      partyStatus: PartyStatus.ProgParty,
+      approvalMessageId: 'existing-message-id',
+    });
+
+    await handler.handle(event);
+
+    expect(discordService.fetchMessage).toHaveBeenCalledWith(
+      guildId,
+      'signup-channel',
+      'existing-message-id',
+    );
+    expect(existing.edit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: expect.stringContaining('user-1'),
+        embeds: [expect.anything()],
+      }),
+    );
+    expect(channel.send).not.toHaveBeenCalled();
+    expect(repository.setApprovalMessageId).not.toHaveBeenCalled();
+  });
+
+  it('posts a new announcement when approvalMessageId points at a deleted message', async () => {
+    discordService.fetchMessage.mockResolvedValue(undefined);
+
+    const event = createEvent({
+      partyStatus: PartyStatus.ProgParty,
+      approvalMessageId: 'deleted-message-id',
+    });
+
+    await handler.handle(event);
+
+    expect(channel.send).toHaveBeenCalledTimes(1);
+    expect(repository.setApprovalMessageId).toHaveBeenCalledWith(
+      event.signup,
+      sentMessageId,
+    );
+  });
+
   it('does not persist the approval message id when the signup has cleared', async () => {
     discordService.getEmojis.mockResolvedValue([]);
 

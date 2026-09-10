@@ -124,6 +124,31 @@ class DiscordService {
     return message?.delete();
   }
 
+  public async fetchMessage(
+    guildId: string,
+    channelId: string,
+    messageId: string,
+  ): Promise<Message | undefined> {
+    const channel = await this.getTextChannel({ guildId, channelId });
+
+    if (!channel) {
+      return undefined;
+    }
+
+    try {
+      return await channel.messages.fetch(messageId);
+    } catch (error) {
+      // Unknown Message / Unknown Channel — the referenced message is gone
+      if (
+        error instanceof DiscordAPIError &&
+        (error.code === 10008 || error.code === 10003)
+      ) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
   /**
    * Removes the role from all members in the guild
    * @param roleId
