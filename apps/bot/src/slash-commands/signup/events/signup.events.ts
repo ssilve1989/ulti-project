@@ -9,12 +9,23 @@ export class SignupCreatedEvent {
   ) {}
 }
 
+/**
+ * Which flow produced the approval:
+ * - `'approval'` — the standard reaction-review flow. A public "Signup
+ *   Approved" announcement is always posted fresh.
+ * - `'edit'` — the `/edit-signup` command correcting an already-reviewed
+ *   signup in place. The existing announcement (if any) is edited rather
+ *   than a second one being posted.
+ */
+export type SignupApprovalKind = 'approval' | 'edit';
+
 export class SignupApprovedEvent {
   constructor(
     public readonly signup: SignupDocument,
     public readonly settings: SettingsDocument,
     public readonly reviewedBy: User,
     public readonly message: Message<true>,
+    public readonly kind: SignupApprovalKind,
   ) {}
 }
 

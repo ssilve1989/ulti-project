@@ -492,7 +492,13 @@ class EditSignupCommandHandler implements ISlashCommand {
       );
       await this.mutationService.applyApproval(confirmed, settings, reviewer);
       this.eventBus.publish(
-        new SignupApprovedEvent(confirmed, settings, reviewer, reviewMessage),
+        new SignupApprovedEvent(
+          confirmed,
+          settings,
+          reviewer,
+          reviewMessage,
+          'edit',
+        ),
       );
       return;
     }

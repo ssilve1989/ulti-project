@@ -34,7 +34,10 @@ describe('SendApprovedMessageEventHandler', () => {
     displayAvatarURL: () => 'http://avatar.png',
   });
 
-  const createEvent = (signup: Partial<SignupDocument>) =>
+  const createEvent = (
+    signup: Partial<SignupDocument>,
+    kind: 'approval' | 'edit' = 'approval',
+  ) =>
     new SignupApprovedEvent(
       partialMock<SignupDocument>({
         discordId: 'user-1',
@@ -48,6 +51,7 @@ describe('SendApprovedMessageEventHandler', () => {
       partialMock<SettingsDocument>({ signupChannel: 'signup-channel' }),
       reviewedBy,
       mockOf<Message<true>>({ guildId }),
+      kind,
     );
 
   let channel: MockTextChannel;
@@ -84,16 +88,19 @@ describe('SendApprovedMessageEventHandler', () => {
     );
   });
 
-  it('edits the existing announcement in place when approvalMessageId resolves a message', async () => {
+  it('edits the existing announcement in place when an edit resolves a message from approvalMessageId', async () => {
     const existing = mockOf<Message<true>>({
       edit: vi.fn().mockResolvedValue(undefined),
     });
     discordService.fetchMessage.mockResolvedValue(existing);
 
-    const event = createEvent({
-      partyStatus: PartyStatus.ProgParty,
-      approvalMessageId: 'existing-message-id',
-    });
+    const event = createEvent(
+      {
+        partyStatus: PartyStatus.ProgParty,
+        approvalMessageId: 'existing-message-id',
+      },
+      'edit',
+    );
 
     await handler.handle(event);
 
@@ -112,16 +119,38 @@ describe('SendApprovedMessageEventHandler', () => {
     expect(repository.setApprovalMessageId).not.toHaveBeenCalled();
   });
 
-  it('posts a new announcement when approvalMessageId points at a deleted message', async () => {
+  it('posts a new announcement when an edit points at a deleted message', async () => {
     discordService.fetchMessage.mockResolvedValue(undefined);
 
-    const event = createEvent({
-      partyStatus: PartyStatus.ProgParty,
-      approvalMessageId: 'deleted-message-id',
-    });
+    const event = createEvent(
+      {
+        partyStatus: PartyStatus.ProgParty,
+        approvalMessageId: 'deleted-message-id',
+      },
+      'edit',
+    );
 
     await handler.handle(event);
 
+    expect(channel.send).toHaveBeenCalledTimes(1);
+    expect(repository.setApprovalMessageId).toHaveBeenCalledWith(
+      event.signup,
+      sentMessageId,
+    );
+  });
+
+  it('posts a fresh announcement for a plain approval even when a stale approvalMessageId is present', async () => {
+    const event = createEvent(
+      {
+        partyStatus: PartyStatus.ProgParty,
+        approvalMessageId: 'stale-message-id',
+      },
+      'approval',
+    );
+
+    await handler.handle(event);
+
+    expect(discordService.fetchMessage).not.toHaveBeenCalled();
     expect(channel.send).toHaveBeenCalledTimes(1);
     expect(repository.setApprovalMessageId).toHaveBeenCalledWith(
       event.signup,

@@ -45,6 +45,7 @@ class SendApprovedMessageEventHandler
     message: { guildId },
     signup,
     reviewedBy: approvedBy,
+    kind,
   }: SignupApprovedEvent) {
     if (!signupChannel) {
       return;
@@ -78,11 +79,13 @@ class SendApprovedMessageEventHandler
 
     const payload = { content, embeds: [embed] };
 
-    // The approval announcement is an upsert: if we already posted one, edit it
-    // in place so a re-run of SignupApprovedEvent updates the public post rather
-    // than duplicating it. `approvalMessageId` is only ever stored on the
-    // non-cleared path, so this branch never has to touch reactions.
-    if (signup.approvalMessageId) {
+    // Only `/edit-signup` reconciles against an existing announcement: a
+    // correction edits the public post in place so it is not duplicated.
+    // `approvalMessageId` is only ever stored on the non-cleared path, so this
+    // branch never has to touch reactions. The standard approval flow always
+    // falls through to post a fresh announcement, even if a stale id is present
+    // (e.g. a re-submitted signup that was approved before).
+    if (kind === 'edit' && signup.approvalMessageId) {
       const existing = await this.discordService.fetchMessage(
         guildId,
         signupChannel,

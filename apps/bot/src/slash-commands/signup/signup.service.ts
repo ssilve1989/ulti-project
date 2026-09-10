@@ -245,7 +245,13 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     );
     await this.mutationService.applyApproval(confirmedSignup, settings, user);
 
-    return new SignupApprovedEvent(confirmedSignup, settings, user, message);
+    return new SignupApprovedEvent(
+      confirmedSignup,
+      settings,
+      user,
+      message,
+      'approval',
+    );
   }
 
   private async confirmProgPoint(

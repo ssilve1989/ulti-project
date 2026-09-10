@@ -491,7 +491,11 @@ describe('Edit Signup Command Handler', () => {
       expect.any(SignupApprovedEvent),
     );
     expect(eventBus.publish).toHaveBeenCalledWith(
-      expect.objectContaining({ signup: confirmed, message: reviewMessage }),
+      expect.objectContaining({
+        signup: confirmed,
+        message: reviewMessage,
+        kind: 'edit',
+      }),
     );
     expect(errorService.handleCommandError).not.toHaveBeenCalled();
   });
