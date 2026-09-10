@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
-import { PartyStatus, type SignupDocument } from '@ulti-project/shared';
+import {
+  PartyStatus,
+  type SignupDocument,
+  SignupStatus,
+} from '@ulti-project/shared';
 import {
   type ButtonInteraction,
   ComponentType,
@@ -216,45 +220,80 @@ export class ApprovalCommentRequestService {
       return;
     }
 
-    await this.persistApprovalComment(signup, comment, reviewer, reviewMessage);
+    // Persisting is a Firestore round-trip that can outlast the ~3s
+    // interaction-ack window; deferring first keeps the later reply valid.
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    await interaction.reply({
-      content: `✅ Comment recorded and sent to the user:\n>>> ${comment}`,
-      flags: MessageFlags.Ephemeral,
+    try {
+      if (!(await this.isSignupStillApproved(signup))) {
+        await interaction.editReply({
+          content:
+            'ℹ️ This signup is no longer approved, so your comment was not sent.',
+        });
+        return;
+      }
+
+      await this.persistApprovalComment(signup, comment);
+    } catch (error) {
+      this.reportError(error, { signup, reviewer });
+      this.logger.error(
+        error,
+        `Failed to record approval comment for signup ${signup.discordId}-${signup.encounter}`,
+      );
+      await interaction.editReply({
+        content:
+          '⚠️ Something went wrong saving your comment — it was not sent to the user.',
+      });
+      return;
+    }
+
+    this.dispatchApprovalCommentEvent(signup, reviewer, reviewMessage, comment);
+
+    await interaction.editReply({
+      content: `✅ Comment saved — it'll reach the user with their approval:\n>>> ${comment}`,
     });
+  }
+
+  /**
+   * A late modal submit can land minutes after the reviewer opened it, by which
+   * time the signup may have been declined, removed, or edited. Re-read it so we
+   * don't DM the user an "approved" note for a signup that no longer is.
+   */
+  private async isSignupStillApproved(
+    signup: SignupDocument,
+  ): Promise<boolean> {
+    // A cleared signup's document is deleted on approval — nothing to re-check,
+    // and the DM is its only delivery path.
+    if (signup.partyStatus === PartyStatus.Cleared) {
+      return true;
+    }
+
+    const current = await this.signupCollection.findById(
+      SignupCollection.getKeyForSignup({
+        discordId: signup.discordId,
+        encounter: signup.encounter,
+      }),
+    );
+
+    return current?.status === SignupStatus.APPROVED;
   }
 
   private async persistApprovalComment(
     signup: SignupDocument,
     approvalComment: string,
-    reviewer: User,
-    reviewMessage: Message<true>,
   ): Promise<void> {
     // A cleared signup has its Firestore document deleted on approval, so there
     // is nothing to write to — the DM still goes out via the dispatched event.
-    if (signup.partyStatus !== PartyStatus.Cleared) {
-      try {
-        await this.signupCollection.updateApprovalComment(
-          { discordId: signup.discordId, encounter: signup.encounter },
-          approvalComment,
-        );
-        this.logger.log(
-          `Updated signup ${signup.discordId}-${signup.encounter} with approval comment`,
-        );
-      } catch (error) {
-        this.reportError(error, { signup, reviewer });
-        this.logger.error(
-          error,
-          `Failed to persist approval comment for signup ${signup.discordId}-${signup.encounter}`,
-        );
-      }
+    if (signup.partyStatus === PartyStatus.Cleared) {
+      return;
     }
 
-    this.dispatchApprovalCommentEvent(
-      signup,
-      reviewer,
-      reviewMessage,
+    await this.signupCollection.updateApprovalComment(
+      { discordId: signup.discordId, encounter: signup.encounter },
       approvalComment,
+    );
+    this.logger.log(
+      `Updated signup ${signup.discordId}-${signup.encounter} with approval comment`,
     );
   }
 
@@ -293,8 +332,10 @@ export class ApprovalCommentRequestService {
       return;
     }
 
+    // Any other failure is terminal: capture it once, here. Nothing downstream
+    // of the fire-and-forget entrypoint consumes a rejection.
     this.reportError(error, scope);
-    throw error;
+    this.logger.error(error, context);
   }
 
   private reportError(
