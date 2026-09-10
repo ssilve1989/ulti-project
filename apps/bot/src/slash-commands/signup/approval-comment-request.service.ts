@@ -1,13 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import { PartyStatus, type SignupDocument } from '@ulti-project/shared';
 import {
   type ButtonInteraction,
   ComponentType,
-  DiscordAPIError,
-  DiscordjsErrorCodes,
   type InteractionResponse,
   type Message,
   MessageFlags,
@@ -15,6 +12,10 @@ import {
   type User,
 } from 'discord.js';
 import { isSameUserFilter } from '../../common/collection-filters.js';
+import {
+  isInteractionCollectorTimeoutError,
+  MAX_MODAL_SHOW_ATTEMPTS,
+} from '../../common/discord-interaction.guards.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import {
@@ -27,8 +28,13 @@ import {
   createApprovalCommentRequestEmbed,
 } from './approval-comment.components.js';
 import { SignupApprovalCommentCollectedEvent } from './events/signup.events.js';
+import {
+  reportReviewFlowError,
+  showModalOrAskRetry,
+} from './review-dm-flow.helpers.js';
 
-export const MAX_MODAL_SHOW_ATTEMPTS = 3;
+// Re-exported for spec imports that still reach for it here.
+export { MAX_MODAL_SHOW_ATTEMPTS };
 
 @Injectable()
 export class ApprovalCommentRequestService {
@@ -154,19 +160,15 @@ export class ApprovalCommentRequestService {
 
     const modal = createApprovalCommentModal(signupId);
 
-    try {
-      await interaction.showModal(modal);
-    } catch (error) {
-      if (error instanceof DiscordAPIError && error.code === 10062) {
-        this.logger.warn(
-          `Modal token expired before it could be shown for signup ${signupId}, asking reviewer to retry`,
-        );
-        await interaction.user.send(
-          'That took a moment too long to open — please click the button again to add a comment.',
-        );
-        return false;
-      }
-      throw error;
+    const shown = await showModalOrAskRetry(interaction, modal, {
+      signupId,
+      retryPrompt:
+        'That took a moment too long to open — please click the button again to add a comment.',
+      logger: this.logger,
+    });
+
+    if (!shown) {
+      return false;
     }
 
     try {
@@ -285,7 +287,7 @@ export class ApprovalCommentRequestService {
     context: string,
     scope: { signup: SignupDocument; reviewer: User },
   ): void {
-    if (this.isCollectorTimeoutError(error)) {
+    if (isInteractionCollectorTimeoutError(error)) {
       // Reviewer never responded — approval stands, just with no comment.
       this.logger.warn(context);
       return;
@@ -295,22 +297,10 @@ export class ApprovalCommentRequestService {
     throw error;
   }
 
-  private isCollectorTimeoutError(error: unknown): boolean {
-    return (
-      !!error &&
-      typeof error === 'object' &&
-      'code' in error &&
-      error.code === DiscordjsErrorCodes.InteractionCollectorError
-    );
-  }
-
   private reportError(
     error: unknown,
     context: { signup: SignupDocument; reviewer: User },
   ): void {
-    const scope = Sentry.getCurrentScope();
-    scope.setExtra('signup', context.signup);
-    scope.setExtra('reviewer', context.reviewer);
-    scope.captureException(error);
+    reportReviewFlowError(error, context);
   }
 }

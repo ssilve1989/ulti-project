@@ -14,7 +14,6 @@ import {
   type ChatInputCommandInteraction,
   Colors,
   type ComponentType,
-  DiscordjsErrorCodes,
   EmbedBuilder,
   type Message,
   MessageFlags,
@@ -30,6 +29,7 @@ import {
   characterField,
   worldField,
 } from '../../../common/components/fields.js';
+import { isInteractionCollectorTimeoutError } from '../../../common/discord-interaction.guards.js';
 import { createFields } from '../../../common/embed-helpers.js';
 import { appConfig } from '../../../config/app.js';
 import { DiscordService } from '../../../discord/discord.service.js';
@@ -458,7 +458,7 @@ class EditSignupCommandHandler implements ISlashCommand {
       });
       return false;
     } catch (error) {
-      if (this.isCollectorTimeoutError(error)) {
+      if (isInteractionCollectorTimeoutError(error)) {
         await interaction.editReply({
           content: EDIT_SIGNUP_MESSAGES.TIMEOUT,
           embeds: [],
@@ -468,15 +468,6 @@ class EditSignupCommandHandler implements ISlashCommand {
       }
       throw error;
     }
-  }
-
-  private isCollectorTimeoutError(error: unknown): boolean {
-    return (
-      !!error &&
-      typeof error === 'object' &&
-      'code' in error &&
-      error.code === DiscordjsErrorCodes.InteractionCollectorError
-    );
   }
 
   private async applyEdit(

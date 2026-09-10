@@ -1,14 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import type { SignupDocument } from '@ulti-project/shared';
 import {
   ActionRowBuilder,
   ComponentType,
-  DiscordAPIError,
-  DiscordjsError,
-  DiscordjsErrorCodes,
   type InteractionResponse,
   type Message,
   MessageFlags,
@@ -17,6 +13,10 @@ import {
   type User,
 } from 'discord.js';
 import { isSameUserFilter } from '../../common/collection-filters.js';
+import {
+  isInteractionCollectorTimeoutError,
+  MAX_MODAL_SHOW_ATTEMPTS,
+} from '../../common/discord-interaction.guards.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import {
@@ -28,9 +28,14 @@ import {
   DECLINE_REASON_SELECT_ID,
 } from './decline-reason.components.js';
 import { SignupDeclineReasonCollectedEvent } from './events/signup.events.js';
+import {
+  reportReviewFlowError,
+  showModalOrAskRetry,
+} from './review-dm-flow.helpers.js';
 import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
 
-export const MAX_MODAL_SHOW_ATTEMPTS = 3;
+// Re-exported for spec imports that still reach for it here.
+export { MAX_MODAL_SHOW_ATTEMPTS };
 
 @Injectable()
 export class DeclineReasonRequestService {
@@ -155,19 +160,15 @@ export class DeclineReasonRequestService {
       // Show modal for custom reason
       const modal = createCustomDeclineReasonModal(signupId);
 
-      try {
-        await interaction.showModal(modal);
-      } catch (error) {
-        if (error instanceof DiscordAPIError && error.code === 10062) {
-          this.logger.warn(
-            `Modal token expired before it could be shown for signup ${signupId}, asking reviewer to retry`,
-          );
-          await interaction.user.send(
-            'That took a moment too long to open — please click the dropdown again to provide a custom decline reason.',
-          );
-          return false;
-        }
-        throw error;
+      const shown = await showModalOrAskRetry(interaction, modal, {
+        signupId,
+        retryPrompt:
+          'That took a moment too long to open — please click the dropdown again to provide a custom decline reason.',
+        logger: this.logger,
+      });
+
+      if (!shown) {
+        return false;
       }
 
       try {
@@ -297,10 +298,7 @@ export class DeclineReasonRequestService {
     reviewMessage: Message<true>,
     context: string,
   ): void {
-    if (
-      error instanceof DiscordjsError &&
-      error.code === DiscordjsErrorCodes.InteractionCollectorError
-    ) {
+    if (isInteractionCollectorTimeoutError(error)) {
       this.logger.warn(context);
       // Dispatch event on timeout with no decline reason
       this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
@@ -315,9 +313,6 @@ export class DeclineReasonRequestService {
     error: unknown,
     context: { signup: SignupDocument; reviewer: User },
   ): void {
-    const scope = Sentry.getCurrentScope();
-    scope.setExtra('signup', context.signup);
-    scope.setExtra('reviewer', context.reviewer);
-    scope.captureException(error);
+    reportReviewFlowError(error, context);
   }
 }
