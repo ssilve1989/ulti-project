@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "license": "UNLICENSED",
-  "packageManager": "pnpm@11.22.0",
+  "packageManager": "pnpm@12.4.0",
   "engines": {
     "node": ">=26.0.0"
   },
