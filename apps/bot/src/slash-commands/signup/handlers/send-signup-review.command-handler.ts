@@ -102,6 +102,7 @@ class SendSignupReviewCommandHandler
       encounter,
       notes,
       proofOfProgLink,
+      progPoint,
       screenshot,
       world,
       role,
@@ -117,6 +118,11 @@ class SendSignupReviewCommandHandler
       worldField(world, 'Home World'),
       { name: 'Job', value: role, inline: true },
       { name: 'Prog Point', value: progPointRequested, inline: true },
+      {
+        name: 'Previously Approved Prog Point',
+        value: progPoint,
+        inline: true,
+      },
       emptyField(),
       {
         name: 'Prog Proof Link',
