@@ -172,6 +172,21 @@ class SignupCollection {
     });
   }
 
+  /**
+   * Sets the discord message id of the public "Signup Approved" announcement
+   * @param signup
+   * @param messageId
+   * @returns
+   */
+  @SentryTraced()
+  public setApprovalMessageId(signup: SignupCompositeKey, messageId: string) {
+    const key = SignupCollection.getKeyForSignup(signup);
+
+    return this.collection.doc(key).update({
+      approvalMessageId: messageId,
+    });
+  }
+
   @SentryTraced()
   public updateDeclineReason(
     signup: SignupCompositeKey,

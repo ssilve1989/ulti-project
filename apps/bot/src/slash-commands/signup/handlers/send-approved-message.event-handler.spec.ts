@@ -1,0 +1,101 @@
+import { Test } from '@nestjs/testing';
+import {
+  Encounter,
+  PartyStatus,
+  type SignupDocument,
+} from '@ulti-project/shared';
+import type { Message, User } from 'discord.js';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import { DiscordService } from '../../../discord/discord.service.js';
+import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
+import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
+import {
+  createAutoMock,
+  mockOf,
+  partialMock,
+} from '../../../test-utils/mock-factory.js';
+import { SignupApprovedEvent } from '../events/signup.events.js';
+import { SendApprovedMessageEventHandler } from './send-approved-message.event-handler.js';
+
+describe('SendApprovedMessageEventHandler', () => {
+  let handler: SendApprovedMessageEventHandler;
+  let discordService: Mocked<DiscordService>;
+  let repository: Mocked<SignupCollection>;
+
+  const guildId = 'guild-1';
+  const sentMessageId = 'sent-message-id';
+
+  type MockTextChannel = NonNullable<
+    Awaited<ReturnType<DiscordService['getTextChannel']>>
+  >;
+
+  const reviewedBy = mockOf<User>({
+    id: 'approver-1',
+    displayAvatarURL: () => 'http://avatar.png',
+  });
+
+  const createEvent = (signup: Partial<SignupDocument>) =>
+    new SignupApprovedEvent(
+      partialMock<SignupDocument>({
+        discordId: 'user-1',
+        encounter: Encounter.TOP,
+        character: 'Char Name',
+        world: 'Coeurl',
+        role: 'Tank',
+        progPointRequested: 'P1',
+        ...signup,
+      }),
+      partialMock<SettingsDocument>({ signupChannel: 'signup-channel' }),
+      reviewedBy,
+      mockOf<Message<true>>({ guildId }),
+    );
+
+  let channel: MockTextChannel;
+
+  beforeEach(async () => {
+    const fixture = await Test.createTestingModule({
+      providers: [SendApprovedMessageEventHandler],
+    })
+      .useMocker(createAutoMock)
+      .compile();
+
+    handler = fixture.get(SendApprovedMessageEventHandler);
+    discordService = fixture.get(DiscordService);
+    repository = fixture.get(SignupCollection);
+
+    channel = mockOf<MockTextChannel>({
+      send: vi
+        .fn()
+        .mockResolvedValue(mockOf<Message<true>>({ id: sentMessageId })),
+    });
+
+    discordService.getTextChannel.mockResolvedValue(channel);
+  });
+
+  it('sends the announcement and persists the approval message id for a normal signup', async () => {
+    const event = createEvent({ partyStatus: PartyStatus.ProgParty });
+
+    await handler.handle(event);
+
+    expect(channel.send).toHaveBeenCalledTimes(1);
+    expect(repository.setApprovalMessageId).toHaveBeenCalledWith(
+      event.signup,
+      sentMessageId,
+    );
+  });
+
+  it('does not persist the approval message id when the signup has cleared', async () => {
+    discordService.getEmojis.mockResolvedValue([]);
+
+    const event = createEvent({
+      partyStatus: PartyStatus.Cleared,
+      progPoint: PartyStatus.Cleared,
+    });
+
+    await handler.handle(event);
+
+    expect(channel.send).toHaveBeenCalledTimes(1);
+    expect(repository.setApprovalMessageId).not.toHaveBeenCalled();
+    expect(discordService.getEmojis).toHaveBeenCalled();
+  });
+});

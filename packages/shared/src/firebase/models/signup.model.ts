@@ -42,6 +42,8 @@ export interface SignupDocument {
   reviewedBy?: string | null;
   // the message id of the review message posted to discord
   reviewMessageId?: string;
+  // the message id of the public "Signup Approved" announcement posted to signupChannel
+  approvalMessageId?: string;
   // discord uploaded screenshot link. These only last for 2 weeks on discord
   screenshot?: string | null;
   // the friendly name of the user that signed up
@@ -56,7 +58,11 @@ export interface SignupDocument {
 
 export type CreateSignupDocumentProps = Omit<
   SignupDocument,
-  'status' | 'expiresAt' | 'declineReason' | 'availability'
+  | 'status'
+  | 'expiresAt'
+  | 'declineReason'
+  | 'approvalMessageId'
+  | 'availability'
 >;
 
 export type SignupCompositeKeyProps = Pick<
