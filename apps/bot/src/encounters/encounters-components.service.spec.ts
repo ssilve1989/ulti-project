@@ -51,6 +51,34 @@ describe('EncountersComponentsService', () => {
     expect(menu.data.max_values).toBeUndefined();
   });
 
+  it('pre-selects the option matching defaultValue', async () => {
+    const menu = await service.createProgPointSelectMenu(Encounter.TOP, {
+      defaultValue: 'P2',
+    });
+
+    const defaults = menu.options
+      .filter((o) => o.data.default)
+      .map((o) => o.data.value);
+    expect(defaults).toEqual(['P2']);
+  });
+
+  it('pre-selects the cleared option when defaultValue is Cleared', async () => {
+    const menu = await service.createProgPointSelectMenu(Encounter.TOP, {
+      defaultValue: PartyStatus.Cleared,
+    });
+
+    const defaults = menu.options
+      .filter((o) => o.data.default)
+      .map((o) => o.data.value);
+    expect(defaults).toEqual([PartyStatus.Cleared]);
+  });
+
+  it('marks no option as default when defaultValue is omitted', async () => {
+    const menu = await service.createProgPointSelectMenu(Encounter.TOP);
+
+    expect(menu.options.some((o) => o.data.default)).toBe(false);
+  });
+
   it('builds a multi-select menu without cleared when configured', async () => {
     const menu = await service.createProgPointSelectMenu(Encounter.TOP, {
       customId: 'customSelect',
