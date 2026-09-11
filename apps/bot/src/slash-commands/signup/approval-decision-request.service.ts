@@ -142,6 +142,11 @@ export class ApprovalDecisionRequestService {
   }
 
   private remainingTime(deadline: number): number {
-    return Math.max(deadline - Date.now(), 0);
+    // Floor of 1, not 0: discord.js's Collector only arms its timeout timer
+    // `if (options.time)`, and 0 is falsy. A deadline already at/past now
+    // must still produce a truthy `time` so a timer arms and the call fails
+    // fast with the collector's own timeout error, instead of hanging
+    // indefinitely.
+    return Math.max(deadline - Date.now(), 1);
   }
 }

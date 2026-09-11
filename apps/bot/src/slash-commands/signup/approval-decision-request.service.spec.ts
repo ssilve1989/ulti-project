@@ -231,6 +231,29 @@ describe('ApprovalDecisionRequestService', () => {
     });
   });
 
+  describe('remainingTime', () => {
+    it('never returns a falsy value, even when the deadline has already passed', () => {
+      // discord.js's Collector only arms its timeout timer `if (options.time)`,
+      // and 0 is falsy — so a deadline already at/past now must still floor
+      // to a truthy value (1), not 0, or the collector would wait forever
+      // instead of timing out immediately.
+      const pastDeadline = Date.now() - 1000;
+
+      const result = service['remainingTime'](pastDeadline);
+
+      expect(result).toBe(1);
+    });
+
+    it('returns the real remaining time when the deadline is in the future', () => {
+      const futureDeadline = Date.now() + 60_000;
+
+      const result = service['remainingTime'](futureDeadline);
+
+      expect(result).toBeGreaterThan(1);
+      expect(result).toBeLessThanOrEqual(60_000);
+    });
+  });
+
   describe('requestApprovalDecision', () => {
     it('sends the DM with a disabled button row and cleans up components afterward', async () => {
       const fixture: TestingModule = await Test.createTestingModule({
