@@ -9,6 +9,8 @@ export const SIGNUP_MESSAGES = {
     'No settings have been configured for this bot. Commands may not function until properly configured',
   PROG_DM_TIMEOUT:
     'You did not respond in time. The signup has not been approved. Please react to the message again to approve this signup',
+  PROG_POINT_REQUIRED_BEFORE_DECISION:
+    'Please select a prog point from the menu before choosing Approve or Approve with Comment.',
   SIGNUP_SUBMISSION_CANCELLED:
     'Signup canceled. Please use /signup if you wish to try again.',
   SIGNUP_SUBMISSION_CONFIRMED: `Your signup has been successfully submitted! 🎉. You can use 
