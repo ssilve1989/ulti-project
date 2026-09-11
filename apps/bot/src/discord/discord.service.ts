@@ -143,6 +143,9 @@ class DiscordService {
         error instanceof DiscordAPIError &&
         (error.code === 10008 || error.code === 10003)
       ) {
+        this.logger.warn(
+          `The message ${messageId} in channel ${channelId} was not found`,
+        );
         return undefined;
       }
       throw error;
