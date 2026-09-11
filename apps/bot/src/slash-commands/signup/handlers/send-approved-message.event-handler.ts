@@ -153,7 +153,7 @@ class SendApprovedMessageEventHandler
   private async addReactions(message: Message) {
     // fetch clear reactions and attach em to the embed
     try {
-      const emojis = await this.discordService.getEmojis(ClearReactions);
+      const emojis = this.discordService.getEmojis(ClearReactions);
       // add the emojis to the source embed
       await Promise.allSettled(
         emojis.map((emoji) =>
