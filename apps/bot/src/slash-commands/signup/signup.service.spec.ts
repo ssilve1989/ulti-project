@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import type { SignupDocument } from '@ulti-project/shared';
+import { SignupStatus } from '@ulti-project/shared';
 import type { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
 import type { WriteResult } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
@@ -12,12 +13,14 @@ import {
   partialMock,
   withInternals,
 } from '../../test-utils/mock-factory.js';
+import { ApprovalDecisionRequestService } from './approval-decision-request.service.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
 
 // TODO: Actually assert approval/decline functionality, not just that they were called
 describe('SignupService', () => {
   let service: SignupService;
+  let fixture: TestingModule;
   let messageReaction: MessageReaction;
   let user: User;
   let settings: SettingsDocument;
@@ -26,7 +29,7 @@ describe('SignupService', () => {
   let discordService: Mocked<DiscordService>;
 
   beforeEach(async () => {
-    const fixture: TestingModule = await Test.createTestingModule({
+    fixture = await Test.createTestingModule({
       providers: [SignupService],
     })
       .useMocker(createAutoMock)
@@ -41,6 +44,7 @@ describe('SignupService', () => {
         id: 'messageId',
         edit: vi.fn().mockResolvedValue(undefined),
         inGuild: vi.fn().mockReturnValue(true),
+        embeds: [{}],
       }),
       emoji: mockOf<ReactionEmoji>({
         name: 'emojiName',
@@ -137,5 +141,32 @@ describe('SignupService', () => {
     await service['handleReaction'](messageReaction, user, settings);
 
     expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('threads the collected comment onto SignupApprovedEvent without persisting it', async () => {
+    repository.findByReviewId.mockResolvedValue(signup);
+    messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
+
+    const approvalDecisionRequestService: Mocked<ApprovalDecisionRequestService> =
+      fixture.get(ApprovalDecisionRequestService);
+    approvalDecisionRequestService.requestApprovalDecision.mockResolvedValue({
+      progPoint: 'point-a',
+      comment: 'Nice work!',
+    });
+
+    const event = await service['handleApprovedReaction'](
+      signup,
+      messageReaction.message,
+      user,
+      settings,
+    );
+
+    expect(event.comment).toBe('Nice work!');
+    expect(event.signup).not.toHaveProperty('comment');
+    expect(repository.updateSignupStatus).toHaveBeenCalledWith(
+      SignupStatus.APPROVED,
+      expect.not.objectContaining({ comment: expect.anything() }),
+      user.username,
+    );
   });
 });

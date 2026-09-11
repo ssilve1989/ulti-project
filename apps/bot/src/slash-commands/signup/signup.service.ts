@@ -14,9 +14,6 @@ import {
   SignupStatus,
 } from '@ulti-project/shared';
 import {
-  ActionRowBuilder,
-  Embed,
-  EmbedBuilder,
   type Emoji,
   Events,
   Message,
@@ -24,7 +21,6 @@ import {
   type PartialMessage,
   type PartialMessageReaction,
   type PartialUser,
-  StringSelectMenuBuilder,
   User,
 } from 'discord.js';
 import {
@@ -36,7 +32,6 @@ import {
   Subscription,
 } from 'rxjs';
 import { match } from 'ts-pattern';
-import { isSameUserFilter } from '../../common/collection-filters.js';
 import { getMessageLink } from '../../discord/discord.consts.js';
 import {
   getFirstEmbed,
@@ -44,14 +39,16 @@ import {
   hydrateUser,
 } from '../../discord/discord.helpers.js';
 import { DiscordService } from '../../discord/discord.service.js';
-import { PROG_POINT_SELECT_ID } from '../../encounters/encounters.components.js';
 import { EncountersService } from '../../encounters/encounters.service.js';
-import { EncountersComponentsService } from '../../encounters/encounters-components.service.js';
 import { ErrorService } from '../../error/error.service.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
+import {
+  type ApprovalDecision,
+  ApprovalDecisionRequestService,
+} from './approval-decision-request.service.js';
 import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import {
   SignupApprovedEvent,
@@ -75,9 +72,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   private subscription?: Subscription;
 
   constructor(
+    private readonly approvalDecisionRequestService: ApprovalDecisionRequestService,
     private readonly declineReasonRequestService: DeclineReasonRequestService,
     private readonly discordService: DiscordService,
-    private readonly encountersComponentsService: EncountersComponentsService,
     private readonly encountersService: EncountersService,
     private readonly eventBus: EventBus,
     private readonly repository: SignupCollection,
@@ -245,21 +242,35 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User,
     settings: SettingsDocument,
   ): Promise<SignupApprovedEvent> {
-    const progPoint = await this.confirmProgPoint(signup, message, user);
+    const { progPoint, comment } = await this.confirmProgPoint(
+      signup,
+      message,
+      user,
+    );
     const confirmedSignup = await this.buildConfirmedSignup(signup, progPoint);
     await this.persistApprovedSignup(confirmedSignup, settings, user);
 
-    return new SignupApprovedEvent(confirmedSignup, settings, user, message);
+    return new SignupApprovedEvent(
+      confirmedSignup,
+      settings,
+      user,
+      message,
+      comment,
+    );
   }
 
   private async confirmProgPoint(
     signup: SignupDocument,
     message: Message<true>,
     user: User,
-  ): Promise<string | undefined> {
+  ): Promise<ApprovalDecision> {
     const sourceEmbed = getFirstEmbed(message);
 
-    return await this.requestProgPointConfirmation(signup, sourceEmbed, user);
+    return await this.approvalDecisionRequestService.requestApprovalDecision(
+      signup,
+      sourceEmbed,
+      user,
+    );
   }
 
   private async buildConfirmedSignup(
@@ -352,71 +363,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         ?.users.remove(user.id),
       this.discordService.sendDirectMessage(user.id, reply),
     ]);
-  }
-
-  @SentryTraced()
-  private async requestProgPointConfirmation(
-    signup: SignupDocument,
-    sourceEmbed: Embed,
-    user: User,
-  ): Promise<string | undefined> {
-    const menu = await this.createProgPointMenu(signup.encounter);
-    const embed = EmbedBuilder.from(sourceEmbed);
-
-    const message = await this.sendProgPointConfirmationMessage(
-      user,
-      embed,
-      menu,
-    );
-
-    return await this.collectProgPointResponse(message, user);
-  }
-
-  private async createProgPointMenu(
-    encounter: Encounter,
-  ): Promise<ActionRowBuilder<StringSelectMenuBuilder>> {
-    const menu =
-      await this.encountersComponentsService.createProgPointSelectMenu(
-        encounter,
-      );
-    return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu);
-  }
-
-  private async sendProgPointConfirmationMessage(
-    user: User,
-    embed: Embed | EmbedBuilder,
-    row: ActionRowBuilder<StringSelectMenuBuilder>,
-  ): Promise<Message> {
-    return await this.discordService.sendDirectMessage(user.id, {
-      content: 'Please confirm the prog point of the following signup',
-      embeds: [embed],
-      components: [row],
-    });
-  }
-
-  private async collectProgPointResponse(
-    message: Message,
-    user: User,
-  ): Promise<string | undefined> {
-    try {
-      const reply = await message.awaitMessageComponent({
-        time: 60_000 * 2, // 2 minutes
-        filter: isSameUserFilter(user),
-      });
-
-      await reply.deferReply();
-
-      if (
-        reply.customId === PROG_POINT_SELECT_ID &&
-        reply.isStringSelectMenu()
-      ) {
-        await reply.followUp('Confirmation Received!');
-        return reply.values.at(0);
-      }
-    } finally {
-      // remove the select component regardless of success or error
-      await message.edit({ components: [] });
-    }
   }
 
   private async getPartyStatus(
