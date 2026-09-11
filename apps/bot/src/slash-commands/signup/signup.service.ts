@@ -191,7 +191,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         this.handleApprovedReaction(signup, message, user, settings),
       )
       .with(SIGNUP_REVIEW_REACTIONS.DECLINED, () =>
-        this.handleDeclinedReaction(signup, message, user),
+        this.handleDeclinedReaction(signup, message, user, settings),
       )
       .otherwise(() => undefined);
 
@@ -268,9 +268,10 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     signup: SignupDocument,
     message: Message<true>,
     user: User,
+    settings: SettingsDocument,
   ): Promise<SignupDeclinedEvent> {
     // Update signup status immediately (for sequential reaction processing)
-    await this.mutationService.applyDecline(signup, user);
+    await this.mutationService.applyDecline(signup, settings, user);
 
     // Fire decline reason request with event dispatch context (non-blocking)
     this.declineReasonRequestService
@@ -283,7 +284,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       });
 
     // Return event immediately for embed footer update
-    return new SignupDeclinedEvent(signup, user, message);
+    return new SignupDeclinedEvent(signup, user, message, 'approval');
   }
 
   private async handleError(

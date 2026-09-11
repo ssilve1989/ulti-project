@@ -1,6 +1,10 @@
 import { sheets, sheets_v4 } from '@googleapis/sheets';
 import { Test } from '@nestjs/testing';
-import { Encounter, PartyStatus } from '@ulti-project/shared';
+import {
+  Encounter,
+  PartyStatus,
+  type SignupDocument,
+} from '@ulti-project/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EncountersService } from '../encounters/encounters.service.js';
 import { ErrorService } from '../error/error.service.js';
@@ -168,6 +172,46 @@ describe('Sheets Service', () => {
       expect(batchUpdateSpy).toHaveBeenCalledWith(client, 'test-sheet-id', [
         mockRequest,
       ]);
+    });
+  });
+
+  describe('#upsertSignup', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('cleans up any stale row left in a different party-status range when the signup moves ranges (e.g. an /edit-signup decline reverting from ProgParty back to EarlyProgParty)', async () => {
+      // Multiple prog points => isProgEncounter() resolves true, matching the
+      // beforeEach's mockEncountersService.getProgPoints stub.
+      vi.spyOn(sheetsUtils, 'getSheetIdByName').mockResolvedValue(123);
+      vi.spyOn(sheetsUtils, 'getSheetValues').mockResolvedValue(undefined);
+      vi.spyOn(sheetsUtils, 'updateSheet').mockResolvedValue(
+        mockOf<Awaited<ReturnType<typeof sheetsUtils.updateSheet>>>({}),
+      );
+      const removeSignupSpy = vi
+        .spyOn(service, 'removeSignup')
+        .mockResolvedValue(0);
+
+      const signup = mockOf<SignupDocument>({
+        character: 'TestChar',
+        world: 'TestWorld',
+        encounter: Encounter.DSR,
+        role: 'dps',
+        progPoint: 'p2-sanctity',
+        partyStatus: PartyStatus.EarlyProgParty,
+      });
+
+      await service.upsertSignup(signup, 'test-sheet-id');
+
+      // The row for this character may currently live in ProgParty or
+      // ClearParty (e.g. it was approved there before being reverted back to
+      // EarlyProgParty) - every other range must be checked and cleared, not
+      // just the ProgParty->ClearParty case.
+      expect(removeSignupSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ character: 'TestChar' }),
+        'test-sheet-id',
+        expect.arrayContaining([PartyStatus.ProgParty, PartyStatus.ClearParty]),
+      );
     });
   });
 

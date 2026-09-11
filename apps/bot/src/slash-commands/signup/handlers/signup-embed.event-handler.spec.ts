@@ -18,6 +18,7 @@ import { UpdateApprovalEmbedEventHandler } from './signup-embed.event-handler.js
 describe('SignupEmbedEventHandler', () => {
   let handler: UpdateApprovalEmbedEventHandler;
   let message: Message<true>;
+  let discordService: Mocked<DiscordService>;
 
   const reviewedBy = mockOf<User>({
     id: '12345',
@@ -38,6 +39,7 @@ describe('SignupEmbedEventHandler', () => {
           'approval',
         ),
       footer: 'Approved by Test User',
+      clearsReactions: false,
     },
     {
       color: Colors.Green,
@@ -51,6 +53,7 @@ describe('SignupEmbedEventHandler', () => {
           'edit',
         ),
       footer: 'Approved by Test User',
+      clearsReactions: true,
     },
     {
       color: Colors.Red,
@@ -60,9 +63,25 @@ describe('SignupEmbedEventHandler', () => {
           partialMock<SignupDocument>({ discordId: '12345' }),
           reviewedBy,
           msg,
+          'approval',
         ),
       footer: 'Declined by Test User',
       content: 'Declined <@12345>',
+      clearsReactions: false,
+    },
+    {
+      color: Colors.Red,
+      case: 'handles a declined event raised by /edit-signup',
+      createEvent: (msg: Message<true>) =>
+        new SignupDeclinedEvent(
+          partialMock<SignupDocument>({ discordId: '12345' }),
+          reviewedBy,
+          msg,
+          'edit',
+        ),
+      footer: 'Declined by Test User',
+      content: 'Declined <@12345>',
+      clearsReactions: true,
     },
   ];
 
@@ -81,7 +100,7 @@ describe('SignupEmbedEventHandler', () => {
 
     handler = fixture.get(UpdateApprovalEmbedEventHandler);
 
-    const discordService = fixture.get<Mocked<DiscordService>>(DiscordService);
+    discordService = fixture.get<Mocked<DiscordService>>(DiscordService);
 
     discordService.getDisplayName.mockResolvedValueOnce('Test User');
   });
@@ -90,25 +109,36 @@ describe('SignupEmbedEventHandler', () => {
     expect(handler).toBeDefined();
   });
 
-  it.each(cases)('$case', async ({ createEvent, footer, color, content }) => {
-    const event = createEvent(message);
-    await handler.handle(event);
+  it.each(cases)(
+    '$case',
+    async ({ createEvent, footer, color, content, clearsReactions }) => {
+      const event = createEvent(message);
+      await handler.handle(event);
 
-    expect(message.edit).toHaveBeenCalledWith({
-      content,
-      embeds: [
-        expect.objectContaining({
-          data: {
-            color,
-            description: undefined,
-            footer: {
-              text: footer,
-              icon_url: 'http://test-url.png',
+      expect(message.edit).toHaveBeenCalledWith({
+        content,
+        embeds: [
+          expect.objectContaining({
+            data: {
+              color,
+              description: undefined,
+              footer: {
+                text: footer,
+                icon_url: 'http://test-url.png',
+              },
+              timestamp: expect.any(String),
             },
-            timestamp: expect.any(String),
-          },
-        }),
-      ],
-    });
-  });
+          }),
+        ],
+      });
+
+      if (clearsReactions) {
+        expect(discordService.clearHumanReactions).toHaveBeenCalledWith(
+          message,
+        );
+      } else {
+        expect(discordService.clearHumanReactions).not.toHaveBeenCalled();
+      }
+    },
+  );
 });

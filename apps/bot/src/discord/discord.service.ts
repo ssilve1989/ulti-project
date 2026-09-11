@@ -153,6 +153,28 @@ class DiscordService {
   }
 
   /**
+   * Strips every non-bot user's reaction from a message, leaving only the
+   * bot's own reactions in place. Used to reset a review message's ✅/❌
+   * reactions when a decision is re-made (e.g. via `/edit-signup`), since a
+   * bot can only ever react as itself — it can't fake a reaction "as" the
+   * reviewer who made the new decision.
+   * @param message
+   */
+  public async clearHumanReactions(message: Message): Promise<void> {
+    await Promise.all(
+      message.reactions.cache.map(async (reaction) => {
+        const users = await reaction.users.fetch();
+
+        await Promise.all(
+          users
+            .filter((user) => !user.bot)
+            .map((user) => reaction.users.remove(user.id)),
+        );
+      }),
+    );
+  }
+
+  /**
    * Removes the role from all members in the guild
    * @param roleId
    */

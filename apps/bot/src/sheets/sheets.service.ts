@@ -36,6 +36,12 @@ type NonClearedPartyStatus =
 
 type PartyTypes = NonClearedPartyStatus[];
 
+const ALL_NON_CLEARED_PARTY_STATUSES: NonClearedPartyStatus[] = [
+  PartyStatus.EarlyProgParty,
+  PartyStatus.ProgParty,
+  PartyStatus.ClearParty,
+];
+
 /**
  * This module depends on knowing the structure of the spreadsheet
  * Ranges are very brittle and will need to be updated if the spreadsheet changes.
@@ -452,9 +458,15 @@ class SheetsService implements OnApplicationShutdown {
     const cellValues = this.getCellValues(signup);
 
     const isProgEncounter = await this.isProgEncounter(encounter);
-    if (isProgEncounter && partyStatus === PartyStatus.ClearParty) {
-      // if its a clear party we need to check if we are moving them from prog to clear
-      await this.removeSignup(signup, spreadsheetId, [PartyStatus.ProgParty]);
+    if (isProgEncounter) {
+      // The signup's row may currently sit in any other party-status range -
+      // moving forward (e.g. ProgParty -> ClearParty) or backward (e.g. an
+      // /edit-signup decline reverting ProgParty -> EarlyProgParty). Clean up
+      // every other range so we don't leave a stale duplicate row behind.
+      const otherRanges = ALL_NON_CLEARED_PARTY_STATUSES.filter(
+        (status) => status !== partyStatus,
+      );
+      await this.removeSignup(signup, spreadsheetId, otherRanges);
     }
 
     const ranges = SheetRanges[partyStatus];

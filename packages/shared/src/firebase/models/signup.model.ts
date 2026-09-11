@@ -38,6 +38,11 @@ export interface SignupDocument {
   progPointRequested: string;
   // the party type we determined they should be
   partyStatus?: PartyStatus;
+  // progPoint immediately before the most recent re-approval overwrote it;
+  // used to restore the sheet if that re-approval is later declined
+  previousProgPoint?: string;
+  // partyStatus paired with previousProgPoint
+  previousPartyStatus?: PartyStatus;
   // discordId of the user that reviewed this signup
   reviewedBy?: string | null;
   // the message id of the review message posted to discord
@@ -63,6 +68,8 @@ export type CreateSignupDocumentProps = Omit<
   | 'declineReason'
   | 'approvalMessageId'
   | 'availability'
+  | 'previousProgPoint'
+  | 'previousPartyStatus'
 >;
 
 export type SignupCompositeKeyProps = Pick<

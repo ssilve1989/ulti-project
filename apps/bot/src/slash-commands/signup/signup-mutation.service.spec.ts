@@ -89,6 +89,8 @@ describe('SignupMutationService', () => {
         ...signup,
         progPoint: 'p3-thordan',
         partyStatus: PartyStatus.ProgParty,
+        previousProgPoint: 'p2-sanctity',
+        previousPartyStatus: undefined,
       });
     });
 
@@ -106,6 +108,73 @@ describe('SignupMutationService', () => {
       expect(
         encountersService.getPartyStatusForProgPoint,
       ).not.toHaveBeenCalled();
+    });
+
+    it('snapshots the outgoing progPoint/partyStatus as previous when overwriting an existing sheet value', async () => {
+      const signup = partialMock<SignupDocument>({
+        character: 'Tan Gigant',
+        world: 'Gilgamesh',
+        encounter: 'DSR',
+        progPoint: 'p2-sanctity',
+        partyStatus: PartyStatus.ProgParty,
+      });
+      encountersService.getPartyStatusForProgPoint.mockResolvedValue(
+        PartyStatus.ClearParty,
+      );
+
+      const result = await service.buildConfirmedSignup(signup, 'p3-thordan');
+
+      expect(result.previousProgPoint).toBe('p2-sanctity');
+      expect(result.previousPartyStatus).toBe(PartyStatus.ProgParty);
+    });
+
+    it('does not snapshot when the prog point is unchanged', async () => {
+      const signup = partialMock<SignupDocument>({
+        character: 'Tan Gigant',
+        world: 'Gilgamesh',
+        encounter: 'DSR',
+        progPoint: 'p2-sanctity',
+        partyStatus: PartyStatus.ProgParty,
+      });
+      encountersService.getPartyStatusForProgPoint.mockResolvedValue(
+        PartyStatus.ProgParty,
+      );
+
+      const result = await service.buildConfirmedSignup(signup, 'p2-sanctity');
+
+      expect(result.previousProgPoint).toBeUndefined();
+      expect(result.previousPartyStatus).toBeUndefined();
+    });
+
+    it('does not snapshot a fresh signup with no existing progPoint', async () => {
+      const signup = partialMock<SignupDocument>({
+        character: 'Tan Gigant',
+        world: 'Gilgamesh',
+        encounter: 'DSR',
+      });
+      encountersService.getPartyStatusForProgPoint.mockResolvedValue(
+        PartyStatus.ProgParty,
+      );
+
+      const result = await service.buildConfirmedSignup(signup, 'p2-sanctity');
+
+      expect(result.previousProgPoint).toBeUndefined();
+      expect(result.previousPartyStatus).toBeUndefined();
+    });
+
+    it('carries forward an existing previous snapshot when this call does not overwrite a sheet value', async () => {
+      const signup = partialMock<SignupDocument>({
+        character: 'Tan Gigant',
+        world: 'Gilgamesh',
+        encounter: 'DSR',
+        previousProgPoint: 'p1-nidhogg',
+        previousPartyStatus: PartyStatus.EarlyProgParty,
+      });
+
+      const result = await service.buildConfirmedSignup(signup, undefined);
+
+      expect(result.previousProgPoint).toBe('p1-nidhogg');
+      expect(result.previousPartyStatus).toBe(PartyStatus.EarlyProgParty);
     });
   });
 
@@ -201,18 +270,107 @@ describe('SignupMutationService', () => {
   });
 
   describe('applyDecline', () => {
-    it('writes the DECLINED status for the signup with the reviewer username', async () => {
+    it('writes the DECLINED status for a PENDING signup without touching the sheet', async () => {
       const signup = partialMock<SignupDocument>({
         character: 'Tan Gigant',
         encounter: 'DSR',
+        status: SignupStatus.PENDING,
+      });
+      const settings = partialMock<SettingsDocument>({
+        spreadsheetId: 'sheet-1',
       });
 
-      await service.applyDecline(signup, reviewer);
+      await service.applyDecline(signup, settings, reviewer);
 
       expect(repository.updateSignupStatus).toHaveBeenCalledWith(
         SignupStatus.DECLINED,
         signup,
         'reviewer-name',
+      );
+      expect(sheetsService.upsertSignup).not.toHaveBeenCalled();
+      expect(sheetsService.removeSignup).not.toHaveBeenCalled();
+      expect(repository.declineSignup).not.toHaveBeenCalled();
+    });
+
+    it('removes the signup from the sheet when declining an approval with no prior prog point', async () => {
+      const signup = partialMock<SignupDocument>({
+        character: 'Tan Gigant',
+        world: 'Gilgamesh',
+        encounter: 'DSR',
+        status: SignupStatus.APPROVED,
+        progPoint: 'p3-thordan',
+        partyStatus: PartyStatus.ProgParty,
+      });
+      const settings = partialMock<SettingsDocument>({
+        spreadsheetId: 'sheet-1',
+      });
+
+      await service.applyDecline(signup, settings, reviewer);
+
+      expect(sheetsService.removeSignup).toHaveBeenCalledWith(
+        { character: 'Tan Gigant', world: 'Gilgamesh', encounter: 'DSR' },
+        'sheet-1',
+      );
+      expect(sheetsService.upsertSignup).not.toHaveBeenCalled();
+      expect(repository.declineSignup).toHaveBeenCalledWith(
+        signup,
+        'reviewer-name',
+        { progPoint: undefined, partyStatus: undefined },
+      );
+      expect(repository.updateSignupStatus).not.toHaveBeenCalled();
+    });
+
+    it('reverts the sheet and the signup to the prior prog point when one exists', async () => {
+      const signup = partialMock<SignupDocument>({
+        character: 'Tan Gigant',
+        world: 'Gilgamesh',
+        encounter: 'DSR',
+        status: SignupStatus.APPROVED,
+        progPoint: 'p3-thordan',
+        partyStatus: PartyStatus.ProgParty,
+        previousProgPoint: 'p2-sanctity',
+        previousPartyStatus: PartyStatus.EarlyProgParty,
+      });
+      const settings = partialMock<SettingsDocument>({
+        spreadsheetId: 'sheet-1',
+      });
+
+      await service.applyDecline(signup, settings, reviewer);
+
+      expect(sheetsService.upsertSignup).toHaveBeenCalledWith(
+        {
+          ...signup,
+          progPoint: 'p2-sanctity',
+          partyStatus: PartyStatus.EarlyProgParty,
+        },
+        'sheet-1',
+      );
+      expect(sheetsService.removeSignup).not.toHaveBeenCalled();
+      expect(repository.declineSignup).toHaveBeenCalledWith(
+        signup,
+        'reviewer-name',
+        { progPoint: 'p2-sanctity', partyStatus: PartyStatus.EarlyProgParty },
+      );
+    });
+
+    it('reverts Firestore but skips the sheet when declining an approval with no spreadsheetId configured', async () => {
+      const signup = partialMock<SignupDocument>({
+        character: 'Tan Gigant',
+        world: 'Gilgamesh',
+        encounter: 'DSR',
+        status: SignupStatus.APPROVED,
+        progPoint: 'p3-thordan',
+      });
+      const settings = partialMock<SettingsDocument>({});
+
+      await service.applyDecline(signup, settings, reviewer);
+
+      expect(sheetsService.upsertSignup).not.toHaveBeenCalled();
+      expect(sheetsService.removeSignup).not.toHaveBeenCalled();
+      expect(repository.declineSignup).toHaveBeenCalledWith(
+        signup,
+        'reviewer-name',
+        { progPoint: undefined, partyStatus: undefined },
       );
     });
   });
