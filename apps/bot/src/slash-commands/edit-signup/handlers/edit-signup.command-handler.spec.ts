@@ -511,6 +511,7 @@ describe('Edit Signup Command Handler', () => {
 
     expect(mutationService.applyDecline).toHaveBeenCalledWith(
       expect.objectContaining({ status: SignupStatus.APPROVED }),
+      expect.objectContaining({ reviewChannel: 'review-channel' }),
       interaction.user,
     );
     expect(mutationService.applyApproval).not.toHaveBeenCalled();
@@ -584,6 +585,7 @@ describe('Edit Signup Command Handler', () => {
     expect(mutationService.applyApproval).not.toHaveBeenCalled();
     expect(mutationService.applyDecline).toHaveBeenCalledWith(
       expect.objectContaining({ status: SignupStatus.APPROVED }),
+      expect.objectContaining({ reviewChannel: 'review-channel' }),
       interaction.user,
     );
   });

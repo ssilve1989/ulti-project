@@ -36,6 +36,7 @@ describe('ClearApprovalMessageOnDeclineEventHandler', () => {
       }),
       reviewedBy,
       mockOf<Message<true>>({ guildId }),
+      'approval',
     );
 
   beforeEach(async () => {

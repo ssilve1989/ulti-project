@@ -17,10 +17,24 @@ class SignupEmbedEventHandler
 
   async handle(event: SignupApprovedEvent | SignupDeclinedEvent) {
     try {
-      await match(event)
-        .with(P.instanceOf(SignupApprovedEvent), this.handleApproved.bind(this))
-        .with(P.instanceOf(SignupDeclinedEvent), this.handleDeclined.bind(this))
-        .run();
+      await Promise.all([
+        match(event)
+          .with(
+            P.instanceOf(SignupApprovedEvent),
+            this.handleApproved.bind(this),
+          )
+          .with(
+            P.instanceOf(SignupDeclinedEvent),
+            this.handleDeclined.bind(this),
+          )
+          .run(),
+        // A decision raised by /edit-signup may be overriding an earlier
+        // reviewer's reaction, so reset the review message's ✅/❌ reactions.
+        // Independent of the embed update above — safe to run alongside it.
+        event.kind === 'edit'
+          ? this.discordService.clearHumanReactions(event.message)
+          : undefined,
+      ]);
     } catch (error) {
       const scope = Sentry.getCurrentScope();
       scope.setExtra('signup', event.signup);

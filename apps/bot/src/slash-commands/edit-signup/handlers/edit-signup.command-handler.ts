@@ -503,9 +503,9 @@ class EditSignupCommandHandler implements ISlashCommand {
       return;
     }
 
-    await this.mutationService.applyDecline(signup, reviewer);
+    await this.mutationService.applyDecline(signup, settings, reviewer);
     this.eventBus.publish(
-      new SignupDeclinedEvent(signup, reviewer, reviewMessage),
+      new SignupDeclinedEvent(signup, reviewer, reviewMessage, 'edit'),
     );
     this.declineReasonRequestService
       .requestDeclineReason(signup, reviewer, reviewMessage)

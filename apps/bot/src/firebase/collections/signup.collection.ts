@@ -146,8 +146,17 @@ class SignupCollection {
     {
       partyStatus,
       progPoint,
+      previousProgPoint,
+      previousPartyStatus,
       ...key
-    }: SignupCompositeKey & Pick<SignupDocument, 'progPoint' | 'partyStatus'>,
+    }: SignupCompositeKey &
+      Pick<
+        SignupDocument,
+        | 'progPoint'
+        | 'partyStatus'
+        | 'previousProgPoint'
+        | 'previousPartyStatus'
+      >,
     reviewedBy: string,
   ) {
     return this.collection.doc(SignupCollection.getKeyForSignup(key)).update({
@@ -155,6 +164,34 @@ class SignupCollection {
       progPoint,
       reviewedBy,
       partyStatus,
+      previousProgPoint: previousProgPoint ?? FieldValue.delete(),
+      previousPartyStatus: previousPartyStatus ?? FieldValue.delete(),
+    });
+  }
+
+  /**
+   * Declines a signup, restoring `progPoint`/`partyStatus` to the prior
+   * approved values (or clearing them if there was none) so the Sheet-sync
+   * layer reverts to what was there before the now-declined approval.
+   * @param signup
+   * @param reviewedBy - discordId of the user that reviewed the signup
+   * @param revert - the progPoint/partyStatus to restore, or undefined to clear
+   */
+  @SentryTraced()
+  public declineSignup(
+    signup: SignupCompositeKey,
+    reviewedBy: string,
+    revert: Pick<SignupDocument, 'progPoint' | 'partyStatus'>,
+  ) {
+    const key = SignupCollection.getKeyForSignup(signup);
+
+    return this.collection.doc(key).update({
+      status: SignupStatus.DECLINED,
+      reviewedBy,
+      progPoint: revert.progPoint ?? FieldValue.delete(),
+      partyStatus: revert.partyStatus ?? FieldValue.delete(),
+      previousProgPoint: FieldValue.delete(),
+      previousPartyStatus: FieldValue.delete(),
     });
   }
 

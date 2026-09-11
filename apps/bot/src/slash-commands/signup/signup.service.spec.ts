@@ -152,8 +152,13 @@ describe('SignupService', () => {
       signup,
       messageReaction.message,
       user,
+      settings,
     );
-    expect(mutationService.applyDecline).toHaveBeenCalledWith(signup, user);
+    expect(mutationService.applyDecline).toHaveBeenCalledWith(
+      signup,
+      settings,
+      user,
+    );
   });
 
   it('should return early if a signup has been reviewed', async () => {

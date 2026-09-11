@@ -1,16 +1,18 @@
 import { Test } from '@nestjs/testing';
 import {
   Encounter,
+  PartyStatus,
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
-import type {
-  CollectionReference,
-  DocumentData,
-  DocumentReference,
-  DocumentSnapshot,
-  Firestore,
-  Query,
+import {
+  type CollectionReference,
+  type DocumentData,
+  type DocumentReference,
+  type DocumentSnapshot,
+  FieldValue,
+  type Firestore,
+  type Query,
 } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import type { SignupSchema } from '../../slash-commands/signup/signup.schema.js';
@@ -154,6 +156,63 @@ describe('Signup Repository', () => {
     expect(doc.update).toHaveBeenCalledWith({
       status: SignupStatus.APPROVED,
       reviewedBy: 'reviewedBy',
+      previousProgPoint: FieldValue.delete(),
+      previousPartyStatus: FieldValue.delete(),
+    });
+  });
+
+  it('should write previousProgPoint/previousPartyStatus when updateSignupStatus is given them', async () => {
+    await repository.updateSignupStatus(
+      SignupStatus.APPROVED,
+      {
+        ...SIGNUP_KEY,
+        progPoint: 'p3-thordan',
+        previousProgPoint: 'p2-sanctity',
+        previousPartyStatus: PartyStatus.EarlyProgParty,
+      },
+      'reviewedBy',
+    );
+
+    expect(doc.update).toHaveBeenCalledWith({
+      status: SignupStatus.APPROVED,
+      reviewedBy: 'reviewedBy',
+      progPoint: 'p3-thordan',
+      previousProgPoint: 'p2-sanctity',
+      previousPartyStatus: PartyStatus.EarlyProgParty,
+    });
+  });
+
+  describe('#declineSignup', () => {
+    it('restores progPoint/partyStatus and clears the previous snapshot when reverting to a prior value', async () => {
+      await repository.declineSignup(SIGNUP_KEY, 'reviewedBy', {
+        progPoint: 'p2-sanctity',
+        partyStatus: PartyStatus.EarlyProgParty,
+      });
+
+      expect(doc.update).toHaveBeenCalledWith({
+        status: SignupStatus.DECLINED,
+        reviewedBy: 'reviewedBy',
+        progPoint: 'p2-sanctity',
+        partyStatus: PartyStatus.EarlyProgParty,
+        previousProgPoint: FieldValue.delete(),
+        previousPartyStatus: FieldValue.delete(),
+      });
+    });
+
+    it('clears progPoint/partyStatus when there is nothing to revert to', async () => {
+      await repository.declineSignup(SIGNUP_KEY, 'reviewedBy', {
+        progPoint: undefined,
+        partyStatus: undefined,
+      });
+
+      expect(doc.update).toHaveBeenCalledWith({
+        status: SignupStatus.DECLINED,
+        reviewedBy: 'reviewedBy',
+        progPoint: FieldValue.delete(),
+        partyStatus: FieldValue.delete(),
+        previousProgPoint: FieldValue.delete(),
+        previousPartyStatus: FieldValue.delete(),
+      });
     });
   });
 
