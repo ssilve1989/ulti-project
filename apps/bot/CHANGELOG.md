@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.7.0](https://github.com/ssilve1989/ulti-project/compare/v2.6.6...v2.7.0) (2026-09-11)
+
+
+### Features
+
+* add /edit-signup command for correcting reviewed signups ([#1483](https://github.com/ssilve1989/ulti-project/issues/1483)) ([ace4dce](https://github.com/ssilve1989/ulti-project/commit/ace4dce0a418d5145799cf517e304597b8e4f071))
+* **edit-signup:** request a decline reason when an edit declines a signup ([#1484](https://github.com/ssilve1989/ulti-project/issues/1484)) ([28d2455](https://github.com/ssilve1989/ulti-project/commit/28d24550278bfdf79d4dbf28f1a00fb8792155e8))
+* **signup:** persist approvalMessageId for the public approval announcement ([#1478](https://github.com/ssilve1989/ulti-project/issues/1478)) ([ed3b907](https://github.com/ssilve1989/ulti-project/commit/ed3b907f2df23a83731f6cbc53c3c8828ae392e1))
+* **signup:** remove the public approval post when a signup is declined ([#1482](https://github.com/ssilve1989/ulti-project/issues/1482)) ([828e084](https://github.com/ssilve1989/ulti-project/commit/828e08473c8265ea7550b4f6338d30606e6a3d4f))
+* **signup:** show previously approved prog point on review embed ([#1493](https://github.com/ssilve1989/ulti-project/issues/1493)) ([ac30593](https://github.com/ssilve1989/ulti-project/commit/ac3059310b2cd4a7d42ce565e987ad46ac1c886c))
+
+
+### Bug Fixes
+
+* **signup:** only reconcile the approval announcement for /edit-signup ([#1497](https://github.com/ssilve1989/ulti-project/issues/1497)) ([8446fe5](https://github.com/ssilve1989/ulti-project/commit/8446fe52d8497f4cd8356d6ba5afa69d2126a6f1))
+
 ## [2.6.6](https://github.com/ssilve1989/ulti-project/compare/v2.6.5...v2.6.6) (2026-09-10)
 
 
