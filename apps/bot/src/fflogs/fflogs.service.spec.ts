@@ -1,6 +1,11 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { expiredReportError } from './fflogs.consts.js';
 import { FFLogsService } from './fflogs.service.js';
+
+// Midday UTC keeps the +1_000_000ms offsets used below from crossing a
+// calendar-day boundary, which previously made age-in-days assertions flaky
+// whenever the suite happened to run within ~16 minutes of real midnight.
+const MOCKED_NOW = new Date('2024-01-15T12:00:00.000Z');
 
 describe('FFLogsService', () => {
   let service: FFLogsService;
@@ -15,6 +20,15 @@ describe('FFLogsService', () => {
   });
 
   describe('validateReportAge', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date', 'Temporal'] });
+      vi.setSystemTime(MOCKED_NOW);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     test('should return valid for report within 28 days', async () => {
       const recentDate = Temporal.Now.zonedDateTimeISO().subtract({
         days: 15,
