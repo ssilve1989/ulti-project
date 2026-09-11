@@ -54,11 +54,11 @@ export class ApprovalDecisionRequestService {
 
     try {
       return await this.collectDecision(message, reviewer, selectRow);
-    } finally {
-      // Clear components regardless of success or error. On the success
-      // paths this is a harmless no-op (the resolving interaction already
-      // cleared them); on a timeout it's the only thing that does.
+    } catch (error) {
+      // The resolving interaction already clears components on every
+      // success path, so this is only needed to clean up after a timeout.
       await message.edit({ components: [] });
+      throw error;
     }
   }
 
@@ -78,11 +78,12 @@ export class ApprovalDecisionRequestService {
     selectRow: ActionRowBuilder<StringSelectMenuBuilder>,
   ): Promise<ApprovalDecision> {
     const deadline = Date.now() + APPROVAL_DECISION_TIMEOUT_MS;
+    const filter = isSameUserFilter(reviewer);
     let progPoint: string | undefined;
 
     for (;;) {
       const interaction = await message.awaitMessageComponent({
-        filter: isSameUserFilter(reviewer),
+        filter,
         time: this.remainingTime(deadline),
       });
 

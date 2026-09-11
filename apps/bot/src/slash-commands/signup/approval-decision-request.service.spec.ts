@@ -29,6 +29,8 @@ import { SIGNUP_MESSAGES } from './signup.consts.js';
 
 describe('ApprovalDecisionRequestService', () => {
   let service: ApprovalDecisionRequestService;
+  let discordService: Mocked<DiscordService>;
+  let encountersComponentsService: Mocked<EncountersComponentsService>;
   let reviewer: User;
 
   beforeEach(async () => {
@@ -39,6 +41,8 @@ describe('ApprovalDecisionRequestService', () => {
       .compile();
 
     service = fixture.get(ApprovalDecisionRequestService);
+    discordService = fixture.get(DiscordService);
+    encountersComponentsService = fixture.get(EncountersComponentsService);
     reviewer = mockOf<User>({ id: 'reviewerId' });
   });
 
@@ -47,6 +51,8 @@ describe('ApprovalDecisionRequestService', () => {
   });
 
   describe('collectDecision', () => {
+    const selectRow = mockOf<ActionRowBuilder<StringSelectMenuBuilder>>({});
+
     const buildSelectInteraction = (progPoint: string) =>
       mockOf<StringSelectMenuInteraction>({
         customId: PROG_POINT_SELECT_ID,
@@ -98,7 +104,7 @@ describe('ApprovalDecisionRequestService', () => {
       const result = await service['collectDecision'](
         message,
         reviewer,
-        mockOf<ActionRowBuilder<StringSelectMenuBuilder>>({}),
+        selectRow,
       );
 
       expect(result).toEqual({ progPoint: 'point-a' });
@@ -123,7 +129,7 @@ describe('ApprovalDecisionRequestService', () => {
       const result = await service['collectDecision'](
         message,
         reviewer,
-        mockOf<ActionRowBuilder<StringSelectMenuBuilder>>({}),
+        selectRow,
       );
 
       expect(result).toEqual({ progPoint: 'point-a', comment: 'Great job!' });
@@ -146,7 +152,7 @@ describe('ApprovalDecisionRequestService', () => {
       const result = await service['collectDecision'](
         message,
         reviewer,
-        mockOf<ActionRowBuilder<StringSelectMenuBuilder>>({}),
+        selectRow,
       );
 
       expect(result).toEqual({ progPoint: 'point-a', comment: undefined });
@@ -166,7 +172,7 @@ describe('ApprovalDecisionRequestService', () => {
       const result = await service['collectDecision'](
         message,
         reviewer,
-        mockOf<ActionRowBuilder<StringSelectMenuBuilder>>({}),
+        selectRow,
       );
 
       expect(earlyApprove.reply).toHaveBeenCalledWith({
@@ -183,11 +189,7 @@ describe('ApprovalDecisionRequestService', () => {
       const message = mockOf<Message>({ awaitMessageComponent });
 
       await expect(
-        service['collectDecision'](
-          message,
-          reviewer,
-          mockOf<ActionRowBuilder<StringSelectMenuBuilder>>({}),
-        ),
+        service['collectDecision'](message, reviewer, selectRow),
       ).rejects.toThrow('collector timed out');
     });
 
@@ -201,11 +203,7 @@ describe('ApprovalDecisionRequestService', () => {
       const message = mockOf<Message>({ awaitMessageComponent });
 
       await expect(
-        service['collectDecision'](
-          message,
-          reviewer,
-          mockOf<ActionRowBuilder<StringSelectMenuBuilder>>({}),
-        ),
+        service['collectDecision'](message, reviewer, selectRow),
       ).rejects.toThrow('collector timed out');
     });
 
@@ -222,11 +220,7 @@ describe('ApprovalDecisionRequestService', () => {
       const message = mockOf<Message>({ awaitMessageComponent });
 
       await expect(
-        service['collectDecision'](
-          message,
-          reviewer,
-          mockOf<ActionRowBuilder<StringSelectMenuBuilder>>({}),
-        ),
+        service['collectDecision'](message, reviewer, selectRow),
       ).rejects.toThrow('modal timed out');
     });
   });
@@ -256,17 +250,6 @@ describe('ApprovalDecisionRequestService', () => {
 
   describe('requestApprovalDecision', () => {
     it('sends the DM with a disabled button row and cleans up components afterward', async () => {
-      const fixture: TestingModule = await Test.createTestingModule({
-        providers: [ApprovalDecisionRequestService],
-      })
-        .useMocker(createAutoMock)
-        .compile();
-      const requestService = fixture.get(ApprovalDecisionRequestService);
-      const discordService: Mocked<DiscordService> =
-        fixture.get(DiscordService);
-      const encountersComponentsService: Mocked<EncountersComponentsService> =
-        fixture.get(EncountersComponentsService);
-
       encountersComponentsService.createProgPointSelectMenu.mockResolvedValue(
         mockOf<StringSelectMenuBuilder>({}),
       );
@@ -284,7 +267,7 @@ describe('ApprovalDecisionRequestService', () => {
       const sourceEmbed = mockOf<Embed>({});
 
       await expect(
-        requestService.requestApprovalDecision(signup, sourceEmbed, reviewer),
+        service.requestApprovalDecision(signup, sourceEmbed, reviewer),
       ).rejects.toThrow('collector timed out');
 
       expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
