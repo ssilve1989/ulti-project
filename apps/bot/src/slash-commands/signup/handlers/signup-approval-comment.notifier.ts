@@ -6,7 +6,7 @@ import {
 } from '@ulti-project/shared';
 import { EmbedBuilder, type Message } from 'discord.js';
 import { DiscordService } from '../../../discord/discord.service.js';
-import { reportReviewFlowError } from '../review-dm-flow.helpers.js';
+import { reportReviewFlowError } from '../reviewer-follow-up-dm.helpers.js';
 
 /**
  * DMs the signee the reviewer's optional approval comment. Called directly by

@@ -24,7 +24,7 @@ import {
   CUSTOM_DECLINE_REASON_MODAL_ID,
   DECLINE_REASON_SELECT_ID,
 } from './decline-reason.components.js';
-import { ReviewDmFlowService } from './review-dm-flow.service.js';
+import { ReviewerFollowUpDmService } from './reviewer-follow-up-dm.service.js';
 import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
 
 const unknownInteractionError = () =>
@@ -42,8 +42,8 @@ const collectorTimeoutError = () =>
     code: 'InteractionCollectorError',
   });
 
-describe('ReviewDmFlowService', () => {
-  let service: ReviewDmFlowService;
+describe('ReviewerFollowUpDmService', () => {
+  let service: ReviewerFollowUpDmService;
   let discordService: Mocked<DiscordService>;
   let signup: SignupDocument;
   let reviewer: User;
@@ -51,12 +51,12 @@ describe('ReviewDmFlowService', () => {
 
   beforeEach(async () => {
     const fixture: TestingModule = await Test.createTestingModule({
-      providers: [ReviewDmFlowService],
+      providers: [ReviewerFollowUpDmService],
     })
       .useMocker(createAutoMock)
       .compile();
 
-    service = fixture.get(ReviewDmFlowService);
+    service = fixture.get(ReviewerFollowUpDmService);
     discordService = fixture.get(DiscordService);
 
     signup = partialMock<SignupDocument>({

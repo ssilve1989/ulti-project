@@ -17,7 +17,7 @@ import { SignupCommandHandler } from './handlers/signup.command-handler.js';
 import { SignupApprovalCommentNotifier } from './handlers/signup-approval-comment.notifier.js';
 import { SignupDeclineReasonNotifier } from './handlers/signup-decline-reason.notifier.js';
 import { UpdateApprovalEmbedEventHandler } from './handlers/signup-embed.event-handler.js';
-import { ReviewDmFlowService } from './review-dm-flow.service.js';
+import { ReviewerFollowUpDmService } from './reviewer-follow-up-dm.service.js';
 import { SignupSagas } from './signup.sagas.js';
 import { SignupService } from './signup.service.js';
 import { SignupMutationService } from './signup-mutation.service.js';
@@ -38,7 +38,7 @@ import { SignupMutationService } from './signup-mutation.service.js';
     ClearApprovalMessageOnDeclineEventHandler,
     RequestApprovalCommentEventHandler,
     RequestDeclineReasonEventHandler,
-    ReviewDmFlowService,
+    ReviewerFollowUpDmService,
     SendApprovedMessageEventHandler,
     SendSignupReviewCommandHandler,
     SignupApprovalCommentNotifier,

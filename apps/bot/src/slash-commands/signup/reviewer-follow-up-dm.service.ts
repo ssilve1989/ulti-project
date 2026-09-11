@@ -5,11 +5,7 @@ import {
   ActionRowBuilder,
   type ButtonInteraction,
   ComponentType,
-  type InteractionResponse,
-  type MappedInteractionTypes,
-  type Message,
   type MessageComponentInteraction,
-  type MessageComponentType,
   MessageFlags,
   type RepliableInteraction,
   type StringSelectMenuInteraction,
@@ -39,22 +35,26 @@ import {
 import {
   reportReviewFlowError,
   showModalOrAskRetry,
-} from './review-dm-flow.helpers.js';
+} from './reviewer-follow-up-dm.helpers.js';
 import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
 
 /** Each step of a review DM (button/select, then modal) times out after this. */
 const STEP_TIMEOUT_MS = 5 * 60 * 1000;
 
-const signupKey = (signup: SignupDocument): string =>
+/** The composite key used throughout the signup flow to identify a signup in logs and component custom ids. */
+export const signupKey = (signup: SignupDocument): string =>
   `${signup.discordId}-${signup.encounter}`;
 
 /**
- * Outcome of one pass of an interaction handler inside `runComponentRetryLoop`:
- * `done` with the collected value (which may be `undefined` — skipped, blank),
- * or not done, meaning a modal failed to open and the trigger should be
- * re-offered against the bounded retry budget.
+ * Sentinel returned by a step handler when a modal failed to open and the
+ * trigger should be re-offered against the bounded retry budget. Distinct
+ * from `undefined`, which means the flow settled with no collected value
+ * (skipped, blank, or a mismatched modal submission).
  */
-type StepResult = { done: true; value: string | undefined } | { done: false };
+const RETRY = Symbol('retry');
+
+/** Outcome of one pass of a step handler inside `runRetryLoop`. */
+type StepOutcome = string | undefined | typeof RETRY;
 
 /**
  * Drives the optional follow-up DM a reviewer gets after approving or declining
@@ -65,8 +65,8 @@ type StepResult = { done: true; value: string | undefined } | { done: false };
  * signee are the caller's job, once it holds the value.
  */
 @Injectable()
-export class ReviewDmFlowService {
-  private readonly logger = new Logger(ReviewDmFlowService.name);
+export class ReviewerFollowUpDmService {
+  private readonly logger = new Logger(ReviewerFollowUpDmService.name);
 
   constructor(private readonly discordService: DiscordService) {}
 
@@ -95,13 +95,16 @@ export class ReviewDmFlowService {
         },
       );
 
-      return await this.runComponentRetryLoop(
-        dmMessage,
-        reviewer,
-        ComponentType.Button,
-        (interaction) => this.handleCommentButton(interaction, signupId),
-        signupId,
-      );
+      return await this.runRetryLoop(signupId, async () => {
+        const interaction =
+          await dmMessage.awaitMessageComponent<ComponentType.Button>({
+            filter: isSameUserFilter(reviewer),
+            componentType: ComponentType.Button,
+            time: STEP_TIMEOUT_MS,
+          });
+
+        return this.handleCommentButton(interaction, signupId);
+      });
     } catch (error) {
       return this.settleFlowError(error, signupId, 'approval-comment', {
         signup,
@@ -113,7 +116,7 @@ export class ReviewDmFlowService {
   private async handleCommentButton(
     interaction: ButtonInteraction,
     signupId: string,
-  ): Promise<StepResult> {
+  ): Promise<StepOutcome> {
     if (
       interaction.customId === `${APPROVAL_COMMENT_SKIP_BUTTON_ID}-${signupId}`
     ) {
@@ -121,7 +124,7 @@ export class ReviewDmFlowService {
         interaction,
         '✅ Approval sent without a comment.',
       );
-      return { done: true, value: undefined };
+      return undefined;
     }
 
     const shown = await showModalOrAskRetry(
@@ -136,18 +139,16 @@ export class ReviewDmFlowService {
     );
 
     if (!shown) {
-      return { done: false };
+      return RETRY;
     }
 
-    const comment = await this.awaitModalValue(interaction, {
+    return this.awaitModalValue(interaction, {
       modalId: `${APPROVAL_COMMENT_MODAL_ID}-${signupId}`,
       inputId: APPROVAL_COMMENT_INPUT_ID,
       ackWith: (value) =>
         `✅ Comment saved — it'll reach the user with their approval:\n>>> ${value}`,
       ackWithout: '✅ Approval sent without a comment.',
     });
-
-    return { done: true, value: comment };
   }
 
   // ---------------------------------------------------------------------------
@@ -175,13 +176,16 @@ export class ReviewDmFlowService {
         },
       );
 
-      return await this.runComponentRetryLoop(
-        dmMessage,
-        reviewer,
-        ComponentType.StringSelect,
-        (interaction) => this.handleReasonSelection(interaction, signupId),
-        signupId,
-      );
+      return await this.runRetryLoop(signupId, async () => {
+        const interaction =
+          await dmMessage.awaitMessageComponent<ComponentType.StringSelect>({
+            filter: isSameUserFilter(reviewer),
+            componentType: ComponentType.StringSelect,
+            time: STEP_TIMEOUT_MS,
+          });
+
+        return this.handleReasonSelection(interaction, signupId);
+      });
     } catch (error) {
       return this.settleFlowError(error, signupId, 'decline-reason', {
         signup,
@@ -193,7 +197,7 @@ export class ReviewDmFlowService {
   private async handleReasonSelection(
     interaction: StringSelectMenuInteraction,
     signupId: string,
-  ): Promise<StepResult> {
+  ): Promise<StepOutcome> {
     const selectedValue = interaction.values[0];
 
     if (selectedValue !== CUSTOM_DECLINE_REASON_VALUE) {
@@ -201,7 +205,7 @@ export class ReviewDmFlowService {
         interaction,
         `✅ Decline reason recorded: "${selectedValue}"`,
       );
-      return { done: true, value: selectedValue };
+      return selectedValue;
     }
 
     const shown = await showModalOrAskRetry(
@@ -216,17 +220,15 @@ export class ReviewDmFlowService {
     );
 
     if (!shown) {
-      return { done: false };
+      return RETRY;
     }
 
-    const reason = await this.awaitModalValue(interaction, {
+    return this.awaitModalValue(interaction, {
       modalId: `${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupId}`,
       inputId: CUSTOM_DECLINE_REASON_INPUT_ID,
       ackWith: (value) => `✅ Custom decline reason recorded: "${value}"`,
       ackWithout: '✅ Decline sent without a specific reason.',
     });
-
-    return { done: true, value: reason };
   }
 
   // ---------------------------------------------------------------------------
@@ -234,34 +236,24 @@ export class ReviewDmFlowService {
   // ---------------------------------------------------------------------------
 
   /**
-   * Wait for the reviewer to act on the DM's component. `handleStep` resolves
-   * `{ done: true, value }` once the flow is settled, or `{ done: false }` when
-   * a modal failed to open — the latter re-offers the trigger against the
-   * bounded `MAX_MODAL_SHOW_ATTEMPTS` budget. A spent budget resolves to
+   * Run `step` — which awaits the reviewer's next component interaction and
+   * handles it — against the bounded `MAX_MODAL_SHOW_ATTEMPTS` retry budget.
+   * `step` resolves the collected value (possibly `undefined` — skipped,
+   * blank) once settled, or the `RETRY` sentinel when a modal failed to open,
+   * which re-runs `step` to re-offer the trigger. A spent budget resolves to
    * `undefined`; a collector timeout or any other rejection propagates to the
    * caller's `catch`.
    */
-  private async runComponentRetryLoop<T extends MessageComponentType>(
-    dmMessage: Message<false> | InteractionResponse<false>,
-    reviewer: User,
-    componentType: T,
-    handleStep: (
-      interaction: MappedInteractionTypes<false>[T],
-    ) => Promise<StepResult>,
+  private async runRetryLoop(
     signupId: string,
+    step: () => Promise<StepOutcome>,
   ): Promise<string | undefined> {
     let attempts = 0;
 
     while (attempts < MAX_MODAL_SHOW_ATTEMPTS) {
-      const interaction = await dmMessage.awaitMessageComponent({
-        filter: isSameUserFilter(reviewer),
-        componentType,
-        time: STEP_TIMEOUT_MS,
-      });
-
-      const result = await handleStep(interaction);
-      if (result.done) {
-        return result.value;
+      const result = await step();
+      if (result !== RETRY) {
+        return result;
       }
 
       attempts++;

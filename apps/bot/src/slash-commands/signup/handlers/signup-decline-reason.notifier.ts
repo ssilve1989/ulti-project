@@ -3,7 +3,7 @@ import type { SignupDocument } from '@ulti-project/shared';
 import { EmbedBuilder, type Message } from 'discord.js';
 import { getFirstEmbed } from '../../../discord/discord.helpers.js';
 import { DiscordService } from '../../../discord/discord.service.js';
-import { reportReviewFlowError } from '../review-dm-flow.helpers.js';
+import { reportReviewFlowError } from '../reviewer-follow-up-dm.helpers.js';
 import {
   DEFAULT_DECLINE_FOLLOWUP_MESSAGES,
   SIGNUP_DECLINE_REASONS_CONFIG,

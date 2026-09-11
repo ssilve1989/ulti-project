@@ -10,13 +10,13 @@ import {
   partialMock,
 } from '../../../test-utils/mock-factory.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
-import { ReviewDmFlowService } from '../review-dm-flow.service.js';
+import { ReviewerFollowUpDmService } from '../reviewer-follow-up-dm.service.js';
 import { RequestApprovalCommentEventHandler } from './request-approval-comment.event-handler.js';
 import { SignupApprovalCommentNotifier } from './signup-approval-comment.notifier.js';
 
 describe('RequestApprovalCommentEventHandler', () => {
   let handler: RequestApprovalCommentEventHandler;
-  let reviewDmFlowService: Mocked<ReviewDmFlowService>;
+  let reviewerFollowUpDmService: Mocked<ReviewerFollowUpDmService>;
   let signupCollection: Mocked<SignupCollection>;
   let notifier: Mocked<SignupApprovalCommentNotifier>;
   let signup: SignupDocument;
@@ -43,7 +43,7 @@ describe('RequestApprovalCommentEventHandler', () => {
       .compile();
 
     handler = fixture.get(RequestApprovalCommentEventHandler);
-    reviewDmFlowService = fixture.get(ReviewDmFlowService);
+    reviewerFollowUpDmService = fixture.get(ReviewerFollowUpDmService);
     signupCollection = fixture.get(SignupCollection);
     notifier = fixture.get(SignupApprovalCommentNotifier);
 
@@ -60,19 +60,23 @@ describe('RequestApprovalCommentEventHandler', () => {
   it('does nothing for an /edit-signup re-approval', async () => {
     await handler.handle(event('edit'));
 
-    expect(reviewDmFlowService.collectApprovalComment).not.toHaveBeenCalled();
+    expect(
+      reviewerFollowUpDmService.collectApprovalComment,
+    ).not.toHaveBeenCalled();
     expect(signupCollection.updateApprovalComment).not.toHaveBeenCalled();
     expect(notifier.notify).not.toHaveBeenCalled();
   });
 
   it('persists the comment and DMs the user when the reviewer adds one', async () => {
-    reviewDmFlowService.collectApprovalComment.mockResolvedValue(
+    reviewerFollowUpDmService.collectApprovalComment.mockResolvedValue(
       'great logs, welcome!',
     );
 
     await handler.handle(event('approval'));
 
-    expect(reviewDmFlowService.collectApprovalComment).toHaveBeenCalledWith(
+    expect(
+      reviewerFollowUpDmService.collectApprovalComment,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({ discordId: 'user-1' }),
       reviewer,
     );
@@ -88,7 +92,9 @@ describe('RequestApprovalCommentEventHandler', () => {
   });
 
   it('does nothing further when no comment was collected', async () => {
-    reviewDmFlowService.collectApprovalComment.mockResolvedValue(undefined);
+    reviewerFollowUpDmService.collectApprovalComment.mockResolvedValue(
+      undefined,
+    );
 
     await handler.handle(event('approval'));
 
@@ -97,7 +103,7 @@ describe('RequestApprovalCommentEventHandler', () => {
   });
 
   it('skips the write for a cleared signup but still DMs the comment', async () => {
-    reviewDmFlowService.collectApprovalComment.mockResolvedValue('gg');
+    reviewerFollowUpDmService.collectApprovalComment.mockResolvedValue('gg');
 
     await handler.handle(
       event('approval', { partyStatus: PartyStatus.Cleared }),
@@ -112,7 +118,9 @@ describe('RequestApprovalCommentEventHandler', () => {
   });
 
   it('still DMs the comment when the standalone write fails', async () => {
-    reviewDmFlowService.collectApprovalComment.mockResolvedValue('welcome');
+    reviewerFollowUpDmService.collectApprovalComment.mockResolvedValue(
+      'welcome',
+    );
     signupCollection.updateApprovalComment.mockRejectedValue(
       new Error('firestore down'),
     );
@@ -127,7 +135,7 @@ describe('RequestApprovalCommentEventHandler', () => {
   });
 
   it('does not throw when the collection flow itself fails', async () => {
-    reviewDmFlowService.collectApprovalComment.mockRejectedValue(
+    reviewerFollowUpDmService.collectApprovalComment.mockRejectedValue(
       new Error('collector blew up'),
     );
 

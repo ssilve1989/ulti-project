@@ -3,8 +3,11 @@ import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import { PartyStatus } from '@ulti-project/shared';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
-import { reportReviewFlowError } from '../review-dm-flow.helpers.js';
-import { ReviewDmFlowService } from '../review-dm-flow.service.js';
+import { reportReviewFlowError } from '../reviewer-follow-up-dm.helpers.js';
+import {
+  ReviewerFollowUpDmService,
+  signupKey,
+} from '../reviewer-follow-up-dm.service.js';
 import { SignupApprovalCommentNotifier } from './signup-approval-comment.notifier.js';
 
 /**
@@ -20,7 +23,7 @@ export class RequestApprovalCommentEventHandler
   private readonly logger = new Logger(RequestApprovalCommentEventHandler.name);
 
   constructor(
-    private readonly reviewDmFlowService: ReviewDmFlowService,
+    private readonly reviewerFollowUpDmService: ReviewerFollowUpDmService,
     private readonly signupCollection: SignupCollection,
     private readonly notifier: SignupApprovalCommentNotifier,
   ) {}
@@ -35,13 +38,14 @@ export class RequestApprovalCommentEventHandler
       return;
     }
 
-    const signupId = `${signup.discordId}-${signup.encounter}`;
+    const signupId = signupKey(signup);
 
     try {
-      const comment = await this.reviewDmFlowService.collectApprovalComment(
-        signup,
-        reviewedBy,
-      );
+      const comment =
+        await this.reviewerFollowUpDmService.collectApprovalComment(
+          signup,
+          reviewedBy,
+        );
 
       if (!comment) {
         return;

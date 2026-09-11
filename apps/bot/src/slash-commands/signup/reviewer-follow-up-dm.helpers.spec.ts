@@ -6,7 +6,7 @@ import {
 } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import { mockOf } from '../../test-utils/mock-factory.js';
-import { showModalOrAskRetry } from './review-dm-flow.helpers.js';
+import { showModalOrAskRetry } from './reviewer-follow-up-dm.helpers.js';
 
 const unknownInteractionError = () =>
   new DiscordAPIError(

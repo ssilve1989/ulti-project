@@ -2,8 +2,11 @@ import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { SignupDeclinedEvent } from '../events/signup.events.js';
-import { reportReviewFlowError } from '../review-dm-flow.helpers.js';
-import { ReviewDmFlowService } from '../review-dm-flow.service.js';
+import { reportReviewFlowError } from '../reviewer-follow-up-dm.helpers.js';
+import {
+  ReviewerFollowUpDmService,
+  signupKey,
+} from '../reviewer-follow-up-dm.service.js';
 import { SignupDeclineReasonNotifier } from './signup-decline-reason.notifier.js';
 
 /**
@@ -19,7 +22,7 @@ export class RequestDeclineReasonEventHandler
   private readonly logger = new Logger(RequestDeclineReasonEventHandler.name);
 
   constructor(
-    private readonly reviewDmFlowService: ReviewDmFlowService,
+    private readonly reviewerFollowUpDmService: ReviewerFollowUpDmService,
     private readonly signupCollection: SignupCollection,
     private readonly notifier: SignupDeclineReasonNotifier,
   ) {}
@@ -34,10 +37,10 @@ export class RequestDeclineReasonEventHandler
       return;
     }
 
-    const signupId = `${signup.discordId}-${signup.encounter}`;
+    const signupId = signupKey(signup);
 
     try {
-      const reason = await this.reviewDmFlowService.collectDeclineReason(
+      const reason = await this.reviewerFollowUpDmService.collectDeclineReason(
         signup,
         reviewedBy,
       );

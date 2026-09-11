@@ -9,13 +9,13 @@ import {
   partialMock,
 } from '../../../test-utils/mock-factory.js';
 import { SignupDeclinedEvent } from '../events/signup.events.js';
-import { ReviewDmFlowService } from '../review-dm-flow.service.js';
+import { ReviewerFollowUpDmService } from '../reviewer-follow-up-dm.service.js';
 import { RequestDeclineReasonEventHandler } from './request-decline-reason.event-handler.js';
 import { SignupDeclineReasonNotifier } from './signup-decline-reason.notifier.js';
 
 describe('RequestDeclineReasonEventHandler', () => {
   let handler: RequestDeclineReasonEventHandler;
-  let reviewDmFlowService: Mocked<ReviewDmFlowService>;
+  let reviewerFollowUpDmService: Mocked<ReviewerFollowUpDmService>;
   let signupCollection: Mocked<SignupCollection>;
   let notifier: Mocked<SignupDeclineReasonNotifier>;
   let signup: SignupDocument;
@@ -33,7 +33,7 @@ describe('RequestDeclineReasonEventHandler', () => {
       .compile();
 
     handler = fixture.get(RequestDeclineReasonEventHandler);
-    reviewDmFlowService = fixture.get(ReviewDmFlowService);
+    reviewerFollowUpDmService = fixture.get(ReviewerFollowUpDmService);
     signupCollection = fixture.get(SignupCollection);
     notifier = fixture.get(SignupDeclineReasonNotifier);
 
@@ -50,19 +50,21 @@ describe('RequestDeclineReasonEventHandler', () => {
   it('does nothing for an /edit-signup re-decline', async () => {
     await handler.handle(event('edit'));
 
-    expect(reviewDmFlowService.collectDeclineReason).not.toHaveBeenCalled();
+    expect(
+      reviewerFollowUpDmService.collectDeclineReason,
+    ).not.toHaveBeenCalled();
     expect(signupCollection.updateDeclineReason).not.toHaveBeenCalled();
     expect(notifier.notify).not.toHaveBeenCalled();
   });
 
   it('persists the reason and DMs the user when the reviewer gives one', async () => {
-    reviewDmFlowService.collectDeclineReason.mockResolvedValue(
+    reviewerFollowUpDmService.collectDeclineReason.mockResolvedValue(
       'Not enough logs',
     );
 
     await handler.handle(event('decline'));
 
-    expect(reviewDmFlowService.collectDeclineReason).toHaveBeenCalledWith(
+    expect(reviewerFollowUpDmService.collectDeclineReason).toHaveBeenCalledWith(
       signup,
       reviewer,
     );
@@ -78,7 +80,7 @@ describe('RequestDeclineReasonEventHandler', () => {
   });
 
   it('skips the write but still DMs the generic denial when no reason was given', async () => {
-    reviewDmFlowService.collectDeclineReason.mockResolvedValue(undefined);
+    reviewerFollowUpDmService.collectDeclineReason.mockResolvedValue(undefined);
 
     await handler.handle(event('decline'));
 
@@ -87,7 +89,9 @@ describe('RequestDeclineReasonEventHandler', () => {
   });
 
   it('still DMs the reason when the standalone write fails', async () => {
-    reviewDmFlowService.collectDeclineReason.mockResolvedValue('too fresh');
+    reviewerFollowUpDmService.collectDeclineReason.mockResolvedValue(
+      'too fresh',
+    );
     signupCollection.updateDeclineReason.mockRejectedValue(
       new Error('firestore down'),
     );
@@ -98,7 +102,7 @@ describe('RequestDeclineReasonEventHandler', () => {
   });
 
   it('does not throw when the collection flow itself fails', async () => {
-    reviewDmFlowService.collectDeclineReason.mockRejectedValue(
+    reviewerFollowUpDmService.collectDeclineReason.mockRejectedValue(
       new Error('collector blew up'),
     );
 
