@@ -19,10 +19,15 @@ class SendApprovalCommentDmEventHandler
     }
 
     try {
+      const quotedComment = event.comment
+        .split('\n')
+        .map((line) => `> ${line}`)
+        .join('\n');
+
       await this.discordService.sendDirectMessage(event.signup.discordId, {
         content: `Your signup for **${
           EncounterFriendlyDescription[event.signup.encounter]
-        }** was approved. The reviewer left you a comment:\n\n> ${event.comment}`,
+        }** was approved. The reviewer left you a comment:\n\n${quotedComment}`,
       });
     } catch (error) {
       this.logger.error(

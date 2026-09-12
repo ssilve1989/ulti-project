@@ -58,6 +58,27 @@ describe('SendApprovalCommentDmEventHandler', () => {
     );
   });
 
+  it('quotes every line of a multi-line comment', async () => {
+    const event = new SignupApprovedEvent(
+      signup,
+      settings,
+      reviewedBy,
+      message,
+      'Great clear!\nWatch your uptime next time.',
+    );
+
+    await handler.handle(event);
+
+    expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
+      'applicantId',
+      expect.objectContaining({
+        content: expect.stringContaining(
+          '> Great clear!\n> Watch your uptime next time.',
+        ),
+      }),
+    );
+  });
+
   it('does nothing when no comment is present', async () => {
     const event = new SignupApprovedEvent(
       signup,
