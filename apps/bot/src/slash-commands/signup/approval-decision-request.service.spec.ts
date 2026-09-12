@@ -158,6 +158,7 @@ describe('ApprovalDecisionRequestService', () => {
         isButton: () => true,
         update: vi.fn().mockResolvedValue(undefined),
         reply: vi.fn().mockResolvedValue(undefined),
+        followUp: vi.fn().mockResolvedValue(undefined),
       });
 
     const buildApproveWithCommentInteraction = (
@@ -190,6 +191,7 @@ describe('ApprovalDecisionRequestService', () => {
         fields: { getTextInputValue: vi.fn().mockReturnValue(comment) },
         isFromMessage: () => true,
         update: vi.fn().mockResolvedValue(undefined),
+        followUp: vi.fn().mockResolvedValue(undefined),
       });
 
     it('resolves with just the prog point when Approve is pressed', async () => {
@@ -211,6 +213,9 @@ describe('ApprovalDecisionRequestService', () => {
       expect(approveInteraction.update).toHaveBeenCalledWith({
         components: [],
       });
+      expect(approveInteraction.followUp).toHaveBeenCalledWith(
+        SIGNUP_MESSAGES.APPROVAL_CONFIRMATION_RECEIVED,
+      );
       expect(fake.stop).toHaveBeenCalledTimes(1);
     });
 
@@ -254,6 +259,9 @@ describe('ApprovalDecisionRequestService', () => {
       });
       expect(approveWithCommentInteraction.showModal).toHaveBeenCalled();
       expect(modalSubmit.update).toHaveBeenCalledWith({ components: [] });
+      expect(modalSubmit.followUp).toHaveBeenCalledWith(
+        SIGNUP_MESSAGES.APPROVAL_CONFIRMATION_RECEIVED,
+      );
     });
 
     it('asks the reviewer to retry and keeps collecting when the modal token has already expired', async () => {

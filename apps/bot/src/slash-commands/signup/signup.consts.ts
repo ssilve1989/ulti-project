@@ -1,6 +1,7 @@
 import type { SignupStatusValues } from '@ulti-project/shared';
 
 export const SIGNUP_MESSAGES = {
+  APPROVAL_CONFIRMATION_RECEIVED: 'Confirmation Received!',
   CONFIRMATION_TIMEOUT:
     'Confirmation not received within 1 minute, cancelling signup. Please use /signup if you wish to try again.',
   MISSING_SIGNUP_REVIEW_CHANNEL:

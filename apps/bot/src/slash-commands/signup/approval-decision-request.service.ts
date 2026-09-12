@@ -193,6 +193,9 @@ export class ApprovalDecisionRequestService {
 
     if (interaction.customId === APPROVE_BUTTON_ID) {
       await interaction.update({ components: [] });
+      await interaction.followUp(
+        SIGNUP_MESSAGES.APPROVAL_CONFIRMATION_RECEIVED,
+      );
       return { progPoint };
     }
 
@@ -240,6 +243,9 @@ export class ApprovalDecisionRequestService {
 
     if (modalInteraction.isFromMessage()) {
       await modalInteraction.update({ components: [] });
+      await modalInteraction.followUp(
+        SIGNUP_MESSAGES.APPROVAL_CONFIRMATION_RECEIVED,
+      );
     }
 
     return comment || undefined;
