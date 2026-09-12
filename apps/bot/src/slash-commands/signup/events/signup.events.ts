@@ -15,6 +15,7 @@ export class SignupApprovedEvent {
     public readonly settings: SettingsDocument,
     public readonly reviewedBy: User,
     public readonly message: Message<true>,
+    public readonly comment?: string,
   ) {}
 }
 
