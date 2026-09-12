@@ -4,9 +4,11 @@ import type { SignupDocument } from '@ulti-project/shared';
 import {
   ActionRowBuilder,
   type ButtonInteraction,
+  DiscordjsErrorCodes,
   type Embed,
   EmbedBuilder,
   type Message,
+  type MessageComponentInteraction,
   MessageFlags,
   type StringSelectMenuBuilder,
   type User,
@@ -29,6 +31,17 @@ const APPROVAL_DECISION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 export interface ApprovalDecision {
   progPoint: string;
   comment?: string;
+}
+
+// discord.js's own DiscordjsError has a private constructor (library-internal
+// use only), but `getErrorReplyMessage` only pattern-matches on `{ code }`
+// structurally — so a plain Error with the same code is all callers need.
+class ApprovalDecisionTimeoutError extends Error {
+  readonly code = DiscordjsErrorCodes.InteractionCollectorError;
+
+  constructor(reason: string) {
+    super(`Approval decision collector ended before resolving: ${reason}`);
+  }
 }
 
 @Injectable()
@@ -72,52 +85,100 @@ export class ApprovalDecisionRequestService {
     return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu);
   }
 
-  private async collectDecision(
+  // A single collector stays registered for the whole decision window,
+  // rather than repeated awaitMessageComponent() calls each opening a fresh
+  // one — that would leave a gap between one collector ending and the next
+  // starting, in which a fast follow-up click has nothing listening for it.
+  private collectDecision(
     message: Message,
     reviewer: User,
     selectRow: ActionRowBuilder<StringSelectMenuBuilder>,
   ): Promise<ApprovalDecision> {
     const deadline = Date.now() + APPROVAL_DECISION_TIMEOUT_MS;
-    const filter = isSameUserFilter(reviewer);
-    let progPoint: string | undefined;
+    const state: { progPoint?: string } = {};
 
-    for (;;) {
-      const interaction = await message.awaitMessageComponent({
-        filter,
-        time: this.remainingTime(deadline),
+    return new Promise<ApprovalDecision>((resolve, reject) => {
+      let settled = false;
+
+      const collector = message.createMessageComponentCollector({
+        filter: isSameUserFilter(reviewer),
+        time: APPROVAL_DECISION_TIMEOUT_MS,
       });
 
-      if (
-        interaction.isStringSelectMenu() &&
-        interaction.customId === PROG_POINT_SELECT_ID
-      ) {
-        progPoint = interaction.values.at(0);
-        await interaction.update({
-          components: [selectRow, createApprovalButtonsRow(false)],
-        });
-        continue;
-      }
+      const settle = (action: () => void) => {
+        settled = true;
+        collector.stop();
+        action();
+      };
 
-      if (interaction.isButton()) {
-        if (!progPoint) {
-          await interaction.reply({
-            content: SIGNUP_MESSAGES.PROG_POINT_REQUIRED_BEFORE_DECISION,
-            flags: MessageFlags.Ephemeral,
-          });
-          continue;
+      collector.on('collect', async (interaction) => {
+        try {
+          const decision = await this.processInteraction(
+            interaction,
+            state,
+            selectRow,
+            deadline,
+          );
+          if (decision) {
+            settle(() => resolve(decision));
+          }
+        } catch (error) {
+          settle(() => reject(error));
         }
+      });
 
-        if (interaction.customId === APPROVE_BUTTON_ID) {
-          await interaction.update({ components: [] });
-          return { progPoint };
+      collector.on('end', (_collected, reason) => {
+        if (!settled) {
+          reject(new ApprovalDecisionTimeoutError(reason));
         }
+      });
+    });
+  }
 
-        if (interaction.customId === APPROVE_WITH_COMMENT_BUTTON_ID) {
-          const comment = await this.collectComment(interaction, deadline);
-          return { progPoint, comment };
-        }
-      }
+  // Handles one collected interaction against the decision so far, mutating
+  // `state` as the prog point is (re)selected. Returns the final decision
+  // once a button resolves it, or undefined while still collecting.
+  private async processInteraction(
+    interaction: MessageComponentInteraction,
+    state: { progPoint?: string },
+    selectRow: ActionRowBuilder<StringSelectMenuBuilder>,
+    deadline: number,
+  ): Promise<ApprovalDecision | undefined> {
+    if (
+      interaction.isStringSelectMenu() &&
+      interaction.customId === PROG_POINT_SELECT_ID
+    ) {
+      state.progPoint = interaction.values.at(0);
+      await interaction.update({
+        components: [selectRow, createApprovalButtonsRow(false)],
+      });
+      return undefined;
     }
+
+    if (!interaction.isButton()) {
+      return undefined;
+    }
+
+    if (!state.progPoint) {
+      await interaction.reply({
+        content: SIGNUP_MESSAGES.PROG_POINT_REQUIRED_BEFORE_DECISION,
+        flags: MessageFlags.Ephemeral,
+      });
+      return undefined;
+    }
+    const progPoint = state.progPoint;
+
+    if (interaction.customId === APPROVE_BUTTON_ID) {
+      await interaction.update({ components: [] });
+      return { progPoint };
+    }
+
+    if (interaction.customId === APPROVE_WITH_COMMENT_BUTTON_ID) {
+      const comment = await this.collectComment(interaction, deadline);
+      return { progPoint, comment };
+    }
+
+    return undefined;
   }
 
   private async collectComment(

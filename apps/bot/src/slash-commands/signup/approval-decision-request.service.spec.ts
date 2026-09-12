@@ -1,16 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Encounter, type SignupDocument } from '@ulti-project/shared';
-import type {
-  ActionRowBuilder,
-  ButtonInteraction,
-  Embed,
-  Message,
-  ModalMessageModalSubmitInteraction,
-  StringSelectMenuBuilder,
-  StringSelectMenuInteraction,
-  User,
+import {
+  type ActionRowBuilder,
+  type ButtonInteraction,
+  DiscordjsErrorCodes,
+  type Embed,
+  type Message,
+  type MessageComponentInteraction,
+  MessageFlags,
+  type ModalMessageModalSubmitInteraction,
+  type StringSelectMenuBuilder,
+  type StringSelectMenuInteraction,
+  type User,
 } from 'discord.js';
-import { MessageFlags } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { PROG_POINT_SELECT_ID } from '../../encounters/encounters.components.js';
@@ -26,6 +28,62 @@ import {
 } from './approval-decision.components.js';
 import { ApprovalDecisionRequestService } from './approval-decision-request.service.js';
 import { SIGNUP_MESSAGES } from './signup.consts.js';
+
+// Stands in for discord.js's InteractionCollector: a single long-lived
+// listener, exactly like the real one, so tests drive the same lifecycle
+// production code relies on (one collector for the whole decision, not a
+// fresh one per interaction).
+function buildFakeCollector() {
+  let collect: ((interaction: MessageComponentInteraction) => unknown) | null =
+    null;
+  let end: ((collected: unknown, reason: string) => void) | null = null;
+  let ended = false;
+  let resolveReady: () => void;
+  // requestApprovalDecision awaits sendDirectMessage before the collector is
+  // even created, so tests can't drive it until both `.on()` calls below have
+  // actually happened — this resolves once they have.
+  const ready = new Promise<void>((resolve) => {
+    resolveReady = resolve;
+  });
+
+  const stop = vi.fn(() => {
+    if (ended) return;
+    ended = true;
+    end?.(new Map(), 'user');
+  });
+
+  const on = vi.fn((event: string, handler: (...args: never[]) => unknown) => {
+    if (event === 'collect') {
+      // biome-ignore lint/nursery/noUnsafeTypeAssertion: narrowing a generic EventEmitter handler back to this fake collector's known event shape, matches project convention
+      collect = handler as (
+        interaction: MessageComponentInteraction,
+      ) => unknown;
+    }
+    if (event === 'end') {
+      // biome-ignore lint/nursery/noUnsafeTypeAssertion: narrowing a generic EventEmitter handler back to this fake collector's known event shape
+      end = handler as (collected: unknown, reason: string) => void;
+      resolveReady();
+    }
+  });
+
+  return {
+    fake: { on, stop },
+    // Simulates one interaction arriving and waits for production code's
+    // (fire-and-forget, from the real EventEmitter's perspective) async
+    // handler to finish before the test asserts on it.
+    collect: async (interaction: MessageComponentInteraction) => {
+      await ready;
+      await collect?.(interaction);
+    },
+    // Simulates the collector's own `time` elapsing with nothing resolved.
+    timeOut: async () => {
+      await ready;
+      if (ended) return;
+      ended = true;
+      end?.(new Map(), 'time');
+    },
+  };
+}
 
 describe('ApprovalDecisionRequestService', () => {
   let service: ApprovalDecisionRequestService;
@@ -52,6 +110,13 @@ describe('ApprovalDecisionRequestService', () => {
 
   describe('collectDecision', () => {
     const selectRow = mockOf<ActionRowBuilder<StringSelectMenuBuilder>>({});
+
+    const buildMessage = (
+      fakeCollector: ReturnType<typeof buildFakeCollector>['fake'],
+    ) =>
+      mockOf<Message>({
+        createMessageComponentCollector: vi.fn().mockReturnValue(fakeCollector),
+      });
 
     const buildSelectInteraction = (progPoint: string) =>
       mockOf<StringSelectMenuInteraction>({
@@ -93,135 +158,144 @@ describe('ApprovalDecisionRequestService', () => {
       });
 
     it('resolves with just the prog point when Approve is pressed', async () => {
-      const selectInteraction = buildSelectInteraction('point-a');
-      const approveInteraction = buildApproveInteraction();
-      const awaitMessageComponent = vi
-        .fn()
-        .mockResolvedValueOnce(selectInteraction)
-        .mockResolvedValueOnce(approveInteraction);
-      const message = mockOf<Message>({ awaitMessageComponent });
-
-      const result = await service['collectDecision'](
+      const { fake, collect } = buildFakeCollector();
+      const message = buildMessage(fake);
+      const resultPromise = service['collectDecision'](
         message,
         reviewer,
         selectRow,
       );
 
-      expect(result).toEqual({ progPoint: 'point-a' });
+      const selectInteraction = buildSelectInteraction('point-a');
+      await collect(selectInteraction);
+      const approveInteraction = buildApproveInteraction();
+      await collect(approveInteraction);
+
+      expect(await resultPromise).toEqual({ progPoint: 'point-a' });
       expect(selectInteraction.update).toHaveBeenCalled();
       expect(approveInteraction.update).toHaveBeenCalledWith({
         components: [],
       });
+      expect(fake.stop).toHaveBeenCalledTimes(1);
     });
 
     it('resolves with a trimmed comment when Approve with Comment is submitted', async () => {
-      const selectInteraction = buildSelectInteraction('point-a');
-      const modalSubmit = buildModalSubmit('  Great job!  ');
-      const approveWithCommentInteraction = buildApproveWithCommentInteraction(
-        vi.fn().mockResolvedValue(modalSubmit),
-      );
-      const awaitMessageComponent = vi
-        .fn()
-        .mockResolvedValueOnce(selectInteraction)
-        .mockResolvedValueOnce(approveWithCommentInteraction);
-      const message = mockOf<Message>({ awaitMessageComponent });
-
-      const result = await service['collectDecision'](
+      const { fake, collect } = buildFakeCollector();
+      const message = buildMessage(fake);
+      const resultPromise = service['collectDecision'](
         message,
         reviewer,
         selectRow,
       );
 
-      expect(result).toEqual({ progPoint: 'point-a', comment: 'Great job!' });
+      await collect(buildSelectInteraction('point-a'));
+      const modalSubmit = buildModalSubmit('  Great job!  ');
+      const approveWithCommentInteraction = buildApproveWithCommentInteraction(
+        vi.fn().mockResolvedValue(modalSubmit),
+      );
+      await collect(approveWithCommentInteraction);
+
+      expect(await resultPromise).toEqual({
+        progPoint: 'point-a',
+        comment: 'Great job!',
+      });
       expect(approveWithCommentInteraction.showModal).toHaveBeenCalled();
       expect(modalSubmit.update).toHaveBeenCalledWith({ components: [] });
     });
 
     it('treats a blank submitted comment as no comment', async () => {
-      const selectInteraction = buildSelectInteraction('point-a');
+      const { fake, collect } = buildFakeCollector();
+      const message = buildMessage(fake);
+      const resultPromise = service['collectDecision'](
+        message,
+        reviewer,
+        selectRow,
+      );
+
+      await collect(buildSelectInteraction('point-a'));
       const modalSubmit = buildModalSubmit('   ');
       const approveWithCommentInteraction = buildApproveWithCommentInteraction(
         vi.fn().mockResolvedValue(modalSubmit),
       );
-      const awaitMessageComponent = vi
-        .fn()
-        .mockResolvedValueOnce(selectInteraction)
-        .mockResolvedValueOnce(approveWithCommentInteraction);
-      const message = mockOf<Message>({ awaitMessageComponent });
+      await collect(approveWithCommentInteraction);
 
-      const result = await service['collectDecision'](
-        message,
-        reviewer,
-        selectRow,
-      );
-
-      expect(result).toEqual({ progPoint: 'point-a', comment: undefined });
+      expect(await resultPromise).toEqual({
+        progPoint: 'point-a',
+        comment: undefined,
+      });
     });
 
     it('replies ephemeral and keeps collecting when a button is pressed before a prog point is selected', async () => {
-      const earlyApprove = buildApproveInteraction();
-      const selectInteraction = buildSelectInteraction('point-a');
-      const approveInteraction = buildApproveInteraction();
-      const awaitMessageComponent = vi
-        .fn()
-        .mockResolvedValueOnce(earlyApprove)
-        .mockResolvedValueOnce(selectInteraction)
-        .mockResolvedValueOnce(approveInteraction);
-      const message = mockOf<Message>({ awaitMessageComponent });
-
-      const result = await service['collectDecision'](
+      const { fake, collect } = buildFakeCollector();
+      const message = buildMessage(fake);
+      const resultPromise = service['collectDecision'](
         message,
         reviewer,
         selectRow,
       );
+
+      const earlyApprove = buildApproveInteraction();
+      await collect(earlyApprove);
+      await collect(buildSelectInteraction('point-a'));
+      await collect(buildApproveInteraction());
 
       expect(earlyApprove.reply).toHaveBeenCalledWith({
         content: SIGNUP_MESSAGES.PROG_POINT_REQUIRED_BEFORE_DECISION,
         flags: MessageFlags.Ephemeral,
       });
-      expect(awaitMessageComponent).toHaveBeenCalledTimes(3);
-      expect(result).toEqual({ progPoint: 'point-a' });
+      expect(await resultPromise).toEqual({ progPoint: 'point-a' });
     });
 
     it('propagates a timeout with nothing captured', async () => {
-      const timeoutError = new Error('collector timed out');
-      const awaitMessageComponent = vi.fn().mockRejectedValue(timeoutError);
-      const message = mockOf<Message>({ awaitMessageComponent });
+      const { fake, timeOut } = buildFakeCollector();
+      const message = buildMessage(fake);
+      const resultPromise = service['collectDecision'](
+        message,
+        reviewer,
+        selectRow,
+      );
 
-      await expect(
-        service['collectDecision'](message, reviewer, selectRow),
-      ).rejects.toThrow('collector timed out');
+      await timeOut();
+
+      await expect(resultPromise).rejects.toMatchObject({
+        code: DiscordjsErrorCodes.InteractionCollectorError,
+      });
     });
 
     it('propagates a timeout after a prog point was selected but before a button was pressed', async () => {
-      const selectInteraction = buildSelectInteraction('point-a');
-      const timeoutError = new Error('collector timed out');
-      const awaitMessageComponent = vi
-        .fn()
-        .mockResolvedValueOnce(selectInteraction)
-        .mockRejectedValueOnce(timeoutError);
-      const message = mockOf<Message>({ awaitMessageComponent });
+      const { fake, collect, timeOut } = buildFakeCollector();
+      const message = buildMessage(fake);
+      const resultPromise = service['collectDecision'](
+        message,
+        reviewer,
+        selectRow,
+      );
 
-      await expect(
-        service['collectDecision'](message, reviewer, selectRow),
-      ).rejects.toThrow('collector timed out');
+      await collect(buildSelectInteraction('point-a'));
+      await timeOut();
+
+      await expect(resultPromise).rejects.toMatchObject({
+        code: DiscordjsErrorCodes.InteractionCollectorError,
+      });
     });
 
     it('propagates a timeout while waiting on the comment modal', async () => {
-      const selectInteraction = buildSelectInteraction('point-a');
+      const { fake, collect } = buildFakeCollector();
+      const message = buildMessage(fake);
+      const resultPromise = service['collectDecision'](
+        message,
+        reviewer,
+        selectRow,
+      );
+
+      await collect(buildSelectInteraction('point-a'));
       const timeoutError = new Error('modal timed out');
       const approveWithCommentInteraction = buildApproveWithCommentInteraction(
         vi.fn().mockRejectedValue(timeoutError),
       );
-      const awaitMessageComponent = vi
-        .fn()
-        .mockResolvedValueOnce(selectInteraction)
-        .mockResolvedValueOnce(approveWithCommentInteraction);
-      const message = mockOf<Message>({ awaitMessageComponent });
+      await collect(approveWithCommentInteraction);
 
-      await expect(
-        service['collectDecision'](message, reviewer, selectRow),
-      ).rejects.toThrow('modal timed out');
+      await expect(resultPromise).rejects.toThrow('modal timed out');
     });
   });
 
@@ -254,11 +328,10 @@ describe('ApprovalDecisionRequestService', () => {
         mockOf<StringSelectMenuBuilder>({}),
       );
 
+      const { fake, timeOut } = buildFakeCollector();
       const edit = vi.fn().mockResolvedValue(undefined);
       const message = mockOf<Message<false>>({
-        awaitMessageComponent: vi
-          .fn()
-          .mockRejectedValue(new Error('collector timed out')),
+        createMessageComponentCollector: vi.fn().mockReturnValue(fake),
         edit,
       });
       discordService.sendDirectMessage.mockResolvedValue(message);
@@ -266,9 +339,16 @@ describe('ApprovalDecisionRequestService', () => {
       const signup = partialMock<SignupDocument>({ encounter: Encounter.DSR });
       const sourceEmbed = mockOf<Embed>({});
 
-      await expect(
-        service.requestApprovalDecision(signup, sourceEmbed, reviewer),
-      ).rejects.toThrow('collector timed out');
+      const resultPromise = service.requestApprovalDecision(
+        signup,
+        sourceEmbed,
+        reviewer,
+      );
+      await timeOut();
+
+      await expect(resultPromise).rejects.toMatchObject({
+        code: DiscordjsErrorCodes.InteractionCollectorError,
+      });
 
       expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
         reviewer.id,
