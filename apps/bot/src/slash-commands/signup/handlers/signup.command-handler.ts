@@ -401,6 +401,8 @@ class SignupCommandHandler implements ISlashCommand {
         },
       );
 
+      await response.deferUpdate();
+
       const signup = await match(response)
         .with({ customId: 'confirm' }, () =>
           this.handleConfirm(signupRequest, interaction),

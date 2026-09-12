@@ -110,6 +110,7 @@ describe('Signup Command Handler', () => {
     confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
       mockOf<ChannelSelectMenuInteraction<'cached'>>({
         customId: 'confirm',
+        deferUpdate: vi.fn().mockResolvedValue(undefined),
       }),
     );
 
@@ -129,6 +130,23 @@ describe('Signup Command Handler', () => {
     );
   });
 
+  it('acknowledges the button click before doing any confirm work', async () => {
+    const deferUpdate = vi.fn().mockResolvedValue(undefined);
+
+    confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
+      mockOf<ChannelSelectMenuInteraction<'cached'>>({
+        customId: 'confirm',
+        deferUpdate,
+      }),
+    );
+
+    interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
+
+    await command.execute(interaction);
+
+    expect(deferUpdate).toHaveBeenCalled();
+  });
+
   it.each([SignupStatus.PENDING, SignupStatus.UPDATE_PENDING])(
     'deletes a prior review message on confirm if it exists and has status %s',
     async (status) => {
@@ -136,6 +154,7 @@ describe('Signup Command Handler', () => {
         mockOf<ChannelSelectMenuInteraction<'cached'>>({
           customId: 'confirm',
           guildId: 'g123',
+          deferUpdate: vi.fn().mockResolvedValue(undefined),
         }),
       );
 
@@ -166,6 +185,7 @@ describe('Signup Command Handler', () => {
         mockOf<ChannelSelectMenuInteraction<'cached'>>({
           customId: 'confirm',
           guildId: 'g123',
+          deferUpdate: vi.fn().mockResolvedValue(undefined),
         }),
       );
 
@@ -190,6 +210,7 @@ describe('Signup Command Handler', () => {
     confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
       mockOf<ChannelSelectMenuInteraction<'cached'>>({
         customId: 'foo',
+        deferUpdate: vi.fn().mockResolvedValue(undefined),
       }),
     );
 
@@ -210,6 +231,7 @@ describe('Signup Command Handler', () => {
     confirmationInteraction.awaitMessageComponent.mockResolvedValueOnce(
       mockOf<ChannelSelectMenuInteraction<'cached'>>({
         customId: 'cancel',
+        deferUpdate: vi.fn().mockResolvedValue(undefined),
       }),
     );
 
