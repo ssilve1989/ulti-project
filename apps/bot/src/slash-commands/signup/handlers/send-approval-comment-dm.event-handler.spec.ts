@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Encounter, type SignupDocument } from '@ulti-project/shared';
-import type { Message, User } from 'discord.js';
+import type { EmbedBuilder, Message, User } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
@@ -36,7 +36,15 @@ describe('SendApprovalCommentDmEventHandler', () => {
     });
     settings = partialMock<SettingsDocument>({});
     reviewedBy = mockOf<User>({ id: 'reviewerId' });
-    message = mockOf<Message<true>>({});
+    message = mockOf<Message<true>>({
+      embeds: [
+        {
+          title: 'Signup Approval - Dragonsong’s Reprise (Ultimate) 🐉',
+          description:
+            'Please react to approve ✅ or deny ❌ the following applicants request',
+        },
+      ],
+    });
   });
 
   it('DMs the applicant when a comment is present', async () => {
@@ -54,8 +62,30 @@ describe('SendApprovalCommentDmEventHandler', () => {
       'applicantId',
       expect.objectContaining({
         content: expect.stringContaining('Great job on this clear!'),
+        embeds: expect.arrayContaining([expect.anything()]),
       }),
     );
+  });
+
+  it('strips the reviewer-facing description and retitles the embed for the applicant', async () => {
+    const event = new SignupApprovedEvent(
+      signup,
+      settings,
+      reviewedBy,
+      message,
+      'Great job on this clear!',
+    );
+
+    await handler.handle(event);
+
+    // biome-ignore lint/nursery/noUnsafeTypeAssertion: mock.calls narrows discord.js's broad send() union to what the handler actually passes, matches project convention
+    const { embeds } = discordService.sendDirectMessage.mock.calls[0][1] as {
+      embeds: EmbedBuilder[];
+    };
+    const [embed] = embeds;
+
+    expect(embed.data.description).toBeUndefined();
+    expect(embed.data.title).toBe('Signup Approved - [DSR] Dragonsong Reprise');
   });
 
   it('quotes every line of a multi-line comment', async () => {

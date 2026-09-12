@@ -3,6 +3,7 @@ import { Encounter, type SignupDocument } from '@ulti-project/shared';
 import {
   type ActionRowBuilder,
   type ButtonInteraction,
+  DiscordAPIError,
   DiscordjsErrorCodes,
   type Embed,
   type Message,
@@ -11,6 +12,7 @@ import {
   type ModalMessageModalSubmitInteraction,
   type StringSelectMenuBuilder,
   type StringSelectMenuInteraction,
+  type StringSelectMenuOptionBuilder,
   type User,
 } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
@@ -109,7 +111,29 @@ describe('ApprovalDecisionRequestService', () => {
   });
 
   describe('collectDecision', () => {
-    const selectRow = mockOf<ActionRowBuilder<StringSelectMenuBuilder>>({});
+    const buildProgPointOption = (value: string) =>
+      mockOf<StringSelectMenuOptionBuilder>({
+        data: { value },
+        setDefault: vi.fn(),
+      });
+
+    const buildSelectRow = () =>
+      mockOf<ActionRowBuilder<StringSelectMenuBuilder>>({
+        components: [
+          mockOf<StringSelectMenuBuilder>({
+            options: [
+              buildProgPointOption('point-a'),
+              buildProgPointOption('point-b'),
+            ],
+          }),
+        ],
+      });
+
+    let selectRow: ActionRowBuilder<StringSelectMenuBuilder>;
+
+    beforeEach(() => {
+      selectRow = buildSelectRow();
+    });
 
     const buildMessage = (
       fakeCollector: ReturnType<typeof buildFakeCollector>['fake'],
@@ -138,17 +162,28 @@ describe('ApprovalDecisionRequestService', () => {
 
     const buildApproveWithCommentInteraction = (
       awaitModalSubmit: ReturnType<typeof vi.fn>,
+      overrides: { showModal?: ReturnType<typeof vi.fn>; user?: User } = {},
     ) =>
       mockOf<ButtonInteraction>({
         customId: APPROVE_WITH_COMMENT_BUTTON_ID,
-        user: reviewer,
+        user: overrides.user ?? reviewer,
         isStringSelectMenu: () => false,
         isButton: () => true,
         update: vi.fn().mockResolvedValue(undefined),
         reply: vi.fn().mockResolvedValue(undefined),
-        showModal: vi.fn().mockResolvedValue(undefined),
+        showModal: overrides.showModal ?? vi.fn().mockResolvedValue(undefined),
         awaitModalSubmit,
       });
+
+    const expiredInteractionTokenError = () =>
+      new DiscordAPIError(
+        { message: 'Unknown interaction', code: 10062 },
+        10062,
+        404,
+        'POST',
+        '/interactions/123/abc/callback',
+        { body: undefined, files: undefined },
+      );
 
     const buildModalSubmit = (comment: string) =>
       mockOf<ModalMessageModalSubmitInteraction>({
@@ -179,6 +214,24 @@ describe('ApprovalDecisionRequestService', () => {
       expect(fake.stop).toHaveBeenCalledTimes(1);
     });
 
+    it('flags the selected prog point as the menu default so it stays visible after re-render', async () => {
+      const { fake, collect } = buildFakeCollector();
+      const message = buildMessage(fake);
+      service['collectDecision'](message, reviewer, selectRow);
+
+      await collect(buildSelectInteraction('point-a'));
+
+      const [menu] = selectRow.components;
+      const [optionA, optionB] = menu.options;
+      expect(optionA.setDefault).toHaveBeenCalledWith(true);
+      expect(optionB.setDefault).toHaveBeenCalledWith(false);
+
+      await collect(buildSelectInteraction('point-b'));
+
+      expect(optionA.setDefault).toHaveBeenLastCalledWith(false);
+      expect(optionB.setDefault).toHaveBeenLastCalledWith(true);
+    });
+
     it('resolves with a trimmed comment when Approve with Comment is submitted', async () => {
       const { fake, collect } = buildFakeCollector();
       const message = buildMessage(fake);
@@ -201,6 +254,40 @@ describe('ApprovalDecisionRequestService', () => {
       });
       expect(approveWithCommentInteraction.showModal).toHaveBeenCalled();
       expect(modalSubmit.update).toHaveBeenCalledWith({ components: [] });
+    });
+
+    it('asks the reviewer to retry and keeps collecting when the modal token has already expired', async () => {
+      const { fake, collect } = buildFakeCollector();
+      const message = buildMessage(fake);
+      const resultPromise = service['collectDecision'](
+        message,
+        reviewer,
+        selectRow,
+      );
+
+      await collect(buildSelectInteraction('point-a'));
+
+      const send = vi.fn().mockResolvedValue(undefined);
+      const failedAttempt = buildApproveWithCommentInteraction(vi.fn(), {
+        showModal: vi.fn().mockRejectedValue(expiredInteractionTokenError()),
+        user: mockOf<User>({ send }),
+      });
+      await collect(failedAttempt);
+
+      expect(send).toHaveBeenCalledWith(
+        expect.stringContaining('Approve with Comment'),
+      );
+
+      const modalSubmit = buildModalSubmit('Nice work');
+      const retryAttempt = buildApproveWithCommentInteraction(
+        vi.fn().mockResolvedValue(modalSubmit),
+      );
+      await collect(retryAttempt);
+
+      expect(await resultPromise).toEqual({
+        progPoint: 'point-a',
+        comment: 'Nice work',
+      });
     });
 
     it('treats a blank submitted comment as no comment', async () => {
