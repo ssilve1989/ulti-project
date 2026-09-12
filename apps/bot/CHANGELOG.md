@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.7.0](https://github.com/ssilve1989/ulti-project/compare/v2.6.6...v2.7.0) (2026-09-12)
+
+
+### Features
+
+* **signup:** optional approval comment ([#1501](https://github.com/ssilve1989/ulti-project/issues/1501)) ([a9211d2](https://github.com/ssilve1989/ulti-project/commit/a9211d2e2a21653a33ad6a1ad7bfc895ae008f53))
+* **signup:** show previously approved prog point on review embed ([#1493](https://github.com/ssilve1989/ulti-project/issues/1493)) ([9ad4c83](https://github.com/ssilve1989/ulti-project/commit/9ad4c836ed1692168eaccbdf8348c633ffc78044))
+
+
+### Bug Fixes
+
+* **signup:** acknowledge confirm/cancel button click immediately ([#1502](https://github.com/ssilve1989/ulti-project/issues/1502)) ([fa133b1](https://github.com/ssilve1989/ulti-project/commit/fa133b1525d194374268faf330551a7011b2c5be))
+* **signup:** acknowledge the confirm/cancel button click immediately ([fa133b1](https://github.com/ssilve1989/ulti-project/commit/fa133b1525d194374268faf330551a7011b2c5be))
+
 ## [2.6.6](https://github.com/ssilve1989/ulti-project/compare/v2.6.5...v2.6.6) (2026-09-10)
 
 
