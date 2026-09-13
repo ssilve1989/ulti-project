@@ -152,9 +152,9 @@ describe('ApprovalDecisionRequestService', () => {
         update: vi.fn().mockResolvedValue(undefined),
       });
 
-    const buildApproveInteraction = () =>
+    const buildButtonInteraction = (customId: string) =>
       mockOf<ButtonInteraction>({
-        customId: APPROVE_BUTTON_ID,
+        customId,
         isStringSelectMenu: () => false,
         isButton: () => true,
         update: vi.fn().mockResolvedValue(undefined),
@@ -162,15 +162,11 @@ describe('ApprovalDecisionRequestService', () => {
         followUp: vi.fn().mockResolvedValue(undefined),
       });
 
+    const buildApproveInteraction = () =>
+      buildButtonInteraction(APPROVE_BUTTON_ID);
+
     const buildCancelInteraction = () =>
-      mockOf<ButtonInteraction>({
-        customId: APPROVAL_CANCEL_BUTTON_ID,
-        isStringSelectMenu: () => false,
-        isButton: () => true,
-        update: vi.fn().mockResolvedValue(undefined),
-        reply: vi.fn().mockResolvedValue(undefined),
-        followUp: vi.fn().mockResolvedValue(undefined),
-      });
+      buildButtonInteraction(APPROVAL_CANCEL_BUTTON_ID);
 
     const buildApproveWithCommentInteraction = (
       awaitModalSubmit: ReturnType<typeof vi.fn>,

@@ -42,7 +42,7 @@ describe('approval-decision.components', () => {
 
     it('creates a cancel button that stays enabled even when disabled is true', () => {
       const row = createApprovalButtonsRow(true);
-      const [, , cancel] = row.components.map((c) => c.toJSON());
+      const cancel = row.components[2].toJSON();
 
       expect(cancel).toMatchObject({
         custom_id: APPROVAL_CANCEL_BUTTON_ID,
