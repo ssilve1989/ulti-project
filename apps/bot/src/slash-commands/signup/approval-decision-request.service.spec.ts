@@ -25,6 +25,7 @@ import {
   partialMock,
 } from '../../test-utils/mock-factory.js';
 import {
+  APPROVAL_CANCEL_BUTTON_ID,
   APPROVE_BUTTON_ID,
   APPROVE_WITH_COMMENT_BUTTON_ID,
 } from './approval-decision.components.js';
@@ -161,6 +162,16 @@ describe('ApprovalDecisionRequestService', () => {
         followUp: vi.fn().mockResolvedValue(undefined),
       });
 
+    const buildCancelInteraction = () =>
+      mockOf<ButtonInteraction>({
+        customId: APPROVAL_CANCEL_BUTTON_ID,
+        isStringSelectMenu: () => false,
+        isButton: () => true,
+        update: vi.fn().mockResolvedValue(undefined),
+        reply: vi.fn().mockResolvedValue(undefined),
+        followUp: vi.fn().mockResolvedValue(undefined),
+      });
+
     const buildApproveWithCommentInteraction = (
       awaitModalSubmit: ReturnType<typeof vi.fn>,
       overrides: { showModal?: ReturnType<typeof vi.fn>; user?: User } = {},
@@ -208,7 +219,10 @@ describe('ApprovalDecisionRequestService', () => {
       const approveInteraction = buildApproveInteraction();
       await collect(approveInteraction);
 
-      expect(await resultPromise).toEqual({ progPoint: 'point-a' });
+      expect(await resultPromise).toEqual({
+        type: 'decided',
+        progPoint: 'point-a',
+      });
       expect(selectInteraction.update).toHaveBeenCalled();
       expect(approveInteraction.update).toHaveBeenCalledWith({
         components: [],
@@ -254,6 +268,7 @@ describe('ApprovalDecisionRequestService', () => {
       await collect(approveWithCommentInteraction);
 
       expect(await resultPromise).toEqual({
+        type: 'decided',
         progPoint: 'point-a',
         comment: 'Great job!',
       });
@@ -293,6 +308,7 @@ describe('ApprovalDecisionRequestService', () => {
       await collect(retryAttempt);
 
       expect(await resultPromise).toEqual({
+        type: 'decided',
         progPoint: 'point-a',
         comment: 'Nice work',
       });
@@ -315,6 +331,7 @@ describe('ApprovalDecisionRequestService', () => {
       await collect(approveWithCommentInteraction);
 
       expect(await resultPromise).toEqual({
+        type: 'decided',
         progPoint: 'point-a',
         comment: undefined,
       });
@@ -338,7 +355,49 @@ describe('ApprovalDecisionRequestService', () => {
         content: SIGNUP_MESSAGES.PROG_POINT_REQUIRED_BEFORE_DECISION,
         flags: MessageFlags.Ephemeral,
       });
-      expect(await resultPromise).toEqual({ progPoint: 'point-a' });
+      expect(await resultPromise).toEqual({
+        type: 'decided',
+        progPoint: 'point-a',
+      });
+    });
+
+    it('clears components, notifies the reviewer, and resolves with a cancelled decision when Cancel is pressed', async () => {
+      const { fake, collect } = buildFakeCollector();
+      const message = buildMessage(fake);
+      const resultPromise = service['collectDecision'](
+        message,
+        reviewer,
+        selectRow,
+      );
+
+      await collect(buildSelectInteraction('point-a'));
+      const cancelInteraction = buildCancelInteraction();
+      await collect(cancelInteraction);
+
+      expect(cancelInteraction.update).toHaveBeenCalledWith({
+        components: [],
+      });
+      expect(cancelInteraction.followUp).toHaveBeenCalledWith(
+        SIGNUP_MESSAGES.APPROVAL_CANCELLATION_RECEIVED,
+      );
+      expect(await resultPromise).toEqual({ type: 'cancelled' });
+      expect(fake.stop).toHaveBeenCalledTimes(1);
+    });
+
+    it('resolves with a cancelled decision when Cancel is pressed before a prog point is selected', async () => {
+      const { fake, collect } = buildFakeCollector();
+      const message = buildMessage(fake);
+      const resultPromise = service['collectDecision'](
+        message,
+        reviewer,
+        selectRow,
+      );
+
+      const cancelInteraction = buildCancelInteraction();
+      await collect(cancelInteraction);
+
+      expect(cancelInteraction.reply).not.toHaveBeenCalled();
+      expect(await resultPromise).toEqual({ type: 'cancelled' });
     });
 
     it('propagates a timeout with nothing captured', async () => {

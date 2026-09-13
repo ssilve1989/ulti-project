@@ -5,6 +5,7 @@ import type { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
 import type { WriteResult } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
+import { ErrorService } from '../../error/error.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import {
@@ -27,6 +28,7 @@ describe('SignupService', () => {
   let signup: SignupDocument;
   let repository: Mocked<SignupCollection>;
   let discordService: Mocked<DiscordService>;
+  let errorService: Mocked<ErrorService>;
 
   beforeEach(async () => {
     fixture = await Test.createTestingModule({
@@ -38,6 +40,7 @@ describe('SignupService', () => {
     service = fixture.get(SignupService);
     repository = fixture.get(SignupCollection);
     discordService = fixture.get(DiscordService);
+    errorService = fixture.get(ErrorService);
 
     messageReaction = mockOf<MessageReaction>({
       message: mockOf<Message<boolean>>({
@@ -150,6 +153,7 @@ describe('SignupService', () => {
     const approvalDecisionRequestService: Mocked<ApprovalDecisionRequestService> =
       fixture.get(ApprovalDecisionRequestService);
     approvalDecisionRequestService.requestApprovalDecision.mockResolvedValue({
+      type: 'decided',
       progPoint: 'point-a',
       comment: 'Nice work!',
     });
@@ -161,6 +165,10 @@ describe('SignupService', () => {
       settings,
     );
 
+    if (!event) {
+      throw new Error('expected an event for a decided approval');
+    }
+
     expect(event.comment).toBe('Nice work!');
     expect(event.signup).not.toHaveProperty('comment');
     expect(repository.updateSignupStatus).toHaveBeenCalledWith(
@@ -168,5 +176,82 @@ describe('SignupService', () => {
       expect.not.objectContaining({ comment: expect.anything() }),
       user.username,
     );
+  });
+
+  it('reverts the reaction and persists nothing when the reviewer cancels the approval', async () => {
+    repository.findByReviewId.mockResolvedValue(signup);
+    messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
+
+    const approvalDecisionRequestService: Mocked<ApprovalDecisionRequestService> =
+      fixture.get(ApprovalDecisionRequestService);
+    approvalDecisionRequestService.requestApprovalDecision.mockResolvedValue({
+      type: 'cancelled',
+    });
+
+    const approvedRemove = vi.fn().mockResolvedValue(undefined);
+    const message = mockOf<Message<true>>({
+      inGuild: () => true,
+      embeds: [{}],
+      reactions: {
+        cache: {
+          get: (key: string) =>
+            key === SIGNUP_REVIEW_REACTIONS.APPROVED
+              ? { users: { remove: approvedRemove } }
+              : undefined,
+        },
+      },
+    });
+
+    const event = await service['handleApprovedReaction'](
+      signup,
+      message,
+      user,
+      settings,
+    );
+
+    expect(event).toBeUndefined();
+    expect(approvedRemove).toHaveBeenCalledWith(user.id);
+    expect(repository.updateSignupStatus).not.toHaveBeenCalled();
+    expect(errorService.captureError).not.toHaveBeenCalled();
+    expect(discordService.sendDirectMessage).not.toHaveBeenCalled();
+  });
+
+  describe('handleError', () => {
+    const buildMessageWithReactions = (
+      approvedRemove: ReturnType<typeof vi.fn>,
+      declinedRemove: ReturnType<typeof vi.fn>,
+    ) =>
+      mockOf<Message<boolean>>({
+        reactions: {
+          cache: {
+            get: (key: string) => {
+              if (key === SIGNUP_REVIEW_REACTIONS.APPROVED) {
+                return { users: { remove: approvedRemove } };
+              }
+              if (key === SIGNUP_REVIEW_REACTIONS.DECLINED) {
+                return { users: { remove: declinedRemove } };
+              }
+              return undefined;
+            },
+          },
+        },
+      });
+
+    it('reverts both reactions, DMs the reviewer, and captures the error', async () => {
+      const approvedRemove = vi.fn().mockResolvedValue(undefined);
+      const declinedRemove = vi.fn().mockResolvedValue(undefined);
+      const message = buildMessageWithReactions(approvedRemove, declinedRemove);
+      const error = new Error('boom');
+
+      await service['handleError'](error, user, message);
+
+      expect(approvedRemove).toHaveBeenCalledWith(user.id);
+      expect(declinedRemove).toHaveBeenCalledWith(user.id);
+      expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
+        user.id,
+        expect.any(String),
+      );
+      expect(errorService.captureError).toHaveBeenCalledWith(error);
+    });
   });
 });

@@ -241,13 +241,20 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     message: Message<true>,
     user: User,
     settings: SettingsDocument,
-  ): Promise<SignupApprovedEvent> {
-    const { progPoint, comment } = await this.confirmProgPoint(
+  ): Promise<SignupApprovedEvent | undefined> {
+    const decision = await this.confirmProgPoint(signup, message, user);
+
+    if (decision.type === 'cancelled') {
+      // No DM here: the Cancel button's own followUp already confirmed the
+      // cancellation to the reviewer in the DM thread.
+      await this.revertReviewReaction(user, message);
+      return undefined;
+    }
+
+    const confirmedSignup = await this.buildConfirmedSignup(
       signup,
-      message,
-      user,
+      decision.progPoint,
     );
-    const confirmedSignup = await this.buildConfirmedSignup(signup, progPoint);
     await this.persistApprovedSignup(confirmedSignup, settings, user);
 
     return new SignupApprovedEvent(
@@ -255,7 +262,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       settings,
       user,
       message,
-      comment,
+      decision.comment,
     );
   }
 
@@ -355,13 +362,22 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
     // TODO: Improve error reporting to better inform user what happened
     await Promise.all([
+      this.revertReviewReaction(user, message),
+      this.discordService.sendDirectMessage(user.id, reply),
+    ]);
+  }
+
+  private async revertReviewReaction(
+    user: User | PartialUser,
+    message: Message | PartialMessage,
+  ): Promise<void> {
+    await Promise.all([
       message.reactions.cache
         .get(SIGNUP_REVIEW_REACTIONS.APPROVED)
         ?.users.remove(user.id),
       message.reactions.cache
         .get(SIGNUP_REVIEW_REACTIONS.DECLINED)
         ?.users.remove(user.id),
-      this.discordService.sendDirectMessage(user.id, reply),
     ]);
   }
 

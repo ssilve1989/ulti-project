@@ -19,6 +19,7 @@ import { DiscordService } from '../../discord/discord.service.js';
 import { PROG_POINT_SELECT_ID } from '../../encounters/encounters.components.js';
 import { EncountersComponentsService } from '../../encounters/encounters-components.service.js';
 import {
+  APPROVAL_CANCEL_BUTTON_ID,
   APPROVAL_COMMENT_INPUT_ID,
   APPROVE_BUTTON_ID,
   APPROVE_WITH_COMMENT_BUTTON_ID,
@@ -29,10 +30,9 @@ import { SIGNUP_MESSAGES } from './signup.consts.js';
 
 const APPROVAL_DECISION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
-export interface ApprovalDecision {
-  progPoint: string;
-  comment?: string;
-}
+export type ApprovalDecision =
+  | { type: 'decided'; progPoint: string; comment?: string }
+  | { type: 'cancelled' };
 
 // discord.js's own DiscordjsError has a private constructor (library-internal
 // use only), but `getErrorReplyMessage` only pattern-matches on `{ code }`
@@ -182,6 +182,14 @@ export class ApprovalDecisionRequestService {
       return undefined;
     }
 
+    if (interaction.customId === APPROVAL_CANCEL_BUTTON_ID) {
+      await interaction.update({ components: [] });
+      await interaction.followUp(
+        SIGNUP_MESSAGES.APPROVAL_CANCELLATION_RECEIVED,
+      );
+      return { type: 'cancelled' };
+    }
+
     if (!state.progPoint) {
       await interaction.reply({
         content: SIGNUP_MESSAGES.PROG_POINT_REQUIRED_BEFORE_DECISION,
@@ -196,13 +204,13 @@ export class ApprovalDecisionRequestService {
       await interaction.followUp(
         SIGNUP_MESSAGES.APPROVAL_CONFIRMATION_RECEIVED,
       );
-      return { progPoint };
+      return { type: 'decided', progPoint };
     }
 
     if (interaction.customId === APPROVE_WITH_COMMENT_BUTTON_ID) {
       try {
         const comment = await this.collectComment(interaction, deadline);
-        return { progPoint, comment };
+        return { type: 'decided', progPoint, comment };
       } catch (error) {
         if (!(error instanceof ModalTokenExpiredError)) {
           throw error;
