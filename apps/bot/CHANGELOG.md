@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.1](https://github.com/ssilve1989/ulti-project/compare/v2.7.0...v2.7.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **remove-signup:** strip roles from the signed-up user, not the reviewer ([#1505](https://github.com/ssilve1989/ulti-project/issues/1505)) ([0055089](https://github.com/ssilve1989/ulti-project/commit/0055089e4ddc9b0950af645645df5be90318000c))
+
 ## [2.7.0](https://github.com/ssilve1989/ulti-project/compare/v2.6.6...v2.7.0) (2026-09-14)
 
 
