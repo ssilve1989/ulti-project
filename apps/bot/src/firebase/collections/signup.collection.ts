@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import {
   type CreateSignupDocumentProps,
+  type PartyStatus,
+  type ReviewHistoryEntry,
   type SignupCompositeKeyProps as SignupCompositeKey,
   type SignupDocument,
   SignupStatus,
@@ -10,12 +12,25 @@ import {
 import {
   type CollectionReference,
   type DocumentData,
+  FieldValue,
   Firestore,
   type Query,
   Timestamp,
 } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
+
+// gRPC status Firestore reports when an update's precondition does not hold
+const FIRESTORE_FAILED_PRECONDITION = 9;
+
+function isFailedPrecondition(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === FIRESTORE_FAILED_PRECONDITION
+  );
+}
 
 @Injectable()
 class SignupCollection {
@@ -80,6 +95,63 @@ class SignupCollection {
   public async findById(id: string): Promise<SignupDocument | undefined> {
     const snapshot = await this.collection.doc(id).get();
     return snapshot.data();
+  }
+
+  /**
+   * Reads a signup together with its last update time, for writes that must
+   * not overwrite a change made after the read.
+   */
+  @SentryTraced()
+  public async findByKeyWithVersion(
+    key: SignupCompositeKey,
+  ): Promise<{ signup: SignupDocument; updateTime: Timestamp } | undefined> {
+    const snapshot = await this.collection
+      .doc(SignupCollection.getKeyForSignup(key))
+      .get();
+    const signup = snapshot.data();
+
+    if (!signup || !snapshot.updateTime) {
+      return undefined;
+    }
+
+    return { signup, updateTime: snapshot.updateTime };
+  }
+
+  /**
+   * Applies a reviewer's edit as an approval. Rejected with `conflict` when
+   * the document changed after `updateTime` (re-submission or another edit).
+   */
+  @SentryTraced()
+  public async applyEdit(
+    key: SignupCompositeKey,
+    {
+      progPoint,
+      partyStatus,
+      historyEntries,
+    }: {
+      progPoint: string;
+      partyStatus: PartyStatus;
+      historyEntries: ReviewHistoryEntry[];
+    },
+    updateTime: Timestamp,
+  ): Promise<{ type: 'written' } | { type: 'conflict' }> {
+    try {
+      await this.collection.doc(SignupCollection.getKeyForSignup(key)).update(
+        {
+          status: SignupStatus.APPROVED,
+          progPoint,
+          partyStatus,
+          reviewHistory: FieldValue.arrayUnion(...historyEntries),
+        },
+        { lastUpdateTime: updateTime },
+      );
+      return { type: 'written' };
+    } catch (error) {
+      if (isFailedPrecondition(error)) {
+        return { type: 'conflict' };
+      }
+      throw error;
+    }
   }
 
   @SentryTraced()
@@ -169,6 +241,21 @@ class SignupCollection {
 
     return this.collection.doc(key).update({
       reviewMessageId: messageId,
+    });
+  }
+
+  /**
+   * Sets the discord message id of the public "Signup Approved" announcement
+   * @param signup
+   * @param messageId
+   * @returns
+   */
+  @SentryTraced()
+  public setApprovalMessageId(signup: SignupCompositeKey, messageId: string) {
+    const key = SignupCollection.getKeyForSignup(signup);
+
+    return this.collection.doc(key).update({
+      approvalMessageId: messageId,
     });
   }
 
