@@ -153,7 +153,7 @@ describe('SignupService', () => {
     const approvalDecisionRequestService: Mocked<ApprovalDecisionRequestService> =
       fixture.get(ApprovalDecisionRequestService);
     approvalDecisionRequestService.requestApprovalDecision.mockResolvedValue({
-      type: 'decided',
+      type: 'approved',
       progPoint: 'point-a',
       comment: 'Nice work!',
     });

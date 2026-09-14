@@ -32,7 +32,7 @@ import { SIGNUP_MESSAGES } from './signup.consts.js';
 const APPROVAL_DECISION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 export type ApprovalDecision =
-  | { type: 'decided'; progPoint: string; comment?: string }
+  | { type: 'approved'; progPoint: string; comment?: string }
   | { type: 'cancelled' };
 
 // discord.js's own DiscordjsError has a private constructor (library-internal
@@ -205,13 +205,13 @@ export class ApprovalDecisionRequestService {
         interaction,
         SIGNUP_MESSAGES.APPROVAL_CONFIRMATION_RECEIVED,
       );
-      return { type: 'decided', progPoint };
+      return { type: 'approved', progPoint };
     }
 
     if (interaction.customId === APPROVE_WITH_COMMENT_BUTTON_ID) {
       try {
         const comment = await this.collectComment(interaction, deadline);
-        return { type: 'decided', progPoint, comment };
+        return { type: 'approved', progPoint, comment };
       } catch (error) {
         if (!(error instanceof ModalTokenExpiredError)) {
           throw error;

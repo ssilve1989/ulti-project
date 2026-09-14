@@ -216,7 +216,7 @@ describe('ApprovalDecisionRequestService', () => {
       await collect(approveInteraction);
 
       expect(await resultPromise).toEqual({
-        type: 'decided',
+        type: 'approved',
         progPoint: 'point-a',
       });
       expect(selectInteraction.update).toHaveBeenCalled();
@@ -264,7 +264,7 @@ describe('ApprovalDecisionRequestService', () => {
       await collect(approveWithCommentInteraction);
 
       expect(await resultPromise).toEqual({
-        type: 'decided',
+        type: 'approved',
         progPoint: 'point-a',
         comment: 'Great job!',
       });
@@ -304,7 +304,7 @@ describe('ApprovalDecisionRequestService', () => {
       await collect(retryAttempt);
 
       expect(await resultPromise).toEqual({
-        type: 'decided',
+        type: 'approved',
         progPoint: 'point-a',
         comment: 'Nice work',
       });
@@ -327,7 +327,7 @@ describe('ApprovalDecisionRequestService', () => {
       await collect(approveWithCommentInteraction);
 
       expect(await resultPromise).toEqual({
-        type: 'decided',
+        type: 'approved',
         progPoint: 'point-a',
         comment: undefined,
       });
@@ -352,7 +352,7 @@ describe('ApprovalDecisionRequestService', () => {
         flags: MessageFlags.Ephemeral,
       });
       expect(await resultPromise).toEqual({
-        type: 'decided',
+        type: 'approved',
         progPoint: 'point-a',
       });
     });
