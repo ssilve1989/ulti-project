@@ -136,6 +136,7 @@ describe('Remove Signup Command Handler', () => {
       description: REMOVAL_NO_DB_ENTRY,
       settings: DEFAULT_SETTINGS,
       signup: new DocumentNotFoundException(),
+      publish: false,
     },
   ])(
     '$case',
@@ -181,6 +182,23 @@ describe('Remove Signup Command Handler', () => {
       }
     },
   );
+
+  it("publishes RemoveSignupEvent with the signup owner id, not the reviewer id, when a reviewer removes another user's signup", async () => {
+    settingsCollection.getSettings.mockResolvedValue(DEFAULT_SETTINGS);
+    discordService.userHasRole.mockResolvedValue(true);
+
+    signupsCollection.findOneOrFail.mockResolvedValueOnce(
+      partialMock<SignupDocument>({ discordId: '2' }),
+    );
+
+    await command.execute(interaction);
+
+    expect(eventBus.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ids: expect.objectContaining({ discordId: '2' }),
+      }),
+    );
+  });
 
   it('calls removeSignup from SheetService if spreadsheetId is set and signup has been approved', async () => {
     settingsCollection.getSettings.mockResolvedValue(DEFAULT_SETTINGS);

@@ -131,6 +131,13 @@ class RemoveSignupCommandHandler implements ISlashCommand {
       await interaction.editReply({
         embeds: [embed.setDescription(description)],
       });
+
+      this.eventBus.publish(
+        new RemoveSignupEvent(options, {
+          guildId: interaction.guildId,
+          discordId: signup.discordId,
+        }),
+      );
     } catch (error) {
       match(error)
         .with(P.instanceOf(DocumentNotFoundException), () =>
@@ -140,13 +147,6 @@ class RemoveSignupCommandHandler implements ISlashCommand {
           throw error;
         });
     }
-
-    this.eventBus.publish(
-      new RemoveSignupEvent(options, {
-        guildId: interaction.guildId,
-        discordId: interaction.user.id,
-      }),
-    );
   }
 
   private async removeSignup({
