@@ -148,15 +148,26 @@ describe('Signup Repository', () => {
   });
 
   it('should call updateSignupStatus with the correct arguments', async () => {
+    const historyEntries: ReviewHistoryEntry[] = [
+      {
+        type: 'declined',
+        actorId: 'reviewer-1',
+        at: Timestamp.fromMillis(1_000),
+        via: 'reaction',
+      },
+    ];
+
     await repository.updateSignupStatus(
       SignupStatus.APPROVED,
       SIGNUP_KEY,
       'reviewedBy',
+      historyEntries,
     );
 
     expect(doc.update).toHaveBeenCalledWith({
       status: SignupStatus.APPROVED,
       reviewedBy: 'reviewedBy',
+      reviewHistory: FieldValue.arrayUnion(...historyEntries),
     });
   });
 

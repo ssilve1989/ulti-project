@@ -23,6 +23,7 @@ import {
   type PartialUser,
   User,
 } from 'discord.js';
+import { Timestamp } from 'firebase-admin/firestore';
 import {
   concatMap,
   debounceTime,
@@ -54,6 +55,7 @@ import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
 } from './events/signup.events.js';
+import { withTrackingSeed } from './review-history.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import {
   getErrorReplyMessage,
@@ -64,6 +66,11 @@ import {
 type ReactionEvent = {
   reaction: MessageReaction | PartialMessageReaction;
   user: User | PartialUser;
+};
+
+type ConfirmedSignup = SignupDocument & {
+  progPoint: string;
+  partyStatus: PartyStatus;
 };
 
 @Injectable()
@@ -262,7 +269,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       signup,
       decision.progPoint,
     );
-    await this.persistApprovedSignup(confirmedSignup, settings, user);
+    await this.persistApprovedSignup(signup, confirmedSignup, settings, user);
 
     return new SignupApprovedEvent(
       confirmedSignup,
@@ -289,11 +296,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
   private async buildConfirmedSignup(
     signup: SignupDocument,
-    progPoint: string | undefined,
-  ): Promise<SignupDocument> {
-    const partyStatus = progPoint
-      ? await this.getPartyStatus(signup.encounter, progPoint)
-      : undefined;
+    progPoint: string,
+  ): Promise<ConfirmedSignup> {
+    const partyStatus = await this.getPartyStatus(signup.encounter, progPoint);
 
     return {
       ...signup,
@@ -303,7 +308,8 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async persistApprovedSignup(
-    confirmedSignup: SignupDocument,
+    signup: SignupDocument,
+    confirmedSignup: ConfirmedSignup,
     settings: SettingsDocument,
     user: User,
   ): Promise<void> {
@@ -323,10 +329,24 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         encounter: confirmedSignup.encounter,
       });
     } else {
+      const at = Timestamp.now();
+      // seed from `signup` (as read), not `confirmedSignup` (new prog point)
       await this.repository.updateSignupStatus(
         SignupStatus.APPROVED,
         confirmedSignup,
         user.username,
+        withTrackingSeed(
+          signup,
+          {
+            type: 'approved',
+            progPoint: confirmedSignup.progPoint,
+            partyStatus: confirmedSignup.partyStatus,
+            actorId: user.id,
+            at,
+            via: 'reaction',
+          },
+          at,
+        ),
       );
     }
   }
@@ -337,10 +357,16 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User,
   ): Promise<SignupDeclinedEvent> {
     // Update signup status immediately (for sequential reaction processing)
+    const at = Timestamp.now();
     await this.repository.updateSignupStatus(
       SignupStatus.DECLINED,
       signup,
       user.username,
+      withTrackingSeed(
+        signup,
+        { type: 'declined', actorId: user.id, at, via: 'reaction' },
+        at,
+      ),
     );
 
     // Fire decline reason request with event dispatch context (non-blocking)

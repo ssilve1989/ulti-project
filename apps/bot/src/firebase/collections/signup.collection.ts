@@ -205,10 +205,12 @@ class SignupCollection {
   }
 
   /**
-   * Updates the approval status of a signup. Does not modify the timestamp of the signup
+   * Updates the approval status of a signup and appends to its review
+   * history. Does not modify the timestamp of the signup
    * @param status - new status for the signup
    * @param key - composite key for the signup
-   * @param reviewedBy - discordId of the user that reviewed the signup
+   * @param reviewedBy - username of the user that reviewed the signup
+   * @param historyEntries - review history entries to append
    * @returns
    */
   @SentryTraced()
@@ -220,12 +222,14 @@ class SignupCollection {
       ...key
     }: SignupCompositeKey & Pick<SignupDocument, 'progPoint' | 'partyStatus'>,
     reviewedBy: string,
+    historyEntries: ReviewHistoryEntry[],
   ) {
     return this.collection.doc(SignupCollection.getKeyForSignup(key)).update({
       status,
       progPoint,
       reviewedBy,
       partyStatus,
+      reviewHistory: FieldValue.arrayUnion(...historyEntries),
     });
   }
 
