@@ -36,6 +36,16 @@ type NonClearedPartyStatus =
 
 type PartyTypes = NonClearedPartyStatus[];
 
+// Early Prog and Prog Party share one range, so a row can only ever be stale
+// in the range on the other side of the Clear / Prog divide.
+function getOppositePartyStatus(
+  partyStatus: NonClearedPartyStatus,
+): NonClearedPartyStatus {
+  return partyStatus === PartyStatus.ClearParty
+    ? PartyStatus.ProgParty
+    : PartyStatus.ClearParty;
+}
+
 /**
  * This module depends on knowing the structure of the spreadsheet
  * Ranges are very brittle and will need to be updated if the spreadsheet changes.
@@ -452,9 +462,12 @@ class SheetsService implements OnApplicationShutdown {
     const cellValues = this.getCellValues(signup);
 
     const isProgEncounter = await this.isProgEncounter(encounter);
-    if (isProgEncounter && partyStatus === PartyStatus.ClearParty) {
-      // if its a clear party we need to check if we are moving them from prog to clear
-      await this.removeSignup(signup, spreadsheetId, [PartyStatus.ProgParty]);
+    if (isProgEncounter) {
+      // the row may be moving between Clear and Prog in either direction
+      // (e.g. an /edit-signup correction from Clear back to Prog)
+      await this.removeSignup(signup, spreadsheetId, [
+        getOppositePartyStatus(partyStatus),
+      ]);
     }
 
     const ranges = SheetRanges[partyStatus];
