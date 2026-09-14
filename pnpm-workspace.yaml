@@ -50,7 +50,7 @@ minimumReleaseAgeExclude:
   - "@vitest/utils@5.0.0"
 catalog:
   "@biomejs/biome": 2.5.12
-  "@clack/prompts": ^1.7.0
+  "@clack/prompts": ^1.8.0
   "@commitlint/cli": ^21.2.2
   "@commitlint/config-conventional": ^21.2.2
   "@commitlint/cz-commitlint": ^21.2.2
