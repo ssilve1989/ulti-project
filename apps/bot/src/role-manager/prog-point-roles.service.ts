@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { PartyStatus } from '@ulti-project/shared';
 import type { GuildMember } from 'discord.js';
 
 export interface ProgPointRoleChanges {
@@ -6,19 +7,29 @@ export interface ProgPointRoleChanges {
   rolesToRemove: string[];
 }
 
+interface ComputeChangesOptions {
+  /**
+   * When the prog point has no mapped role, remove every mapped role the
+   * member holds instead of leaving them untouched. Used when the previous
+   * prog point is known to be wrong (/edit-signup).
+   */
+  pruneUnmapped?: boolean;
+}
+
 @Injectable()
 class ProgPointRolesService {
   private readonly logger = new Logger(ProgPointRolesService.name);
 
   /**
-   * Pure decision logic shared by signup approval and /sync-prog-roles.
-   * Mirrors approval semantics exactly: unmapped prog point, missing
-   * mapping, or missing prog point → no changes.
+   * Pure decision logic shared by signup approval, /sync-prog-roles and
+   * /edit-signup. Without options it mirrors approval semantics exactly:
+   * unmapped prog point, missing mapping, or missing prog point → no changes.
    */
   computeChanges(
     member: GuildMember,
     mapping: Record<string, string> | undefined,
     progPoint: string | undefined,
+    { pruneUnmapped = false }: ComputeChangesOptions = {},
   ): ProgPointRoleChanges {
     if (!mapping || !progPoint) {
       return { rolesToRemove: [] };
@@ -27,18 +38,51 @@ class ProgPointRolesService {
     const newRole = mapping[progPoint];
 
     if (!newRole) {
-      // unmapped prog point: leave existing prog point roles untouched
-      return { rolesToRemove: [] };
+      // unmapped prog point: leave existing prog point roles untouched unless pruning
+      return {
+        rolesToRemove: pruneUnmapped
+          ? this.heldMappedRoles(member, mapping)
+          : [],
+      };
     }
 
     // a role can be shared by several prog points (one role per phase),
     // so never remove the role we are about to assign
-    const rolesToRemove = [...new Set(Object.values(mapping))].filter(
-      (roleId) => roleId !== newRole && member.roles.cache.has(roleId),
+    const rolesToRemove = this.heldMappedRoles(member, mapping).filter(
+      (roleId) => roleId !== newRole,
     );
 
     return {
       roleToAdd: member.roles.cache.has(newRole) ? undefined : newRole,
+      rolesToRemove,
+    };
+  }
+
+  /**
+   * Reconciles the single coarse encounter role: the clear role for Clear
+   * Party, the prog role otherwise. Callers never pass Cleared — role removal
+   * for a cleared signup is owned by RemoveRolesCommandHandler.
+   */
+  computeCoarseRoleChanges(
+    member: GuildMember,
+    { progRole, clearRole }: { progRole?: string; clearRole?: string },
+    partyStatus: PartyStatus,
+  ): ProgPointRoleChanges {
+    const desiredRole =
+      partyStatus === PartyStatus.ClearParty ? clearRole : progRole;
+
+    const rolesToRemove = [progRole, clearRole].filter(
+      (roleId): roleId is string =>
+        roleId !== undefined &&
+        roleId !== desiredRole &&
+        member.roles.cache.has(roleId),
+    );
+
+    return {
+      roleToAdd:
+        desiredRole && !member.roles.cache.has(desiredRole)
+          ? desiredRole
+          : undefined,
       rolesToRemove,
     };
   }
@@ -60,6 +104,15 @@ class ProgPointRolesService {
         `Assigned prog point role ${roleToAdd} to ${member.user.username}`,
       );
     }
+  }
+
+  private heldMappedRoles(
+    member: GuildMember,
+    mapping: Record<string, string>,
+  ): string[] {
+    return [...new Set(Object.values(mapping))].filter((roleId) =>
+      member.roles.cache.has(roleId),
+    );
   }
 }
 
