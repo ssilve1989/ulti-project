@@ -21,6 +21,43 @@ export const PartyStatus = {
 
 export type PartyStatus = (typeof PartyStatus)[keyof typeof PartyStatus];
 
+export type ReviewSource = 'reaction' | 'edit';
+
+export type ReviewHistoryEntry =
+  // Snapshot of the standing approval when history tracking began for this
+  // document. No progPoint means there was no standing approval.
+  | {
+      type: 'trackingStarted';
+      progPoint?: string;
+      partyStatus?: PartyStatus;
+      at: Timestamp;
+    }
+  // Starts a new approval decision.
+  | {
+      type: 'approved';
+      progPoint: string;
+      partyStatus: PartyStatus;
+      actorId: string;
+      at: Timestamp;
+      via: ReviewSource;
+    }
+  // Amends the prog point of the current approval decision.
+  | {
+      type: 'progPointEdited';
+      progPoint: string;
+      partyStatus: PartyStatus;
+      actorId: string;
+      at: Timestamp;
+      via: 'edit';
+    }
+  // A decline. Does not change the standing approved prog point.
+  | {
+      type: 'declined';
+      actorId: string;
+      at: Timestamp;
+      via: ReviewSource;
+    };
+
 // TODO: Some fields here _will_ be defined depending on the value of `status`. So we should improve the types to reflect this.
 export interface SignupDocument {
   // Preserved for potential future use - no longer used in presentation layer
@@ -42,6 +79,10 @@ export interface SignupDocument {
   reviewedBy?: string | null;
   // the message id of the review message posted to discord
   reviewMessageId?: string;
+  // the message id of the latest public "Signup Approved" announcement
+  approvalMessageId?: string;
+  // append-only record of review decisions and edits (Discord ids)
+  reviewHistory?: ReviewHistoryEntry[];
   // discord uploaded screenshot link. These only last for 2 weeks on discord
   screenshot?: string | null;
   // the friendly name of the user that signed up
@@ -56,7 +97,12 @@ export interface SignupDocument {
 
 export type CreateSignupDocumentProps = Omit<
   SignupDocument,
-  'status' | 'expiresAt' | 'declineReason' | 'availability'
+  | 'status'
+  | 'expiresAt'
+  | 'declineReason'
+  | 'availability'
+  | 'approvalMessageId'
+  | 'reviewHistory'
 >;
 
 export type SignupCompositeKeyProps = Pick<
