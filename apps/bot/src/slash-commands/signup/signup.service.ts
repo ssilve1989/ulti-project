@@ -246,8 +246,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
     if (decision.type === 'cancelled') {
       // No DM here: the Cancel button's own followUp already confirmed the
-      // cancellation to the reviewer in the DM thread.
-      await this.revertReviewReaction(user, message);
+      // cancellation to the reviewer in the DM thread. Swallow (but report)
+      // a revert failure rather than letting it propagate to handleError,
+      // which would DM a contradictory "something went wrong" on top of the
+      // cancellation confirmation the reviewer already received.
+      try {
+        await this.revertReviewReaction(user, message);
+      } catch (error) {
+        this.errorService.captureError(error);
+      }
       return undefined;
     }
 

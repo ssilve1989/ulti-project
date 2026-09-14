@@ -216,6 +216,42 @@ describe('SignupService', () => {
     expect(discordService.sendDirectMessage).not.toHaveBeenCalled();
   });
 
+  it('reports but does not DM when reverting the reaction fails after a cancelled approval', async () => {
+    repository.findByReviewId.mockResolvedValue(signup);
+    messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
+
+    const approvalDecisionRequestService: Mocked<ApprovalDecisionRequestService> =
+      fixture.get(ApprovalDecisionRequestService);
+    approvalDecisionRequestService.requestApprovalDecision.mockResolvedValue({
+      type: 'cancelled',
+    });
+
+    const revertError = new Error('Missing Permissions');
+    const message = mockOf<Message<true>>({
+      inGuild: () => true,
+      embeds: [{}],
+      reactions: {
+        cache: {
+          get: (key: string) =>
+            key === SIGNUP_REVIEW_REACTIONS.APPROVED
+              ? { users: { remove: vi.fn().mockRejectedValue(revertError) } }
+              : undefined,
+        },
+      },
+    });
+
+    const event = await service['handleApprovedReaction'](
+      signup,
+      message,
+      user,
+      settings,
+    );
+
+    expect(event).toBeUndefined();
+    expect(errorService.captureError).toHaveBeenCalledWith(revertError);
+    expect(discordService.sendDirectMessage).not.toHaveBeenCalled();
+  });
+
   describe('handleError', () => {
     const buildMessageWithReactions = (
       approvedRemove: ReturnType<typeof vi.fn>,
