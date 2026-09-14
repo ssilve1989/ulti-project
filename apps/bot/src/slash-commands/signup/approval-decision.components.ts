@@ -11,11 +11,14 @@ import {
 export const APPROVE_BUTTON_ID = 'approvalDecisionApprove';
 export const APPROVE_WITH_COMMENT_BUTTON_ID =
   'approvalDecisionApproveWithComment';
+export const APPROVAL_CANCEL_BUTTON_ID = 'approvalDecisionCancel';
 export const APPROVAL_COMMENT_MODAL_ID = 'approvalCommentModal';
 export const APPROVAL_COMMENT_INPUT_ID = 'approvalCommentInput';
 
-// Create the Approve / Approve with Comment button row. Both buttons start
-// disabled until a prog point has been selected in the accompanying menu.
+// Create the Approve / Approve with Comment / Cancel button row. Approve and
+// Approve with Comment start disabled until a prog point has been selected
+// in the accompanying menu; Cancel stays enabled so the reviewer can back
+// out at any point.
 export function createApprovalButtonsRow(
   disabled: boolean,
 ): ActionRowBuilder<ButtonBuilder> {
@@ -31,9 +34,16 @@ export function createApprovalButtonsRow(
     .setStyle(ButtonStyle.Primary)
     .setDisabled(disabled);
 
+  const cancelButton = new ButtonBuilder()
+    .setCustomId(APPROVAL_CANCEL_BUTTON_ID)
+    .setLabel('Cancel')
+    .setStyle(ButtonStyle.Danger)
+    .setDisabled(false);
+
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     approveButton,
     approveWithCommentButton,
+    cancelButton,
   );
 }
 

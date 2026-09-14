@@ -1,6 +1,7 @@
 import { ButtonStyle } from 'discord.js';
 import { describe, expect, it } from 'vitest';
 import {
+  APPROVAL_CANCEL_BUTTON_ID,
   APPROVAL_COMMENT_INPUT_ID,
   APPROVAL_COMMENT_MODAL_ID,
   APPROVE_BUTTON_ID,
@@ -37,6 +38,17 @@ describe('approval-decision.components', () => {
 
       expect(approve.disabled).toBe(false);
       expect(approveWithComment.disabled).toBe(false);
+    });
+
+    it('creates a cancel button that stays enabled even when disabled is true', () => {
+      const row = createApprovalButtonsRow(true);
+      const cancel = row.components[2].toJSON();
+
+      expect(cancel).toMatchObject({
+        custom_id: APPROVAL_CANCEL_BUTTON_ID,
+        style: ButtonStyle.Danger,
+        disabled: false,
+      });
     });
   });
 
