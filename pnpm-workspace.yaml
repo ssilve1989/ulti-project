@@ -65,9 +65,9 @@ catalog:
   "@nestjs/core": ^11.2.3
   "@nestjs/cqrs": ^11.0.3
   "@nestjs/testing": ^11.2.3
-  "@sentry/cli": ^3.6.2
-  "@sentry/nestjs": ^10.70.0
-  "@sentry/profiling-node": ^10.70.0
+  "@sentry/cli": ^3.7.0
+  "@sentry/nestjs": ^10.74.0
+  "@sentry/profiling-node": ^10.74.0
   "@types/node": ^26.2.0
   "@vitest/coverage-v8": ^5.0.0
   "@vitest/ui": ^5.0.0
