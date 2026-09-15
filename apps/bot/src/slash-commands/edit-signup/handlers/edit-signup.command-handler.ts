@@ -79,6 +79,9 @@ interface EditContext {
 interface ScreenState {
   selection?: EditSelection;
   preview?: EditPreview;
+  // bumped on every "… with Comment" click, so a modal listener left parked
+  // by an earlier click can tell it is stale
+  modalGeneration: number;
 }
 
 interface CommitOutcome {
@@ -221,7 +224,7 @@ class EditSignupCommandHandler implements ISlashCommand {
       context.kind === 'correction' ? context.signup.progPoint : undefined,
     );
 
-    const state: ScreenState = {};
+    const state: ScreenState = { modalGeneration: 0 };
     const message = await context.interaction.editReply(
       this.renderScreen(context, menu, state),
     );
@@ -320,17 +323,15 @@ class EditSignupCommandHandler implements ISlashCommand {
       return { type: 'cancelled' };
     }
 
-    const { selection, preview } = state;
+    const commit = commitFrom(state);
 
     // commit buttons are disabled until the preview shows a change
-    if (!selection || !preview?.hasChanges) {
+    if (!commit) {
       return undefined;
     }
 
-    const commit: CommitOutcome = { type: 'commit', selection, preview };
-
     if (interaction.customId === EDIT_SAVE_WITH_COMMENT_BUTTON_ID) {
-      return this.collectComment(interaction, commit, deadline);
+      return this.collectComment(interaction, state, deadline);
     }
 
     if (interaction.customId === EDIT_SAVE_BUTTON_ID) {
@@ -371,9 +372,15 @@ class EditSignupCommandHandler implements ISlashCommand {
 
   private async collectComment(
     interaction: ButtonInteraction,
-    commit: CommitOutcome,
+    state: ScreenState,
     deadline: number,
   ): Promise<EditOutcome | undefined> {
+    // discord.js has no "modal closed" event: a modal dismissed with Esc
+    // leaves its submit listener parked on this message, so a later click's
+    // submit reaches both listeners and only the newest click may act on it
+    state.modalGeneration += 1;
+    const generation = state.modalGeneration;
+
     try {
       await interaction.showModal(createApprovalCommentModal());
     } catch (error) {
@@ -393,6 +400,14 @@ class EditSignupCommandHandler implements ISlashCommand {
 
     if (!modal) {
       // the outer collector's own 'end' event reports the timeout
+      return undefined;
+    }
+
+    // built at submit time, never from values captured at click time
+    const commit = commitFrom(state);
+
+    if (generation !== state.modalGeneration || !commit) {
+      // stale listener: the newest click's own listener handles this submit
       return undefined;
     }
 
@@ -484,6 +499,15 @@ function isCollectorTimeoutError(
     'code' in error &&
     error.code === DiscordjsErrorCodes.InteractionCollectorError
   );
+}
+
+function commitFrom({
+  selection,
+  preview,
+}: ScreenState): CommitOutcome | undefined {
+  return selection && preview?.hasChanges
+    ? { type: 'commit', selection, preview }
+    : undefined;
 }
 
 function getReviewMessageUrl(
