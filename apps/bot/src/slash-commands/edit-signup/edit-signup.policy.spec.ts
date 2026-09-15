@@ -25,25 +25,58 @@ const fullSettings = partialMock<SettingsDocument>({
 const noSettings = partialMock<SettingsDocument>({});
 
 describe('getEditability', () => {
+  const withChannel = partialMock<SettingsDocument>({
+    signupChannel: 'signup-channel',
+  });
+  const withoutChannel = partialMock<SettingsDocument>({});
+
   it.each([
     {
+      name: 'approved, no signup channel configured',
       status: SignupStatus.APPROVED,
+      approvalMessageId: undefined,
+      settings: withoutChannel,
       expected: { editable: true, kind: 'correction' },
     },
     {
+      name: 'approved, channel configured, no linked announcement',
+      status: SignupStatus.APPROVED,
+      approvalMessageId: undefined,
+      settings: withChannel,
+      expected: { editable: false, reason: 'announcementNotLinked' },
+    },
+    {
+      name: 'approved, channel configured, linked announcement',
+      status: SignupStatus.APPROVED,
+      approvalMessageId: 'announcement-1',
+      settings: withChannel,
+      expected: { editable: true, kind: 'correction' },
+    },
+    {
+      name: 'declined, channel configured, no linked announcement — reversals unaffected',
       status: SignupStatus.DECLINED,
+      approvalMessageId: undefined,
+      settings: withChannel,
       expected: { editable: true, kind: 'reversal' },
     },
     {
+      name: 'pending review',
       status: SignupStatus.PENDING,
+      approvalMessageId: undefined,
+      settings: withChannel,
       expected: { editable: false, reason: 'reviewPending' },
     },
     {
+      name: 'update-pending review',
       status: SignupStatus.UPDATE_PENDING,
+      approvalMessageId: undefined,
+      settings: withChannel,
       expected: { editable: false, reason: 'reviewPending' },
     },
-  ])('$status → $expected', ({ status, expected }) => {
-    expect(getEditability({ status })).toEqual(expected);
+  ])('$name', ({ status, approvalMessageId, settings, expected }) => {
+    expect(getEditability({ status, approvalMessageId }, settings)).toEqual(
+      expected,
+    );
   });
 });
 
@@ -63,6 +96,7 @@ describe('buildEditPreview', () => {
         selection: { progPoint: 'P4', partyStatus: PartyStatus.ClearParty },
         settings: fullSettings,
         progPointLabels,
+        announcementExists: true,
       }),
     ).toEqual({ hasChanges: false, rows: [], effects: [] });
   });
@@ -81,6 +115,7 @@ describe('buildEditPreview', () => {
         selection: { progPoint: 'P3', partyStatus: PartyStatus.ProgParty },
         settings: noSettings,
         progPointLabels,
+        announcementExists: true,
       }),
     ).toEqual({
       hasChanges: true,
@@ -97,6 +132,7 @@ describe('buildEditPreview', () => {
         selection: { progPoint: 'P2', partyStatus: PartyStatus.ProgParty },
         settings: fullSettings,
         progPointLabels,
+        announcementExists: true,
       }),
     ).toEqual({
       hasChanges: true,
@@ -118,7 +154,7 @@ describe('buildEditPreview', () => {
     });
   });
 
-  it('renders an unconfigured coarse role as none and omits the announcement without a stored id', () => {
+  it('renders an unconfigured coarse role as none', () => {
     const signup = partialMock<SignupDocument>({
       encounter: Encounter.DSR,
       progPoint: 'P4',
@@ -131,15 +167,48 @@ describe('buildEditPreview', () => {
       selection: { progPoint: 'P2', partyStatus: PartyStatus.ProgParty },
       settings: partialMock<SettingsDocument>({
         progRoles: { [Encounter.DSR]: 'prog-role' },
-        signupChannel: 'signup-channel',
       }),
       progPointLabels,
+      announcementExists: true,
     });
 
     expect(preview.effects).toEqual([
       'Encounter role: none → <@&prog-role>',
       "Applicant will be DM'd",
     ]);
+  });
+
+  it('describes a correction announcement edit when the linked post still exists', () => {
+    const preview = buildEditPreview({
+      signup: approvedInClear,
+      kind: 'correction',
+      selection: { progPoint: 'P2', partyStatus: PartyStatus.ClearParty },
+      settings: partialMock<SettingsDocument>({
+        signupChannel: 'signup-channel',
+      }),
+      progPointLabels,
+      announcementExists: true,
+    });
+
+    expect(preview.effects).toContain('Public announcement edited');
+  });
+
+  it('flags a deleted announcement post instead of claiming it will be edited', () => {
+    const preview = buildEditPreview({
+      signup: approvedInClear,
+      kind: 'correction',
+      selection: { progPoint: 'P2', partyStatus: PartyStatus.ClearParty },
+      settings: partialMock<SettingsDocument>({
+        signupChannel: 'signup-channel',
+      }),
+      progPointLabels,
+      announcementExists: false,
+    });
+
+    expect(preview.effects).toContain(
+      "Public announcement was deleted — it won't be updated",
+    );
+    expect(preview.effects).not.toContain('Public announcement edited');
   });
 
   it('describes a reversal of a never-approved signup', () => {
@@ -152,6 +221,7 @@ describe('buildEditPreview', () => {
         selection: { progPoint: 'P2', partyStatus: PartyStatus.ProgParty },
         settings: fullSettings,
         progPointLabels,
+        announcementExists: true,
       }),
     ).toEqual({
       hasChanges: true,
@@ -183,6 +253,7 @@ describe('buildEditPreview', () => {
       selection: { progPoint: 'P2', partyStatus: PartyStatus.ProgParty },
       settings: noSettings,
       progPointLabels,
+      announcementExists: true,
     });
 
     expect(preview.hasChanges).toBe(true);

@@ -346,6 +346,64 @@ describe('EditSignupCommandHandler', () => {
       ).not.toHaveBeenCalled();
     });
 
+    it('denies a correction whose announcement is not linked', async () => {
+      settingsCollection.getSettings.mockResolvedValue(
+        partialMock<SettingsDocument>({
+          ...settings,
+          signupChannel: 'signup-channel',
+        }),
+      );
+
+      await command.execute(interaction);
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        guardReply(EDIT_SIGNUP_MESSAGES.ANNOUNCEMENT_NOT_LINKED),
+      );
+      expect(
+        encountersComponentsService.createProgPointSelectMenu,
+      ).not.toHaveBeenCalled();
+      expect(discordService.fetchMessage).not.toHaveBeenCalled();
+    });
+
+    it('does not fetch the announcement for a reversal', async () => {
+      settingsCollection.getSettings.mockResolvedValue(
+        partialMock<SettingsDocument>({
+          ...settings,
+          signupChannel: 'signup-channel',
+        }),
+      );
+      signupCollection.findByKeyWithVersion.mockResolvedValue({
+        signup: partialMock<SignupDocument>({
+          ...approved,
+          status: SignupStatus.DECLINED,
+          approvalMessageId: 'announcement-1',
+        }),
+        updateTime,
+      });
+
+      const run = command.execute(interaction);
+      await collector.timeOut();
+      await run;
+
+      expect(discordService.fetchMessage).not.toHaveBeenCalled();
+    });
+
+    it('does not fetch the announcement without a configured signup channel', async () => {
+      signupCollection.findByKeyWithVersion.mockResolvedValue({
+        signup: partialMock<SignupDocument>({
+          ...approved,
+          approvalMessageId: 'announcement-1',
+        }),
+        updateTime,
+      });
+
+      const run = command.execute(interaction);
+      await collector.timeOut();
+      await run;
+
+      expect(discordService.fetchMessage).not.toHaveBeenCalled();
+    });
+
     it('reports unexpected errors', async () => {
       const failure = new Error('Firestore unavailable');
       signupCollection.findByKeyWithVersion.mockRejectedValue(failure);
@@ -434,6 +492,54 @@ describe('EditSignupCommandHandler', () => {
         components: [expect.anything(), commitButtons(false)],
       });
       expect(selectedDefaults()).toEqual([false, true]);
+
+      await collector.timeOut();
+      await run;
+    });
+
+    it('flags a deleted announcement post in the preview instead of blocking the edit', async () => {
+      settingsCollection.getSettings.mockResolvedValue(
+        partialMock<SettingsDocument>({
+          ...settings,
+          signupChannel: 'signup-channel',
+        }),
+      );
+      signupCollection.findByKeyWithVersion.mockResolvedValue({
+        signup: partialMock<SignupDocument>({
+          ...approved,
+          approvalMessageId: 'announcement-1',
+        }),
+        updateTime,
+      });
+      discordService.fetchMessage.mockResolvedValue(undefined);
+
+      const run = command.execute(interaction);
+      const select = selectInteraction('P4');
+      await collector.collect(select.interaction);
+
+      expect(discordService.fetchMessage).toHaveBeenCalledWith(
+        'guild-1',
+        'signup-channel',
+        'announcement-1',
+      );
+      expect(select.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          embeds: [
+            expect.objectContaining({
+              data: expect.objectContaining({
+                fields: expect.arrayContaining([
+                  expect.objectContaining({
+                    name: 'Effects',
+                    value: expect.stringContaining(
+                      "Public announcement was deleted — it won't be updated",
+                    ),
+                  }),
+                ]),
+              }),
+            }),
+          ],
+        }),
+      );
 
       await collector.timeOut();
       await run;

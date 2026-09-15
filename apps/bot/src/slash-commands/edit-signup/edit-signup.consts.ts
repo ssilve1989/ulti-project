@@ -30,6 +30,8 @@ export const EDIT_SIGNUP_MESSAGES = {
     'That took a moment too long to open — please click the comment button again.',
   NO_CHANGES: 'No changes',
   SAVED_TITLE: 'Signup Updated',
+  ANNOUNCEMENT_NOT_LINKED:
+    "This signup's public approval post isn't linked, so it can't be edited. If it was just approved, try again in a moment; otherwise ask the applicant to re-submit so it can be re-approved.",
 } as const;
 
 export function notFoundMessage(discordId: string, encounter: Encounter) {

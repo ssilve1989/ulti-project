@@ -72,6 +72,7 @@ interface EditContext {
   kind: EditKind;
   settings: SettingsDocument;
   reviewMessageUrl?: string;
+  announcementExists: boolean;
   progPoints: ReadonlyMap<string, ProgPointDocument>;
   progPointLabels: ReadonlyMap<string, string>;
 }
@@ -176,16 +177,24 @@ class EditSignupCommandHandler implements ISlashCommand {
       settings,
       interaction.guildId,
     );
-    const editability = getEditability(found.signup);
+    const editability = getEditability(found.signup, settings);
 
     if (!editability.editable) {
       return this.replyGuard(
         interaction,
-        reviewPendingMessage(reviewMessageUrl),
+        editabilityGuardMessage(editability.reason, reviewMessageUrl),
       );
     }
 
-    const progPoints = await this.encountersService.getProgPoints(encounter);
+    const [progPoints, announcementExists] = await Promise.all([
+      this.encountersService.getProgPoints(encounter),
+      this.checkAnnouncementExists(
+        interaction.guildId,
+        editability.kind,
+        settings.signupChannel,
+        found.signup.approvalMessageId,
+      ),
+    ]);
 
     return {
       interaction,
@@ -194,6 +203,7 @@ class EditSignupCommandHandler implements ISlashCommand {
       kind: editability.kind,
       settings,
       reviewMessageUrl,
+      announcementExists,
       progPoints: new Map(
         progPoints.map((progPoint) => [progPoint.id, progPoint]),
       ),
@@ -201,6 +211,25 @@ class EditSignupCommandHandler implements ISlashCommand {
         progPoints.map((progPoint) => [progPoint.id, progPoint.label]),
       ),
     };
+  }
+
+  private async checkAnnouncementExists(
+    guildId: string,
+    kind: EditKind,
+    signupChannel: string | undefined,
+    approvalMessageId: string | undefined,
+  ): Promise<boolean> {
+    if (kind !== 'correction' || !signupChannel || !approvalMessageId) {
+      return true;
+    }
+
+    const message = await this.discordService.fetchMessage(
+      guildId,
+      signupChannel,
+      approvalMessageId,
+    );
+
+    return message !== undefined;
   }
 
   private async replyGuard(
@@ -508,6 +537,19 @@ function commitFrom({
   return selection && preview?.hasChanges
     ? { type: 'commit', selection, preview }
     : undefined;
+}
+
+function editabilityGuardMessage(
+  reason: 'reviewPending' | 'announcementNotLinked',
+  reviewMessageUrl: string | undefined,
+): string {
+  return match(reason)
+    .with('reviewPending', () => reviewPendingMessage(reviewMessageUrl))
+    .with(
+      'announcementNotLinked',
+      () => EDIT_SIGNUP_MESSAGES.ANNOUNCEMENT_NOT_LINKED,
+    )
+    .exhaustive();
 }
 
 function getReviewMessageUrl(
