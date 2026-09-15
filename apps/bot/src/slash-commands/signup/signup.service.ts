@@ -47,6 +47,7 @@ import { SignupCollection } from '../../firebase/collections/signup.collection.j
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import {
+  APPROVAL_DECISION_TIMEOUT_MS,
   type ApprovalDecision,
   ApprovalDecisionRequestService,
 } from './approval-decision-request.service.js';
@@ -72,6 +73,14 @@ type ConfirmedSignup = SignupDocument & {
   progPoint: string;
   partyStatus: PartyStatus;
 };
+
+// A reaction group's `duration` notifier only resubscribes on new group
+// events (see rxjs groupBy.js), so it can close a group while its `concatMap`
+// handler is still awaiting the approval decision DM. The idle window must
+// outlive that DM (APPROVAL_DECISION_TIMEOUT_MS) plus the post-decision
+// persistence work (Sheets queue + Firestore), or a reaction arriving after
+// the group closes starts a second, concurrent handler for the same message.
+const REACTION_GROUP_IDLE_MS = APPROVAL_DECISION_TIMEOUT_MS + 5 * 60 * 1000;
 
 @Injectable()
 class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -101,7 +110,8 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     )
       .pipe(
         groupBy(({ reaction }) => reaction.message.id, {
-          duration: (group$) => group$.pipe(debounceTime(30_000)),
+          duration: (group$) =>
+            group$.pipe(debounceTime(REACTION_GROUP_IDLE_MS)),
         }),
         mergeMap((group$) =>
           group$.pipe(
