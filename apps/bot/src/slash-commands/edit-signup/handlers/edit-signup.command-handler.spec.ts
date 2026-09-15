@@ -575,6 +575,118 @@ describe('EditSignupCommandHandler', () => {
       );
     });
 
+    it('sends a whitespace-only comment as no comment', async () => {
+      const modal = mockOf<ModalMessageModalSubmitInteraction>({
+        fields: { getTextInputValue: vi.fn().mockReturnValue('   ') },
+        isFromMessage: () => true,
+        update: vi.fn().mockResolvedValue(undefined),
+      });
+      const withComment = buttonInteraction(EDIT_SAVE_WITH_COMMENT_BUTTON_ID, {
+        showModal: vi.fn().mockResolvedValue(undefined),
+        awaitModalSubmit: vi.fn().mockResolvedValue(modal),
+      });
+
+      const run = command.execute(interaction);
+      await collector.collect(selectInteraction('P4').interaction);
+      await collector.collect(withComment.interaction);
+      await run;
+
+      expect(editSignupService.apply).toHaveBeenCalledWith(
+        expect.objectContaining({ comment: undefined }),
+      );
+    });
+
+    it('applies a reversal as a reversal', async () => {
+      signupCollection.findByKeyWithVersion.mockResolvedValue({
+        signup: partialMock<SignupDocument>({
+          ...approved,
+          status: SignupStatus.DECLINED,
+        }),
+        updateTime,
+      });
+
+      const run = command.execute(interaction);
+      await collector.collect(selectInteraction('P2').interaction);
+      await collector.collect(
+        buttonInteraction(EDIT_SAVE_BUTTON_ID).interaction,
+      );
+      await run;
+
+      expect(editSignupService.apply).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'reversal', progPoint: 'P2' }),
+      );
+    });
+
+    it('commits only the latest comment modal, with the prog point selected at that click', async () => {
+      encountersService.getProgPoints.mockResolvedValue([
+        ...progPoints,
+        partialMock<ProgPointDocument>({
+          id: 'P3',
+          label: 'P3 Wrath of the Heavens',
+          partyStatus: PartyStatus.ProgParty,
+          order: 3,
+          active: true,
+        }),
+      ]);
+      menu.addOptions({ label: 'P3 Wrath of the Heavens', value: 'P3' });
+
+      // discord.js has no "modal closed" event: after Esc the first click's
+      // listener stays parked, and both listeners receive the next submit
+      let submitFirst: (modal: ModalMessageModalSubmitInteraction) => void =
+        () => undefined;
+      let submitSecond: (modal: ModalMessageModalSubmitInteraction) => void =
+        () => undefined;
+      const firstAwait = vi.fn(
+        () =>
+          new Promise<ModalMessageModalSubmitInteraction>((resolve) => {
+            submitFirst = resolve;
+          }),
+      );
+      const secondAwait = vi.fn(
+        () =>
+          new Promise<ModalMessageModalSubmitInteraction>((resolve) => {
+            submitSecond = resolve;
+          }),
+      );
+      const modalUpdate = vi.fn().mockResolvedValue(undefined);
+      const modal = mockOf<ModalMessageModalSubmitInteraction>({
+        fields: { getTextInputValue: vi.fn().mockReturnValue('meant P3') },
+        isFromMessage: () => true,
+        update: modalUpdate,
+      });
+
+      const run = command.execute(interaction);
+      await collector.collect(selectInteraction('P4').interaction);
+      const firstClick = collector.collect(
+        buttonInteraction(EDIT_SAVE_WITH_COMMENT_BUTTON_ID, {
+          showModal: vi.fn().mockResolvedValue(undefined),
+          awaitModalSubmit: firstAwait,
+        }).interaction,
+      );
+      await vi.waitFor(() => expect(firstAwait).toHaveBeenCalled());
+
+      await collector.collect(selectInteraction('P3').interaction);
+      const secondClick = collector.collect(
+        buttonInteraction(EDIT_SAVE_WITH_COMMENT_BUTTON_ID, {
+          showModal: vi.fn().mockResolvedValue(undefined),
+          awaitModalSubmit: secondAwait,
+        }).interaction,
+      );
+      await vi.waitFor(() => expect(secondAwait).toHaveBeenCalled());
+
+      // listeners run in registration order, so the stale one resolves first
+      submitFirst(modal);
+      submitSecond(modal);
+      await Promise.all([firstClick, secondClick]);
+      await run;
+
+      expect(modalUpdate).toHaveBeenCalledTimes(1);
+      expect(editSignupService.apply).toHaveBeenCalledTimes(1);
+      expect(editSignupService.apply).toHaveBeenCalledWith(
+        expect.objectContaining({ progPoint: 'P3', comment: 'meant P3' }),
+      );
+    });
+
     it('asks the reviewer to retry when the comment modal token has expired', async () => {
       const expired = new DiscordAPIError(
         { message: 'Unknown interaction', code: 10062 },
