@@ -35,6 +35,13 @@ export type ApprovalDecision =
   | { type: 'approved'; progPoint: string; comment?: string }
   | { type: 'cancelled' };
 
+interface DecisionState {
+  progPoint?: string;
+  // bumped on every "Approve with Comment" click, so a modal listener left
+  // parked by an earlier click can tell it is stale
+  modalGeneration: number;
+}
+
 // discord.js's own DiscordjsError has a private constructor (library-internal
 // use only), but `getErrorReplyMessage` only pattern-matches on `{ code }`
 // structurally — so a plain Error with the same code is all callers need.
@@ -45,11 +52,6 @@ class ApprovalDecisionTimeoutError extends Error {
     super(`Approval decision collector ended before resolving: ${reason}`);
   }
 }
-
-// Signals that showModal() failed because the button click's interaction
-// token had already expired (Discord error 10062) — a recoverable case the
-// caller should ask the reviewer to retry, not a real decision-ending error.
-class ModalTokenExpiredError extends Error {}
 
 @Injectable()
 export class ApprovalDecisionRequestService {
@@ -116,7 +118,7 @@ export class ApprovalDecisionRequestService {
     selectRow: ActionRowBuilder<StringSelectMenuBuilder>,
   ): Promise<ApprovalDecision> {
     const deadline = Date.now() + APPROVAL_DECISION_TIMEOUT_MS;
-    const state: { progPoint?: string } = {};
+    const state: DecisionState = { modalGeneration: 0 };
 
     return new Promise<ApprovalDecision>((resolve, reject) => {
       let settled = false;
@@ -161,7 +163,7 @@ export class ApprovalDecisionRequestService {
   // once a button resolves it, or undefined while still collecting.
   private async processInteraction(
     interaction: MessageComponentInteraction,
-    state: { progPoint?: string },
+    state: DecisionState,
     selectRow: ActionRowBuilder<StringSelectMenuBuilder>,
     deadline: number,
   ): Promise<ApprovalDecision | undefined> {
@@ -209,20 +211,7 @@ export class ApprovalDecisionRequestService {
     }
 
     if (interaction.customId === APPROVE_WITH_COMMENT_BUTTON_ID) {
-      try {
-        const comment = await this.collectComment(interaction, deadline);
-        return { type: 'approved', progPoint, comment };
-      } catch (error) {
-        if (!(error instanceof ModalTokenExpiredError)) {
-          throw error;
-        }
-        // Recoverable: the collector is still running, so the reviewer can
-        // just click the button again for a fresh interaction token.
-        await interaction.user.send(
-          'That took a moment too long to open — please click "Approve with Comment" again.',
-        );
-        return undefined;
-      }
+      return this.collectComment(interaction, state, deadline);
     }
 
     return undefined;
@@ -230,13 +219,25 @@ export class ApprovalDecisionRequestService {
 
   private async collectComment(
     interaction: ButtonInteraction,
+    state: DecisionState,
     deadline: number,
-  ): Promise<string | undefined> {
+  ): Promise<ApprovalDecision | undefined> {
+    // discord.js has no "modal closed" event: a modal dismissed with Esc
+    // leaves its submit listener parked on this message, so a later click's
+    // submit reaches both listeners and only the newest click may act on it
+    state.modalGeneration += 1;
+    const generation = state.modalGeneration;
+
     try {
       await interaction.showModal(createApprovalCommentModal());
     } catch (error) {
       if (error instanceof DiscordAPIError && error.code === 10062) {
-        throw new ModalTokenExpiredError();
+        // Recoverable: the collector is still running, so the reviewer can
+        // just click the button again for a fresh interaction token.
+        await interaction.user.send(
+          'That took a moment too long to open — please click "Approve with Comment" again.',
+        );
+        return undefined;
       }
       throw error;
     }
@@ -251,6 +252,14 @@ export class ApprovalDecisionRequestService {
       time: this.remainingTime(deadline),
     });
 
+    // built at submit time, never from values captured at click time
+    const progPoint = state.progPoint;
+
+    if (generation !== state.modalGeneration || !progPoint) {
+      // stale listener: the newest click's own listener handles this submit
+      return undefined;
+    }
+
     const comment = modalInteraction.fields
       .getTextInputValue(APPROVAL_COMMENT_INPUT_ID)
       .trim();
@@ -262,7 +271,7 @@ export class ApprovalDecisionRequestService {
       );
     }
 
-    return comment || undefined;
+    return { type: 'approved', progPoint, comment: comment || undefined };
   }
 
   private async clearAndNotify(

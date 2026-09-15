@@ -276,6 +276,67 @@ describe('ApprovalDecisionRequestService', () => {
       );
     });
 
+    it('ignores a stale comment-modal listener: only the newest click approves', async () => {
+      const { fake, collect } = buildFakeCollector();
+      const message = buildMessage(fake);
+      const resultPromise = service['collectDecision'](
+        message,
+        reviewer,
+        selectRow,
+      );
+
+      await collect(buildSelectInteraction('point-a'));
+
+      // first "Approve with Comment" click parks a listener whose modal is
+      // closed with Esc (no submit event), so the listener stays registered
+      let submitFirst:
+        | ((modal: ModalMessageModalSubmitInteraction) => void)
+        | undefined;
+      const firstAwait = vi.fn(
+        () =>
+          new Promise<ModalMessageModalSubmitInteraction>((resolve) => {
+            submitFirst = resolve;
+          }),
+      );
+      const firstClick = collect(
+        buildApproveWithCommentInteraction(firstAwait),
+      );
+      await vi.waitFor(() => expect(firstAwait).toHaveBeenCalled());
+
+      // prog point is re-selected before the second click
+      await collect(buildSelectInteraction('point-b'));
+
+      let submitSecond:
+        | ((modal: ModalMessageModalSubmitInteraction) => void)
+        | undefined;
+      const secondAwait = vi.fn(
+        () =>
+          new Promise<ModalMessageModalSubmitInteraction>((resolve) => {
+            submitSecond = resolve;
+          }),
+      );
+      const secondClick = collect(
+        buildApproveWithCommentInteraction(secondAwait),
+      );
+      await vi.waitFor(() => expect(secondAwait).toHaveBeenCalled());
+
+      // the newest modal's submit reaches both parked listeners; the stale
+      // one is registered first, so it resolves first
+      const modalSubmit = buildModalSubmit('right comment');
+      submitFirst?.(modalSubmit);
+      submitSecond?.(modalSubmit);
+      await Promise.all([firstClick, secondClick]);
+
+      expect(await resultPromise).toEqual({
+        type: 'approved',
+        progPoint: 'point-b',
+        comment: 'right comment',
+      });
+      // the stale listener never notifies the reviewer or clears the message
+      expect(modalSubmit.update).toHaveBeenCalledTimes(1);
+      expect(modalSubmit.followUp).toHaveBeenCalledTimes(1);
+    });
+
     it('scopes the comment-modal filter to the same user and the same DM message', async () => {
       const { fake, collect } = buildFakeCollector();
       const message = buildMessage(fake);
