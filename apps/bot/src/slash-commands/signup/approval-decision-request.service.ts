@@ -242,7 +242,12 @@ export class ApprovalDecisionRequestService {
     }
 
     const modalInteraction = await interaction.awaitModalSubmit({
-      filter: isSameUserFilter(interaction.user),
+      // scoped to this button's message too: an unresolved listener from a
+      // prior request would otherwise still match on user alone and could
+      // grab a modal submit meant for a different approval decision
+      filter: (submission) =>
+        isSameUserFilter(interaction.user)(submission) &&
+        submission.message?.id === interaction.message.id,
       time: this.remainingTime(deadline),
     });
 

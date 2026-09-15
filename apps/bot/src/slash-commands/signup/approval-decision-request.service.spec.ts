@@ -175,6 +175,7 @@ describe('ApprovalDecisionRequestService', () => {
       mockOf<ButtonInteraction>({
         customId: APPROVE_WITH_COMMENT_BUTTON_ID,
         user: overrides.user ?? reviewer,
+        message: { id: 'approval-message' },
         isStringSelectMenu: () => false,
         isButton: () => true,
         update: vi.fn().mockResolvedValue(undefined),
@@ -273,6 +274,44 @@ describe('ApprovalDecisionRequestService', () => {
       expect(modalSubmit.followUp).toHaveBeenCalledWith(
         SIGNUP_MESSAGES.APPROVAL_CONFIRMATION_RECEIVED,
       );
+    });
+
+    it('scopes the comment-modal filter to the same user and the same DM message', async () => {
+      const { fake, collect } = buildFakeCollector();
+      const message = buildMessage(fake);
+      service['collectDecision'](message, reviewer, selectRow);
+
+      await collect(buildSelectInteraction('point-a'));
+
+      let capturedFilter:
+        | ((interaction: ModalMessageModalSubmitInteraction) => boolean)
+        | undefined;
+      const modalSubmit = buildModalSubmit('hi');
+      const awaitModalSubmit = vi.fn(
+        (options: {
+          filter: (interaction: ModalMessageModalSubmitInteraction) => boolean;
+        }) => {
+          capturedFilter = options.filter;
+          return Promise.resolve(modalSubmit);
+        },
+      );
+      const approveWithCommentInteraction =
+        buildApproveWithCommentInteraction(awaitModalSubmit);
+      await collect(approveWithCommentInteraction);
+
+      const sameMessageSubmit = mockOf<ModalMessageModalSubmitInteraction>({
+        user: reviewer,
+        message: { id: 'approval-message' },
+      });
+      const differentMessageSubmit = mockOf<ModalMessageModalSubmitInteraction>(
+        {
+          user: reviewer,
+          message: { id: 'a-different-message' },
+        },
+      );
+
+      expect(capturedFilter?.(sameMessageSubmit)).toBe(true);
+      expect(capturedFilter?.(differentMessageSubmit)).toBe(false);
     });
 
     it('asks the reviewer to retry and keeps collecting when the modal token has already expired', async () => {
