@@ -8,6 +8,7 @@ import { RoleManagerModule } from '../../role-manager/role-manager.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
 import { EditSignupService } from './edit-signup.service.js';
 import { EditSignupCommandHandler } from './handlers/edit-signup.command-handler.js';
+import { NotifyApplicantEventHandler } from './handlers/notify-applicant.event-handler.js';
 import { ReconcileAnnouncementEventHandler } from './handlers/reconcile-announcement.event-handler.js';
 import { ReconcileRolesEventHandler } from './handlers/reconcile-roles.event-handler.js';
 import { UpdateReviewMessageEventHandler } from './handlers/update-review-message.event-handler.js';
@@ -25,6 +26,7 @@ import { UpdateReviewMessageEventHandler } from './handlers/update-review-messag
   providers: [
     EditSignupCommandHandler,
     EditSignupService,
+    NotifyApplicantEventHandler,
     ReconcileAnnouncementEventHandler,
     ReconcileRolesEventHandler,
     UpdateReviewMessageEventHandler,
