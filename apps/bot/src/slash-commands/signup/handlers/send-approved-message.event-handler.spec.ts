@@ -3,9 +3,11 @@ import {
   Encounter,
   EncounterFriendlyDescription,
   PartyStatus,
+  type ReviewHistoryEntry,
   type SignupDocument,
 } from '@ulti-project/shared';
 import { Colors, type GuildMember, type Message, type User } from 'discord.js';
+import { Timestamp } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
@@ -50,6 +52,32 @@ describe('SendApprovedMessageEventHandler', () => {
       ...overrides,
     });
 
+  const currentApprovalAt = Timestamp.fromMillis(2_000);
+  const reviewHistory: ReviewHistoryEntry[] = [
+    {
+      type: 'approved',
+      progPoint: 'P1',
+      partyStatus: PartyStatus.EarlyProgParty,
+      actorId: 'reviewer-0',
+      at: Timestamp.fromMillis(1_000),
+      via: 'reaction',
+    },
+    {
+      type: 'declined',
+      actorId: 'reviewer-1',
+      at: Timestamp.fromMillis(1_500),
+      via: 'reaction',
+    },
+    {
+      type: 'approved',
+      progPoint: 'P2',
+      partyStatus: PartyStatus.ProgParty,
+      actorId: 'reviewer-1',
+      at: currentApprovalAt,
+      via: 'reaction',
+    },
+  ];
+
   const baseFields = (progPoint: string) => [
     { name: 'Character', value: 'Faye Valentine', inline: true },
     { name: 'World', value: 'Gilgamesh', inline: true },
@@ -85,6 +113,7 @@ describe('SendApprovedMessageEventHandler', () => {
     );
     discordService.getEmojiString.mockReturnValue('');
     discordService.getEmojis.mockReturnValue([]);
+    repository.setApprovalMessageId.mockResolvedValue({ type: 'written' });
   });
 
   it('posts the approval announcement', async () => {
@@ -152,8 +181,8 @@ describe('SendApprovedMessageEventHandler', () => {
     });
   });
 
-  it('stores the announcement message id for a non-cleared approval', async () => {
-    const signup = buildSignup();
+  it('stores the announcement message id against the current approval decision', async () => {
+    const signup = buildSignup({ reviewHistory });
 
     await handler.handle(
       new SignupApprovedEvent(signup, settings, approver, reviewMessage),
@@ -162,11 +191,15 @@ describe('SendApprovedMessageEventHandler', () => {
     expect(repository.setApprovalMessageId).toHaveBeenCalledWith(
       signup,
       'announcement-1',
+      currentApprovalAt,
     );
   });
 
   it('posts a fresh announcement even when an old approvalMessageId is stored', async () => {
-    const signup = buildSignup({ approvalMessageId: 'old-announcement' });
+    const signup = buildSignup({
+      approvalMessageId: 'old-announcement',
+      reviewHistory,
+    });
 
     await handler.handle(
       new SignupApprovedEvent(signup, settings, approver, reviewMessage),
@@ -177,7 +210,17 @@ describe('SendApprovedMessageEventHandler', () => {
     expect(repository.setApprovalMessageId).toHaveBeenCalledWith(
       signup,
       'announcement-1',
+      currentApprovalAt,
     );
+  });
+
+  it('does not store a message id when the signup has no approval decision', async () => {
+    await handler.handle(
+      new SignupApprovedEvent(buildSignup(), settings, approver, reviewMessage),
+    );
+
+    expect(channelSend).toHaveBeenCalledTimes(1);
+    expect(repository.setApprovalMessageId).not.toHaveBeenCalled();
   });
 
   it('does not store a message id for a cleared approval', async () => {

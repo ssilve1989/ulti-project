@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
-import { EncounterEmoji } from '@ulti-project/shared';
+import { EncounterEmoji, type SignupDocument } from '@ulti-project/shared';
 import type { EmbedBuilder } from 'discord.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { ErrorService } from '../../../error/error.service.js';
@@ -9,6 +9,7 @@ import {
   buildApprovalAnnouncementContent,
   buildApprovalAnnouncementEmbed,
 } from '../../signup/approval-announcement.js';
+import { latestEntryOfType } from '../../signup/review-history.js';
 import { buildEditedFooterText } from '../edit-signup.footers.js';
 import { SignupEditedEvent } from '../events/signup-edited.event.js';
 
@@ -112,7 +113,28 @@ export class ReconcileAnnouncementEventHandler
       embeds: [embed],
     });
 
-    await this.signupCollection.setApprovalMessageId(after, message.id);
+    await this.storeApprovalMessageId(after, message.id);
+  }
+
+  private async storeApprovalMessageId(
+    signup: SignupDocument,
+    messageId: string,
+  ): Promise<void> {
+    const decisionAt = latestEntryOfType(signup.reviewHistory, 'approved')?.at;
+    const write = decisionAt
+      ? await this.signupCollection.setApprovalMessageId(
+          signup,
+          messageId,
+          decisionAt,
+        )
+      : undefined;
+
+    if (write?.type !== 'written') {
+      // superseded by a later decision: the post stays, like any past approval
+      this.logger.log(
+        `Announcement ${messageId} is not for the current approval of signup ${signup.discordId}-${signup.encounter}, not storing its id`,
+      );
+    }
   }
 
   private async buildEmbed(

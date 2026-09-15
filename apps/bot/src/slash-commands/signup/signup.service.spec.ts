@@ -304,13 +304,29 @@ describe('SignupService', () => {
         PartyStatus.ProgParty,
       );
 
-      await service['handleApprovedReaction'](
+      const event = await service['handleApprovedReaction'](
         previouslyApproved,
         reviewMessage(),
         user,
         settings,
       );
 
+      const appended = [
+        {
+          type: 'trackingStarted',
+          progPoint: 'old-point',
+          partyStatus: PartyStatus.ClearParty,
+          at: expect.any(Timestamp),
+        },
+        {
+          type: 'approved',
+          progPoint: 'point-a',
+          partyStatus: PartyStatus.ProgParty,
+          actorId: 'reviewer-1',
+          at: expect.any(Timestamp),
+          via: 'reaction',
+        },
+      ];
       expect(repository.updateSignupStatus).toHaveBeenCalledWith(
         SignupStatus.APPROVED,
         expect.objectContaining({
@@ -318,22 +334,13 @@ describe('SignupService', () => {
           partyStatus: PartyStatus.ProgParty,
         }),
         'spike',
-        [
-          {
-            type: 'trackingStarted',
-            progPoint: 'old-point',
-            partyStatus: PartyStatus.ClearParty,
-            at: expect.any(Timestamp),
-          },
-          {
-            type: 'approved',
-            progPoint: 'point-a',
-            partyStatus: PartyStatus.ProgParty,
-            actorId: 'reviewer-1',
-            at: expect.any(Timestamp),
-            via: 'reaction',
-          },
-        ],
+        appended,
+      );
+      // the event carries the very entries written, so handlers can match
+      // the stored decision by its `at`
+      expect(event?.signup.reviewHistory).toEqual(appended);
+      expect(event?.signup.reviewHistory).toEqual(
+        repository.updateSignupStatus.mock.calls[0][3],
       );
     });
 
@@ -354,7 +361,7 @@ describe('SignupService', () => {
         PartyStatus.ProgParty,
       );
 
-      await service['handleApprovedReaction'](
+      const event = await service['handleApprovedReaction'](
         tracked,
         reviewMessage(),
         user,
@@ -367,6 +374,10 @@ describe('SignupService', () => {
         'spike',
         [expect.objectContaining({ type: 'approved', actorId: 'reviewer-1' })],
       );
+      expect(event?.signup.reviewHistory).toEqual([
+        existing,
+        expect.objectContaining({ type: 'approved', actorId: 'reviewer-1' }),
+      ]);
     });
 
     it('writes no history for a cleared approval', async () => {

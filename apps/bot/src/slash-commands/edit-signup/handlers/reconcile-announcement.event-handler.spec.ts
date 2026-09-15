@@ -122,6 +122,9 @@ describe('ReconcileAnnouncementEventHandler', () => {
       }),
     );
     discordService.getEmojiString.mockReturnValue('');
+    signupCollection.setApprovalMessageId.mockResolvedValue({
+      type: 'written',
+    });
   });
 
   it('edits the stored announcement in place for a correction', async () => {
@@ -186,13 +189,27 @@ describe('ReconcileAnnouncementEventHandler', () => {
     expect(errorService.captureError).not.toHaveBeenCalled();
   });
 
-  it('posts a fresh announcement and stores its id for a reversal', async () => {
+  it('posts a fresh announcement and stores its id against the reversal decision', async () => {
     const declined = partialMock<SignupDocument>({
       ...approvedBefore,
       status: SignupStatus.DECLINED,
       approvalMessageId: undefined,
     });
-    const after = afterOf(declined);
+    const reversalAt = Timestamp.fromMillis(4_000);
+    const after: EditedSignup = {
+      ...afterOf(declined),
+      reviewHistory: [
+        ...(declined.reviewHistory ?? []),
+        {
+          type: 'approved',
+          progPoint: 'P4',
+          partyStatus: PartyStatus.ClearParty,
+          actorId: 'editor-1',
+          at: reversalAt,
+          via: 'edit',
+        },
+      ],
+    };
 
     await handler.handle(
       new SignupEditedEvent(
@@ -211,6 +228,7 @@ describe('ReconcileAnnouncementEventHandler', () => {
     expect(signupCollection.setApprovalMessageId).toHaveBeenCalledWith(
       after,
       'announcement-2',
+      reversalAt,
     );
   });
 

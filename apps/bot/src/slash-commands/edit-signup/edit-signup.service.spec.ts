@@ -120,6 +120,7 @@ describe('EditSignupService', () => {
     expect(signupCollection.applyEdit).toHaveBeenCalledWith(
       approved,
       {
+        kind: 'correction',
         progPoint: 'P4',
         partyStatus: PartyStatus.ClearParty,
         historyEntries: [
@@ -151,6 +152,7 @@ describe('EditSignupService', () => {
     expect(signupCollection.applyEdit).toHaveBeenCalledWith(
       declinedUntracked,
       expect.objectContaining({
+        kind: 'reversal',
         historyEntries: [
           { type: 'trackingStarted', at: expect.any(Timestamp) },
           {
