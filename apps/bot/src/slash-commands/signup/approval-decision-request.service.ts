@@ -29,7 +29,7 @@ import {
 } from './approval-decision.components.js';
 import { SIGNUP_MESSAGES } from './signup.consts.js';
 
-const APPROVAL_DECISION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+export const APPROVAL_DECISION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 export type ApprovalDecision =
   | { type: 'approved'; progPoint: string; comment?: string }

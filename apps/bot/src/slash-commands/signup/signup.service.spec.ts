@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   PartyStatus,
@@ -5,9 +6,24 @@ import {
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
-import type { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
+import {
+  type Client,
+  Events,
+  type Message,
+  type MessageReaction,
+  type ReactionEmoji,
+  type User,
+} from 'discord.js';
 import { Timestamp, type WriteResult } from 'firebase-admin/firestore';
-import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mocked,
+  vi,
+} from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { EncountersService } from '../../encounters/encounters.service.js';
 import { ErrorService } from '../../error/error.service.js';
@@ -426,6 +442,71 @@ describe('SignupService', () => {
         expect.any(String),
       );
       expect(errorService.captureError).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('onApplicationBootstrap', () => {
+    afterEach(() => {
+      service.onModuleDestroy();
+      vi.useRealTimers();
+    });
+
+    const emitReaction = (emitter: EventEmitter, messageId: string) => {
+      emitter.emit(
+        Events.MessageReactionAdd,
+        mockOf<MessageReaction>({
+          message: mockOf<Message<boolean>>({ id: messageId }),
+        }),
+        user,
+      );
+    };
+
+    it('keeps serializing reactions for the same message across the approval decision window', async () => {
+      const emitter = new EventEmitter();
+      // `client` is declared `readonly` on DiscordService; defineProperty
+      // bypasses that (the auto-mock proxy's `defineProperty` trap stores it)
+      // without a type assertion.
+      Object.defineProperty(discordService, 'client', {
+        value: mockOf<Client>(emitter),
+        configurable: true,
+      });
+
+      let resolveFirst: () => void = () => {};
+      const firstProcessEvent = new Promise<void>((resolve) => {
+        resolveFirst = resolve;
+      });
+
+      const processEventSpy = vi
+        .spyOn(
+          withInternals<{
+            processEvent: (event: unknown) => Promise<void>;
+          }>(service),
+          'processEvent',
+        )
+        .mockImplementationOnce(() => firstProcessEvent)
+        .mockResolvedValue(undefined);
+
+      vi.useFakeTimers();
+
+      service.onApplicationBootstrap();
+
+      emitReaction(emitter, 'review-1');
+      expect(processEventSpy).toHaveBeenCalledTimes(1);
+
+      // Past the old 30s group duration, but well inside the up-to-5-minute
+      // approval decision window the first reaction is still awaiting.
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      emitReaction(emitter, 'review-1');
+      // The group must still be alive and serializing via concatMap: the
+      // second reaction should NOT start a new, concurrent processEvent call
+      // while the first is still pending.
+      expect(processEventSpy).toHaveBeenCalledTimes(1);
+
+      resolveFirst();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(processEventSpy).toHaveBeenCalledTimes(2);
     });
   });
 });
