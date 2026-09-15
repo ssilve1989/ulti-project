@@ -1,10 +1,18 @@
 import { sheets, sheets_v4 } from '@googleapis/sheets';
 import { Test } from '@nestjs/testing';
-import { Encounter, PartyStatus } from '@ulti-project/shared';
+import {
+  Encounter,
+  PartyStatus,
+  type SignupDocument,
+} from '@ulti-project/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EncountersService } from '../encounters/encounters.service.js';
 import { ErrorService } from '../error/error.service.js';
-import { mockOf, withInternals } from '../test-utils/mock-factory.js';
+import {
+  mockOf,
+  partialMock,
+  withInternals,
+} from '../test-utils/mock-factory.js';
 import { SHEETS_CLIENT } from './sheets.consts.js';
 import { SheetsService } from './sheets.service.js';
 import * as sheetsUtils from './sheets.utils.js';
@@ -406,6 +414,80 @@ describe('Sheets Service', () => {
 
       // Restore the original TurboProgSheetRanges
       Object.assign(TurboProgSheetRanges, originalRanges);
+    });
+  });
+
+  describe('#upsertSignup range cleanup', () => {
+    const installedSpies: { mockRestore: () => void }[] = [];
+
+    const signupFor = (partyStatus: PartyStatus) =>
+      partialMock<SignupDocument>({
+        encounter: Encounter.DSR,
+        character: 'faye valentine',
+        world: 'gilgamesh',
+        role: 'WHM',
+        progPoint: 'p2',
+        partyStatus,
+      });
+
+    beforeEach(() => {
+      installedSpies.push(
+        vi.spyOn(sheetsUtils, 'getSheetValues').mockResolvedValue([]),
+        vi
+          .spyOn(sheetsUtils, 'updateSheet')
+          .mockResolvedValue(
+            mockOf<Awaited<ReturnType<typeof sheetsUtils.updateSheet>>>({}),
+          ),
+      );
+    });
+
+    afterEach(() => {
+      for (const spy of installedSpies.splice(0)) {
+        spy.mockRestore();
+      }
+    });
+
+    it.each([
+      { partyStatus: PartyStatus.ProgParty, cleaned: PartyStatus.ClearParty },
+      {
+        partyStatus: PartyStatus.EarlyProgParty,
+        cleaned: PartyStatus.ClearParty,
+      },
+      { partyStatus: PartyStatus.ClearParty, cleaned: PartyStatus.ProgParty },
+    ])(
+      'removes a $partyStatus upsert from the $cleaned range first',
+      async ({ partyStatus, cleaned }) => {
+        const removeSignup = vi
+          .spyOn(service, 'removeSignup')
+          .mockResolvedValue(0);
+        installedSpies.push(removeSignup);
+
+        await service.upsertSignup(signupFor(partyStatus), 'sheet-id');
+
+        expect(removeSignup).toHaveBeenCalledWith(
+          expect.objectContaining({
+            character: 'faye valentine',
+            world: 'gilgamesh',
+            encounter: Encounter.DSR,
+          }),
+          'sheet-id',
+          [cleaned],
+        );
+      },
+    );
+
+    it('does not clean other ranges for an encounter with a single prog point', async () => {
+      mockEncountersService.getProgPoints.mockResolvedValue([
+        { id: 'p1', label: 'Phase 1', order: 0 },
+      ]);
+      const removeSignup = vi
+        .spyOn(service, 'removeSignup')
+        .mockResolvedValue(0);
+      installedSpies.push(removeSignup);
+
+      await service.upsertSignup(signupFor(PartyStatus.ClearParty), 'sheet-id');
+
+      expect(removeSignup).not.toHaveBeenCalled();
     });
   });
 });

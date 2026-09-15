@@ -1,22 +1,18 @@
 import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
-import {
-  Encounter,
-  EncounterEmoji,
-  EncounterFriendlyDescription,
-  PartyStatus,
-  type SignupDocument,
-} from '@ulti-project/shared';
-import { Colors, EmbedBuilder, Message, User, userMention } from 'discord.js';
-import {
-  characterField,
-  emptyField,
-  worldField,
-} from '../../../common/components/fields.js';
+import { EncounterEmoji } from '@ulti-project/shared';
+import type { Message } from 'discord.js';
 import { ClearReactions } from '../../../common/emojis/emojis.js';
 import { DiscordService } from '../../../discord/discord.service.js';
+import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
+import {
+  buildApprovalAnnouncementContent,
+  buildApprovalAnnouncementEmbed,
+  storeApprovalMessageId,
+} from '../approval-announcement.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
+import { hasClearedStatus } from '../signup.utils.js';
 
 @EventsHandler(SignupApprovedEvent)
 class SendApprovedMessageEventHandler
@@ -24,7 +20,10 @@ class SendApprovedMessageEventHandler
 {
   private readonly logger = new Logger(SendApprovedMessageEventHandler.name);
 
-  constructor(private readonly discordService: DiscordService) {}
+  constructor(
+    private readonly discordService: DiscordService,
+    private readonly repository: SignupCollection,
+  ) {}
 
   async handle(event: SignupApprovedEvent) {
     try {
@@ -58,96 +57,46 @@ class SendApprovedMessageEventHandler
       return;
     }
 
-    const hasCleared = signup.partyStatus === PartyStatus.Cleared;
-
-    const content = this.getMessageContent(hasCleared, signup.encounter);
-
-    const embed = await this.createEmbed(
-      guildId,
-      approvedBy,
-      hasCleared,
-      signup,
-    );
-
-    const message = await channel.send({
-      content: `${userMention(signup.discordId)} ${content}`,
-      embeds: [embed],
-    });
-
-    if (hasCleared) {
-      await this.addReactions(message);
-    }
-  }
-
-  private async createEmbed(
-    guildId: string,
-    approvedBy: User,
-    hasCleared: boolean,
-    {
-      encounter,
-      character,
-      world,
-      role,
-      progPoint,
-      progPointRequested,
-      discordId,
-      proofOfProgLink,
-      screenshot,
-    }: SignupDocument,
-  ): Promise<EmbedBuilder> {
-    const progPointFieldValue = progPoint ?? progPointRequested;
-    const emoji = this.discordService.getEmojiString(EncounterEmoji[encounter]);
-
     const [approvedUsersDisplayName, progger] = await Promise.all([
       this.discordService.getDisplayName({
         userId: approvedBy.id,
         guildId,
       }),
-      this.discordService.getGuildMember({ memberId: discordId, guildId }),
+      this.discordService.getGuildMember({
+        memberId: signup.discordId,
+        guildId,
+      }),
     ]);
 
-    const title = hasCleared
-      ? 'Congratulations!'
-      : `Signup Approved - ${EncounterFriendlyDescription[encounter]} ${emoji}`.trim();
-
-    const embed = new EmbedBuilder()
-      .setTitle(title)
-      .setFields([
-        characterField(character),
-        worldField(world),
-        { name: 'Job', value: role, inline: true },
-        { name: 'Prog Point', value: progPointFieldValue, inline: true },
-        emptyField(),
-      ])
-      .setFooter({
+    const embed = buildApprovalAnnouncementEmbed({
+      signup,
+      encounterEmoji: this.discordService.getEmojiString(
+        EncounterEmoji[signup.encounter],
+      ),
+      footer: {
         text: `Approved by ${approvedUsersDisplayName}`,
         iconURL: approvedBy.displayAvatarURL(),
-      })
-      .setColor(Colors.Green)
-      .setTimestamp(new Date());
+      },
+      applicantAvatarUrl: progger?.displayAvatarURL(),
+    });
 
-    if (proofOfProgLink) {
-      embed.addFields([
-        {
-          name: 'Prog Proof Link',
-          value: `[View](${proofOfProgLink})`,
-          inline: true,
-        },
-      ]);
+    const message = await channel.send({
+      content: buildApprovalAnnouncementContent(signup),
+      embeds: [embed],
+    });
+
+    if (hasClearedStatus(signup)) {
+      await this.addReactions(message);
+    } else {
+      // Write-only here: the reaction flow always posts a fresh announcement.
+      // /edit-signup is the only reader. Cleared signups have no document left.
+      await storeApprovalMessageId(
+        this.repository,
+        this.logger,
+        signup,
+        message.id,
+      );
     }
-
-    if (screenshot) {
-      embed.setImage(screenshot);
-    }
-
-    const avatarUrl = progger?.displayAvatarURL();
-    return avatarUrl ? embed.setThumbnail(avatarUrl) : embed;
-  }
-
-  private getMessageContent(hasCleared: boolean, encounter: Encounter) {
-    return hasCleared
-      ? `Congratulations on clearing **${EncounterFriendlyDescription[encounter]}**!`
-      : 'Signup Approved!';
   }
 
   private async addReactions(message: Message) {

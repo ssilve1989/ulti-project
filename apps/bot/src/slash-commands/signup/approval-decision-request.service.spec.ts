@@ -175,6 +175,7 @@ describe('ApprovalDecisionRequestService', () => {
       mockOf<ButtonInteraction>({
         customId: APPROVE_WITH_COMMENT_BUTTON_ID,
         user: overrides.user ?? reviewer,
+        message: { id: 'approval-message' },
         isStringSelectMenu: () => false,
         isButton: () => true,
         update: vi.fn().mockResolvedValue(undefined),
@@ -273,6 +274,105 @@ describe('ApprovalDecisionRequestService', () => {
       expect(modalSubmit.followUp).toHaveBeenCalledWith(
         SIGNUP_MESSAGES.APPROVAL_CONFIRMATION_RECEIVED,
       );
+    });
+
+    it('ignores a stale comment-modal listener: only the newest click approves', async () => {
+      const { fake, collect } = buildFakeCollector();
+      const message = buildMessage(fake);
+      const resultPromise = service['collectDecision'](
+        message,
+        reviewer,
+        selectRow,
+      );
+
+      await collect(buildSelectInteraction('point-a'));
+
+      // first "Approve with Comment" click parks a listener whose modal is
+      // closed with Esc (no submit event), so the listener stays registered
+      let submitFirst:
+        | ((modal: ModalMessageModalSubmitInteraction) => void)
+        | undefined;
+      const firstAwait = vi.fn(
+        () =>
+          new Promise<ModalMessageModalSubmitInteraction>((resolve) => {
+            submitFirst = resolve;
+          }),
+      );
+      const firstClick = collect(
+        buildApproveWithCommentInteraction(firstAwait),
+      );
+      await vi.waitFor(() => expect(firstAwait).toHaveBeenCalled());
+
+      // prog point is re-selected before the second click
+      await collect(buildSelectInteraction('point-b'));
+
+      let submitSecond:
+        | ((modal: ModalMessageModalSubmitInteraction) => void)
+        | undefined;
+      const secondAwait = vi.fn(
+        () =>
+          new Promise<ModalMessageModalSubmitInteraction>((resolve) => {
+            submitSecond = resolve;
+          }),
+      );
+      const secondClick = collect(
+        buildApproveWithCommentInteraction(secondAwait),
+      );
+      await vi.waitFor(() => expect(secondAwait).toHaveBeenCalled());
+
+      // the newest modal's submit reaches both parked listeners; the stale
+      // one is registered first, so it resolves first
+      const modalSubmit = buildModalSubmit('right comment');
+      submitFirst?.(modalSubmit);
+      submitSecond?.(modalSubmit);
+      await Promise.all([firstClick, secondClick]);
+
+      expect(await resultPromise).toEqual({
+        type: 'approved',
+        progPoint: 'point-b',
+        comment: 'right comment',
+      });
+      // the stale listener never notifies the reviewer or clears the message
+      expect(modalSubmit.update).toHaveBeenCalledTimes(1);
+      expect(modalSubmit.followUp).toHaveBeenCalledTimes(1);
+    });
+
+    it('scopes the comment-modal filter to the same user and the same DM message', async () => {
+      const { fake, collect } = buildFakeCollector();
+      const message = buildMessage(fake);
+      service['collectDecision'](message, reviewer, selectRow);
+
+      await collect(buildSelectInteraction('point-a'));
+
+      let capturedFilter:
+        | ((interaction: ModalMessageModalSubmitInteraction) => boolean)
+        | undefined;
+      const modalSubmit = buildModalSubmit('hi');
+      const awaitModalSubmit = vi.fn(
+        (options: {
+          filter: (interaction: ModalMessageModalSubmitInteraction) => boolean;
+        }) => {
+          capturedFilter = options.filter;
+          return Promise.resolve(modalSubmit);
+        },
+      );
+      const approveWithCommentInteraction =
+        buildApproveWithCommentInteraction(awaitModalSubmit);
+      await collect(approveWithCommentInteraction);
+
+      const sameMessageSubmit = mockOf<ModalMessageModalSubmitInteraction>({
+        user: reviewer,
+        message: { id: 'approval-message' },
+      });
+      const differentMessageSubmit = mockOf<ModalMessageModalSubmitInteraction>(
+        {
+          user: reviewer,
+          message: { id: 'a-different-message' },
+        },
+      );
+
+      expect(capturedFilter?.(sameMessageSubmit)).toBe(true);
+      expect(capturedFilter?.(differentMessageSubmit)).toBe(false);
     });
 
     it('asks the reviewer to retry and keeps collecting when the modal token has already expired', async () => {

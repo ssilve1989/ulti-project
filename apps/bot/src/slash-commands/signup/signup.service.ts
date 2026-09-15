@@ -23,6 +23,7 @@ import {
   type PartialUser,
   User,
 } from 'discord.js';
+import { Timestamp } from 'firebase-admin/firestore';
 import {
   concatMap,
   debounceTime,
@@ -46,6 +47,7 @@ import { SignupCollection } from '../../firebase/collections/signup.collection.j
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import {
+  APPROVAL_DECISION_TIMEOUT_MS,
   type ApprovalDecision,
   ApprovalDecisionRequestService,
 } from './approval-decision-request.service.js';
@@ -54,6 +56,7 @@ import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
 } from './events/signup.events.js';
+import { withTrackingSeed } from './review-history.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import {
   getErrorReplyMessage,
@@ -65,6 +68,19 @@ type ReactionEvent = {
   reaction: MessageReaction | PartialMessageReaction;
   user: User | PartialUser;
 };
+
+type ConfirmedSignup = SignupDocument & {
+  progPoint: string;
+  partyStatus: PartyStatus;
+};
+
+// A reaction group's `duration` notifier only resubscribes on new group
+// events (see rxjs groupBy.js), so it can close a group while its `concatMap`
+// handler is still awaiting the approval decision DM. The idle window must
+// outlive that DM (APPROVAL_DECISION_TIMEOUT_MS) plus the post-decision
+// persistence work (Sheets queue + Firestore), or a reaction arriving after
+// the group closes starts a second, concurrent handler for the same message.
+const REACTION_GROUP_IDLE_MS = APPROVAL_DECISION_TIMEOUT_MS + 5 * 60 * 1000;
 
 @Injectable()
 class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -94,7 +110,8 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     )
       .pipe(
         groupBy(({ reaction }) => reaction.message.id, {
-          duration: (group$) => group$.pipe(debounceTime(30_000)),
+          duration: (group$) =>
+            group$.pipe(debounceTime(REACTION_GROUP_IDLE_MS)),
         }),
         mergeMap((group$) =>
           group$.pipe(
@@ -262,10 +279,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       signup,
       decision.progPoint,
     );
-    await this.persistApprovedSignup(confirmedSignup, settings, user);
+    const approvedSignup = await this.persistApprovedSignup(
+      signup,
+      confirmedSignup,
+      settings,
+      user,
+    );
 
     return new SignupApprovedEvent(
-      confirmedSignup,
+      approvedSignup,
       settings,
       user,
       message,
@@ -289,11 +311,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
   private async buildConfirmedSignup(
     signup: SignupDocument,
-    progPoint: string | undefined,
-  ): Promise<SignupDocument> {
-    const partyStatus = progPoint
-      ? await this.getPartyStatus(signup.encounter, progPoint)
-      : undefined;
+    progPoint: string,
+  ): Promise<ConfirmedSignup> {
+    const partyStatus = await this.getPartyStatus(signup.encounter, progPoint);
 
     return {
       ...signup,
@@ -302,11 +322,18 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     };
   }
 
+  /**
+   * Returns the signup as persisted: without the previous decision's
+   * announcement id (cleared by the write, or gone with the removed document)
+   * and, for a non-cleared approval, with the appended history, so handlers
+   * can match this decision by its entry.
+   */
   private async persistApprovedSignup(
-    confirmedSignup: SignupDocument,
+    signup: SignupDocument,
+    confirmedSignup: ConfirmedSignup,
     settings: SettingsDocument,
     user: User,
-  ): Promise<void> {
+  ): Promise<ConfirmedSignup> {
     if (settings.spreadsheetId) {
       await this.sheetsService.upsertSignup(
         confirmedSignup,
@@ -322,13 +349,35 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         world: confirmedSignup.world,
         encounter: confirmedSignup.encounter,
       });
-    } else {
-      await this.repository.updateSignupStatus(
-        SignupStatus.APPROVED,
-        confirmedSignup,
-        user.username,
-      );
+      return { ...confirmedSignup, approvalMessageId: undefined };
     }
+
+    const at = Timestamp.now();
+    // seed from `signup` (as read), not `confirmedSignup` (new prog point)
+    const historyEntries = withTrackingSeed(
+      signup,
+      {
+        type: 'approved',
+        progPoint: confirmedSignup.progPoint,
+        partyStatus: confirmedSignup.partyStatus,
+        actorId: user.id,
+        at,
+        via: 'reaction',
+      },
+      at,
+    );
+    await this.repository.updateSignupStatus(
+      SignupStatus.APPROVED,
+      confirmedSignup,
+      user.username,
+      historyEntries,
+    );
+
+    return {
+      ...confirmedSignup,
+      approvalMessageId: undefined,
+      reviewHistory: [...(signup.reviewHistory ?? []), ...historyEntries],
+    };
   }
 
   private async handleDeclinedReaction(
@@ -337,10 +386,16 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     user: User,
   ): Promise<SignupDeclinedEvent> {
     // Update signup status immediately (for sequential reaction processing)
+    const at = Timestamp.now();
     await this.repository.updateSignupStatus(
       SignupStatus.DECLINED,
       signup,
       user.username,
+      withTrackingSeed(
+        signup,
+        { type: 'declined', actorId: user.id, at, via: 'reaction' },
+        at,
+      ),
     );
 
     // Fire decline reason request with event dispatch context (non-blocking)
