@@ -53,42 +53,42 @@ class SignupCollection {
    * @param signup
    */
   @SentryTraced()
-  public async upsert(
-    props: CreateSignupDocumentProps,
-  ): Promise<SignupDocument> {
+  public upsert(props: CreateSignupDocumentProps): Promise<SignupDocument> {
     const key = SignupCollection.getKeyForSignup(props);
     const document = this.collection.doc(key);
     const expiresAt = Timestamp.fromMillis(
       Temporal.Now.zonedDateTimeISO().add({ days: 28 }).epochMilliseconds,
     );
-    const snapshot = await document.get();
-    const existing = snapshot.data();
 
-    if (existing) {
+    return this.firestore.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(document);
+      const existing = snapshot.data();
+
+      if (existing) {
+        const payload = {
+          ...props,
+          // if there is already a signup and it is still PENDING we do nothing, otherwise we move it to UPDATE_PENDING
+          status:
+            existing.status === SignupStatus.PENDING
+              ? SignupStatus.PENDING
+              : SignupStatus.UPDATE_PENDING,
+          // reset the reviewedBy field because it now has to be reviewed again
+          reviewedBy: null,
+          expiresAt,
+        };
+        transaction.update(document, payload);
+        return { ...existing, ...payload };
+      }
+
       const signupData = {
-        ...existing,
         ...props,
-        // if there is already a signup and it is still PENDING we do nothing, otherwise we move it to UPDATE_PENDING
-        status:
-          existing.status === SignupStatus.PENDING
-            ? SignupStatus.PENDING
-            : SignupStatus.UPDATE_PENDING,
-        // reset the reviewedBy field because it now has to be reviewed again
-        reviewedBy: null,
         expiresAt,
+        status: SignupStatus.PENDING,
       };
-      await document.update(signupData);
+
+      transaction.create(document, signupData);
       return signupData;
-    }
-
-    const signupData = {
-      ...props,
-      expiresAt,
-      status: SignupStatus.PENDING,
-    };
-
-    await document.create(signupData);
-    return signupData;
+    });
   }
 
   @SentryTraced()

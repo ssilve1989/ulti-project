@@ -31,10 +31,33 @@ const SIGNUP_KEY = {
   encounter: Encounter.DSR,
 };
 
+/**
+ * The slice of Firestore's `Transaction` that `SignupCollection.upsert` uses.
+ * `Transaction`'s real methods are overloaded (e.g. `get` also accepts a
+ * `Query` or `AggregateQuery`), which makes `Mocked<Transaction>['get']`
+ * resolve to the last overload's return type when mocking - a single-
+ * signature stand-in avoids that.
+ */
+interface TransactionStub {
+  get: (
+    documentRef: DocumentReference<DocumentData>,
+  ) => Promise<DocumentSnapshot<DocumentData>>;
+  update: (
+    documentRef: DocumentReference<DocumentData>,
+    data: DocumentData,
+  ) => unknown;
+  create: (
+    documentRef: DocumentReference<DocumentData>,
+    data: DocumentData,
+  ) => unknown;
+}
+
 describe('Signup Repository', () => {
   let repository: SignupCollection;
   let collection: Mocked<CollectionReference<DocumentData>>;
   let doc: Mocked<DocumentReference<DocumentData>>;
+  /** Mocked transaction passed to the `firestore.runTransaction` callback. */
+  let transaction: Mocked<TransactionStub>;
   const signupRequest = partialMock<SignupSchema>(SIGNUP_KEY);
 
   beforeEach(async () => {
@@ -47,8 +70,18 @@ describe('Signup Repository', () => {
       doc: vi.fn().mockReturnValue(doc),
     });
 
+    transaction = mockOf<Mocked<TransactionStub>>({
+      get: vi.fn(),
+      update: vi.fn(),
+      create: vi.fn(),
+    });
+
     const firestore = mockOf<Firestore>({
       collection: vi.fn().mockReturnValue(collection),
+      runTransaction: vi.fn(
+        (updateFunction: (transaction: TransactionStub) => Promise<unknown>) =>
+          updateFunction(transaction),
+      ),
     });
 
     const fixture = await Test.createTestingModule({
@@ -69,7 +102,7 @@ describe('Signup Repository', () => {
       status: SignupStatus.APPROVED,
       reviewedBy: 'someReviewer',
     };
-    doc.get.mockResolvedValueOnce(
+    transaction.get.mockResolvedValueOnce(
       mockOf<DocumentSnapshot>({
         exists: true,
         data: () => existingData,
@@ -78,15 +111,18 @@ describe('Signup Repository', () => {
 
     const result = await repository.upsert(signupRequest);
 
-    expect(doc.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...existingData,
-        ...signupRequest,
-        status: SignupStatus.UPDATE_PENDING,
-        reviewedBy: null,
-      }),
-    );
+    // Exact match (not objectContaining): the payload must be built only
+    // from `props`, never spread from `existing` (no reviewHistory,
+    // approvalMessageId, progPoint or partyStatus copied over).
+    expect(transaction.update).toHaveBeenCalledWith(doc, {
+      ...signupRequest,
+      status: SignupStatus.UPDATE_PENDING,
+      reviewedBy: null,
+      expiresAt: expect.any(Timestamp),
+    });
 
+    expect(transaction.create).not.toHaveBeenCalled();
+    expect(doc.update).not.toHaveBeenCalled();
     expect(doc.create).not.toHaveBeenCalled();
     expect(result).toMatchObject({
       ...existingData,
@@ -102,7 +138,7 @@ describe('Signup Repository', () => {
       status: SignupStatus.PENDING,
       reviewedBy: null,
     };
-    doc.get.mockResolvedValueOnce(
+    transaction.get.mockResolvedValueOnce(
       mockOf<DocumentSnapshot>({
         exists: true,
         data: () => existingData,
@@ -111,20 +147,18 @@ describe('Signup Repository', () => {
 
     const result = await repository.upsert(signupRequest);
 
-    expect(doc.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...existingData,
-        ...signupRequest,
-        status: SignupStatus.PENDING, // Should remain PENDING
-        reviewedBy: null,
-      }),
-    );
+    expect(transaction.update).toHaveBeenCalledWith(doc, {
+      ...signupRequest,
+      status: SignupStatus.PENDING, // Should remain PENDING
+      reviewedBy: null,
+      expiresAt: expect.any(Timestamp),
+    });
 
     expect(result.status).toBe(SignupStatus.PENDING);
   });
 
   it('should call create if the document does not exist', async () => {
-    doc.get.mockResolvedValueOnce(
+    transaction.get.mockResolvedValueOnce(
       mockOf<DocumentSnapshot>({
         exists: false,
         data: () => null,
@@ -133,14 +167,15 @@ describe('Signup Repository', () => {
 
     const result = await repository.upsert(signupRequest);
 
-    expect(doc.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...signupRequest,
-        status: SignupStatus.PENDING,
-      }),
-    );
+    expect(transaction.create).toHaveBeenCalledWith(doc, {
+      ...signupRequest,
+      status: SignupStatus.PENDING,
+      expiresAt: expect.any(Timestamp),
+    });
 
+    expect(transaction.update).not.toHaveBeenCalled();
     expect(doc.update).not.toHaveBeenCalled();
+    expect(doc.create).not.toHaveBeenCalled();
     expect(result).toMatchObject({
       ...signupRequest,
       status: SignupStatus.PENDING,
@@ -197,20 +232,26 @@ describe('Signup Repository', () => {
       reviewHistory,
       approvalMessageId: 'announcement-1',
     };
-    doc.get.mockResolvedValueOnce(
+    transaction.get.mockResolvedValueOnce(
       mockOf<DocumentSnapshot>({ exists: true, data: () => existingData }),
     );
 
-    await repository.upsert(signupRequest);
+    const result = await repository.upsert(signupRequest);
 
-    expect(doc.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        reviewHistory,
-        approvalMessageId: 'announcement-1',
-        status: SignupStatus.UPDATE_PENDING,
-        reviewedBy: null,
-      }),
-    );
+    // The write must not copy reviewHistory/approvalMessageId back from
+    // `existing` - only the returned value should still carry them.
+    expect(transaction.update).toHaveBeenCalledWith(doc, {
+      ...signupRequest,
+      status: SignupStatus.UPDATE_PENDING,
+      reviewedBy: null,
+      expiresAt: expect.any(Timestamp),
+    });
+    expect(result).toMatchObject({
+      reviewHistory,
+      approvalMessageId: 'announcement-1',
+      status: SignupStatus.UPDATE_PENDING,
+      reviewedBy: null,
+    });
   });
 
   it('sets the approval announcement message id', async () => {
