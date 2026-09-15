@@ -7,6 +7,7 @@ import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
 import { EditSignupService } from './edit-signup.service.js';
 import { EditSignupCommandHandler } from './handlers/edit-signup.command-handler.js';
+import { UpdateReviewMessageEventHandler } from './handlers/update-review-message.event-handler.js';
 
 @Module({
   imports: [
@@ -17,6 +18,10 @@ import { EditSignupCommandHandler } from './handlers/edit-signup.command-handler
     FirebaseModule,
     SheetsModule,
   ],
-  providers: [EditSignupCommandHandler, EditSignupService],
+  providers: [
+    EditSignupCommandHandler,
+    EditSignupService,
+    UpdateReviewMessageEventHandler,
+  ],
 })
 export class EditSignupModule {}
