@@ -7,6 +7,7 @@ import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
 import { EditSignupService } from './edit-signup.service.js';
 import { EditSignupCommandHandler } from './handlers/edit-signup.command-handler.js';
+import { ReconcileAnnouncementEventHandler } from './handlers/reconcile-announcement.event-handler.js';
 import { UpdateReviewMessageEventHandler } from './handlers/update-review-message.event-handler.js';
 
 @Module({
@@ -21,6 +22,7 @@ import { UpdateReviewMessageEventHandler } from './handlers/update-review-messag
   providers: [
     EditSignupCommandHandler,
     EditSignupService,
+    ReconcileAnnouncementEventHandler,
     UpdateReviewMessageEventHandler,
   ],
 })
