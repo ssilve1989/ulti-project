@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
-import type { SignupDocument } from '@ulti-project/shared';
+import { type SignupDocument, SignupStatus } from '@ulti-project/shared';
 import {
   ActionRowBuilder,
   ComponentType,
@@ -28,7 +28,10 @@ import {
   DECLINE_REASON_SELECT_ID,
 } from './decline-reason.components.js';
 import { SignupDeclineReasonCollectedEvent } from './events/signup.events.js';
-import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
+import {
+  CUSTOM_DECLINE_REASON_VALUE,
+  SIGNUP_MESSAGES,
+} from './signup.consts.js';
 
 export const MAX_MODAL_SHOW_ATTEMPTS = 3;
 
@@ -130,9 +133,12 @@ export class DeclineReasonRequestService {
       this.logger.warn(
         `Gave up on the custom decline reason modal for signup ${signupId} after ${MAX_MODAL_SHOW_ATTEMPTS} attempts`,
       );
-      this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
+
+      if (!(await this.wasApprovedSinceDecline(signup))) {
+        this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
+      }
     } catch (error) {
-      this.handleTimeoutError(
+      await this.handleTimeoutError(
         error,
         signup,
         reviewer,
@@ -172,23 +178,24 @@ export class DeclineReasonRequestService {
 
       try {
         const modalInteraction = await interaction.awaitModalSubmit({
-          filter: isSameUserFilter(interaction.user),
+          // awaitModalSubmit's collector is client-wide (no message/channel
+          // scope), so without the customId check it would also accept a
+          // modal submit meant for a different signup's decline reason
+          filter: (submission) =>
+            isSameUserFilter(interaction.user)(submission) &&
+            submission.customId ===
+              `${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupId}`,
           time: 5 * 60 * 1000, // 5 minutes
         });
 
-        if (
-          modalInteraction.customId ===
-          `${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupId}`
-        ) {
-          await this.handleCustomReasonSubmit(
-            modalInteraction,
-            signup,
-            reviewer,
-            reviewMessage,
-          );
-        }
+        await this.handleCustomReasonSubmit(
+          modalInteraction,
+          signup,
+          reviewer,
+          reviewMessage,
+        );
       } catch (error) {
-        this.handleTimeoutError(
+        await this.handleTimeoutError(
           error,
           signup,
           reviewer,
@@ -198,14 +205,16 @@ export class DeclineReasonRequestService {
       }
     } else {
       // Use predefined reason
-      await this.updateSignupWithDeclineReason(
+      const approvedSinceDecline = await this.updateSignupWithDeclineReason(
         signup,
         selectedValue,
         reviewer,
         reviewMessage,
       );
       await interaction.reply({
-        content: `✅ Decline reason recorded: "${selectedValue}"`,
+        content: approvedSinceDecline
+          ? SIGNUP_MESSAGES.DECLINE_REASON_AFTER_APPROVAL
+          : `✅ Decline reason recorded: "${selectedValue}"`,
         flags: MessageFlags.Ephemeral,
       });
     }
@@ -223,25 +232,35 @@ export class DeclineReasonRequestService {
       CUSTOM_DECLINE_REASON_INPUT_ID,
     );
 
-    await this.updateSignupWithDeclineReason(
+    const approvedSinceDecline = await this.updateSignupWithDeclineReason(
       signup,
       customReason,
       reviewer,
       reviewMessage,
     );
     await interaction.reply({
-      content: `✅ Custom decline reason recorded: "${customReason}"`,
+      content: approvedSinceDecline
+        ? SIGNUP_MESSAGES.DECLINE_REASON_AFTER_APPROVAL
+        : `✅ Custom decline reason recorded: "${customReason}"`,
       flags: MessageFlags.Ephemeral,
     });
   }
 
+  /**
+   * Resolves `true` when nothing was recorded or published because the
+   * signup has since been approved.
+   */
   private async updateSignupWithDeclineReason(
     signup: SignupDocument,
     declineReason: string,
     reviewer: User,
     reviewMessage: Message<true>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
+      if (await this.wasApprovedSinceDecline(signup)) {
+        return true;
+      }
+
       await this.signupCollection.updateDeclineReason(
         { discordId: signup.discordId, encounter: signup.encounter },
         declineReason,
@@ -265,6 +284,8 @@ export class DeclineReasonRequestService {
         `Failed to update signup ${signup.discordId}-${signup.encounter} with decline reason`,
       );
     }
+
+    return false;
   }
 
   private dispatchDeclineReasonEvent(
@@ -290,20 +311,40 @@ export class DeclineReasonRequestService {
     }
   }
 
-  private handleTimeoutError(
+  // `/edit-signup` can reverse the decline while this request is still open;
+  // a reason or denial DM after that would contradict the applicant's approval
+  private async wasApprovedSinceDecline(
+    signup: SignupDocument,
+  ): Promise<boolean> {
+    const key = SignupCollection.getKeyForSignup(signup);
+    const current = await this.signupCollection.findById(key);
+
+    if (current?.status !== SignupStatus.APPROVED) {
+      return false;
+    }
+
+    this.logger.log(
+      `Signup ${key} was approved after being declined, skipping its decline reason and denial DM`,
+    );
+    return true;
+  }
+
+  private async handleTimeoutError(
     error: unknown,
     signup: SignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
     context: string,
-  ): void {
+  ): Promise<void> {
     if (
       error instanceof DiscordjsError &&
       error.code === DiscordjsErrorCodes.InteractionCollectorError
     ) {
       this.logger.warn(context);
       // Dispatch event on timeout with no decline reason
-      this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
+      if (!(await this.wasApprovedSinceDecline(signup))) {
+        this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
+      }
     } else {
       // Re-throw non-timeout errors
       this.reportError(error, { signup, reviewer });
