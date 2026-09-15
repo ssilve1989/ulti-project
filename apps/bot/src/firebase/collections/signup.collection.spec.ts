@@ -340,6 +340,16 @@ describe('Signup Repository', () => {
       ).resolves.toEqual({ type: 'conflict' });
     });
 
+    it('returns a conflict when the signup was deleted', async () => {
+      doc.update.mockRejectedValueOnce(
+        Object.assign(new Error('5 NOT_FOUND'), { code: 5 }),
+      );
+
+      await expect(
+        repository.applyEdit(SIGNUP_KEY, data, updateTime),
+      ).resolves.toEqual({ type: 'conflict' });
+    });
+
     it('rethrows any other error', async () => {
       const failure = Object.assign(new Error('14 UNAVAILABLE'), { code: 14 });
       doc.update.mockRejectedValueOnce(failure);

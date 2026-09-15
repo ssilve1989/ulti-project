@@ -22,13 +22,16 @@ import { DocumentNotFoundException } from '../firebase.exceptions.js';
 
 // gRPC status Firestore reports when an update's precondition does not hold
 const FIRESTORE_FAILED_PRECONDITION = 9;
+// gRPC status Firestore reports when a document is not found
+const FIRESTORE_NOT_FOUND = 5;
 
-function isFailedPrecondition(error: unknown): boolean {
+function isEditConflict(error: unknown): boolean {
   return (
     typeof error === 'object' &&
     error !== null &&
     'code' in error &&
-    error.code === FIRESTORE_FAILED_PRECONDITION
+    (error.code === FIRESTORE_FAILED_PRECONDITION ||
+      error.code === FIRESTORE_NOT_FOUND)
   );
 }
 
@@ -147,7 +150,7 @@ class SignupCollection {
       );
       return { type: 'written' };
     } catch (error) {
-      if (isFailedPrecondition(error)) {
+      if (isEditConflict(error)) {
         return { type: 'conflict' };
       }
       throw error;
