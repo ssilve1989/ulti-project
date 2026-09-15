@@ -27,6 +27,7 @@ export class ReconcileRolesEventHandler
   }
 
   private async reconcile({
+    kind,
     after,
     settings,
     guildId,
@@ -63,7 +64,9 @@ export class ReconcileRolesEventHandler
         member,
         mapping,
         after.progPoint,
-        { pruneUnmapped: true },
+        // a correction undoes a mistaken grant; a reversal's mapped roles came
+        // from an earlier approval, which a decline never stripped
+        { pruneUnmapped: kind === 'correction' },
       ),
     );
   }

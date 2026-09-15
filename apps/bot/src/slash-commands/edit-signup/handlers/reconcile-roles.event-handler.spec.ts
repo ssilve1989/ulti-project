@@ -118,6 +118,31 @@ describe('ReconcileRolesEventHandler', () => {
     expect(member.roles.add).not.toHaveBeenCalled();
   });
 
+  it('keeps a held prog-point role when a reversal approves at an unmapped prog point', async () => {
+    member.roles.cache.set('prog-role', {});
+    member.roles.cache.set('p4-role', {});
+    const declined = { ...before, status: SignupStatus.DECLINED };
+
+    await handler.handle(
+      new SignupEditedEvent(
+        'reversal',
+        declined,
+        {
+          ...declined,
+          status: SignupStatus.APPROVED,
+          progPoint: 'P3',
+          partyStatus: PartyStatus.ProgParty,
+        },
+        editor,
+        settings,
+        'guild-1',
+      ),
+    );
+
+    expect(member.roles.remove).not.toHaveBeenCalled();
+    expect(member.roles.add).not.toHaveBeenCalled();
+  });
+
   it('does nothing when no roles are configured for the encounter', async () => {
     await handler.handle(
       eventFor(
