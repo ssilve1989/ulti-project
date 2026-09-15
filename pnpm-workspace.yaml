@@ -20,7 +20,11 @@ minimumReleaseAge: 7200
 minimumReleaseAgeIgnoreMissingTime: true
 minimumReleaseAgeExclude:
   - typescript
+  - "@nestjs/common@12.0.2"
   - "@nestjs/core@11.1.18"
+  - "@nestjs/core@12.0.2"
+  - "@nestjs/testing@12.0.2"
+  - nestjs-pino@5.2.0
   - "@typescript/typescript-aix-ppc64@7.0.2"
   - "@typescript/typescript-darwin-arm64@7.0.2"
   - "@typescript/typescript-darwin-x64@7.0.2"
@@ -61,13 +65,13 @@ catalog:
   "@graphql-codegen/typescript": 6.1.0
   "@graphql-codegen/typescript-graphql-request": ^7.1.0
   "@graphql-codegen/typescript-operations": 6.1.7
-  "@nestjs/common": ^11.2.6
-  "@nestjs/core": ^11.2.6
-  "@nestjs/cqrs": ^11.0.3
-  "@nestjs/testing": ^11.2.6
+  "@nestjs/common": ^12.0.2
+  "@nestjs/core": ^12.0.2
+  "@nestjs/cqrs": ^12.0.0
+  "@nestjs/testing": ^12.0.2
   "@sentry/cli": ^3.7.0
-  "@sentry/nestjs": ^10.74.0
-  "@sentry/profiling-node": ^10.74.0
+  "@sentry/nestjs": ^11.0.0
+  "@sentry/profiling-node": ^11.0.0
   "@types/node": ^26.5.1
   "@vitest/coverage-v8": ^5.0.1
   "@vitest/ui": ^5.0.1
