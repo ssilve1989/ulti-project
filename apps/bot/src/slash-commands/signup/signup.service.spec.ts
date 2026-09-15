@@ -380,6 +380,34 @@ describe('SignupService', () => {
       ]);
     });
 
+    it('publishes the approved signup without the previous announcement id', async () => {
+      const previouslyAnnounced = partialMock<SignupDocument>({
+        discordId: 'abc123',
+        approvalMessageId: 'old-announcement',
+        reviewHistory: [],
+      });
+      approvalDecisionRequestService.requestApprovalDecision.mockResolvedValue({
+        type: 'approved',
+        progPoint: 'point-a',
+      });
+      encountersService.getPartyStatusForProgPoint.mockResolvedValue(
+        PartyStatus.ProgParty,
+      );
+
+      const event = await service['handleApprovedReaction'](
+        previouslyAnnounced,
+        reviewMessage(),
+        user,
+        settings,
+      );
+
+      if (!event) {
+        throw new Error('expected an event for a decided approval');
+      }
+
+      expect(event.signup).toHaveProperty('approvalMessageId', undefined);
+    });
+
     it('writes no history for a cleared approval', async () => {
       approvalDecisionRequestService.requestApprovalDecision.mockResolvedValue({
         type: 'approved',

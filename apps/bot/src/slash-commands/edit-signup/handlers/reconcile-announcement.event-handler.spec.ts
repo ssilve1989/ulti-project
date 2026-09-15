@@ -232,6 +232,25 @@ describe('ReconcileAnnouncementEventHandler', () => {
     );
   });
 
+  it('keeps a reversal post whose decision was superseded without reporting an error', async () => {
+    signupCollection.setApprovalMessageId.mockResolvedValue({ type: 'stale' });
+
+    await handler.handle(
+      new SignupEditedEvent(
+        'reversal',
+        approvedBefore,
+        afterOf(approvedBefore),
+        editor,
+        settings,
+        'guild-1',
+      ),
+    );
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(signupCollection.setApprovalMessageId).toHaveBeenCalledTimes(1);
+    expect(errorService.captureError).not.toHaveBeenCalled();
+  });
+
   it('does nothing without a signup channel', async () => {
     await handler.handle(
       new SignupEditedEvent(

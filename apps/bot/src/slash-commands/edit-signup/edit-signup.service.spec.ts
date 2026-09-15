@@ -215,6 +215,43 @@ describe('EditSignupService', () => {
     });
   });
 
+  it('keeps the announcement id on a correction', async () => {
+    await service.apply({
+      kind: 'correction',
+      signup: { ...approved, approvalMessageId: 'announcement-1' },
+      updateTime,
+      progPoint: 'P4',
+      editor,
+      settings,
+      guildId: 'guild-1',
+    });
+
+    const [event] = eventBus.publish.mock.calls[0];
+    if (!(event instanceof SignupEditedEvent)) {
+      throw new Error('expected a SignupEditedEvent');
+    }
+    expect(event.after.approvalMessageId).toBe('announcement-1');
+  });
+
+  it('drops the previous announcement id from a reversal', async () => {
+    await service.apply({
+      kind: 'reversal',
+      signup: { ...declinedUntracked, approvalMessageId: 'announcement-1' },
+      updateTime,
+      progPoint: 'P4',
+      editor,
+      settings,
+      guildId: 'guild-1',
+    });
+
+    const [event] = eventBus.publish.mock.calls[0];
+    if (!(event instanceof SignupEditedEvent)) {
+      throw new Error('expected a SignupEditedEvent');
+    }
+    expect(event.after).toHaveProperty('approvalMessageId', undefined);
+    expect(event.before.approvalMessageId).toBe('announcement-1');
+  });
+
   it('reports a Sheets failure but still publishes the saved edit', async () => {
     const failure = new Error('Sheets quota exceeded');
     sheetsService.upsertSignup.mockRejectedValue(failure);
