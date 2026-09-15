@@ -12,7 +12,7 @@ export type EditKind = 'correction' | 'reversal';
 
 type Editability =
   | { editable: true; kind: EditKind }
-  | { editable: false; reason: 'reviewPending' };
+  | { editable: false; reason: 'reviewPending' | 'announcementNotLinked' };
 
 export interface EditSelection {
   progPoint: string;
@@ -41,26 +41,29 @@ type PreviewSettings = Pick<
 >;
 
 interface EditPreviewInput {
-  signup: Pick<
-    SignupDocument,
-    'encounter' | 'progPoint' | 'partyStatus' | 'approvalMessageId'
-  >;
+  signup: Pick<SignupDocument, 'encounter' | 'progPoint' | 'partyStatus'>;
   kind: EditKind;
   selection: EditSelection;
   settings: PreviewSettings;
   progPointLabels: ReadonlyMap<string, string>;
+  announcementExists: boolean;
 }
 
 export const APPLICANT_DM_EFFECT = "Applicant will be DM'd";
 
 const NONE = 'none';
 
-export function getEditability({
-  status,
-}: Pick<SignupDocument, 'status'>): Editability {
-  return match(status)
+export function getEditability(
+  signup: Pick<SignupDocument, 'status' | 'approvalMessageId'>,
+  settings: Pick<SettingsDocument, 'signupChannel'>,
+): Editability {
+  return match(signup.status)
     .returnType<Editability>()
-    .with(SignupStatus.APPROVED, () => ({ editable: true, kind: 'correction' }))
+    .with(SignupStatus.APPROVED, () =>
+      settings.signupChannel && !signup.approvalMessageId
+        ? { editable: false, reason: 'announcementNotLinked' }
+        : { editable: true, kind: 'correction' },
+    )
     .with(SignupStatus.DECLINED, () => ({ editable: true, kind: 'reversal' }))
     .with(SignupStatus.PENDING, SignupStatus.UPDATE_PENDING, () => ({
       editable: false,
@@ -177,9 +180,9 @@ function progPointRoleEffect({
 }
 
 function announcementEffect({
-  signup,
   kind,
   settings,
+  announcementExists,
 }: EditPreviewInput): string | undefined {
   if (!settings.signupChannel) {
     return undefined;
@@ -189,7 +192,9 @@ function announcementEffect({
     return 'New public announcement posted';
   }
 
-  return signup.approvalMessageId ? 'Public announcement edited' : undefined;
+  return announcementExists
+    ? 'Public announcement edited'
+    : "Public announcement was deleted — it won't be updated";
 }
 
 function impliedCoarseRole(
