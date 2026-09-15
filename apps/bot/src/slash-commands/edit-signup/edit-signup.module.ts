@@ -6,6 +6,7 @@ import { ErrorModule } from '../../error/error.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { RoleManagerModule } from '../../role-manager/role-manager.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
+import { EditSignupAnalyticsService } from './edit-signup.analytics.service.js';
 import { EditSignupService } from './edit-signup.service.js';
 import { EditSignupCommandHandler } from './handlers/edit-signup.command-handler.js';
 import { NotifyApplicantEventHandler } from './handlers/notify-applicant.event-handler.js';
@@ -25,6 +26,7 @@ import { UpdateReviewMessageEventHandler } from './handlers/update-review-messag
   ],
   providers: [
     EditSignupCommandHandler,
+    EditSignupAnalyticsService,
     EditSignupService,
     NotifyApplicantEventHandler,
     ReconcileAnnouncementEventHandler,

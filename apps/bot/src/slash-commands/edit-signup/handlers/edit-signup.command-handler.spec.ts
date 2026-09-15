@@ -23,6 +23,7 @@ import {
   type User,
 } from 'discord.js';
 import { Timestamp } from 'firebase-admin/firestore';
+import { match } from 'ts-pattern';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { PROG_POINT_SELECT_ID } from '../../../encounters/encounters.components.js';
@@ -37,6 +38,7 @@ import {
   mockOf,
   partialMock,
 } from '../../../test-utils/mock-factory.js';
+import { EditSignupAnalyticsService } from '../edit-signup.analytics.service.js';
 import {
   EDIT_CANCEL_BUTTON_ID,
   EDIT_SAVE_BUTTON_ID,
@@ -107,6 +109,7 @@ describe('EditSignupCommandHandler', () => {
   let encountersService: Mocked<EncountersService>;
   let encountersComponentsService: Mocked<EncountersComponentsService>;
   let editSignupService: Mocked<EditSignupService>;
+  let editSignupAnalytics: Mocked<EditSignupAnalyticsService>;
   let errorService: Mocked<ErrorService>;
   let collector: ReturnType<typeof buildFakeCollector>;
   let menu: StringSelectMenuBuilder;
@@ -232,6 +235,7 @@ describe('EditSignupCommandHandler', () => {
     encountersService = fixture.get(EncountersService);
     encountersComponentsService = fixture.get(EncountersComponentsService);
     editSignupService = fixture.get(EditSignupService);
+    editSignupAnalytics = fixture.get(EditSignupAnalyticsService);
     errorService = fixture.get(ErrorService);
 
     collector = buildFakeCollector();
@@ -291,6 +295,11 @@ describe('EditSignupCommandHandler', () => {
       expect(interaction.editReply).toHaveBeenCalledWith(
         guardReply(EDIT_SIGNUP_MESSAGES.MISSING_REVIEWER_ROLE),
       );
+      expect(editSignupAnalytics.invoked).toHaveBeenCalledWith(Encounter.DSR);
+      expect(editSignupAnalytics.guardBlocked).toHaveBeenCalledWith(
+        Encounter.DSR,
+        'missingReviewerRole',
+      );
       expect(signupCollection.findByKeyWithVersion).not.toHaveBeenCalled();
     });
 
@@ -307,6 +316,10 @@ describe('EditSignupCommandHandler', () => {
       expect(interaction.editReply).toHaveBeenCalledWith(
         guardReply(EDIT_SIGNUP_MESSAGES.NOT_A_REVIEWER),
       );
+      expect(editSignupAnalytics.guardBlocked).toHaveBeenCalledWith(
+        Encounter.DSR,
+        'notReviewer',
+      );
     });
 
     it('reports a missing signup', async () => {
@@ -322,6 +335,10 @@ describe('EditSignupCommandHandler', () => {
         guardReply(
           `No signup found for <@applicant-1> in ${EncounterFriendlyDescription[Encounter.DSR]}. Cleared or removed signups can't be edited.`,
         ),
+      );
+      expect(editSignupAnalytics.guardBlocked).toHaveBeenCalledWith(
+        Encounter.DSR,
+        'notFound',
       );
     });
 
@@ -341,6 +358,10 @@ describe('EditSignupCommandHandler', () => {
           'This signup has an open review — react to the review message instead. https://discord.com/channels/guild-1/review-channel/review-msg',
         ),
       );
+      expect(editSignupAnalytics.guardBlocked).toHaveBeenCalledWith(
+        Encounter.DSR,
+        'reviewPending',
+      );
       expect(
         encountersComponentsService.createProgPointSelectMenu,
       ).not.toHaveBeenCalled();
@@ -358,6 +379,10 @@ describe('EditSignupCommandHandler', () => {
 
       expect(interaction.editReply).toHaveBeenCalledWith(
         guardReply(EDIT_SIGNUP_MESSAGES.ANNOUNCEMENT_NOT_LINKED),
+      );
+      expect(editSignupAnalytics.guardBlocked).toHaveBeenCalledWith(
+        Encounter.DSR,
+        'announcementNotLinked',
       );
       expect(
         encountersComponentsService.createProgPointSelectMenu,
@@ -441,6 +466,7 @@ describe('EditSignupCommandHandler', () => {
         embeds: [],
         components: [],
       });
+      expect(editSignupAnalytics.timedOut).toHaveBeenCalledWith(Encounter.DSR);
     });
 
     it('opens a reversal with nothing selected', async () => {
@@ -572,6 +598,7 @@ describe('EditSignupCommandHandler', () => {
         embeds: [],
         components: [],
       });
+      expect(editSignupAnalytics.cancelled).toHaveBeenCalledWith(Encounter.DSR);
       expect(editSignupService.apply).not.toHaveBeenCalled();
     });
 
@@ -613,6 +640,11 @@ describe('EditSignupCommandHandler', () => {
         settings,
         guildId: 'guild-1',
       });
+      expect(editSignupAnalytics.saved).toHaveBeenCalledWith(
+        'correction',
+        Encounter.DSR,
+        false,
+      );
     });
 
     const results: { result: ApplyEditResult; description: string }[] = [
@@ -649,6 +681,27 @@ describe('EditSignupCommandHandler', () => {
             }),
           ],
         });
+
+        match<ApplyEditResult['type']>(result.type)
+          .with('saved', () =>
+            expect(editSignupAnalytics.saved).toHaveBeenCalledWith(
+              'correction',
+              Encounter.DSR,
+              false,
+            ),
+          )
+          .with('savedWithSheetsError', () =>
+            expect(
+              editSignupAnalytics.savedWithSheetsError,
+            ).toHaveBeenCalledWith('correction', Encounter.DSR),
+          )
+          .with('conflict', () =>
+            expect(editSignupAnalytics.conflict).toHaveBeenCalledWith(
+              'correction',
+              Encounter.DSR,
+            ),
+          )
+          .exhaustive();
       },
     );
 
@@ -678,6 +731,11 @@ describe('EditSignupCommandHandler', () => {
       });
       expect(editSignupService.apply).toHaveBeenCalledWith(
         expect.objectContaining({ comment: 'sorry, mis-click' }),
+      );
+      expect(editSignupAnalytics.saved).toHaveBeenCalledWith(
+        'correction',
+        Encounter.DSR,
+        true,
       );
     });
 
@@ -720,6 +778,11 @@ describe('EditSignupCommandHandler', () => {
 
       expect(editSignupService.apply).toHaveBeenCalledWith(
         expect.objectContaining({ kind: 'reversal', progPoint: 'P2' }),
+      );
+      expect(editSignupAnalytics.saved).toHaveBeenCalledWith(
+        'reversal',
+        Encounter.DSR,
+        false,
       );
     });
 
