@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nestjs';
 import { EncounterFriendlyDescription } from '@ulti-project/shared';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
+import { quoteLines } from '../signup.utils.js';
 
 @EventsHandler(SignupApprovedEvent)
 class SendApprovalCommentDmEventHandler
@@ -19,15 +20,10 @@ class SendApprovalCommentDmEventHandler
     }
 
     try {
-      const quotedComment = event.comment
-        .split('\n')
-        .map((line) => `> ${line}`)
-        .join('\n');
-
       await this.discordService.sendDirectMessage(event.signup.discordId, {
         content: `Your signup for **${
           EncounterFriendlyDescription[event.signup.encounter]
-        }** was approved. The reviewer left you a comment:\n\n${quotedComment}`,
+        }** was approved. The reviewer left you a comment:\n\n${quoteLines(event.comment)}`,
       });
     } catch (error) {
       this.logger.error(
