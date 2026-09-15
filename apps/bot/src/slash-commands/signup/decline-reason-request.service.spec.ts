@@ -21,7 +21,11 @@ import {
   partialMock,
   withInternals,
 } from '../../test-utils/mock-factory.js';
-import { DECLINE_REASON_SELECT_ID } from './decline-reason.components.js';
+import { APPROVAL_COMMENT_MODAL_ID } from './approval-decision.components.js';
+import {
+  CUSTOM_DECLINE_REASON_MODAL_ID,
+  DECLINE_REASON_SELECT_ID,
+} from './decline-reason.components.js';
 import {
   DeclineReasonRequestService,
   MAX_MODAL_SHOW_ATTEMPTS,
@@ -122,6 +126,142 @@ describe('DeclineReasonRequestService', () => {
           reviewMessage,
         ),
       ).rejects.toThrow('boom');
+    });
+  });
+
+  describe('scoping the custom decline reason modal listener', () => {
+    const buildSelectInteraction = (
+      awaitModalSubmit: (options: {
+        filter: (submission: ModalSubmitInteraction) => boolean;
+        time: number;
+      }) => Promise<ModalSubmitInteraction>,
+    ) =>
+      mockOf<StringSelectMenuInteraction>({
+        values: [CUSTOM_DECLINE_REASON_VALUE],
+        showModal: vi.fn().mockResolvedValue(undefined),
+        user: reviewer,
+        awaitModalSubmit,
+      });
+
+    const buildModalSubmit = (customId: string) =>
+      mockOf<ModalSubmitInteraction>({
+        user: reviewer,
+        customId,
+        fields: { getTextInputValue: vi.fn().mockReturnValue('custom') },
+        reply: vi.fn().mockResolvedValue(undefined),
+      });
+
+    beforeEach(() => {
+      signupCollection.findById.mockResolvedValue(
+        partialMock<SignupDocument>({
+          ...signup,
+          status: SignupStatus.DECLINED,
+        }),
+      );
+    });
+
+    it('only accepts a same-user submit whose customId belongs to this signup', async () => {
+      const awaitModalSubmit = vi
+        .fn()
+        .mockResolvedValue(
+          buildModalSubmit(`${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupId}`),
+        );
+      const interaction = buildSelectInteraction(awaitModalSubmit);
+
+      await service['handleReasonSelection'](
+        interaction,
+        signup,
+        signupId,
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(awaitModalSubmit).toHaveBeenCalledTimes(1);
+      const [{ filter }] = awaitModalSubmit.mock.calls[0];
+
+      // same user, but another signup's custom-reason modal
+      expect(
+        filter(
+          buildModalSubmit(`${CUSTOM_DECLINE_REASON_MODAL_ID}-otherId-TOP`),
+        ),
+      ).toBe(false);
+      // same user, but a different modal type entirely
+      expect(filter(buildModalSubmit(APPROVAL_COMMENT_MODAL_ID))).toBe(false);
+      // same user, this signup's own modal
+      expect(
+        filter(
+          buildModalSubmit(`${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupId}`),
+        ),
+      ).toBe(true);
+    });
+
+    it('lets two concurrent decline requests each record their own custom reason', async () => {
+      const signupB = partialMock<SignupDocument>({
+        discordId: 'xyz789',
+        encounter: 'TOP',
+      });
+      const signupIdB = `${signupB.discordId}-${signupB.encounter}`;
+
+      const pending: Array<{
+        filter: (submission: ModalSubmitInteraction) => boolean;
+        resolve: (submission: ModalSubmitInteraction) => void;
+      }> = [];
+
+      const dispatch = (submission: ModalSubmitInteraction) => {
+        const index = pending.findIndex(({ filter }) => filter(submission));
+        if (index === -1) {
+          return;
+        }
+        const [listener] = pending.splice(index, 1);
+        listener.resolve(submission);
+      };
+
+      const makeInteraction = () =>
+        buildSelectInteraction(
+          (options) =>
+            new Promise<ModalSubmitInteraction>((resolve) => {
+              pending.push({ filter: options.filter, resolve });
+            }),
+        );
+
+      const requestA = service['handleReasonSelection'](
+        makeInteraction(),
+        signup,
+        signupId,
+        reviewer,
+        reviewMessage,
+      );
+      const requestB = service['handleReasonSelection'](
+        makeInteraction(),
+        signupB,
+        signupIdB,
+        reviewer,
+        reviewMessage,
+      );
+
+      await vi.waitFor(() => expect(pending).toHaveLength(2));
+
+      // dispatched out of order, as a real client-wide collector would
+      // deliver submissions to every pending listener regardless of which
+      // request they belong to
+      dispatch(
+        buildModalSubmit(`${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupIdB}`),
+      );
+      dispatch(
+        buildModalSubmit(`${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupId}`),
+      );
+
+      await Promise.all([requestA, requestB]);
+
+      expect(signupCollection.updateDeclineReason).toHaveBeenCalledWith(
+        { discordId: signup.discordId, encounter: signup.encounter },
+        'custom',
+      );
+      expect(signupCollection.updateDeclineReason).toHaveBeenCalledWith(
+        { discordId: signupB.discordId, encounter: signupB.encounter },
+        'custom',
+      );
+      expect(signupCollection.updateDeclineReason).toHaveBeenCalledTimes(2);
     });
   });
 
