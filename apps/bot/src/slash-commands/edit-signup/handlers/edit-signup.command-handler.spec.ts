@@ -12,6 +12,7 @@ import {
   type ButtonInteraction,
   type ChatInputCommandInteraction,
   DiscordAPIError,
+  DiscordjsErrorCodes,
   EmbedBuilder,
   type Message,
   type MessageComponentInteraction,
@@ -172,6 +173,7 @@ describe('EditSignupCommandHandler', () => {
       interaction: mockOf<ButtonInteraction>({
         customId,
         user: editor,
+        message: { id: 'screen-message' },
         isStringSelectMenu: () => false,
         isButton: () => true,
         update,
@@ -601,6 +603,72 @@ describe('EditSignupCommandHandler', () => {
       await run;
 
       expect(editSignupService.apply).toHaveBeenCalledTimes(1);
+    });
+
+    it('treats a comment-modal timeout as an edit timeout, not an error', async () => {
+      const withComment = buttonInteraction(EDIT_SAVE_WITH_COMMENT_BUTTON_ID, {
+        showModal: vi.fn().mockResolvedValue(undefined),
+        awaitModalSubmit: vi.fn().mockRejectedValue({
+          code: DiscordjsErrorCodes.InteractionCollectorError,
+        }),
+      });
+
+      const run = command.execute(interaction);
+      await collector.collect(selectInteraction('P4').interaction);
+      await collector.collect(withComment.interaction);
+      await collector.timeOut();
+      await run;
+
+      expect(interaction.editReply).toHaveBeenLastCalledWith({
+        content: EDIT_SIGNUP_MESSAGES.TIMED_OUT,
+        embeds: [],
+        components: [],
+      });
+      expect(errorService.handleCommandError).not.toHaveBeenCalled();
+      expect(editSignupService.apply).not.toHaveBeenCalled();
+    });
+
+    it('scopes the comment-modal filter to the same user and the same screen message', async () => {
+      let capturedFilter:
+        | ((interaction: ModalMessageModalSubmitInteraction) => boolean)
+        | undefined;
+      const modal = mockOf<ModalMessageModalSubmitInteraction>({
+        fields: { getTextInputValue: vi.fn().mockReturnValue('') },
+        isFromMessage: () => true,
+        update: vi.fn().mockResolvedValue(undefined),
+      });
+      const awaitModalSubmit = vi.fn(
+        (options: {
+          filter: (interaction: ModalMessageModalSubmitInteraction) => boolean;
+        }) => {
+          capturedFilter = options.filter;
+          return Promise.resolve(modal);
+        },
+      );
+      const withComment = buttonInteraction(EDIT_SAVE_WITH_COMMENT_BUTTON_ID, {
+        showModal: vi.fn().mockResolvedValue(undefined),
+        awaitModalSubmit,
+        message: { id: 'this-screen-message' },
+      });
+
+      const run = command.execute(interaction);
+      await collector.collect(selectInteraction('P4').interaction);
+      await collector.collect(withComment.interaction);
+      await run;
+
+      const sameMessageSubmit = mockOf<ModalMessageModalSubmitInteraction>({
+        user: editor,
+        message: { id: 'this-screen-message' },
+      });
+      const differentMessageSubmit = mockOf<ModalMessageModalSubmitInteraction>(
+        {
+          user: editor,
+          message: { id: 'a-different-screen' },
+        },
+      );
+
+      expect(capturedFilter?.(sameMessageSubmit)).toBe(true);
+      expect(capturedFilter?.(differentMessageSubmit)).toBe(false);
     });
   });
 });

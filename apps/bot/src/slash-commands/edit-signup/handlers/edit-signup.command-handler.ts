@@ -6,6 +6,7 @@ import {
   type ButtonInteraction,
   ChatInputCommandInteraction,
   DiscordAPIError,
+  DiscordjsErrorCodes,
   type EmbedBuilder,
   type Message,
   type MessageComponentInteraction,
@@ -388,11 +389,12 @@ class EditSignupCommandHandler implements ISlashCommand {
       throw error;
     }
 
-    const modal = await interaction.awaitModalSubmit({
-      filter: isSameUserFilter(interaction.user),
-      // floor of 1: discord.js only arms its timer for a truthy `time`
-      time: Math.max(deadline - Date.now(), 1),
-    });
+    const modal = await this.awaitComment(interaction, deadline);
+
+    if (!modal) {
+      // the outer collector's own 'end' event reports the timeout
+      return undefined;
+    }
 
     if (modal.isFromMessage()) {
       await modal.update({
@@ -407,6 +409,30 @@ class EditSignupCommandHandler implements ISlashCommand {
       .trim();
 
     return { ...commit, comment: comment || undefined };
+  }
+
+  // Resolves to the reviewer's modal submission, or `undefined` if the
+  // outer screen's timeout fires first (discord.js has no "modal closed"
+  // event, so this collector keeps waiting until either the modal is
+  // submitted or its own timer expires).
+  private async awaitComment(interaction: ButtonInteraction, deadline: number) {
+    try {
+      return await interaction.awaitModalSubmit({
+        // scoped to this button's message too: an unresolved listener from a
+        // prior screen would otherwise still match on user alone and could
+        // grab a modal submit meant for a different edit screen
+        filter: (modalInteraction) =>
+          isSameUserFilter(interaction.user)(modalInteraction) &&
+          modalInteraction.message?.id === interaction.message.id,
+        // floor of 1: discord.js only arms its timer for a truthy `time`
+        time: Math.max(deadline - Date.now(), 1),
+      });
+    } catch (error) {
+      if (isCollectorTimeoutError(error)) {
+        return undefined;
+      }
+      throw error;
+    }
   }
 
   private async finish(
@@ -443,6 +469,21 @@ class EditSignupCommandHandler implements ISlashCommand {
       embeds: [createResultEmbed(context, outcome, result)],
     });
   }
+}
+
+// Structural check rather than `instanceof DiscordjsError`, matching
+// SignupCommandHandler.handleConfirmationError: awaitModalSubmit's rejection
+// is a real DiscordjsError at runtime, but that class's constructor is
+// TS-private, so tests stand in a plain `{ code }` shape instead.
+function isCollectorTimeoutError(
+  error: unknown,
+): error is { code: DiscordjsErrorCodes.InteractionCollectorError } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === DiscordjsErrorCodes.InteractionCollectorError
+  );
 }
 
 function getReviewMessageUrl(
