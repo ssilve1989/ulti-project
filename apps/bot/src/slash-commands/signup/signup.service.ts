@@ -323,8 +323,10 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   /**
-   * Returns the signup as persisted: for a non-cleared approval it carries
-   * the appended history, so handlers can match this decision by its entry.
+   * Returns the signup as persisted: without the previous decision's
+   * announcement id (cleared by the write, or gone with the removed document)
+   * and, for a non-cleared approval, with the appended history, so handlers
+   * can match this decision by its entry.
    */
   private async persistApprovedSignup(
     signup: SignupDocument,
@@ -347,7 +349,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         world: confirmedSignup.world,
         encounter: confirmedSignup.encounter,
       });
-      return confirmedSignup;
+      return { ...confirmedSignup, approvalMessageId: undefined };
     }
 
     const at = Timestamp.now();
@@ -373,6 +375,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
 
     return {
       ...confirmedSignup,
+      approvalMessageId: undefined,
       reviewHistory: [...(signup.reviewHistory ?? []), ...historyEntries],
     };
   }

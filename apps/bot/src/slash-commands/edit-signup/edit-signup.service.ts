@@ -90,6 +90,8 @@ export class EditSignupService {
       progPoint,
       partyStatus,
       reviewHistory: [...(signup.reviewHistory ?? []), ...historyEntries],
+      // a reversal's write cleared the previous decision's announcement id
+      ...(kind === 'reversal' ? { approvalMessageId: undefined } : {}),
     };
 
     const sheetsUpdated = await this.syncSheet(after, settings);

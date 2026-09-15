@@ -1,3 +1,4 @@
+import type { Logger } from '@nestjs/common';
 import {
   EncounterFriendlyDescription,
   type SignupDocument,
@@ -8,6 +9,8 @@ import {
   emptyField,
   worldField,
 } from '../../common/components/fields.js';
+import type { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import { latestEntryOfType } from './review-history.js';
 import { hasClearedStatus } from './signup.utils.js';
 
 type AnnouncementSignup = Pick<
@@ -98,4 +101,40 @@ export function buildApprovalAnnouncementContent(
     : 'Signup Approved!';
 
   return `${userMention(signup.discordId)} ${message}`;
+}
+
+/**
+ * Stores a just-posted announcement's id against the approval decision it
+ * announces: the latest `approved` entry in the history the caller persisted.
+ * Shared by the reaction approval flow and /edit-signup reversals so both
+ * apply the same rule. Nothing is stored once a newer approval exists; the
+ * post stays, like any past approval's.
+ */
+export async function storeApprovalMessageId(
+  signupCollection: Pick<SignupCollection, 'setApprovalMessageId'>,
+  logger: Pick<Logger, 'log' | 'warn'>,
+  signup: Pick<SignupDocument, 'discordId' | 'encounter' | 'reviewHistory'>,
+  messageId: string,
+): Promise<void> {
+  const key = `${signup.discordId}-${signup.encounter}`;
+  const decision = latestEntryOfType(signup.reviewHistory, 'approved');
+
+  if (!decision) {
+    logger.warn(
+      `Signup ${key} has no approval decision for announcement ${messageId}, its id was not stored`,
+    );
+    return;
+  }
+
+  const write = await signupCollection.setApprovalMessageId(
+    signup,
+    messageId,
+    decision.at,
+  );
+
+  if (write.type === 'stale') {
+    logger.log(
+      `A newer approval of signup ${key} superseded announcement ${messageId}, its id was not stored`,
+    );
+  }
 }

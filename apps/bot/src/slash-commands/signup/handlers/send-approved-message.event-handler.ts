@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
-import { EncounterEmoji, type SignupDocument } from '@ulti-project/shared';
+import { EncounterEmoji } from '@ulti-project/shared';
 import type { Message } from 'discord.js';
 import { ClearReactions } from '../../../common/emojis/emojis.js';
 import { DiscordService } from '../../../discord/discord.service.js';
@@ -9,9 +9,9 @@ import { SignupCollection } from '../../../firebase/collections/signup.collectio
 import {
   buildApprovalAnnouncementContent,
   buildApprovalAnnouncementEmbed,
+  storeApprovalMessageId,
 } from '../approval-announcement.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
-import { latestEntryOfType } from '../review-history.js';
 import { hasClearedStatus } from '../signup.utils.js';
 
 @EventsHandler(SignupApprovedEvent)
@@ -90,27 +90,11 @@ class SendApprovedMessageEventHandler
     } else {
       // Write-only here: the reaction flow always posts a fresh announcement.
       // /edit-signup is the only reader. Cleared signups have no document left.
-      await this.storeApprovalMessageId(signup, message.id);
-    }
-  }
-
-  private async storeApprovalMessageId(
-    signup: SignupDocument,
-    messageId: string,
-  ) {
-    const decisionAt = latestEntryOfType(signup.reviewHistory, 'approved')?.at;
-    const write = decisionAt
-      ? await this.repository.setApprovalMessageId(
-          signup,
-          messageId,
-          decisionAt,
-        )
-      : undefined;
-
-    if (write?.type !== 'written') {
-      // superseded by a later decision: the post stays, like any past approval
-      this.logger.log(
-        `Announcement ${messageId} is not for the current approval of signup ${signup.discordId}-${signup.encounter}, not storing its id`,
+      await storeApprovalMessageId(
+        this.repository,
+        this.logger,
+        signup,
+        message.id,
       );
     }
   }
