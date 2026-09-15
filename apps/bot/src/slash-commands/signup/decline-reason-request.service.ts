@@ -178,21 +178,22 @@ export class DeclineReasonRequestService {
 
       try {
         const modalInteraction = await interaction.awaitModalSubmit({
-          filter: isSameUserFilter(interaction.user),
+          // awaitModalSubmit's collector is client-wide (no message/channel
+          // scope), so without the customId check it would also accept a
+          // modal submit meant for a different signup's decline reason
+          filter: (submission) =>
+            isSameUserFilter(interaction.user)(submission) &&
+            submission.customId ===
+              `${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupId}`,
           time: 5 * 60 * 1000, // 5 minutes
         });
 
-        if (
-          modalInteraction.customId ===
-          `${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupId}`
-        ) {
-          await this.handleCustomReasonSubmit(
-            modalInteraction,
-            signup,
-            reviewer,
-            reviewMessage,
-          );
-        }
+        await this.handleCustomReasonSubmit(
+          modalInteraction,
+          signup,
+          reviewer,
+          reviewMessage,
+        );
       } catch (error) {
         await this.handleTimeoutError(
           error,
