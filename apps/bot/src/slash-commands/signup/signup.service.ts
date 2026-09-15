@@ -279,10 +279,15 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       signup,
       decision.progPoint,
     );
-    await this.persistApprovedSignup(signup, confirmedSignup, settings, user);
+    const approvedSignup = await this.persistApprovedSignup(
+      signup,
+      confirmedSignup,
+      settings,
+      user,
+    );
 
     return new SignupApprovedEvent(
-      confirmedSignup,
+      approvedSignup,
       settings,
       user,
       message,
@@ -317,12 +322,16 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     };
   }
 
+  /**
+   * Returns the signup as persisted: for a non-cleared approval it carries
+   * the appended history, so handlers can match this decision by its entry.
+   */
   private async persistApprovedSignup(
     signup: SignupDocument,
     confirmedSignup: ConfirmedSignup,
     settings: SettingsDocument,
     user: User,
-  ): Promise<void> {
+  ): Promise<ConfirmedSignup> {
     if (settings.spreadsheetId) {
       await this.sheetsService.upsertSignup(
         confirmedSignup,
@@ -338,27 +347,34 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         world: confirmedSignup.world,
         encounter: confirmedSignup.encounter,
       });
-    } else {
-      const at = Timestamp.now();
-      // seed from `signup` (as read), not `confirmedSignup` (new prog point)
-      await this.repository.updateSignupStatus(
-        SignupStatus.APPROVED,
-        confirmedSignup,
-        user.username,
-        withTrackingSeed(
-          signup,
-          {
-            type: 'approved',
-            progPoint: confirmedSignup.progPoint,
-            partyStatus: confirmedSignup.partyStatus,
-            actorId: user.id,
-            at,
-            via: 'reaction',
-          },
-          at,
-        ),
-      );
+      return confirmedSignup;
     }
+
+    const at = Timestamp.now();
+    // seed from `signup` (as read), not `confirmedSignup` (new prog point)
+    const historyEntries = withTrackingSeed(
+      signup,
+      {
+        type: 'approved',
+        progPoint: confirmedSignup.progPoint,
+        partyStatus: confirmedSignup.partyStatus,
+        actorId: user.id,
+        at,
+        via: 'reaction',
+      },
+      at,
+    );
+    await this.repository.updateSignupStatus(
+      SignupStatus.APPROVED,
+      confirmedSignup,
+      user.username,
+      historyEntries,
+    );
+
+    return {
+      ...confirmedSignup,
+      reviewHistory: [...(signup.reviewHistory ?? []), ...historyEntries],
+    };
   }
 
   private async handleDeclinedReaction(

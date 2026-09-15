@@ -76,7 +76,7 @@ export class EditSignupService {
     // re-submission or a concurrent edit, and Sheets cannot take part in it.
     const write = await this.signupCollection.applyEdit(
       signup,
-      { progPoint, partyStatus, historyEntries },
+      { kind, progPoint, partyStatus, historyEntries },
       updateTime,
     );
 

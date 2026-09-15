@@ -17,8 +17,12 @@ import {
   type Query,
   Timestamp,
 } from 'firebase-admin/firestore';
+import type { EditKind } from '../../slash-commands/edit-signup/edit-signup.policy.js';
+import { latestEntryOfType } from '../../slash-commands/signup/review-history.js';
 import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
+
+type ApprovalMessageIdWrite = { type: 'written' } | { type: 'stale' };
 
 // gRPC status Firestore reports when an update's precondition does not hold
 const FIRESTORE_FAILED_PRECONDITION = 9;
@@ -123,15 +127,19 @@ class SignupCollection {
   /**
    * Applies a reviewer's edit as an approval. Rejected with `conflict` when
    * the document changed after `updateTime` (re-submission or another edit).
+   * A reversal starts a new approval decision, so it clears the previous
+   * decision's announcement id; a correction amends the current one.
    */
   @SentryTraced()
   public async applyEdit(
     key: SignupCompositeKey,
     {
+      kind,
       progPoint,
       partyStatus,
       historyEntries,
     }: {
+      kind: EditKind;
       progPoint: string;
       partyStatus: PartyStatus;
       historyEntries: ReviewHistoryEntry[];
@@ -145,6 +153,9 @@ class SignupCollection {
           progPoint,
           partyStatus,
           reviewHistory: FieldValue.arrayUnion(...historyEntries),
+          ...(kind === 'reversal'
+            ? { approvalMessageId: FieldValue.delete() }
+            : {}),
         },
         { lastUpdateTime: updateTime },
       );
@@ -209,7 +220,9 @@ class SignupCollection {
 
   /**
    * Updates the approval status of a signup and appends to its review
-   * history. Does not modify the timestamp of the signup
+   * history. Does not modify the timestamp of the signup. An approval starts
+   * a new decision, so it clears the previous decision's announcement id; a
+   * decline leaves the standing approval's announcement accurate.
    * @param status - new status for the signup
    * @param key - composite key for the signup
    * @param reviewedBy - username of the user that reviewed the signup
@@ -233,6 +246,9 @@ class SignupCollection {
       reviewedBy,
       partyStatus,
       reviewHistory: FieldValue.arrayUnion(...historyEntries),
+      ...(status === SignupStatus.APPROVED
+        ? { approvalMessageId: FieldValue.delete() }
+        : {}),
     });
   }
 
@@ -252,18 +268,40 @@ class SignupCollection {
   }
 
   /**
-   * Sets the discord message id of the public "Signup Approved" announcement
+   * Sets the discord message id of the public "Signup Approved" announcement,
+   * only while the decision it announces is still the latest approval.
+   * Returns `stale` and writes nothing once a newer approval exists or the
+   * signup is gone, so the id never points at a superseded announcement.
    * @param signup
    * @param messageId
-   * @returns
+   * @param decisionAt - `at` of the approved history entry the post announces
    */
   @SentryTraced()
-  public setApprovalMessageId(signup: SignupCompositeKey, messageId: string) {
-    const key = SignupCollection.getKeyForSignup(signup);
+  public setApprovalMessageId(
+    signup: SignupCompositeKey,
+    messageId: string,
+    decisionAt: Timestamp,
+  ): Promise<ApprovalMessageIdWrite> {
+    const document = this.collection.doc(
+      SignupCollection.getKeyForSignup(signup),
+    );
 
-    return this.collection.doc(key).update({
-      approvalMessageId: messageId,
-    });
+    return this.firestore.runTransaction<ApprovalMessageIdWrite>(
+      async (transaction) => {
+        const snapshot = await transaction.get(document);
+        const decision = latestEntryOfType(
+          snapshot.data()?.reviewHistory,
+          'approved',
+        );
+
+        if (!decision?.at.isEqual(decisionAt)) {
+          return { type: 'stale' };
+        }
+
+        transaction.update(document, { approvalMessageId: messageId });
+        return { type: 'written' };
+      },
+    );
   }
 
   @SentryTraced()
