@@ -4,10 +4,12 @@ import { DiscordModule } from '../../discord/discord.module.js';
 import { EncountersModule } from '../../encounters/encounters.module.js';
 import { ErrorModule } from '../../error/error.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
+import { RoleManagerModule } from '../../role-manager/role-manager.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
 import { EditSignupService } from './edit-signup.service.js';
 import { EditSignupCommandHandler } from './handlers/edit-signup.command-handler.js';
 import { ReconcileAnnouncementEventHandler } from './handlers/reconcile-announcement.event-handler.js';
+import { ReconcileRolesEventHandler } from './handlers/reconcile-roles.event-handler.js';
 import { UpdateReviewMessageEventHandler } from './handlers/update-review-message.event-handler.js';
 
 @Module({
@@ -17,12 +19,14 @@ import { UpdateReviewMessageEventHandler } from './handlers/update-review-messag
     EncountersModule,
     ErrorModule,
     FirebaseModule,
+    RoleManagerModule,
     SheetsModule,
   ],
   providers: [
     EditSignupCommandHandler,
     EditSignupService,
     ReconcileAnnouncementEventHandler,
+    ReconcileRolesEventHandler,
     UpdateReviewMessageEventHandler,
   ],
 })
