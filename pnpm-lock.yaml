@@ -201,26 +201,26 @@ catalogs:
       specifier: 6.1.6
       version: 6.1.6
     '@nestjs/common':
-      specifier: ^11.2.3
-      version: 11.2.3
+      specifier: ^12.0.2
+      version: 12.0.2
     '@nestjs/core':
-      specifier: ^11.2.3
-      version: 11.2.3
+      specifier: ^12.0.2
+      version: 12.0.2
     '@nestjs/cqrs':
-      specifier: ^11.0.3
-      version: 11.0.3
+      specifier: ^12.0.0
+      version: 12.0.0
     '@nestjs/testing':
-      specifier: ^11.2.3
-      version: 11.2.3
+      specifier: ^12.0.2
+      version: 12.0.2
     '@sentry/cli':
       specifier: ^3.6.2
       version: 3.6.2
     '@sentry/nestjs':
-      specifier: ^10.70.0
-      version: 10.70.0
+      specifier: 11.0.0-beta.2
+      version: 11.0.0-beta.2
     '@sentry/profiling-node':
-      specifier: ^10.70.0
-      version: 10.70.0
+      specifier: 11.0.0-beta.2
+      version: 11.0.0-beta.2
     '@types/node':
       specifier: ^26.2.0
       version: 26.2.0
@@ -261,8 +261,8 @@ catalogs:
       specifier: ^2.1.12
       version: 2.1.12
     nestjs-pino:
-      specifier: ^4.6.1
-      version: 4.6.1
+      specifier: ^5.2.0
+      version: 5.2.0
     pino-http:
       specifier: ^11.0.0
       version: 11.0.0
@@ -348,22 +348,22 @@ importers:
     dependencies:
       '@googleapis/sheets':
         specifier: 'catalog:'
-        version: 14.0.0(supports-color@7.2.0)
+        version: 14.0.0(supports-color@8.1.1)
       '@nestjs/common':
         specifier: 'catalog:'
-        version: 11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
+        version: 12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
       '@nestjs/core':
         specifier: 'catalog:'
-        version: 11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+        version: 12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/cqrs':
         specifier: 'catalog:'
-        version: 11.0.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+        version: 12.0.0(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@sentry/nestjs':
         specifier: 'catalog:'
-        version: 10.70.0(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(supports-color@7.2.0)
+        version: 11.0.0-beta.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@sentry/profiling-node':
         specifier: 'catalog:'
-        version: 10.70.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(supports-color@7.2.0)
+        version: 11.0.0-beta.2
       '@ulti-project/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -375,10 +375,10 @@ importers:
         version: 14.27.0
       firebase-admin:
         specifier: 'catalog:'
-        version: 14.3.0(supports-color@7.2.0)
+        version: 14.3.0(supports-color@8.1.1)
       google-auth-library:
         specifier: 'catalog:'
-        version: 10.9.1(supports-color@7.2.0)
+        version: 10.9.1(supports-color@8.1.1)
       graphql:
         specifier: 'catalog:'
         version: 16.14.2
@@ -387,7 +387,7 @@ importers:
         version: 7.4.0(graphql@16.14.2)
       nestjs-pino:
         specifier: 'catalog:'
-        version: 4.6.1(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(pino-http@11.0.0)(pino@10.0.0)(rxjs@7.8.2)
+        version: 5.2.0(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))(pino-http@11.0.0)(pino@10.0.0)(rxjs@7.8.2)
       pino-http:
         specifier: 'catalog:'
         version: 11.0.0
@@ -415,7 +415,7 @@ importers:
         version: 2.23.0
       '@graphql-codegen/cli':
         specifier: 'catalog:'
-        version: 7.4.0(@types/node@26.2.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@7.0.2)
+        version: 7.4.0(@types/node@26.2.0)(graphql@16.14.2)(supports-color@8.1.1)(typescript@7.0.2)
       '@graphql-codegen/schema-ast':
         specifier: 'catalog:'
         version: 6.1.0(graphql@16.14.2)
@@ -430,7 +430,7 @@ importers:
         version: 6.1.6(graphql@16.14.2)
       '@nestjs/testing':
         specifier: 'catalog:'
-        version: 11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(reflect-metadata@0.2.2)(rxjs@7.8.2))
+        version: 12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@sentry/cli':
         specifier: 'catalog:'
         version: 3.6.2
@@ -482,17 +482,6 @@ importers:
         version: 14.3.0(supports-color@7.2.0)
 
 packages:
-
-  '@apm-js-collab/code-transformer-bundler-plugins@0.7.3':
-    resolution: {integrity: sha512-qNbPwuMZ8f5ZuGj/ttPeB7a6C/S1bB6tNYaEL5vNiRKydSAxa4AU0gxCWgaP4fVju+AuwhcumSFjrEcGF9Dv7Q==}
-    engines: {node: '>=18.0.0'}
-
-  '@apm-js-collab/code-transformer@0.18.0':
-    resolution: {integrity: sha512-aN3Oq8r1J3gPJtCwErP664gM0+HhM1I1lujPr9TMTCcEl/joQQbpGpeMdts9B1+W2wHMsvioDMv5F4PvMWE6gw==}
-    hasBin: true
-
-  '@apm-js-collab/tracing-hooks@0.13.0':
-    resolution: {integrity: sha512-mTvWz9rnQwx1U3h0XPTHaX7bgfkpipLLTQyjlC2cdhQpQEuoLT0AGzoydeoq2NxfEVv6fWOOETcSbb2nptleyw==}
 
   '@ardatan/relay-compiler@13.0.0':
     resolution: {integrity: sha512-ite4+xng5McO8MflWCi0un0YmnorTujsDnfPfhzYzAgoJ+jkI1pZj6jtmTl8Jptyi1H+Pa0zlatJIsxDD++ETA==}
@@ -1580,8 +1569,8 @@ packages:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
 
-  '@nestjs/common@11.2.3':
-    resolution: {integrity: sha512-obdauJXHfthhepbV+LpGe88OeBlR/Kw9lwjLo0Utzc//agoLXYb9DUGhPQWtm81IpBWMv+19eiwcve9MsBZwXA==}
+  '@nestjs/common@12.0.2':
+    resolution: {integrity: sha512-reKr84JoGHgXLDBeqqW1VtpynCp0syzs+vQ5GmQgINSnEAC4zKcTMBE/vL6BBWcMM1Qi5CKrpL96fDYnHIOpOg==}
     peerDependencies:
       class-transformer: '>=0.4.1'
       class-validator: '>=0.13.2'
@@ -1593,14 +1582,14 @@ packages:
       class-validator:
         optional: true
 
-  '@nestjs/core@11.2.3':
-    resolution: {integrity: sha512-vkA9/Ja0Z3hvqXErSa+HaxrfF+cNXthNFi8VPNEKVli4rMd009yExAl0gLmko/Kf8peDXr72u1RN+j9Da2ukHg==}
+  '@nestjs/core@12.0.2':
+    resolution: {integrity: sha512-fKUubXoiVvMesjo6YpAv0dl1dBIjY4HrlfMlUnPwlZIlUnnWTmK3W2TB1rBVc2tct5YCfvW3tkFtCpVgp5xW3A==}
     engines: {node: '>= 20'}
     peerDependencies:
-      '@nestjs/common': ^11.0.0
-      '@nestjs/microservices': ^11.0.0
-      '@nestjs/platform-express': ^11.0.0
-      '@nestjs/websockets': ^11.0.0
+      '@nestjs/common': ^12.0.0
+      '@nestjs/microservices': ^12.0.0
+      '@nestjs/platform-express': ^12.0.0
+      '@nestjs/websockets': ^12.0.0
       reflect-metadata: ^0.1.12 || ^0.2.0
       rxjs: ^7.1.0
     peerDependenciesMeta:
@@ -1611,21 +1600,22 @@ packages:
       '@nestjs/websockets':
         optional: true
 
-  '@nestjs/cqrs@11.0.3':
-    resolution: {integrity: sha512-2ezBftiXqVfNTzjCrmhazohYhIQzgm8rvM0aKndv73IOOBcVlNuNiQ3HHiHdd4c2w/3MOQDtsGbQHgZUuW6DPw==}
+  '@nestjs/cqrs@12.0.0':
+    resolution: {integrity: sha512-X97NjPIkChMZ9Pfb3JJSLhKtDKCnzk44/Qx2pxoWk7OFMAS3Pl/WtDW0DdDt5eH1IwGNuaG7kQI42OIRdWlkcQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      '@nestjs/common': ^10.0.0 || ^11.0.0
-      '@nestjs/core': ^10.0.0 || ^11.0.0
+      '@nestjs/common': ^12.0.0
+      '@nestjs/core': ^12.0.0
       reflect-metadata: ^0.1.13 || ^0.2.0
       rxjs: ^7.2.0
 
-  '@nestjs/testing@11.2.3':
-    resolution: {integrity: sha512-7ANDWlkm8Xw4CYIhCNZhtBzANsQUKqjteA2yx/6sjqGyWhekeBKz8wgCJykm0vo+ltrg6U34dZlm2NgiRcNHPQ==}
+  '@nestjs/testing@12.0.2':
+    resolution: {integrity: sha512-TT++8iztKOuOLi6ynAw26UcxXhY0ldxhuj+lRUC0aONJDdTI78QSF/1+cpJDeUjXZvf41RMpFqdkMlGYPptKqw==}
     peerDependencies:
-      '@nestjs/common': ^11.0.0
-      '@nestjs/core': ^11.0.0
-      '@nestjs/microservices': ^11.0.0
-      '@nestjs/platform-express': ^11.0.0
+      '@nestjs/common': ^12.0.0
+      '@nestjs/core': ^12.0.0
+      '@nestjs/microservices': ^12.0.0
+      '@nestjs/platform-express': ^12.0.0
     peerDependenciesMeta:
       '@nestjs/microservices':
         optional: true
@@ -1647,47 +1637,9 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@opentelemetry/api-logs@0.220.0':
-    resolution: {integrity: sha512-CmVa4ImJ+ynfrPMNaAXHET6Bhb44SwzmfyVJFq9ni2jgXJR/l7C6gfVFddNmHP+ZOkP9cf4f9DBe68qVLTHc9w==}
-    engines: {node: '>=8.0.0'}
-
   '@opentelemetry/api@1.9.1':
     resolution: {integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==}
     engines: {node: '>=8.0.0'}
-
-  '@opentelemetry/core@2.9.0':
-    resolution: {integrity: sha512-m2nckMT80NnmjTYSPjJQObBJ+8dgkoajEOUbznL8AHZ3T3yHRk2P7gI1PhEBc1+lOnrYE9UWrWHqJDsmqjmNbw==}
-    engines: {node: ^18.19.0 || >=20.6.0}
-    peerDependencies:
-      '@opentelemetry/api': '>=1.0.0 <1.10.0'
-
-  '@opentelemetry/instrumentation@0.220.0':
-    resolution: {integrity: sha512-xQx3E2WxP1mDvKzxLxX+CTCtNLa560YJZ3087qYHerl2YmiKpv7AH+dAy7vmx+eVrZ5BwhfWUAVoKOoxCNHcpw==}
-    engines: {node: ^18.19.0 || >=20.6.0}
-    peerDependencies:
-      '@opentelemetry/api': ^1.3.0
-
-  '@opentelemetry/resources@2.9.0':
-    resolution: {integrity: sha512-jyA5MBLQ+Dkl3+JsZkUoUvL7yHvU64kLsvpXKarWm6347Sl1t1bXFTFykUePNpT5WH5pm9a2Qtt03iIYQhZ1Fg==}
-    engines: {node: ^18.19.0 || >=20.6.0}
-    peerDependencies:
-      '@opentelemetry/api': '>=1.3.0 <1.10.0'
-
-  '@opentelemetry/sdk-trace-base@2.9.0':
-    resolution: {integrity: sha512-cp9zmTl62R8PJrpvFcmc8N2JQU/xfa0S+61q511Nji+QxCfZ8Ifvg7H27G8cANe4crg4RTrWsVvanHiXjSp6ag==}
-    engines: {node: ^18.19.0 || >=20.6.0}
-    peerDependencies:
-      '@opentelemetry/api': '>=1.3.0 <1.10.0'
-
-  '@opentelemetry/sdk-trace@2.9.0':
-    resolution: {integrity: sha512-sGA19HvtrrSKYsseHphluH6j3p6Xa3fqc7c7y8f/7mYWejc1lyDFcpSdD1kYa50HCLUeEo4zA5bW0pniaPszuw==}
-    engines: {node: ^18.19.0 || >=20.6.0}
-    peerDependencies:
-      '@opentelemetry/api': '>=1.3.0 <1.10.0'
-
-  '@opentelemetry/semantic-conventions@1.41.1':
-    resolution: {integrity: sha512-/UhIkaZgPutTFmQ7RnIJGgDXZmtEJ7Dvi86xNTFWcnRxVRNk/aotsqDJYeEvDP+FSMB2SdW+pQzNMcWP0rwuNA==}
-    engines: {node: '>=14'}
 
   '@oxc-parser/binding-android-arm-eabi@0.147.0':
     resolution: {integrity: sha512-fOtoGvIoirkvxQVw9J1WJPxz571XPgLsPf9uhRD+PJteUnvrJHMDmK9pw2yZEGGyismtRoEsp+JcXUdF/JDMDw==}
@@ -2068,6 +2020,18 @@ packages:
     resolution: {integrity: sha512-xzvBr1Q1c4lCe7i6sRnrofxeO1QTP/LKQ6A6qy0iB4x5yfiSfARMEQEghojzTNALDTcv8En04qYNIco9/K9eZQ==}
     engines: {node: '>=v14.0.0', npm: '>=7.0.0'}
 
+  '@sentry/bundler-plugins@11.0.0-beta.2':
+    resolution: {integrity: sha512-1dNkJiBlCwP2plIRJwqRXfxcpvYETdDgZPKDj7OlyOTavctDipb4NstnyYmL1HrHXZJDN21k+lW9DpQm3IPscA==}
+    engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
+    peerDependencies:
+      rollup: '>=3.2.0'
+      webpack: '>=5.0.0'
+    peerDependenciesMeta:
+      rollup:
+        optional: true
+      webpack:
+        optional: true
+
   '@sentry/cli-darwin@3.6.2':
     resolution: {integrity: sha512-/ZIMLblj6ncwguhOPw5YL9018iaD2RBhxhbHBxjaowy1vrmnzoCurGe4n5Vv7PaS21ldAHtHNqJwNqHJS4XHUw==}
     engines: {node: '>=18'}
@@ -2120,66 +2084,46 @@ packages:
     engines: {node: '>= 18'}
     hasBin: true
 
-  '@sentry/conventions@0.16.0':
-    resolution: {integrity: sha512-fO9PLmHdVURcSPUpWCItWAtgKiMwGdJHbovoSEyLplX5sxs2ugvI4CBPTrkkgqhObnZOD0CnWBKDzSVQYBKEyQ==}
+  '@sentry/conventions@0.20.0':
+    resolution: {integrity: sha512-nAL3tL+xgom6Dbuxq0NCEZZfBNIrUspjDJRcMMRl3WLiBCSeZzNCa7an48IpnrZoVMpAi2NQ2v9rFU+EQziKuQ==}
     engines: {node: '>=14'}
 
-  '@sentry/core@10.70.0':
-    resolution: {integrity: sha512-ozhCTDqg89oB4XmWfAwuHshABpvT7AkRpaPnogopPfMAaI61G1t8EKCJ4W7aum8JSBonlfyjPCyW5oYZFm0KvA==}
-    engines: {node: '>=18'}
+  '@sentry/core@11.0.0-beta.2':
+    resolution: {integrity: sha512-dci1vUZ1GR4oj5WI6NJC3ilT3DJxliwG1tcN8ONKAvORQHj4+BbWuUKT5YoZJIjj4LWmROH1o+PlrmDjg2U+UA==}
+    engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/nestjs@10.70.0':
-    resolution: {integrity: sha512-VhdYFW/kmE56dr5sTfBVkSCM6A0rGz36YF8p9JA2OfKZp8LDgj2ju9cQcjWbbeh56eHmTJ5vgSEyxU1XCVBwUA==}
-    engines: {node: '>=18'}
+  '@sentry/nestjs@11.0.0-beta.2':
+    resolution: {integrity: sha512-9g77O0mOqinCNzT8MK0Rky5KwOKC+OASbHc9sx5HRsV6rYf26yVsDYWRJLf4nT4C5CKmMWNxN/77MDAEsSJmPg==}
+    engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
     peerDependencies:
-      '@nestjs/common': ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
-      '@nestjs/core': ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
-
-  '@sentry/node-core@10.70.0':
-    resolution: {integrity: sha512-oPOEVVNxv5WHtckx2i06Wi9FLWyvOg/1DUeX732jZ4iqT2nupINaMH4nF4f4kSvUThFnxkFSRQxwqOxgzMKhKA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@opentelemetry/api': ^1.9.0
-      '@opentelemetry/core': ^1.30.1 || ^2.1.0
-      '@opentelemetry/exporter-trace-otlp-http': '>=0.57.0 <1'
-      '@opentelemetry/instrumentation': '>=0.57.1 <1'
-      '@opentelemetry/sdk-trace-base': ^1.30.1 || ^2.1.0
-    peerDependenciesMeta:
-      '@opentelemetry/api':
-        optional: true
-      '@opentelemetry/core':
-        optional: true
-      '@opentelemetry/exporter-trace-otlp-http':
-        optional: true
-      '@opentelemetry/instrumentation':
-        optional: true
-      '@opentelemetry/sdk-trace-base':
-        optional: true
+      '@nestjs/common': ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0 || ^12.0.0
+      '@nestjs/core': ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0 || ^12.0.0
 
   '@sentry/node-cpu-profiler@2.4.3':
     resolution: {integrity: sha512-18g/yJKRUk4PNcnZYEPyT2nS+9UoFcTRrIrct1DbpfI7k//RtQ+8araZrR0WH5MT8xoiLCm67GEX/RcxDsI0iQ==}
     engines: {node: '>=18'}
 
-  '@sentry/node@10.70.0':
-    resolution: {integrity: sha512-SPOOVxmKTVIEtqvOKkQT163e/pOwucjS7OPsCHyRs8sFR4nfBNu0EThplyqnvqd5BWBMTPH6WTBQfo+QWHV+HA==}
-    engines: {node: '>=18'}
+  '@sentry/node@11.0.0-beta.2':
+    resolution: {integrity: sha512-h6sme3q12aWS2uJAWbXg8hfQ1NRBjMbp0G5Ce7sxaIo/k6386r17iOXYdwQZZ+bE0/AJJ8RXJxvFvFDfVfVQLQ==}
+    engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/opentelemetry@10.70.0':
-    resolution: {integrity: sha512-UNV/2tqypcUK6FDzerAsFJn1Km/c4VZCYkUZDNbnV5S0cwAq2BYKMo4M5vovaLDBQlxA+Wk9ovbxi5wYjjl9fw==}
-    engines: {node: '>=18'}
+  '@sentry/opentelemetry@11.0.0-beta.2':
+    resolution: {integrity: sha512-ltDMwRqjoX023mH7oUpWkOm+V1CrkIeWbdHqFhWQlVR1a/0FbL80mtI/c06bBDJh0AkZ5iLvTpzWXooq3AQW8w==}
+    engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
     peerDependencies:
       '@opentelemetry/api': ^1.9.0
-      '@opentelemetry/core': ^1.30.1 || ^2.1.0
-      '@opentelemetry/sdk-trace-base': ^1.30.1 || ^2.1.0
 
-  '@sentry/profiling-node@10.70.0':
-    resolution: {integrity: sha512-bOL1nd+t6H4dHM2BB768Thm26UXBxIqBORIMr7nM+QLID+6DjHRcknRZbyklGNUVzAggsprzQ3f61i2xdRmTEA==}
-    engines: {node: '>=18'}
-    hasBin: true
+  '@sentry/profiling-node@11.0.0-beta.2':
+    resolution: {integrity: sha512-ssUQ5Jx2xnAMTVQozqAe22Jydk0fbMZDdUUC1iNviZGbKnOoSupoDfgH8vqJoclyqRxLMHw1rMfhSM+gVG4inw==}
+    engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/server-utils@10.70.0':
-    resolution: {integrity: sha512-rzegZjMFFgCp3o+N8+XU13rfSvz4B+f8rU0ijBGrQcHdMNyfsFDTu1UTm262JofmrV2u+s+D0u0vFTnqtOGkbA==}
-    engines: {node: '>=18'}
+  '@sentry/server-runtime-injection@11.0.0-beta.2':
+    resolution: {integrity: sha512-U+Xa+NqXS0IqhP2tBcSNk6/q498zsOggh/73TcJ6f5y0IHksN8h9+QId4pSvygh1/n2B0wDHcDB9lvB1ddBX4A==}
+    engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
+
+  '@sentry/server-utils@11.0.0-beta.2':
+    resolution: {integrity: sha512-VUi7BuOWBNV7nM5+w408oQb6WPsM52jFN99aSgK5/GQ5t82G+LCpStf+gyV4ScOMbmzP887sbkD7MuTnNwgvJA==}
+    engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
   '@simple-libs/child-process-utils@2.0.0':
     resolution: {integrity: sha512-dvNoRKLijXnD0XoJAz94pbNuB5GQgDr55UhpSPhffDkTT0Cmcqh9jSCOtwfT2d4H6MI9E7c4SgtMuJXZ6F3c6A==}
@@ -2188,6 +2132,9 @@ packages:
   '@simple-libs/stream-utils@2.0.0':
     resolution: {integrity: sha512-fCTuZK4QBa+39Oz9l4OGfJfz+GpwCp3AqO7Zch3to99xHPgstVsRFpeQ8LNd2o1Gv8raL2mCFwiaHh7bFSp5DQ==}
     engines: {node: '>=22'}
+
+  '@standard-schema/spec@1.1.0':
+    resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
   '@tokenizer/inflate@0.4.1':
     resolution: {integrity: sha512-2mAv+8pkG6GIZiF1kNg1jAjh27IDxEPKwdGul3snfztFerfPGI1LjDezZp3i7BElXompqEtPmoPx6c2wgtWsOA==}
@@ -2422,16 +2369,6 @@ packages:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
     engines: {node: '>=6.5'}
 
-  acorn-import-attributes@1.9.5:
-    resolution: {integrity: sha512-n02Vykv5uA3eHGM/Z2dQrcD56kL8TyDb2p1+0P83PClMnC/nc+anbQRhIOWnSq4Ke/KvDPrY3C9hDtC/A3eHnQ==}
-    peerDependencies:
-      acorn: ^8
-
-  acorn@8.16.0:
-    resolution: {integrity: sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw==}
-    engines: {node: '>=0.4.0'}
-    hasBin: true
-
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
@@ -2488,10 +2425,6 @@ packages:
 
   ast-v8-to-istanbul@1.0.5:
     resolution: {integrity: sha512-UPAgKJFSEGMWSDr3LX4tqnAb4f7KGT8O40Tyx8wbYmmZ/yn58lNCm8h3svs3eXgiGd5AXxz8NDOvXWvicq+rJA==}
-
-  astring@1.9.0:
-    resolution: {integrity: sha512-LElXdjswlqjWrPpJFg1Fx4wpkOCxj1TDHlSV4PlaRxHGWko024xICaa97ZkMfs6DRKlCguiAI+rbXv5GWwXIkg==}
-    hasBin: true
 
   async-retry@1.3.3:
     resolution: {integrity: sha512-wfr/jstw9xNi/0teMHrRW7dsz3Lt5ARhYNZ2ewpadnhaIp5mbALhOAP+EAdsC7t4Z6wqsDVv9+W6gm1Dk9mEyw==}
@@ -2616,9 +2549,6 @@ packages:
 
   chardet@2.1.1:
     resolution: {integrity: sha512-PsezH1rqdV9VvyNhxxOW32/d75r01NY7TQCmOqomRo15ZSOKbpTFVsfjghxo6JloQUCGnH4k1LGu0R4yCLlWQQ==}
-
-  cjs-module-lexer@2.2.0:
-    resolution: {integrity: sha512-4bHTS2YuzUvtoLjdy+98ykbNB5jS0+07EvFNXerqZQJ89F7DI6ET7OQo/HJuW6K0aVsKA9hj9/RVb2kQVOrPDQ==}
 
   cli-cursor@3.1.0:
     resolution: {integrity: sha512-I/zHAwsKf9FqGoXM4WWRACob9+SNukZTd94DWF57E4toouRulbCxcUh6RKUEOQlYTHJnzkPMySvPNaaSLNfLZw==}
@@ -2823,6 +2753,10 @@ packages:
   dot-case@3.0.4:
     resolution: {integrity: sha512-Kv5nKlh6yRrdrGvxeJ2e5y2eRUpkUosIW4A2AS38zwSz27zu7ufDwQPi5Jhs3XAlGNetl3bmnGhQsMtkKJnj3w==}
 
+  dotenv@17.4.2:
+    resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
+    engines: {node: '>=12'}
+
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
@@ -2896,14 +2830,6 @@ packages:
   escape-string-regexp@1.0.5:
     resolution: {integrity: sha512-vbRorB5FUQWvla16U8R/qgaFIya2qGzwDrNmCZuYKrbdSUMG6I1ZCGQRefkRVhuOkIGVne7BQ35DSfo1qvJqFg==}
     engines: {node: '>=0.8.0'}
-
-  esquery@1.7.0:
-    resolution: {integrity: sha512-Ap6G0WQwcU/LHsvLwON1fAQX9Zp0A2Y6Y/cJBl9r/JbW90Zyg4/zbG6zzKa2OTALELarYHmKu0GhpM5EO+7T0g==}
-    engines: {node: '>=0.10'}
-
-  estraverse@5.3.0:
-    resolution: {integrity: sha512-MMdARuVEQziNTeJD8DgMqmhwR11BRQ/cBP+pLtYdSTnf3MIO8fFeiINEbX36ZdNlfU/7A9f3gUw49B3oQsvwBA==}
-    engines: {node: '>=4.0'}
 
   estree-walker@3.0.3:
     resolution: {integrity: sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g==}
@@ -2988,9 +2914,9 @@ packages:
     resolution: {integrity: sha512-yaduQFRKLXYOGgEn6AZau90j3ggSOyiqXU0F9JZfeXYhNa+Jk4X+s45A2zg5jns87GAFa34BBm2kXw4XpNcbdg==}
     engines: {node: '>=8'}
 
-  file-type@21.3.4:
-    resolution: {integrity: sha512-Ievi/yy8DS3ygGvT47PjSfdFoX+2isQueoYP1cntFW1JLYAuS4GD7NUPGg4zv2iZfV52uDyk5w5Z0TdpRS6Q1g==}
-    engines: {node: '>=20'}
+  file-type@22.0.2:
+    resolution: {integrity: sha512-0H8TsCUGBLx+V5adH3EY52hTAcyLKbV1D4gq5cIOJ6DnQAHeV9Z2Hhuc5CoBX4YmvB2oL+JIC84z0qO7JsCoNw==}
+    engines: {node: '>=22'}
 
   fill-range@7.1.1:
     resolution: {integrity: sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg==}
@@ -3095,6 +3021,10 @@ packages:
     resolution: {integrity: sha512-DfXN8DfhJ7NH3Oe7cFmu3NCu1wKbkReJ8TorzSAFbSKrlNaQSKfIzqYqVY8zlbs2NLBbWpRiU52GX2PbaBVNkg==}
     deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
+
+  glob@13.0.6:
+    resolution: {integrity: sha512-Wjlyrolmm8uDpm/ogGyXZXb1Z+Ca2B8NbJwqBVg0axK9GbBeoS7yGV6vjXnYdGm6X53iehEuxxbyiKp8QmN4Vw==}
+    engines: {node: 18 || 20 || >=22}
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
@@ -3273,10 +3203,6 @@ packages:
   import-from@4.0.0:
     resolution: {integrity: sha512-P9J71vT5nLlDeV8FHs5nNxaLbrpfAV5cF5srvbZfpwpcJoM/xZR3hiv+q+SAnuSmuGbXMWud063iIMx/V/EWZQ==}
     engines: {node: '>=12.2'}
-
-  import-in-the-middle@3.0.1:
-    resolution: {integrity: sha512-pYkiyXVL2Mf3pozdlDGV6NAObxQx13Ae8knZk1UJRJ6uRW/ZRmTGHlQYtrsSl7ubuE5F8CD1z+s1n4RHNuTtuA==}
-    engines: {node: '>=18'}
 
   inflight@1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
@@ -3724,10 +3650,6 @@ packages:
   merge@2.1.1:
     resolution: {integrity: sha512-jz+Cfrg9GWOZbQAnDQ4hlVnQky+341Yk5ru8bZSe6sIDTCIg8n9i/u7hSQGSVOF3C7lH6mGtqjkiT9G4wFLL0w==}
 
-  meriyah@6.1.4:
-    resolution: {integrity: sha512-Sz8FzjzI0kN13GK/6MVEsVzMZEPvOhnmmI1lU5+/1cGOiK3QUahntrNNtdVeihrO7t9JpoH75iMNXg6R6uWflQ==}
-    engines: {node: '>=18.0.0'}
-
   meros@1.3.2:
     resolution: {integrity: sha512-Q3mobPbvEx7XbwhnC1J1r60+5H6EZyNccdzSz0eGexJRwouUtTZxPVRGdqKtxlpD84ScK4+tIGldkqDtCKdI0A==}
     engines: {node: '>=13'}
@@ -3780,9 +3702,6 @@ packages:
     resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
     engines: {node: '>=16 || 14 >=14.17'}
 
-  module-details-from-path@1.0.4:
-    resolution: {integrity: sha512-EGWKgxALGMgzvxYF1UyGTy0HXX/2vHLkw6+NvDKW2jypWbHpjQuj4UMcqQWXHERJhVGKikolT06G3bcKe4fi7w==}
-
   mrmime@2.0.1:
     resolution: {integrity: sha512-Y3wQdFg2Va6etvQ5I82yUhGdsKrcYox6p7FfL1LbK2J4V01F9TGlepTIhnK24t7koZibmg82KGglhA1XK5IsLQ==}
     engines: {node: '>=10'}
@@ -3806,13 +3725,14 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nestjs-pino@4.6.1:
-    resolution: {integrity: sha512-nuARXa0xpdJ1lY2+fgycIQr6H3g0VgqAWNK3xMYjOFcj2DoPETNXj0lV3Y86nRuI7BUfQp5PGiVoZvT4dTWbpQ==}
-    engines: {node: '>= 14'}
+  nestjs-pino@5.2.0:
+    resolution: {integrity: sha512-w7zIidjqzhvB7TSDBttC//NxKBAz2rr2d6pNctsglWqb/VqNbDj/Hko2VsgHMYmLpIoZ5pka5gASbGc60V8Qvw==}
+    engines: {node: '>=22.12.0'}
     peerDependencies:
-      '@nestjs/common': ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
-      pino: ^7.5.0 || ^8.0.0 || ^9.0.0 || ^10.0.0
-      pino-http: ^6.4.0 || ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
+      '@nestjs/common': ^11.0.8 || ^12.0.2
+      '@nestjs/core': ^11.0.8 || ^12.0.2
+      pino: ^10.0.0
+      pino-http: ^11.0.0
       rxjs: ^7.1.0
 
   no-case@3.0.4:
@@ -3944,6 +3864,10 @@ packages:
     resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
     engines: {node: '>=16 || 14 >=14.18'}
 
+  path-scurry@2.0.2:
+    resolution: {integrity: sha512-3O/iVVsJAPsOnpwWIeD+d6z/7PmqApyQePUtCndjatj/9I5LylHvt5qluFaBT3I5h3r1ejfR056c+FCv+NnNXg==}
+    engines: {node: 18 || 20 || >=22}
+
   path-to-regexp@8.4.2:
     resolution: {integrity: sha512-qRcuIdP69NPm4qbACK+aDogI5CBDMi1jKe0ry5rSQJz8JVLsC7jV8XpiJjGRLLol3N+R5ihGYcrPLTno6pAdBA==}
 
@@ -4048,10 +3972,6 @@ packages:
     resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
     engines: {node: '>=0.10.0'}
 
-  require-in-the-middle@8.0.1:
-    resolution: {integrity: sha512-QT7FVMXfWOYFbeRBF6nu+I6tr2Tf3u0q8RIEjNob/heKY/nh7drD/k7eeMFmSQgnTtCzLDcCu/XEnpW2wk4xCQ==}
-    engines: {node: '>=9.3.0 || >=8.10.0 <9.0.0'}
-
   resolve-dir@1.0.1:
     resolution: {integrity: sha512-R7uiTjECzvOsWSfdM0QKFNBVFcK27aHOUwdvK53BcW8zqnGdYp0Fbj82cy54+2A4P2tFM22J5kRfe1R+lM/1yg==}
     engines: {node: '>=0.10.0'}
@@ -4130,9 +4050,6 @@ packages:
   secure-json-parse@4.1.0:
     resolution: {integrity: sha512-l4KnYfEyqYJxDwlNVyRfO2E4NTHfMKAWdUuA8J0yve2Dz/E/PdBepY03RvyJpssIpRFwJoCD55wA+mEDs6ByWA==}
 
-  semifies@1.0.0:
-    resolution: {integrity: sha512-xXR3KGeoxTNWPD4aBvL5NUpMTT7WMANr3EWnaS190QVkY52lqqcVRD7Q05UVbBhiWDGWMlJEUam9m7uFFGVScw==}
-
   semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
@@ -4144,6 +4061,11 @@ packages:
 
   sentence-case@3.0.4:
     resolution: {integrity: sha512-8LS0JInaQMCRoQ7YUytAo/xUu5W2XnQxV2HI/6uM6U7CITS1RqPElr30V6uIqyMKM9lJGRVFy5/4CuzcixNYSg==}
+
+  sentry@0.44.1:
+    resolution: {integrity: sha512-LK+RJ2PFsJKM+P0D/zYC+M5gFB1ytfVONU9DVUqJu67YFlwnj3wGJkUzBhCS8R4iUqRdRTAYbFbRKTAe03rW/Q==}
+    engines: {node: '>=20.0'}
+    hasBin: true
 
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
@@ -4217,10 +4139,6 @@ packages:
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
-    engines: {node: '>=0.10.0'}
-
-  source-map@0.6.1:
-    resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
 
   split2@4.2.0:
@@ -4304,6 +4222,10 @@ packages:
   supports-color@7.2.0:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
     engines: {node: '>=8'}
+
+  supports-color@8.1.1:
+    resolution: {integrity: sha512-MpUEN2OodtUzxvKQl72cUF7RQ5EiHsGvSsVG0ia9c5RbWGL2CI4C7EpPS8UTBIplnlzZiNuV56w+FuNxy3ty2Q==}
+    engines: {node: '>=10'}
 
   swap-case@2.0.2:
     resolution: {integrity: sha512-kc6S2YS/2yXbtkSMunBtKdah4VFETZ8Oh6ONSmSd9bRxhqTrtARUCBUiWXH3xVPpvR7tz2CSnkuXVE42EcGnMw==}
@@ -4668,30 +4590,6 @@ packages:
 
 snapshots:
 
-  '@apm-js-collab/code-transformer-bundler-plugins@0.7.3':
-    dependencies:
-      '@apm-js-collab/code-transformer': 0.18.0
-      es-module-lexer: 2.3.2
-      magic-string: 0.30.21
-      module-details-from-path: 1.0.4
-
-  '@apm-js-collab/code-transformer@0.18.0':
-    dependencies:
-      '@types/estree': 1.0.9
-      astring: 1.9.0
-      esquery: 1.7.0
-      meriyah: 6.1.4
-      semifies: 1.0.0
-      source-map: 0.6.1
-
-  '@apm-js-collab/tracing-hooks@0.13.0(supports-color@7.2.0)':
-    dependencies:
-      '@apm-js-collab/code-transformer': 0.18.0
-      debug: 4.4.3(supports-color@7.2.0)
-      module-details-from-path: 1.0.4
-    transitivePeerDependencies:
-      - supports-color
-
   '@ardatan/relay-compiler@13.0.0(graphql@16.14.2)':
     dependencies:
       '@babel/runtime': 7.28.6
@@ -4707,20 +4605,20 @@ snapshots:
 
   '@babel/compat-data@7.29.0': {}
 
-  '@babel/core@7.29.0(supports-color@7.2.0)':
+  '@babel/core@7.29.0(supports-color@8.1.1)':
     dependencies:
       '@babel/code-frame': 7.29.0
       '@babel/generator': 7.29.1
       '@babel/helper-compilation-targets': 7.28.6
-      '@babel/helper-module-transforms': 7.28.6(@babel/core@7.29.0(supports-color@7.2.0))(supports-color@7.2.0)
+      '@babel/helper-module-transforms': 7.28.6(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1)
       '@babel/helpers': 7.28.6
       '@babel/parser': 7.29.7
       '@babel/template': 7.28.6
-      '@babel/traverse': 7.29.0(supports-color@7.2.0)
+      '@babel/traverse': 7.29.0(supports-color@8.1.1)
       '@babel/types': 7.29.7
       '@jridgewell/remapping': 2.3.5
       convert-source-map: 2.0.0
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3(supports-color@8.1.1)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -4745,19 +4643,19 @@ snapshots:
 
   '@babel/helper-globals@7.28.0': {}
 
-  '@babel/helper-module-imports@7.28.6(supports-color@7.2.0)':
+  '@babel/helper-module-imports@7.28.6(supports-color@8.1.1)':
     dependencies:
-      '@babel/traverse': 7.29.0(supports-color@7.2.0)
+      '@babel/traverse': 7.29.0(supports-color@8.1.1)
       '@babel/types': 7.29.7
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/helper-module-transforms@7.28.6(@babel/core@7.29.0(supports-color@7.2.0))(supports-color@7.2.0)':
+  '@babel/helper-module-transforms@7.28.6(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1)':
     dependencies:
-      '@babel/core': 7.29.0(supports-color@7.2.0)
-      '@babel/helper-module-imports': 7.28.6(supports-color@7.2.0)
+      '@babel/core': 7.29.0(supports-color@8.1.1)
+      '@babel/helper-module-imports': 7.28.6(supports-color@8.1.1)
       '@babel/helper-validator-identifier': 7.29.7
-      '@babel/traverse': 7.29.0(supports-color@7.2.0)
+      '@babel/traverse': 7.29.0(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -4778,9 +4676,9 @@ snapshots:
     dependencies:
       '@babel/types': 7.29.7
 
-  '@babel/plugin-syntax-import-assertions@7.28.6(@babel/core@7.29.0(supports-color@7.2.0))':
+  '@babel/plugin-syntax-import-assertions@7.28.6(@babel/core@7.29.0(supports-color@8.1.1))':
     dependencies:
-      '@babel/core': 7.29.0(supports-color@7.2.0)
+      '@babel/core': 7.29.0(supports-color@8.1.1)
       '@babel/helper-plugin-utils': 7.28.6
 
   '@babel/runtime@7.28.6': {}
@@ -4791,7 +4689,7 @@ snapshots:
       '@babel/parser': 7.29.7
       '@babel/types': 7.29.7
 
-  '@babel/traverse@7.29.0(supports-color@7.2.0)':
+  '@babel/traverse@7.29.0(supports-color@8.1.1)':
     dependencies:
       '@babel/code-frame': 7.29.0
       '@babel/generator': 7.29.1
@@ -4799,7 +4697,7 @@ snapshots:
       '@babel/parser': 7.29.7
       '@babel/template': 7.28.6
       '@babel/types': 7.29.7
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -5218,6 +5116,17 @@ snapshots:
       - supports-color
     optional: true
 
+  '@google-cloud/firestore@8.7.1(supports-color@8.1.1)':
+    dependencies:
+      '@opentelemetry/api': 1.9.1
+      fast-deep-equal: 3.1.3
+      functional-red-black-tree: 1.0.1
+      google-gax: 5.0.7(supports-color@8.1.1)
+      protobufjs: 7.5.7
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
   '@google-cloud/paginator@5.0.2':
     dependencies:
       arrify: 2.0.1
@@ -5251,9 +5160,30 @@ snapshots:
       - supports-color
     optional: true
 
-  '@googleapis/sheets@14.0.0(supports-color@7.2.0)':
+  '@google-cloud/storage@7.22.0(supports-color@8.1.1)':
     dependencies:
-      googleapis-common: 8.0.1(supports-color@7.2.0)
+      '@google-cloud/paginator': 5.0.2
+      '@google-cloud/projectify': 4.0.0
+      '@google-cloud/promisify': 4.0.0
+      abort-controller: 3.0.0
+      async-retry: 1.3.3
+      duplexify: 4.1.3
+      fast-xml-parser: 5.7.3
+      gaxios: 6.7.1(supports-color@8.1.1)
+      google-auth-library: 9.15.1(supports-color@8.1.1)
+      html-entities: 2.6.0
+      mime: 3.0.0
+      p-limit: 3.1.0
+      retry-request: 7.0.2(supports-color@8.1.1)
+      teeny-request: 9.0.0(supports-color@8.1.1)
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    optional: true
+
+  '@googleapis/sheets@14.0.0(supports-color@8.1.1)':
+    dependencies:
+      googleapis-common: 8.0.1(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -5263,7 +5193,7 @@ snapshots:
       graphql: 16.14.2
       tslib: 2.8.1
 
-  '@graphql-codegen/cli@7.4.0(@types/node@26.2.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@7.0.2)':
+  '@graphql-codegen/cli@7.4.0(@types/node@26.2.0)(graphql@16.14.2)(supports-color@8.1.1)(typescript@7.0.2)':
     dependencies:
       '@babel/generator': 7.29.1
       '@babel/template': 7.28.6
@@ -5272,9 +5202,9 @@ snapshots:
       '@graphql-codegen/core': 6.2.0(graphql@16.14.2)
       '@graphql-codegen/plugin-helpers': 7.3.0(graphql@16.14.2)
       '@graphql-tools/apollo-engine-loader': 8.0.28(graphql@16.14.2)
-      '@graphql-tools/code-file-loader': 8.1.28(graphql@16.14.2)(supports-color@7.2.0)
-      '@graphql-tools/git-loader': 8.0.32(graphql@16.14.2)(supports-color@7.2.0)
-      '@graphql-tools/github-loader': 9.0.6(@types/node@26.2.0)(graphql@16.14.2)(supports-color@7.2.0)
+      '@graphql-tools/code-file-loader': 8.1.28(graphql@16.14.2)(supports-color@8.1.1)
+      '@graphql-tools/git-loader': 8.0.32(graphql@16.14.2)(supports-color@8.1.1)
+      '@graphql-tools/github-loader': 9.0.6(@types/node@26.2.0)(graphql@16.14.2)(supports-color@8.1.1)
       '@graphql-tools/graphql-file-loader': 8.1.12(graphql@16.14.2)
       '@graphql-tools/json-file-loader': 8.0.26(graphql@16.14.2)
       '@graphql-tools/load': 8.1.8(graphql@16.14.2)
@@ -5454,9 +5384,9 @@ snapshots:
       graphql: 16.14.2
       tslib: 2.8.1
 
-  '@graphql-tools/code-file-loader@8.1.28(graphql@16.14.2)(supports-color@7.2.0)':
+  '@graphql-tools/code-file-loader@8.1.28(graphql@16.14.2)(supports-color@8.1.1)':
     dependencies:
-      '@graphql-tools/graphql-tag-pluck': 8.3.27(graphql@16.14.2)(supports-color@7.2.0)
+      '@graphql-tools/graphql-tag-pluck': 8.3.27(graphql@16.14.2)(supports-color@8.1.1)
       '@graphql-tools/utils': 11.2.0(graphql@16.14.2)
       globby: 11.1.0
       graphql: 16.14.2
@@ -5542,9 +5472,9 @@ snapshots:
       graphql: 16.14.2
       tslib: 2.8.1
 
-  '@graphql-tools/git-loader@8.0.32(graphql@16.14.2)(supports-color@7.2.0)':
+  '@graphql-tools/git-loader@8.0.32(graphql@16.14.2)(supports-color@8.1.1)':
     dependencies:
-      '@graphql-tools/graphql-tag-pluck': 8.3.27(graphql@16.14.2)(supports-color@7.2.0)
+      '@graphql-tools/graphql-tag-pluck': 8.3.27(graphql@16.14.2)(supports-color@8.1.1)
       '@graphql-tools/utils': 11.2.0(graphql@16.14.2)
       graphql: 16.14.2
       is-glob: 4.0.3
@@ -5554,10 +5484,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@graphql-tools/github-loader@9.0.6(@types/node@26.2.0)(graphql@16.14.2)(supports-color@7.2.0)':
+  '@graphql-tools/github-loader@9.0.6(@types/node@26.2.0)(graphql@16.14.2)(supports-color@8.1.1)':
     dependencies:
       '@graphql-tools/executor-http': 3.1.0(@types/node@26.2.0)(graphql@16.14.2)
-      '@graphql-tools/graphql-tag-pluck': 8.3.27(graphql@16.14.2)(supports-color@7.2.0)
+      '@graphql-tools/graphql-tag-pluck': 8.3.27(graphql@16.14.2)(supports-color@8.1.1)
       '@graphql-tools/utils': 11.2.0(graphql@16.14.2)
       '@whatwg-node/fetch': 0.10.13
       '@whatwg-node/promise-helpers': 1.3.2
@@ -5577,12 +5507,12 @@ snapshots:
       tslib: 2.8.1
       unixify: 1.0.0
 
-  '@graphql-tools/graphql-tag-pluck@8.3.27(graphql@16.14.2)(supports-color@7.2.0)':
+  '@graphql-tools/graphql-tag-pluck@8.3.27(graphql@16.14.2)(supports-color@8.1.1)':
     dependencies:
-      '@babel/core': 7.29.0(supports-color@7.2.0)
+      '@babel/core': 7.29.0(supports-color@8.1.1)
       '@babel/parser': 7.29.7
-      '@babel/plugin-syntax-import-assertions': 7.28.6(@babel/core@7.29.0(supports-color@7.2.0))
-      '@babel/traverse': 7.29.0(supports-color@7.2.0)
+      '@babel/plugin-syntax-import-assertions': 7.28.6(@babel/core@7.29.0(supports-color@8.1.1))
+      '@babel/traverse': 7.29.0(supports-color@8.1.1)
       '@babel/types': 7.29.7
       '@graphql-tools/utils': 11.2.0(graphql@16.14.2)
       graphql: 16.14.2
@@ -5980,9 +5910,10 @@ snapshots:
       '@tybys/wasm-util': 0.10.3
     optional: true
 
-  '@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)':
+  '@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)':
     dependencies:
-      file-type: 21.3.4(supports-color@7.2.0)
+      '@standard-schema/spec': 1.1.0
+      file-type: 22.0.2(supports-color@8.1.1)
       iterare: 1.2.1
       load-esm: 1.0.3
       reflect-metadata: 0.2.2
@@ -5992,9 +5923,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@nestjs/core@11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(reflect-metadata@0.2.2)(rxjs@7.8.2)':
+  '@nestjs/core@12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)':
     dependencies:
-      '@nestjs/common': 11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
+      '@nestjs/common': 12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
       fast-safe-stringify: 2.1.1
       iterare: 1.2.1
       path-to-regexp: 8.4.2
@@ -6003,17 +5934,17 @@ snapshots:
       tslib: 2.8.1
       uid: 2.0.2
 
-  '@nestjs/cqrs@11.0.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)':
+  '@nestjs/cqrs@12.0.0(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)':
     dependencies:
-      '@nestjs/common': 11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
-      '@nestjs/core': 11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/common': 12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
+      '@nestjs/core': 12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       reflect-metadata: 0.2.2
       rxjs: 7.8.2
 
-  '@nestjs/testing@11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(reflect-metadata@0.2.2)(rxjs@7.8.2))':
+  '@nestjs/testing@12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))':
     dependencies:
-      '@nestjs/common': 11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
-      '@nestjs/core': 11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/common': 12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
+      '@nestjs/core': 12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       tslib: 2.8.1
 
   '@nodable/entities@2.1.0':
@@ -6031,48 +5962,7 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
 
-  '@opentelemetry/api-logs@0.220.0':
-    dependencies:
-      '@opentelemetry/api': 1.9.1
-
   '@opentelemetry/api@1.9.1': {}
-
-  '@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1)':
-    dependencies:
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/semantic-conventions': 1.41.1
-
-  '@opentelemetry/instrumentation@0.220.0(@opentelemetry/api@1.9.1)(supports-color@7.2.0)':
-    dependencies:
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/api-logs': 0.220.0
-      import-in-the-middle: 3.0.1
-      require-in-the-middle: 8.0.1(supports-color@7.2.0)
-    transitivePeerDependencies:
-      - supports-color
-
-  '@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.1)':
-    dependencies:
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/semantic-conventions': 1.41.1
-
-  '@opentelemetry/sdk-trace-base@2.9.0(@opentelemetry/api@1.9.1)':
-    dependencies:
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/resources': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/semantic-conventions': 1.41.1
-
-  '@opentelemetry/sdk-trace@2.9.0(@opentelemetry/api@1.9.1)':
-    dependencies:
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/resources': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/semantic-conventions': 1.41.1
-
-  '@opentelemetry/semantic-conventions@1.41.1': {}
 
   '@oxc-parser/binding-android-arm-eabi@0.147.0':
     optional: true
@@ -6290,6 +6180,16 @@ snapshots:
 
   '@sapphire/snowflake@3.5.5': {}
 
+  '@sentry/bundler-plugins@11.0.0-beta.2':
+    dependencies:
+      '@babel/core': 7.29.0(supports-color@8.1.1)
+      '@sentry/core': 11.0.0-beta.2
+      dotenv: 17.4.2
+      glob: 13.0.6
+      magic-string: 0.30.21
+      sentry: 0.44.1
+      supports-color: 8.1.1
+
   '@sentry/cli-darwin@3.6.2':
     optional: true
 
@@ -6330,87 +6230,67 @@ snapshots:
       '@sentry/cli-win32-i686': 3.6.2
       '@sentry/cli-win32-x64': 3.6.2
 
-  '@sentry/conventions@0.16.0': {}
+  '@sentry/conventions@0.20.0': {}
 
-  '@sentry/core@10.70.0':
+  '@sentry/core@11.0.0-beta.2':
     dependencies:
-      '@sentry/conventions': 0.16.0
+      '@sentry/conventions': 0.20.0
 
-  '@sentry/nestjs@10.70.0(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(supports-color@7.2.0)':
+  '@sentry/nestjs@11.0.0-beta.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))':
     dependencies:
-      '@nestjs/common': 11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
-      '@nestjs/core': 11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.220.0(@opentelemetry/api@1.9.1)(supports-color@7.2.0)
-      '@sentry/conventions': 0.16.0
-      '@sentry/core': 10.70.0
-      '@sentry/node': 10.70.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(supports-color@7.2.0)
-      '@sentry/server-utils': 10.70.0(supports-color@7.2.0)
+      '@nestjs/common': 12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
+      '@nestjs/core': 12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@sentry/conventions': 0.20.0
+      '@sentry/core': 11.0.0-beta.2
+      '@sentry/node': 11.0.0-beta.2
+      '@sentry/server-utils': 11.0.0-beta.2
     transitivePeerDependencies:
-      - '@opentelemetry/core'
-      - '@opentelemetry/exporter-trace-otlp-http'
-      - supports-color
-
-  '@sentry/node-core@10.70.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/instrumentation@0.220.0(@opentelemetry/api@1.9.1)(supports-color@7.2.0))(@opentelemetry/sdk-trace-base@2.9.0(@opentelemetry/api@1.9.1))':
-    dependencies:
-      '@sentry/conventions': 0.16.0
-      '@sentry/core': 10.70.0
-      '@sentry/opentelemetry': 10.70.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.9.0(@opentelemetry/api@1.9.1))
-      import-in-the-middle: 3.0.1
-    optionalDependencies:
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.220.0(@opentelemetry/api@1.9.1)(supports-color@7.2.0)
-      '@opentelemetry/sdk-trace-base': 2.9.0(@opentelemetry/api@1.9.1)
+      - rollup
+      - webpack
 
   '@sentry/node-cpu-profiler@2.4.3':
     dependencies:
       detect-libc: 2.1.2
       node-abi: 3.92.0
 
-  '@sentry/node@10.70.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(supports-color@7.2.0)':
+  '@sentry/node@11.0.0-beta.2':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.220.0(@opentelemetry/api@1.9.1)(supports-color@7.2.0)
-      '@opentelemetry/sdk-trace-base': 2.9.0(@opentelemetry/api@1.9.1)
-      '@sentry/conventions': 0.16.0
-      '@sentry/core': 10.70.0
-      '@sentry/node-core': 10.70.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/instrumentation@0.220.0(@opentelemetry/api@1.9.1)(supports-color@7.2.0))(@opentelemetry/sdk-trace-base@2.9.0(@opentelemetry/api@1.9.1))
-      '@sentry/opentelemetry': 10.70.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.9.0(@opentelemetry/api@1.9.1))
-      '@sentry/server-utils': 10.70.0(supports-color@7.2.0)
-      import-in-the-middle: 3.0.1
+      '@sentry/bundler-plugins': 11.0.0-beta.2
+      '@sentry/conventions': 0.20.0
+      '@sentry/core': 11.0.0-beta.2
+      '@sentry/opentelemetry': 11.0.0-beta.2(@opentelemetry/api@1.9.1)
+      '@sentry/server-runtime-injection': 11.0.0-beta.2
+      '@sentry/server-utils': 11.0.0-beta.2
     transitivePeerDependencies:
-      - '@opentelemetry/core'
-      - '@opentelemetry/exporter-trace-otlp-http'
-      - supports-color
+      - rollup
+      - webpack
 
-  '@sentry/opentelemetry@10.70.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.9.0(@opentelemetry/api@1.9.1))':
+  '@sentry/opentelemetry@11.0.0-beta.2(@opentelemetry/api@1.9.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-base': 2.9.0(@opentelemetry/api@1.9.1)
-      '@sentry/conventions': 0.16.0
-      '@sentry/core': 10.70.0
+      '@sentry/conventions': 0.20.0
+      '@sentry/core': 11.0.0-beta.2
 
-  '@sentry/profiling-node@10.70.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(supports-color@7.2.0)':
+  '@sentry/profiling-node@11.0.0-beta.2':
     dependencies:
-      '@sentry/core': 10.70.0
-      '@sentry/node': 10.70.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(supports-color@7.2.0)
+      '@sentry/core': 11.0.0-beta.2
+      '@sentry/node': 11.0.0-beta.2
       '@sentry/node-cpu-profiler': 2.4.3
     transitivePeerDependencies:
-      - '@opentelemetry/core'
-      - '@opentelemetry/exporter-trace-otlp-http'
-      - supports-color
+      - rollup
+      - webpack
 
-  '@sentry/server-utils@10.70.0(supports-color@7.2.0)':
+  '@sentry/server-runtime-injection@11.0.0-beta.2':
     dependencies:
-      '@apm-js-collab/code-transformer-bundler-plugins': 0.7.3
-      '@apm-js-collab/tracing-hooks': 0.13.0(supports-color@7.2.0)
-      '@sentry/conventions': 0.16.0
-      '@sentry/core': 10.70.0
-      meriyah: 6.1.4
-    transitivePeerDependencies:
-      - supports-color
+      '@sentry/core': 11.0.0-beta.2
+      '@sentry/server-utils': 11.0.0-beta.2
+
+  '@sentry/server-utils@11.0.0-beta.2':
+    dependencies:
+      '@opentelemetry/api': 1.9.1
+      '@sentry/conventions': 0.20.0
+      '@sentry/core': 11.0.0-beta.2
 
   '@simple-libs/child-process-utils@2.0.0':
     dependencies:
@@ -6418,9 +6298,11 @@ snapshots:
 
   '@simple-libs/stream-utils@2.0.0': {}
 
-  '@tokenizer/inflate@0.4.1(supports-color@7.2.0)':
+  '@standard-schema/spec@1.1.0': {}
+
+  '@tokenizer/inflate@0.4.1(supports-color@8.1.1)':
     dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3(supports-color@8.1.1)
       token-types: 6.1.2
     transitivePeerDependencies:
       - supports-color
@@ -6612,15 +6494,16 @@ snapshots:
       event-target-shim: 5.0.1
     optional: true
 
-  acorn-import-attributes@1.9.5(acorn@8.16.0):
-    dependencies:
-      acorn: 8.16.0
-
-  acorn@8.16.0: {}
-
   agent-base@6.0.2(supports-color@7.2.0):
     dependencies:
       debug: 4.4.3(supports-color@7.2.0)
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
+  agent-base@6.0.2(supports-color@8.1.1):
+    dependencies:
+      debug: 4.4.3(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
     optional: true
@@ -6670,8 +6553,6 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.31
       estree-walker: 3.0.3
       js-tokens: 10.0.0
-
-  astring@1.9.0: {}
 
   async-retry@1.3.3:
     dependencies:
@@ -6818,8 +6699,6 @@ snapshots:
   change-case@5.4.4: {}
 
   chardet@2.1.1: {}
-
-  cjs-module-lexer@2.2.0: {}
 
   cli-cursor@3.1.0:
     dependencies:
@@ -6992,6 +6871,12 @@ snapshots:
     optionalDependencies:
       supports-color: 7.2.0
 
+  debug@4.4.3(supports-color@8.1.1):
+    dependencies:
+      ms: 2.1.3
+    optionalDependencies:
+      supports-color: 8.1.1
+
   dedent@0.7.0: {}
 
   defaults@1.0.4:
@@ -7040,6 +6925,8 @@ snapshots:
     dependencies:
       no-case: 3.0.4
       tslib: 2.8.1
+
+  dotenv@17.4.2: {}
 
   dunder-proto@1.0.1:
     dependencies:
@@ -7137,12 +7024,6 @@ snapshots:
 
   escape-string-regexp@1.0.5: {}
 
-  esquery@1.7.0:
-    dependencies:
-      estraverse: 5.3.0
-
-  estraverse@5.3.0: {}
-
   estree-walker@3.0.3:
     dependencies:
       '@types/estree': 1.0.9
@@ -7227,9 +7108,9 @@ snapshots:
     dependencies:
       escape-string-regexp: 1.0.5
 
-  file-type@21.3.4(supports-color@7.2.0):
+  file-type@22.0.2(supports-color@8.1.1):
     dependencies:
-      '@tokenizer/inflate': 0.4.1(supports-color@7.2.0)
+      '@tokenizer/inflate': 0.4.1(supports-color@8.1.1)
       strtok3: 10.3.5
       token-types: 6.1.2
       uint8array-extras: 1.5.0
@@ -7266,6 +7147,22 @@ snapshots:
     optionalDependencies:
       '@google-cloud/firestore': 8.7.1(supports-color@7.2.0)
       '@google-cloud/storage': 7.22.0(supports-color@7.2.0)
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
+  firebase-admin@14.3.0(supports-color@8.1.1):
+    dependencies:
+      '@fastify/busboy': 3.2.0
+      '@firebase/database-compat': 2.1.4
+      '@firebase/database-types': 1.0.20
+      fast-deep-equal: 3.1.3
+      google-auth-library: 10.9.1(supports-color@8.1.1)
+      jsonwebtoken: 9.0.3
+      jwks-rsa: 4.1.0(supports-color@8.1.1)
+    optionalDependencies:
+      '@google-cloud/firestore': 8.7.1(supports-color@8.1.1)
+      '@google-cloud/storage': 7.22.0(supports-color@8.1.1)
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -7326,10 +7223,30 @@ snapshots:
       - supports-color
     optional: true
 
+  gaxios@6.7.1(supports-color@8.1.1):
+    dependencies:
+      extend: 3.0.2
+      https-proxy-agent: 7.0.6(supports-color@8.1.1)
+      is-stream: 2.0.1
+      node-fetch: 2.7.0
+      uuid: 9.0.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    optional: true
+
   gaxios@7.1.4(supports-color@7.2.0):
     dependencies:
       extend: 3.0.2
       https-proxy-agent: 7.0.6(supports-color@7.2.0)
+      node-fetch: 3.3.2
+    transitivePeerDependencies:
+      - supports-color
+
+  gaxios@7.1.4(supports-color@8.1.1):
+    dependencies:
+      extend: 3.0.2
+      https-proxy-agent: 7.0.6(supports-color@8.1.1)
       node-fetch: 3.3.2
     transitivePeerDependencies:
       - supports-color
@@ -7344,9 +7261,27 @@ snapshots:
       - supports-color
     optional: true
 
+  gcp-metadata@6.1.1(supports-color@8.1.1):
+    dependencies:
+      gaxios: 6.7.1(supports-color@8.1.1)
+      google-logging-utils: 0.0.2
+      json-bigint: 1.0.0
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    optional: true
+
   gcp-metadata@8.1.2(supports-color@7.2.0):
     dependencies:
       gaxios: 7.1.4(supports-color@7.2.0)
+      google-logging-utils: 1.1.3
+      json-bigint: 1.0.0
+    transitivePeerDependencies:
+      - supports-color
+
+  gcp-metadata@8.1.2(supports-color@8.1.1):
+    dependencies:
+      gaxios: 7.1.4(supports-color@8.1.1)
       google-logging-utils: 1.1.3
       json-bigint: 1.0.0
     transitivePeerDependencies:
@@ -7393,6 +7328,12 @@ snapshots:
       package-json-from-dist: 1.0.1
       path-scurry: 1.11.1
     optional: true
+
+  glob@13.0.6:
+    dependencies:
+      minimatch: 10.2.5
+      minipass: 7.1.3
+      path-scurry: 2.0.2
 
   glob@7.2.3:
     dependencies:
@@ -7443,12 +7384,36 @@ snapshots:
       - supports-color
     optional: true
 
+  google-auth-library@10.5.0(supports-color@8.1.1):
+    dependencies:
+      base64-js: 1.5.1
+      ecdsa-sig-formatter: 1.0.11
+      gaxios: 7.1.4(supports-color@8.1.1)
+      gcp-metadata: 8.1.2(supports-color@8.1.1)
+      google-logging-utils: 1.1.3
+      gtoken: 8.0.0(supports-color@8.1.1)
+      jws: 4.0.1
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
   google-auth-library@10.9.1(supports-color@7.2.0):
     dependencies:
       base64-js: 1.5.1
       ecdsa-sig-formatter: 1.0.11
       gaxios: 7.1.4(supports-color@7.2.0)
       gcp-metadata: 8.1.2(supports-color@7.2.0)
+      google-logging-utils: 1.1.3
+      jws: 4.0.1
+    transitivePeerDependencies:
+      - supports-color
+
+  google-auth-library@10.9.1(supports-color@8.1.1):
+    dependencies:
+      base64-js: 1.5.1
+      ecdsa-sig-formatter: 1.0.11
+      gaxios: 7.1.4(supports-color@8.1.1)
+      gcp-metadata: 8.1.2(supports-color@8.1.1)
       google-logging-utils: 1.1.3
       jws: 4.0.1
     transitivePeerDependencies:
@@ -7461,6 +7426,19 @@ snapshots:
       gaxios: 6.7.1(supports-color@7.2.0)
       gcp-metadata: 6.1.1(supports-color@7.2.0)
       gtoken: 7.1.0(supports-color@7.2.0)
+      jws: 4.0.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    optional: true
+
+  google-auth-library@9.15.1(supports-color@8.1.1):
+    dependencies:
+      base64-js: 1.5.1
+      ecdsa-sig-formatter: 1.0.11
+      gaxios: 6.7.1(supports-color@8.1.1)
+      gcp-metadata: 6.1.1(supports-color@8.1.1)
+      gtoken: 7.1.0(supports-color@8.1.1)
       jws: 4.0.1
     transitivePeerDependencies:
       - encoding
@@ -7484,16 +7462,33 @@ snapshots:
       - supports-color
     optional: true
 
+  google-gax@5.0.7(supports-color@8.1.1):
+    dependencies:
+      '@grpc/grpc-js': 1.14.3
+      '@grpc/proto-loader': 0.8.1
+      duplexify: 4.1.3
+      google-auth-library: 10.5.0(supports-color@8.1.1)
+      google-logging-utils: 1.1.3
+      node-fetch: 3.3.2
+      object-hash: 3.0.0
+      proto3-json-serializer: 3.0.4
+      protobufjs: 7.5.7
+      retry-request: 8.0.3(supports-color@8.1.1)
+      rimraf: 5.0.10
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
   google-logging-utils@0.0.2:
     optional: true
 
   google-logging-utils@1.1.3: {}
 
-  googleapis-common@8.0.1(supports-color@7.2.0):
+  googleapis-common@8.0.1(supports-color@8.1.1):
     dependencies:
       extend: 3.0.2
-      gaxios: 7.1.4(supports-color@7.2.0)
-      google-auth-library: 10.9.1(supports-color@7.2.0)
+      gaxios: 7.1.4(supports-color@8.1.1)
+      google-auth-library: 10.9.1(supports-color@8.1.1)
       qs: 6.15.2
       url-template: 2.0.8
     transitivePeerDependencies:
@@ -7552,9 +7547,26 @@ snapshots:
       - supports-color
     optional: true
 
+  gtoken@7.1.0(supports-color@8.1.1):
+    dependencies:
+      gaxios: 6.7.1(supports-color@8.1.1)
+      jws: 4.0.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    optional: true
+
   gtoken@8.0.0(supports-color@7.2.0):
     dependencies:
       gaxios: 7.1.4(supports-color@7.2.0)
+      jws: 4.0.1
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
+  gtoken@8.0.0(supports-color@8.1.1):
+    dependencies:
+      gaxios: 7.1.4(supports-color@8.1.1)
       jws: 4.0.1
     transitivePeerDependencies:
       - supports-color
@@ -7600,10 +7612,27 @@ snapshots:
       - supports-color
     optional: true
 
+  http-proxy-agent@5.0.0(supports-color@8.1.1):
+    dependencies:
+      '@tootallnate/once': 2.0.1
+      agent-base: 6.0.2(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@8.1.1)
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
   http-proxy-agent@7.0.2(supports-color@7.2.0):
     dependencies:
       agent-base: 7.1.4
       debug: 4.4.3(supports-color@7.2.0)
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
+  http-proxy-agent@7.0.2(supports-color@8.1.1):
+    dependencies:
+      agent-base: 7.1.4
+      debug: 4.4.3(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
     optional: true
@@ -7616,10 +7645,25 @@ snapshots:
       - supports-color
     optional: true
 
+  https-proxy-agent@5.0.1(supports-color@8.1.1):
+    dependencies:
+      agent-base: 6.0.2(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@8.1.1)
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
   https-proxy-agent@7.0.6(supports-color@7.2.0):
     dependencies:
       agent-base: 7.1.4
       debug: 4.4.3(supports-color@7.2.0)
+    transitivePeerDependencies:
+      - supports-color
+
+  https-proxy-agent@7.0.6(supports-color@8.1.1):
+    dependencies:
+      agent-base: 7.1.4
+      debug: 4.4.3(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -7639,13 +7683,6 @@ snapshots:
       resolve-from: 4.0.0
 
   import-from@4.0.0: {}
-
-  import-in-the-middle@3.0.1:
-    dependencies:
-      acorn: 8.16.0
-      acorn-import-attributes: 1.9.5(acorn@8.16.0)
-      cjs-module-lexer: 2.2.0
-      module-details-from-path: 1.0.4
 
   inflight@1.0.6:
     dependencies:
@@ -7827,6 +7864,17 @@ snapshots:
     dependencies:
       '@types/jsonwebtoken': 9.0.10
       debug: 4.4.3(supports-color@7.2.0)
+      jose: 6.2.3
+      limiter: 1.1.5
+      lru-cache: 11.2.6
+      lru-memoizer: 3.0.0
+    transitivePeerDependencies:
+      - supports-color
+
+  jwks-rsa@4.1.0(supports-color@8.1.1):
+    dependencies:
+      '@types/jsonwebtoken': 9.0.10
+      debug: 4.4.3(supports-color@8.1.1)
       jose: 6.2.3
       limiter: 1.1.5
       lru-cache: 11.2.6
@@ -8065,8 +8113,6 @@ snapshots:
 
   merge@2.1.1: {}
 
-  meriyah@6.1.4: {}
-
   meros@1.3.2(@types/node@26.2.0):
     optionalDependencies:
       '@types/node': 26.2.0
@@ -8106,10 +8152,7 @@ snapshots:
 
   minimist@1.2.8: {}
 
-  minipass@7.1.3:
-    optional: true
-
-  module-details-from-path@1.0.4: {}
+  minipass@7.1.3: {}
 
   mrmime@2.0.1: {}
 
@@ -8123,9 +8166,10 @@ snapshots:
 
   nanoid@3.3.17: {}
 
-  nestjs-pino@4.6.1(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(pino-http@11.0.0)(pino@10.0.0)(rxjs@7.8.2):
+  nestjs-pino@5.2.0(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))(pino-http@11.0.0)(pino@10.0.0)(rxjs@7.8.2):
     dependencies:
-      '@nestjs/common': 11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
+      '@nestjs/common': 12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
+      '@nestjs/core': 12.0.2(@nestjs/common@12.0.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       pino: 10.0.0
       pino-http: 11.0.0
       rxjs: 7.8.2
@@ -8300,6 +8344,11 @@ snapshots:
       minipass: 7.1.3
     optional: true
 
+  path-scurry@2.0.2:
+    dependencies:
+      lru-cache: 11.2.6
+      minipass: 7.1.3
+
   path-to-regexp@8.4.2: {}
 
   path-type@4.0.0: {}
@@ -8426,13 +8475,6 @@ snapshots:
 
   require-from-string@2.0.2: {}
 
-  require-in-the-middle@8.0.1(supports-color@7.2.0):
-    dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
-      module-details-from-path: 1.0.4
-    transitivePeerDependencies:
-      - supports-color
-
   resolve-dir@1.0.1:
     dependencies:
       expand-tilde: 2.0.2
@@ -8464,10 +8506,28 @@ snapshots:
       - supports-color
     optional: true
 
+  retry-request@7.0.2(supports-color@8.1.1):
+    dependencies:
+      '@types/request': 2.48.13
+      extend: 3.0.2
+      teeny-request: 9.0.0(supports-color@8.1.1)
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    optional: true
+
   retry-request@8.0.3(supports-color@7.2.0):
     dependencies:
       extend: 3.0.2
       teeny-request: 10.1.3(supports-color@7.2.0)
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
+  retry-request@8.0.3(supports-color@8.1.1):
+    dependencies:
+      extend: 3.0.2
+      teeny-request: 10.1.3(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
     optional: true
@@ -8525,8 +8585,6 @@ snapshots:
 
   secure-json-parse@4.1.0: {}
 
-  semifies@1.0.0: {}
-
   semver@6.3.1: {}
 
   semver@7.8.5: {}
@@ -8536,6 +8594,8 @@ snapshots:
       no-case: 3.0.4
       tslib: 2.8.1
       upper-case-first: 2.0.2
+
+  sentry@0.44.1: {}
 
   shebang-command@2.0.0:
     dependencies:
@@ -8615,8 +8675,6 @@ snapshots:
       atomic-sleep: 1.0.0
 
   source-map-js@1.2.1: {}
-
-  source-map@0.6.1: {}
 
   split2@4.2.0: {}
 
@@ -8700,6 +8758,10 @@ snapshots:
     dependencies:
       has-flag: 4.0.0
 
+  supports-color@8.1.1:
+    dependencies:
+      has-flag: 4.0.0
+
   swap-case@2.0.2:
     dependencies:
       tslib: 2.8.1
@@ -8722,10 +8784,32 @@ snapshots:
       - supports-color
     optional: true
 
+  teeny-request@10.1.3(supports-color@8.1.1):
+    dependencies:
+      http-proxy-agent: 7.0.2(supports-color@8.1.1)
+      https-proxy-agent: 7.0.6(supports-color@8.1.1)
+      node-fetch: 3.3.2
+      stream-events: 1.0.5
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
   teeny-request@9.0.0(supports-color@7.2.0):
     dependencies:
       http-proxy-agent: 5.0.0(supports-color@7.2.0)
       https-proxy-agent: 5.0.1(supports-color@7.2.0)
+      node-fetch: 2.7.0
+      stream-events: 1.0.5
+      uuid: 9.0.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    optional: true
+
+  teeny-request@9.0.0(supports-color@8.1.1):
+    dependencies:
+      http-proxy-agent: 5.0.0(supports-color@8.1.1)
+      https-proxy-agent: 5.0.1(supports-color@8.1.1)
       node-fetch: 2.7.0
       stream-events: 1.0.5
       uuid: 9.0.1
