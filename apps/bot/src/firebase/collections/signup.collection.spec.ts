@@ -14,6 +14,7 @@ import type {
   Query,
   Transaction,
 } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import {
   beforeEach,
   describe,
@@ -70,87 +71,109 @@ describe('Signup Repository', () => {
     repository = fixture.get(SignupCollection);
   });
 
-  it('should call update if document exists', async () => {
-    const existingData = {
-      ...signupRequest,
-      status: SignupStatus.APPROVED,
-      reviewedBy: 'someReviewer',
+  describe('#upsert', () => {
+    let transaction: Transaction;
+    let transactionGet: Mock;
+    let transactionUpdate: Mock;
+    let transactionCreate: Mock;
+
+    const mockCurrentDocument = (data: SignupDocument | null) => {
+      transactionGet.mockResolvedValueOnce(
+        mockOf<DocumentSnapshot<SignupDocument>>({
+          exists: data !== null,
+          data: () => data,
+        }),
+      );
     };
-    doc.get.mockResolvedValueOnce(
-      mockOf<DocumentSnapshot>({
-        exists: true,
-        data: () => existingData,
-      }),
-    );
 
-    const result = await repository.upsert(signupRequest);
+    beforeEach(() => {
+      transactionGet = vi.fn();
+      transactionUpdate = vi.fn();
+      transactionCreate = vi.fn();
+      transaction = mockOf<Transaction>({
+        get: transactionGet,
+        update: transactionUpdate,
+        create: transactionCreate,
+      });
+      firestore.runTransaction.mockImplementation((updateFunction) =>
+        updateFunction(transaction),
+      );
+    });
 
-    expect(doc.update).toHaveBeenCalledWith(
-      expect.objectContaining({
+    it('should call update if document exists and carry the previous reviewMessageId', async () => {
+      const existingData = {
+        ...signupRequest,
+        status: SignupStatus.APPROVED,
+        reviewedBy: 'someReviewer',
+        reviewMessageId: 'oldReviewMessageId',
+      };
+      mockCurrentDocument(partialMock<SignupDocument>(existingData));
+
+      const result = await repository.upsert(signupRequest);
+
+      expect(transactionUpdate).toHaveBeenCalledWith(
+        doc,
+        expect.objectContaining({
+          ...existingData,
+          ...signupRequest,
+          status: SignupStatus.UPDATE_PENDING,
+          reviewedBy: null,
+          reviewMessageId: FieldValue.delete(),
+        }),
+      );
+
+      expect(transactionCreate).not.toHaveBeenCalled();
+      expect(result.reviewMessageId).toBe('oldReviewMessageId');
+      expect(result).toMatchObject({
         ...existingData,
         ...signupRequest,
         status: SignupStatus.UPDATE_PENDING,
         reviewedBy: null,
-      }),
-    );
-
-    expect(doc.create).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      ...existingData,
-      ...signupRequest,
-      status: SignupStatus.UPDATE_PENDING,
-      reviewedBy: null,
+      });
     });
-  });
 
-  it('should preserve PENDING status when updating an existing PENDING signup', async () => {
-    const existingData = {
-      ...signupRequest,
-      status: SignupStatus.PENDING,
-      reviewedBy: null,
-    };
-    doc.get.mockResolvedValueOnce(
-      mockOf<DocumentSnapshot>({
-        exists: true,
-        data: () => existingData,
-      }),
-    );
-
-    const result = await repository.upsert(signupRequest);
-
-    expect(doc.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...existingData,
-        ...signupRequest,
-        status: SignupStatus.PENDING, // Should remain PENDING
-        reviewedBy: null,
-      }),
-    );
-
-    expect(result.status).toBe(SignupStatus.PENDING);
-  });
-
-  it('should call create if the document does not exist', async () => {
-    doc.get.mockResolvedValueOnce(
-      mockOf<DocumentSnapshot>({
-        exists: false,
-        data: () => null,
-      }),
-    );
-
-    const result = await repository.upsert(signupRequest);
-
-    expect(doc.create).toHaveBeenCalledWith(
-      expect.objectContaining({
+    it('should preserve PENDING status when updating an existing PENDING signup', async () => {
+      const existingData = {
         ...signupRequest,
         status: SignupStatus.PENDING,
-      }),
-    );
+        reviewedBy: null,
+      };
+      mockCurrentDocument(partialMock<SignupDocument>(existingData));
 
-    expect(doc.update).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      ...signupRequest,
-      status: SignupStatus.PENDING,
+      const result = await repository.upsert(signupRequest);
+
+      expect(transactionUpdate).toHaveBeenCalledWith(
+        doc,
+        expect.objectContaining({
+          ...existingData,
+          ...signupRequest,
+          status: SignupStatus.PENDING, // Should remain PENDING
+          reviewedBy: null,
+        }),
+      );
+
+      expect(transactionCreate).not.toHaveBeenCalled();
+      expect(result.status).toBe(SignupStatus.PENDING);
+    });
+
+    it('should call create if the document does not exist', async () => {
+      mockCurrentDocument(null);
+
+      const result = await repository.upsert(signupRequest);
+
+      expect(transactionCreate).toHaveBeenCalledWith(
+        doc,
+        expect.objectContaining({
+          ...signupRequest,
+          status: SignupStatus.PENDING,
+        }),
+      );
+
+      expect(transactionUpdate).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        ...signupRequest,
+        status: SignupStatus.PENDING,
+      });
     });
   });
 
