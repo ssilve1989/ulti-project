@@ -144,7 +144,7 @@ export class DeclineReasonRequestService {
         `Gave up on the custom decline reason modal for signup ${signupId} after ${MAX_MODAL_SHOW_ATTEMPTS} attempts`,
       );
 
-      if (!(await this.wasApprovedSinceDecline(signup))) {
+      if (!(await this.isNoLongerDeclined(signup))) {
         this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
       }
     } catch (error) {
@@ -280,7 +280,7 @@ export class DeclineReasonRequestService {
 
       if (write.type === 'skipped') {
         this.logger.log(
-          `Signup ${signup.discordId}-${signup.encounter} was approved after being declined, skipping its decline reason and denial DM`,
+          `Signup ${signup.discordId}-${signup.encounter} is no longer declined, skipping its decline reason and denial DM`,
         );
         return { type: 'skipped' };
       }
@@ -334,18 +334,21 @@ export class DeclineReasonRequestService {
 
   // `/edit-signup` can reverse the decline while this request is still open;
   // a reason or denial DM after that would contradict the applicant's approval
-  private async wasApprovedSinceDecline(
-    signup: SignupDocument,
-  ): Promise<boolean> {
+  /**
+   * The same question `updateDeclineReason` asks before it writes. A reversal
+   * or a re-submission both move the signup out of DECLINED, and neither
+   * should still send the applicant a denial for the review it superseded.
+   */
+  private async isNoLongerDeclined(signup: SignupDocument): Promise<boolean> {
     const key = SignupCollection.getKeyForSignup(signup);
     const current = await this.signupCollection.findById(key);
 
-    if (current?.status !== SignupStatus.APPROVED) {
+    if (current?.status === SignupStatus.DECLINED) {
       return false;
     }
 
     this.logger.log(
-      `Signup ${key} was approved after being declined, skipping its decline reason and denial DM`,
+      `Signup ${key} is no longer declined, skipping its denial DM`,
     );
     return true;
   }
@@ -363,7 +366,7 @@ export class DeclineReasonRequestService {
     ) {
       this.logger.warn(context);
       // Dispatch event on timeout with no decline reason
-      if (!(await this.wasApprovedSinceDecline(signup))) {
+      if (!(await this.isNoLongerDeclined(signup))) {
         this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
       }
     } else {
@@ -392,7 +395,7 @@ function declineReasonReplyContent(
     .with({ type: 'recorded' }, () => recordedContent)
     .with(
       { type: 'skipped' },
-      () => SIGNUP_MESSAGES.DECLINE_REASON_AFTER_APPROVAL,
+      () => SIGNUP_MESSAGES.DECLINE_REASON_NOT_DECLINED,
     )
     .with(
       { type: 'failed' },

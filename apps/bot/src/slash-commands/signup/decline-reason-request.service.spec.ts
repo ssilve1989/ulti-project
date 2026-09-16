@@ -276,6 +276,17 @@ describe('DeclineReasonRequestService', () => {
         customId: `${DECLINE_REASON_SELECT_ID}-${signupId}`,
       });
 
+    beforeEach(() => {
+      // dispatching a no-reason decline is gated on the signup still being
+      // declined, which it is for every case in this block
+      signupCollection.findById.mockResolvedValue(
+        partialMock<SignupDocument>({
+          ...signup,
+          status: SignupStatus.DECLINED,
+        }),
+      );
+    });
+
     it('re-listens for a selection and retries after a recoverable modal failure', async () => {
       const selectInteraction = buildSelectInteraction();
       const awaitMessageComponent = vi
@@ -467,8 +478,7 @@ describe('DeclineReasonRequestService', () => {
 
     describe('once /edit-signup has approved the signup', () => {
       const skippedReply = {
-        content:
-          'This signup has since been approved, so no decline reason was recorded.',
+        content: SIGNUP_MESSAGES.DECLINE_REASON_NOT_DECLINED,
         flags: MessageFlags.Ephemeral,
       };
 
@@ -549,6 +559,72 @@ describe('DeclineReasonRequestService', () => {
       });
     });
 
+    // nothing left to deny: the signup was removed or expired while the
+    // reviewer sat on the reason DM
+    describe('once the signup no longer exists', () => {
+      beforeEach(() => {
+        signupCollection.findById.mockResolvedValue(undefined);
+      });
+
+      it('publishes no decline when the request times out', async () => {
+        await service['handleDeclineReasonInteractions'](
+          timedOutReasonRequest(),
+          signup,
+          reviewer,
+          reviewMessage,
+        );
+
+        expect(eventBus.publish).not.toHaveBeenCalled();
+      });
+    });
+
+    // a re-submission moves the signup out of DECLINED just like a reversal
+    // does, and the applicant is waiting on that new review — telling them
+    // the old submission was denied reads as a rejection of the new one
+    describe('once the applicant has re-submitted', () => {
+      beforeEach(() => {
+        signupCollection.findById.mockResolvedValue(
+          signupWithStatus(SignupStatus.UPDATE_PENDING),
+        );
+      });
+
+      it('publishes no decline when the request times out', async () => {
+        await service['handleDeclineReasonInteractions'](
+          timedOutReasonRequest(),
+          signup,
+          reviewer,
+          reviewMessage,
+        );
+
+        expect(eventBus.publish).not.toHaveBeenCalled();
+      });
+
+      it('publishes no decline when giving up on the custom reason modal', async () => {
+        const dmMessage = mockOf<Message<false>>({
+          awaitMessageComponent: vi.fn().mockResolvedValue(
+            mockOf<StringSelectMenuInteraction>({
+              customId: `${DECLINE_REASON_SELECT_ID}-${signupId}`,
+            }),
+          ),
+        });
+        vi.spyOn(
+          withInternals<{
+            handleReasonSelection: (...args: unknown[]) => Promise<unknown>;
+          }>(service),
+          'handleReasonSelection',
+        ).mockResolvedValue(false);
+
+        await service['handleDeclineReasonInteractions'](
+          dmMessage,
+          signup,
+          reviewer,
+          reviewMessage,
+        );
+
+        expect(eventBus.publish).not.toHaveBeenCalled();
+      });
+    });
+
     // the reversal lands after the reviewer's status read but before the
     // write, so only the write's own precondition can catch it
     describe('when a reversal lands between the read and the write', () => {
@@ -574,10 +650,29 @@ describe('DeclineReasonRequestService', () => {
 
         expect(eventBus.publish).not.toHaveBeenCalled();
         expect(selection.reply).toHaveBeenCalledWith({
-          content:
-            'This signup has since been approved, so no decline reason was recorded.',
+          content: SIGNUP_MESSAGES.DECLINE_REASON_NOT_DECLINED,
           flags: MessageFlags.Ephemeral,
         });
+      });
+
+      // the write refuses for any status that is not DECLINED, so the reply
+      // must not claim an approval the reviewer would go looking for
+      it('does not claim the signup was approved when it was re-submitted', async () => {
+        const selection = reasonSelection();
+
+        await service['handleReasonSelection'](
+          selection.interaction,
+          signup,
+          signupId,
+          reviewer,
+          reviewMessage,
+        );
+
+        expect(selection.reply).toHaveBeenCalledWith(
+          expect.objectContaining({
+            content: expect.not.stringContaining('has since been approved'),
+          }),
+        );
       });
     });
 
