@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
-import type { ProgPointDocument, SignupDocument } from '@ulti-project/shared';
+import type {
+  Encounter,
+  ProgPointDocument,
+  SignupDocument,
+} from '@ulti-project/shared';
 import {
   ActionRowBuilder,
   type ButtonInteraction,
@@ -32,6 +37,10 @@ import {
 } from '../../signup/approval-decision.components.js';
 import { SlashCommand } from '../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../slash-command.interface.js';
+import {
+  EditSignupAnalyticsService,
+  type EditSignupGuardReason,
+} from '../edit-signup.analytics.service.js';
 import {
   createEditButtonsRow,
   createEditConflictEmbed,
@@ -107,6 +116,7 @@ class EditSignupCommandHandler implements ISlashCommand {
     private readonly encountersComponentsService: EncountersComponentsService,
     private readonly editSignupService: EditSignupService,
     private readonly errorService: ErrorService,
+    private readonly editSignupAnalytics: EditSignupAnalyticsService,
   ) {}
 
   @SentryTraced()
@@ -139,6 +149,8 @@ class EditSignupCommandHandler implements ISlashCommand {
       encounter: interaction.options.getString('encounter', true),
     });
 
+    this.editSignupAnalytics.invoked(encounter);
+
     const settings = await this.settingsCollection.getSettings(
       interaction.guildId,
     );
@@ -146,7 +158,9 @@ class EditSignupCommandHandler implements ISlashCommand {
     if (!settings?.reviewerRole) {
       return this.replyGuard(
         interaction,
+        encounter,
         EDIT_SIGNUP_MESSAGES.MISSING_REVIEWER_ROLE,
+        'missingReviewerRole',
       );
     }
 
@@ -157,7 +171,12 @@ class EditSignupCommandHandler implements ISlashCommand {
     });
 
     if (!isReviewer) {
-      return this.replyGuard(interaction, EDIT_SIGNUP_MESSAGES.NOT_A_REVIEWER);
+      return this.replyGuard(
+        interaction,
+        encounter,
+        EDIT_SIGNUP_MESSAGES.NOT_A_REVIEWER,
+        'notReviewer',
+      );
     }
 
     const found = await this.signupCollection.findByKeyWithVersion({
@@ -168,7 +187,9 @@ class EditSignupCommandHandler implements ISlashCommand {
     if (!found) {
       return this.replyGuard(
         interaction,
+        encounter,
         notFoundMessage(discordId, encounter),
+        'notFound',
       );
     }
 
@@ -182,7 +203,9 @@ class EditSignupCommandHandler implements ISlashCommand {
     if (!editability.editable) {
       return this.replyGuard(
         interaction,
+        encounter,
         editabilityGuardMessage(editability.reason, reviewMessageUrl),
+        editability.reason,
       );
     }
 
@@ -234,13 +257,17 @@ class EditSignupCommandHandler implements ISlashCommand {
 
   private async replyGuard(
     interaction: ChatInputCommandInteraction<'cached'>,
+    encounter: Encounter,
     message: string,
+    reason: EditSignupGuardReason,
   ): Promise<undefined> {
+    this.editSignupAnalytics.guardBlocked(encounter, reason);
     await interaction.editReply({ embeds: [createEditGuardEmbed(message)] });
     return undefined;
   }
 
   private async runEditScreen(context: EditContext): Promise<void> {
+    const startedAt = Date.now();
     const menu =
       await this.encountersComponentsService.createProgPointSelectMenu(
         context.signup.encounter,
@@ -258,6 +285,14 @@ class EditSignupCommandHandler implements ISlashCommand {
       this.renderScreen(context, menu, state),
     );
     const outcome = await this.collectOutcome(context, message, menu, state);
+
+    // module-level helper: safe on the non-recording span an uninitialized
+    // SDK gives tests, unlike span.setMeasurement
+    Sentry.setMeasurement(
+      'edit_signup.screen_time_s',
+      (Date.now() - startedAt) / 1000,
+      'second',
+    );
 
     await this.finish(context, outcome);
   }
@@ -491,11 +526,15 @@ class EditSignupCommandHandler implements ISlashCommand {
     context: EditContext,
     outcome: EditOutcome,
   ): Promise<void> {
+    const { encounter } = context.signup;
+
     if (outcome.type === 'cancelled') {
+      this.editSignupAnalytics.cancelled(encounter);
       return;
     }
 
     if (outcome.type === 'timedOut') {
+      this.editSignupAnalytics.timedOut(encounter);
       await context.interaction.editReply({
         content: EDIT_SIGNUP_MESSAGES.TIMED_OUT,
         embeds: [],
@@ -514,6 +553,18 @@ class EditSignupCommandHandler implements ISlashCommand {
       settings: context.settings,
       guildId: context.interaction.guildId,
     });
+
+    if (result.type === 'conflict') {
+      this.editSignupAnalytics.conflict(context.kind, encounter);
+    } else if (result.type === 'savedWithSheetsError') {
+      this.editSignupAnalytics.savedWithSheetsError(context.kind, encounter);
+    } else {
+      this.editSignupAnalytics.saved(
+        context.kind,
+        encounter,
+        outcome.comment !== undefined,
+      );
+    }
 
     await context.interaction.editReply({
       content: '',
