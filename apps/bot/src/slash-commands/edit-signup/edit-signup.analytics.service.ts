@@ -19,7 +19,7 @@ export type EditSignupFunnelEvent =
   | 'cancelled'
   | 'timed-out';
 
-interface EditSignupAnalyticsTags {
+interface EditSignupAnalyticsAttributes {
   encounter?: Encounter;
   kind?: EditKind;
   withComment?: boolean;
@@ -56,16 +56,19 @@ export class EditSignupAnalyticsService {
     this.emit('timed-out', { encounter });
   }
 
-  private emit(event: EditSignupFunnelEvent, tags: EditSignupAnalyticsTags) {
-    Sentry.withScope((scope) => {
-      scope.setTag('edit_signup_event', event);
-      if (tags.encounter) scope.setTag('encounter', tags.encounter);
-      if (tags.kind) scope.setTag('edit_kind', tags.kind);
-      if (tags.withComment !== undefined) {
-        scope.setTag('with_comment', String(tags.withComment));
-      }
-      if (tags.guardReason) scope.setTag('guard_reason', tags.guardReason);
-      scope.captureMessage(`edit-signup.${event}`);
+  private emit(
+    event: EditSignupFunnelEvent,
+    attributes: EditSignupAnalyticsAttributes,
+  ) {
+    Sentry.metrics.count(`edit-signup.${event}`, 1, {
+      attributes: {
+        ...(attributes.encounter && { encounter: attributes.encounter }),
+        ...(attributes.kind && { edit_kind: attributes.kind }),
+        ...(attributes.withComment !== undefined && {
+          with_comment: attributes.withComment,
+        }),
+        ...(attributes.guardReason && { guard_reason: attributes.guardReason }),
+      },
     });
   }
 }

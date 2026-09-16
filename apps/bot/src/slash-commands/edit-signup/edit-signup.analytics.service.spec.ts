@@ -13,25 +13,16 @@ type AnalyticsModule = typeof import('./edit-signup.analytics.service.js');
 
 describe('EditSignupAnalyticsService', () => {
   let service: InstanceType<AnalyticsModule['EditSignupAnalyticsService']>;
-  let setTag: Mock;
-  let captureMessage: Mock;
+  let count: Mock;
 
   // The suite runs with `test.isolate: false` (see error.service.spec.ts), so the
   // module registry is shared: reset it and re-import against a doMock'd Sentry.
   beforeEach(async () => {
     vi.resetModules();
 
-    setTag = vi.fn();
-    captureMessage = vi.fn();
+    count = vi.fn();
     vi.doMock('@sentry/nestjs', () => ({
-      withScope: vi.fn(
-        (
-          fn: (scope: {
-            setTag: typeof setTag;
-            captureMessage: typeof captureMessage;
-          }) => void,
-        ) => fn({ setTag, captureMessage }),
-      ),
+      metrics: { count },
     }));
 
     const { EditSignupAnalyticsService } = await import(
@@ -48,56 +39,75 @@ describe('EditSignupAnalyticsService', () => {
   it('reports invoked', () => {
     service.invoked(Encounter.DSR);
 
-    expect(captureMessage).toHaveBeenCalledWith('edit-signup.invoked');
-    expect(setTag).toHaveBeenCalledWith('edit_signup_event', 'invoked');
-    expect(setTag).toHaveBeenCalledWith('encounter', Encounter.DSR);
+    expect(count).toHaveBeenCalledWith('edit-signup.invoked', 1, {
+      attributes: { encounter: Encounter.DSR },
+    });
   });
 
   it('reports a guard block with the reason', () => {
     service.guardBlocked(Encounter.DSR, 'reviewPending');
 
-    expect(captureMessage).toHaveBeenCalledWith('edit-signup.guard-blocked');
-    expect(setTag).toHaveBeenCalledWith('guard_reason', 'reviewPending');
+    expect(count).toHaveBeenCalledWith('edit-signup.guard-blocked', 1, {
+      attributes: { encounter: Encounter.DSR, guard_reason: 'reviewPending' },
+    });
   });
 
   it('reports a save with kind and comment flag', () => {
     service.saved('correction', Encounter.DSR, true);
 
-    expect(captureMessage).toHaveBeenCalledWith('edit-signup.saved');
-    expect(setTag).toHaveBeenCalledWith('edit_kind', 'correction');
-    expect(setTag).toHaveBeenCalledWith('with_comment', 'true');
+    expect(count).toHaveBeenCalledWith('edit-signup.saved', 1, {
+      attributes: {
+        encounter: Encounter.DSR,
+        edit_kind: 'correction',
+        with_comment: true,
+      },
+    });
   });
 
   it('defaults saved to with_comment false', () => {
     service.saved('reversal');
 
-    expect(setTag).toHaveBeenCalledWith('with_comment', 'false');
+    expect(count).toHaveBeenCalledWith('edit-signup.saved', 1, {
+      attributes: {
+        edit_kind: 'reversal',
+        with_comment: false,
+      },
+    });
   });
 
   it('reports a sheet error', () => {
     service.savedWithSheetsError('correction', Encounter.DSR);
 
-    expect(captureMessage).toHaveBeenCalledWith(
+    expect(count).toHaveBeenCalledWith(
       'edit-signup.saved-with-sheets-error',
+      1,
+      {
+        attributes: { encounter: Encounter.DSR, edit_kind: 'correction' },
+      },
     );
   });
 
   it('reports a conflict', () => {
     service.conflict('correction', Encounter.DSR);
 
-    expect(captureMessage).toHaveBeenCalledWith('edit-signup.conflict');
-    expect(setTag).toHaveBeenCalledWith('edit_kind', 'correction');
+    expect(count).toHaveBeenCalledWith('edit-signup.conflict', 1, {
+      attributes: { encounter: Encounter.DSR, edit_kind: 'correction' },
+    });
   });
 
   it('reports a cancellation', () => {
     service.cancelled(Encounter.DSR);
 
-    expect(captureMessage).toHaveBeenCalledWith('edit-signup.cancelled');
+    expect(count).toHaveBeenCalledWith('edit-signup.cancelled', 1, {
+      attributes: { encounter: Encounter.DSR },
+    });
   });
 
   it('reports a timeout', () => {
     service.timedOut(Encounter.DSR);
 
-    expect(captureMessage).toHaveBeenCalledWith('edit-signup.timed-out');
+    expect(count).toHaveBeenCalledWith('edit-signup.timed-out', 1, {
+      attributes: { encounter: Encounter.DSR },
+    });
   });
 });
