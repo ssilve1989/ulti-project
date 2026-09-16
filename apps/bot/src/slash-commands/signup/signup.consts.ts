@@ -40,6 +40,8 @@ You can reach out to a coordinator to discuss any issues.
     'An error occurred while processing your response. The signup may not have been added to the Google Sheet, please verify it or add it manually',
   SIGNUP_NOT_FOUND_FOR_REACTION:
     'No signup was found in the database to correspond to this reaction. Check if you are reacting to a message that has already been handled, like a Cleared post. In those cases the document would be removed. If not please report this error.',
+  DECLINE_REASON_NOT_RECORDED:
+    'The signup you declined has changed state while the decline reason was being collected, so the reason was not recorded and the user was not notified of the decline.',
 } as const;
 
 export const SIGNUP_REVIEW_REACTIONS: Record<SignupStatusValues, string> = {

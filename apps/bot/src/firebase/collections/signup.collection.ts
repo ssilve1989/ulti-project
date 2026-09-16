@@ -173,14 +173,35 @@ class SignupCollection {
   }
 
   @SentryTraced()
-  public updateDeclineReason(
+  /**
+   * Atomically records a decline reason, but only if the signup is still in the
+   * same decline round. Guards against a decline reason being collected for a
+   * previous review round landing on a signup that has since been re-submitted
+   * (UPDATE_PENDING) or reviewed again (new reviewMessageId/reviewedBy).
+   */
+  public updateDeclineReasonIfActive(
     signup: SignupCompositeKey,
     declineReason: string,
-  ) {
-    const key = SignupCollection.getKeyForSignup(signup);
+    expectedReviewMessageId: string | undefined,
+    expectedReviewedBy: string,
+  ): Promise<boolean> {
+    const ref = this.collection.doc(SignupCollection.getKeyForSignup(signup));
 
-    return this.collection.doc(key).update({
-      declineReason,
+    return this.firestore.runTransaction(async (tx) => {
+      const snapshot = await tx.get(ref);
+      const current = snapshot.data();
+
+      if (
+        !current ||
+        current.status !== SignupStatus.DECLINED ||
+        current.reviewMessageId !== expectedReviewMessageId ||
+        current.reviewedBy !== expectedReviewedBy
+      ) {
+        return false;
+      }
+
+      tx.update(ref, { declineReason });
+      return true;
     });
   }
 
