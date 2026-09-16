@@ -262,7 +262,12 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       signup,
       decision.progPoint,
     );
-    await this.persistApprovedSignup(confirmedSignup, settings, user);
+    await this.persistApprovedSignup(
+      confirmedSignup,
+      settings,
+      user,
+      message.id,
+    );
 
     return new SignupApprovedEvent(
       confirmedSignup,
@@ -306,6 +311,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     confirmedSignup: SignupDocument,
     settings: SettingsDocument,
     user: User,
+    reviewMessageId: string,
   ): Promise<void> {
     if (settings.spreadsheetId) {
       await this.sheetsService.upsertSignup(
@@ -327,6 +333,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         SignupStatus.APPROVED,
         confirmedSignup,
         user.username,
+        reviewMessageId,
       );
     }
   }
@@ -341,6 +348,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       SignupStatus.DECLINED,
       signup,
       user.username,
+      message.id,
     );
 
     // Fire decline reason request with event dispatch context (non-blocking)

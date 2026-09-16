@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import {
   Encounter,
+  PartyStatus,
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
@@ -153,16 +154,131 @@ describe('Signup Repository', () => {
     });
   });
 
-  it('should call updateSignupStatus with the correct arguments', async () => {
-    await repository.updateSignupStatus(
-      SignupStatus.APPROVED,
-      SIGNUP_KEY,
-      'reviewedBy',
-    );
+  describe('#updateSignupStatus', () => {
+    let transaction: Transaction;
+    let transactionGet: Mock;
+    let transactionUpdate: Mock;
 
-    expect(doc.update).toHaveBeenCalledWith({
-      status: SignupStatus.APPROVED,
-      reviewedBy: 'reviewedBy',
+    const mockCurrentDocument = (data: SignupDocument | null) => {
+      transactionGet.mockResolvedValueOnce(
+        mockOf<DocumentSnapshot<SignupDocument>>({
+          exists: data !== null,
+          data: () => data,
+        }),
+      );
+    };
+
+    beforeEach(() => {
+      transactionGet = vi.fn();
+      transactionUpdate = vi.fn();
+      transaction = mockOf<Transaction>({
+        get: transactionGet,
+        update: transactionUpdate,
+      });
+      firestore.runTransaction.mockImplementation((updateFunction) =>
+        updateFunction(transaction),
+      );
+    });
+
+    const reviewableSignup = {
+      ...SIGNUP_KEY,
+      status: SignupStatus.PENDING,
+      reviewMessageId: 'm1',
+      reviewedBy: null,
+    };
+
+    it('writes the new status when the signup is still in the same unreviewed round', async () => {
+      mockCurrentDocument(partialMock<SignupDocument>(reviewableSignup));
+
+      const result = await repository.updateSignupStatus(
+        SignupStatus.APPROVED,
+        {
+          ...SIGNUP_KEY,
+          progPoint: 'point-a',
+          partyStatus: PartyStatus.EarlyProgParty,
+        },
+        'reviewer',
+        'm1',
+      );
+
+      expect(result).toBe(true);
+      expect(transactionUpdate).toHaveBeenCalledWith(doc, {
+        status: SignupStatus.APPROVED,
+        progPoint: 'point-a',
+        reviewedBy: 'reviewer',
+        partyStatus: PartyStatus.EarlyProgParty,
+      });
+    });
+
+    it('does not write when the review round has changed (new reviewMessageId)', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...reviewableSignup,
+          reviewMessageId: 'm2',
+        }),
+      );
+
+      const result = await repository.updateSignupStatus(
+        SignupStatus.APPROVED,
+        { ...SIGNUP_KEY, progPoint: 'point-a' },
+        'reviewer',
+        'm1',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not write when the signup has already been reviewed', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...reviewableSignup,
+          reviewedBy: 'someoneElse',
+        }),
+      );
+
+      const result = await repository.updateSignupStatus(
+        SignupStatus.APPROVED,
+        { ...SIGNUP_KEY, progPoint: 'point-a' },
+        'reviewer',
+        'm1',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not write when the signup is no longer reviewable', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...reviewableSignup,
+          status: SignupStatus.APPROVED,
+        }),
+      );
+
+      const result = await repository.updateSignupStatus(
+        SignupStatus.DECLINED,
+        SIGNUP_KEY,
+        'reviewer',
+        'm1',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not write when the signup document no longer exists', async () => {
+      mockCurrentDocument(null);
+
+      const result = await repository.updateSignupStatus(
+        SignupStatus.APPROVED,
+        { ...SIGNUP_KEY, progPoint: 'point-a' },
+        'reviewer',
+        'm1',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
     });
   });
 

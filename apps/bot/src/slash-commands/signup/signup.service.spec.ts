@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { SignupDocument } from '@ulti-project/shared';
 import { SignupStatus } from '@ulti-project/shared';
 import type { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
-import type { WriteResult } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { ErrorService } from '../../error/error.service.js';
@@ -102,9 +101,7 @@ describe('SignupService', () => {
 
     repository.findByReviewId.mockResolvedValueOnce(signup);
     discordService.getDisplayName.mockResolvedValueOnce('someuser');
-    repository.updateSignupStatus.mockResolvedValueOnce(
-      mockOf<WriteResult>({}),
-    );
+    repository.updateSignupStatus.mockResolvedValueOnce(true);
     vi.spyOn(messageReaction.message, 'edit').mockResolvedValueOnce(
       mockOf<Awaited<ReturnType<(typeof messageReaction.message)['edit']>>>({}),
     );
@@ -175,6 +172,7 @@ describe('SignupService', () => {
       SignupStatus.APPROVED,
       expect.not.objectContaining({ comment: expect.anything() }),
       user.username,
+      'messageId',
     );
   });
 

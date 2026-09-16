@@ -148,12 +148,26 @@ class SignupCollection {
       ...key
     }: SignupCompositeKey & Pick<SignupDocument, 'progPoint' | 'partyStatus'>,
     reviewedBy: string,
-  ) {
-    return this.collection.doc(SignupCollection.getKeyForSignup(key)).update({
-      status,
-      progPoint,
-      reviewedBy,
-      partyStatus,
+    expectedReviewMessageId: string,
+  ): Promise<boolean> {
+    const ref = this.collection.doc(SignupCollection.getKeyForSignup(key));
+
+    return this.firestore.runTransaction(async (tx) => {
+      const snapshot = await tx.get(ref);
+      const current = snapshot.data();
+
+      if (
+        !current ||
+        current.reviewMessageId !== expectedReviewMessageId ||
+        current.reviewedBy != null ||
+        (current.status !== SignupStatus.PENDING &&
+          current.status !== SignupStatus.UPDATE_PENDING)
+      ) {
+        return false;
+      }
+
+      tx.update(ref, { status, progPoint, reviewedBy, partyStatus });
+      return true;
     });
   }
 
