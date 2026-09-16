@@ -7,6 +7,18 @@ export interface ProgPointRoleChanges {
   rolesToRemove: string[];
 }
 
+/**
+ * The single coarse encounter role a party status implies: the clear role for
+ * Clear Party, the prog role otherwise. Shared so /edit-signup's preview and
+ * the role reconciliation that follows it can't disagree.
+ */
+export function coarseRoleFor(
+  partyStatus: PartyStatus,
+  { progRole, clearRole }: { progRole?: string; clearRole?: string },
+): string | undefined {
+  return partyStatus === PartyStatus.ClearParty ? clearRole : progRole;
+}
+
 interface ComputeChangesOptions {
   /**
    * When the prog point has no mapped role, remove every mapped role the
@@ -59,17 +71,16 @@ class ProgPointRolesService {
   }
 
   /**
-   * Reconciles the single coarse encounter role: the clear role for Clear
-   * Party, the prog role otherwise. Callers never pass Cleared — role removal
-   * for a cleared signup is owned by RemoveRolesCommandHandler.
+   * Reconciles the single coarse encounter role. Callers never pass Cleared —
+   * role removal for a cleared signup is owned by RemoveRolesCommandHandler.
    */
   computeCoarseRoleChanges(
     member: GuildMember,
-    { progRole, clearRole }: { progRole?: string; clearRole?: string },
+    roles: { progRole?: string; clearRole?: string },
     partyStatus: PartyStatus,
   ): ProgPointRoleChanges {
-    const desiredRole =
-      partyStatus === PartyStatus.ClearParty ? clearRole : progRole;
+    const { progRole, clearRole } = roles;
+    const desiredRole = coarseRoleFor(partyStatus, roles);
 
     const rolesToRemove = [progRole, clearRole].filter(
       (roleId): roleId is string =>

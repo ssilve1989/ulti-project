@@ -91,7 +91,10 @@ export class EditSignupService {
       partyStatus,
       reviewHistory: [...(signup.reviewHistory ?? []), ...historyEntries],
       // a reversal's write cleared the previous decision's announcement id
-      ...(kind === 'reversal' ? { approvalMessageId: undefined } : {}),
+      // and its decline reason
+      ...(kind === 'reversal'
+        ? { approvalMessageId: undefined, declineReason: undefined }
+        : {}),
     };
 
     const sheetsUpdated = await this.syncSheet(after, settings);

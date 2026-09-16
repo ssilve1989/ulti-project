@@ -12,6 +12,7 @@ import {
   type MessageComponentInteraction,
   MessageFlags,
   type ModalMessageModalSubmitInteraction,
+  RESTJSONErrorCodes,
   type StringSelectMenuBuilder,
   type User,
 } from 'discord.js';
@@ -231,7 +232,10 @@ export class ApprovalDecisionRequestService {
     try {
       await interaction.showModal(createApprovalCommentModal());
     } catch (error) {
-      if (error instanceof DiscordAPIError && error.code === 10062) {
+      if (
+        error instanceof DiscordAPIError &&
+        error.code === RESTJSONErrorCodes.UnknownInteraction
+      ) {
         // Recoverable: the collector is still running, so the reviewer can
         // just click the button again for a fresh interaction token.
         await interaction.user.send(

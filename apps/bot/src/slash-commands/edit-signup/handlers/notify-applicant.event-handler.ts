@@ -1,7 +1,10 @@
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import { EncounterFriendlyDescription } from '@ulti-project/shared';
 import { DiscordService } from '../../../discord/discord.service.js';
-import { EncountersService } from '../../../encounters/encounters.service.js';
+import {
+  EncountersService,
+  progPointLabelMap,
+} from '../../../encounters/encounters.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { quoteLines } from '../../signup/signup.utils.js';
 import { SignupEditedEvent } from '../events/signup-edited.event.js';
@@ -21,9 +24,7 @@ export class NotifyApplicantEventHandler
       const progPoints = await this.encountersService.getProgPoints(
         event.after.encounter,
       );
-      const labels = new Map(
-        progPoints.map((progPoint) => [progPoint.id, progPoint.label]),
-      );
+      const labels = progPointLabelMap(progPoints);
 
       await this.discordService.sendDirectMessage(event.after.discordId, {
         content: buildApplicantMessage(event, labels),

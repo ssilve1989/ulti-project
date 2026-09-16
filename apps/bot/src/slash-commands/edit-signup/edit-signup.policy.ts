@@ -7,6 +7,7 @@ import {
 import { roleMention } from 'discord.js';
 import { match } from 'ts-pattern';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
+import { coarseRoleFor } from '../../role-manager/prog-point-roles.service.js';
 
 export type EditKind = 'correction' | 'reversal';
 
@@ -200,9 +201,10 @@ function impliedCoarseRole(
     return undefined;
   }
 
-  return partyStatus === PartyStatus.ClearParty
-    ? settings.clearRoles?.[encounter]
-    : settings.progRoles?.[encounter];
+  return coarseRoleFor(partyStatus, {
+    progRole: settings.progRoles?.[encounter],
+    clearRole: settings.clearRoles?.[encounter],
+  });
 }
 
 function mentionOrNone(roleId: string | undefined): string {

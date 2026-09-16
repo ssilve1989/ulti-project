@@ -17,28 +17,22 @@ export async function buildEditedFooterText(
     guildId,
   }: Pick<SignupEditedEvent, 'kind' | 'before' | 'editor' | 'guildId'>,
 ): Promise<string> {
-  const editorName = await discordService.getDisplayName({
-    userId: editor.id,
-    guildId,
-  });
+  const decisionType = kind === 'reversal' ? 'declined' : 'approved';
 
-  if (kind === 'reversal') {
-    const decliner = await resolveActorName(
+  // independent lookups: resolve them together rather than back to back
+  const [editorName, actorName] = await Promise.all([
+    discordService.getDisplayName({ userId: editor.id, guildId }),
+    resolveActorName(
       discordService,
       guildId,
-      latestEntryOfType(before.reviewHistory, 'declined')?.actorId,
+      latestEntryOfType(before.reviewHistory, decisionType)?.actorId,
       before.reviewedBy,
-    );
-    return `Approved by ${editorName} · previously declined by ${decliner}`;
-  }
+    ),
+  ]);
 
-  const approver = await resolveActorName(
-    discordService,
-    guildId,
-    latestEntryOfType(before.reviewHistory, 'approved')?.actorId,
-    before.reviewedBy,
-  );
-  return `Approved by ${approver} · edited by ${editorName}`;
+  return kind === 'reversal'
+    ? `Approved by ${editorName} · previously declined by ${actorName}`
+    : `Approved by ${actorName} · edited by ${editorName}`;
 }
 
 // signups reviewed before history tracking only carry a reviewer username

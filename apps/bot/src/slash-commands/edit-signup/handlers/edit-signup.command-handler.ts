@@ -12,6 +12,7 @@ import {
   type MessageComponentInteraction,
   MessageFlags,
   messageLink,
+  RESTJSONErrorCodes,
   type StringSelectMenuBuilder,
   type StringSelectMenuInteraction,
 } from 'discord.js';
@@ -20,7 +21,10 @@ import { match } from 'ts-pattern';
 import { isSameUserFilter } from '../../../common/collection-filters.js';
 import { appConfig } from '../../../config/app.js';
 import { DiscordService } from '../../../discord/discord.service.js';
-import { EncountersService } from '../../../encounters/encounters.service.js';
+import {
+  EncountersService,
+  progPointLabelMap,
+} from '../../../encounters/encounters.service.js';
 import { EncountersComponentsService } from '../../../encounters/encounters-components.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
@@ -41,7 +45,6 @@ import {
   markSelectedProgPoint,
 } from '../edit-signup.components.js';
 import {
-  DISCORD_UNKNOWN_INTERACTION,
   EDIT_CANCEL_BUTTON_ID,
   EDIT_SAVE_BUTTON_ID,
   EDIT_SAVE_WITH_COMMENT_BUTTON_ID,
@@ -207,9 +210,7 @@ class EditSignupCommandHandler implements ISlashCommand {
       progPoints: new Map(
         progPoints.map((progPoint) => [progPoint.id, progPoint]),
       ),
-      progPointLabels: new Map(
-        progPoints.map((progPoint) => [progPoint.id, progPoint.label]),
-      ),
+      progPointLabels: progPointLabelMap(progPoints),
     };
   }
 
@@ -423,7 +424,7 @@ class EditSignupCommandHandler implements ISlashCommand {
     } catch (error) {
       if (
         error instanceof DiscordAPIError &&
-        error.code === DISCORD_UNKNOWN_INTERACTION
+        error.code === RESTJSONErrorCodes.UnknownInteraction
       ) {
         // recoverable: the collector is still running, so a second click
         // arrives with a fresh interaction token

@@ -65,7 +65,7 @@ export class ReconcileAnnouncementEventHandler
     if (!message) {
       // approved before approvalMessageId was stored, or the post was deleted
       this.logger.log(
-        `No approval announcement to edit for signup ${after.discordId}-${after.encounter}`,
+        `No approval announcement to edit for signup ${SignupCollection.getKeyForSignup(after)}`,
       );
       return;
     }

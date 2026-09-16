@@ -13,6 +13,7 @@ import {
   type Message,
   MessageFlags,
   type ModalSubmitInteraction,
+  RESTJSONErrorCodes,
   type StringSelectMenuInteraction,
   type User,
 } from 'discord.js';
@@ -173,7 +174,10 @@ export class DeclineReasonRequestService {
       try {
         await interaction.showModal(modal);
       } catch (error) {
-        if (error instanceof DiscordAPIError && error.code === 10062) {
+        if (
+          error instanceof DiscordAPIError &&
+          error.code === RESTJSONErrorCodes.UnknownInteraction
+        ) {
           this.logger.warn(
             `Modal token expired before it could be shown for signup ${signupId}, asking reviewer to retry`,
           );

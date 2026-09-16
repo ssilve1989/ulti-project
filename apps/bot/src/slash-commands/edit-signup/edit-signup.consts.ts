@@ -15,9 +15,6 @@ export const EDIT_CANCEL_BUTTON_ID = 'editSignupCancel';
 // same window as the approval decision DM
 export const EDIT_SIGNUP_TIMEOUT_MS = 5 * 60 * 1000;
 
-// Discord "Unknown interaction": the click's token expired before showModal
-export const DISCORD_UNKNOWN_INTERACTION = 10062;
-
 export const EDIT_SIGNUP_MESSAGES = {
   MISSING_REVIEWER_ROLE: 'No reviewer role has been configured.',
   NOT_A_REVIEWER: 'Only reviewers can edit signups.',
