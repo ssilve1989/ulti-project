@@ -4,7 +4,6 @@ import type { SignupDocument } from '@ulti-project/shared';
 import {
   ActionRowBuilder,
   type ButtonInteraction,
-  DiscordAPIError,
   DiscordjsErrorCodes,
   type Embed,
   EmbedBuilder,
@@ -19,21 +18,27 @@ import { isSameUserFilter } from '../../common/collection-filters.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { PROG_POINT_SELECT_ID } from '../../encounters/encounters.components.js';
 import { EncountersComponentsService } from '../../encounters/encounters-components.service.js';
+import { collectApprovalComment } from './approval-comment.js';
 import {
   APPROVAL_CANCEL_BUTTON_ID,
-  APPROVAL_COMMENT_INPUT_ID,
   APPROVE_BUTTON_ID,
   APPROVE_WITH_COMMENT_BUTTON_ID,
   createApprovalButtonsRow,
-  createApprovalCommentModal,
 } from './approval-decision.components.js';
 import { SIGNUP_MESSAGES } from './signup.consts.js';
 
-const APPROVAL_DECISION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+export const APPROVAL_DECISION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 export type ApprovalDecision =
   | { type: 'approved'; progPoint: string; comment?: string }
   | { type: 'cancelled' };
+
+interface DecisionState {
+  progPoint?: string;
+  // bumped on every "Approve with Comment" click, so a modal listener left
+  // parked by an earlier click can tell it is stale
+  modalGeneration: number;
+}
 
 // discord.js's own DiscordjsError has a private constructor (library-internal
 // use only), but `getErrorReplyMessage` only pattern-matches on `{ code }`
@@ -45,11 +50,6 @@ class ApprovalDecisionTimeoutError extends Error {
     super(`Approval decision collector ended before resolving: ${reason}`);
   }
 }
-
-// Signals that showModal() failed because the button click's interaction
-// token had already expired (Discord error 10062) — a recoverable case the
-// caller should ask the reviewer to retry, not a real decision-ending error.
-class ModalTokenExpiredError extends Error {}
 
 @Injectable()
 export class ApprovalDecisionRequestService {
@@ -116,7 +116,7 @@ export class ApprovalDecisionRequestService {
     selectRow: ActionRowBuilder<StringSelectMenuBuilder>,
   ): Promise<ApprovalDecision> {
     const deadline = Date.now() + APPROVAL_DECISION_TIMEOUT_MS;
-    const state: { progPoint?: string } = {};
+    const state: DecisionState = { modalGeneration: 0 };
 
     return new Promise<ApprovalDecision>((resolve, reject) => {
       let settled = false;
@@ -161,7 +161,7 @@ export class ApprovalDecisionRequestService {
   // once a button resolves it, or undefined while still collecting.
   private async processInteraction(
     interaction: MessageComponentInteraction,
-    state: { progPoint?: string },
+    state: DecisionState,
     selectRow: ActionRowBuilder<StringSelectMenuBuilder>,
     deadline: number,
   ): Promise<ApprovalDecision | undefined> {
@@ -209,20 +209,7 @@ export class ApprovalDecisionRequestService {
     }
 
     if (interaction.customId === APPROVE_WITH_COMMENT_BUTTON_ID) {
-      try {
-        const comment = await this.collectComment(interaction, deadline);
-        return { type: 'approved', progPoint, comment };
-      } catch (error) {
-        if (!(error instanceof ModalTokenExpiredError)) {
-          throw error;
-        }
-        // Recoverable: the collector is still running, so the reviewer can
-        // just click the button again for a fresh interaction token.
-        await interaction.user.send(
-          'That took a moment too long to open — please click "Approve with Comment" again.',
-        );
-        return undefined;
-      }
+      return this.collectComment(interaction, state, deadline);
     }
 
     return undefined;
@@ -230,34 +217,30 @@ export class ApprovalDecisionRequestService {
 
   private async collectComment(
     interaction: ButtonInteraction,
+    state: DecisionState,
     deadline: number,
-  ): Promise<string | undefined> {
-    try {
-      await interaction.showModal(createApprovalCommentModal());
-    } catch (error) {
-      if (error instanceof DiscordAPIError && error.code === 10062) {
-        throw new ModalTokenExpiredError();
-      }
-      throw error;
-    }
-
-    const modalInteraction = await interaction.awaitModalSubmit({
-      filter: isSameUserFilter(interaction.user),
-      time: this.remainingTime(deadline),
+  ): Promise<ApprovalDecision | undefined> {
+    const collected = await collectApprovalComment(interaction, state, {
+      deadline,
+      expiredMessage:
+        'That took a moment too long to open — please click "Approve with Comment" again.',
     });
 
-    const comment = modalInteraction.fields
-      .getTextInputValue(APPROVAL_COMMENT_INPUT_ID)
-      .trim();
+    // read at submit time, never from a value captured at click time
+    const progPoint = state.progPoint;
 
-    if (modalInteraction.isFromMessage()) {
+    if (!collected || !progPoint) {
+      return undefined;
+    }
+
+    if (collected.submission.isFromMessage()) {
       await this.clearAndNotify(
-        modalInteraction,
+        collected.submission,
         SIGNUP_MESSAGES.APPROVAL_CONFIRMATION_RECEIVED,
       );
     }
 
-    return comment || undefined;
+    return { type: 'approved', progPoint, comment: collected.comment };
   }
 
   private async clearAndNotify(
@@ -266,14 +249,5 @@ export class ApprovalDecisionRequestService {
   ): Promise<void> {
     await interaction.update({ components: [] });
     await interaction.followUp(message);
-  }
-
-  private remainingTime(deadline: number): number {
-    // Floor of 1, not 0: discord.js's Collector only arms its timeout timer
-    // `if (options.time)`, and 0 is falsy. A deadline already at/past now
-    // must still produce a truthy `time` so a timer arms and the call fails
-    // fast with the collector's own timeout error, instead of hanging
-    // indefinitely.
-    return Math.max(deadline - Date.now(), 1);
   }
 }

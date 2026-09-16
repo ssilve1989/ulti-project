@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
-import type { SignupDocument } from '@ulti-project/shared';
+import { type SignupDocument, SignupStatus } from '@ulti-project/shared';
 import {
   ActionRowBuilder,
   ComponentType,
@@ -13,9 +13,11 @@ import {
   type Message,
   MessageFlags,
   type ModalSubmitInteraction,
+  RESTJSONErrorCodes,
   type StringSelectMenuInteraction,
   type User,
 } from 'discord.js';
+import { match } from 'ts-pattern';
 import { isSameUserFilter } from '../../common/collection-filters.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
@@ -28,9 +30,20 @@ import {
   DECLINE_REASON_SELECT_ID,
 } from './decline-reason.components.js';
 import { SignupDeclineReasonCollectedEvent } from './events/signup.events.js';
-import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
+import {
+  CUSTOM_DECLINE_REASON_VALUE,
+  SIGNUP_MESSAGES,
+} from './signup.consts.js';
 
 export const MAX_MODAL_SHOW_ATTEMPTS = 3;
+
+// `recorded`/`skipped` are both benign no-error outcomes; `failed` is kept
+// distinct so callers can tell the reviewer nothing was saved instead of
+// showing the same message as a successful recording.
+type DeclineReasonUpdateOutcome =
+  | { type: 'recorded' }
+  | { type: 'skipped' }
+  | { type: 'failed' };
 
 @Injectable()
 export class DeclineReasonRequestService {
@@ -130,9 +143,12 @@ export class DeclineReasonRequestService {
       this.logger.warn(
         `Gave up on the custom decline reason modal for signup ${signupId} after ${MAX_MODAL_SHOW_ATTEMPTS} attempts`,
       );
-      this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
+
+      if (!(await this.isNoLongerDeclined(signup))) {
+        this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
+      }
     } catch (error) {
-      this.handleTimeoutError(
+      await this.handleTimeoutError(
         error,
         signup,
         reviewer,
@@ -158,7 +174,10 @@ export class DeclineReasonRequestService {
       try {
         await interaction.showModal(modal);
       } catch (error) {
-        if (error instanceof DiscordAPIError && error.code === 10062) {
+        if (
+          error instanceof DiscordAPIError &&
+          error.code === RESTJSONErrorCodes.UnknownInteraction
+        ) {
           this.logger.warn(
             `Modal token expired before it could be shown for signup ${signupId}, asking reviewer to retry`,
           );
@@ -172,23 +191,24 @@ export class DeclineReasonRequestService {
 
       try {
         const modalInteraction = await interaction.awaitModalSubmit({
-          filter: isSameUserFilter(interaction.user),
+          // awaitModalSubmit's collector is client-wide (no message/channel
+          // scope), so without the customId check it would also accept a
+          // modal submit meant for a different signup's decline reason
+          filter: (submission) =>
+            isSameUserFilter(interaction.user)(submission) &&
+            submission.customId ===
+              `${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupId}`,
           time: 5 * 60 * 1000, // 5 minutes
         });
 
-        if (
-          modalInteraction.customId ===
-          `${CUSTOM_DECLINE_REASON_MODAL_ID}-${signupId}`
-        ) {
-          await this.handleCustomReasonSubmit(
-            modalInteraction,
-            signup,
-            reviewer,
-            reviewMessage,
-          );
-        }
+        await this.handleCustomReasonSubmit(
+          modalInteraction,
+          signup,
+          reviewer,
+          reviewMessage,
+        );
       } catch (error) {
-        this.handleTimeoutError(
+        await this.handleTimeoutError(
           error,
           signup,
           reviewer,
@@ -198,14 +218,17 @@ export class DeclineReasonRequestService {
       }
     } else {
       // Use predefined reason
-      await this.updateSignupWithDeclineReason(
+      const outcome = await this.updateSignupWithDeclineReason(
         signup,
         selectedValue,
         reviewer,
         reviewMessage,
       );
       await interaction.reply({
-        content: `✅ Decline reason recorded: "${selectedValue}"`,
+        content: declineReasonReplyContent(
+          outcome,
+          `✅ Decline reason recorded: "${selectedValue}"`,
+        ),
         flags: MessageFlags.Ephemeral,
       });
     }
@@ -223,29 +246,44 @@ export class DeclineReasonRequestService {
       CUSTOM_DECLINE_REASON_INPUT_ID,
     );
 
-    await this.updateSignupWithDeclineReason(
+    const outcome = await this.updateSignupWithDeclineReason(
       signup,
       customReason,
       reviewer,
       reviewMessage,
     );
     await interaction.reply({
-      content: `✅ Custom decline reason recorded: "${customReason}"`,
+      content: declineReasonReplyContent(
+        outcome,
+        `✅ Custom decline reason recorded: "${customReason}"`,
+      ),
       flags: MessageFlags.Ephemeral,
     });
   }
 
+  /**
+   * Resolves `skipped` when the write refused because the signup is no longer
+   * declined, or `failed` when it errored — distinct from `skipped` so callers
+   * don't tell the reviewer a decline reason was recorded when it was not.
+   */
   private async updateSignupWithDeclineReason(
     signup: SignupDocument,
     declineReason: string,
     reviewer: User,
     reviewMessage: Message<true>,
-  ): Promise<void> {
+  ): Promise<DeclineReasonUpdateOutcome> {
     try {
-      await this.signupCollection.updateDeclineReason(
+      const write = await this.signupCollection.updateDeclineReason(
         { discordId: signup.discordId, encounter: signup.encounter },
         declineReason,
       );
+
+      if (write.type === 'skipped') {
+        this.logger.log(
+          `Signup ${signup.discordId}-${signup.encounter} is no longer declined, skipping its decline reason and denial DM`,
+        );
+        return { type: 'skipped' };
+      }
 
       this.logger.log(
         `Updated signup ${signup.discordId}-${signup.encounter} with decline reason: ${declineReason}`,
@@ -258,12 +296,16 @@ export class DeclineReasonRequestService {
         reviewMessage,
         declineReason,
       );
+
+      return { type: 'recorded' };
     } catch (error) {
       this.reportError(error, { signup, reviewer });
       this.logger.error(
         error,
         `Failed to update signup ${signup.discordId}-${signup.encounter} with decline reason`,
       );
+
+      return { type: 'failed' };
     }
   }
 
@@ -290,20 +332,43 @@ export class DeclineReasonRequestService {
     }
   }
 
-  private handleTimeoutError(
+  // `/edit-signup` can reverse the decline while this request is still open;
+  // a reason or denial DM after that would contradict the applicant's approval
+  /**
+   * The same question `updateDeclineReason` asks before it writes. A reversal
+   * or a re-submission both move the signup out of DECLINED, and neither
+   * should still send the applicant a denial for the review it superseded.
+   */
+  private async isNoLongerDeclined(signup: SignupDocument): Promise<boolean> {
+    const key = SignupCollection.getKeyForSignup(signup);
+    const current = await this.signupCollection.findById(key);
+
+    if (current?.status === SignupStatus.DECLINED) {
+      return false;
+    }
+
+    this.logger.log(
+      `Signup ${key} is no longer declined, skipping its denial DM`,
+    );
+    return true;
+  }
+
+  private async handleTimeoutError(
     error: unknown,
     signup: SignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
     context: string,
-  ): void {
+  ): Promise<void> {
     if (
       error instanceof DiscordjsError &&
       error.code === DiscordjsErrorCodes.InteractionCollectorError
     ) {
       this.logger.warn(context);
       // Dispatch event on timeout with no decline reason
-      this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
+      if (!(await this.isNoLongerDeclined(signup))) {
+        this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
+      }
     } else {
       // Re-throw non-timeout errors
       this.reportError(error, { signup, reviewer });
@@ -320,4 +385,21 @@ export class DeclineReasonRequestService {
     scope.setExtra('reviewer', context.reviewer);
     scope.captureException(error);
   }
+}
+
+function declineReasonReplyContent(
+  outcome: DeclineReasonUpdateOutcome,
+  recordedContent: string,
+): string {
+  return match(outcome)
+    .with({ type: 'recorded' }, () => recordedContent)
+    .with(
+      { type: 'skipped' },
+      () => SIGNUP_MESSAGES.DECLINE_REASON_NOT_DECLINED,
+    )
+    .with(
+      { type: 'failed' },
+      () => SIGNUP_MESSAGES.DECLINE_REASON_RECORD_FAILED,
+    )
+    .exhaustive();
 }

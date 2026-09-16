@@ -1,10 +1,31 @@
+import { EventEmitter } from 'node:events';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { SignupDocument } from '@ulti-project/shared';
-import { SignupStatus } from '@ulti-project/shared';
-import type { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
-import type { WriteResult } from 'firebase-admin/firestore';
-import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import {
+  PartyStatus,
+  type ReviewHistoryEntry,
+  type SignupDocument,
+  SignupStatus,
+} from '@ulti-project/shared';
+import {
+  type Client,
+  Events,
+  type Message,
+  type MessageReaction,
+  type ReactionEmoji,
+  type User,
+} from 'discord.js';
+import { Timestamp, type WriteResult } from 'firebase-admin/firestore';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mocked,
+  vi,
+} from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
+import { EncountersService } from '../../encounters/encounters.service.js';
 import { ErrorService } from '../../error/error.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
@@ -175,6 +196,7 @@ describe('SignupService', () => {
       SignupStatus.APPROVED,
       expect.not.objectContaining({ comment: expect.anything() }),
       user.username,
+      expect.any(Array),
     );
   });
 
@@ -252,6 +274,177 @@ describe('SignupService', () => {
     expect(discordService.sendDirectMessage).not.toHaveBeenCalled();
   });
 
+  describe('review history', () => {
+    let encountersService: Mocked<EncountersService>;
+    let approvalDecisionRequestService: Mocked<ApprovalDecisionRequestService>;
+
+    const reviewMessage = () =>
+      mockOf<Message<true>>({ inGuild: () => true, embeds: [{}] });
+
+    beforeEach(() => {
+      encountersService = fixture.get(EncountersService);
+      approvalDecisionRequestService = fixture.get(
+        ApprovalDecisionRequestService,
+      );
+      user = mockOf<User>({ id: 'reviewer-1', username: 'spike' });
+    });
+
+    it('appends an approved entry seeded with the previous approval', async () => {
+      const previouslyApproved = partialMock<SignupDocument>({
+        discordId: 'abc123',
+        reviewMessageId: 'messageId',
+        progPoint: 'old-point',
+        partyStatus: PartyStatus.ClearParty,
+      });
+      approvalDecisionRequestService.requestApprovalDecision.mockResolvedValue({
+        type: 'approved',
+        progPoint: 'point-a',
+      });
+      encountersService.getPartyStatusForProgPoint.mockResolvedValue(
+        PartyStatus.ProgParty,
+      );
+
+      const event = await service['handleApprovedReaction'](
+        previouslyApproved,
+        reviewMessage(),
+        user,
+        settings,
+      );
+
+      const appended = [
+        {
+          type: 'trackingStarted',
+          progPoint: 'old-point',
+          partyStatus: PartyStatus.ClearParty,
+          at: expect.any(Timestamp),
+        },
+        {
+          type: 'approved',
+          progPoint: 'point-a',
+          partyStatus: PartyStatus.ProgParty,
+          actorId: 'reviewer-1',
+          at: expect.any(Timestamp),
+          via: 'reaction',
+        },
+      ];
+      expect(repository.updateSignupStatus).toHaveBeenCalledWith(
+        SignupStatus.APPROVED,
+        expect.objectContaining({
+          progPoint: 'point-a',
+          partyStatus: PartyStatus.ProgParty,
+        }),
+        'spike',
+        appended,
+      );
+      // the event carries the very entries written, so handlers can match
+      // the stored decision by its `at`
+      expect(event?.signup.reviewHistory).toEqual(appended);
+      expect(event?.signup.reviewHistory).toEqual(
+        repository.updateSignupStatus.mock.calls[0][3],
+      );
+    });
+
+    it('appends only the approved entry when history already exists', async () => {
+      const existing: ReviewHistoryEntry = {
+        type: 'trackingStarted',
+        at: Timestamp.fromMillis(1_000),
+      };
+      const tracked = partialMock<SignupDocument>({
+        discordId: 'abc123',
+        reviewHistory: [existing],
+      });
+      approvalDecisionRequestService.requestApprovalDecision.mockResolvedValue({
+        type: 'approved',
+        progPoint: 'point-a',
+      });
+      encountersService.getPartyStatusForProgPoint.mockResolvedValue(
+        PartyStatus.ProgParty,
+      );
+
+      const event = await service['handleApprovedReaction'](
+        tracked,
+        reviewMessage(),
+        user,
+        settings,
+      );
+
+      expect(repository.updateSignupStatus).toHaveBeenCalledWith(
+        SignupStatus.APPROVED,
+        expect.anything(),
+        'spike',
+        [expect.objectContaining({ type: 'approved', actorId: 'reviewer-1' })],
+      );
+      expect(event?.signup.reviewHistory).toEqual([
+        existing,
+        expect.objectContaining({ type: 'approved', actorId: 'reviewer-1' }),
+      ]);
+    });
+
+    it('publishes the approved signup without the previous announcement id', async () => {
+      const previouslyAnnounced = partialMock<SignupDocument>({
+        discordId: 'abc123',
+        approvalMessageId: 'old-announcement',
+        reviewHistory: [],
+      });
+      approvalDecisionRequestService.requestApprovalDecision.mockResolvedValue({
+        type: 'approved',
+        progPoint: 'point-a',
+      });
+      encountersService.getPartyStatusForProgPoint.mockResolvedValue(
+        PartyStatus.ProgParty,
+      );
+
+      const event = await service['handleApprovedReaction'](
+        previouslyAnnounced,
+        reviewMessage(),
+        user,
+        settings,
+      );
+
+      if (!event) {
+        throw new Error('expected an event for a decided approval');
+      }
+
+      expect(event.signup).toHaveProperty('approvalMessageId', undefined);
+    });
+
+    it('writes no history for a cleared approval', async () => {
+      approvalDecisionRequestService.requestApprovalDecision.mockResolvedValue({
+        type: 'approved',
+        progPoint: PartyStatus.Cleared,
+      });
+
+      await service['handleApprovedReaction'](
+        signup,
+        reviewMessage(),
+        user,
+        settings,
+      );
+
+      expect(repository.removeSignup).toHaveBeenCalled();
+      expect(repository.updateSignupStatus).not.toHaveBeenCalled();
+    });
+
+    it('appends a declined entry on decline', async () => {
+      await service['handleDeclinedReaction'](signup, reviewMessage(), user);
+
+      expect(repository.updateSignupStatus).toHaveBeenCalledWith(
+        SignupStatus.DECLINED,
+        signup,
+        'spike',
+        [
+          { type: 'trackingStarted', at: expect.any(Timestamp) },
+          {
+            type: 'declined',
+            actorId: 'reviewer-1',
+            at: expect.any(Timestamp),
+            via: 'reaction',
+          },
+        ],
+      );
+    });
+  });
+
   describe('handleError', () => {
     const buildMessageWithReactions = (
       approvedRemove: ReturnType<typeof vi.fn>,
@@ -288,6 +481,71 @@ describe('SignupService', () => {
         expect.any(String),
       );
       expect(errorService.captureError).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('onApplicationBootstrap', () => {
+    afterEach(() => {
+      service.onModuleDestroy();
+      vi.useRealTimers();
+    });
+
+    const emitReaction = (emitter: EventEmitter, messageId: string) => {
+      emitter.emit(
+        Events.MessageReactionAdd,
+        mockOf<MessageReaction>({
+          message: mockOf<Message<boolean>>({ id: messageId }),
+        }),
+        user,
+      );
+    };
+
+    it('keeps serializing reactions for the same message across the approval decision window', async () => {
+      const emitter = new EventEmitter();
+      // `client` is declared `readonly` on DiscordService; defineProperty
+      // bypasses that (the auto-mock proxy's `defineProperty` trap stores it)
+      // without a type assertion.
+      Object.defineProperty(discordService, 'client', {
+        value: mockOf<Client>(emitter),
+        configurable: true,
+      });
+
+      let resolveFirst: () => void = () => {};
+      const firstProcessEvent = new Promise<void>((resolve) => {
+        resolveFirst = resolve;
+      });
+
+      const processEventSpy = vi
+        .spyOn(
+          withInternals<{
+            processEvent: (event: unknown) => Promise<void>;
+          }>(service),
+          'processEvent',
+        )
+        .mockImplementationOnce(() => firstProcessEvent)
+        .mockResolvedValue(undefined);
+
+      vi.useFakeTimers();
+
+      service.onApplicationBootstrap();
+
+      emitReaction(emitter, 'review-1');
+      expect(processEventSpy).toHaveBeenCalledTimes(1);
+
+      // Past the old 30s group duration, but well inside the up-to-5-minute
+      // approval decision window the first reaction is still awaiting.
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      emitReaction(emitter, 'review-1');
+      // The group must still be alive and serializing via concatMap: the
+      // second reaction should NOT start a new, concurrent processEvent call
+      // while the first is still pending.
+      expect(processEventSpy).toHaveBeenCalledTimes(1);
+
+      resolveFirst();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(processEventSpy).toHaveBeenCalledTimes(2);
     });
   });
 });

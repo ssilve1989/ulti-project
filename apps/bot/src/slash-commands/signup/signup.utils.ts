@@ -69,3 +69,11 @@ export function getErrorReplyMessage(error: unknown): string {
     )
     .otherwise(() => SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR);
 }
+
+// Discord block-quotes a line only when it starts with "> "
+export function quoteLines(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => `> ${line}`)
+    .join('\n');
+}

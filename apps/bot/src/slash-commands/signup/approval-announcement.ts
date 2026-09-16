@@ -1,0 +1,140 @@
+import type { Logger } from '@nestjs/common';
+import {
+  EncounterFriendlyDescription,
+  type SignupDocument,
+} from '@ulti-project/shared';
+import { Colors, EmbedBuilder, userMention } from 'discord.js';
+import {
+  characterField,
+  emptyField,
+  worldField,
+} from '../../common/components/fields.js';
+import type { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import { latestEntryOfType } from './review-history.js';
+import { hasClearedStatus } from './signup.utils.js';
+
+type AnnouncementSignup = Pick<
+  SignupDocument,
+  | 'character'
+  | 'discordId'
+  | 'encounter'
+  | 'partyStatus'
+  | 'progPoint'
+  | 'progPointRequested'
+  | 'proofOfProgLink'
+  | 'role'
+  | 'screenshot'
+  | 'world'
+>;
+
+export interface ApprovalAnnouncementEmbedInput {
+  signup: AnnouncementSignup;
+  encounterEmoji: string;
+  footer: { text: string; iconURL: string };
+  applicantAvatarUrl?: string;
+}
+
+/**
+ * The public "Signup Approved" / "Congratulations!" embed. Shared by the
+ * reaction approval flow and /edit-signup so both produce identical posts.
+ */
+export function buildApprovalAnnouncementEmbed({
+  signup,
+  encounterEmoji,
+  footer,
+  applicantAvatarUrl,
+}: ApprovalAnnouncementEmbedInput): EmbedBuilder {
+  const {
+    encounter,
+    character,
+    world,
+    role,
+    progPoint,
+    progPointRequested,
+    proofOfProgLink,
+    screenshot,
+  } = signup;
+
+  const title = hasClearedStatus(signup)
+    ? 'Congratulations!'
+    : `Signup Approved - ${EncounterFriendlyDescription[encounter]} ${encounterEmoji}`.trim();
+
+  const embed = new EmbedBuilder()
+    .setTitle(title)
+    .setFields([
+      characterField(character),
+      worldField(world),
+      { name: 'Job', value: role, inline: true },
+      {
+        name: 'Prog Point',
+        value: progPoint ?? progPointRequested,
+        inline: true,
+      },
+      emptyField(),
+    ])
+    .setFooter(footer)
+    .setColor(Colors.Green)
+    .setTimestamp(new Date());
+
+  if (proofOfProgLink) {
+    embed.addFields([
+      {
+        name: 'Prog Proof Link',
+        value: `[View](${proofOfProgLink})`,
+        inline: true,
+      },
+    ]);
+  }
+
+  if (screenshot) {
+    embed.setImage(screenshot);
+  }
+
+  return applicantAvatarUrl ? embed.setThumbnail(applicantAvatarUrl) : embed;
+}
+
+export function buildApprovalAnnouncementContent(
+  signup: Pick<SignupDocument, 'discordId' | 'encounter' | 'partyStatus'>,
+): string {
+  const message = hasClearedStatus(signup)
+    ? `Congratulations on clearing **${EncounterFriendlyDescription[signup.encounter]}**!`
+    : 'Signup Approved!';
+
+  return `${userMention(signup.discordId)} ${message}`;
+}
+
+/**
+ * Stores a just-posted announcement's id against the approval decision it
+ * announces: the latest `approved` entry in the history the caller persisted.
+ * Shared by the reaction approval flow and /edit-signup reversals so both
+ * apply the same rule. Nothing is stored once a newer approval exists; the
+ * post stays, like any past approval's.
+ */
+export async function storeApprovalMessageId(
+  signupCollection: Pick<SignupCollection, 'setApprovalMessageId'>,
+  logger: Pick<Logger, 'log' | 'warn'>,
+  signup: Pick<SignupDocument, 'discordId' | 'encounter' | 'reviewHistory'>,
+  messageId: string,
+): Promise<void> {
+  const key = `${signup.discordId}-${signup.encounter}`;
+  const decision = latestEntryOfType(signup.reviewHistory, 'approved');
+
+  if (!decision) {
+    logger.warn(
+      `Signup ${key} has no approval decision for announcement ${messageId}, its id was not stored`,
+    );
+    return;
+  }
+
+  const write = await signupCollection.setApprovalMessageId(
+    signup,
+    messageId,
+    decision.at,
+  );
+
+  if (write.type === 'stale') {
+    logger.log(
+      `A newer approval of signup ${key} superseded announcement ${messageId}, its id was not stored`,
+    );
+  }
+}

@@ -8,6 +8,15 @@ import { PartyStatus } from '@ulti-project/shared';
 import { EncountersCollection } from '../firebase/collections/encounters-collection.js';
 import { ThresholdError } from './errors/threshold.error.js';
 
+/** id → label lookup for rendering a prog point the user chose. */
+export function progPointLabelMap(
+  progPoints: readonly ProgPointDocument[],
+): ReadonlyMap<string, string> {
+  return new Map(
+    progPoints.map((progPoint) => [progPoint.id, progPoint.label]),
+  );
+}
+
 @Injectable()
 export class EncountersService {
   private readonly logger = new Logger(EncountersService.name);

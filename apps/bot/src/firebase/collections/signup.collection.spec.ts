@@ -1,6 +1,8 @@
 import { Test } from '@nestjs/testing';
 import {
   Encounter,
+  PartyStatus,
+  type ReviewHistoryEntry,
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
@@ -12,6 +14,7 @@ import type {
   Firestore,
   Query,
 } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import type { SignupSchema } from '../../slash-commands/signup/signup.schema.js';
 import {
@@ -28,10 +31,33 @@ const SIGNUP_KEY = {
   encounter: Encounter.DSR,
 };
 
+/**
+ * The slice of Firestore's `Transaction` that `SignupCollection.upsert` uses.
+ * `Transaction`'s real methods are overloaded (e.g. `get` also accepts a
+ * `Query` or `AggregateQuery`), which makes `Mocked<Transaction>['get']`
+ * resolve to the last overload's return type when mocking - a single-
+ * signature stand-in avoids that.
+ */
+interface TransactionStub {
+  get: (
+    documentRef: DocumentReference<DocumentData>,
+  ) => Promise<DocumentSnapshot<DocumentData>>;
+  update: (
+    documentRef: DocumentReference<DocumentData>,
+    data: DocumentData,
+  ) => unknown;
+  create: (
+    documentRef: DocumentReference<DocumentData>,
+    data: DocumentData,
+  ) => unknown;
+}
+
 describe('Signup Repository', () => {
   let repository: SignupCollection;
   let collection: Mocked<CollectionReference<DocumentData>>;
   let doc: Mocked<DocumentReference<DocumentData>>;
+  /** Mocked transaction passed to the `firestore.runTransaction` callback. */
+  let transaction: Mocked<TransactionStub>;
   const signupRequest = partialMock<SignupSchema>(SIGNUP_KEY);
 
   beforeEach(async () => {
@@ -44,8 +70,18 @@ describe('Signup Repository', () => {
       doc: vi.fn().mockReturnValue(doc),
     });
 
+    transaction = mockOf<Mocked<TransactionStub>>({
+      get: vi.fn(),
+      update: vi.fn(),
+      create: vi.fn(),
+    });
+
     const firestore = mockOf<Firestore>({
       collection: vi.fn().mockReturnValue(collection),
+      runTransaction: vi.fn(
+        (updateFunction: (transaction: TransactionStub) => Promise<unknown>) =>
+          updateFunction(transaction),
+      ),
     });
 
     const fixture = await Test.createTestingModule({
@@ -66,7 +102,7 @@ describe('Signup Repository', () => {
       status: SignupStatus.APPROVED,
       reviewedBy: 'someReviewer',
     };
-    doc.get.mockResolvedValueOnce(
+    transaction.get.mockResolvedValueOnce(
       mockOf<DocumentSnapshot>({
         exists: true,
         data: () => existingData,
@@ -75,15 +111,18 @@ describe('Signup Repository', () => {
 
     const result = await repository.upsert(signupRequest);
 
-    expect(doc.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...existingData,
-        ...signupRequest,
-        status: SignupStatus.UPDATE_PENDING,
-        reviewedBy: null,
-      }),
-    );
+    // Exact match (not objectContaining): the payload must be built only
+    // from `props`, never spread from `existing` (no reviewHistory,
+    // approvalMessageId, progPoint or partyStatus copied over).
+    expect(transaction.update).toHaveBeenCalledWith(doc, {
+      ...signupRequest,
+      status: SignupStatus.UPDATE_PENDING,
+      reviewedBy: null,
+      expiresAt: expect.any(Timestamp),
+    });
 
+    expect(transaction.create).not.toHaveBeenCalled();
+    expect(doc.update).not.toHaveBeenCalled();
     expect(doc.create).not.toHaveBeenCalled();
     expect(result).toMatchObject({
       ...existingData,
@@ -99,7 +138,7 @@ describe('Signup Repository', () => {
       status: SignupStatus.PENDING,
       reviewedBy: null,
     };
-    doc.get.mockResolvedValueOnce(
+    transaction.get.mockResolvedValueOnce(
       mockOf<DocumentSnapshot>({
         exists: true,
         data: () => existingData,
@@ -108,20 +147,18 @@ describe('Signup Repository', () => {
 
     const result = await repository.upsert(signupRequest);
 
-    expect(doc.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...existingData,
-        ...signupRequest,
-        status: SignupStatus.PENDING, // Should remain PENDING
-        reviewedBy: null,
-      }),
-    );
+    expect(transaction.update).toHaveBeenCalledWith(doc, {
+      ...signupRequest,
+      status: SignupStatus.PENDING, // Should remain PENDING
+      reviewedBy: null,
+      expiresAt: expect.any(Timestamp),
+    });
 
     expect(result.status).toBe(SignupStatus.PENDING);
   });
 
   it('should call create if the document does not exist', async () => {
-    doc.get.mockResolvedValueOnce(
+    transaction.get.mockResolvedValueOnce(
       mockOf<DocumentSnapshot>({
         exists: false,
         data: () => null,
@@ -130,31 +167,76 @@ describe('Signup Repository', () => {
 
     const result = await repository.upsert(signupRequest);
 
-    expect(doc.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...signupRequest,
-        status: SignupStatus.PENDING,
-      }),
-    );
+    expect(transaction.create).toHaveBeenCalledWith(doc, {
+      ...signupRequest,
+      status: SignupStatus.PENDING,
+      expiresAt: expect.any(Timestamp),
+    });
 
+    expect(transaction.update).not.toHaveBeenCalled();
     expect(doc.update).not.toHaveBeenCalled();
+    expect(doc.create).not.toHaveBeenCalled();
     expect(result).toMatchObject({
       ...signupRequest,
       status: SignupStatus.PENDING,
     });
   });
 
-  it('should call updateSignupStatus with the correct arguments', async () => {
+  it('clears the approval announcement id when a signup is approved', async () => {
+    const historyEntries: ReviewHistoryEntry[] = [
+      {
+        type: 'approved',
+        progPoint: 'P2',
+        partyStatus: PartyStatus.ProgParty,
+        actorId: 'reviewer-1',
+        at: Timestamp.fromMillis(1_000),
+        via: 'reaction',
+      },
+    ];
+
     await repository.updateSignupStatus(
       SignupStatus.APPROVED,
       SIGNUP_KEY,
       'reviewedBy',
+      historyEntries,
     );
 
     expect(doc.update).toHaveBeenCalledWith({
       status: SignupStatus.APPROVED,
       reviewedBy: 'reviewedBy',
+      reviewHistory: FieldValue.arrayUnion(...historyEntries),
+      approvalMessageId: FieldValue.delete(),
+      declineReason: FieldValue.delete(),
     });
+  });
+
+  // a reason belongs to the decline that collected it: a later decision must
+  // not leave the previous one's reason behind for the edit screen to show
+  it('clears a superseded decline reason when a signup is declined again', async () => {
+    const historyEntries: ReviewHistoryEntry[] = [
+      {
+        type: 'declined',
+        actorId: 'reviewer-1',
+        at: Timestamp.fromMillis(1_000),
+        via: 'reaction',
+      },
+    ];
+
+    await repository.updateSignupStatus(
+      SignupStatus.DECLINED,
+      SIGNUP_KEY,
+      'reviewedBy',
+      historyEntries,
+    );
+
+    expect(doc.update).toHaveBeenCalledWith({
+      status: SignupStatus.DECLINED,
+      reviewedBy: 'reviewedBy',
+      reviewHistory: FieldValue.arrayUnion(...historyEntries),
+      declineReason: FieldValue.delete(),
+    });
+    // the standing announcement outlives a decline
+    expect(doc.update.mock.calls[0][0]).not.toHaveProperty('approvalMessageId');
   });
 
   it('should call setReviewMessageId with the correct arguments', async () => {
@@ -162,6 +244,337 @@ describe('Signup Repository', () => {
 
     expect(doc.update).toHaveBeenCalledWith({
       reviewMessageId: 'messageId',
+    });
+  });
+
+  it('preserves reviewHistory and approvalMessageId when a reviewed signup is re-submitted', async () => {
+    const reviewHistory: ReviewHistoryEntry[] = [
+      {
+        type: 'approved',
+        progPoint: 'P2',
+        partyStatus: PartyStatus.ProgParty,
+        actorId: 'reviewer-1',
+        at: Timestamp.fromMillis(1_000),
+        via: 'reaction',
+      },
+    ];
+    const existingData = {
+      ...signupRequest,
+      status: SignupStatus.APPROVED,
+      reviewedBy: 'someReviewer',
+      reviewHistory,
+      approvalMessageId: 'announcement-1',
+    };
+    transaction.get.mockResolvedValueOnce(
+      mockOf<DocumentSnapshot>({ exists: true, data: () => existingData }),
+    );
+
+    const result = await repository.upsert(signupRequest);
+
+    // The write must not copy reviewHistory/approvalMessageId back from
+    // `existing` - only the returned value should still carry them.
+    expect(transaction.update).toHaveBeenCalledWith(doc, {
+      ...signupRequest,
+      status: SignupStatus.UPDATE_PENDING,
+      reviewedBy: null,
+      expiresAt: expect.any(Timestamp),
+    });
+    expect(result).toMatchObject({
+      reviewHistory,
+      approvalMessageId: 'announcement-1',
+      status: SignupStatus.UPDATE_PENDING,
+      reviewedBy: null,
+    });
+  });
+
+  describe('#setApprovalMessageId', () => {
+    const approvedAt = (millis: number): ReviewHistoryEntry => ({
+      type: 'approved',
+      progPoint: 'P2',
+      partyStatus: PartyStatus.ProgParty,
+      actorId: 'reviewer-1',
+      at: Timestamp.fromMillis(millis),
+      via: 'reaction',
+    });
+
+    const storedSignup = (reviewHistory: ReviewHistoryEntry[]) =>
+      mockOf<DocumentSnapshot>({
+        exists: true,
+        data: () => partialMock<SignupDocument>({ reviewHistory }),
+      });
+
+    it('stores the id when the latest approval is the given decision', async () => {
+      transaction.get.mockResolvedValueOnce(
+        storedSignup([
+          approvedAt(1_000),
+          {
+            type: 'progPointEdited',
+            progPoint: 'P3',
+            partyStatus: PartyStatus.ProgParty,
+            actorId: 'editor-1',
+            at: Timestamp.fromMillis(3_000),
+            via: 'edit',
+          },
+        ]),
+      );
+
+      await expect(
+        repository.setApprovalMessageId(
+          SIGNUP_KEY,
+          'announcement-1',
+          Timestamp.fromMillis(1_000),
+        ),
+      ).resolves.toEqual({ type: 'written' });
+
+      expect(transaction.get).toHaveBeenCalledWith(doc);
+      expect(transaction.update).toHaveBeenCalledWith(doc, {
+        approvalMessageId: 'announcement-1',
+      });
+      expect(doc.update).not.toHaveBeenCalled();
+    });
+
+    it('writes nothing when a newer approval exists', async () => {
+      transaction.get.mockResolvedValueOnce(
+        storedSignup([approvedAt(1_000), approvedAt(2_000)]),
+      );
+
+      await expect(
+        repository.setApprovalMessageId(
+          SIGNUP_KEY,
+          'announcement-1',
+          Timestamp.fromMillis(1_000),
+        ),
+      ).resolves.toEqual({ type: 'stale' });
+
+      expect(transaction.update).not.toHaveBeenCalled();
+      expect(doc.update).not.toHaveBeenCalled();
+    });
+
+    it('writes nothing when the signup no longer exists', async () => {
+      transaction.get.mockResolvedValueOnce(
+        mockOf<DocumentSnapshot>({ exists: false, data: () => undefined }),
+      );
+
+      await expect(
+        repository.setApprovalMessageId(
+          SIGNUP_KEY,
+          'announcement-1',
+          Timestamp.fromMillis(1_000),
+        ),
+      ).resolves.toEqual({ type: 'stale' });
+
+      expect(transaction.update).not.toHaveBeenCalled();
+      expect(doc.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('#findByKeyWithVersion', () => {
+    it('returns the signup with its update time', async () => {
+      const signup = partialMock<SignupDocument>({
+        ...SIGNUP_KEY,
+        status: SignupStatus.APPROVED,
+      });
+      const updateTime = Timestamp.fromMillis(5_000);
+      doc.get.mockResolvedValueOnce(
+        mockOf<DocumentSnapshot>({ data: () => signup, updateTime }),
+      );
+
+      await expect(
+        repository.findByKeyWithVersion(SIGNUP_KEY),
+      ).resolves.toEqual({
+        signup,
+        updateTime,
+      });
+      expect(collection.doc).toHaveBeenCalledWith('12345-DSR');
+    });
+
+    it('returns undefined when the signup does not exist', async () => {
+      doc.get.mockResolvedValueOnce(
+        mockOf<DocumentSnapshot>({
+          data: () => undefined,
+          updateTime: undefined,
+        }),
+      );
+
+      await expect(
+        repository.findByKeyWithVersion(SIGNUP_KEY),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('#applyEdit', () => {
+    const updateTime = Timestamp.fromMillis(5_000);
+    const historyEntries: ReviewHistoryEntry[] = [
+      {
+        type: 'progPointEdited',
+        progPoint: 'P4',
+        partyStatus: PartyStatus.ClearParty,
+        actorId: 'editor-1',
+        at: Timestamp.fromMillis(6_000),
+        via: 'edit',
+      },
+    ];
+    // a reversal appends an `approved` entry, a correction a `progPointEdited`
+    const reversalEntries: ReviewHistoryEntry[] = [
+      {
+        type: 'approved',
+        progPoint: 'P4',
+        partyStatus: PartyStatus.ClearParty,
+        actorId: 'editor-1',
+        at: Timestamp.fromMillis(6_000),
+        via: 'edit',
+      },
+    ];
+    const data: Parameters<SignupCollection['applyEdit']>[1] = {
+      progPoint: 'P4',
+      partyStatus: PartyStatus.ClearParty,
+      historyEntries,
+    };
+    const signup = partialMock<SignupDocument>({
+      ...SIGNUP_KEY,
+      status: SignupStatus.DECLINED,
+      approvalMessageId: 'announcement-1',
+      declineReason: 'stale reason',
+    });
+
+    it('writes a correction under a lastUpdateTime precondition, keeping the announcement id', async () => {
+      await expect(
+        repository.applyEdit(signup, data, updateTime),
+      ).resolves.toMatchObject({ type: 'written' });
+
+      expect(doc.update).toHaveBeenCalledWith(
+        {
+          status: SignupStatus.APPROVED,
+          progPoint: 'P4',
+          partyStatus: PartyStatus.ClearParty,
+          reviewHistory: FieldValue.arrayUnion(...historyEntries),
+          declineReason: FieldValue.delete(),
+        },
+        { lastUpdateTime: updateTime },
+      );
+      expect(doc.update.mock.calls[0][0]).not.toHaveProperty(
+        'approvalMessageId',
+      );
+    });
+
+    it('clears the announcement id in the same write for a reversal', async () => {
+      await expect(
+        repository.applyEdit(
+          signup,
+          { ...data, historyEntries: reversalEntries },
+          updateTime,
+        ),
+      ).resolves.toMatchObject({ type: 'written' });
+
+      expect(doc.update).toHaveBeenCalledWith(
+        {
+          status: SignupStatus.APPROVED,
+          progPoint: 'P4',
+          partyStatus: PartyStatus.ClearParty,
+          reviewHistory: FieldValue.arrayUnion(...reversalEntries),
+          approvalMessageId: FieldValue.delete(),
+          declineReason: FieldValue.delete(),
+        },
+        { lastUpdateTime: updateTime },
+      );
+    });
+
+    // callers publish this document, so it must match what the write produced
+    it('returns the document as written, with the superseded fields gone', async () => {
+      const write = await repository.applyEdit(
+        signup,
+        { ...data, historyEntries: reversalEntries },
+        updateTime,
+      );
+
+      expect(write).toEqual({
+        type: 'written',
+        after: {
+          ...signup,
+          status: SignupStatus.APPROVED,
+          progPoint: 'P4',
+          partyStatus: PartyStatus.ClearParty,
+          reviewHistory: reversalEntries,
+          approvalMessageId: undefined,
+          declineReason: undefined,
+        },
+      });
+    });
+
+    it('keeps the announcement id on the returned document for a correction', async () => {
+      const write = await repository.applyEdit(signup, data, updateTime);
+
+      expect(write).toMatchObject({
+        type: 'written',
+        after: {
+          approvalMessageId: 'announcement-1',
+          declineReason: undefined,
+        },
+      });
+    });
+
+    it('returns a conflict when the precondition fails', async () => {
+      doc.update.mockRejectedValueOnce(
+        Object.assign(new Error('9 FAILED_PRECONDITION'), { code: 9 }),
+      );
+
+      await expect(
+        repository.applyEdit(signup, data, updateTime),
+      ).resolves.toEqual({ type: 'conflict' });
+    });
+
+    it('returns a conflict when the signup was deleted', async () => {
+      doc.update.mockRejectedValueOnce(
+        Object.assign(new Error('5 NOT_FOUND'), { code: 5 }),
+      );
+
+      await expect(
+        repository.applyEdit(signup, data, updateTime),
+      ).resolves.toEqual({ type: 'conflict' });
+    });
+
+    it('rethrows any other error', async () => {
+      const failure = Object.assign(new Error('14 UNAVAILABLE'), { code: 14 });
+      doc.update.mockRejectedValueOnce(failure);
+
+      await expect(repository.applyEdit(signup, data, updateTime)).rejects.toBe(
+        failure,
+      );
+    });
+  });
+
+  describe('#updateDeclineReason', () => {
+    const REASON = 'not enough logs';
+
+    const mockStatus = (status: SignupStatus) => {
+      transaction.get.mockResolvedValueOnce(
+        mockOf<DocumentSnapshot>({
+          exists: true,
+          data: () => ({ ...signupRequest, status }),
+        }),
+      );
+    };
+
+    it('records the reason while the signup is still declined', async () => {
+      mockStatus(SignupStatus.DECLINED);
+
+      const result = await repository.updateDeclineReason(SIGNUP_KEY, REASON);
+
+      expect(result).toEqual({ type: 'written' });
+      expect(transaction.update).toHaveBeenCalledWith(doc, {
+        declineReason: REASON,
+      });
+    });
+
+    // a reversal can land between a caller's read and this write, and the
+    // reason must not reattach itself to the signup it just approved
+    it('skips the write when the signup is no longer declined', async () => {
+      mockStatus(SignupStatus.APPROVED);
+
+      const result = await repository.updateDeclineReason(SIGNUP_KEY, REASON);
+
+      expect(result).toEqual({ type: 'skipped' });
+      expect(transaction.update).not.toHaveBeenCalled();
     });
   });
 
