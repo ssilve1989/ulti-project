@@ -262,12 +262,22 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       signup,
       decision.progPoint,
     );
-    await this.persistApprovedSignup(
+    const recorded = await this.persistApprovedSignup(
       confirmedSignup,
       settings,
       user,
       message.id,
     );
+
+    if (!recorded) {
+      try {
+        await this.revertReviewReaction(user, message);
+      } catch (error) {
+        this.errorService.captureError(error);
+      }
+      await this.notifyReviewerStateChanged(user, signup);
+      return undefined;
+    }
 
     return new SignupApprovedEvent(
       confirmedSignup,
@@ -312,7 +322,18 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     settings: SettingsDocument,
     user: User,
     reviewMessageId: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
+    const recorded = await this.repository.updateSignupStatus(
+      SignupStatus.APPROVED,
+      confirmedSignup,
+      user.username,
+      reviewMessageId,
+    );
+
+    if (!recorded) {
+      return false;
+    }
+
     if (settings.spreadsheetId) {
       await this.sheetsService.upsertSignup(
         confirmedSignup,
@@ -328,14 +349,9 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         world: confirmedSignup.world,
         encounter: confirmedSignup.encounter,
       });
-    } else {
-      await this.repository.updateSignupStatus(
-        SignupStatus.APPROVED,
-        confirmedSignup,
-        user.username,
-        reviewMessageId,
-      );
     }
+
+    return true;
   }
 
   private async handleDeclinedReaction(
