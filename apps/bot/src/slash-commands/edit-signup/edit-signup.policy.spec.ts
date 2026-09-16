@@ -232,12 +232,36 @@ describe('buildEditPreview', () => {
       ],
       effects: [
         'Google Sheet row updated',
-        'Encounter role: <@&prog-role>',
+        'Encounter role: none → <@&prog-role>',
         'Prog-point role updated',
         'New public announcement posted',
         "Applicant will be DM'd",
       ],
     });
+  });
+
+  it('shows a reversal role removal with no replacement, not silence', () => {
+    // progRoles configured, no clearRoles: the applicant currently holds the
+    // prog role (their stored partyStatus implies it), and the reviewer
+    // reverses onto a Clear Party prog point, which has no mapped role.
+    const declinedHoldingProgRole = partialMock<SignupDocument>({
+      encounter: Encounter.DSR,
+      progPoint: 'P2',
+      partyStatus: PartyStatus.ProgParty,
+    });
+
+    const preview = buildEditPreview({
+      signup: declinedHoldingProgRole,
+      kind: 'reversal',
+      selection: { progPoint: 'P4', partyStatus: PartyStatus.ClearParty },
+      settings: partialMock<SettingsDocument>({
+        progRoles: { [Encounter.DSR]: 'prog-role' },
+      }),
+      progPointLabels,
+      announcementExists: true,
+    });
+
+    expect(preview.effects).toContain('Encounter role: <@&prog-role> → none');
   });
 
   it('keeps the status row for a reversal that re-selects the previous prog point', () => {

@@ -149,7 +149,6 @@ function sheetEffect({
 
 function coarseRoleEffect({
   signup: { encounter, partyStatus },
-  kind,
   selection,
   settings,
 }: EditPreviewInput): string | undefined {
@@ -158,11 +157,6 @@ function coarseRoleEffect({
   }
 
   const to = impliedCoarseRole(settings, encounter, selection.partyStatus);
-
-  if (kind === 'reversal') {
-    return to ? `Encounter role: ${roleMention(to)}` : undefined;
-  }
-
   const from = impliedCoarseRole(settings, encounter, partyStatus);
 
   return from === to

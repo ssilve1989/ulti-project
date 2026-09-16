@@ -354,8 +354,16 @@ class EditSignupCommandHandler implements ISlashCommand {
 
     const commit = commitFrom(state);
 
-    // commit buttons are disabled until the preview shows a change
+    // commit buttons are disabled until the preview shows a change, but a
+    // click that lands before that disable renders is still accepted by
+    // Discord and must be acknowledged, or the reviewer sees "This
+    // interaction failed" — matches ApprovalDecisionRequestService's
+    // analogous guard reply.
     if (!commit) {
+      await interaction.reply({
+        content: EDIT_SIGNUP_MESSAGES.CHANGES_REQUIRED_BEFORE_SAVE,
+        flags: MessageFlags.Ephemeral,
+      });
       return undefined;
     }
 
