@@ -84,7 +84,7 @@ describe('NotifyApplicantEventHandler', () => {
     expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
       'applicant-1',
       {
-        content: `Your approved prog point for **${encounterName}** was updated: P2 Light Rampant → P4 Crystallize Time.`,
+        content: `Your approved prog point for **${encounterName}** was updated: \`P2 Light Rampant\` → \`P4 Crystallize Time\`.`,
       },
     );
   });
@@ -95,7 +95,7 @@ describe('NotifyApplicantEventHandler', () => {
     expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
       'applicant-1',
       {
-        content: `Your signup for **${encounterName}** has been approved at **P4 Crystallize Time**. This replaces the earlier decline.`,
+        content: `Your signup for **${encounterName}** has been approved at \`P4 Crystallize Time\`. This replaces the earlier decline.`,
       },
     );
   });
@@ -106,7 +106,7 @@ describe('NotifyApplicantEventHandler', () => {
     expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
       'applicant-1',
       {
-        content: `Your approved prog point for **${encounterName}** was updated: P2 Light Rampant → P4 Crystallize Time.\n\nThe reviewer left you a comment:\n\n> sorry\n> mis-click`,
+        content: `Your approved prog point for **${encounterName}** was updated: \`P2 Light Rampant\` → \`P4 Crystallize Time\`.\n\nThe reviewer left you a comment:\n\n> sorry\n> mis-click`,
       },
     );
   });

@@ -45,8 +45,8 @@ function buildApplicantMessage(
 
   const message =
     kind === 'correction'
-      ? `Your approved prog point for **${encounter}** was updated: ${label(before.progPoint)} → ${label(after.progPoint)}.`
-      : `Your signup for **${encounter}** has been approved at **${label(after.progPoint)}**. This replaces the earlier decline.`;
+      ? `Your approved prog point for **${encounter}** was updated: \`${label(before.progPoint)}\` → \`${label(after.progPoint)}\`.`
+      : `Your signup for **${encounter}** has been approved at \`${label(after.progPoint)}\`. This replaces the earlier decline.`;
 
   return comment
     ? `${message}\n\nThe reviewer left you a comment:\n\n${quoteLines(comment)}`
