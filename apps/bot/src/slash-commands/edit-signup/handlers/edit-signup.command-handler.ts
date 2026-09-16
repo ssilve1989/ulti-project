@@ -5,14 +5,12 @@ import {
   ActionRowBuilder,
   type ButtonInteraction,
   ChatInputCommandInteraction,
-  DiscordAPIError,
   DiscordjsErrorCodes,
   type EmbedBuilder,
   type Message,
   type MessageComponentInteraction,
   MessageFlags,
   messageLink,
-  RESTJSONErrorCodes,
   type StringSelectMenuBuilder,
   type StringSelectMenuInteraction,
 } from 'discord.js';
@@ -31,9 +29,9 @@ import { SettingsCollection } from '../../../firebase/collections/settings-colle
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
 import {
-  APPROVAL_COMMENT_INPUT_ID,
-  createApprovalCommentModal,
-} from '../../signup/approval-decision.components.js';
+  type CollectedComment,
+  collectApprovalComment,
+} from '../../signup/approval-comment.js';
 import { SlashCommand } from '../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../slash-command.interface.js';
 import {
@@ -413,72 +411,38 @@ class EditSignupCommandHandler implements ISlashCommand {
     state: ScreenState,
     deadline: number,
   ): Promise<EditOutcome | undefined> {
-    // discord.js has no "modal closed" event: a modal dismissed with Esc
-    // leaves its submit listener parked on this message, so a later click's
-    // submit reaches both listeners and only the newest click may act on it
-    state.modalGeneration += 1;
-    const generation = state.modalGeneration;
+    const collected = await this.awaitComment(interaction, state, deadline);
 
-    try {
-      await interaction.showModal(createApprovalCommentModal());
-    } catch (error) {
-      if (
-        error instanceof DiscordAPIError &&
-        error.code === RESTJSONErrorCodes.UnknownInteraction
-      ) {
-        // recoverable: the collector is still running, so a second click
-        // arrives with a fresh interaction token
-        await interaction.user.send(EDIT_SIGNUP_MESSAGES.MODAL_TOKEN_EXPIRED);
-        return undefined;
-      }
-      throw error;
-    }
-
-    const modal = await this.awaitComment(interaction, deadline);
-
-    if (!modal) {
-      // the outer collector's own 'end' event reports the timeout
-      return undefined;
-    }
-
-    // built at submit time, never from values captured at click time
+    // read at submit time, never from values captured at click time
     const commit = commitFrom(state);
 
-    if (generation !== state.modalGeneration || !commit) {
-      // stale listener: the newest click's own listener handles this submit
+    if (!collected || !commit) {
       return undefined;
     }
 
-    if (modal.isFromMessage()) {
-      await modal.update({
+    if (collected.submission.isFromMessage()) {
+      await collected.submission.update({
         content: EDIT_SIGNUP_MESSAGES.SAVING,
         embeds: [],
         components: [],
       });
     }
 
-    const comment = modal.fields
-      .getTextInputValue(APPROVAL_COMMENT_INPUT_ID)
-      .trim();
-
-    return { ...commit, comment: comment || undefined };
+    return { ...commit, comment: collected.comment };
   }
 
-  // Resolves to the reviewer's modal submission, or `undefined` if the
-  // outer screen's timeout fires first (discord.js has no "modal closed"
-  // event, so this collector keeps waiting until either the modal is
-  // submitted or its own timer expires).
-  private async awaitComment(interaction: ButtonInteraction, deadline: number) {
+  // Unlike the approval DM, an expired modal here is not an error: the edit
+  // screen's own collector is still running and its 'end' event reports the
+  // timeout, so swallow it and let that path finish the screen.
+  private async awaitComment(
+    interaction: ButtonInteraction,
+    state: ScreenState,
+    deadline: number,
+  ): Promise<CollectedComment | undefined> {
     try {
-      return await interaction.awaitModalSubmit({
-        // scoped to this button's message too: an unresolved listener from a
-        // prior screen would otherwise still match on user alone and could
-        // grab a modal submit meant for a different edit screen
-        filter: (modalInteraction) =>
-          isSameUserFilter(interaction.user)(modalInteraction) &&
-          modalInteraction.message?.id === interaction.message.id,
-        // floor of 1: discord.js only arms its timer for a truthy `time`
-        time: Math.max(deadline - Date.now(), 1),
+      return await collectApprovalComment(interaction, state, {
+        deadline,
+        expiredMessage: EDIT_SIGNUP_MESSAGES.MODAL_TOKEN_EXPIRED,
       });
     } catch (error) {
       if (isCollectorTimeoutError(error)) {

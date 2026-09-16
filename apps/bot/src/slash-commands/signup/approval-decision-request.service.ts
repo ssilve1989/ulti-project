@@ -4,7 +4,6 @@ import type { SignupDocument } from '@ulti-project/shared';
 import {
   ActionRowBuilder,
   type ButtonInteraction,
-  DiscordAPIError,
   DiscordjsErrorCodes,
   type Embed,
   EmbedBuilder,
@@ -12,7 +11,6 @@ import {
   type MessageComponentInteraction,
   MessageFlags,
   type ModalMessageModalSubmitInteraction,
-  RESTJSONErrorCodes,
   type StringSelectMenuBuilder,
   type User,
 } from 'discord.js';
@@ -20,13 +18,12 @@ import { isSameUserFilter } from '../../common/collection-filters.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { PROG_POINT_SELECT_ID } from '../../encounters/encounters.components.js';
 import { EncountersComponentsService } from '../../encounters/encounters-components.service.js';
+import { collectApprovalComment } from './approval-comment.js';
 import {
   APPROVAL_CANCEL_BUTTON_ID,
-  APPROVAL_COMMENT_INPUT_ID,
   APPROVE_BUTTON_ID,
   APPROVE_WITH_COMMENT_BUTTON_ID,
   createApprovalButtonsRow,
-  createApprovalCommentModal,
 } from './approval-decision.components.js';
 import { SIGNUP_MESSAGES } from './signup.consts.js';
 
@@ -223,59 +220,27 @@ export class ApprovalDecisionRequestService {
     state: DecisionState,
     deadline: number,
   ): Promise<ApprovalDecision | undefined> {
-    // discord.js has no "modal closed" event: a modal dismissed with Esc
-    // leaves its submit listener parked on this message, so a later click's
-    // submit reaches both listeners and only the newest click may act on it
-    state.modalGeneration += 1;
-    const generation = state.modalGeneration;
-
-    try {
-      await interaction.showModal(createApprovalCommentModal());
-    } catch (error) {
-      if (
-        error instanceof DiscordAPIError &&
-        error.code === RESTJSONErrorCodes.UnknownInteraction
-      ) {
-        // Recoverable: the collector is still running, so the reviewer can
-        // just click the button again for a fresh interaction token.
-        await interaction.user.send(
-          'That took a moment too long to open — please click "Approve with Comment" again.',
-        );
-        return undefined;
-      }
-      throw error;
-    }
-
-    const modalInteraction = await interaction.awaitModalSubmit({
-      // scoped to this button's message too: an unresolved listener from a
-      // prior request would otherwise still match on user alone and could
-      // grab a modal submit meant for a different approval decision
-      filter: (submission) =>
-        isSameUserFilter(interaction.user)(submission) &&
-        submission.message?.id === interaction.message.id,
-      time: this.remainingTime(deadline),
+    const collected = await collectApprovalComment(interaction, state, {
+      deadline,
+      expiredMessage:
+        'That took a moment too long to open — please click "Approve with Comment" again.',
     });
 
-    // built at submit time, never from values captured at click time
+    // read at submit time, never from a value captured at click time
     const progPoint = state.progPoint;
 
-    if (generation !== state.modalGeneration || !progPoint) {
-      // stale listener: the newest click's own listener handles this submit
+    if (!collected || !progPoint) {
       return undefined;
     }
 
-    const comment = modalInteraction.fields
-      .getTextInputValue(APPROVAL_COMMENT_INPUT_ID)
-      .trim();
-
-    if (modalInteraction.isFromMessage()) {
+    if (collected.submission.isFromMessage()) {
       await this.clearAndNotify(
-        modalInteraction,
+        collected.submission,
         SIGNUP_MESSAGES.APPROVAL_CONFIRMATION_RECEIVED,
       );
     }
 
-    return { type: 'approved', progPoint, comment: comment || undefined };
+    return { type: 'approved', progPoint, comment: collected.comment };
   }
 
   private async clearAndNotify(
@@ -284,14 +249,5 @@ export class ApprovalDecisionRequestService {
   ): Promise<void> {
     await interaction.update({ components: [] });
     await interaction.followUp(message);
-  }
-
-  private remainingTime(deadline: number): number {
-    // Floor of 1, not 0: discord.js's Collector only arms its timeout timer
-    // `if (options.time)`, and 0 is falsy. A deadline already at/past now
-    // must still produce a truthy `time` so a timer arms and the call fails
-    // fast with the collector's own timeout error, instead of hanging
-    // indefinitely.
-    return Math.max(deadline - Date.now(), 1);
   }
 }
