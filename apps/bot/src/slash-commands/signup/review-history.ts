@@ -47,12 +47,13 @@ export function historyAfterAppend(
 }
 
 /**
- * Whether these entries record a new approval rather than amending the
- * standing one. A new approval gets its own announcement, so the previous
- * decision's announcement id must not carry over.
+ * Whether a decision write appends an `approved` entry — a reaction approval
+ * or an /edit-signup reversal. `appended` is what `withTrackingSeed` returned
+ * for this write, never the signup's stored history, so a correction
+ * (`progPointEdited`) or decline on a previously approved signup is false.
  */
-export function startsNewApproval(entries: ReviewHistoryEntry[]): boolean {
-  return entries.some((entry) => entry.type === 'approved');
+export function appendsApproval(appended: ReviewHistoryEntry[]): boolean {
+  return appended.some((entry) => entry.type === 'approved');
 }
 
 export function latestDecision(

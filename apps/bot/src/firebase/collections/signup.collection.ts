@@ -18,9 +18,9 @@ import {
   Timestamp,
 } from 'firebase-admin/firestore';
 import {
+  appendsApproval,
   historyAfterAppend,
   latestEntryOfType,
-  startsNewApproval,
 } from '../../slash-commands/signup/review-history.js';
 import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
@@ -156,8 +156,9 @@ class SignupCollection {
     },
     updateTime: Timestamp,
   ): Promise<EditWrite> {
-    // a reversal supersedes the decline's announcement; a correction amends it
-    const newApproval = startsNewApproval(historyEntries);
+    // a reversal is announced in a fresh post, so any earlier approval's post
+    // id is dropped; a correction keeps it so that post can be edited
+    const approval = appendsApproval(historyEntries);
 
     try {
       await this.collection
@@ -169,7 +170,7 @@ class SignupCollection {
             partyStatus,
             reviewHistory: FieldValue.arrayUnion(...historyEntries),
             declineReason: FieldValue.delete(),
-            ...(newApproval ? { approvalMessageId: FieldValue.delete() } : {}),
+            ...(approval ? { approvalMessageId: FieldValue.delete() } : {}),
           },
           { lastUpdateTime: updateTime },
         );
@@ -189,7 +190,7 @@ class SignupCollection {
         partyStatus,
         reviewHistory: historyAfterAppend(signup, historyEntries),
         declineReason: undefined,
-        ...(newApproval ? { approvalMessageId: undefined } : {}),
+        ...(approval ? { approvalMessageId: undefined } : {}),
       },
     };
   }
@@ -271,7 +272,7 @@ class SignupCollection {
       partyStatus,
       reviewHistory: FieldValue.arrayUnion(...historyEntries),
       declineReason: FieldValue.delete(),
-      ...(startsNewApproval(historyEntries)
+      ...(appendsApproval(historyEntries)
         ? { approvalMessageId: FieldValue.delete() }
         : {}),
     });

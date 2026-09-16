@@ -7,6 +7,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { describe, expect, it } from 'vitest';
 import { partialMock } from '../../test-utils/mock-factory.js';
 import {
+  appendsApproval,
   historyAfterAppend,
   latestDecision,
   latestEntryOfType,
@@ -82,6 +83,20 @@ describe('withTrackingSeed', () => {
     });
 
     expect(withTrackingSeed(signup, approved, at)).toEqual([approved]);
+  });
+});
+
+describe('appendsApproval', () => {
+  it('is true when the write appends an approval, seeded or not', () => {
+    expect(appendsApproval([approved])).toBe(true);
+    expect(appendsApproval([seed, approved])).toBe(true);
+  });
+
+  // only the appended entries count: a correction or decline on a signup
+  // approved earlier does not look like a new approval
+  it('is false when the write appends a correction or a decline', () => {
+    expect(appendsApproval([edited])).toBe(false);
+    expect(appendsApproval([declined])).toBe(false);
   });
 });
 
