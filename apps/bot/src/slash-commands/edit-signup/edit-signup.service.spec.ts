@@ -21,7 +21,10 @@ import {
   partialMock,
 } from '../../test-utils/mock-factory.js';
 import { EditSignupService } from './edit-signup.service.js';
-import { SignupEditedEvent } from './events/signup-edited.event.js';
+import {
+  type EditedSignup,
+  SignupEditedEvent,
+} from './events/signup-edited.event.js';
 
 describe('EditSignupService', () => {
   let service: EditSignupService;
@@ -63,6 +66,16 @@ describe('EditSignupService', () => {
     status: SignupStatus.DECLINED,
   });
 
+  /**
+   * What applyEdit reports it wrote. The service publishes this as-is — which
+   * fields a write supersedes is the collection's rule, covered by its spec.
+   */
+  const written: EditedSignup = {
+    ...approved,
+    progPoint: 'P4',
+    partyStatus: PartyStatus.ClearParty,
+  };
+
   beforeEach(async () => {
     const fixture: TestingModule = await Test.createTestingModule({
       providers: [EditSignupService],
@@ -80,7 +93,10 @@ describe('EditSignupService', () => {
     encountersService.getPartyStatusForProgPoint.mockResolvedValue(
       PartyStatus.ClearParty,
     );
-    signupCollection.applyEdit.mockResolvedValue({ type: 'written' });
+    signupCollection.applyEdit.mockResolvedValue({
+      type: 'written',
+      after: written,
+    });
   });
 
   it('returns conflict without touching Sheets or publishing when the signup changed', async () => {
@@ -120,7 +136,6 @@ describe('EditSignupService', () => {
     expect(signupCollection.applyEdit).toHaveBeenCalledWith(
       approved,
       {
-        kind: 'correction',
         progPoint: 'P4',
         partyStatus: PartyStatus.ClearParty,
         historyEntries: [
@@ -152,7 +167,6 @@ describe('EditSignupService', () => {
     expect(signupCollection.applyEdit).toHaveBeenCalledWith(
       declinedUntracked,
       expect.objectContaining({
-        kind: 'reversal',
         historyEntries: [
           { type: 'trackingStarted', at: expect.any(Timestamp) },
           {
@@ -185,71 +199,20 @@ describe('EditSignupService', () => {
     expect(signupCollection.applyEdit.mock.invocationCallOrder[0]).toBeLessThan(
       sheetsService.upsertSignup.mock.invocationCallOrder[0],
     );
-    expect(sheetsService.upsertSignup).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: SignupStatus.APPROVED,
-        progPoint: 'P4',
-        partyStatus: PartyStatus.ClearParty,
-      }),
-      'sheet-1',
-    );
+    // the written document goes to Sheets and to subscribers, not a local copy
+    expect(sheetsService.upsertSignup).toHaveBeenCalledWith(written, 'sheet-1');
 
     const [event] = eventBus.publish.mock.calls[0];
     expect(event).toBeInstanceOf(SignupEditedEvent);
     expect(event).toMatchObject({
       kind: 'correction',
       before: approved,
-      after: {
-        status: SignupStatus.APPROVED,
-        progPoint: 'P4',
-        partyStatus: PartyStatus.ClearParty,
-        reviewHistory: [
-          existingApproval,
-          expect.objectContaining({ type: 'progPointEdited' }),
-        ],
-      },
+      after: written,
       editor,
       settings,
       guildId: 'guild-1',
       comment: 'sorry, mis-click',
     });
-  });
-
-  it('keeps the announcement id on a correction', async () => {
-    await service.apply({
-      kind: 'correction',
-      signup: { ...approved, approvalMessageId: 'announcement-1' },
-      updateTime,
-      progPoint: 'P4',
-      editor,
-      settings,
-      guildId: 'guild-1',
-    });
-
-    const [event] = eventBus.publish.mock.calls[0];
-    if (!(event instanceof SignupEditedEvent)) {
-      throw new Error('expected a SignupEditedEvent');
-    }
-    expect(event.after.approvalMessageId).toBe('announcement-1');
-  });
-
-  it('drops the previous announcement id from a reversal', async () => {
-    await service.apply({
-      kind: 'reversal',
-      signup: { ...declinedUntracked, approvalMessageId: 'announcement-1' },
-      updateTime,
-      progPoint: 'P4',
-      editor,
-      settings,
-      guildId: 'guild-1',
-    });
-
-    const [event] = eventBus.publish.mock.calls[0];
-    if (!(event instanceof SignupEditedEvent)) {
-      throw new Error('expected a SignupEditedEvent');
-    }
-    expect(event.after).toHaveProperty('approvalMessageId', undefined);
-    expect(event.before.approvalMessageId).toBe('announcement-1');
   });
 
   it('reports a Sheets failure but still publishes the saved edit', async () => {

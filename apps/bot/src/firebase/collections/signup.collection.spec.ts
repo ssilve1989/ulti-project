@@ -206,10 +206,13 @@ describe('Signup Repository', () => {
       reviewedBy: 'reviewedBy',
       reviewHistory: FieldValue.arrayUnion(...historyEntries),
       approvalMessageId: FieldValue.delete(),
+      declineReason: FieldValue.delete(),
     });
   });
 
-  it('keeps the approval announcement id when a signup is declined', async () => {
+  // a reason belongs to the decline that collected it: a later decision must
+  // not leave the previous one's reason behind for the edit screen to show
+  it('clears a superseded decline reason when a signup is declined again', async () => {
     const historyEntries: ReviewHistoryEntry[] = [
       {
         type: 'declined',
@@ -230,7 +233,9 @@ describe('Signup Repository', () => {
       status: SignupStatus.DECLINED,
       reviewedBy: 'reviewedBy',
       reviewHistory: FieldValue.arrayUnion(...historyEntries),
+      declineReason: FieldValue.delete(),
     });
+    // the standing announcement outlives a decline
     expect(doc.update.mock.calls[0][0]).not.toHaveProperty('approvalMessageId');
   });
 
@@ -409,17 +414,33 @@ describe('Signup Repository', () => {
         via: 'edit',
       },
     ];
+    // a reversal appends an `approved` entry, a correction a `progPointEdited`
+    const reversalEntries: ReviewHistoryEntry[] = [
+      {
+        type: 'approved',
+        progPoint: 'P4',
+        partyStatus: PartyStatus.ClearParty,
+        actorId: 'editor-1',
+        at: Timestamp.fromMillis(6_000),
+        via: 'edit',
+      },
+    ];
     const data: Parameters<SignupCollection['applyEdit']>[1] = {
-      kind: 'correction',
       progPoint: 'P4',
       partyStatus: PartyStatus.ClearParty,
       historyEntries,
     };
+    const signup = partialMock<SignupDocument>({
+      ...SIGNUP_KEY,
+      status: SignupStatus.DECLINED,
+      approvalMessageId: 'announcement-1',
+      declineReason: 'stale reason',
+    });
 
     it('writes a correction under a lastUpdateTime precondition, keeping the announcement id', async () => {
       await expect(
-        repository.applyEdit(SIGNUP_KEY, data, updateTime),
-      ).resolves.toEqual({ type: 'written' });
+        repository.applyEdit(signup, data, updateTime),
+      ).resolves.toMatchObject({ type: 'written' });
 
       expect(doc.update).toHaveBeenCalledWith(
         {
@@ -427,6 +448,7 @@ describe('Signup Repository', () => {
           progPoint: 'P4',
           partyStatus: PartyStatus.ClearParty,
           reviewHistory: FieldValue.arrayUnion(...historyEntries),
+          declineReason: FieldValue.delete(),
         },
         { lastUpdateTime: updateTime },
       );
@@ -438,23 +460,57 @@ describe('Signup Repository', () => {
     it('clears the announcement id in the same write for a reversal', async () => {
       await expect(
         repository.applyEdit(
-          SIGNUP_KEY,
-          { ...data, kind: 'reversal' },
+          signup,
+          { ...data, historyEntries: reversalEntries },
           updateTime,
         ),
-      ).resolves.toEqual({ type: 'written' });
+      ).resolves.toMatchObject({ type: 'written' });
 
       expect(doc.update).toHaveBeenCalledWith(
         {
           status: SignupStatus.APPROVED,
           progPoint: 'P4',
           partyStatus: PartyStatus.ClearParty,
-          reviewHistory: FieldValue.arrayUnion(...historyEntries),
+          reviewHistory: FieldValue.arrayUnion(...reversalEntries),
           approvalMessageId: FieldValue.delete(),
           declineReason: FieldValue.delete(),
         },
         { lastUpdateTime: updateTime },
       );
+    });
+
+    // callers publish this document, so it must match what the write produced
+    it('returns the document as written, with the superseded fields gone', async () => {
+      const write = await repository.applyEdit(
+        signup,
+        { ...data, historyEntries: reversalEntries },
+        updateTime,
+      );
+
+      expect(write).toEqual({
+        type: 'written',
+        after: {
+          ...signup,
+          status: SignupStatus.APPROVED,
+          progPoint: 'P4',
+          partyStatus: PartyStatus.ClearParty,
+          reviewHistory: reversalEntries,
+          approvalMessageId: undefined,
+          declineReason: undefined,
+        },
+      });
+    });
+
+    it('keeps the announcement id on the returned document for a correction', async () => {
+      const write = await repository.applyEdit(signup, data, updateTime);
+
+      expect(write).toMatchObject({
+        type: 'written',
+        after: {
+          approvalMessageId: 'announcement-1',
+          declineReason: undefined,
+        },
+      });
     });
 
     it('returns a conflict when the precondition fails', async () => {
@@ -463,7 +519,7 @@ describe('Signup Repository', () => {
       );
 
       await expect(
-        repository.applyEdit(SIGNUP_KEY, data, updateTime),
+        repository.applyEdit(signup, data, updateTime),
       ).resolves.toEqual({ type: 'conflict' });
     });
 
@@ -473,7 +529,7 @@ describe('Signup Repository', () => {
       );
 
       await expect(
-        repository.applyEdit(SIGNUP_KEY, data, updateTime),
+        repository.applyEdit(signup, data, updateTime),
       ).resolves.toEqual({ type: 'conflict' });
     });
 
@@ -481,9 +537,9 @@ describe('Signup Repository', () => {
       const failure = Object.assign(new Error('14 UNAVAILABLE'), { code: 14 });
       doc.update.mockRejectedValueOnce(failure);
 
-      await expect(
-        repository.applyEdit(SIGNUP_KEY, data, updateTime),
-      ).rejects.toBe(failure);
+      await expect(repository.applyEdit(signup, data, updateTime)).rejects.toBe(
+        failure,
+      );
     });
   });
 

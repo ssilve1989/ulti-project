@@ -46,6 +46,15 @@ export function historyAfterAppend(
   return [...(reviewHistory ?? []), ...entries];
 }
 
+/**
+ * Whether these entries record a new approval rather than amending the
+ * standing one. A new approval gets its own announcement, so the previous
+ * decision's announcement id must not carry over.
+ */
+export function startsNewApproval(entries: ReviewHistoryEntry[]): boolean {
+  return entries.some((entry) => entry.type === 'approved');
+}
+
 export function latestDecision(
   history: ReviewHistoryEntry[] | undefined,
 ): ReviewDecisionEntry | undefined {

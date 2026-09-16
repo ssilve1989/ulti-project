@@ -1,11 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
-import {
-  type PartyStatus,
-  type SignupDocument,
-  SignupStatus,
-} from '@ulti-project/shared';
+import { type PartyStatus, type SignupDocument } from '@ulti-project/shared';
 import type { User } from 'discord.js';
 import { Timestamp } from 'firebase-admin/firestore';
 import { EncountersService } from '../../encounters/encounters.service.js';
@@ -14,7 +10,6 @@ import { SignupCollection } from '../../firebase/collections/signup.collection.j
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import {
-  historyAfterAppend,
   type ReviewDecisionEntry,
   withTrackingSeed,
 } from '../signup/review-history.js';
@@ -77,7 +72,7 @@ export class EditSignupService {
     // re-submission or a concurrent edit, and Sheets cannot take part in it.
     const write = await this.signupCollection.applyEdit(
       signup,
-      { kind, progPoint, partyStatus, historyEntries },
+      { progPoint, partyStatus, historyEntries },
       updateTime,
     );
 
@@ -85,19 +80,7 @@ export class EditSignupService {
       return { type: 'conflict' };
     }
 
-    const after: EditedSignup = {
-      ...signup,
-      status: SignupStatus.APPROVED,
-      progPoint,
-      partyStatus,
-      reviewHistory: historyAfterAppend(signup, historyEntries),
-      // a reversal's write cleared the previous decision's announcement id
-      // and its decline reason
-      ...(kind === 'reversal'
-        ? { approvalMessageId: undefined, declineReason: undefined }
-        : {}),
-    };
-
+    const after: EditedSignup = write.after;
     const sheetsUpdated = await this.syncSheet(after, settings);
 
     this.eventBus.publish(
