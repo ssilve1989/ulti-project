@@ -1,8 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import type { SignupDocument } from '@ulti-project/shared';
-import type { Message, StringSelectMenuInteraction, User } from 'discord.js';
+import { SignupStatus } from '@ulti-project/shared';
+import type {
+  Message,
+  ModalSubmitInteraction,
+  StringSelectMenuInteraction,
+  User,
+} from 'discord.js';
 import { DiscordAPIError } from 'discord.js';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import { DiscordService } from '../../discord/discord.service.js';
+import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import {
   createAutoMock,
   mockOf,
@@ -32,6 +40,8 @@ describe('DeclineReasonRequestService', () => {
   let reviewer: User;
   let reviewMessage: Message<true>;
   let signupId: string;
+  let repository: Mocked<SignupCollection>;
+  let discordService: Mocked<DiscordService>;
 
   beforeEach(async () => {
     const fixture: TestingModule = await Test.createTestingModule({
@@ -41,12 +51,17 @@ describe('DeclineReasonRequestService', () => {
       .compile();
 
     service = fixture.get(DeclineReasonRequestService);
+    repository = fixture.get(SignupCollection);
+    discordService = fixture.get(DiscordService);
 
     signup = partialMock<SignupDocument>({
       discordId: 'abc123',
       encounter: 'DSR',
+      reviewMessageId: 'messageId',
+      status: SignupStatus.DECLINED,
+      username: 'signupUser',
     });
-    reviewer = mockOf<User>({ id: 'reviewerId' });
+    reviewer = mockOf<User>({ id: 'reviewerId', username: 'reviewerName' });
     reviewMessage = mockOf<Message<true>>({});
     signupId = `${signup.discordId}-${signup.encounter}`;
   });
@@ -116,7 +131,7 @@ describe('DeclineReasonRequestService', () => {
         .spyOn(
           withInternals<{
             handleReasonSelection: (...args: unknown[]) => Promise<unknown>;
-            dispatchDeclineReasonEvent: (...args: unknown[]) => unknown;
+            publishGuardedDeclineReasonEvent: (...args: unknown[]) => unknown;
           }>(service),
           'handleReasonSelection',
         )
@@ -146,7 +161,7 @@ describe('DeclineReasonRequestService', () => {
       vi.spyOn(
         withInternals<{
           handleReasonSelection: (...args: unknown[]) => Promise<unknown>;
-          dispatchDeclineReasonEvent: (...args: unknown[]) => unknown;
+          publishGuardedDeclineReasonEvent: (...args: unknown[]) => unknown;
         }>(service),
         'handleReasonSelection',
       ).mockResolvedValue(false);
@@ -154,9 +169,9 @@ describe('DeclineReasonRequestService', () => {
         .spyOn(
           withInternals<{
             handleReasonSelection: (...args: unknown[]) => Promise<unknown>;
-            dispatchDeclineReasonEvent: (...args: unknown[]) => unknown;
+            publishGuardedDeclineReasonEvent: (...args: unknown[]) => unknown;
           }>(service),
-          'dispatchDeclineReasonEvent',
+          'publishGuardedDeclineReasonEvent',
         )
         .mockImplementation(() => undefined);
 
@@ -171,6 +186,233 @@ describe('DeclineReasonRequestService', () => {
         MAX_MODAL_SHOW_ATTEMPTS,
       );
       expect(dispatchSpy).toHaveBeenCalledWith(signup, reviewer, reviewMessage);
+    });
+  });
+
+  describe('updateSignupWithDeclineReason', () => {
+    it('does not record the reason and does not DM the reviewer when the signup has left the declined round', async () => {
+      repository.updateDeclineReasonIfActive.mockResolvedValueOnce(false);
+
+      const result = await service['updateSignupWithDeclineReason'](
+        signup,
+        'lacks proof',
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(result).toBe(false);
+      expect(repository.updateDeclineReasonIfActive).toHaveBeenCalledWith(
+        { discordId: signup.discordId, encounter: signup.encounter },
+        'lacks proof',
+        signup.reviewMessageId,
+        reviewer.username,
+      );
+      expect(discordService.sendDirectMessage).not.toHaveBeenCalled();
+      expect(repository.findById).not.toHaveBeenCalled();
+    });
+
+    it('records the reason and dispatches the event when the signup is still actively declined', async () => {
+      repository.updateDeclineReasonIfActive.mockResolvedValueOnce(true);
+      repository.findById.mockResolvedValue(
+        partialMock<SignupDocument>({
+          status: SignupStatus.DECLINED,
+          reviewMessageId: signup.reviewMessageId,
+          reviewedBy: reviewer.username,
+        }),
+      );
+
+      const result = await service['updateSignupWithDeclineReason'](
+        signup,
+        'lacks proof',
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(repository.updateDeclineReasonIfActive).toHaveBeenCalledWith(
+        { discordId: signup.discordId, encounter: signup.encounter },
+        'lacks proof',
+        signup.reviewMessageId,
+        reviewer.username,
+      );
+      expect(result).toBe(true);
+      expect(discordService.sendDirectMessage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('publishGuardedDeclineReasonEvent', () => {
+    it('does not publish the event and notifies the reviewer when the signup changed state', async () => {
+      repository.findById.mockResolvedValue(
+        partialMock<SignupDocument>({
+          status: SignupStatus.UPDATE_PENDING,
+          reviewMessageId: signup.reviewMessageId,
+          reviewedBy: reviewer.username,
+        }),
+      );
+
+      await service['publishGuardedDeclineReasonEvent'](
+        signup,
+        reviewer,
+        reviewMessage,
+        'lacks proof',
+      );
+
+      expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
+        reviewer.id,
+        expect.objectContaining({ content: expect.any(String) }),
+      );
+    });
+
+    it('does not publish the event when the signup since moved to a new review round', async () => {
+      repository.findById.mockResolvedValue(
+        partialMock<SignupDocument>({
+          status: SignupStatus.DECLINED,
+          reviewMessageId: 'newMessageId',
+          reviewedBy: reviewer.username,
+        }),
+      );
+
+      await service['publishGuardedDeclineReasonEvent'](
+        signup,
+        reviewer,
+        reviewMessage,
+        'lacks proof',
+      );
+
+      expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
+        reviewer.id,
+        expect.objectContaining({ content: expect.any(String) }),
+      );
+    });
+
+    it('does not publish the event when the signup has since been reviewed by someone else', async () => {
+      repository.findById.mockResolvedValue(
+        partialMock<SignupDocument>({
+          status: SignupStatus.DECLINED,
+          reviewMessageId: signup.reviewMessageId,
+          reviewedBy: 'otherReviewer',
+        }),
+      );
+
+      await service['publishGuardedDeclineReasonEvent'](
+        signup,
+        reviewer,
+        reviewMessage,
+        'lacks proof',
+      );
+
+      expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
+        reviewer.id,
+        expect.objectContaining({ content: expect.any(String) }),
+      );
+    });
+  });
+
+  describe('handleReasonSelection reply', () => {
+    it('replies non-ephemerally and strips the select menu when the signup is stale', async () => {
+      const reply = vi.fn().mockResolvedValue(undefined);
+      const messageEdit = vi.fn().mockResolvedValue(undefined);
+      const interaction = mockOf<StringSelectMenuInteraction>({
+        values: ['lacks proof'],
+        reply,
+        message: mockOf<Message>({ edit: messageEdit }),
+      });
+      repository.updateDeclineReasonIfActive.mockResolvedValueOnce(false);
+
+      await service['handleReasonSelection'](
+        interaction,
+        signup,
+        signupId,
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(messageEdit).toHaveBeenCalledWith({ components: [] });
+      expect(reply).toHaveBeenCalledWith({
+        content: expect.stringContaining('not recorded'),
+      });
+      expect(discordService.sendDirectMessage).not.toHaveBeenCalled();
+      expect(repository.updateDeclineReasonIfActive).toHaveBeenCalledWith(
+        { discordId: signup.discordId, encounter: signup.encounter },
+        'lacks proof',
+        signup.reviewMessageId,
+        reviewer.username,
+      );
+    });
+  });
+
+  describe('handleCustomReasonSubmit', () => {
+    const buildModalInteraction = (message: Message | null) =>
+      mockOf<ModalSubmitInteraction>({
+        fields: { getTextInputValue: vi.fn().mockReturnValue('lacks proof') },
+        reply: vi.fn().mockResolvedValue(undefined),
+        message,
+      });
+
+    it('replies non-ephemerally and strips the select menu when the signup is stale', async () => {
+      const messageEdit = vi.fn().mockResolvedValue(undefined);
+      const interaction = buildModalInteraction(
+        mockOf<Message>({ edit: messageEdit }),
+      );
+      repository.updateDeclineReasonIfActive.mockResolvedValueOnce(false);
+
+      await service['handleCustomReasonSubmit'](
+        interaction,
+        signup,
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(messageEdit).toHaveBeenCalledWith({ components: [] });
+      expect(interaction.reply).toHaveBeenCalledWith({
+        content: expect.stringContaining('not recorded'),
+      });
+      expect(discordService.sendDirectMessage).not.toHaveBeenCalled();
+    });
+
+    it('does not throw when the modal interaction has no source message', async () => {
+      const interaction = buildModalInteraction(null);
+      repository.updateDeclineReasonIfActive.mockResolvedValueOnce(false);
+
+      await service['handleCustomReasonSubmit'](
+        interaction,
+        signup,
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(interaction.reply).toHaveBeenCalledWith({
+        content: expect.stringContaining('not recorded'),
+      });
+    });
+
+    it('replies ephemerally with a success message when recorded', async () => {
+      const messageEdit = vi.fn().mockResolvedValue(undefined);
+      const interaction = buildModalInteraction(
+        mockOf<Message>({ edit: messageEdit }),
+      );
+      repository.updateDeclineReasonIfActive.mockResolvedValueOnce(true);
+      repository.findById.mockResolvedValue(
+        partialMock<SignupDocument>({
+          status: SignupStatus.DECLINED,
+          reviewMessageId: signup.reviewMessageId,
+          reviewedBy: reviewer.username,
+        }),
+      );
+
+      await service['handleCustomReasonSubmit'](
+        interaction,
+        signup,
+        reviewer,
+        reviewMessage,
+      );
+
+      expect(messageEdit).not.toHaveBeenCalled();
+      expect(interaction.reply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining('recorded'),
+          flags: expect.anything(),
+        }),
+      );
     });
   });
 });

@@ -3,6 +3,7 @@ import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import type { SignupDocument } from '@ulti-project/shared';
+import { SignupStatus } from '@ulti-project/shared';
 import {
   ActionRowBuilder,
   ComponentType,
@@ -28,12 +29,15 @@ import {
   DECLINE_REASON_SELECT_ID,
 } from './decline-reason.components.js';
 import { SignupDeclineReasonCollectedEvent } from './events/signup.events.js';
-import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
+import {
+  CUSTOM_DECLINE_REASON_VALUE,
+  SIGNUP_MESSAGES,
+} from './signup.consts.js';
 
-export const MAX_MODAL_SHOW_ATTEMPTS = 3;
+const MAX_MODAL_SHOW_ATTEMPTS = 3;
 
 @Injectable()
-export class DeclineReasonRequestService {
+class DeclineReasonRequestService {
   private readonly logger = new Logger(DeclineReasonRequestService.name);
 
   constructor(
@@ -130,7 +134,11 @@ export class DeclineReasonRequestService {
       this.logger.warn(
         `Gave up on the custom decline reason modal for signup ${signupId} after ${MAX_MODAL_SHOW_ATTEMPTS} attempts`,
       );
-      this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
+      await this.publishGuardedDeclineReasonEvent(
+        signup,
+        reviewer,
+        reviewMessage,
+      );
     } catch (error) {
       this.handleTimeoutError(
         error,
@@ -149,9 +157,9 @@ export class DeclineReasonRequestService {
     reviewer: User,
     reviewMessage: Message<true>,
   ): Promise<boolean> {
-    const selectedValue = interaction.values[0];
+    const reason = interaction.values[0];
 
-    if (selectedValue === CUSTOM_DECLINE_REASON_VALUE) {
+    if (reason === CUSTOM_DECLINE_REASON_VALUE) {
       // Show modal for custom reason
       const modal = createCustomDeclineReasonModal(signupId);
 
@@ -198,16 +206,13 @@ export class DeclineReasonRequestService {
       }
     } else {
       // Use predefined reason
-      await this.updateSignupWithDeclineReason(
+      const recorded = await this.updateSignupWithDeclineReason(
         signup,
-        selectedValue,
+        reason,
         reviewer,
         reviewMessage,
       );
-      await interaction.reply({
-        content: `✅ Decline reason recorded: "${selectedValue}"`,
-        flags: MessageFlags.Ephemeral,
-      });
+      await this.updateDeclineInteraction({ recorded, reason }, interaction);
     }
 
     return true;
@@ -219,20 +224,18 @@ export class DeclineReasonRequestService {
     reviewer: User,
     reviewMessage: Message<true>,
   ): Promise<void> {
-    const customReason = interaction.fields.getTextInputValue(
+    const reason = interaction.fields.getTextInputValue(
       CUSTOM_DECLINE_REASON_INPUT_ID,
     );
 
-    await this.updateSignupWithDeclineReason(
+    const recorded = await this.updateSignupWithDeclineReason(
       signup,
-      customReason,
+      reason,
       reviewer,
       reviewMessage,
     );
-    await interaction.reply({
-      content: `✅ Custom decline reason recorded: "${customReason}"`,
-      flags: MessageFlags.Ephemeral,
-    });
+
+    await this.updateDeclineInteraction({ recorded, reason }, interaction);
   }
 
   private async updateSignupWithDeclineReason(
@@ -240,40 +243,63 @@ export class DeclineReasonRequestService {
     declineReason: string,
     reviewer: User,
     reviewMessage: Message<true>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
-      await this.signupCollection.updateDeclineReason(
+      const recorded = await this.signupCollection.updateDeclineReasonIfActive(
         { discordId: signup.discordId, encounter: signup.encounter },
         declineReason,
+        signup.reviewMessageId,
+        reviewer.username,
       );
+
+      if (!recorded) {
+        this.logger.warn(
+          `Decline reason not recorded for signup ${signup.discordId}-${signup.encounter}, signup state changed`,
+        );
+        return false;
+      }
 
       this.logger.log(
         `Updated signup ${signup.discordId}-${signup.encounter} with decline reason: ${declineReason}`,
       );
 
       // Dispatch the decline reason event with the collected reason
-      this.dispatchDeclineReasonEvent(
+      const declineEvent = new SignupDeclineReasonCollectedEvent(
         signup,
         reviewer,
         reviewMessage,
         declineReason,
       );
+      this.eventBus.publish(declineEvent);
+      return true;
     } catch (error) {
       this.reportError(error, { signup, reviewer });
       this.logger.error(
         error,
         `Failed to update signup ${signup.discordId}-${signup.encounter} with decline reason`,
       );
+      return false;
     }
   }
 
-  private dispatchDeclineReasonEvent(
+  private async publishGuardedDeclineReasonEvent(
     signup: SignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
     declineReason?: string,
-  ): void {
+  ): Promise<void> {
     try {
+      // The signup may have been re-submitted or re-reviewed while the reason
+      // was being collected. Only dispatch if it is still in the same declined
+      // round, otherwise the decline message would target a newer signup.
+      if (!(await this.isSignupStillActivelyDeclined(signup, reviewer))) {
+        this.logger.warn(
+          `Ignoring decline reason for signup ${signup.discordId}-${signup.encounter}, signup state changed`,
+        );
+        await this.notifyReviewerStateChanged(reviewer, signup);
+        return;
+      }
+
       const declineEvent = new SignupDeclineReasonCollectedEvent(
         signup,
         reviewer,
@@ -290,20 +316,78 @@ export class DeclineReasonRequestService {
     }
   }
 
-  private handleTimeoutError(
+  private async isSignupStillActivelyDeclined(
+    signup: SignupDocument,
+    reviewer: User,
+  ): Promise<boolean> {
+    const current = await this.signupCollection.findById(
+      SignupCollection.getKeyForSignup({
+        discordId: signup.discordId,
+        encounter: signup.encounter,
+      }),
+    );
+
+    return (
+      !!current &&
+      current.status === SignupStatus.DECLINED &&
+      current.reviewMessageId === signup.reviewMessageId &&
+      current.reviewedBy === reviewer.username
+    );
+  }
+
+  private async notifyReviewerStateChanged(
+    reviewer: User,
+    signup: SignupDocument,
+  ): Promise<void> {
+    try {
+      await this.discordService.sendDirectMessage(reviewer.id, {
+        content: `${SIGNUP_MESSAGES.DECLINE_REASON_NOT_RECORDED}\n\nSignup: **${signup.encounter}** by **${signup.username}**`,
+      });
+    } catch (error) {
+      this.reportError(error, { signup, reviewer });
+      this.logger.error(
+        error,
+        `Failed to notify reviewer ${reviewer.id} that signup ${signup.discordId}-${signup.encounter} changed state`,
+      );
+    }
+  }
+
+  private async updateDeclineInteraction(
+    { recorded, reason }: { recorded: boolean; reason: string },
+    interaction: StringSelectMenuInteraction | ModalSubmitInteraction,
+  ) {
+    if (recorded) {
+      return await interaction.reply({
+        content: `✅ Decline reason recorded: "${reason}"`,
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+    return await Promise.all([
+      interaction.message?.edit({ components: [] }),
+      interaction.reply({
+        content: SIGNUP_MESSAGES.DECLINE_REASON_NOT_RECORDED,
+      }),
+    ]);
+  }
+
+  private async handleTimeoutError(
     error: unknown,
     signup: SignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
     context: string,
-  ): void {
+  ): Promise<void> {
     if (
       error instanceof DiscordjsError &&
       error.code === DiscordjsErrorCodes.InteractionCollectorError
     ) {
       this.logger.warn(context);
       // Dispatch event on timeout with no decline reason
-      this.dispatchDeclineReasonEvent(signup, reviewer, reviewMessage);
+      await this.publishGuardedDeclineReasonEvent(
+        signup,
+        reviewer,
+        reviewMessage,
+      );
     } else {
       // Re-throw non-timeout errors
       this.reportError(error, { signup, reviewer });
@@ -321,3 +405,5 @@ export class DeclineReasonRequestService {
     scope.captureException(error);
   }
 }
+
+export { DeclineReasonRequestService, MAX_MODAL_SHOW_ATTEMPTS };
