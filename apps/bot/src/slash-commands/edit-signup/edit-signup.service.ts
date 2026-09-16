@@ -14,6 +14,7 @@ import { SignupCollection } from '../../firebase/collections/signup.collection.j
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import {
+  historyAfterAppend,
   type ReviewDecisionEntry,
   withTrackingSeed,
 } from '../signup/review-history.js';
@@ -89,7 +90,7 @@ export class EditSignupService {
       status: SignupStatus.APPROVED,
       progPoint,
       partyStatus,
-      reviewHistory: [...(signup.reviewHistory ?? []), ...historyEntries],
+      reviewHistory: historyAfterAppend(signup, historyEntries),
       // a reversal's write cleared the previous decision's announcement id
       // and its decline reason
       ...(kind === 'reversal'

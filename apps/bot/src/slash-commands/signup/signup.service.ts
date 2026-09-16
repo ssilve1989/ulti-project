@@ -56,7 +56,7 @@ import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
 } from './events/signup.events.js';
-import { withTrackingSeed } from './review-history.js';
+import { historyAfterAppend, withTrackingSeed } from './review-history.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import {
   getErrorReplyMessage,
@@ -376,7 +376,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     return {
       ...confirmedSignup,
       approvalMessageId: undefined,
-      reviewHistory: [...(signup.reviewHistory ?? []), ...historyEntries],
+      reviewHistory: historyAfterAppend(signup, historyEntries),
     };
   }
 

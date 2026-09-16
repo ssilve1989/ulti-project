@@ -7,6 +7,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { describe, expect, it } from 'vitest';
 import { partialMock } from '../../test-utils/mock-factory.js';
 import {
+  historyAfterAppend,
   latestDecision,
   latestEntryOfType,
   type ReviewDecisionEntry,
@@ -81,6 +82,23 @@ describe('withTrackingSeed', () => {
     });
 
     expect(withTrackingSeed(signup, approved, at)).toEqual([approved]);
+  });
+});
+
+describe('historyAfterAppend', () => {
+  it('appends to the existing history', () => {
+    const signup = partialMock<SignupDocument>({ reviewHistory: [seed] });
+
+    expect(historyAfterAppend(signup, [approved])).toEqual([seed, approved]);
+  });
+
+  it('starts a history when the signup has none', () => {
+    const signup = partialMock<SignupDocument>({});
+
+    expect(historyAfterAppend(signup, [seed, approved])).toEqual([
+      seed,
+      approved,
+    ]);
   });
 });
 

@@ -33,6 +33,19 @@ export function withTrackingSeed(
   return [{ type: 'trackingStarted', progPoint, partyStatus, at }, entry];
 }
 
+/**
+ * The history a document carries once `entries` have been appended — what the
+ * write's `arrayUnion` produced server-side. Callers rebuild the persisted
+ * document locally to publish it on an event; this keeps that reconstruction
+ * beside the function that built the entries.
+ */
+export function historyAfterAppend(
+  { reviewHistory }: Pick<SignupDocument, 'reviewHistory'>,
+  entries: ReviewHistoryEntry[],
+): ReviewHistoryEntry[] {
+  return [...(reviewHistory ?? []), ...entries];
+}
+
 export function latestDecision(
   history: ReviewHistoryEntry[] | undefined,
 ): ReviewDecisionEntry | undefined {
