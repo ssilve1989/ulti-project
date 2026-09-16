@@ -358,14 +358,21 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     signup: SignupDocument,
     message: Message<true>,
     user: User,
-  ): Promise<SignupDeclinedEvent> {
-    // Update signup status immediately (for sequential reaction processing)
-    await this.repository.updateSignupStatus(
+  ): Promise<SignupDeclinedEvent | undefined> {
+    // Update signup status immediately (for sequential reaction processing);
+    // only proceed if the signup is still in the same review round
+    const recorded = await this.repository.updateSignupStatus(
       SignupStatus.DECLINED,
       signup,
       user.username,
       message.id,
     );
+
+    if (!recorded) {
+      await this.revertReviewReaction(user, message);
+      await this.notifyReviewerStateChanged(user, signup);
+      return undefined;
+    }
 
     // Fire decline reason request with event dispatch context (non-blocking)
     this.declineReasonRequestService

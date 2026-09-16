@@ -15,6 +15,7 @@ import {
   withInternals,
 } from '../../test-utils/mock-factory.js';
 import { ApprovalDecisionRequestService } from './approval-decision-request.service.js';
+import { DeclineReasonRequestService } from './decline-reason-request.service.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
 
@@ -122,6 +123,64 @@ describe('SignupService', () => {
       messageReaction.message,
       user,
     );
+  });
+
+  it('reverts the reaction, DMs the reviewer, and skips the reason request when the signup changed state during decline', async () => {
+    messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.DECLINED;
+
+    repository.findByReviewId.mockResolvedValueOnce(signup);
+    repository.updateSignupStatus.mockResolvedValueOnce(false);
+
+    const approvedRemove = vi.fn().mockResolvedValue(undefined);
+    const declinedRemove = vi.fn().mockResolvedValue(undefined);
+    const message = mockOf<Message<true>>({
+      id: 'messageId',
+      inGuild: () => true,
+      reactions: {
+        cache: {
+          get: (key: string) =>
+            key === SIGNUP_REVIEW_REACTIONS.APPROVED
+              ? { users: { remove: approvedRemove } }
+              : { users: { remove: declinedRemove } },
+        },
+      },
+    });
+
+    const declineReasonRequestService: Mocked<DeclineReasonRequestService> =
+      fixture.get(DeclineReasonRequestService);
+    const spy = vi.spyOn(
+      withInternals<{
+        handleDeclinedReaction: (...args: unknown[]) => Promise<unknown>;
+      }>(service),
+      'handleDeclinedReaction',
+    );
+
+    const signup2 = partialMock<SignupDocument>({
+      reviewMessageId: 'messageId',
+      reviewedBy: undefined,
+      discordId: 'abc123',
+    });
+
+    await service['handleDeclinedReaction'](signup2, message, user);
+
+    expect(repository.updateSignupStatus).toHaveBeenCalledWith(
+      SignupStatus.DECLINED,
+      signup2,
+      user.username,
+      'messageId',
+    );
+    expect(
+      declineReasonRequestService.requestDeclineReason,
+    ).not.toHaveBeenCalled();
+    expect(approvedRemove).toHaveBeenCalledWith(user.id);
+    expect(declinedRemove).toHaveBeenCalledWith(user.id);
+    expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
+      user.id,
+      expect.objectContaining({
+        content: expect.stringContaining(SIGNUP_MESSAGES.SIGNUP_STATE_CHANGED),
+      }),
+    );
+    expect(spy).toHaveBeenCalledWith(signup2, message, user);
   });
 
   it('should return early if a signup has been reviewed', async () => {
