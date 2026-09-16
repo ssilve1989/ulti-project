@@ -487,6 +487,41 @@ describe('Signup Repository', () => {
     });
   });
 
+  describe('#updateDeclineReason', () => {
+    const REASON = 'not enough logs';
+
+    const mockStatus = (status: SignupStatus) => {
+      transaction.get.mockResolvedValueOnce(
+        mockOf<DocumentSnapshot>({
+          exists: true,
+          data: () => ({ ...signupRequest, status }),
+        }),
+      );
+    };
+
+    it('records the reason while the signup is still declined', async () => {
+      mockStatus(SignupStatus.DECLINED);
+
+      const result = await repository.updateDeclineReason(SIGNUP_KEY, REASON);
+
+      expect(result).toEqual({ type: 'written' });
+      expect(transaction.update).toHaveBeenCalledWith(doc, {
+        declineReason: REASON,
+      });
+    });
+
+    // a reversal can land between a caller's read and this write, and the
+    // reason must not reattach itself to the signup it just approved
+    it('skips the write when the signup is no longer declined', async () => {
+      mockStatus(SignupStatus.APPROVED);
+
+      const result = await repository.updateDeclineReason(SIGNUP_KEY, REASON);
+
+      expect(result).toEqual({ type: 'skipped' });
+      expect(transaction.update).not.toHaveBeenCalled();
+    });
+  });
+
   describe('#findByReviewId', () => {
     const mockFetch = (empty: boolean, signup: SignupDocument) => {
       collection.where.mockReturnValueOnce(

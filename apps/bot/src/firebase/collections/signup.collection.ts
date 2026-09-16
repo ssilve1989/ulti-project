@@ -24,6 +24,8 @@ import { DocumentNotFoundException } from '../firebase.exceptions.js';
 
 type ApprovalMessageIdWrite = { type: 'written' } | { type: 'stale' };
 
+type DeclineReasonWrite = { type: 'written' } | { type: 'skipped' };
+
 // gRPC status Firestore reports when an update's precondition does not hold
 const FIRESTORE_FAILED_PRECONDITION = 9;
 // gRPC status Firestore reports when a document is not found
@@ -308,16 +310,32 @@ class SignupCollection {
     );
   }
 
+  /**
+   * Records a decline reason, but only while the signup is still declined.
+   * A reversal can land between a caller's read and this write, and the
+   * reason must not reattach itself to the signup that reversal approved.
+   */
   @SentryTraced()
   public updateDeclineReason(
     signup: SignupCompositeKey,
     declineReason: string,
-  ) {
-    const key = SignupCollection.getKeyForSignup(signup);
+  ): Promise<DeclineReasonWrite> {
+    const document = this.collection.doc(
+      SignupCollection.getKeyForSignup(signup),
+    );
 
-    return this.collection.doc(key).update({
-      declineReason,
-    });
+    return this.firestore.runTransaction<DeclineReasonWrite>(
+      async (transaction) => {
+        const snapshot = await transaction.get(document);
+
+        if (snapshot.data()?.status !== SignupStatus.DECLINED) {
+          return { type: 'skipped' };
+        }
+
+        transaction.update(document, { declineReason });
+        return { type: 'written' };
+      },
+    );
   }
 
   @SentryTraced()

@@ -262,11 +262,9 @@ export class DeclineReasonRequestService {
   }
 
   /**
-   * Resolves `skipped` when nothing was recorded or published because the
-   * signup has since been approved, or `failed` when the update (including
-   * its own pre-read of the signup's current status) errored — distinct from
-   * `skipped` so callers don't tell the reviewer a decline reason was
-   * recorded when it was not.
+   * Resolves `skipped` when the write refused because the signup is no longer
+   * declined, or `failed` when it errored — distinct from `skipped` so callers
+   * don't tell the reviewer a decline reason was recorded when it was not.
    */
   private async updateSignupWithDeclineReason(
     signup: SignupDocument,
@@ -275,14 +273,17 @@ export class DeclineReasonRequestService {
     reviewMessage: Message<true>,
   ): Promise<DeclineReasonUpdateOutcome> {
     try {
-      if (await this.wasApprovedSinceDecline(signup)) {
-        return { type: 'skipped' };
-      }
-
-      await this.signupCollection.updateDeclineReason(
+      const write = await this.signupCollection.updateDeclineReason(
         { discordId: signup.discordId, encounter: signup.encounter },
         declineReason,
       );
+
+      if (write.type === 'skipped') {
+        this.logger.log(
+          `Signup ${signup.discordId}-${signup.encounter} was approved after being declined, skipping its decline reason and denial DM`,
+        );
+        return { type: 'skipped' };
+      }
 
       this.logger.log(
         `Updated signup ${signup.discordId}-${signup.encounter} with decline reason: ${declineReason}`,

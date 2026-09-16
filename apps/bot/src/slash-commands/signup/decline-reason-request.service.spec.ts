@@ -75,6 +75,10 @@ describe('DeclineReasonRequestService', () => {
     signupCollection = fixture.get(SignupCollection);
     eventBus = fixture.get(EventBus);
 
+    signupCollection.updateDeclineReason.mockResolvedValue({
+      type: 'written',
+    });
+
     signup = partialMock<SignupDocument>({
       discordId: 'abc123',
       encounter: 'DSR',
@@ -472,6 +476,10 @@ describe('DeclineReasonRequestService', () => {
         signupCollection.findById.mockResolvedValue(
           signupWithStatus(SignupStatus.APPROVED),
         );
+        // the write itself refuses once the signup is no longer declined
+        signupCollection.updateDeclineReason.mockResolvedValue({
+          type: 'skipped',
+        });
       });
 
       it('records and publishes no predefined reason, and tells the reviewer why', async () => {
@@ -485,8 +493,6 @@ describe('DeclineReasonRequestService', () => {
           reviewMessage,
         );
 
-        expect(signupCollection.findById).toHaveBeenCalledWith('abc123-DSR');
-        expect(signupCollection.updateDeclineReason).not.toHaveBeenCalled();
         expect(eventBus.publish).not.toHaveBeenCalled();
         expect(selection.reply).toHaveBeenCalledWith(skippedReply);
       });
@@ -501,7 +507,6 @@ describe('DeclineReasonRequestService', () => {
           reviewMessage,
         );
 
-        expect(signupCollection.updateDeclineReason).not.toHaveBeenCalled();
         expect(eventBus.publish).not.toHaveBeenCalled();
         expect(submit.reply).toHaveBeenCalledWith(skippedReply);
       });
@@ -544,13 +549,44 @@ describe('DeclineReasonRequestService', () => {
       });
     });
 
-    // findById (via wasApprovedSinceDecline) failing is not the same outcome
-    // as "already approved, skip" — both must not record or publish, but the
-    // reviewer needs to be told nothing was saved rather than shown the same
-    // success message as a real recording.
-    describe('when the pre-read for an in-flight approval fails', () => {
+    // the reversal lands after the reviewer's status read but before the
+    // write, so only the write's own precondition can catch it
+    describe('when a reversal lands between the read and the write', () => {
       beforeEach(() => {
-        signupCollection.findById.mockRejectedValue(
+        signupCollection.findById.mockResolvedValue(
+          signupWithStatus(SignupStatus.DECLINED),
+        );
+        signupCollection.updateDeclineReason.mockResolvedValue({
+          type: 'skipped',
+        });
+      });
+
+      it('tells the reviewer the reason was not recorded, and publishes nothing', async () => {
+        const selection = reasonSelection();
+
+        await service['handleReasonSelection'](
+          selection.interaction,
+          signup,
+          signupId,
+          reviewer,
+          reviewMessage,
+        );
+
+        expect(eventBus.publish).not.toHaveBeenCalled();
+        expect(selection.reply).toHaveBeenCalledWith({
+          content:
+            'This signup has since been approved, so no decline reason was recorded.',
+          flags: MessageFlags.Ephemeral,
+        });
+      });
+    });
+
+    // a failed write is not the same outcome as "already approved, skip" —
+    // both must not record or publish, but the reviewer needs to be told
+    // nothing was saved rather than shown a success message.
+    describe('when the decline reason write fails', () => {
+      beforeEach(() => {
+        signupCollection.updateDeclineReason.mockRejectedValue(
           new Error('firestore unavailable'),
         );
       });
@@ -566,7 +602,6 @@ describe('DeclineReasonRequestService', () => {
           reviewMessage,
         );
 
-        expect(signupCollection.updateDeclineReason).not.toHaveBeenCalled();
         expect(eventBus.publish).not.toHaveBeenCalled();
         expect(selection.reply).toHaveBeenCalledWith({
           content: SIGNUP_MESSAGES.DECLINE_REASON_RECORD_FAILED,
@@ -584,7 +619,6 @@ describe('DeclineReasonRequestService', () => {
           reviewMessage,
         );
 
-        expect(signupCollection.updateDeclineReason).not.toHaveBeenCalled();
         expect(eventBus.publish).not.toHaveBeenCalled();
         expect(submit.reply).toHaveBeenCalledWith({
           content: SIGNUP_MESSAGES.DECLINE_REASON_RECORD_FAILED,
