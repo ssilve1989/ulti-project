@@ -54,7 +54,7 @@ import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
 } from './events/signup.events.js';
-import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
+import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import {
   getErrorReplyMessage,
   isBotReaction,
@@ -380,6 +380,23 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       this.revertReviewReaction(user, message),
       this.discordService.sendDirectMessage(user.id, reply),
     ]);
+  }
+
+  private async notifyReviewerStateChanged(
+    reviewer: User,
+    signup: SignupDocument,
+  ): Promise<void> {
+    try {
+      await this.discordService.sendDirectMessage(reviewer.id, {
+        content: `${SIGNUP_MESSAGES.SIGNUP_STATE_CHANGED}\n\nSignup: **${signup.encounter}** by **${signup.username}**`,
+      });
+    } catch (error) {
+      this.errorService.captureError(error);
+      this.logger.error(
+        error,
+        `Failed to notify reviewer ${reviewer.id} that signup ${signup.discordId}-${signup.encounter} changed state`,
+      );
+    }
   }
 
   private async revertReviewReaction(

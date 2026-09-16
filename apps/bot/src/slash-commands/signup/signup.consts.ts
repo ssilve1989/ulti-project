@@ -42,6 +42,8 @@ You can reach out to a coordinator to discuss any issues.
     'No signup was found in the database to correspond to this reaction. Check if you are reacting to a message that has already been handled, like a Cleared post. In those cases the document would be removed. If not please report this error.',
   DECLINE_REASON_NOT_RECORDED:
     'The signup you declined has changed state while the decline reason was being collected, so the reason was not recorded and the user was not notified of the decline.',
+  SIGNUP_STATE_CHANGED:
+    'This signup changed state while it was being reviewed, so your review was not applied.',
 } as const;
 
 export const SIGNUP_REVIEW_REACTIONS: Record<SignupStatusValues, string> = {
