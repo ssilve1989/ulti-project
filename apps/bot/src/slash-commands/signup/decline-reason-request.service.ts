@@ -16,6 +16,7 @@ import {
   type StringSelectMenuInteraction,
   type User,
 } from 'discord.js';
+import { match } from 'ts-pattern';
 import { isSameUserFilter } from '../../common/collection-filters.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
@@ -34,6 +35,14 @@ import {
 } from './signup.consts.js';
 
 export const MAX_MODAL_SHOW_ATTEMPTS = 3;
+
+// `recorded`/`skipped` are both benign no-error outcomes; `failed` is kept
+// distinct so callers can tell the reviewer nothing was saved instead of
+// showing the same message as a successful recording.
+type DeclineReasonUpdateOutcome =
+  | { type: 'recorded' }
+  | { type: 'skipped' }
+  | { type: 'failed' };
 
 @Injectable()
 export class DeclineReasonRequestService {
@@ -205,16 +214,17 @@ export class DeclineReasonRequestService {
       }
     } else {
       // Use predefined reason
-      const approvedSinceDecline = await this.updateSignupWithDeclineReason(
+      const outcome = await this.updateSignupWithDeclineReason(
         signup,
         selectedValue,
         reviewer,
         reviewMessage,
       );
       await interaction.reply({
-        content: approvedSinceDecline
-          ? SIGNUP_MESSAGES.DECLINE_REASON_AFTER_APPROVAL
-          : `✅ Decline reason recorded: "${selectedValue}"`,
+        content: declineReasonReplyContent(
+          outcome,
+          `✅ Decline reason recorded: "${selectedValue}"`,
+        ),
         flags: MessageFlags.Ephemeral,
       });
     }
@@ -232,33 +242,37 @@ export class DeclineReasonRequestService {
       CUSTOM_DECLINE_REASON_INPUT_ID,
     );
 
-    const approvedSinceDecline = await this.updateSignupWithDeclineReason(
+    const outcome = await this.updateSignupWithDeclineReason(
       signup,
       customReason,
       reviewer,
       reviewMessage,
     );
     await interaction.reply({
-      content: approvedSinceDecline
-        ? SIGNUP_MESSAGES.DECLINE_REASON_AFTER_APPROVAL
-        : `✅ Custom decline reason recorded: "${customReason}"`,
+      content: declineReasonReplyContent(
+        outcome,
+        `✅ Custom decline reason recorded: "${customReason}"`,
+      ),
       flags: MessageFlags.Ephemeral,
     });
   }
 
   /**
-   * Resolves `true` when nothing was recorded or published because the
-   * signup has since been approved.
+   * Resolves `skipped` when nothing was recorded or published because the
+   * signup has since been approved, or `failed` when the update (including
+   * its own pre-read of the signup's current status) errored — distinct from
+   * `skipped` so callers don't tell the reviewer a decline reason was
+   * recorded when it was not.
    */
   private async updateSignupWithDeclineReason(
     signup: SignupDocument,
     declineReason: string,
     reviewer: User,
     reviewMessage: Message<true>,
-  ): Promise<boolean> {
+  ): Promise<DeclineReasonUpdateOutcome> {
     try {
       if (await this.wasApprovedSinceDecline(signup)) {
-        return true;
+        return { type: 'skipped' };
       }
 
       await this.signupCollection.updateDeclineReason(
@@ -277,15 +291,17 @@ export class DeclineReasonRequestService {
         reviewMessage,
         declineReason,
       );
+
+      return { type: 'recorded' };
     } catch (error) {
       this.reportError(error, { signup, reviewer });
       this.logger.error(
         error,
         `Failed to update signup ${signup.discordId}-${signup.encounter} with decline reason`,
       );
-    }
 
-    return false;
+      return { type: 'failed' };
+    }
   }
 
   private dispatchDeclineReasonEvent(
@@ -361,4 +377,21 @@ export class DeclineReasonRequestService {
     scope.setExtra('reviewer', context.reviewer);
     scope.captureException(error);
   }
+}
+
+function declineReasonReplyContent(
+  outcome: DeclineReasonUpdateOutcome,
+  recordedContent: string,
+): string {
+  return match(outcome)
+    .with({ type: 'recorded' }, () => recordedContent)
+    .with(
+      { type: 'skipped' },
+      () => SIGNUP_MESSAGES.DECLINE_REASON_AFTER_APPROVAL,
+    )
+    .with(
+      { type: 'failed' },
+      () => SIGNUP_MESSAGES.DECLINE_REASON_RECORD_FAILED,
+    )
+    .exhaustive();
 }

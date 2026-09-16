@@ -128,7 +128,8 @@ class SignupCollection {
    * Applies a reviewer's edit as an approval. Rejected with `conflict` when
    * the document changed after `updateTime` (re-submission or another edit).
    * A reversal starts a new approval decision, so it clears the previous
-   * decision's announcement id; a correction amends the current one.
+   * decision's announcement id and its stale decline reason; a correction
+   * amends the current one.
    */
   @SentryTraced()
   public async applyEdit(
@@ -154,7 +155,10 @@ class SignupCollection {
           partyStatus,
           reviewHistory: FieldValue.arrayUnion(...historyEntries),
           ...(kind === 'reversal'
-            ? { approvalMessageId: FieldValue.delete() }
+            ? {
+                approvalMessageId: FieldValue.delete(),
+                declineReason: FieldValue.delete(),
+              }
             : {}),
         },
         { lastUpdateTime: updateTime },

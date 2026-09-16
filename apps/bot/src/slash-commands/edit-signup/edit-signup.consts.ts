@@ -24,6 +24,8 @@ export const EDIT_SIGNUP_MESSAGES = {
   CANCELLED: 'Edit cancelled — nothing was changed.',
   TIMED_OUT: 'Edit timed out — nothing was changed.',
   SAVING: 'Saving…',
+  CHANGES_REQUIRED_BEFORE_SAVE:
+    'Select a prog point that changes something before saving.',
   CONFLICT:
     'This signup changed while you were editing (re-submitted or edited by another reviewer). Nothing was saved — run `/edit-signup` again.',
   MODAL_TOKEN_EXPIRED:

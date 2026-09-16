@@ -451,6 +451,7 @@ describe('Signup Repository', () => {
           partyStatus: PartyStatus.ClearParty,
           reviewHistory: FieldValue.arrayUnion(...historyEntries),
           approvalMessageId: FieldValue.delete(),
+          declineReason: FieldValue.delete(),
         },
         { lastUpdateTime: updateTime },
       );

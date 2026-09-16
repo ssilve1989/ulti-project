@@ -168,8 +168,10 @@ describe('EditSignupCommandHandler', () => {
     overrides: Partial<Record<keyof ButtonInteraction, unknown>> = {},
   ) => {
     const update = vi.fn().mockResolvedValue(undefined);
+    const reply = vi.fn().mockResolvedValue(undefined);
     return {
       update,
+      reply,
       interaction: mockOf<ButtonInteraction>({
         customId,
         user: editor,
@@ -177,6 +179,7 @@ describe('EditSignupCommandHandler', () => {
         isStringSelectMenu: () => false,
         isButton: () => true,
         update,
+        reply,
         ...overrides,
       }),
     };
@@ -575,7 +578,7 @@ describe('EditSignupCommandHandler', () => {
       expect(editSignupService.apply).not.toHaveBeenCalled();
     });
 
-    it('ignores Save while nothing has changed', async () => {
+    it('acknowledges Save while nothing has changed instead of dropping the click', async () => {
       const run = command.execute(interaction);
       const save = buttonInteraction(EDIT_SAVE_BUTTON_ID);
       await collector.collect(save.interaction);
@@ -583,6 +586,10 @@ describe('EditSignupCommandHandler', () => {
       await run;
 
       expect(save.update).not.toHaveBeenCalled();
+      expect(save.reply).toHaveBeenCalledWith({
+        content: EDIT_SIGNUP_MESSAGES.CHANGES_REQUIRED_BEFORE_SAVE,
+        flags: MessageFlags.Ephemeral,
+      });
       expect(editSignupService.apply).not.toHaveBeenCalled();
     });
   });

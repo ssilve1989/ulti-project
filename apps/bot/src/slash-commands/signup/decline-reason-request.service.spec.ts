@@ -34,6 +34,7 @@ import { SignupDeclineReasonCollectedEvent } from './events/signup.events.js';
 import {
   CUSTOM_DECLINE_REASON_VALUE,
   SIGNUP_DECLINE_REASONS,
+  SIGNUP_MESSAGES,
 } from './signup.consts.js';
 
 const unknownInteractionError = () =>
@@ -540,6 +541,55 @@ describe('DeclineReasonRequestService', () => {
         );
 
         expect(eventBus.publish).not.toHaveBeenCalled();
+      });
+    });
+
+    // findById (via wasApprovedSinceDecline) failing is not the same outcome
+    // as "already approved, skip" — both must not record or publish, but the
+    // reviewer needs to be told nothing was saved rather than shown the same
+    // success message as a real recording.
+    describe('when the pre-read for an in-flight approval fails', () => {
+      beforeEach(() => {
+        signupCollection.findById.mockRejectedValue(
+          new Error('firestore unavailable'),
+        );
+      });
+
+      it('tells the reviewer a predefined reason was not recorded, instead of claiming success', async () => {
+        const selection = reasonSelection();
+
+        await service['handleReasonSelection'](
+          selection.interaction,
+          signup,
+          signupId,
+          reviewer,
+          reviewMessage,
+        );
+
+        expect(signupCollection.updateDeclineReason).not.toHaveBeenCalled();
+        expect(eventBus.publish).not.toHaveBeenCalled();
+        expect(selection.reply).toHaveBeenCalledWith({
+          content: SIGNUP_MESSAGES.DECLINE_REASON_RECORD_FAILED,
+          flags: MessageFlags.Ephemeral,
+        });
+      });
+
+      it('tells the reviewer a custom reason was not recorded, instead of claiming success', async () => {
+        const submit = customReasonSubmit();
+
+        await service['handleCustomReasonSubmit'](
+          submit.interaction,
+          signup,
+          reviewer,
+          reviewMessage,
+        );
+
+        expect(signupCollection.updateDeclineReason).not.toHaveBeenCalled();
+        expect(eventBus.publish).not.toHaveBeenCalled();
+        expect(submit.reply).toHaveBeenCalledWith({
+          content: SIGNUP_MESSAGES.DECLINE_REASON_RECORD_FAILED,
+          flags: MessageFlags.Ephemeral,
+        });
       });
     });
   });
