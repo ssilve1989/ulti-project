@@ -17,7 +17,10 @@ import {
   DeclineReasonRequestService,
   MAX_MODAL_SHOW_ATTEMPTS,
 } from './decline-reason-request.service.js';
-import { CUSTOM_DECLINE_REASON_VALUE } from './signup.consts.js';
+import {
+  CUSTOM_DECLINE_REASON_VALUE,
+  SIGNUP_MESSAGES,
+} from './signup.consts.js';
 
 const unknownInteractionError = () =>
   new DiscordAPIError(
@@ -204,7 +207,11 @@ describe('DeclineReasonRequestService', () => {
       );
       expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
         reviewer.id,
-        expect.objectContaining({ content: expect.any(String) }),
+        expect.objectContaining({
+          content: expect.stringContaining(
+            SIGNUP_MESSAGES.DECLINE_REASON_NOT_RECORDED,
+          ),
+        }),
       );
       expect(repository.findById).not.toHaveBeenCalled();
     });
@@ -256,7 +263,11 @@ describe('DeclineReasonRequestService', () => {
 
       expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
         reviewer.id,
-        expect.objectContaining({ content: expect.any(String) }),
+        expect.objectContaining({
+          content: expect.stringContaining(
+            SIGNUP_MESSAGES.SIGNUP_STATE_CHANGED,
+          ),
+        }),
       );
     });
 

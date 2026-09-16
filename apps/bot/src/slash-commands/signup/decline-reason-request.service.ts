@@ -261,7 +261,11 @@ export class DeclineReasonRequestService {
         this.logger.warn(
           `Decline reason not recorded for signup ${signup.discordId}-${signup.encounter}, signup state changed`,
         );
-        await this.notifyReviewerStateChanged(reviewer, signup);
+        await this.notifyReviewerStateChanged(
+          reviewer,
+          signup,
+          SIGNUP_MESSAGES.DECLINE_REASON_NOT_RECORDED,
+        );
         return false;
       }
 
@@ -301,7 +305,13 @@ export class DeclineReasonRequestService {
         this.logger.warn(
           `Ignoring decline reason for signup ${signup.discordId}-${signup.encounter}, signup state changed`,
         );
-        await this.notifyReviewerStateChanged(reviewer, signup);
+        await this.notifyReviewerStateChanged(
+          reviewer,
+          signup,
+          declineReason
+            ? SIGNUP_MESSAGES.SIGNUP_STATE_CHANGED
+            : SIGNUP_MESSAGES.DECLINE_REASON_NOT_RECORDED,
+        );
         return;
       }
 
@@ -343,10 +353,11 @@ export class DeclineReasonRequestService {
   private async notifyReviewerStateChanged(
     reviewer: User,
     signup: SignupDocument,
+    message: string,
   ): Promise<void> {
     try {
       await this.discordService.sendDirectMessage(reviewer.id, {
-        content: `${SIGNUP_MESSAGES.DECLINE_REASON_NOT_RECORDED}\n\nSignup: **${signup.encounter}** by **${signup.username}**`,
+        content: `${message}\n\nSignup: **${signup.encounter}** by **${signup.username}**`,
       });
     } catch (error) {
       this.reportError(error, { signup, reviewer });
