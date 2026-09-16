@@ -369,7 +369,11 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     );
 
     if (!recorded) {
-      await this.revertReviewReaction(user, message);
+      try {
+        await this.revertReviewReaction(user, message);
+      } catch (error) {
+        this.errorService.captureError(error);
+      }
       await this.notifyReviewerStateChanged(user, signup);
       return undefined;
     }
