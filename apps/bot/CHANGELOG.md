@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.2](https://github.com/ssilve1989/ulti-project/compare/v2.7.1...v2.7.2) (2026-09-17)
+
+
+### Bug Fixes
+
+* **signup:** record decline reason only if no new signup has come in ([#1523](https://github.com/ssilve1989/ulti-project/issues/1523)) ([5a3f69f](https://github.com/ssilve1989/ulti-project/commit/5a3f69fdfcc90fd9aaac92926ad2cb805435a63b))
+
 ## [2.7.1](https://github.com/ssilve1989/ulti-project/compare/v2.7.0...v2.7.1) (2026-09-14)
 
 
