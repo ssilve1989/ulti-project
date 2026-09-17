@@ -11,8 +11,17 @@ import type {
   DocumentSnapshot,
   Firestore,
   Query,
+  Transaction,
 } from 'firebase-admin/firestore';
-import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  type Mocked,
+  vi,
+} from 'vitest';
 import type { SignupSchema } from '../../slash-commands/signup/signup.schema.js';
 import {
   createAutoMock,
@@ -32,6 +41,7 @@ describe('Signup Repository', () => {
   let repository: SignupCollection;
   let collection: Mocked<CollectionReference<DocumentData>>;
   let doc: Mocked<DocumentReference<DocumentData>>;
+  let firestore: Mocked<Firestore>;
   const signupRequest = partialMock<SignupSchema>(SIGNUP_KEY);
 
   beforeEach(async () => {
@@ -44,9 +54,8 @@ describe('Signup Repository', () => {
       doc: vi.fn().mockReturnValue(doc),
     });
 
-    const firestore = mockOf<Firestore>({
-      collection: vi.fn().mockReturnValue(collection),
-    });
+    firestore = createAutoMock<Firestore>();
+    firestore.collection.mockReturnValue(collection);
 
     const fixture = await Test.createTestingModule({
       providers: [
@@ -201,6 +210,133 @@ describe('Signup Repository', () => {
       return expect(
         repository.findByReviewId('reviewMessageId'),
       ).rejects.toThrow(DocumentNotFoundException);
+    });
+  });
+
+  describe('#updateDeclineReasonIfActive', () => {
+    let transaction: Transaction;
+    let transactionGet: Mock;
+    let transactionUpdate: Mock;
+
+    const mockCurrentDocument = (data: SignupDocument | null) => {
+      transactionGet.mockResolvedValueOnce(
+        mockOf<DocumentSnapshot<SignupDocument>>({
+          exists: data !== null,
+          data: () => data,
+        }),
+      );
+    };
+
+    beforeEach(() => {
+      transactionGet = vi.fn();
+      transactionUpdate = vi.fn();
+      transaction = mockOf<Transaction>({
+        get: transactionGet,
+        update: transactionUpdate,
+      });
+      firestore.runTransaction.mockImplementation((updateFunction) =>
+        updateFunction(transaction),
+      );
+    });
+
+    it('writes the decline reason when the signup is still in the same declined round', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...SIGNUP_KEY,
+          status: SignupStatus.DECLINED,
+          reviewMessageId: 'm1',
+          reviewedBy: 'reviewer',
+        }),
+      );
+
+      const result = await repository.updateDeclineReasonIfActive(
+        SIGNUP_KEY,
+        'lacks proof',
+        'm1',
+        'reviewer',
+      );
+
+      expect(result).toBe(true);
+      expect(transactionUpdate).toHaveBeenCalledWith(doc, {
+        declineReason: 'lacks proof',
+      });
+    });
+
+    it('does not write when the signup is no longer DECLINED', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...SIGNUP_KEY,
+          status: SignupStatus.UPDATE_PENDING,
+          reviewMessageId: 'm1',
+          reviewedBy: 'reviewer',
+        }),
+      );
+
+      const result = await repository.updateDeclineReasonIfActive(
+        SIGNUP_KEY,
+        'lacks proof',
+        'm1',
+        'reviewer',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not write when the review round has changed (new reviewMessageId)', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...SIGNUP_KEY,
+          status: SignupStatus.DECLINED,
+          reviewMessageId: 'm2',
+          reviewedBy: 'reviewer',
+        }),
+      );
+
+      const result = await repository.updateDeclineReasonIfActive(
+        SIGNUP_KEY,
+        'lacks proof',
+        'm1',
+        'reviewer',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not write when the signup has since been reviewed by someone else', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...SIGNUP_KEY,
+          status: SignupStatus.DECLINED,
+          reviewMessageId: 'm1',
+          reviewedBy: 'otherReviewer',
+        }),
+      );
+
+      const result = await repository.updateDeclineReasonIfActive(
+        SIGNUP_KEY,
+        'lacks proof',
+        'm1',
+        'reviewer',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not write when the signup document no longer exists', async () => {
+      mockCurrentDocument(null);
+
+      const result = await repository.updateDeclineReasonIfActive(
+        SIGNUP_KEY,
+        'lacks proof',
+        'm1',
+        'reviewer',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
     });
   });
 });
