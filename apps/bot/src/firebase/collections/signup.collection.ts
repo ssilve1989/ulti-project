@@ -10,6 +10,7 @@ import {
 import {
   type CollectionReference,
   type DocumentData,
+  FieldValue,
   Firestore,
   type Query,
   Timestamp,
@@ -38,42 +39,46 @@ class SignupCollection {
    * @param signup
    */
   @SentryTraced()
-  public async upsert(
-    props: CreateSignupDocumentProps,
-  ): Promise<SignupDocument> {
+  public upsert(props: CreateSignupDocumentProps): Promise<SignupDocument> {
     const key = SignupCollection.getKeyForSignup(props);
-    const document = this.collection.doc(key);
+    const ref = this.collection.doc(key);
     const expiresAt = Timestamp.fromMillis(
       Temporal.Now.zonedDateTimeISO().add({ days: 28 }).epochMilliseconds,
     );
-    const snapshot = await document.get();
-    const existing = snapshot.data();
 
-    if (existing) {
+    return this.firestore.runTransaction(async (tx) => {
+      const snapshot = await tx.get(ref);
+      const existing = snapshot.data();
+
+      if (existing) {
+        const previousReviewMessageId = existing.reviewMessageId;
+        const signupData = {
+          ...existing,
+          ...props,
+          // if there is already a signup and it is still PENDING we do nothing, otherwise we move it to UPDATE_PENDING
+          status:
+            existing.status === SignupStatus.PENDING
+              ? SignupStatus.PENDING
+              : SignupStatus.UPDATE_PENDING,
+          // reset the reviewedBy field because it now has to be reviewed again
+          reviewedBy: null,
+          // invalidate the previous review round so an in-flight collector can never pass the updateSignupStatus guard
+          reviewMessageId: FieldValue.delete(),
+          expiresAt,
+        };
+        tx.update(ref, signupData);
+        return { ...signupData, reviewMessageId: previousReviewMessageId };
+      }
+
       const signupData = {
-        ...existing,
         ...props,
-        // if there is already a signup and it is still PENDING we do nothing, otherwise we move it to UPDATE_PENDING
-        status:
-          existing.status === SignupStatus.PENDING
-            ? SignupStatus.PENDING
-            : SignupStatus.UPDATE_PENDING,
-        // reset the reviewedBy field because it now has to be reviewed again
-        reviewedBy: null,
         expiresAt,
+        status: SignupStatus.PENDING,
       };
-      await document.update(signupData);
+
+      tx.create(ref, signupData);
       return signupData;
-    }
-
-    const signupData = {
-      ...props,
-      expiresAt,
-      status: SignupStatus.PENDING,
-    };
-
-    await document.create(signupData);
-    return signupData;
+    });
   }
 
   @SentryTraced()
@@ -148,12 +153,26 @@ class SignupCollection {
       ...key
     }: SignupCompositeKey & Pick<SignupDocument, 'progPoint' | 'partyStatus'>,
     reviewedBy: string,
-  ) {
-    return this.collection.doc(SignupCollection.getKeyForSignup(key)).update({
-      status,
-      progPoint,
-      reviewedBy,
-      partyStatus,
+    expectedReviewMessageId: string,
+  ): Promise<boolean> {
+    const ref = this.collection.doc(SignupCollection.getKeyForSignup(key));
+
+    return this.firestore.runTransaction(async (tx) => {
+      const snapshot = await tx.get(ref);
+      const current = snapshot.data();
+
+      if (
+        !current ||
+        current.reviewMessageId !== expectedReviewMessageId ||
+        current.reviewedBy != null ||
+        (current.status !== SignupStatus.PENDING &&
+          current.status !== SignupStatus.UPDATE_PENDING)
+      ) {
+        return false;
+      }
+
+      tx.update(ref, { status, progPoint, reviewedBy, partyStatus });
+      return true;
     });
   }
 
@@ -173,14 +192,35 @@ class SignupCollection {
   }
 
   @SentryTraced()
-  public updateDeclineReason(
+  /**
+   * Atomically records a decline reason, but only if the signup is still in the
+   * same decline round. Guards against a decline reason being collected for a
+   * previous review round landing on a signup that has since been re-submitted
+   * (UPDATE_PENDING) or reviewed again (new reviewMessageId/reviewedBy).
+   */
+  public updateDeclineReasonIfActive(
     signup: SignupCompositeKey,
     declineReason: string,
-  ) {
-    const key = SignupCollection.getKeyForSignup(signup);
+    expectedReviewMessageId: string | undefined,
+    expectedReviewedBy: string,
+  ): Promise<boolean> {
+    const ref = this.collection.doc(SignupCollection.getKeyForSignup(signup));
 
-    return this.collection.doc(key).update({
-      declineReason,
+    return this.firestore.runTransaction(async (tx) => {
+      const snapshot = await tx.get(ref);
+      const current = snapshot.data();
+
+      if (
+        !current ||
+        current.status !== SignupStatus.DECLINED ||
+        current.reviewMessageId !== expectedReviewMessageId ||
+        current.reviewedBy !== expectedReviewedBy
+      ) {
+        return false;
+      }
+
+      tx.update(ref, { declineReason });
+      return true;
     });
   }
 

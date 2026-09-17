@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import {
   Encounter,
+  PartyStatus,
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
@@ -11,8 +12,18 @@ import type {
   DocumentSnapshot,
   Firestore,
   Query,
+  Transaction,
 } from 'firebase-admin/firestore';
-import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import { FieldValue } from 'firebase-admin/firestore';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  type Mocked,
+  vi,
+} from 'vitest';
 import type { SignupSchema } from '../../slash-commands/signup/signup.schema.js';
 import {
   createAutoMock,
@@ -32,6 +43,7 @@ describe('Signup Repository', () => {
   let repository: SignupCollection;
   let collection: Mocked<CollectionReference<DocumentData>>;
   let doc: Mocked<DocumentReference<DocumentData>>;
+  let firestore: Mocked<Firestore>;
   const signupRequest = partialMock<SignupSchema>(SIGNUP_KEY);
 
   beforeEach(async () => {
@@ -44,9 +56,8 @@ describe('Signup Repository', () => {
       doc: vi.fn().mockReturnValue(doc),
     });
 
-    const firestore = mockOf<Firestore>({
-      collection: vi.fn().mockReturnValue(collection),
-    });
+    firestore = createAutoMock<Firestore>();
+    firestore.collection.mockReturnValue(collection);
 
     const fixture = await Test.createTestingModule({
       providers: [
@@ -60,100 +71,237 @@ describe('Signup Repository', () => {
     repository = fixture.get(SignupCollection);
   });
 
-  it('should call update if document exists', async () => {
-    const existingData = {
-      ...signupRequest,
-      status: SignupStatus.APPROVED,
-      reviewedBy: 'someReviewer',
+  describe('#upsert', () => {
+    let transaction: Transaction;
+    let transactionGet: Mock;
+    let transactionUpdate: Mock;
+    let transactionCreate: Mock;
+
+    const mockCurrentDocument = (data: SignupDocument | null) => {
+      transactionGet.mockResolvedValueOnce(
+        mockOf<DocumentSnapshot<SignupDocument>>({
+          exists: data !== null,
+          data: () => data,
+        }),
+      );
     };
-    doc.get.mockResolvedValueOnce(
-      mockOf<DocumentSnapshot>({
-        exists: true,
-        data: () => existingData,
-      }),
-    );
 
-    const result = await repository.upsert(signupRequest);
+    beforeEach(() => {
+      transactionGet = vi.fn();
+      transactionUpdate = vi.fn();
+      transactionCreate = vi.fn();
+      transaction = mockOf<Transaction>({
+        get: transactionGet,
+        update: transactionUpdate,
+        create: transactionCreate,
+      });
+      firestore.runTransaction.mockImplementation((updateFunction) =>
+        updateFunction(transaction),
+      );
+    });
 
-    expect(doc.update).toHaveBeenCalledWith(
-      expect.objectContaining({
+    it('should call update if document exists and carry the previous reviewMessageId', async () => {
+      const existingData = {
+        ...signupRequest,
+        status: SignupStatus.APPROVED,
+        reviewedBy: 'someReviewer',
+        reviewMessageId: 'oldReviewMessageId',
+      };
+      mockCurrentDocument(partialMock<SignupDocument>(existingData));
+
+      const result = await repository.upsert(signupRequest);
+
+      expect(transactionUpdate).toHaveBeenCalledWith(
+        doc,
+        expect.objectContaining({
+          ...existingData,
+          ...signupRequest,
+          status: SignupStatus.UPDATE_PENDING,
+          reviewedBy: null,
+          reviewMessageId: FieldValue.delete(),
+        }),
+      );
+
+      expect(transactionCreate).not.toHaveBeenCalled();
+      expect(result.reviewMessageId).toBe('oldReviewMessageId');
+      expect(result).toMatchObject({
         ...existingData,
         ...signupRequest,
         status: SignupStatus.UPDATE_PENDING,
         reviewedBy: null,
-      }),
-    );
-
-    expect(doc.create).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      ...existingData,
-      ...signupRequest,
-      status: SignupStatus.UPDATE_PENDING,
-      reviewedBy: null,
+      });
     });
-  });
 
-  it('should preserve PENDING status when updating an existing PENDING signup', async () => {
-    const existingData = {
-      ...signupRequest,
-      status: SignupStatus.PENDING,
-      reviewedBy: null,
-    };
-    doc.get.mockResolvedValueOnce(
-      mockOf<DocumentSnapshot>({
-        exists: true,
-        data: () => existingData,
-      }),
-    );
-
-    const result = await repository.upsert(signupRequest);
-
-    expect(doc.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...existingData,
-        ...signupRequest,
-        status: SignupStatus.PENDING, // Should remain PENDING
-        reviewedBy: null,
-      }),
-    );
-
-    expect(result.status).toBe(SignupStatus.PENDING);
-  });
-
-  it('should call create if the document does not exist', async () => {
-    doc.get.mockResolvedValueOnce(
-      mockOf<DocumentSnapshot>({
-        exists: false,
-        data: () => null,
-      }),
-    );
-
-    const result = await repository.upsert(signupRequest);
-
-    expect(doc.create).toHaveBeenCalledWith(
-      expect.objectContaining({
+    it('should preserve PENDING status when updating an existing PENDING signup', async () => {
+      const existingData = {
         ...signupRequest,
         status: SignupStatus.PENDING,
-      }),
-    );
+        reviewedBy: null,
+      };
+      mockCurrentDocument(partialMock<SignupDocument>(existingData));
 
-    expect(doc.update).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      ...signupRequest,
-      status: SignupStatus.PENDING,
+      const result = await repository.upsert(signupRequest);
+
+      expect(transactionUpdate).toHaveBeenCalledWith(
+        doc,
+        expect.objectContaining({
+          ...existingData,
+          ...signupRequest,
+          status: SignupStatus.PENDING, // Should remain PENDING
+          reviewedBy: null,
+        }),
+      );
+
+      expect(transactionCreate).not.toHaveBeenCalled();
+      expect(result.status).toBe(SignupStatus.PENDING);
+    });
+
+    it('should call create if the document does not exist', async () => {
+      mockCurrentDocument(null);
+
+      const result = await repository.upsert(signupRequest);
+
+      expect(transactionCreate).toHaveBeenCalledWith(
+        doc,
+        expect.objectContaining({
+          ...signupRequest,
+          status: SignupStatus.PENDING,
+        }),
+      );
+
+      expect(transactionUpdate).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        ...signupRequest,
+        status: SignupStatus.PENDING,
+      });
     });
   });
 
-  it('should call updateSignupStatus with the correct arguments', async () => {
-    await repository.updateSignupStatus(
-      SignupStatus.APPROVED,
-      SIGNUP_KEY,
-      'reviewedBy',
-    );
+  describe('#updateSignupStatus', () => {
+    let transaction: Transaction;
+    let transactionGet: Mock;
+    let transactionUpdate: Mock;
 
-    expect(doc.update).toHaveBeenCalledWith({
-      status: SignupStatus.APPROVED,
-      reviewedBy: 'reviewedBy',
+    const mockCurrentDocument = (data: SignupDocument | null) => {
+      transactionGet.mockResolvedValueOnce(
+        mockOf<DocumentSnapshot<SignupDocument>>({
+          exists: data !== null,
+          data: () => data,
+        }),
+      );
+    };
+
+    beforeEach(() => {
+      transactionGet = vi.fn();
+      transactionUpdate = vi.fn();
+      transaction = mockOf<Transaction>({
+        get: transactionGet,
+        update: transactionUpdate,
+      });
+      firestore.runTransaction.mockImplementation((updateFunction) =>
+        updateFunction(transaction),
+      );
+    });
+
+    const reviewableSignup = {
+      ...SIGNUP_KEY,
+      status: SignupStatus.PENDING,
+      reviewMessageId: 'm1',
+      reviewedBy: null,
+    };
+
+    it('writes the new status when the signup is still in the same unreviewed round', async () => {
+      mockCurrentDocument(partialMock<SignupDocument>(reviewableSignup));
+
+      const result = await repository.updateSignupStatus(
+        SignupStatus.APPROVED,
+        {
+          ...SIGNUP_KEY,
+          progPoint: 'point-a',
+          partyStatus: PartyStatus.EarlyProgParty,
+        },
+        'reviewer',
+        'm1',
+      );
+
+      expect(result).toBe(true);
+      expect(transactionUpdate).toHaveBeenCalledWith(doc, {
+        status: SignupStatus.APPROVED,
+        progPoint: 'point-a',
+        reviewedBy: 'reviewer',
+        partyStatus: PartyStatus.EarlyProgParty,
+      });
+    });
+
+    it('does not write when the review round has changed (new reviewMessageId)', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...reviewableSignup,
+          reviewMessageId: 'm2',
+        }),
+      );
+
+      const result = await repository.updateSignupStatus(
+        SignupStatus.APPROVED,
+        { ...SIGNUP_KEY, progPoint: 'point-a' },
+        'reviewer',
+        'm1',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not write when the signup has already been reviewed', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...reviewableSignup,
+          reviewedBy: 'someoneElse',
+        }),
+      );
+
+      const result = await repository.updateSignupStatus(
+        SignupStatus.APPROVED,
+        { ...SIGNUP_KEY, progPoint: 'point-a' },
+        'reviewer',
+        'm1',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not write when the signup is no longer reviewable', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...reviewableSignup,
+          status: SignupStatus.APPROVED,
+        }),
+      );
+
+      const result = await repository.updateSignupStatus(
+        SignupStatus.DECLINED,
+        SIGNUP_KEY,
+        'reviewer',
+        'm1',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not write when the signup document no longer exists', async () => {
+      mockCurrentDocument(null);
+
+      const result = await repository.updateSignupStatus(
+        SignupStatus.APPROVED,
+        { ...SIGNUP_KEY, progPoint: 'point-a' },
+        'reviewer',
+        'm1',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
     });
   });
 
@@ -201,6 +349,133 @@ describe('Signup Repository', () => {
       return expect(
         repository.findByReviewId('reviewMessageId'),
       ).rejects.toThrow(DocumentNotFoundException);
+    });
+  });
+
+  describe('#updateDeclineReasonIfActive', () => {
+    let transaction: Transaction;
+    let transactionGet: Mock;
+    let transactionUpdate: Mock;
+
+    const mockCurrentDocument = (data: SignupDocument | null) => {
+      transactionGet.mockResolvedValueOnce(
+        mockOf<DocumentSnapshot<SignupDocument>>({
+          exists: data !== null,
+          data: () => data,
+        }),
+      );
+    };
+
+    beforeEach(() => {
+      transactionGet = vi.fn();
+      transactionUpdate = vi.fn();
+      transaction = mockOf<Transaction>({
+        get: transactionGet,
+        update: transactionUpdate,
+      });
+      firestore.runTransaction.mockImplementation((updateFunction) =>
+        updateFunction(transaction),
+      );
+    });
+
+    it('writes the decline reason when the signup is still in the same declined round', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...SIGNUP_KEY,
+          status: SignupStatus.DECLINED,
+          reviewMessageId: 'm1',
+          reviewedBy: 'reviewer',
+        }),
+      );
+
+      const result = await repository.updateDeclineReasonIfActive(
+        SIGNUP_KEY,
+        'lacks proof',
+        'm1',
+        'reviewer',
+      );
+
+      expect(result).toBe(true);
+      expect(transactionUpdate).toHaveBeenCalledWith(doc, {
+        declineReason: 'lacks proof',
+      });
+    });
+
+    it('does not write when the signup is no longer DECLINED', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...SIGNUP_KEY,
+          status: SignupStatus.UPDATE_PENDING,
+          reviewMessageId: 'm1',
+          reviewedBy: 'reviewer',
+        }),
+      );
+
+      const result = await repository.updateDeclineReasonIfActive(
+        SIGNUP_KEY,
+        'lacks proof',
+        'm1',
+        'reviewer',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not write when the review round has changed (new reviewMessageId)', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...SIGNUP_KEY,
+          status: SignupStatus.DECLINED,
+          reviewMessageId: 'm2',
+          reviewedBy: 'reviewer',
+        }),
+      );
+
+      const result = await repository.updateDeclineReasonIfActive(
+        SIGNUP_KEY,
+        'lacks proof',
+        'm1',
+        'reviewer',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not write when the signup has since been reviewed by someone else', async () => {
+      mockCurrentDocument(
+        partialMock<SignupDocument>({
+          ...SIGNUP_KEY,
+          status: SignupStatus.DECLINED,
+          reviewMessageId: 'm1',
+          reviewedBy: 'otherReviewer',
+        }),
+      );
+
+      const result = await repository.updateDeclineReasonIfActive(
+        SIGNUP_KEY,
+        'lacks proof',
+        'm1',
+        'reviewer',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not write when the signup document no longer exists', async () => {
+      mockCurrentDocument(null);
+
+      const result = await repository.updateDeclineReasonIfActive(
+        SIGNUP_KEY,
+        'lacks proof',
+        'm1',
+        'reviewer',
+      );
+
+      expect(result).toBe(false);
+      expect(transactionUpdate).not.toHaveBeenCalled();
     });
   });
 });

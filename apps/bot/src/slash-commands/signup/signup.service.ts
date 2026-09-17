@@ -54,7 +54,7 @@ import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
 } from './events/signup.events.js';
-import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
+import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import {
   getErrorReplyMessage,
   isBotReaction,
@@ -262,7 +262,22 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       signup,
       decision.progPoint,
     );
-    await this.persistApprovedSignup(confirmedSignup, settings, user);
+    const recorded = await this.persistApprovedSignup(
+      confirmedSignup,
+      settings,
+      user,
+      message.id,
+    );
+
+    if (!recorded) {
+      try {
+        await this.revertReviewReaction(user, message);
+      } catch (error) {
+        this.errorService.captureError(error);
+      }
+      await this.notifyReviewerStateChanged(user, signup);
+      return undefined;
+    }
 
     return new SignupApprovedEvent(
       confirmedSignup,
@@ -306,7 +321,19 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     confirmedSignup: SignupDocument,
     settings: SettingsDocument,
     user: User,
-  ): Promise<void> {
+    reviewMessageId: string,
+  ): Promise<boolean> {
+    const recorded = await this.repository.updateSignupStatus(
+      SignupStatus.APPROVED,
+      confirmedSignup,
+      user.username,
+      reviewMessageId,
+    );
+
+    if (!recorded) {
+      return false;
+    }
+
     if (settings.spreadsheetId) {
       await this.sheetsService.upsertSignup(
         confirmedSignup,
@@ -322,26 +349,34 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         world: confirmedSignup.world,
         encounter: confirmedSignup.encounter,
       });
-    } else {
-      await this.repository.updateSignupStatus(
-        SignupStatus.APPROVED,
-        confirmedSignup,
-        user.username,
-      );
     }
+
+    return true;
   }
 
   private async handleDeclinedReaction(
     signup: SignupDocument,
     message: Message<true>,
     user: User,
-  ): Promise<SignupDeclinedEvent> {
-    // Update signup status immediately (for sequential reaction processing)
-    await this.repository.updateSignupStatus(
+  ): Promise<SignupDeclinedEvent | undefined> {
+    // Update signup status immediately (for sequential reaction processing);
+    // only proceed if the signup is still in the same review round
+    const recorded = await this.repository.updateSignupStatus(
       SignupStatus.DECLINED,
       signup,
       user.username,
+      message.id,
     );
+
+    if (!recorded) {
+      try {
+        await this.revertReviewReaction(user, message);
+      } catch (error) {
+        this.errorService.captureError(error);
+      }
+      await this.notifyReviewerStateChanged(user, signup);
+      return undefined;
+    }
 
     // Fire decline reason request with event dispatch context (non-blocking)
     this.declineReasonRequestService
@@ -372,6 +407,23 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       this.revertReviewReaction(user, message),
       this.discordService.sendDirectMessage(user.id, reply),
     ]);
+  }
+
+  private async notifyReviewerStateChanged(
+    reviewer: User,
+    signup: SignupDocument,
+  ): Promise<void> {
+    try {
+      await this.discordService.sendDirectMessage(reviewer.id, {
+        content: `${SIGNUP_MESSAGES.SIGNUP_STATE_CHANGED}\n\nSignup: **${signup.encounter}** by **${signup.username}**`,
+      });
+    } catch (error) {
+      this.errorService.captureError(error);
+      this.logger.error(
+        error,
+        `Failed to notify reviewer ${reviewer.id} that signup ${signup.discordId}-${signup.encounter} changed state`,
+      );
+    }
   }
 
   private async revertReviewReaction(

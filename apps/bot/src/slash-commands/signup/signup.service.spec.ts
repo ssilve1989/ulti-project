@@ -2,12 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { SignupDocument } from '@ulti-project/shared';
 import { SignupStatus } from '@ulti-project/shared';
 import type { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
-import type { WriteResult } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { ErrorService } from '../../error/error.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
+import { SheetsService } from '../../sheets/sheets.service.js';
 import {
   createAutoMock,
   mockOf,
@@ -15,7 +15,8 @@ import {
   withInternals,
 } from '../../test-utils/mock-factory.js';
 import { ApprovalDecisionRequestService } from './approval-decision-request.service.js';
-import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
+import { DeclineReasonRequestService } from './decline-reason-request.service.js';
+import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';
 
 // TODO: Actually assert approval/decline functionality, not just that they were called
@@ -102,9 +103,7 @@ describe('SignupService', () => {
 
     repository.findByReviewId.mockResolvedValueOnce(signup);
     discordService.getDisplayName.mockResolvedValueOnce('someuser');
-    repository.updateSignupStatus.mockResolvedValueOnce(
-      mockOf<WriteResult>({}),
-    );
+    repository.updateSignupStatus.mockResolvedValueOnce(true);
     vi.spyOn(messageReaction.message, 'edit').mockResolvedValueOnce(
       mockOf<Awaited<ReturnType<(typeof messageReaction.message)['edit']>>>({}),
     );
@@ -124,6 +123,64 @@ describe('SignupService', () => {
       messageReaction.message,
       user,
     );
+  });
+
+  it('reverts the reaction, DMs the reviewer, and skips the reason request when the signup changed state during decline', async () => {
+    messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.DECLINED;
+
+    repository.findByReviewId.mockResolvedValueOnce(signup);
+    repository.updateSignupStatus.mockResolvedValueOnce(false);
+
+    const approvedRemove = vi.fn().mockResolvedValue(undefined);
+    const declinedRemove = vi.fn().mockResolvedValue(undefined);
+    const message = mockOf<Message<true>>({
+      id: 'messageId',
+      inGuild: () => true,
+      reactions: {
+        cache: {
+          get: (key: string) =>
+            key === SIGNUP_REVIEW_REACTIONS.APPROVED
+              ? { users: { remove: approvedRemove } }
+              : { users: { remove: declinedRemove } },
+        },
+      },
+    });
+
+    const declineReasonRequestService: Mocked<DeclineReasonRequestService> =
+      fixture.get(DeclineReasonRequestService);
+    const spy = vi.spyOn(
+      withInternals<{
+        handleDeclinedReaction: (...args: unknown[]) => Promise<unknown>;
+      }>(service),
+      'handleDeclinedReaction',
+    );
+
+    const signup2 = partialMock<SignupDocument>({
+      reviewMessageId: 'messageId',
+      reviewedBy: undefined,
+      discordId: 'abc123',
+    });
+
+    await service['handleDeclinedReaction'](signup2, message, user);
+
+    expect(repository.updateSignupStatus).toHaveBeenCalledWith(
+      SignupStatus.DECLINED,
+      signup2,
+      user.username,
+      'messageId',
+    );
+    expect(
+      declineReasonRequestService.requestDeclineReason,
+    ).not.toHaveBeenCalled();
+    expect(approvedRemove).toHaveBeenCalledWith(user.id);
+    expect(declinedRemove).toHaveBeenCalledWith(user.id);
+    expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
+      user.id,
+      expect.objectContaining({
+        content: expect.stringContaining(SIGNUP_MESSAGES.SIGNUP_STATE_CHANGED),
+      }),
+    );
+    expect(spy).toHaveBeenCalledWith(signup2, message, user);
   });
 
   it('should return early if a signup has been reviewed', async () => {
@@ -157,6 +214,7 @@ describe('SignupService', () => {
       progPoint: 'point-a',
       comment: 'Nice work!',
     });
+    repository.updateSignupStatus.mockResolvedValue(true);
 
     const event = await service['handleApprovedReaction'](
       signup,
@@ -175,6 +233,7 @@ describe('SignupService', () => {
       SignupStatus.APPROVED,
       expect.not.objectContaining({ comment: expect.anything() }),
       user.username,
+      'messageId',
     );
   });
 
@@ -250,6 +309,64 @@ describe('SignupService', () => {
     expect(event).toBeUndefined();
     expect(errorService.captureError).toHaveBeenCalledWith(revertError);
     expect(discordService.sendDirectMessage).not.toHaveBeenCalled();
+  });
+
+  it('reverts the reaction, DMs the reviewer, and skips the sheets write when the signup changed state during approval', async () => {
+    repository.findByReviewId.mockResolvedValue(signup);
+    messageReaction.emoji.name = SIGNUP_REVIEW_REACTIONS.APPROVED;
+
+    const approvalDecisionRequestService: Mocked<ApprovalDecisionRequestService> =
+      fixture.get(ApprovalDecisionRequestService);
+    approvalDecisionRequestService.requestApprovalDecision.mockResolvedValue({
+      type: 'approved',
+      progPoint: 'point-a',
+    });
+    repository.updateSignupStatus.mockResolvedValue(false);
+
+    const approvedRemove = vi.fn().mockResolvedValue(undefined);
+    const declinedRemove = vi.fn().mockResolvedValue(undefined);
+    const message = mockOf<Message<true>>({
+      id: 'messageId',
+      inGuild: () => true,
+      embeds: [{}],
+      reactions: {
+        cache: {
+          get: (key: string) =>
+            key === SIGNUP_REVIEW_REACTIONS.APPROVED
+              ? { users: { remove: approvedRemove } }
+              : { users: { remove: declinedRemove } },
+        },
+      },
+    });
+
+    const sheetsService = fixture.get(SheetsService);
+    const staleSettings = partialMock<SettingsDocument>({
+      spreadsheetId: 'sheet-1',
+    });
+
+    const event = await service['handleApprovedReaction'](
+      signup,
+      message,
+      user,
+      staleSettings,
+    );
+
+    expect(event).toBeUndefined();
+    expect(repository.updateSignupStatus).toHaveBeenCalledWith(
+      SignupStatus.APPROVED,
+      expect.objectContaining({ progPoint: 'point-a' }),
+      user.username,
+      'messageId',
+    );
+    expect(sheetsService.upsertSignup).not.toHaveBeenCalled();
+    expect(approvedRemove).toHaveBeenCalledWith(user.id);
+    expect(declinedRemove).toHaveBeenCalledWith(user.id);
+    expect(discordService.sendDirectMessage).toHaveBeenCalledWith(
+      user.id,
+      expect.objectContaining({
+        content: expect.stringContaining(SIGNUP_MESSAGES.SIGNUP_STATE_CHANGED),
+      }),
+    );
   });
 
   describe('handleError', () => {
