@@ -9,7 +9,7 @@ Sentry.init({
   dsn: SENTRY_DSN,
   environment: NODE_ENV,
   integrations: [nodeProfilingIntegration()],
-  profilesSampleRate: 1.0,
+  profileSessionSampleRate: 1.0,
   release: `ulti-project-bot@${pkg.version}`,
   tracesSampleRate: 1.0,
 });
