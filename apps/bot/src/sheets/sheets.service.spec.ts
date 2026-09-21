@@ -1,11 +1,23 @@
 import { sheets, sheets_v4 } from '@googleapis/sheets';
 import { Test } from '@nestjs/testing';
-import { Encounter, PartyStatus } from '@ulti-project/shared';
+import {
+  Encounter,
+  PartyStatus,
+  type SignupDocument,
+} from '@ulti-project/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EncountersService } from '../encounters/encounters.service.js';
 import { ErrorService } from '../error/error.service.js';
-import { mockOf, withInternals } from '../test-utils/mock-factory.js';
-import { SHEETS_CLIENT } from './sheets.consts.js';
+import {
+  mockOf,
+  partialMock,
+  withInternals,
+} from '../test-utils/mock-factory.js';
+import {
+  SHEETS_CLIENT,
+  type SheetRangeConfig,
+  SheetRanges,
+} from './sheets.consts.js';
 import { SheetsService } from './sheets.service.js';
 import * as sheetsUtils from './sheets.utils.js';
 import { TurboProgSheetRanges } from './turbo-prog-sheets/turbo-prog-sheets.consts.js';
@@ -406,6 +418,143 @@ describe('Sheets Service', () => {
 
       // Restore the original TurboProgSheetRanges
       Object.assign(TurboProgSheetRanges, originalRanges);
+    });
+  });
+
+  describe('#upsertSignup range cleanup', () => {
+    const installedSpies: { mockRestore: () => void }[] = [];
+
+    const signupFor = (partyStatus: PartyStatus) =>
+      partialMock<SignupDocument>({
+        encounter: Encounter.DSR,
+        character: 'faye valentine',
+        world: 'gilgamesh',
+        role: 'WHM',
+        progPoint: 'p2',
+        partyStatus,
+      });
+
+    const cellValues = () =>
+      ['Faye Valentine', 'Gilgamesh', 'WHM', 'p2'].map((value) => ({
+        userEnteredValue: { stringValue: value },
+      }));
+
+    const gridRange = (range: SheetRangeConfig, row: number) => ({
+      sheetId: 123,
+      startRowIndex: row,
+      endRowIndex: row + 1,
+      startColumnIndex: sheetsUtils.columnToIndex(range.columnStart),
+      endColumnIndex: sheetsUtils.columnToIndex(range.columnEnd) + 1,
+    });
+
+    let getSheetValuesSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      getSheetValuesSpy = vi
+        .spyOn(sheetsUtils, 'getSheetValues')
+        .mockResolvedValue([]);
+      installedSpies.push(
+        getSheetValuesSpy,
+        vi.spyOn(sheetsUtils, 'getSheetIdByName').mockResolvedValue(123),
+        vi
+          .spyOn(sheetsUtils, 'batchUpdateWithRetry')
+          .mockResolvedValue(
+            mockOf<
+              Awaited<ReturnType<typeof sheetsUtils.batchUpdateWithRetry>>
+            >({}),
+          ),
+      );
+    });
+
+    afterEach(() => {
+      for (const spy of installedSpies.splice(0)) {
+        spy.mockRestore();
+      }
+    });
+
+    it('sends the Prog clear and the Clear write in one batch update', async () => {
+      // found in both the write range and the clear range
+      getSheetValuesSpy.mockResolvedValue([
+        ['faye valentine', 'gilgamesh', 'WHM', 'p2'],
+      ]);
+
+      await service.upsertSignup(signupFor(PartyStatus.ClearParty), 'sheet-id');
+
+      expect(sheetsUtils.batchUpdateWithRetry).toHaveBeenCalledTimes(1);
+      const [, , requests] = vi.mocked(sheetsUtils.batchUpdateWithRetry).mock
+        .calls[0];
+      expect(requests).toHaveLength(2);
+      expect(requests[0]).toEqual({
+        updateCells: {
+          range: gridRange(SheetRanges[PartyStatus.ProgParty], 0),
+          fields: 'userEnteredValue',
+        },
+      });
+      expect(requests[1]).toEqual({
+        updateCells: {
+          range: gridRange(SheetRanges[PartyStatus.ClearParty], 0),
+          rows: [{ values: cellValues() }],
+          fields: 'userEnteredValue',
+        },
+      });
+    });
+
+    it('does not clean the Prog range for a non-Clear upsert', async () => {
+      await service.upsertSignup(signupFor(PartyStatus.ProgParty), 'sheet-id');
+
+      expect(sheetsUtils.batchUpdateWithRetry).toHaveBeenCalledTimes(1);
+      const [, , requests] = vi.mocked(sheetsUtils.batchUpdateWithRetry).mock
+        .calls[0];
+      expect(requests).toHaveLength(1);
+      expect(requests[0]).toEqual({
+        updateCells: {
+          range: gridRange(SheetRanges[PartyStatus.ProgParty], 0),
+          rows: [{ values: cellValues() }],
+          fields: 'userEnteredValue',
+        },
+      });
+    });
+
+    it('sends only the write request for an encounter with a single prog point', async () => {
+      getSheetValuesSpy.mockResolvedValue([]);
+      mockEncountersService.getProgPoints.mockResolvedValue([
+        { id: 'p1', label: 'Phase 1', order: 0 },
+      ]);
+
+      await service.upsertSignup(signupFor(PartyStatus.ClearParty), 'sheet-id');
+
+      expect(sheetsUtils.batchUpdateWithRetry).toHaveBeenCalledTimes(1);
+      const [, , requests] = vi.mocked(sheetsUtils.batchUpdateWithRetry).mock
+        .calls[0];
+      expect(requests).toHaveLength(1);
+      expect(requests[0]).toEqual({
+        updateCells: {
+          range: gridRange(SheetRanges[PartyStatus.ClearParty], 0),
+          rows: [{ values: cellValues() }],
+          fields: 'userEnteredValue',
+        },
+      });
+    });
+
+    it('appends the write at the end of the grid when the character is not found', async () => {
+      getSheetValuesSpy.mockResolvedValue([
+        ['other char', 'other world', 'DPS', 'p1'],
+      ]);
+
+      await service.upsertSignup(signupFor(PartyStatus.ClearParty), 'sheet-id');
+
+      expect(sheetsUtils.batchUpdateWithRetry).toHaveBeenCalledTimes(1);
+      const [, , requests] = vi.mocked(sheetsUtils.batchUpdateWithRetry).mock
+        .calls[0];
+      // clear request: the other char is not ours, so only the write goes out
+      expect(requests).toHaveLength(1);
+      expect(requests[0]).toEqual({
+        updateCells: {
+          range: gridRange(SheetRanges[PartyStatus.ClearParty], 1),
+          rows: [{ values: cellValues() }],
+          fields: 'userEnteredValue',
+        },
+      });
     });
   });
 });

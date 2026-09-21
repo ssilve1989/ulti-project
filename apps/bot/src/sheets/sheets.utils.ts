@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises';
 import { type MethodOptions, sheets_v4 } from '@googleapis/sheets';
 import * as Sentry from '@sentry/nestjs';
 
@@ -28,10 +29,24 @@ type SheetsResponse<T> = { data: T; status: number };
 const GRID_LIMIT_EXCEEDED_PATTERN = /exceeds grid limits/i;
 const ROWS_TO_ADD_ON_GRID_LIMIT = 50;
 
+// HTTP statuses that Google's servers flag as transient and safe to retry
+// (502/503/504 gateways, 429/500 rate/server errors).
+const TRANSIENT_ERROR_CODES = new Set<number>([429, 500, 502, 503, 504]);
+const MAX_TRANSIENT_RETRIES = 2;
+const RETRY_DELAY_MS = 100;
+
 function isGridLimitExceededError(error: unknown): boolean {
   return (
     Error.isError(error) && GRID_LIMIT_EXCEEDED_PATTERN.test(error.message)
   );
+}
+
+function isTransientError(error: unknown): boolean {
+  if (!Error.isError(error)) {
+    return false;
+  }
+  const code = 'code' in error ? error.code : undefined;
+  return typeof code === 'number' && TRANSIENT_ERROR_CODES.has(code);
 }
 
 /**
@@ -140,6 +155,45 @@ export function batchUpdate(
     },
     options,
   );
+}
+
+/**
+ * Sends a single (atomic) `spreadsheets.batchUpdate` for all requests.
+ *
+ * Retries bounded transient failures (rate limits / 5xx) with a short backoff
+ * and grows the sheet once when the requests exceed the current grid limits,
+ * then re-sends the original requests unchanged.
+ */
+export function batchUpdateWithRetry(
+  client: sheets_v4.Sheets,
+  spreadsheetId: string,
+  requests: sheets_v4.Schema$Request[],
+  range: string,
+  options: MethodOptions = { timeout: 30_000 },
+): Promise<SheetsResponse<sheets_v4.Schema$BatchUpdateSpreadsheetResponse>> {
+  const attempt = async (
+    retriesLeft: number,
+  ): Promise<
+    SheetsResponse<sheets_v4.Schema$BatchUpdateSpreadsheetResponse>
+  > => {
+    try {
+      return await batchUpdate(client, spreadsheetId, requests, options);
+    } catch (error) {
+      if (isGridLimitExceededError(error)) {
+        await growSheetRows(client, spreadsheetId, range);
+        return batchUpdate(client, spreadsheetId, requests, options);
+      }
+
+      if (isTransientError(error) && retriesLeft > 0) {
+        await delay(RETRY_DELAY_MS);
+        return attempt(retriesLeft - 1);
+      }
+
+      throw error;
+    }
+  };
+
+  return attempt(MAX_TRANSIENT_RETRIES);
 }
 
 /**
