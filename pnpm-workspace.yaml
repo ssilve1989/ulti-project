@@ -69,8 +69,8 @@ catalog:
   "@sentry/nestjs": ^10.74.0
   "@sentry/profiling-node": ^10.74.0
   "@types/node": ^26.5.1
-  "@vitest/coverage-v8": ^5.0.0
-  "@vitest/ui": ^5.0.0
+  "@vitest/coverage-v8": ^5.0.1
+  "@vitest/ui": ^5.0.1
   commander: ^15.0.0
   commitizen: ^4.3.2
   cron: ^4.4.0
@@ -90,6 +90,6 @@ catalog:
   ts-pattern: ^5.9.0
   typescript: 7.0.2
   vite: ^8.2.2
-  vitest: ^5.0.0
+  vitest: ^5.0.1
   yaml: ^2.9.0
   zod: ^4.5.4
