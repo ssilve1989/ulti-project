@@ -51,8 +51,8 @@ class InviteCleanerJob
     );
   }
 
-  onApplicationShutdown() {
-    this.job.stop();
+  async onApplicationShutdown() {
+    await this.job.stop();
   }
 
   private async cleanInvites() {

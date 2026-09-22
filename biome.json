@@ -43,7 +43,8 @@
         "useAwait": "error"
       },
       "nursery": {
-        "noUnsafeTypeAssertion": "error"
+        "noUnsafeTypeAssertion": "error",
+        "noFloatingPromises": "error"
       }
     }
   },
