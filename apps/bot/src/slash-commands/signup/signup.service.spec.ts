@@ -6,6 +6,7 @@ import type { WriteResult } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { ErrorService } from '../../error/error.service.js';
+import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 import {
@@ -288,6 +289,77 @@ describe('SignupService', () => {
         expect.any(String),
       );
       expect(errorService.captureError).toHaveBeenCalledWith(error);
+    });
+
+    it('reports each rejected step and resolves without throwing when the DM send fails', async () => {
+      const approvedRemove = vi.fn().mockResolvedValue(undefined);
+      const declinedRemove = vi.fn().mockResolvedValue(undefined);
+      const message = buildMessageWithReactions(approvedRemove, declinedRemove);
+      const error = new Error('boom');
+      const dmError = new Error('DMs closed');
+      discordService.sendDirectMessage.mockRejectedValueOnce(dmError);
+
+      await expect(
+        service['handleError'](error, user, message),
+      ).resolves.toBeUndefined();
+
+      expect(errorService.captureError).toHaveBeenCalledWith(error);
+      expect(errorService.captureError).toHaveBeenCalledWith(dmError);
+    });
+  });
+
+  describe('processEvent', () => {
+    it('resolves and reports a rejected DM without crashing when the error path fails to notify the reviewer', async () => {
+      const settingsCollection: Mocked<SettingsCollection> =
+        fixture.get(SettingsCollection);
+      const dmError = new Error('DMs closed');
+      discordService.sendDirectMessage.mockRejectedValueOnce(dmError);
+
+      settingsCollection.getSettings.mockResolvedValueOnce(
+        partialMock<SettingsDocument>({ reviewChannel: 'channelId' }),
+      );
+
+      const approvedRemove = vi.fn().mockResolvedValue(undefined);
+      const declinedRemove = vi.fn().mockResolvedValue(undefined);
+      const message = mockOf<Message<true>>({
+        id: 'messageId',
+        guildId: 'guildId',
+        channelId: 'channelId',
+        inGuild: () => true,
+        reactions: {
+          cache: {
+            get: (key: string) => {
+              if (key === SIGNUP_REVIEW_REACTIONS.APPROVED) {
+                return { users: { remove: approvedRemove } };
+              }
+              if (key === SIGNUP_REVIEW_REACTIONS.DECLINED) {
+                return { users: { remove: declinedRemove } };
+              }
+              return undefined;
+            },
+          },
+        },
+      });
+
+      const reviewer = mockOf<User>({
+        id: 'reviewerId',
+        username: 'reviewer',
+        partial: false,
+      });
+
+      const reaction = mockOf<MessageReaction>({
+        message,
+        partial: false,
+        emoji: mockOf<ReactionEmoji>({ name: 'emojiName' }),
+      });
+
+      await expect(
+        service.processEvent({ reaction, user: reviewer }),
+      ).resolves.toBeUndefined();
+
+      await vi.waitFor(() => {
+        expect(errorService.captureError).toHaveBeenCalledWith(dmError);
+      });
     });
   });
 });

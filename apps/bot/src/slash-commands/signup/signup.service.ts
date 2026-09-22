@@ -164,7 +164,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         await this.handleReaction(reaction, user, settings);
       }
     } catch (error) {
-      this.handleError(error, event.user, event.reaction.message);
+      await this.handleError(error, event.user, event.reaction.message);
     }
   }
 
@@ -368,10 +368,16 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     this.errorService.captureError(error);
 
     // TODO: Improve error reporting to better inform user what happened
-    await Promise.all([
+    const results = await Promise.allSettled([
       this.revertReviewReaction(user, message),
       this.discordService.sendDirectMessage(user.id, reply),
     ]);
+
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        this.errorService.captureError(result.reason);
+      }
+    }
   }
 
   private async revertReviewReaction(
