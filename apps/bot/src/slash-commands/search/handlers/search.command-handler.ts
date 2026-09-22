@@ -108,8 +108,8 @@ class SearchCommandHandler implements ISlashCommand {
         );
       } catch (error) {
         this.logger.error(
-          'Failed to handle search component interaction',
           error,
+          'Failed to handle search component interaction',
         );
         this.errorService.captureError(error);
       }
@@ -124,7 +124,7 @@ class SearchCommandHandler implements ISlashCommand {
           components: [],
         });
       } catch (error) {
-        this.logger.error('Failed to update expired search message', error);
+        this.logger.error(error, 'Failed to update expired search message');
       }
     });
   }

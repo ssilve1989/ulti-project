@@ -253,8 +253,8 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
           });
         } catch (error: unknown) {
           this.logger.error(
-            `failed to remove ${encounterSignups.length} cleared signups from the ${encounter} spreadsheet`,
             error,
+            `failed to remove ${encounterSignups.length} cleared signups from the ${encounter} spreadsheet`,
           );
           sheetFailures.push(...encounterSignups);
         }

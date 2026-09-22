@@ -43,7 +43,7 @@ class SheetCleanerJob implements OnApplicationBootstrap, OnApplicationShutdown {
       onTick: () => {
         this.cleanSheet().catch((e) => {
           Sentry.getCurrentScope().captureException(e);
-          this.logger.error('sheet-cleaner job failed', e);
+          this.logger.error(e, 'sheet-cleaner job failed');
         });
       },
     });

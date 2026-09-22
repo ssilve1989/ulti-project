@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { Colors, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getErrorMessage } from '../../../common/error-guards.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SlashCommand } from '../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../slash-command.interface.js';
@@ -83,8 +82,7 @@ class RetireCommandHandler implements ISlashCommand {
         `Role retirement complete: ${result.successCount} successful, ${result.failCount} failed`,
       );
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error);
-      this.logger.error('Error during role retirement', errorMessage);
+      this.logger.error(error, 'Error during role retirement');
       await interaction.editReply({
         embeds: [
           new EmbedBuilder()

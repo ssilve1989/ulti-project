@@ -86,7 +86,7 @@ class EditBlacklistChannelsCommandHandler implements ISlashCommand {
             components: [createBlacklistChannelsSelectRow(blacklistChannelIds)],
           });
         } catch (error) {
-          this.logger.error('Failed to update blacklist channels', error);
+          this.logger.error(error, 'Failed to update blacklist channels');
           this.errorService.captureError(error);
         }
       });
@@ -100,8 +100,8 @@ class EditBlacklistChannelsCommandHandler implements ISlashCommand {
           });
         } catch (error) {
           this.logger.error(
-            'Failed to update expired blacklist channels menu',
             error,
+            'Failed to update expired blacklist channels menu',
           );
         }
       });
