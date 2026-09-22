@@ -41,6 +41,7 @@ export const EncounterEmoji: Record<string, string> = Object.freeze({
   [Encounter.UCOB]: '1128006065930375333',
   [Encounter.UWU]: '1128006064701444188',
   [Encounter.FRU]: '1314628063782506506',
+  [Encounter.DMU]: '1524331552530763816',
 });
 
 // prog point lookup hash for each encounter and what party type the prog point belongs to
