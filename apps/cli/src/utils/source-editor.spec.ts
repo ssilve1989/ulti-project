@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   addToEncounterChoices,
   addToEncounterConst,
-  addToEncounterEmoji,
   addToEncounterFriendlyDescription,
   addToEncounterIds,
   detectCurrentUltimates,
@@ -20,10 +19,6 @@ const ENCOUNTER_CONST_SOURCE = `export const Encounter = {
 
 const FRIENDLY_DESC_SOURCE = `export const EncounterFriendlyDescription = Object.freeze({
   [Encounter.TOP]: '[TOP] The Omega Protocol',
-});`;
-
-const EMOJI_SOURCE = `export const EncounterEmoji: Record<string, string> = Object.freeze({
-  [Encounter.TOP]: '123456',
 });`;
 
 const CHOICES_SOURCE = `const ENCOUNTER_CHOICES: Readonly<EncounterChoice>[] = [
@@ -98,21 +93,6 @@ describe('addToEncounterFriendlyDescription', () => {
     expect(() =>
       addToEncounterFriendlyDescription('const x = 1;', 'A', 'B'),
     ).toThrow('Could not find EncounterFriendlyDescription');
-  });
-});
-
-// ─── addToEncounterEmoji ────────────────────────────────────────────────────
-
-describe('addToEncounterEmoji', () => {
-  it('appends a new emoji entry', () => {
-    const result = addToEncounterEmoji(EMOJI_SOURCE, 'DSR', '999888');
-    expect(result).toContain("[Encounter.DSR]: '999888'");
-  });
-
-  it('throws when marker is missing', () => {
-    expect(() => addToEncounterEmoji('const x = 1;', 'A', 'B')).toThrow(
-      'Could not find EncounterEmoji',
-    );
   });
 });
 
@@ -192,14 +172,6 @@ describe('planSourceEdits', () => {
     );
   });
 
-  it('includes emoji change when emoji is provided', () => {
-    const changes = planSourceEdits({ ...baseEdits, emoji: '123' });
-    expect(changes).toHaveLength(4);
-    expect(changes.some((c) => c.description.includes('EncounterEmoji'))).toBe(
-      true,
-    );
-  });
-
   it('includes ultimate flip when ultimateToFlip is provided', () => {
     const changes = planSourceEdits({ ...baseEdits, ultimateToFlip: 'FRU' });
     expect(changes).toHaveLength(4);
@@ -219,10 +191,9 @@ describe('planSourceEdits', () => {
   it('includes all optional changes together', () => {
     const changes = planSourceEdits({
       ...baseEdits,
-      emoji: '123',
       fflogsIds: [1064],
       ultimateToFlip: 'FRU',
     });
-    expect(changes).toHaveLength(6);
+    expect(changes).toHaveLength(5);
   });
 });
