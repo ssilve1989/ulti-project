@@ -12,7 +12,7 @@ Encounters are the FFXIV content (ultimates, savages) that the bot manages signu
 
 Encounter identity lives entirely in TypeScript source files:
 
-- **`src/encounters/encounters.consts.ts`** — the `Encounter` enum, `ENCOUNTER_CHOICES` array, `EncounterEmoji` map, `EncounterFriendlyDescription` map
+- **`src/encounters/encounters.consts.ts`** — the `Encounter` enum, `ENCOUNTER_CHOICES` array, `EncounterFriendlyDescription` map
 - Adding a new encounter requires a code change, a deployment, and manual Discord command re-registration
 
 ### Firestore: runtime data only
@@ -134,10 +134,10 @@ progPoints:
 ### What still requires a code change
 
 - Adding an encounter to the `Encounter` enum (for Discord slash command choices)
-- Adding emoji, FFLogs encounter IDs, and mode to `encounters.consts.ts`
+- Adding FFLogs encounter IDs and mode to `encounters.consts.ts` / `fflogs.consts.ts`
 - Re-registering slash commands after adding a new encounter
 
-The YAML files can store `mode`, `emoji`, `fflogsEncounterIds` — but those fields are not yet wired back into the bot's source constants. The code and Firestore are still two separate sources of truth.
+The YAML files can store `emoji` (read from Firestore at render time), `mode`, and `fflogsEncounterIds` — `emoji` is wired end-to-end, while `mode` and `fflogsEncounterIds` are still managed in code.
 
 ---
 
