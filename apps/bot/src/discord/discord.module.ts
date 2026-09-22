@@ -53,16 +53,21 @@ import { DiscordService } from './discord.service.js';
             },
           },
         });
-        const started$ = fromEvent(client, Events.ClientReady).pipe(first());
+        // Subscribe before login: login() resolves on the gateway READY, but
+        // ClientReady fires once guilds are cached, which can happen
+        // synchronously before login's continuation runs.
+        const started = firstValueFrom(
+          fromEvent(client, Events.ClientReady).pipe(first()),
+        );
 
         client.on('error', (error) => {
           Sentry.captureException(error);
           logger.error(error);
         });
 
-        client.login(appConfig.DISCORD_TOKEN);
+        await client.login(appConfig.DISCORD_TOKEN);
 
-        await firstValueFrom(started$);
+        await started;
         return client;
       },
     },
