@@ -2,6 +2,7 @@ import type { LoggerService } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import {
   Encounter,
+  type EncounterDocument,
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
@@ -10,6 +11,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { MissingChannelException } from '../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../discord/discord.service.js';
+import { EncountersService } from '../../../encounters/encounters.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import {
   createAutoMock,
@@ -22,6 +24,7 @@ describe('Send Signup Review Command Handler', () => {
   let handler: SendSignupReviewCommandHandler;
   let settingsCollection: Mocked<SettingsCollection>;
   let discordServiceMock: Mocked<DiscordService>;
+  let encountersService: Mocked<EncountersService>;
 
   const signup: SignupDocument = {
     character: 'foo',
@@ -49,6 +52,7 @@ describe('Send Signup Review Command Handler', () => {
     handler = fixture.get(SendSignupReviewCommandHandler);
     discordServiceMock = fixture.get(DiscordService);
     settingsCollection = fixture.get(SettingsCollection);
+    encountersService = fixture.get(EncountersService);
     discordServiceMock.getEmojiString.mockReturnValueOnce('');
   });
 
@@ -158,6 +162,30 @@ describe('Send Signup Review Command Handler', () => {
             field.name === 'Previously Approved Prog Point',
         ),
       ).toBe(false);
+    });
+
+    it('uses the emoji from the Firestore encounter in the embed title', async () => {
+      encountersService.getEncounter.mockResolvedValueOnce(
+        partialMock<EncounterDocument>({ emoji: '1128006062780448768' }),
+      );
+      discordServiceMock.getEmojiString
+        .mockReset()
+        .mockReturnValue('<:_:1128006062780448768>');
+
+      await handler.sendSignupForApproval(signup, '#channel', 'guildId');
+
+      const embed = send.mock.calls[0][0].embeds[0];
+      expect(embed.data.title).toContain('<:_:1128006062780448768>');
+    });
+
+    it('renders no emoji when the encounter document lacks one', async () => {
+      encountersService.getEncounter.mockResolvedValueOnce(undefined);
+      discordServiceMock.getEmojiString.mockReset().mockReturnValue('');
+
+      await handler.sendSignupForApproval(signup, '#channel', 'guildId');
+
+      const embed = send.mock.calls[0][0].embeds[0];
+      expect(embed.data.title).not.toContain('<:_:');
     });
   });
 });

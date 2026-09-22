@@ -2,10 +2,7 @@ import { Logger } from '@nestjs/common';
 import { CommandHandler, EventBus, type ICommandHandler } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
 import type { SignupDocument } from '@ulti-project/shared';
-import {
-  EncounterEmoji,
-  EncounterFriendlyDescription,
-} from '@ulti-project/shared';
+import { EncounterFriendlyDescription } from '@ulti-project/shared';
 import { EmbedBuilder, GuildMember, userMention } from 'discord.js';
 import {
   characterField,
@@ -14,6 +11,7 @@ import {
 import { createFields } from '../../../common/embed-helpers.js';
 import { MissingChannelException } from '../../../discord/discord.exceptions.js';
 import { DiscordService } from '../../../discord/discord.service.js';
+import { EncountersService } from '../../../encounters/encounters.service.js';
 import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { SignupApprovalSentEvent } from '../events/signup.events.js';
@@ -31,6 +29,7 @@ class SendSignupReviewCommandHandler
     private readonly repository: SignupCollection,
     private readonly settingsCollection: SettingsCollection,
     private readonly eventBus: EventBus,
+    private readonly encountersService: EncountersService,
   ) {}
 
   @SentryTraced()
@@ -78,7 +77,7 @@ class SendSignupReviewCommandHandler
       memberId: signup.discordId,
     });
 
-    const embed = this.createSignupApprovalEmbed(signup, member);
+    const embed = await this.createSignupApprovalEmbed(signup, member);
 
     const message = await channel.send({
       content: `Signup Review for ${userMention(signup.discordId)}`,
@@ -95,7 +94,7 @@ class SendSignupReviewCommandHandler
     return message.id;
   }
 
-  private createSignupApprovalEmbed(
+  private async createSignupApprovalEmbed(
     {
       character,
       encounter,
@@ -109,7 +108,8 @@ class SendSignupReviewCommandHandler
     }: SignupDocument,
     member?: GuildMember,
   ) {
-    const emoji = this.discordService.getEmojiString(EncounterEmoji[encounter]);
+    const encounterDoc = await this.encountersService.getEncounter(encounter);
+    const emoji = this.discordService.getEmojiString(encounterDoc?.emoji);
     const avatarUrl = member?.displayAvatarURL();
 
     const fields = createFields([
