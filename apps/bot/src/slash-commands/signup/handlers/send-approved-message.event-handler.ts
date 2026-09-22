@@ -3,7 +3,6 @@ import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import {
   Encounter,
-  EncounterEmoji,
   EncounterFriendlyDescription,
   PartyStatus,
   type SignupDocument,
@@ -16,6 +15,7 @@ import {
 } from '../../../common/components/fields.js';
 import { ClearReactions } from '../../../common/emojis/emojis.js';
 import { DiscordService } from '../../../discord/discord.service.js';
+import { EncountersService } from '../../../encounters/encounters.service.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
 
 @EventsHandler(SignupApprovedEvent)
@@ -24,7 +24,10 @@ class SendApprovedMessageEventHandler
 {
   private readonly logger = new Logger(SendApprovedMessageEventHandler.name);
 
-  constructor(private readonly discordService: DiscordService) {}
+  constructor(
+    private readonly discordService: DiscordService,
+    private readonly encountersService: EncountersService,
+  ) {}
 
   async handle(event: SignupApprovedEvent) {
     try {
@@ -96,7 +99,8 @@ class SendApprovedMessageEventHandler
     }: SignupDocument,
   ): Promise<EmbedBuilder> {
     const progPointFieldValue = progPoint ?? progPointRequested;
-    const emoji = this.discordService.getEmojiString(EncounterEmoji[encounter]);
+    const encounterDoc = await this.encountersService.getEncounter(encounter);
+    const emoji = this.discordService.getEmojiString(encounterDoc?.emoji);
 
     const [approvedUsersDisplayName, progger] = await Promise.all([
       this.discordService.getDisplayName({
