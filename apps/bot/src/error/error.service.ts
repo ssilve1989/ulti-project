@@ -67,16 +67,21 @@ export class ErrorService {
   ): void {
     const errorMessage = getErrorMessage(error);
 
-    this.logger.error(`Command error: ${errorMessage}`, {
-      commandName: interaction.commandName,
-      userId: interaction.user.id,
-      guildId: interaction.guildId,
-    });
+    this.logger.error(
+      {
+        commandName: interaction.commandName,
+        userId: interaction.user.id,
+        guildId: interaction.guildId,
+      },
+      `Command error: ${errorMessage}`,
+    );
   }
 
   private logErrorWithoutInteraction(error: unknown, message?: string): void {
     const errorMessage = message ?? getErrorMessage(error);
-    this.logger.error(`Error: ${errorMessage}`);
+    // `error` is unknown (possibly a string), so wrap it under `err` for
+    // pino's error serializer rather than passing it as the log object.
+    this.logger.error({ err: error }, `Error: ${errorMessage}`);
   }
 
   private createErrorEmbed(message?: string): EmbedBuilder {

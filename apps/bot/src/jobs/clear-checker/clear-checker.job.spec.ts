@@ -392,8 +392,8 @@ describe('ClearCheckerJob', () => {
         await job.checkClears();
 
         expect(logger).toHaveBeenCalledWith(
-          expect.stringContaining(Encounter.TOP),
           sheetError,
+          expect.stringContaining(Encounter.TOP),
         );
         expect(errorService.captureError).not.toHaveBeenCalled();
       });

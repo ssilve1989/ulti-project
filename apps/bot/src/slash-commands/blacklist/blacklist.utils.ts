@@ -27,8 +27,8 @@ export async function sendToBlacklistChannels(
         await channel?.send({ embeds: [embed] });
       } catch (error) {
         logger.error(
-          `failed to send blacklist message to channel ${channelId} in guild ${guildId}`,
           error,
+          `failed to send blacklist message to channel ${channelId} in guild ${guildId}`,
         );
       }
     }),

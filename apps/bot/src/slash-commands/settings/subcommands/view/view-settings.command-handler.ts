@@ -167,7 +167,7 @@ class ViewSettingsCommandHandler implements ISlashCommand {
             });
           }
         } catch (error) {
-          this.logger.error('Failed to update settings view section', error);
+          this.logger.error(error, 'Failed to update settings view section');
           this.errorService.captureError(error);
         }
       });
@@ -180,7 +180,7 @@ class ViewSettingsCommandHandler implements ISlashCommand {
             components: [],
           });
         } catch (error) {
-          this.logger.error('Failed to update expired settings view', error);
+          this.logger.error(error, 'Failed to update expired settings view');
         }
       });
     } catch (error) {

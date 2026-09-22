@@ -240,8 +240,8 @@ class DiscordService {
           return { success: true };
         } catch (error) {
           this.logger.error(
-            `Failed to update roles for member ${member.user.username}`,
             error,
+            `Failed to update roles for member ${member.user.username}`,
           );
           failCount++;
           return { success: false };

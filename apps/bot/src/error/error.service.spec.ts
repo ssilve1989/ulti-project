@@ -105,11 +105,14 @@ describe('ErrorService', () => {
 
       service.handleCommandError(error, mockInteraction);
 
-      expect(loggerErrorSpy).toHaveBeenCalledWith('Command error: Test error', {
-        commandName: 'test-command',
-        userId: 'user123',
-        guildId: 'guild456',
-      });
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        {
+          commandName: 'test-command',
+          userId: 'user123',
+          guildId: 'guild456',
+        },
+        'Command error: Test error',
+      );
     });
 
     test('should handle interaction without guild', () => {
@@ -121,11 +124,14 @@ describe('ErrorService', () => {
 
       service.handleCommandError(error, interactionWithoutGuild);
 
-      expect(loggerErrorSpy).toHaveBeenCalledWith('Command error: Test error', {
-        commandName: 'test-command',
-        userId: 'user123',
-        guildId: null,
-      });
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        {
+          commandName: 'test-command',
+          userId: 'user123',
+          guildId: null,
+        },
+        'Command error: Test error',
+      );
     });
 
     test('should handle unknown error types', () => {
@@ -168,7 +174,10 @@ describe('ErrorService', () => {
 
       service.captureError(error);
 
-      expect(loggerErrorSpy).toHaveBeenCalledWith('Error: Test error');
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        { err: error },
+        'Error: Test error',
+      );
     });
 
     test('should skip Sentry capture when capture option is false', () => {
@@ -193,7 +202,10 @@ describe('ErrorService', () => {
       service.captureError(error);
 
       expect(captureException).toHaveBeenCalledWith(error);
-      expect(loggerErrorSpy).toHaveBeenCalledWith('Error: String error');
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        { err: error },
+        'Error: String error',
+      );
     });
 
     test('should handle both options set to false', () => {

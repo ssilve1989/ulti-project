@@ -38,7 +38,7 @@ class InviteCleanerJob
       cronTime: CronTime.everyDay().at(5), // Run at 5 AM Pacific
       onTick: () => {
         this.cleanInvites().catch((e) => {
-          this.logger.error('invite-cleaner job failed', e);
+          this.logger.error(e, 'invite-cleaner job failed');
         });
       },
     });
@@ -87,8 +87,8 @@ class InviteCleanerJob
                 return { success: true };
               } catch (error: unknown) {
                 this.logger.error(
-                  `Failed to delete invite ${invite.code}:`,
                   error,
+                  `Failed to delete invite ${invite.code}`,
                 );
                 return { success: false };
               }
@@ -113,10 +113,7 @@ class InviteCleanerJob
 
         // Log stats for this guild
         this.logger.log(
-          `Guild ${guildId} cleanup summary:`,
-          `${stats.cleanedInvites} invites cleaned up,`,
-          `${stats.failedCleanups} failures,`,
-          `out of ${stats.totalInvites} total invites`,
+          `Guild ${guildId} cleanup summary: ${stats.cleanedInvites} invites cleaned up, ${stats.failedCleanups} failures, out of ${stats.totalInvites} total invites`,
         );
 
         try {
@@ -124,8 +121,8 @@ class InviteCleanerJob
           await this.publishResults(stats, guildId);
         } catch (error: unknown) {
           this.logger.error(
-            `Failed to publish results for guild ${guildId}:`,
             error,
+            `Failed to publish results for guild ${guildId}`,
           );
         }
 

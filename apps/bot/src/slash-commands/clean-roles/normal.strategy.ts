@@ -102,8 +102,8 @@ export class NormalStrategy implements ProcessingStrategy<NormalRoleResult> {
       );
     } catch (error) {
       this.logger.error(
-        `Failed to process member ${member.displayName} (${member.id}) for role ${role.name}:`,
         error,
+        `Failed to process member ${member.displayName} (${member.id}) for role ${role.name}`,
       );
       Sentry.getCurrentScope().captureException(error);
     }

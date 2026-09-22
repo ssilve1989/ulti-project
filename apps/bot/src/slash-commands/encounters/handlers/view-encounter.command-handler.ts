@@ -146,8 +146,8 @@ export class ViewEncounterCommandHandler implements ISlashCommand {
           };
         } catch (error) {
           this.logger.warn(
-            `Failed to load data for encounter ${encounterId}:`,
             error,
+            `Failed to load data for encounter ${encounterId}`,
           );
           return {
             key,

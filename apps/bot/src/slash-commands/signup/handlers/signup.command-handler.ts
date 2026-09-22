@@ -302,7 +302,7 @@ class SignupCommandHandler implements ISlashCommand {
             };
           }
         } catch (error: unknown) {
-          this.logger.warn('Error validating FFLogs report age:', error);
+          this.logger.warn(error, 'Error validating FFLogs report age');
           return {
             success: false,
             errorMessage:
