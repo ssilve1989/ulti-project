@@ -36,10 +36,16 @@ class InviteCleanerJob
   ) {
     this.job = createJob('invite-cleaner', {
       cronTime: CronTime.everyDay().at(5), // Run at 5 AM Pacific
-      onTick: () => {
-        this.cleanInvites().catch((e) => {
+      // Return the run so cron's waitForCompletion and the Sentry monitor see
+      // it; rethrow after reporting so the monitor records the failure (cron
+      // catches the rejection).
+      onTick: async () => {
+        try {
+          await this.cleanInvites();
+        } catch (e) {
           this.logger.error(e, 'invite-cleaner job failed');
-        });
+          throw e;
+        }
       },
     });
   }

@@ -1,10 +1,21 @@
+import type { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { CronJob } from 'cron';
 import { Collection, type Invite } from 'discord.js';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockInstance,
+  vi,
+} from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { JobCollection } from '../../firebase/collections/job/job.collection.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { mockOf } from '../../test-utils/mock-factory.js';
+import { runTick, settledState } from '../../test-utils/cron-tick.js';
+import { mockOf, withInternals } from '../../test-utils/mock-factory.js';
 import { InviteCleanerJob } from './invite-cleaner.job.js';
 
 describe('InviteCleanerJob', () => {
@@ -12,8 +23,12 @@ describe('InviteCleanerJob', () => {
   let discordService: DiscordService;
   let jobCollection: JobCollection;
   let settingsCollection: SettingsCollection;
+  let cronFrom: MockInstance<typeof CronJob.from>;
 
   beforeEach(async () => {
+    // Pass-through spy: captures the (Sentry-wrapped) onTick cron will run.
+    cronFrom = vi.spyOn(CronJob, 'from');
+
     const module = await Test.createTestingModule({
       providers: [
         InviteCleanerJob,
@@ -44,6 +59,42 @@ describe('InviteCleanerJob', () => {
     discordService = module.get(DiscordService);
     jobCollection = module.get(JobCollection);
     settingsCollection = module.get(SettingsCollection);
+  });
+
+  afterEach(() => {
+    cronFrom.mockRestore();
+  });
+
+  describe('scheduled tick', () => {
+    type Internals = {
+      cleanInvites: () => Promise<void>;
+      logger: Logger;
+    };
+
+    it('keeps the tick pending until the run settles', async () => {
+      const run = Promise.withResolvers<void>();
+      vi.spyOn(withInternals<Internals>(job), 'cleanInvites').mockReturnValue(
+        run.promise,
+      );
+
+      const tick = runTick(cronFrom);
+
+      expect(await settledState(tick)).toBe('pending');
+      run.resolve();
+      await expect(tick).resolves.toBeUndefined();
+    });
+
+    it('rejects the tick so the cron monitor records a failed run, and still logs it', async () => {
+      const error = new Error('run failed');
+      const internals = withInternals<Internals>(job);
+      vi.spyOn(internals, 'cleanInvites').mockRejectedValue(error);
+      const logError = vi
+        .spyOn(internals.logger, 'error')
+        .mockImplementation(() => undefined);
+
+      await expect(runTick(cronFrom)).rejects.toBe(error);
+      expect(logError).toHaveBeenCalledWith(error, 'invite-cleaner job failed');
+    });
   });
 
   describe('cleanInvites', () => {

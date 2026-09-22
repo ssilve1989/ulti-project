@@ -40,11 +40,17 @@ class SheetCleanerJob implements OnApplicationBootstrap, OnApplicationShutdown {
   ) {
     this.job = createJob('sheet-cleaner', {
       cronTime: CronTime.everyDay().at(4),
-      onTick: () => {
-        this.cleanSheet().catch((e) => {
+      // Return the run so cron's waitForCompletion and the Sentry monitor see
+      // it; rethrow after reporting so the monitor records the failure (cron
+      // catches the rejection).
+      onTick: async () => {
+        try {
+          await this.cleanSheet();
+        } catch (e) {
           Sentry.getCurrentScope().captureException(e);
           this.logger.error(e, 'sheet-cleaner job failed');
-        });
+          throw e;
+        }
       },
     });
   }

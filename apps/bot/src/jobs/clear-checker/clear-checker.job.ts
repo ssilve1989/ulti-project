@@ -104,12 +104,18 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
   ) {
     this.job = createJob('clear-checker', {
       cronTime: CronTime.everyDay().at(3),
-      onTick: () => {
-        this.checkClears().catch((e) =>
+      // Return the run so cron's waitForCompletion and the Sentry monitor see
+      // it; rethrow after reporting so the monitor records the failure (cron
+      // catches the rejection).
+      onTick: async () => {
+        try {
+          await this.checkClears();
+        } catch (e) {
           this.errorService.captureError(e, {
             message: 'clear-checker job failed',
-          }),
-        );
+          });
+          throw e;
+        }
       },
     });
   }
