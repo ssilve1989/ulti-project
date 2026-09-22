@@ -7,15 +7,7 @@ import {
 import * as Sentry from '@sentry/nestjs';
 import { isEncounter } from '@ulti-project/shared';
 import type { CronJob } from 'cron';
-import {
-  concatMap,
-  EMPTY,
-  filter,
-  finalize,
-  from,
-  lastValueFrom,
-  mergeMap,
-} from 'rxjs';
+import { filter, finalize, from, lastValueFrom, mergeMap } from 'rxjs';
 import { CronTime } from '../../common/cron.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { EncountersCollection } from '../../firebase/collections/encounters-collection.js';
@@ -78,35 +70,36 @@ class SheetCleanerJob implements OnApplicationBootstrap, OnApplicationShutdown {
           .then((job) => [guild, job] as const),
       ),
       filter(([_, job]) => !!job?.enabled),
-      mergeMap(([guild]) => {
-        return from(this.settingsCollection.getSettings(guild)).pipe(
-          mergeMap((settings) => {
-            if (!settings?.spreadsheetId) return EMPTY;
+      mergeMap(async ([guild]) => {
+        try {
+          const settings = await this.settingsCollection.getSettings(guild);
+          if (!settings?.spreadsheetId) return;
 
-            const spreadsheetId = settings.spreadsheetId;
+          const spreadsheetId = settings.spreadsheetId;
+          // NOTE: This uses the active encounters from the database
+          // but nothing else uses that right now. Encounters in the signup slash command
+          // are still hardcoded. They ideally should be managed dynamically as well, but require runtime
+          // changes to update the slash command.
+          const encounters =
+            await this.encountersCollection.getActiveEncounters();
 
-            // NOTE: This uses the active encounters from the database
-            // but nothing else uses that right now. Encounters in the signup slash command
-            // are still hardcoded. They ideally should be managed dynamically as well, but require runtime
-            // changes to update the slash command.
-            return from(this.encountersCollection.getActiveEncounters()).pipe(
-              mergeMap((encounters) => encounters),
-              concatMap((encounter) => {
-                if (!isEncounter(encounter.id)) return EMPTY;
-
-                return this.sheetsService
-                  .cleanSheet({
-                    spreadsheetId,
-                    encounter: encounter.id,
-                  })
-                  .catch((err) => {
-                    Sentry.getCurrentScope().captureException(err);
-                    return EMPTY;
-                  });
-              }),
-            );
-          }),
-        );
+          for (const encounter of encounters) {
+            if (isEncounter(encounter.id)) {
+              try {
+                await this.sheetsService.cleanSheet({
+                  spreadsheetId,
+                  encounter: encounter.id,
+                });
+              } catch (err: unknown) {
+                Sentry.getCurrentScope().captureException(err);
+                this.logger.error(err);
+              }
+            }
+          }
+        } catch (err: unknown) {
+          Sentry.getCurrentScope().captureException(err);
+          this.logger.error(err);
+        }
       }),
       finalize(() => {
         this.logger.log('sheet cleaner job completed');
