@@ -29,7 +29,6 @@ export function buildSourceEdits(
     name: config.name,
     description: config.description,
     mode: config.mode,
-    emoji: config.emoji,
     fflogsIds: config.fflogsEncounterIds,
     ultimateToFlip,
   };
