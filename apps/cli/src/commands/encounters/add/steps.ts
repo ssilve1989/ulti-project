@@ -173,6 +173,7 @@ export async function seedFirestoreStep(
       name: config.name,
       description: config.description,
       active: true,
+      emoji: config.emoji,
       progPartyThreshold: config.progPartyThreshold,
       clearPartyThreshold: config.clearPartyThreshold,
     });
