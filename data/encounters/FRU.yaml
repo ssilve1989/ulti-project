@@ -3,6 +3,7 @@ id: FRU
 name: "[FRU] Futures Rewritten"
 description: "[FRU] Futures Rewritten"
 active: true
+emoji: '1314628063782506506'
 progPartyThreshold: "P3: Apocalypse"
 clearPartyThreshold: "P5: Fulgent 1"
 progPoints:

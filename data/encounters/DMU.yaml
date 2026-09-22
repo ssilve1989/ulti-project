@@ -3,6 +3,7 @@ id: DMU
 name: Dancing Mad (Ultimate)
 description: "[DMU] Dancing Mad"
 active: true
+emoji: '1524331552530763816'
 progPoints:
   - id: "P2 Forsaken"
     label: "Phase 2: Forsaken"

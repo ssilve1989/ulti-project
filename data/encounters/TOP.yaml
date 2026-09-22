@@ -3,6 +3,7 @@ id: TOP
 name: "[TOP] The Omega Protocol"
 description: "[TOP] The Omega Protocol"
 active: true
+emoji: '1128023323796852877'
 progPartyThreshold: P5 Delta
 clearPartyThreshold: P6 Wave Cannon 1
 progPoints:

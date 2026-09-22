@@ -3,6 +3,7 @@ id: UWU
 name: "[UwU] The Weapons Refrain"
 description: "[UwU] The Weapons Refrain"
 active: true
+emoji: '1128006064701444188'
 progPartyThreshold: Titan
 clearPartyThreshold: Suppression
 progPoints:
