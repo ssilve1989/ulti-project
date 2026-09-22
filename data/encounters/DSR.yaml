@@ -3,6 +3,7 @@ id: DSR
 name: "[DSR] Dragonsong Reprise"
 description: "[DSR] Dragonsong Reprise"
 active: true
+emoji: '1128006062780448768'
 progPartyThreshold: Nidhogg
 clearPartyThreshold: P6 Enrage
 progPoints:

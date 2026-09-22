@@ -3,6 +3,7 @@ id: UCOB
 name: "[UCoB] The Unending Coil of Bahamut"
 description: "[UCoB] The Unending Coil of Bahamut"
 active: true
+emoji: '1128006065930375333'
 progPartyThreshold: QMT
 clearPartyThreshold: Adds
 progPoints:
