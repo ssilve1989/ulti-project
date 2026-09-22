@@ -99,8 +99,9 @@ class DiscordService {
     return member.roles.cache.has(roleId);
   }
 
-  public getEmojiString(emojiId: string): string {
-    const hasEmoji = this.client.emojis.cache.has(emojiId);
+  public getEmojiString(emojiId: string | undefined): string {
+    const hasEmoji =
+      emojiId !== undefined && this.client.emojis.cache.has(emojiId);
     return hasEmoji ? `<:_:${emojiId}>` : '';
   }
 
