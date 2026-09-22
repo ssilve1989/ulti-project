@@ -56,8 +56,8 @@ class SheetCleanerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     );
   }
 
-  onApplicationShutdown() {
-    this.job.stop();
+  async onApplicationShutdown() {
+    await this.job.stop();
   }
 
   private cleanSheet() {

@@ -121,8 +121,8 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
     );
   }
 
-  onApplicationShutdown() {
-    this.job.stop();
+  async onApplicationShutdown() {
+    await this.job.stop();
   }
 
   checkClears() {
