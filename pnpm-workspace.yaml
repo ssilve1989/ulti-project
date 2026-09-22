@@ -91,5 +91,5 @@ catalog:
   typescript: 7.0.2
   vite: ^8.2.2
   vitest: ^5.0.1
-  yaml: ^2.9.0
+  yaml: ^2.9.1
   zod: ^4.5.4
