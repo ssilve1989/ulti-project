@@ -140,7 +140,7 @@ class DeclineReasonRequestService {
         reviewMessage,
       );
     } catch (error) {
-      this.handleTimeoutError(
+      await this.handleTimeoutError(
         error,
         signup,
         reviewer,
@@ -196,7 +196,7 @@ class DeclineReasonRequestService {
           );
         }
       } catch (error) {
-        this.handleTimeoutError(
+        await this.handleTimeoutError(
           error,
           signup,
           reviewer,
@@ -389,9 +389,7 @@ class DeclineReasonRequestService {
         reviewMessage,
       );
     } else {
-      // Re-throw non-timeout errors
       this.reportError(error, { signup, reviewer });
-      throw error;
     }
   }
 

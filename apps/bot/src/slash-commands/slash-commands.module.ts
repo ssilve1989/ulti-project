@@ -50,7 +50,8 @@ export class SlashCommandsModule implements OnApplicationBootstrap {
   onApplicationBootstrap() {
     this.service.listenToCommands();
     if (appConfig.DISCORD_REFRESH_COMMANDS) {
-      this.service.registerCommands();
+      // Fire-and-forget: registerCommands() already catches per-guild errors internally.
+      void this.service.registerCommands();
     }
   }
 }

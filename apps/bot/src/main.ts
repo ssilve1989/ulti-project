@@ -14,8 +14,9 @@ app.enableShutdownHooks();
 
 logger.log(`NodeJS Version: ${process.version}`);
 
-process.on('unhandledRejection', (error) => {
+process.on('unhandledRejection', async (error) => {
   logger.error(error);
   Sentry.captureException(error);
+  await Sentry.flush(2000);
   process.exit(1);
 });

@@ -60,7 +60,7 @@ import { DiscordService } from './discord.service.js';
           logger.error(error);
         });
 
-        client.login(appConfig.DISCORD_TOKEN);
+        await client.login(appConfig.DISCORD_TOKEN);
 
         await firstValueFrom(started$);
         return client;

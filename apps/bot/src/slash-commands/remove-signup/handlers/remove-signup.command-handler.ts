@@ -139,7 +139,7 @@ class RemoveSignupCommandHandler implements ISlashCommand {
         }),
       );
     } catch (error) {
-      match(error)
+      await match(error)
         .with(P.instanceOf(DocumentNotFoundException), () =>
           this.handleDocumentNotFoundException(interaction, embed),
         )

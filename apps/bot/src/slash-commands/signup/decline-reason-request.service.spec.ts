@@ -70,6 +70,44 @@ describe('DeclineReasonRequestService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('requestDeclineReason', () => {
+    it('resolves without an unhandled rejection and reports a non-timeout error from the reaction collector', async () => {
+      const collectorError = new Error('boom - not a timeout');
+      const dmMessage = mockOf<Message<false>>({
+        awaitMessageComponent: vi.fn().mockRejectedValue(collectorError),
+      });
+      discordService.sendDirectMessage.mockResolvedValueOnce(dmMessage);
+
+      const reportErrorSpy = vi.spyOn(
+        withInternals<{ reportError: (...args: unknown[]) => void }>(service),
+        'reportError',
+      );
+
+      const unhandledRejections: unknown[] = [];
+      const onUnhandledRejection = (reason: unknown) => {
+        unhandledRejections.push(reason);
+      };
+      process.on('unhandledRejection', onUnhandledRejection);
+
+      try {
+        await expect(
+          service.requestDeclineReason(signup, reviewer, reviewMessage),
+        ).resolves.toBeUndefined();
+
+        // Let the microtask queue drain so a floating rejection would surface.
+        await new Promise((resolve) => setImmediate(resolve));
+      } finally {
+        process.off('unhandledRejection', onUnhandledRejection);
+      }
+
+      expect(unhandledRejections).toEqual([]);
+      expect(reportErrorSpy).toHaveBeenCalledWith(collectorError, {
+        signup,
+        reviewer,
+      });
+    });
+  });
+
   describe('handleReasonSelection', () => {
     it('returns false and asks the reviewer to retry when the modal token has already expired', async () => {
       const userSend = vi.fn().mockResolvedValue(undefined);
