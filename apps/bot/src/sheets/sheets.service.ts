@@ -560,6 +560,11 @@ class SheetsService implements OnApplicationShutdown {
         includeGridData: true,
       });
 
+      if (response.data.sheets?.[0]?.properties?.hidden) {
+        this.logger.log(`Skipping hidden sheet: ${encounter}`);
+        return;
+      }
+
       const gridData = response.data.sheets?.[0].data?.[0];
 
       if (!gridData?.rowData?.length) continue;

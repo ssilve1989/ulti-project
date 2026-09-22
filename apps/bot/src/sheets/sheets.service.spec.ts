@@ -97,6 +97,29 @@ describe('Sheets Service', () => {
     });
   });
 
+  describe('#cleanSheet', () => {
+    it('skips cleaning when the sheet tab is hidden', async () => {
+      const getSpy = vi.spyOn(client.spreadsheets, 'get');
+      getSpy.mockResolvedValueOnce(
+        mockOf<Awaited<ReturnType<typeof client.spreadsheets.get>>>({
+          data: {
+            sheets: [{ properties: { hidden: true } }],
+          },
+        }),
+      );
+      const batchUpdateSpy = vi.spyOn(client.spreadsheets, 'batchUpdate');
+
+      await service.cleanSheet({
+        spreadsheetId: 'test-id',
+        encounter: Encounter.TOP,
+      });
+
+      expect(mockEncountersService.getProgPoints).not.toHaveBeenCalled();
+      expect(batchUpdateSpy).not.toHaveBeenCalled();
+      expect(getSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('#batchRemoveClearedSignups', () => {
     it('should not call batchUpdate when no requests are generated', async () => {
       // Mock getSheetIdByName to return a valid sheet ID
