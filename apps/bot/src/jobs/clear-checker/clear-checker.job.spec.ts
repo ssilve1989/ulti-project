@@ -7,9 +7,19 @@ import {
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
+import { CronJob } from 'cron';
 import type { APIEmbedField, EmbedBuilder } from 'discord.js';
 import { of, throwError } from 'rxjs';
-import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mocked,
+  type MockInstance,
+  vi,
+} from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { ErrorService } from '../../error/error.service.js';
 import { FFLogsService } from '../../fflogs/fflogs.service.js';
@@ -19,6 +29,7 @@ import { SettingsCollection } from '../../firebase/collections/settings-collecti
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import { RemoveSignupEvent } from '../../slash-commands/remove-signup/remove-signup.events.js';
+import { runTick, settledState } from '../../test-utils/cron-tick.js';
 import {
   createAutoMock,
   mockOf,
@@ -69,8 +80,12 @@ describe('ClearCheckerJob', () => {
   let sheetsService: Mocked<SheetsService>;
   let signupsCollection: Mocked<SignupCollection>;
   let send: ReturnType<typeof vi.fn>;
+  let cronFrom: MockInstance<typeof CronJob.from>;
 
   beforeEach(async () => {
+    // Pass-through spy: captures the (Sentry-wrapped) onTick cron will run.
+    cronFrom = vi.spyOn(CronJob, 'from');
+
     const fixture = await Test.createTestingModule({
       providers: [ClearCheckerJob],
     })
@@ -112,6 +127,10 @@ describe('ClearCheckerJob', () => {
     // createAutoMock returns a Promise for every method, but the job consumes
     // this one via firstValueFrom - it must be an Observable or every test throws.
     fflogsService.hasClearedEncounter.mockReturnValue(of(true));
+  });
+
+  afterEach(() => {
+    cronFrom.mockRestore();
   });
 
   /** Pulls the embed handed to `channel.send` for the Nth call. */
@@ -533,6 +552,27 @@ describe('ClearCheckerJob', () => {
           expect.objectContaining({ message: 'clear-checker job failed' }),
         ),
       );
+    });
+
+    it('keeps the tick pending until the run settles', async () => {
+      const run = Promise.withResolvers<SignupDocument[] | undefined>();
+      vi.spyOn(job, 'checkClears').mockReturnValue(run.promise);
+
+      const tick = runTick(cronFrom);
+
+      expect(await settledState(tick)).toBe('pending');
+      run.resolve(undefined);
+      await expect(tick).resolves.toBeUndefined();
+    });
+
+    it('rejects the tick so the cron monitor records a failed run, and still reports it', async () => {
+      const error = new Error('run failed');
+      vi.spyOn(job, 'checkClears').mockRejectedValue(error);
+
+      await expect(runTick(cronFrom)).rejects.toBe(error);
+      expect(errorService.captureError).toHaveBeenCalledWith(error, {
+        message: 'clear-checker job failed',
+      });
     });
   });
 });
