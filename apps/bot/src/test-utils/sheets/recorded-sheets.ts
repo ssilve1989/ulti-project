@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { subscribe } from 'node:diagnostics_channel';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, join, relative } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import nock, { type BackMode, type Definition } from 'nock';
 import { expect } from 'vitest';
@@ -118,13 +118,22 @@ function currentTest(): { testPath: string; testName: string } {
 }
 
 /**
- * A stable, per-test name for data this test writes to the shared spreadsheet:
- * unique between tests (so rows never collide) and identical between runs (so
- * recorded requests replay exactly).
+ * A stable, per-test name for data a test writes to the shared spreadsheet,
+ * from its spec file (relative to the repo, so it's the same in every checkout
+ * and in CI) and test name: unique between tests, including same-named tests
+ * in different flow specs, and identical between runs so recordings replay.
  */
+export function testKey(specPath: string, testName: string): string {
+  return createHash('sha256')
+    .update(`${specPath}\n${testName}`)
+    .digest('hex')
+    .slice(0, 8);
+}
+
+/** The {@link testKey} of the running test. */
 export function stableTestKey(): string {
-  const { testName } = currentTest();
-  return createHash('sha256').update(testName).digest('hex').slice(0, 8);
+  const { testPath, testName } = currentTest();
+  return testKey(relative(process.cwd(), testPath), testName);
 }
 
 /**
