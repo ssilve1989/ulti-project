@@ -2,6 +2,7 @@ import { EventEmitter } from 'node:events';
 import {
   type APIEmbed,
   ComponentType,
+  DiscordAPIError,
   DiscordjsError,
   DiscordjsErrorCodes,
   EmbedBuilder,
@@ -29,8 +30,31 @@ export type OutgoingPayload =
 
 type InteractionFilter = (interaction: Interaction) => boolean;
 
-interface Waiter {
+/** The options awaitMessageComponent / createMessageComponentCollector honour. */
+interface CollectOptions {
   filter?: InteractionFilter;
+  componentType?: ComponentType;
+}
+
+/** Whether an interaction gets past a collector's componentType and filter, as in discord.js. */
+function accepts(
+  { filter, componentType }: CollectOptions,
+  interaction: Interaction,
+): boolean {
+  if (componentType === ComponentType.Button && !interaction.isButton()) {
+    return false;
+  }
+  if (
+    componentType === ComponentType.StringSelect &&
+    !interaction.isStringSelectMenu()
+  ) {
+    return false;
+  }
+  return filter === undefined || filter(interaction);
+}
+
+interface Waiter {
+  options: CollectOptions;
   resolve: (interaction: Interaction) => void;
   reject: (error: Error) => void;
 }
@@ -53,6 +77,23 @@ export function discordjsError(
   ...args: unknown[]
 ): Error {
   return Reflect.construct(DiscordjsError, [code, ...args]);
+}
+
+/** The DiscordAPIError the REST API returns for a resource that doesn't exist. */
+export function unknownResource(
+  code: 10003 | 10007 | 10008 | 10013,
+  path: string,
+): DiscordAPIError {
+  const message = {
+    10003: 'Unknown Channel',
+    10007: 'Unknown Member',
+    10008: 'Unknown Message',
+    10013: 'Unknown User',
+  }[code];
+  return new DiscordAPIError({ message, code }, code, 404, 'GET', path, {
+    body: undefined,
+    files: undefined,
+  });
 }
 
 /** The error discord.js raises when a collector ends without an interaction. */
@@ -95,7 +136,7 @@ function componentsIn(value: unknown): ComponentRef[] {
 
 class FakeCollector extends EventEmitter {
   constructor(
-    readonly filter: InteractionFilter | undefined,
+    readonly options: CollectOptions,
     private readonly onStop: (collector: FakeCollector) => void,
   ) {
     super();
@@ -122,6 +163,11 @@ export class FakeMessage {
     readonly location: MessageLocation,
     readonly authorId: string,
     payload: OutgoingPayload,
+    /** Called when the author reacts, so the gateway event can be emitted. */
+    private readonly onAuthorReaction: (
+      message: FakeMessage,
+      emoji: string,
+    ) => void,
   ) {
     this.apply(payload);
   }
@@ -172,13 +218,13 @@ export class FakeMessage {
   dispatch(interaction: Interaction): void {
     let handled = false;
     for (const waiter of [...this.waiters]) {
-      if (waiter.filter && !waiter.filter(interaction)) continue;
+      if (!accepts(waiter.options, interaction)) continue;
       this.waiters.delete(waiter);
       waiter.resolve(interaction);
       handled = true;
     }
     for (const collector of [...this.collectors]) {
-      if (collector.filter && !collector.filter(interaction)) continue;
+      if (!accepts(collector.options, interaction)) continue;
       collector.emit('collect', interaction);
       handled = true;
     }
@@ -187,6 +233,13 @@ export class FakeMessage {
         `Nothing on message ${this.id} is waiting for this interaction`,
       );
     }
+  }
+
+  /** Rejects like the API does for a message that no longer exists. */
+  private unknown(): Promise<never> {
+    return Promise.reject(
+      unknownResource(10008, `/channels/messages/${this.id}`),
+    );
   }
 
   /** Ends every await/collector on this message as a timeout. */
@@ -225,15 +278,20 @@ export class FakeMessage {
       },
       inGuild: () => location.kind === 'channel',
       edit: (payload: OutgoingPayload) => {
+        if (fake.deleted) return fake.unknown();
         fake.apply(payload);
         return Promise.resolve(fake.toMessage());
       },
       delete: () => {
+        if (fake.deleted) return fake.unknown();
         fake.deleted = true;
         return Promise.resolve(fake.toMessage());
       },
       react: (emoji: unknown) => {
-        fake.addReaction(String(emoji), fake.authorId);
+        if (fake.deleted) return fake.unknown();
+        const name = String(emoji);
+        fake.addReaction(name, fake.authorId);
+        fake.onAuthorReaction(fake, name);
         return Promise.resolve();
       },
       reactions: {
@@ -251,14 +309,12 @@ export class FakeMessage {
               : undefined,
         },
       },
-      awaitMessageComponent: (options: { filter?: InteractionFilter } = {}) =>
+      awaitMessageComponent: (options: CollectOptions = {}) =>
         new Promise<Interaction>((resolve, reject) => {
-          fake.waiters.add({ filter: options.filter, resolve, reject });
+          fake.waiters.add({ options, resolve, reject });
         }),
-      createMessageComponentCollector: (
-        options: { filter?: InteractionFilter } = {},
-      ) => {
-        const collector = new FakeCollector(options.filter, (stopped) =>
+      createMessageComponentCollector: (options: CollectOptions = {}) => {
+        const collector = new FakeCollector(options, (stopped) =>
           fake.collectors.delete(stopped),
         );
         fake.collectors.add(collector);
