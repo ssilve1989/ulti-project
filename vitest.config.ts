@@ -6,6 +6,11 @@ const sharedIndex = fileURLToPath(
 );
 const setupFile = fileURLToPath(new URL('./test/setup.ts', import.meta.url));
 
+// Recording flow specs' Google Sheets traffic (pnpm test:record) talks to the
+// real spreadsheet and paces itself under Google's per-minute quota, which can
+// mean waiting out a full minute before a test's app starts. Replays don't.
+const recordingSheets = process.env.NOCK_BACK_MODE === 'update';
+
 export default defineConfig({
   resolve: {
     alias: {
@@ -28,6 +33,7 @@ export default defineConfig({
     },
     // The options below are inherited by every project via `extends: true`.
     pool: 'threads',
+    ...(recordingSheets && { testTimeout: 150_000, hookTimeout: 150_000 }),
     // Spec files share one module registry (no per-file re-evaluation). This is
     // ~2.8x faster than isolated runs; the trade-off is that specs must not leak
     // shared state — global mock resets (`vi.resetAllMocks`) and module mocks of
