@@ -1,5 +1,5 @@
 import { Encounter, PartyStatus, SignupStatus } from '@ulti-project/shared';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { SheetRanges } from '../../sheets/sheets.consts.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
@@ -16,6 +16,7 @@ import { CUSTOM_DECLINE_REASON_INPUT_ID } from './decline-reason.components.js';
 import { SignupCommandHandler } from './handlers/signup.command-handler.js';
 import {
   CUSTOM_DECLINE_REASON_VALUE,
+  FFLOGS_REPORT_MAX_AGE_DAYS,
   SIGNUP_DECLINE_REASONS_CONFIG,
   SIGNUP_MESSAGES,
   SIGNUP_REVIEW_REACTIONS,
@@ -45,11 +46,6 @@ const SIGNUP_PATH = `signups/${SignupCollection.getKeyForSignup({
   encounter: Encounter.DSR,
 })}`;
 
-// Recording (pnpm test:record) talks to the real spreadsheet and paces itself
-// under Google's per-minute quota, which can mean waiting out a full minute
-// before a test's app starts. Replays finish in milliseconds.
-vi.setConfig({ testTimeout: 150_000, hookTimeout: 150_000 });
-
 /**
  * This test's character: unique per test, so rows on the shared test
  * spreadsheet never collide, and stable across runs, so recordings replay.
@@ -58,9 +54,16 @@ let character = '';
 /** Whether this test approved a signup, i.e. wrote to the test spreadsheet. */
 let wroteToSheet = false;
 
+/** Matches this test's character as the sheet writes it (title-cased). */
+const characterCell = () =>
+  expect.stringMatching(new RegExp(`^${character}$`, 'i'));
+
+const WORLD = 'Jenova';
+const DECLINE_REASON = SIGNUP_DECLINE_REASONS_CONFIG[0]?.reason ?? '';
+
 const SIGNUP_OPTIONS: Record<string, string | null> = {
   encounter: Encounter.DSR,
-  world: 'Jenova',
+  world: WORLD,
   job: 'tank',
   'prog-point': 'P6',
   'prog-proof-link': 'https://www.fflogs.com/reports/abc123',
@@ -151,17 +154,22 @@ const OTHER_REVIEWER = {
 };
 
 /** The reviewer approves the latest review at `progPoint`, optionally leaving a comment. */
+/** Someone reacts to the latest review message, and the bot handles it. */
+async function reactToReview(
+  flow: FlowApp,
+  emoji: string,
+  userId = REVIEWER.id,
+): Promise<void> {
+  flow.discord.react(latestReview(flow), emoji, userId);
+  await flow.settle();
+}
+
 async function approve(
   flow: FlowApp,
   { progPoint, comment }: { progPoint: string; comment?: string },
 ): Promise<void> {
   wroteToSheet = true;
-  flow.discord.react(
-    latestReview(flow),
-    SIGNUP_REVIEW_REACTIONS.APPROVED,
-    REVIEWER.id,
-  );
-  await flow.settle();
+  await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.APPROVED);
 
   const prompt = flow.discord.latestDmTo(REVIEWER.id);
   flow.discord.choose(prompt, progPoint, REVIEWER.id);
@@ -181,12 +189,7 @@ async function approve(
 
 /** The reviewer declines the latest review and picks `reason`. */
 async function decline(flow: FlowApp, reason: string): Promise<void> {
-  flow.discord.react(
-    latestReview(flow),
-    SIGNUP_REVIEW_REACTIONS.DECLINED,
-    REVIEWER.id,
-  );
-  await flow.settle();
+  await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.DECLINED);
 
   flow.discord.choose(
     flow.discord.latestDmTo(REVIEWER.id),
@@ -210,33 +213,31 @@ async function sheetRow(
 
 describe('Signup lifecycle', () => {
   let flow: FlowApp;
-  /** false if createFlowApp failed, so afterEach doesn't close the previous test's app */
-  let started = false;
 
   beforeEach(async () => {
-    started = false;
     character = `flow ${stableTestKey()}`;
     wroteToSheet = false;
     flow = await createFlowApp();
-    started = true;
     givenAGuild(flow);
-  });
 
-  afterEach(async () => {
-    if (!started) return;
-    try {
-      if (wroteToSheet) {
-        await flow
-          .get(SheetsService)
-          .removeSignup(
-            { encounter: Encounter.DSR, character, world: 'jenova' },
+    // returned as this hook's teardown, so it only runs if the app started
+    return async () => {
+      try {
+        if (wroteToSheet) {
+          await flow.get(SheetsService).removeSignup(
+            {
+              encounter: Encounter.DSR,
+              character,
+              world: WORLD.toLowerCase(),
+            },
             flow.sheets.spreadsheetId,
           );
+        }
+      } finally {
+        // always close, or this app's listeners leak into the next test
+        await flow.close();
       }
-    } finally {
-      // always close, or this app's listeners leak into the next test
-      await flow.close();
-    }
+    };
   });
 
   describe('when a player submits a signup and confirms', () => {
@@ -249,7 +250,7 @@ describe('Signup lifecycle', () => {
     it('stores it as pending', () => {
       expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
         character,
-        world: 'jenova',
+        world: WORLD.toLowerCase(),
         progPointRequested: 'P6',
         status: SignupStatus.PENDING,
       });
@@ -315,7 +316,9 @@ describe('Signup lifecycle', () => {
 
   describe('when the FFLogs report is too old', () => {
     it('refuses the signup and explains the age limit', async () => {
-      flow.fflogs.addReport('abc123', { daysAgo: 40 });
+      flow.fflogs.addReport('abc123', {
+        daysAgo: FFLOGS_REPORT_MAX_AGE_DAYS + 1,
+      });
 
       const reply = await submitSignup(flow, 'none');
 
@@ -422,8 +425,8 @@ describe('Signup lifecycle', () => {
 
       it('adds the player to the prog party section of the spreadsheet', async () => {
         expect(await sheetRow(flow, PartyStatus.ProgParty)).toEqual([
-          expect.stringMatching(new RegExp(`^${character}$`, 'i')),
-          'Jenova',
+          characterCell(),
+          WORLD,
           'tank',
           'P6',
         ]);
@@ -448,12 +451,11 @@ describe('Signup lifecycle', () => {
       it('ignores a second reviewer reacting afterwards', async () => {
         flow.discord.addMember(OTHER_REVIEWER);
 
-        flow.discord.react(
-          latestReview(flow),
+        await reactToReview(
+          flow,
           SIGNUP_REVIEW_REACTIONS.APPROVED,
           OTHER_REVIEWER.id,
         );
-        await flow.settle();
 
         expect(flow.discord.dmsTo(OTHER_REVIEWER.id)).toEqual([]);
       });
@@ -504,8 +506,8 @@ describe('Signup lifecycle', () => {
       it('moves them from the prog party to the clear party section of the spreadsheet', async () => {
         expect(await sheetRow(flow, PartyStatus.ProgParty)).toBeUndefined();
         expect(await sheetRow(flow, PartyStatus.ClearParty)).toEqual([
-          expect.stringMatching(new RegExp(`^${character}$`, 'i')),
-          'Jenova',
+          characterCell(),
+          WORLD,
           'tank',
           'P7',
         ]);
@@ -541,12 +543,7 @@ describe('Signup lifecycle', () => {
 
     describe('and the reviewer cancels the approval', () => {
       beforeEach(async () => {
-        flow.discord.react(
-          latestReview(flow),
-          SIGNUP_REVIEW_REACTIONS.APPROVED,
-          REVIEWER.id,
-        );
-        await flow.settle();
+        await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.APPROVED);
         flow.discord.click(
           flow.discord.latestDmTo(REVIEWER.id),
           APPROVAL_CANCEL_BUTTON_ID,
@@ -571,7 +568,7 @@ describe('Signup lifecycle', () => {
     });
 
     describe('and the reviewer declines it with a reason', () => {
-      const reason = SIGNUP_DECLINE_REASONS_CONFIG[0]?.reason ?? '';
+      const reason = DECLINE_REASON;
 
       beforeEach(() => decline(flow, reason));
 
@@ -626,12 +623,7 @@ describe('Signup lifecycle', () => {
 
     describe('and the reviewer declines it but never picks a reason', () => {
       beforeEach(async () => {
-        flow.discord.react(
-          latestReview(flow),
-          SIGNUP_REVIEW_REACTIONS.DECLINED,
-          REVIEWER.id,
-        );
-        await flow.settle();
+        await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.DECLINED);
         flow.discord.expireAll();
         await flow.settle();
       });
@@ -652,12 +644,7 @@ describe('Signup lifecycle', () => {
 
     describe('and someone without the reviewer role reacts', () => {
       it('ignores the reaction', async () => {
-        flow.discord.react(
-          latestReview(flow),
-          SIGNUP_REVIEW_REACTIONS.APPROVED,
-          PLAYER.id,
-        );
-        await flow.settle();
+        await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.APPROVED, PLAYER.id);
 
         expect(flow.discord.dmsTo(PLAYER.id)).toEqual([]);
         expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
@@ -702,7 +689,7 @@ describe('Signup lifecycle', () => {
 
     describe('and the declined signup is resubmitted', () => {
       it('keeps the declined review message as a record of the decision', async () => {
-        await decline(flow, SIGNUP_DECLINE_REASONS_CONFIG[0]?.reason ?? '');
+        await decline(flow, DECLINE_REASON);
         const declinedReview = latestReview(flow);
 
         await submitSignup(flow);

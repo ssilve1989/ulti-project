@@ -39,6 +39,36 @@ describe('DiscordMock', () => {
     discord.addMember({ id: 'u1', username: 'one', roles: ['r1'] });
   });
 
+  /** DMs `userId` a go button, clicks it, and returns the click the bot received. */
+  const clickGo = async (userId = 'u1') => {
+    const message = await discord.sendDirectMessage(userId, {
+      components: [goButton()],
+    });
+    const pending = message.awaitMessageComponent();
+    discord.click(discord.latestDmTo(userId), 'go', userId);
+    return pending;
+  };
+
+  /** Clicks a go button and answers it with a one-field modal. */
+  const openModal = async (userId = 'u1', customId = 'comment') => {
+    const click = await clickGo(userId);
+    if (!click.isButton()) throw new Error('expected a button click');
+    await click.showModal(
+      new ModalBuilder()
+        .setCustomId(customId)
+        .setTitle('Comment')
+        .addComponents(
+          new ActionRowBuilder<TextInputBuilder>().addComponents(
+            new TextInputBuilder()
+              .setCustomId('text')
+              .setLabel('Text')
+              .setStyle(TextInputStyle.Short),
+          ),
+        ),
+    );
+    return click;
+  };
+
   it('records direct messages', async () => {
     await discord.sendDirectMessage('u1', { content: 'hello' });
 
@@ -163,27 +193,7 @@ describe('DiscordMock', () => {
   });
 
   it('hands a submitted modal to the interaction awaiting it', async () => {
-    const message = await discord.sendDirectMessage('u1', {
-      components: [goButton()],
-    });
-    const pending = message.awaitMessageComponent();
-    discord.click(discord.latestDmTo('u1'), 'go', 'u1');
-    const click = await pending;
-    if (!click.isButton()) throw new Error('expected a button click');
-
-    await click.showModal(
-      new ModalBuilder()
-        .setCustomId('comment')
-        .setTitle('Comment')
-        .addComponents(
-          new ActionRowBuilder<TextInputBuilder>().addComponents(
-            new TextInputBuilder()
-              .setCustomId('text')
-              .setLabel('Text')
-              .setStyle(TextInputStyle.Short),
-          ),
-        ),
-    );
+    const click = await openModal();
     const submitted = click.awaitModalSubmit({ time: 1_000 });
     discord.submitModal('u1', { text: 'nice' });
 
@@ -302,12 +312,7 @@ describe('DiscordMock', () => {
     });
 
     it('rejects updating a component interaction that was already deferred', async () => {
-      const message = await discord.sendDirectMessage('u1', {
-        components: [goButton()],
-      });
-      const pending = message.awaitMessageComponent();
-      discord.click(discord.latestDmTo('u1'), 'go', 'u1');
-      const click = await pending;
+      const click = await clickGo();
       await click.deferUpdate();
 
       await expect(click.update({ components: [] })).rejects.toMatchObject({
@@ -398,34 +403,12 @@ describe('DiscordMock', () => {
 
     it("keeps each user's open modal separate", async () => {
       discord.addMember({ id: 'u2', username: 'two' });
-      const openModalFor = async (userId: string, customId: string) => {
-        const message = await discord.sendDirectMessage(userId, {
-          components: [goButton()],
-        });
-        const pending = message.awaitMessageComponent();
-        discord.click(discord.latestDmTo(userId), 'go', userId);
-        const click = await pending;
-        if (!click.isButton()) throw new Error('expected a button click');
-        await click.showModal(
-          new ModalBuilder()
-            .setCustomId(customId)
-            .setTitle('Comment')
-            .addComponents(
-              new ActionRowBuilder<TextInputBuilder>().addComponents(
-                new TextInputBuilder()
-                  .setCustomId('text')
-                  .setLabel('Text')
-                  .setStyle(TextInputStyle.Short),
-              ),
-            ),
-        );
-        return click.awaitModalSubmit({ time: 1_000 });
-      };
-
-      const first = openModalFor('u1', 'first');
-      const second = openModalFor('u2', 'second');
-      await Promise.resolve();
-      await new Promise((resolve) => setImmediate(resolve));
+      const first = (await openModal('u1', 'first')).awaitModalSubmit({
+        time: 1_000,
+      });
+      const second = (await openModal('u2', 'second')).awaitModalSubmit({
+        time: 1_000,
+      });
       discord.submitModal('u1', { text: 'one' });
       discord.submitModal('u2', { text: 'two' });
 
@@ -434,26 +417,7 @@ describe('DiscordMock', () => {
     });
 
     it('does not deliver a modal submit the awaiter filters out', async () => {
-      const message = await discord.sendDirectMessage('u1', {
-        components: [goButton()],
-      });
-      const pending = message.awaitMessageComponent();
-      discord.click(discord.latestDmTo('u1'), 'go', 'u1');
-      const click = await pending;
-      if (!click.isButton()) throw new Error('expected a button click');
-      await click.showModal(
-        new ModalBuilder()
-          .setCustomId('comment')
-          .setTitle('Comment')
-          .addComponents(
-            new ActionRowBuilder<TextInputBuilder>().addComponents(
-              new TextInputBuilder()
-                .setCustomId('text')
-                .setLabel('Text')
-                .setStyle(TextInputStyle.Short),
-            ),
-          ),
-      );
+      const click = await openModal();
       void click
         .awaitModalSubmit({ time: 1_000, filter: () => false })
         .catch(() => undefined);
@@ -465,26 +429,7 @@ describe('DiscordMock', () => {
   });
 
   it('lists a modal submit the bot never acknowledged', async () => {
-    const message = await discord.sendDirectMessage('u1', {
-      components: [goButton()],
-    });
-    const pending = message.awaitMessageComponent();
-    discord.click(discord.latestDmTo('u1'), 'go', 'u1');
-    const click = await pending;
-    if (!click.isButton()) throw new Error('expected a button click');
-    await click.showModal(
-      new ModalBuilder()
-        .setCustomId('comment')
-        .setTitle('Comment')
-        .addComponents(
-          new ActionRowBuilder<TextInputBuilder>().addComponents(
-            new TextInputBuilder()
-              .setCustomId('text')
-              .setLabel('Text')
-              .setStyle(TextInputStyle.Short),
-          ),
-        ),
-    );
+    const click = await openModal();
     const submitted = click.awaitModalSubmit({ time: 1_000 });
     discord.submitModal('u1', { text: 'nice' });
     await submitted;

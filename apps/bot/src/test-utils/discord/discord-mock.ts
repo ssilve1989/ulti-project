@@ -13,6 +13,7 @@ import {
   type MessageReaction,
   type ModalBuilder,
   type ModalSubmitInteraction,
+  RESTJSONErrorCodes,
   type StringSelectMenuInteraction,
   type TextChannel,
   type User,
@@ -49,12 +50,12 @@ interface ModalWaiter {
 }
 
 /** The DiscordjsTypeError discord.js throws for a missing required option. */
-function missingOption(name: string): Error {
-  return Reflect.construct(DiscordjsTypeError, [
+const missingOption = (name: string) =>
+  discordjsError(
     DiscordjsErrorCodes.CommandInteractionOptionNotFound,
-    name,
-  ]);
-}
+    [name],
+    DiscordjsTypeError,
+  );
 
 /** discord.js's per-interaction response state. */
 interface Acknowledgement {
@@ -71,6 +72,18 @@ const alreadyReplied = () =>
 const notReplied = () =>
   Promise.reject(discordjsError(DiscordjsErrorCodes.InteractionNotReplied));
 
+/** Answers an interaction once, as discord.js allows; a second answer rejects. */
+function answer(
+  ack: Acknowledgement,
+  kind: keyof Acknowledgement,
+  effect: () => void,
+): Promise<void> {
+  if (answered(ack)) return alreadyReplied();
+  ack[kind] = true;
+  effect();
+  return Promise.resolve();
+}
+
 type DiscordServiceSurface = Pick<
   DiscordService,
   | 'deleteMessage'
@@ -82,14 +95,6 @@ type DiscordServiceSurface = Pick<
   | 'sendDirectMessage'
   | 'userHasRole'
 >;
-
-function attempt<T>(action: () => T): Promise<T> {
-  try {
-    return Promise.resolve(action());
-  } catch (error) {
-    return Promise.reject(error);
-  }
-}
 
 function assertInteractive(message: FakeMessage): void {
   if (message.deleted) {
@@ -249,10 +254,6 @@ export class DiscordMock implements DiscordServiceSurface {
 
   react(message: FakeMessage, emoji: string, userId: string): void {
     message.addReaction(emoji, userId);
-    this.emitReaction(message, emoji, userId);
-  }
-
-  private emitReaction(message: FakeMessage, emoji: string, userId: string) {
     this.client.emit(
       Events.MessageReactionAdd,
       mockOf<MessageReaction>({
@@ -372,10 +373,7 @@ export class DiscordMock implements DiscordServiceSurface {
     guildId: string;
     userId: string;
   }): Promise<string> {
-    const member = this.members.get(userId);
-    return member
-      ? Promise.resolve(member.displayName)
-      : Promise.reject(unknownResource(10007, `/members/${userId}`));
+    return this.member(userId).then(({ displayName }) => displayName);
   }
 
   userHasRole({
@@ -386,10 +384,7 @@ export class DiscordMock implements DiscordServiceSurface {
     userId: string;
     roleId: string;
   }): Promise<boolean> {
-    const member = this.members.get(userId);
-    return member
-      ? Promise.resolve(member.roles.has(roleId))
-      : Promise.reject(unknownResource(10007, `/members/${userId}`));
+    return this.member(userId).then(({ roles }) => roles.has(roleId));
   }
 
   getEmojiString(): string {
@@ -409,7 +404,10 @@ export class DiscordMock implements DiscordServiceSurface {
   }): Promise<TextChannel | null> {
     if (this.channels.get(channelId) !== guildId) {
       return Promise.reject(
-        unknownResource(10003, `/guilds/${guildId}/channels/${channelId}`),
+        unknownResource(
+          RESTJSONErrorCodes.UnknownChannel,
+          `/guilds/${guildId}/channels/${channelId}`,
+        ),
       );
     }
     return Promise.resolve(
@@ -436,7 +434,7 @@ export class DiscordMock implements DiscordServiceSurface {
         new Error('DiscordMock does not support MessagePayload'),
       );
     }
-    return attempt(() => this.dm(userId, message).toMessage<false>());
+    return Promise.try(() => this.dm(userId, message).toMessage<false>());
   }
 
   deleteMessage(
@@ -446,7 +444,9 @@ export class DiscordMock implements DiscordServiceSurface {
   ): Promise<Message | undefined> {
     const path = `/channels/${channelId}/messages/${messageId}`;
     if (this.channels.get(channelId) !== guildId) {
-      return Promise.reject(unknownResource(10003, path));
+      return Promise.reject(
+        unknownResource(RESTJSONErrorCodes.UnknownChannel, path),
+      );
     }
     const message = this.messages.find(
       ({ id, location, deleted }) =>
@@ -455,7 +455,11 @@ export class DiscordMock implements DiscordServiceSurface {
         location.channelId === channelId &&
         !deleted,
     );
-    if (!message) return Promise.reject(unknownResource(10008, path));
+    if (!message) {
+      return Promise.reject(
+        unknownResource(RESTJSONErrorCodes.UnknownMessage, path),
+      );
+    }
     message.deleted = true;
     return Promise.resolve(message.toMessage());
   }
@@ -471,15 +475,28 @@ export class DiscordMock implements DiscordServiceSurface {
       location,
       BOT_USER_ID,
       payload,
-      (reacted, emoji) => this.emitReaction(reacted, emoji, BOT_USER_ID),
+      (reacted, emoji) => this.react(reacted, emoji, BOT_USER_ID),
     );
     this.messages.push(message);
     return message;
   }
 
+  /** Rejects like the API for someone who isn't a member of the guild. */
+  private member(userId: string): Promise<FakeMember> {
+    const member = this.members.get(userId);
+    return member
+      ? Promise.resolve(member)
+      : Promise.reject(
+          unknownResource(
+            RESTJSONErrorCodes.UnknownMember,
+            `/members/${userId}`,
+          ),
+        );
+  }
+
   private dm(userId: string, payload: OutgoingPayload): FakeMessage {
     if (!this.members.has(userId)) {
-      throw unknownResource(10013, `/users/${userId}`);
+      throw unknownResource(RESTJSONErrorCodes.UnknownUser, `/users/${userId}`);
     }
     if (this.failingDms.has(userId)) {
       throw new Error(`Cannot send messages to this user (${userId})`);
@@ -497,7 +514,7 @@ export class DiscordMock implements DiscordServiceSurface {
       partial: false,
       displayAvatarURL: () => `https://cdn.example/avatars/${userId}.png`,
       send: (payload: OutgoingPayload) =>
-        attempt(() => this.dm(userId, payload).toMessage<false>()),
+        Promise.try(() => this.dm(userId, payload).toMessage<false>()),
     });
   }
 
@@ -509,11 +526,12 @@ export class DiscordMock implements DiscordServiceSurface {
         return Promise.resolve();
       };
 
+    const user = this.user(member.id);
     return mockOf<GuildMember>({
       id: member.id,
       displayName: member.displayName,
-      user: this.user(member.id),
-      displayAvatarURL: () => `https://cdn.example/avatars/${member.id}.png`,
+      user,
+      displayAvatarURL: user.displayAvatarURL,
       roles: {
         cache: { has: (roleId: string) => member.roles.has(roleId) },
         add: change((roleId) => member.roles.add(roleId)),
@@ -532,29 +550,21 @@ export class DiscordMock implements DiscordServiceSurface {
     userId: string,
     ack: Acknowledgement,
   ) {
-    const answer = (kind: keyof Acknowledgement, effect: () => void) => {
-      if (answered(ack)) return alreadyReplied();
-      ack[kind] = true;
-      effect();
-      return Promise.resolve();
-    };
     const post = (payload: OutgoingPayload) => {
       this.createMessage({ kind: 'reply', userId }, payload);
     };
 
     return {
-      deferUpdate: () => answer('deferred', () => undefined),
+      deferUpdate: () => answer(ack, 'deferred', () => undefined),
       update: (payload: OutgoingPayload) =>
-        answer('replied', () => message.apply(payload)),
+        answer(ack, 'replied', () => message.apply(payload)),
       reply: (payload: OutgoingPayload) =>
-        answer('replied', () => post(payload)),
+        answer(ack, 'replied', () => post(payload)),
       followUp: (payload: OutgoingPayload) => {
         if (!answered(ack)) return notReplied();
         post(payload);
         return Promise.resolve();
       },
-      /** showModal answers the interaction, like reply does */
-      answer,
     };
   }
 
@@ -565,15 +575,14 @@ export class DiscordMock implements DiscordServiceSurface {
   ) {
     const ack: Acknowledgement = { deferred: false, replied: false };
     this.pressed.push({ customId, ack });
-    const { answer, ...responses } = this.responses(message, userId, ack);
-
     return {
-      ...responses,
+      ...this.responses(message, userId, ack),
       customId,
       user: this.user(userId),
       message: message.toMessage(),
+      // showModal answers the interaction, like reply does
       showModal: (modal: ModalBuilder) =>
-        answer('replied', () => {
+        answer(ack, 'replied', () => {
           this.openModals.set(userId, {
             customId: modal.toJSON().custom_id,
             message,

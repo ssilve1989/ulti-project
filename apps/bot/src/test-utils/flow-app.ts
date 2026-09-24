@@ -8,17 +8,14 @@ import { getFflogsSdkToken } from '../fflogs/fflogs.consts.js';
 import { FIRESTORE } from '../firebase/firebase.consts.js';
 import { SHEETS_CLIENT } from '../sheets/sheets.consts.js';
 import { SheetsService } from '../sheets/sheets.service.js';
+import { getSheetValues } from '../sheets/sheets.utils.js';
 import { BlacklistModule } from '../slash-commands/blacklist/blacklist.module.js';
 import { SignupModule } from '../slash-commands/signup/signup.module.js';
 import { TurboProgModule } from '../slash-commands/turboprog/turbo-prog.module.js';
 import { DiscordMock } from './discord/discord-mock.js';
 import { FFLogsMock } from './fflogs/fflogs-mock.js';
 import { InMemoryFirestore } from './firestore/in-memory-firestore.js';
-import {
-  type ActivityTracker,
-  createActivityTracker,
-  waitUntilIdle,
-} from './idle.js';
+import { createActivityTracker, waitUntilIdle } from './idle.js';
 import { startSheetsRecording } from './sheets/recorded-sheets.js';
 
 /**
@@ -103,114 +100,89 @@ export async function createFlowApp(): Promise<FlowApp> {
   const discord = new DiscordMock();
   const fflogs = new FFLogsMock();
   const logger = new RecordingLogger();
+  // the tracker starts after recording: a failed start has nothing to dispose
+  const recording = await startSheetsRecording();
   const activity = createActivityTracker();
-  let recording: Awaited<ReturnType<typeof startSheetsRecording>>;
-  try {
-    recording = await startSheetsRecording();
-  } catch (error) {
-    activity.dispose();
-    throw error;
-  }
 
   try {
-    return await startApp({ db, discord, fflogs, logger, activity, recording });
+    const moduleRef = await Test.createTestingModule({ imports: FLOW_MODULES })
+      .overrideProvider(FIRESTORE)
+      .useValue(db)
+      .overrideProvider(DISCORD_CLIENT)
+      .useValue(discord.client)
+      .overrideProvider(DiscordService)
+      .useValue(discord)
+      .overrideProvider(getFflogsSdkToken())
+      .useValue(fflogs)
+      .setLogger(logger)
+      .compile();
+
+    // runs onApplicationBootstrap: CQRS handler registration, SignupService's reaction listener
+    await moduleRef.init();
+
+    activity.trackCalls(moduleRef.get(SheetsService));
+    const sheetsClient = moduleRef.get<sheets_v4.Sheets>(SHEETS_CLIENT);
+    const sheets: TestSheet = {
+      spreadsheetId: TEST_SPREADSHEET_ID,
+      read: async (range) =>
+        (await getSheetValues(sheetsClient, {
+          spreadsheetId: TEST_SPREADSHEET_ID,
+          range,
+        })) ?? [],
+    };
+
+    return {
+      db,
+      discord,
+      sheets,
+      fflogs,
+      get: (token) => moduleRef.get(token),
+      settle: () => waitUntilIdle(activity),
+      expectLoggedError: (pattern) => {
+        const index = logger.errors.findIndex((entry) => pattern.test(entry));
+        if (index === -1) {
+          throw new Error(
+            `No logged error matches ${pattern}. Logged errors:\n${logger.errors.join('\n---\n') || '(none)'}`,
+          );
+        }
+        logger.errors.splice(index, 1);
+      },
+      close: async () => {
+        const failures: string[] = [];
+        try {
+          // time out anything still waiting on a click so it can't leak into the next test
+          discord.expireAll();
+          await waitUntilIdle(activity);
+          await moduleRef.close();
+        } finally {
+          activity.dispose();
+          try {
+            recording.finish();
+          } catch (error) {
+            failures.push(describeLogged(error));
+          }
+        }
+        // logged errors usually explain any other failure, so they come first
+        if (logger.errors.length > 0) {
+          failures.unshift(
+            `The app logged errors this test did not expect (declare intended ones with flow.expectLoggedError):\n${logger.errors.join('\n---\n')}`,
+          );
+        }
+        const unacknowledged = discord.unacknowledged();
+        if (unacknowledged.length > 0) {
+          failures.push(
+            `The bot never acknowledged these pressed components, so Discord would show "This interaction failed": ${unacknowledged.join(', ')}`,
+          );
+        }
+        if (failures.length > 0) {
+          throw new Error(failures.join('\n\n'));
+        }
+      },
+    };
   } catch (error) {
     // don't leave nock intercepting or listeners subscribed for later spec files
     activity.dispose();
     recording.abandon();
     throw error;
   }
-}
-
-async function startApp({
-  db,
-  discord,
-  fflogs,
-  logger,
-  activity,
-  recording,
-}: {
-  db: InMemoryFirestore;
-  discord: DiscordMock;
-  fflogs: FFLogsMock;
-  logger: RecordingLogger;
-  activity: ActivityTracker;
-  recording: Awaited<ReturnType<typeof startSheetsRecording>>;
-}): Promise<FlowApp> {
-  const moduleRef = await Test.createTestingModule({ imports: FLOW_MODULES })
-    .overrideProvider(FIRESTORE)
-    .useValue(db)
-    .overrideProvider(DISCORD_CLIENT)
-    .useValue(discord.client)
-    .overrideProvider(DiscordService)
-    .useValue(discord)
-    .overrideProvider(getFflogsSdkToken())
-    .useValue(fflogs)
-    .setLogger(logger)
-    .compile();
-
-  // runs onApplicationBootstrap: CQRS handler registration, SignupService's reaction listener
-  await moduleRef.init();
-
-  activity.trackCalls(moduleRef.get(SheetsService));
-  const sheetsClient = moduleRef.get<sheets_v4.Sheets>(SHEETS_CLIENT);
-  const sheets: TestSheet = {
-    spreadsheetId: TEST_SPREADSHEET_ID,
-    read: async (range) => {
-      const response = await sheetsClient.spreadsheets.values.get({
-        spreadsheetId: TEST_SPREADSHEET_ID,
-        range,
-      });
-      return response.data.values ?? [];
-    },
-  };
-
-  return {
-    db,
-    discord,
-    sheets,
-    fflogs,
-    get: (token) => moduleRef.get(token),
-    settle: () => waitUntilIdle(activity),
-    expectLoggedError: (pattern) => {
-      const index = logger.errors.findIndex((entry) => pattern.test(entry));
-      if (index === -1) {
-        throw new Error(
-          `No logged error matches ${pattern}. Logged errors:\n${logger.errors.join('\n---\n') || '(none)'}`,
-        );
-      }
-      logger.errors.splice(index, 1);
-    },
-    close: async () => {
-      const failures: string[] = [];
-      try {
-        // time out anything still waiting on a click so it can't leak into the next test
-        discord.expireAll();
-        await waitUntilIdle(activity);
-        await moduleRef.close();
-      } finally {
-        activity.dispose();
-        try {
-          recording.finish();
-        } catch (error) {
-          failures.push(describeLogged(error));
-        }
-      }
-      // logged errors usually explain any other failure, so they come first
-      if (logger.errors.length > 0) {
-        failures.unshift(
-          `The app logged errors this test did not expect (declare intended ones with flow.expectLoggedError):\n${logger.errors.join('\n---\n')}`,
-        );
-      }
-      const unacknowledged = discord.unacknowledged();
-      if (unacknowledged.length > 0) {
-        failures.push(
-          `The bot never acknowledged these pressed components, so Discord would show "This interaction failed": ${unacknowledged.join(', ')}`,
-        );
-      }
-      if (failures.length > 0) {
-        throw new Error(failures.join('\n\n'));
-      }
-    },
-  };
 }

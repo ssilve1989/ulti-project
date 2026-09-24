@@ -137,15 +137,6 @@ function matches(data: Data, { field, operator, value }: Condition): boolean {
   }
 }
 
-function settleWrite(write: () => void): Promise<void> {
-  try {
-    write();
-    return Promise.resolve();
-  } catch (error) {
-    return Promise.reject(error);
-  }
-}
-
 class DocumentSnapshot {
   constructor(
     readonly ref: DocumentReference,
@@ -173,14 +164,25 @@ class QuerySnapshot {
   }
 }
 
+interface QueryState {
+  readonly conditions: readonly Condition[];
+  readonly orderings: readonly Ordering[];
+  readonly maxResults?: number;
+}
+
 class Query {
   constructor(
     protected readonly db: InMemoryFirestore,
     protected readonly collectionPath: string,
-    private readonly conditions: readonly Condition[] = [],
-    private readonly orderings: readonly Ordering[] = [],
-    private readonly maxResults?: number,
+    private readonly state: QueryState = { conditions: [], orderings: [] },
   ) {}
+
+  private with(changes: Partial<QueryState>): Query {
+    return new Query(this.db, this.collectionPath, {
+      ...this.state,
+      ...changes,
+    });
+  }
 
   where(field: unknown, operator?: string, value?: unknown): Query {
     if (typeof field !== 'string') {
@@ -206,41 +208,23 @@ class Query {
     if (operator === '==' && typeof value === 'object' && value !== null) {
       return unsupported('== against maps, arrays or class instances');
     }
-    return new Query(
-      this.db,
-      this.collectionPath,
-      [...this.conditions, { field, operator, value }],
-      this.orderings,
-      this.maxResults,
-    );
+    return this.with({
+      conditions: [...this.state.conditions, { field, operator, value }],
+    });
   }
 
   orderBy(field: string, direction: 'asc' | 'desc' = 'asc'): Query {
-    return new Query(
-      this.db,
-      this.collectionPath,
-      this.conditions,
-      [...this.orderings, { field, direction }],
-      this.maxResults,
-    );
+    return this.with({
+      orderings: [...this.state.orderings, { field, direction }],
+    });
   }
 
   limit(count: number): Query {
-    return new Query(
-      this.db,
-      this.collectionPath,
-      this.conditions,
-      this.orderings,
-      count,
-    );
+    return this.with({ maxResults: count });
   }
 
   get(): Promise<QuerySnapshot> {
-    try {
-      return Promise.resolve(new QuerySnapshot(this.run()));
-    } catch (error) {
-      return Promise.reject(error);
-    }
+    return Promise.try(() => new QuerySnapshot(this.run()));
   }
 
   /**
@@ -250,14 +234,14 @@ class Query {
    */
   private assertServableWithoutCompositeIndex(): void {
     const inequalityFields = new Set(
-      this.conditions
+      this.state.conditions
         .filter(({ operator }) => operator === '>' || operator === '<')
         .map(({ field }) => field),
     );
-    const [firstOrdering] = this.orderings;
+    const [firstOrdering] = this.state.orderings;
     const filterOnOtherField =
       firstOrdering !== undefined &&
-      this.conditions.some(({ field }) => field !== firstOrdering.field);
+      this.state.conditions.some(({ field }) => field !== firstOrdering.field);
 
     if (inequalityFields.size > 1 || filterOnOtherField) {
       throw new Error(
@@ -271,14 +255,14 @@ class Query {
     const docs = this.db
       .documentsIn(this.collectionPath)
       .filter(({ data }) =>
-        this.conditions.every((condition) => matches(data, condition)),
+        this.state.conditions.every((condition) => matches(data, condition)),
       )
       // Firestore leaves out documents missing an ordered-by field
       .filter(({ data }) =>
-        this.orderings.every(({ field }) => data[field] !== undefined),
+        this.state.orderings.every(({ field }) => data[field] !== undefined),
       )
       .sort((a, b) => {
-        for (const { field, direction } of this.orderings) {
+        for (const { field, direction } of this.state.orderings) {
           const result = compare(a.data[field], b.data[field]);
           if (result !== 0) return direction === 'asc' ? result : -result;
         }
@@ -286,7 +270,9 @@ class Query {
       });
 
     const limited =
-      this.maxResults === undefined ? docs : docs.slice(0, this.maxResults);
+      this.state.maxResults === undefined
+        ? docs
+        : docs.slice(0, this.state.maxResults);
 
     return limited.map(
       ({ path, data }) =>
@@ -326,19 +312,19 @@ class DocumentReference {
   }
 
   create(data: object): Promise<void> {
-    return settleWrite(() => this.db.create(this.path, data));
+    return Promise.try(() => this.db.create(this.path, data));
   }
 
   set(data: object, options?: SetOptions): Promise<void> {
-    return settleWrite(() => this.db.set(this.path, data, options));
+    return Promise.try(() => this.db.set(this.path, data, options));
   }
 
   update(data: object): Promise<void> {
-    return settleWrite(() => this.db.update(this.path, data));
+    return Promise.try(() => this.db.update(this.path, data));
   }
 
   delete(): Promise<void> {
-    return settleWrite(() => this.db.delete(this.path));
+    return Promise.try(() => this.db.delete(this.path));
   }
 }
 
@@ -380,7 +366,7 @@ class PendingWrites {
 
 class WriteBatch extends PendingWrites {
   commit(): Promise<void> {
-    return settleWrite(() => this.apply());
+    return Promise.try(() => this.apply());
   }
 }
 

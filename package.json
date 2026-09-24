@@ -28,7 +28,7 @@
     "start:dev": "pnpm --filter @ulti-project/bot start:dev",
     "start:dev:sentry": "pnpm --filter @ulti-project/bot start:dev:sentry",
     "test": "vitest",
-    "test:record": "NOCK_BACK_MODE=update dotenvx run -q -fk .env.keys -f apps/bot/.env.development -f .env -- vitest run --project bot flow.spec && biome format --write $(find apps/bot/src -type d -name __recordings__)",
+    "test:record": "NOCK_BACK_MODE=update dotenvx run -q -fk .env.keys -f apps/bot/.env.development -f .env -- vitest run --project bot --testTimeout=150000 --hookTimeout=150000 flow.spec && biome format --write $(find apps/bot/src -type d -name __recordings__)",
     "test:ci": "CI=true vitest run --coverage --sequence.shuffle",
     "test:cov": "vitest run --coverage",
     "test:shuffle": "vitest run --sequence.shuffle",
