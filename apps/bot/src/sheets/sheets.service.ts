@@ -18,6 +18,7 @@ import { type SheetRangeConfig, SheetRanges } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
 import {
   batchUpdate,
+  batchUpdateWithRetry,
   columnToIndex,
   findCharacterRowIndex,
   getSheetIdByName,
@@ -448,14 +449,10 @@ class SheetsService implements OnApplicationShutdown {
     spreadsheetId: string,
     partyStatus: NonClearedPartyStatus,
   ) {
-    const { encounter, character, world } = signup;
+    const { encounter } = signup;
     const cellValues = this.getCellValues(signup);
 
     const isProgEncounter = await this.isProgEncounter(encounter);
-    if (isProgEncounter && partyStatus === PartyStatus.ClearParty) {
-      // if its a clear party we need to check if we are moving them from prog to clear
-      await this.removeSignup(signup, spreadsheetId, [PartyStatus.ProgParty]);
-    }
 
     const ranges = SheetRanges[partyStatus];
     const range = `${encounter}!${ranges.columnStart}:${ranges.columnEnd}`;
@@ -468,21 +465,62 @@ class SheetsService implements OnApplicationShutdown {
     const row = this.findCharacterRowIndex(
       sheetValues,
       (values) =>
-        values.has(character.toLowerCase()) && values.has(world.toLowerCase()),
+        values.has(signup.character.toLowerCase()) &&
+        values.has(signup.world.toLowerCase()),
     );
 
-    const rowOffset = sheetValues ? sheetValues.length + 1 : ranges.rowStart;
-    const updateRange =
-      row === -1
-        ? `${encounter}!${ranges.columnStart}${rowOffset}:${ranges.columnEnd}`
-        : `${encounter}!${ranges.columnStart}${row + 1}:${ranges.columnEnd}${row + 1}`;
+    const requests: sheets_v4.Schema$Request[] = [];
 
-    return updateSheet(this.client, {
+    if (isProgEncounter && partyStatus === PartyStatus.ClearParty) {
+      // if its a clear party we need to check if we are moving them from prog to clear;
+      // bundle the removal with the write below so both resolve atomically
+      const clearRequest = await this.createRemoveRequest(
+        spreadsheetId,
+        signup,
+        SheetRanges[PartyStatus.ProgParty],
+      );
+      if (clearRequest != null) {
+        requests.push(clearRequest);
+      }
+    }
+
+    const sheetId = await getSheetIdByName(
+      this.client,
       spreadsheetId,
-      range: updateRange,
-      values: [cellValues],
-      type: 'update',
+      encounter,
+    );
+    if (sheetId == null) {
+      throw new Error(`Invalid SheetID for encounter ${encounter}`);
+    }
+
+    const gridRow =
+      row === -1
+        ? sheetValues
+          ? sheetValues.length
+          : ranges.rowStart - 1
+        : row;
+
+    requests.push({
+      updateCells: {
+        range: {
+          sheetId,
+          startRowIndex: gridRow,
+          endRowIndex: gridRow + 1,
+          startColumnIndex: columnToIndex(ranges.columnStart),
+          endColumnIndex: columnToIndex(ranges.columnEnd) + 1,
+        },
+        rows: [
+          {
+            values: cellValues.map((value) => ({
+              userEnteredValue: { stringValue: value },
+            })),
+          },
+        ],
+        fields: 'userEnteredValue',
+      },
     });
+
+    return batchUpdateWithRetry(this.client, spreadsheetId, requests, range);
   }
 
   /**
