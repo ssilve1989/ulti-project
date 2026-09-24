@@ -10,24 +10,25 @@ import type {
   ChatInputCommandInteraction,
   InteractionEditReplyOptions,
 } from 'discord.js';
-import { EmbedBuilder } from 'discord.js';
-import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
-import { EncountersService } from '../../../encounters/encounters.service.js';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mocked,
+  vi,
+} from 'vitest';
+import type { EncountersService } from '../../../encounters/encounters.service.js';
 import {
   createAutoMock,
   mockOf,
   partialMock,
 } from '../../../test-utils/mock-factory.js';
-import { StatusService } from '../status.service.js';
-import { StatusCommandHandler } from './status.command-handler.js';
+import type { StatusService } from '../status.service.js';
+import type { StatusCommandHandler } from './status.command-handler.js';
 
-const { captureMessage } = vi.hoisted(() => ({ captureMessage: vi.fn() }));
-
-// @SentryTraced forks the scope, so the handler's scope can't be spied on directly
-vi.mock('@sentry/nestjs', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
-  getCurrentScope: () => ({ setContext: vi.fn(), captureMessage }),
-}));
+const captureMessage = vi.fn();
 
 const DSR_PROG_POINTS = [
   partialMock<ProgPointDocument>({
@@ -62,8 +63,27 @@ describe('StatusCommandHandler', () => {
     typeof vi.fn<(options: InteractionEditReplyOptions) => Promise<void>>
   >;
   let interaction: ChatInputCommandInteraction<'cached'>;
+  let EmbedBuilder: typeof import('discord.js')['EmbedBuilder'];
 
   beforeEach(async () => {
+    // The suite runs with `isolate: false`, so a hoisted vi.mock of Sentry would
+    // leak into later spec files. Mock it for this file only, and re-import the
+    // handler (plus the DI tokens and discord.js it uses) from a fresh graph.
+    // @SentryTraced forks the scope, so the handler's scope can't be spied on directly.
+    vi.resetModules();
+    vi.doMock('@sentry/nestjs', async (importOriginal) => ({
+      ...(await importOriginal<typeof import('@sentry/nestjs')>()),
+      getCurrentScope: () => ({ setContext: vi.fn(), captureMessage }),
+    }));
+    ({ EmbedBuilder } = await import('discord.js'));
+    const { StatusCommandHandler } = await import(
+      './status.command-handler.js'
+    );
+    const { StatusService } = await import('../status.service.js');
+    const { EncountersService } = await import(
+      '../../../encounters/encounters.service.js'
+    );
+
     const fixture = await Test.createTestingModule({
       providers: [StatusCommandHandler],
     })
@@ -93,6 +113,11 @@ describe('StatusCommandHandler', () => {
     });
 
     captureMessage.mockClear();
+  });
+
+  afterEach(() => {
+    vi.doUnmock('@sentry/nestjs');
+    vi.resetModules();
   });
 
   async function getReplyFields() {
