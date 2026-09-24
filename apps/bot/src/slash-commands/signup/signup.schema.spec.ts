@@ -35,7 +35,7 @@ describe('proofOfProgLink validation', () => {
       ['youtube.com with www', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'],
       ['medal.tv', 'https://medal.tv/games/ff-xiv-online'],
       ['medal.tv any path', 'https://medal.tv/clips/abc123'],
-    ])('should accept a valid %s link', (_, url) => {
+    ])('accepts a valid %s link', (_, url) => {
       expect(parse({ proofOfProgLink: url }).success).toBe(true);
     });
 
@@ -46,7 +46,7 @@ describe('proofOfProgLink validation', () => {
         'youtube.com with query params',
         'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=60s',
       ],
-    ])('should accept %s', (_, url) => {
+    ])('accepts %s', (_, url) => {
       expect(parse({ proofOfProgLink: url }).success).toBe(true);
     });
   });
@@ -62,7 +62,7 @@ describe('proofOfProgLink validation', () => {
       expect(result.data.proofOfProgLink).toMatch(/^https:\/\//);
     });
 
-    test('should preserve an explicit http:// protocol', () => {
+    test('preserves an explicit http:// protocol', () => {
       const result = parse({
         proofOfProgLink: 'http://fflogs.com/reports/ABC123def456',
       });
@@ -71,7 +71,7 @@ describe('proofOfProgLink validation', () => {
       expect(result.data.proofOfProgLink).toMatch(/^http:\/\//);
     });
 
-    test('should normalize the parsed url', () => {
+    test('normalizes the parsed url', () => {
       const result = parse({ proofOfProgLink: 'youtube.com' });
       expect(result.success).toBe(true);
       if (!result.success) return;
@@ -105,7 +105,7 @@ describe('proofOfProgLink validation', () => {
         'https://youtube.com@evil.com/watch?v=dQw4w9WgXcQ',
       ],
       ['whitelisted host as fragment', 'https://evil.com/report#fflogs.com'],
-    ])('should reject a link with %s', (_, url) => {
+    ])('rejects a link with %s', (_, url) => {
       const result = parse({ proofOfProgLink: url });
       expect(result.success).toBe(false);
       if (result.success) return;
@@ -125,7 +125,7 @@ describe('proofOfProgLink validation', () => {
       ['unrelated domain', 'https://example.com/reports/ABC123'],
       ['ip address', 'https://192.168.1.1/reports/ABC123'],
       ['trailing dot host', 'https://fflogs.com./reports/ABC123'],
-    ])('should reject a link from an %s', (_, url) => {
+    ])('rejects a link from an %s', (_, url) => {
       const result = parse({ proofOfProgLink: url });
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -142,13 +142,13 @@ describe('proofOfProgLink validation', () => {
       ['http protocol without slashes', 'http:fflogs.com/reports/ABC123'],
       ['surrounding whitespace', '  https://fflogs.com/reports/ABC123  '],
       ['non-string value', 123],
-    ])('should reject %s', (_, url) => {
+    ])('rejects %s', (_, url) => {
       expect(parse({ proofOfProgLink: url }).success).toBe(false);
     });
   });
 
   describe('interaction with the screenshot requirement', () => {
-    test('should accept a null link when a screenshot is provided', () => {
+    test('accepts a null link when a screenshot is provided', () => {
       const result = parse({
         proofOfProgLink: null,
         screenshot: 'https://i.imgur.com/x.png',
@@ -157,7 +157,7 @@ describe('proofOfProgLink validation', () => {
       if (result.success) expect(result.data.proofOfProgLink).toBeNull();
     });
 
-    test('should reject a null link when no screenshot is provided', () => {
+    test('rejects a null link when no screenshot is provided', () => {
       const result = parse({ proofOfProgLink: null });
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -167,7 +167,7 @@ describe('proofOfProgLink validation', () => {
       }
     });
 
-    test('should reject an undefined link even when a screenshot is provided', () => {
+    test('rejects an undefined link even when a screenshot is provided', () => {
       const result = parse({
         proofOfProgLink: undefined,
         screenshot: 'https://i.imgur.com/x.png',
@@ -182,7 +182,7 @@ describe('proofOfProgLink validation', () => {
       }
     });
 
-    test('should still reject an invalid link when a screenshot is provided', () => {
+    test('still rejects an invalid link when a screenshot is provided', () => {
       const result = parse({
         proofOfProgLink: 'https://fflogs.com.evil.com/reports/ABC123',
         screenshot: 'https://i.imgur.com/x.png',
