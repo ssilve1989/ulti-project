@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.7.3](https://github.com/ssilve1989/ulti-project/compare/v2.7.2...v2.7.3) (2026-09-22)
+
+
+### Bug Fixes
+
+* **bot:** flush Sentry before exiting on unhandled rejection ([#1542](https://github.com/ssilve1989/ulti-project/issues/1542)) ([2bcea1d](https://github.com/ssilve1989/ulti-project/commit/2bcea1d956a665e59db88a138151443a30d9584b))
+* **bot:** pass errors first so nestjs-pino logs them ([#1547](https://github.com/ssilve1989/ulti-project/issues/1547)) ([8f45041](https://github.com/ssilve1989/ulti-project/commit/8f450414c5166a58ac6c6f14e932cd07b9bbf3c5))
+* **discord:** await client login and subscribe to ready first ([#1543](https://github.com/ssilve1989/ulti-project/issues/1543)) ([ca28c78](https://github.com/ssilve1989/ulti-project/commit/ca28c787b698d1dfdbe331aad23a61f0b33d9815))
+* **google:** fix incorrect env bool parse ([#1546](https://github.com/ssilve1989/ulti-project/issues/1546)) ([9104991](https://github.com/ssilve1989/ulti-project/commit/9104991fa540aeb02c1094340a3af44c72a8549a))
+* **jobs:** return the run promise from cron onTick ([#1549](https://github.com/ssilve1989/ulti-project/issues/1549)) ([6c96d7c](https://github.com/ssilve1989/ulti-project/commit/6c96d7c790a067f8c099628c9f96e6a9f4f364db))
+* return appropriate type in sheet-cleaner mergeMap ([#1550](https://github.com/ssilve1989/ulti-project/issues/1550)) ([96f5c8b](https://github.com/ssilve1989/ulti-project/commit/96f5c8b41f9f851de4090ebc1998bf253938d10e))
+* **sheets:** skip cleaning hidden sheet tabs ([#1535](https://github.com/ssilve1989/ulti-project/issues/1535)) ([5f7e9c4](https://github.com/ssilve1989/ulti-project/commit/5f7e9c402fcae877228ca475c52d071a5c385d05))
+* **signup:** report decline-reason errors instead of rethrowing ([#1541](https://github.com/ssilve1989/ulti-project/issues/1541)) ([4a257ef](https://github.com/ssilve1989/ulti-project/commit/4a257ef3cfcee3033abaffb26dd89dd9d3cb6a24))
+* **signup:** report reaction error-handler failures instead of crashing ([#1540](https://github.com/ssilve1989/ulti-project/issues/1540)) ([f59a998](https://github.com/ssilve1989/ulti-project/commit/f59a9985fa8e2dd994778d31902b530c261782c7))
+
 ## [2.7.2](https://github.com/ssilve1989/ulti-project/compare/v2.7.1...v2.7.2) (2026-09-17)
 
 
