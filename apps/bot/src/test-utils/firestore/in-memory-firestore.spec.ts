@@ -1,4 +1,9 @@
-import { FieldPath, Filter, Timestamp } from 'firebase-admin/firestore';
+import {
+  FieldPath,
+  FieldValue,
+  Filter,
+  Timestamp,
+} from 'firebase-admin/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { InMemoryFirestore } from './in-memory-firestore.js';
 
@@ -288,6 +293,63 @@ describe('InMemoryFirestore', () => {
         }),
       ).rejects.toThrow('boom');
       expect(db.read('signups/a')).toEqual({ status: 'DECLINED' });
+    });
+  });
+
+  describe('what real Firestore rejects', () => {
+    it('rejects an undefined query value', () => {
+      expect(() =>
+        db.collection('signups').where('status', '==', undefined),
+      ).toThrow('Unsupported field value: undefined');
+    });
+
+    it('rejects an in filter with more than 30 values', () => {
+      const values = Array.from({ length: 31 }, (_, i) => `v${i}`);
+
+      expect(() =>
+        db.collection('signups').where('status', 'in', values),
+      ).toThrow('at most 30');
+    });
+
+    it('rejects running a query that needs a composite index', async () => {
+      await expect(
+        db
+          .collection('signups')
+          .where('status', '==', 'PENDING')
+          .orderBy('order')
+          .get(),
+      ).rejects.toThrow('composite index');
+    });
+
+    it('refuses FieldValue sentinels it does not implement', async () => {
+      await expect(
+        db
+          .collection('signups')
+          .doc('a')
+          .set({ updatedAt: FieldValue.serverTimestamp() }),
+      ).rejects.toThrow('does not support');
+    });
+  });
+
+  describe('transaction contention', () => {
+    it('reruns the transaction when a document it read changes before commit', async () => {
+      db.seed('counters/a', { count: 0 });
+      const ref = db.collection('counters').doc('a');
+      let attempts = 0;
+
+      await db.runTransaction(async (tx) => {
+        attempts++;
+        const snapshot = await tx.get(ref);
+        if (attempts === 1) {
+          // another writer lands between this transaction's read and commit
+          await ref.update({ count: 10 });
+        }
+        const count = snapshot.data()?.count;
+        tx.update(ref, { count: typeof count === 'number' ? count + 1 : -1 });
+      });
+
+      expect(attempts).toBe(2);
+      expect(db.read('counters/a')).toEqual({ count: 11 });
     });
   });
 });

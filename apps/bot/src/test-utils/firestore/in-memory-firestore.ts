@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { FieldPath } from 'firebase-admin/firestore';
+import { type FieldPath, FieldValue } from 'firebase-admin/firestore';
 
 type Data = Record<string, unknown>;
 type Operator = '==' | 'in' | '>' | '<';
@@ -51,6 +51,9 @@ function isPlainObject(value: unknown): value is Data {
  * `ignoreUndefinedProperties`). Class instances such as `Timestamp` are kept.
  */
 function copyValue(value: unknown): unknown {
+  if (value instanceof FieldValue) {
+    return unsupported('FieldValue sentinels (serverTimestamp, increment, …)');
+  }
   if (Array.isArray(value)) return value.map(copyValue);
   if (isPlainObject(value)) return copyData(value);
   return value;
@@ -189,8 +192,16 @@ class Query {
     if (operator === undefined || !isOperator(operator)) {
       return unsupported(`the "${operator}" where() operator`);
     }
+    if (value === undefined) {
+      throw new Error(
+        'Function Query.where() called with invalid data. Unsupported field value: undefined',
+      );
+    }
     if (operator === 'in' && (!Array.isArray(value) || value.length === 0)) {
       throw new Error("'in' filters require a non-empty array");
+    }
+    if (operator === 'in' && Array.isArray(value) && value.length > 30) {
+      throw new Error("'in' filters support at most 30 values");
     }
     if (operator === '==' && typeof value === 'object' && value !== null) {
       return unsupported('== against maps, arrays or class instances');
@@ -225,10 +236,38 @@ class Query {
   }
 
   get(): Promise<QuerySnapshot> {
-    return Promise.resolve(new QuerySnapshot(this.run()));
+    try {
+      return Promise.resolve(new QuerySnapshot(this.run()));
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+
+  /**
+   * Real Firestore rejects these unless a matching composite index is
+   * deployed. This repo has no index config, so the fake can't know which
+   * exist and refuses them rather than pretending they work.
+   */
+  private assertServableWithoutCompositeIndex(): void {
+    const inequalityFields = new Set(
+      this.conditions
+        .filter(({ operator }) => operator === '>' || operator === '<')
+        .map(({ field }) => field),
+    );
+    const [firstOrdering] = this.orderings;
+    const filterOnOtherField =
+      firstOrdering !== undefined &&
+      this.conditions.some(({ field }) => field !== firstOrdering.field);
+
+    if (inequalityFields.size > 1 || filterOnOtherField) {
+      throw new Error(
+        `This query on "${this.collectionPath}" needs a composite index; real Firestore rejects it unless one is deployed, and this repo has no index config.`,
+      );
+    }
   }
 
   private run(): DocumentSnapshot[] {
+    this.assertServableWithoutCompositeIndex();
     const docs = this.db
       .documentsIn(this.collectionPath)
       .filter(({ data }) =>
@@ -303,6 +342,11 @@ class DocumentReference {
   }
 }
 
+class ContentionError extends Error {}
+
+/** Firestore's default number of attempts for a contended transaction. */
+const MAX_TRANSACTION_ATTEMPTS = 5;
+
 class PendingWrites {
   private readonly writes: Array<() => void> = [];
 
@@ -341,6 +385,9 @@ class WriteBatch extends PendingWrites {
 }
 
 class Transaction extends PendingWrites {
+  /** path → document version when this transaction read it */
+  private readonly reads = new Map<string, number>();
+
   get(ref: DocumentReference): Promise<DocumentSnapshot> {
     if (this.hasWrites) {
       return Promise.reject(
@@ -349,10 +396,17 @@ class Transaction extends PendingWrites {
         ),
       );
     }
+    this.reads.set(ref.path, this.db.version(ref.path));
     return ref.get();
   }
 
+  /** Commits, or throws ContentionError if a document it read has since changed. */
   commit(): void {
+    for (const [path, version] of this.reads) {
+      if (this.db.version(path) !== version) {
+        throw new ContentionError(`${path} changed during the transaction`);
+      }
+    }
     this.apply();
   }
 }
@@ -365,6 +419,8 @@ class Transaction extends PendingWrites {
  */
 export class InMemoryFirestore {
   private readonly documents = new Map<string, Data>();
+  /** path → number of writes, for transaction contention checks */
+  private readonly versions = new Map<string, number>();
 
   collection(path: string): CollectionReference {
     return new CollectionReference(this, path);
@@ -374,18 +430,28 @@ export class InMemoryFirestore {
     return new WriteBatch(this);
   }
 
+  /** Like Firestore, reruns the callback when a document it read changed before commit. */
   async runTransaction<T>(
     updateFunction: (transaction: Transaction) => Promise<T>,
   ): Promise<T> {
-    const transaction = new Transaction(this);
-    const result = await updateFunction(transaction);
-    transaction.commit();
-    return result;
+    for (let attempt = 1; attempt <= MAX_TRANSACTION_ATTEMPTS; attempt++) {
+      const transaction = new Transaction(this);
+      const result = await updateFunction(transaction);
+      try {
+        transaction.commit();
+        return result;
+      } catch (error) {
+        if (!(error instanceof ContentionError)) throw error;
+      }
+    }
+    throw new Error(
+      `ABORTED: transaction still contended after ${MAX_TRANSACTION_ATTEMPTS} attempts`,
+    );
   }
 
   /** Test setup: writes a document directly, bypassing the app. */
   seed(path: string, data: object): void {
-    this.documents.set(path, copyData(data));
+    this.write(path, copyData(data));
   }
 
   /** Test assertion: the stored document at `path`, or undefined. */
@@ -395,6 +461,10 @@ export class InMemoryFirestore {
   }
 
   // The members below are used by the reference classes in this file.
+
+  version(path: string): number {
+    return this.versions.get(path) ?? 0;
+  }
 
   snapshot(ref: DocumentReference): DocumentSnapshot {
     return new DocumentSnapshot(ref, this.documents.get(ref.path));
@@ -416,7 +486,7 @@ export class InMemoryFirestore {
     if (this.documents.has(path)) {
       throw new Error(`ALREADY_EXISTS: Document already exists: ${path}`);
     }
-    this.documents.set(path, copyData(data));
+    this.write(path, copyData(data));
   }
 
   set(path: string, data: object, options: SetOptions = {}): void {
@@ -429,11 +499,11 @@ export class InMemoryFirestore {
         const segments = fieldSegments(field);
         next = withValueAt(next, segments, valueAt(incoming, segments));
       }
-      this.documents.set(path, copyData(next));
+      this.write(path, copyData(next));
     } else if (options.merge) {
-      this.documents.set(path, mergeInto(existing, incoming));
+      this.write(path, mergeInto(existing, incoming));
     } else {
-      this.documents.set(path, incoming);
+      this.write(path, incoming);
     }
   }
 
@@ -445,22 +515,31 @@ export class InMemoryFirestore {
     const incoming = copyData(data);
     const dotted = Object.keys(incoming).find((key) => key.includes('.'));
     if (dotted) unsupported(`dotted field paths in update() ("${dotted}")`);
-    this.documents.set(path, { ...existing, ...incoming });
+    this.write(path, { ...existing, ...incoming });
   }
 
   delete(path: string): void {
     this.documents.delete(path);
+    this.versions.set(path, this.version(path) + 1);
   }
 
   /** Runs `apply`; if it throws, restores every document to its prior state. */
   atomically(apply: () => void): void {
-    const before = new Map(this.documents);
+    const documents = new Map(this.documents);
+    const versions = new Map(this.versions);
     try {
       apply();
     } catch (error) {
       this.documents.clear();
-      for (const [path, data] of before) this.documents.set(path, data);
+      for (const [path, data] of documents) this.documents.set(path, data);
+      this.versions.clear();
+      for (const [path, version] of versions) this.versions.set(path, version);
       throw error;
     }
+  }
+
+  private write(path: string, data: Data): void {
+    this.documents.set(path, data);
+    this.versions.set(path, this.version(path) + 1);
   }
 }
