@@ -92,12 +92,26 @@ modules with these overrides:
 - Call `await flow.settle()` after driving the bot so event handlers and sagas
   finish.
 - Call `flow.close()` in `afterEach`. It times out any prompt still awaiting a
-  click.
+  click, and **fails the test if the app logged an error the test didn't
+  expect**. Event handlers, sagas and reaction handling catch their own errors
+  and only log them, so without this check a failure there would go unnoticed.
+  When an error is part of the scenario (a DM that fails on purpose), declare it
+  with `flow.expectLoggedError(/pattern/)`.
 - The fakes implement only what current flows use, and they fail loudly on
   anything else (`InMemoryFirestore does not support …`,
   `… is not a function`). Extend the fake when a new flow needs more. Model the
   failure modes of the real system as named options on the fake (like
   `reportAge`), not as `mockRejectedValue` in a spec.
+- `DiscordMock` enforces what Discord enforces:
+  - Channels belong to a guild (`addChannel(guildId, channelId)`), and fetching
+    or deleting through the wrong one rejects like the API does.
+  - Users can only click enabled buttons and choose offered options, never on
+    a deleted message.
+  - Each interaction is answered exactly once before any follow-up.
+  - Timeouts reject with the real `DiscordjsError`.
+
+  If a flow test fails on one of these rules, the bot would fail the same way
+  in production.
 - To cover a new feature, add its module to `FLOW_MODULES` in `flow-app.ts`.
 
 ## Example

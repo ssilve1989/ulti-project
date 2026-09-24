@@ -2,6 +2,8 @@ import { EventEmitter } from 'node:events';
 import {
   type ButtonInteraction,
   type ChatInputCommandInteraction,
+  DiscordAPIError,
+  DiscordjsErrorCodes,
   type DMChannel,
   Events,
   type GuildEmoji,
@@ -19,6 +21,7 @@ import type { DiscordService } from '../../discord/discord.service.js';
 import { mockOf } from '../mock-factory.js';
 import {
   collectorTimeoutError,
+  discordjsError,
   FakeMessage,
   type MessageLocation,
   type OutgoingPayload,
@@ -45,6 +48,30 @@ interface ModalWaiter {
   reject: (error: Error) => void;
 }
 
+/** discord.js's per-interaction response state. */
+interface Acknowledgement {
+  deferred: boolean;
+  replied: boolean;
+}
+
+const answered = ({ deferred, replied }: Acknowledgement) =>
+  deferred || replied;
+
+const alreadyReplied = () =>
+  Promise.reject(discordjsError(DiscordjsErrorCodes.InteractionAlreadyReplied));
+
+const notReplied = () =>
+  Promise.reject(discordjsError(DiscordjsErrorCodes.InteractionNotReplied));
+
+/** The DiscordAPIError the REST API returns for a missing channel or message. */
+function unknownResource(code: 10003 | 10008, path: string): DiscordAPIError {
+  const message = code === 10003 ? 'Unknown Channel' : 'Unknown Message';
+  return new DiscordAPIError({ message, code }, code, 404, 'GET', path, {
+    body: undefined,
+    files: undefined,
+  });
+}
+
 type DiscordServiceSurface = Pick<
   DiscordService,
   | 'deleteMessage'
@@ -65,6 +92,14 @@ function attempt<T>(action: () => T): Promise<T> {
   }
 }
 
+function assertInteractive(message: FakeMessage): void {
+  if (message.deleted) {
+    throw new Error(
+      `Message ${message.id} was deleted; nobody can interact with it`,
+    );
+  }
+}
+
 /**
  * A small Discord world (members, channels, messages) standing in for
  * `DiscordService` and the discord.js client in flow specs. Tests set the world
@@ -75,10 +110,11 @@ export class DiscordMock implements DiscordServiceSurface {
   /** Stands in for the discord.js Client; the app subscribes to gateway events on it. */
   readonly client = new EventEmitter();
   private readonly members = new Map<string, FakeMember>();
-  private readonly channels = new Set<string>();
+  /** channelId → the guild it belongs to */
+  private readonly channels = new Map<string, string>();
   private readonly messages: FakeMessage[] = [];
   private readonly failingDms = new Set<string>();
-  private readonly pressed: Array<{ customId: string; acknowledged: boolean }> =
+  private readonly pressed: Array<{ customId: string; ack: Acknowledgement }> =
     [];
   private openModal: OpenModal | undefined;
   private modalWaiter: ModalWaiter | undefined;
@@ -100,8 +136,8 @@ export class DiscordMock implements DiscordServiceSurface {
     this.members.set(id, { id, username, displayName, roles: new Set(roles) });
   }
 
-  addChannel(channelId: string): void {
-    this.channels.add(channelId);
+  addChannel(guildId: string, channelId: string): void {
+    this.channels.set(channelId, guildId);
   }
 
   failDirectMessagesTo(userId: string): void {
@@ -139,7 +175,7 @@ export class DiscordMock implements DiscordServiceSurface {
   /** Custom ids of pressed components the bot never deferred, updated, replied to or answered with a modal. */
   unacknowledged(): string[] {
     return this.pressed
-      .filter(({ acknowledged }) => !acknowledged)
+      .filter(({ ack }) => !answered(ack))
       .map(({ customId }) => customId);
   }
 
@@ -161,13 +197,15 @@ export class DiscordMock implements DiscordServiceSurface {
     interaction: ChatInputCommandInteraction<'cached'>;
     reply: () => FakeMessage;
   } {
+    const ack: Acknowledgement = { deferred: false, replied: false };
     let reply: FakeMessage | undefined;
-    const respond = (payload: OutgoingPayload) => {
+    const show = (payload: OutgoingPayload) => {
       if (reply) {
         reply.apply(payload);
       } else {
         reply = this.createMessage({ kind: 'reply', userId }, payload);
       }
+      ack.replied = true;
       return Promise.resolve(reply.toMessage<true>());
     };
 
@@ -179,9 +217,15 @@ export class DiscordMock implements DiscordServiceSurface {
         getString: (name: string) => options[name] ?? null,
         getAttachment: (name: string) => attachments[name] ?? null,
       },
-      deferReply: () => Promise.resolve(),
-      reply: respond,
-      editReply: respond,
+      deferReply: () => {
+        if (answered(ack)) return alreadyReplied();
+        ack.deferred = true;
+        return Promise.resolve();
+      },
+      reply: (payload: OutgoingPayload) =>
+        answered(ack) ? alreadyReplied() : show(payload),
+      editReply: (payload: OutgoingPayload) =>
+        answered(ack) ? show(payload) : notReplied(),
       inCachedGuild: () => true,
       isChatInputCommand: () => true,
     });
@@ -209,9 +253,17 @@ export class DiscordMock implements DiscordServiceSurface {
   }
 
   click(message: FakeMessage, customId: string, userId: string): void {
-    if (!message.componentIds().includes(customId)) {
+    assertInteractive(message);
+    const buttons = message.buttons();
+    const button = buttons.find((candidate) => candidate.customId === customId);
+    if (!button) {
       throw new Error(
-        `Message ${message.id} has no component "${customId}" (has: ${message.componentIds().join(', ')})`,
+        `Message ${message.id} has no component "${customId}" (has: ${buttons.map((b) => b.customId).join(', ')})`,
+      );
+    }
+    if (button.disabled) {
+      throw new Error(
+        `Button "${customId}" on message ${message.id} is disabled`,
       );
     }
     message.dispatch(
@@ -225,15 +277,26 @@ export class DiscordMock implements DiscordServiceSurface {
 
   /** Picks `value` in the message's only select menu. */
   choose(message: FakeMessage, value: string, userId: string): void {
-    const [customId, ...others] = message.selectMenuIds();
-    if (customId === undefined || others.length > 0) {
+    assertInteractive(message);
+    const [menu, ...others] = message.selectMenus();
+    if (menu === undefined || others.length > 0) {
       throw new Error(
         `Message ${message.id} must have exactly one select menu to choose from`,
       );
     }
+    if (menu.disabled) {
+      throw new Error(
+        `Select menu "${menu.customId}" on message ${message.id} is disabled`,
+      );
+    }
+    if (!menu.values.includes(value)) {
+      throw new Error(
+        `Select menu "${menu.customId}" does not offer "${value}" (offers: ${menu.values.join(', ')})`,
+      );
+    }
     message.dispatch(
       mockOf<StringSelectMenuInteraction>({
-        ...this.componentInteraction(message, userId, customId),
+        ...this.componentInteraction(message, userId, menu.customId),
         values: [value],
         isButton: () => false,
         isStringSelectMenu: () => true,
@@ -252,7 +315,10 @@ export class DiscordMock implements DiscordServiceSurface {
 
     waiter.resolve(
       mockOf<ModalSubmitInteraction>({
-        ...this.responses(modal.message, userId, { acknowledged: true }),
+        ...this.responses(modal.message, userId, {
+          deferred: false,
+          replied: false,
+        }),
         customId: modal.customId,
         user: this.user(userId),
         message: modal.message.toMessage(),
@@ -322,7 +388,11 @@ export class DiscordMock implements DiscordServiceSurface {
     guildId: string;
     channelId: string;
   }): Promise<TextChannel | null> {
-    if (!this.channels.has(channelId)) return Promise.resolve(null);
+    if (this.channels.get(channelId) !== guildId) {
+      return Promise.reject(
+        unknownResource(10003, `/guilds/${guildId}/channels/${channelId}`),
+      );
+    }
     return Promise.resolve(
       mockOf<TextChannel>({
         id: channelId,
@@ -351,13 +421,24 @@ export class DiscordMock implements DiscordServiceSurface {
   }
 
   deleteMessage(
-    _guildId: string,
-    _channelId: string,
+    guildId: string,
+    channelId: string,
     messageId: string,
   ): Promise<Message | undefined> {
-    const message = this.messages.find(({ id }) => id === messageId);
-    if (message) message.deleted = true;
-    return Promise.resolve(message?.toMessage());
+    const path = `/channels/${channelId}/messages/${messageId}`;
+    if (this.channels.get(channelId) !== guildId) {
+      return Promise.reject(unknownResource(10003, path));
+    }
+    const message = this.messages.find(
+      ({ id, location, deleted }) =>
+        id === messageId &&
+        location.kind === 'channel' &&
+        location.channelId === channelId &&
+        !deleted,
+    );
+    if (!message) return Promise.reject(unknownResource(10008, path));
+    message.deleted = true;
+    return Promise.resolve(message.toMessage());
   }
 
   // --- internals
@@ -418,31 +499,39 @@ export class DiscordMock implements DiscordServiceSurface {
     });
   }
 
-  /** update/reply/followUp for an interaction on `message`, tracking acknowledgement. */
+  /**
+   * deferUpdate/update/reply/followUp for an interaction on `message`,
+   * enforcing discord.js's rule that an interaction is answered exactly once
+   * before any follow-up.
+   */
   private responses(
     message: FakeMessage,
     userId: string,
-    press: { acknowledged: boolean },
+    ack: Acknowledgement,
   ) {
-    const acknowledge = <T>(result: T): T => {
-      press.acknowledged = true;
-      return result;
+    const answer = (kind: keyof Acknowledgement, effect: () => void) => {
+      if (answered(ack)) return alreadyReplied();
+      ack[kind] = true;
+      effect();
+      return Promise.resolve();
     };
-    const respond = (payload: OutgoingPayload) =>
-      acknowledge(
-        Promise.resolve(
-          this.createMessage({ kind: 'reply', userId }, payload).toMessage(),
-        ),
-      );
+    const post = (payload: OutgoingPayload) => {
+      this.createMessage({ kind: 'reply', userId }, payload);
+    };
 
     return {
-      deferUpdate: () => acknowledge(Promise.resolve()),
-      update: (payload: OutgoingPayload) => {
-        message.apply(payload);
-        return acknowledge(Promise.resolve());
+      deferUpdate: () => answer('deferred', () => undefined),
+      update: (payload: OutgoingPayload) =>
+        answer('replied', () => message.apply(payload)),
+      reply: (payload: OutgoingPayload) =>
+        answer('replied', () => post(payload)),
+      followUp: (payload: OutgoingPayload) => {
+        if (!answered(ack)) return notReplied();
+        post(payload);
+        return Promise.resolve();
       },
-      reply: respond,
-      followUp: respond,
+      /** showModal answers the interaction, like reply does */
+      answer,
     };
   }
 
@@ -451,23 +540,23 @@ export class DiscordMock implements DiscordServiceSurface {
     userId: string,
     customId: string,
   ) {
-    const press = { customId, acknowledged: false };
-    this.pressed.push(press);
+    const ack: Acknowledgement = { deferred: false, replied: false };
+    this.pressed.push({ customId, ack });
+    const { answer, ...responses } = this.responses(message, userId, ack);
 
     return {
-      ...this.responses(message, userId, press),
+      ...responses,
       customId,
       user: this.user(userId),
       message: message.toMessage(),
-      showModal: (modal: ModalBuilder) => {
-        press.acknowledged = true;
-        this.openModal = {
-          userId,
-          customId: modal.toJSON().custom_id,
-          message,
-        };
-        return Promise.resolve();
-      },
+      showModal: (modal: ModalBuilder) =>
+        answer('replied', () => {
+          this.openModal = {
+            userId,
+            customId: modal.toJSON().custom_id,
+            message,
+          };
+        }),
       awaitModalSubmit: () =>
         new Promise<ModalSubmitInteraction>((resolve, reject) => {
           this.modalWaiter = { userId, resolve, reject };
