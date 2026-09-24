@@ -5,6 +5,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import nock from 'nock';
 import { describe, expect, it, vi } from 'vitest';
 import { createFlowApp } from './flow-app.js';
+import { HTTP_REQUEST_CREATED } from './idle.js';
 
 describe('createFlowApp', () => {
   it('fails close() when the app logged an error the test did not expect', async () => {
@@ -63,6 +64,6 @@ describe('createFlowApp', () => {
     );
 
     expect(nock.isActive()).toBe(false);
-    expect(hasSubscribers('http.client.request.created')).toBe(false);
+    expect(hasSubscribers(HTTP_REQUEST_CREATED)).toBe(false);
   });
 });

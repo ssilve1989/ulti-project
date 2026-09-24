@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import { subscribe } from 'node:diagnostics_channel';
-import { ClientRequest } from 'node:http';
 import { basename, dirname, join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import nock, { type BackMode, type Definition } from 'nock';
 import { expect } from 'vitest';
+import { createdRequest, HTTP_REQUEST_CREATED } from '../idle.js';
 
 /**
  * Google Sheets traffic in flow specs is recorded from the real shared test
@@ -45,18 +45,10 @@ const QUOTA_BUDGET = 45;
 const sheetsRequests: Array<{ at: number; write: boolean }> = [];
 
 if (isRecordingSheets) {
-  subscribe('http.client.request.created', (message) => {
-    if (
-      typeof message === 'object' &&
-      message !== null &&
-      'request' in message &&
-      message.request instanceof ClientRequest &&
-      message.request.host === 'sheets.googleapis.com'
-    ) {
-      sheetsRequests.push({
-        at: Date.now(),
-        write: message.request.method !== 'GET',
-      });
+  subscribe(HTTP_REQUEST_CREATED, (message) => {
+    const request = createdRequest(message);
+    if (request?.host === 'sheets.googleapis.com') {
+      sheetsRequests.push({ at: Date.now(), write: request.method !== 'GET' });
     }
   });
 }

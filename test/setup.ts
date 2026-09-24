@@ -1,5 +1,5 @@
-import { generateKeyPairSync } from 'node:crypto';
 import { vi } from 'vitest';
+import { STAND_IN_GCP_PRIVATE_KEY } from './stand-in-gcp-key.js';
 
 // Global test setup - stub required environment variables
 vi.stubEnv('CLIENT_ID', 'test-client-id');
@@ -28,13 +28,7 @@ vi.stubEnv('FFLOGS_API_ACCESS_TOKEN', 'test-fflogs-token');
 // Google credentials: flow specs replay recorded Sheets traffic, so a normal
 // run never needs (or sees) the real service account. Only a recording run
 // (NOCK_BACK_MODE=update, `pnpm test:record`) uses the real one from the env.
-// The stand-in key is a real RSA key because the auth client signs a JWT
-// before its (replayed) token request.
 if (process.env.NOCK_BACK_MODE !== 'update') {
-  const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 1024 });
   vi.stubEnv('GCP_ACCOUNT_EMAIL', 'flow-tests@example.iam.gserviceaccount.com');
-  vi.stubEnv(
-    'GCP_PRIVATE_KEY',
-    privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
-  );
+  vi.stubEnv('GCP_PRIVATE_KEY', STAND_IN_GCP_PRIVATE_KEY);
 }

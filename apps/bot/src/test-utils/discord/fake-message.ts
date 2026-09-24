@@ -5,10 +5,12 @@ import {
   DiscordAPIError,
   DiscordjsError,
   DiscordjsErrorCodes,
+  DiscordjsTypeError,
   EmbedBuilder,
   type Interaction,
   isJSONEncodable,
   type Message,
+  RESTJSONErrorCodes,
 } from 'discord.js';
 import { mockOf } from '../mock-factory.js';
 
@@ -74,21 +76,28 @@ export interface ComponentRef {
  */
 export function discordjsError(
   code: DiscordjsErrorCodes,
-  ...args: unknown[]
+  args: readonly unknown[] = [],
+  ErrorClass:
+    | typeof DiscordjsError
+    | typeof DiscordjsTypeError = DiscordjsError,
 ): Error {
-  return Reflect.construct(DiscordjsError, [code, ...args]);
+  return Reflect.construct(ErrorClass, [code, ...args]);
 }
 
 /** The DiscordAPIError the REST API returns for a resource that doesn't exist. */
 export function unknownResource(
-  code: 10003 | 10007 | 10008 | 10013,
+  code:
+    | RESTJSONErrorCodes.UnknownChannel
+    | RESTJSONErrorCodes.UnknownMember
+    | RESTJSONErrorCodes.UnknownMessage
+    | RESTJSONErrorCodes.UnknownUser,
   path: string,
 ): DiscordAPIError {
   const message = {
-    10003: 'Unknown Channel',
-    10007: 'Unknown Member',
-    10008: 'Unknown Message',
-    10013: 'Unknown User',
+    [RESTJSONErrorCodes.UnknownChannel]: 'Unknown Channel',
+    [RESTJSONErrorCodes.UnknownMember]: 'Unknown Member',
+    [RESTJSONErrorCodes.UnknownMessage]: 'Unknown Message',
+    [RESTJSONErrorCodes.UnknownUser]: 'Unknown User',
   }[code];
   return new DiscordAPIError({ message, code }, code, 404, 'GET', path, {
     body: undefined,
@@ -98,7 +107,9 @@ export function unknownResource(
 
 /** The error discord.js raises when a collector ends without an interaction. */
 export function collectorTimeoutError(): Error {
-  return discordjsError(DiscordjsErrorCodes.InteractionCollectorError, 'time');
+  return discordjsError(DiscordjsErrorCodes.InteractionCollectorError, [
+    'time',
+  ]);
 }
 
 function optionValues(value: object): string[] {
@@ -163,11 +174,8 @@ export class FakeMessage {
     readonly location: MessageLocation,
     readonly authorId: string,
     payload: OutgoingPayload,
-    /** Called when the author reacts, so the gateway event can be emitted. */
-    private readonly onAuthorReaction: (
-      message: FakeMessage,
-      emoji: string,
-    ) => void,
+    /** Called when the author reacts, so the mock can record it and emit the gateway event. */
+    private readonly onReact: (message: FakeMessage, emoji: string) => void,
   ) {
     this.apply(payload);
   }
@@ -238,7 +246,10 @@ export class FakeMessage {
   /** Rejects like the API does for a message that no longer exists. */
   private unknown(): Promise<never> {
     return Promise.reject(
-      unknownResource(10008, `/channels/messages/${this.id}`),
+      unknownResource(
+        RESTJSONErrorCodes.UnknownMessage,
+        `/channels/messages/${this.id}`,
+      ),
     );
   }
 
@@ -289,9 +300,7 @@ export class FakeMessage {
       },
       react: (emoji: unknown) => {
         if (fake.deleted) return fake.unknown();
-        const name = String(emoji);
-        fake.addReaction(name, fake.authorId);
-        fake.onAuthorReaction(fake, name);
+        fake.onReact(fake, String(emoji));
         return Promise.resolve();
       },
       reactions: {
