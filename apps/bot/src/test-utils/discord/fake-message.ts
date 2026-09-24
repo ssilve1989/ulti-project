@@ -2,6 +2,7 @@ import { EventEmitter } from 'node:events';
 import {
   type APIEmbed,
   ComponentType,
+  DiscordjsError,
   DiscordjsErrorCodes,
   EmbedBuilder,
   type Interaction,
@@ -34,18 +35,40 @@ interface Waiter {
   reject: (error: Error) => void;
 }
 
-interface ComponentRef {
+export interface ComponentRef {
   customId: string;
   type: number;
+  disabled: boolean;
+  /** option values, for select menus */
+  values: string[];
+}
+
+/**
+ * Builds the `DiscordjsError` discord.js itself throws. Its constructor is
+ * library-internal in the typings, so it's invoked through Reflect.construct;
+ * production code checks `instanceof DiscordjsError`, so a look-alike won't do.
+ */
+export function discordjsError(
+  code: DiscordjsErrorCodes,
+  ...args: unknown[]
+): Error {
+  return Reflect.construct(DiscordjsError, [code, ...args]);
 }
 
 /** The error discord.js raises when a collector ends without an interaction. */
 export function collectorTimeoutError(): Error {
-  return Object.assign(
-    new Error(
-      'Collector received no interactions before ending with reason: time',
-    ),
-    { code: DiscordjsErrorCodes.InteractionCollectorError },
+  return discordjsError(DiscordjsErrorCodes.InteractionCollectorError, 'time');
+}
+
+function optionValues(value: object): string[] {
+  if (!('options' in value) || !Array.isArray(value.options)) return [];
+  return value.options.flatMap((option: unknown) =>
+    typeof option === 'object' &&
+    option !== null &&
+    'value' in option &&
+    typeof option.value === 'string'
+      ? [option.value]
+      : [],
   );
 }
 
@@ -57,7 +80,14 @@ function componentsIn(value: unknown): ComponentRef[] {
     typeof value.custom_id === 'string' &&
     'type' in value &&
     typeof value.type === 'number'
-      ? [{ customId: value.custom_id, type: value.type }]
+      ? [
+          {
+            customId: value.custom_id,
+            type: value.type,
+            disabled: 'disabled' in value && value.disabled === true,
+            values: optionValues(value),
+          },
+        ]
       : [];
   const nested = 'components' in value ? componentsIn(value.components) : [];
   return [...own, ...nested];
@@ -116,14 +146,16 @@ export class FakeMessage {
     }
   }
 
-  componentIds(): string[] {
-    return componentsIn(this.components).map(({ customId }) => customId);
+  buttons(): ComponentRef[] {
+    return componentsIn(this.components).filter(
+      ({ type }) => type === ComponentType.Button,
+    );
   }
 
-  selectMenuIds(): string[] {
-    return componentsIn(this.components)
-      .filter(({ type }) => type === ComponentType.StringSelect)
-      .map(({ customId }) => customId);
+  selectMenus(): ComponentRef[] {
+    return componentsIn(this.components).filter(
+      ({ type }) => type === ComponentType.StringSelect,
+    );
   }
 
   addReaction(emoji: string, userId: string): void {

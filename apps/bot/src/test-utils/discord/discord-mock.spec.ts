@@ -2,6 +2,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  DiscordjsError,
   DiscordjsErrorCodes,
   Events,
   ModalBuilder,
@@ -126,7 +127,7 @@ describe('DiscordMock', () => {
   });
 
   it('emits MessageReactionAdd on the client when a user reacts', async () => {
-    discord.addChannel('c1');
+    discord.addChannel('g1', 'c1');
     const channel = await discord.getTextChannel({
       guildId: 'g1',
       channelId: 'c1',
@@ -186,5 +187,130 @@ describe('DiscordMock', () => {
 
     await expect(submitted).resolves.toMatchObject({ customId: 'comment' });
     expect((await submitted).fields.getTextInputValue('text')).toBe('nice');
+  });
+
+  describe('channels', () => {
+    beforeEach(() => {
+      discord.addChannel('g1', 'c1');
+    });
+
+    it('rejects fetching a channel through the wrong guild, like discord.js', async () => {
+      await expect(
+        discord.getTextChannel({ guildId: 'g2', channelId: 'c1' }),
+      ).rejects.toThrow('Unknown Channel');
+    });
+
+    it('deletes a message only through the channel it was posted in', async () => {
+      const channel = await discord.getTextChannel({
+        guildId: 'g1',
+        channelId: 'c1',
+      });
+      const sent = await channel?.send('review me');
+      if (!sent) throw new Error('expected a sent message');
+      const [posted] = discord.channel('c1');
+
+      discord.addChannel('g1', 'c2');
+      await expect(discord.deleteMessage('g1', 'c2', sent.id)).rejects.toThrow(
+        'Unknown Message',
+      );
+      expect(posted?.deleted).toBe(false);
+
+      await discord.deleteMessage('g1', 'c1', sent.id);
+      expect(posted?.deleted).toBe(true);
+      await expect(discord.deleteMessage('g1', 'c1', sent.id)).rejects.toThrow(
+        'Unknown Message',
+      );
+    });
+  });
+
+  it('times out prompts with the DiscordjsError discord.js raises', async () => {
+    const message = await discord.sendDirectMessage('u1', {
+      components: [goButton()],
+    });
+    const pending = message.awaitMessageComponent();
+
+    discord.expireAll();
+
+    await expect(pending).rejects.toBeInstanceOf(DiscordjsError);
+  });
+
+  describe('what a user can interact with', () => {
+    it('refuses to click a disabled button', async () => {
+      const message = await discord.sendDirectMessage('u1', {
+        components: [
+          new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setCustomId('go')
+              .setLabel('Go')
+              .setStyle(ButtonStyle.Primary)
+              .setDisabled(true),
+          ),
+        ],
+      });
+      void message.awaitMessageComponent().catch(() => undefined);
+
+      expect(() => discord.click(discord.latestDmTo('u1'), 'go', 'u1')).toThrow(
+        'disabled',
+      );
+    });
+
+    it('refuses to choose a value the menu does not offer', async () => {
+      const message = await discord.sendDirectMessage('u1', {
+        components: [pointSelect()],
+      });
+      void message.awaitMessageComponent().catch(() => undefined);
+
+      expect(() =>
+        discord.choose(discord.latestDmTo('u1'), 'P9', 'u1'),
+      ).toThrow('does not offer "P9"');
+    });
+
+    it('refuses to interact with a deleted message', async () => {
+      const message = await discord.sendDirectMessage('u1', {
+        components: [goButton()],
+      });
+      void message.awaitMessageComponent().catch(() => undefined);
+      await message.delete();
+
+      expect(() => discord.click(discord.latestDmTo('u1'), 'go', 'u1')).toThrow(
+        'deleted',
+      );
+    });
+  });
+
+  describe('acknowledging interactions', () => {
+    const aCommand = () =>
+      discord.command({ userId: 'u1', guildId: 'g1', commandName: 'test' });
+
+    it('rejects replying to a command that was already deferred', async () => {
+      const { interaction } = aCommand();
+      await interaction.deferReply();
+
+      await expect(interaction.reply('hi')).rejects.toMatchObject({
+        code: DiscordjsErrorCodes.InteractionAlreadyReplied,
+      });
+    });
+
+    it('rejects editing a reply that was never sent', async () => {
+      const { interaction } = aCommand();
+
+      await expect(interaction.editReply('hi')).rejects.toMatchObject({
+        code: DiscordjsErrorCodes.InteractionNotReplied,
+      });
+    });
+
+    it('rejects updating a component interaction that was already deferred', async () => {
+      const message = await discord.sendDirectMessage('u1', {
+        components: [goButton()],
+      });
+      const pending = message.awaitMessageComponent();
+      discord.click(discord.latestDmTo('u1'), 'go', 'u1');
+      const click = await pending;
+      await click.deferUpdate();
+
+      await expect(click.update({ components: [] })).rejects.toMatchObject({
+        code: DiscordjsErrorCodes.InteractionAlreadyReplied,
+      });
+    });
   });
 });

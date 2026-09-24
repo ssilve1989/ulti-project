@@ -83,8 +83,8 @@ function givenAGuild(flow: FlowApp): void {
     order: 1,
     active: true,
   });
-  flow.discord.addChannel(REVIEW_CHANNEL);
-  flow.discord.addChannel(SIGNUP_CHANNEL);
+  flow.discord.addChannel(GUILD, REVIEW_CHANNEL);
+  flow.discord.addChannel(GUILD, SIGNUP_CHANNEL);
   flow.discord.addMember(PLAYER);
   flow.discord.addMember(REVIEWER);
 }
@@ -248,6 +248,10 @@ describe('Signup lifecycle', () => {
     it('stores nothing and says the confirmation timed out', async () => {
       const reply = await submitSignup(flow, 'timeout');
 
+      flow.expectLoggedError(/InteractionCollectorError/);
+      flow.expectLoggedError(
+        /Command error: Collector received no interactions/,
+      );
       expect(reply.content).toBe(SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT);
       expect(flow.db.read(SIGNUP_PATH)).toBeUndefined();
     });
@@ -418,6 +422,7 @@ describe('Signup lifecycle', () => {
 
         await approve(flow, { progPoint: 'P6', comment: 'Great clear' });
 
+        flow.expectLoggedError(/Cannot send messages to this user/);
         expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
           status: SignupStatus.APPROVED,
         });
@@ -540,6 +545,32 @@ describe('Signup lifecycle', () => {
       it('DMs the player the custom reason', () => {
         expect(flow.discord.latestDmTo(PLAYER.id).content).toContain(
           `**Reason:**\n> ${reason}`,
+        );
+      });
+    });
+
+    describe('and the reviewer declines it but never picks a reason', () => {
+      beforeEach(async () => {
+        flow.discord.react(
+          latestReview(flow),
+          SIGNUP_REVIEW_REACTIONS.DECLINED,
+          REVIEWER.id,
+        );
+        await flow.settle();
+        flow.discord.expireAll();
+        await flow.settle();
+      });
+
+      it('marks it declined without a reason', () => {
+        expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
+          status: SignupStatus.DECLINED,
+        });
+        expect(flow.db.read(SIGNUP_PATH)).not.toHaveProperty('declineReason');
+      });
+
+      it('still tells the player the signup was declined', () => {
+        expect(flow.discord.latestDmTo(PLAYER.id).content).toBe(
+          SIGNUP_MESSAGES.SIGNUP_SUBMISSION_DENIED,
         );
       });
     });
