@@ -79,15 +79,36 @@ So:
 
 ## The flow harness
 
-`createFlowApp()` (`apps/bot/src/test-utils/flow-app.ts`) boots the feature
-modules with these overrides:
+`createFlowApp()` (`apps/bot/src/test-utils/flow-app.ts`) boots the real
+feature modules. Only what sits behind an external system is swapped:
 
-| External system | Replaced by | What tests do with it |
+| External system | In flow specs | What tests do with it |
 |---|---|---|
-| Firestore | `InMemoryFirestore` | `db.seed(path, data)` / `db.read(path)` |
-| Discord | `DiscordMock` | set up members and channels; drive the bot with `command`, `react`, `click`, `choose` and `submitModal`; assert with `channel`, `dmsTo`, `rolesOf` |
-| Google Sheets | `SheetsMock` | `sheets.rows(spreadsheetId)` |
-| FFLogs | `FFLogsMock` | `fflogs.reportAge = 'expired'` |
+| Firestore | `InMemoryFirestore`, behind the `FIRESTORE` token | `db.seed(path, data)` / `db.read(path)` |
+| Discord | `DiscordMock`, as `DiscordService` and the client | set up members and channels (`addMember`, `addChannel(guildId, channelId)`); drive the bot with `command`, `react`, `click`, `choose` and `submitModal`; assert with `channel`, `dmsTo`, `rolesOf` |
+| FFLogs | `FFLogsMock`, behind the SDK token, so the real `FFLogsService` runs | `fflogs.addReport(code, { daysAgo })`, `fflogs.goOffline()` |
+| Google Sheets | **Recorded real traffic.** The real `SheetsService` and client run; their HTTP is replayed from recordings of the shared test spreadsheet | `sheets.read('DSR!I9:L')` to assert what's on the sheet |
+
+### Recorded Google Sheets traffic
+
+This follows the practice Google documents for its own API clients: test
+against saved real responses, never the live API
+([Python guide](https://googleapis.github.io/google-api-python-client/docs/mocks.html)).
+
+- **Normal runs** (`pnpm test`, pre-commit, CI) replay each test's recording
+  from `__recordings__/` next to the spec, with the network disabled. They need
+  no credentials and use no quota.
+- **`pnpm test:record`** re-records against the real test spreadsheet using the
+  dev service account (`apps/bot/.env.development` + `.env`, decrypted with
+  `.env.keys`). It paces itself under Google's 60 requests/minute/user limit.
+  Credentials are redacted from recordings before they're written.
+- **Re-record when a test's Sheets traffic changes.** A replay fails if the app
+  makes a request that isn't in the recording, or doesn't make one that is.
+  That's the signal that behaviour changed. Check the diff of the recordings
+  as part of the review.
+- Tests write rows under a per-test character name (`stableTestKey()`): unique
+  between tests, stable between runs. Only touch rows your test created, and
+  remove them in cleanup. The spreadsheet is shared with manual testing.
 
 - Call `await flow.settle()` after driving the bot so event handlers and sagas
   finish.
@@ -97,7 +118,9 @@ modules with these overrides:
   and only log them, so without this check a failure there would go unnoticed.
   When an error is part of the scenario (a DM that fails on purpose), declare it
   with `flow.expectLoggedError(/pattern/)`.
-- The fakes implement only what current flows use, and they fail loudly on
+- The fakes behave exactly like the real system or refuse loudly. A fake that
+  quietly differs from the real thing is a bug in the fake. They implement only
+  what current flows use, and they fail loudly on
   anything else (`InMemoryFirestore does not support …`,
   `… is not a function`). Extend the fake when a new flow needs more. Model the
   failure modes of the real system as named options on the fake (like
