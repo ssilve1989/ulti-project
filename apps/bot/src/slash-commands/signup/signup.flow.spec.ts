@@ -3,8 +3,18 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import type { FakeMessage } from '../../test-utils/discord/fake-message.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
+import {
+  APPROVAL_CANCEL_BUTTON_ID,
+  APPROVAL_COMMENT_INPUT_ID,
+  APPROVE_BUTTON_ID,
+  APPROVE_WITH_COMMENT_BUTTON_ID,
+} from './approval-decision.components.js';
 import { SignupCommandHandler } from './handlers/signup.command-handler.js';
-import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
+import {
+  SIGNUP_DECLINE_REASONS_CONFIG,
+  SIGNUP_MESSAGES,
+  SIGNUP_REVIEW_REACTIONS,
+} from './signup.consts.js';
 
 const GUILD = 'guild-1';
 const REVIEW_CHANNEL = 'review-channel';
@@ -115,6 +125,57 @@ function latestReview(flow: FlowApp): FakeMessage {
   const review = flow.discord.channel(REVIEW_CHANNEL).at(-1);
   if (!review) throw new Error('No review message was posted');
   return review;
+}
+
+const OTHER_REVIEWER = {
+  id: 'reviewer-2',
+  username: 'reviewer2',
+  roles: [REVIEWER_ROLE],
+};
+
+/** The reviewer approves the latest review at `progPoint`, optionally leaving a comment. */
+async function approve(
+  flow: FlowApp,
+  { progPoint, comment }: { progPoint: string; comment?: string },
+): Promise<void> {
+  flow.discord.react(
+    latestReview(flow),
+    SIGNUP_REVIEW_REACTIONS.APPROVED,
+    REVIEWER.id,
+  );
+  await flow.settle();
+
+  const prompt = flow.discord.latestDmTo(REVIEWER.id);
+  flow.discord.choose(prompt, progPoint, REVIEWER.id);
+  await flow.settle();
+
+  if (comment === undefined) {
+    flow.discord.click(prompt, APPROVE_BUTTON_ID, REVIEWER.id);
+  } else {
+    flow.discord.click(prompt, APPROVE_WITH_COMMENT_BUTTON_ID, REVIEWER.id);
+    await flow.settle();
+    flow.discord.submitModal(REVIEWER.id, {
+      [APPROVAL_COMMENT_INPUT_ID]: comment,
+    });
+  }
+  await flow.settle();
+}
+
+/** The reviewer declines the latest review and picks `reason`. */
+async function decline(flow: FlowApp, reason: string): Promise<void> {
+  flow.discord.react(
+    latestReview(flow),
+    SIGNUP_REVIEW_REACTIONS.DECLINED,
+    REVIEWER.id,
+  );
+  await flow.settle();
+
+  flow.discord.choose(
+    flow.discord.latestDmTo(REVIEWER.id),
+    reason,
+    REVIEWER.id,
+  );
+  await flow.settle();
 }
 
 describe('Signup lifecycle', () => {
@@ -266,6 +327,255 @@ describe('Signup lifecycle', () => {
         role: 'healer',
         status: SignupStatus.PENDING,
         reviewMessageId: latestReview(flow).id,
+      });
+    });
+  });
+
+  describe('when a submitted signup is reviewed', () => {
+    beforeEach(async () => {
+      await submitSignup(flow);
+    });
+
+    describe('and the reviewer approves it', () => {
+      beforeEach(() => approve(flow, { progPoint: 'P6' }));
+
+      it('marks it approved at the chosen prog point', () => {
+        expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
+          status: SignupStatus.APPROVED,
+          progPoint: 'P6',
+          partyStatus: PartyStatus.ProgParty,
+          reviewedBy: REVIEWER.username,
+        });
+      });
+
+      it('gives the player the prog role and the prog point role', () => {
+        expect(flow.discord.rolesOf(PLAYER.id)).toEqual(
+          expect.arrayContaining([DSR_PROG_ROLE, DSR_P6_ROLE]),
+        );
+      });
+
+      it('adds the player to the spreadsheet', () => {
+        expect(flow.sheets.rows(SPREADSHEET)).toEqual([
+          expect.objectContaining({
+            character: 'test character',
+            progPoint: 'P6',
+          }),
+        ]);
+      });
+
+      it('announces the approval in the signup channel', () => {
+        expect(
+          flow.discord.channel(SIGNUP_CHANNEL).map((m) => m.content),
+        ).toEqual([`<@${PLAYER.id}> Signup Approved!`]);
+      });
+
+      it('marks the review message as approved by the reviewer', () => {
+        expect(latestReview(flow).embeds[0]?.footer?.text).toBe(
+          `Approved by ${REVIEWER.username}`,
+        );
+      });
+
+      it('sends the player no direct message', () => {
+        expect(flow.discord.dmsTo(PLAYER.id)).toEqual([]);
+      });
+
+      it('ignores a second reviewer reacting afterwards', async () => {
+        flow.discord.addMember(OTHER_REVIEWER);
+
+        flow.discord.react(
+          latestReview(flow),
+          SIGNUP_REVIEW_REACTIONS.APPROVED,
+          OTHER_REVIEWER.id,
+        );
+        await flow.settle();
+
+        expect(flow.discord.dmsTo(OTHER_REVIEWER.id)).toEqual([]);
+      });
+    });
+
+    describe('and the reviewer approves it with a comment', () => {
+      it('DMs the player the comment, quoting every line', async () => {
+        await approve(flow, {
+          progPoint: 'P6',
+          comment: 'Great clear\nSee you in P7',
+        });
+
+        expect(flow.discord.latestDmTo(PLAYER.id).content).toContain(
+          '> Great clear\n> See you in P7',
+        );
+      });
+
+      it('does not store the comment', async () => {
+        await approve(flow, { progPoint: 'P6', comment: 'Great clear' });
+
+        expect(flow.db.read(SIGNUP_PATH)).not.toHaveProperty('comment');
+      });
+
+      it('still approves the signup when the player cannot be DMed', async () => {
+        flow.discord.failDirectMessagesTo(PLAYER.id);
+
+        await approve(flow, { progPoint: 'P6', comment: 'Great clear' });
+
+        expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
+          status: SignupStatus.APPROVED,
+        });
+      });
+    });
+
+    describe('and the reviewer approves it at a clear-party prog point', () => {
+      it('swaps the prog role for the clear role', async () => {
+        flow.discord.addMember({ ...PLAYER, roles: [DSR_PROG_ROLE] });
+
+        await approve(flow, { progPoint: 'P7' });
+
+        expect(flow.discord.rolesOf(PLAYER.id)).toContain(DSR_CLEAR_ROLE);
+        expect(flow.discord.rolesOf(PLAYER.id)).not.toContain(DSR_PROG_ROLE);
+      });
+    });
+
+    describe('and the reviewer marks it cleared', () => {
+      beforeEach(async () => {
+        flow.discord.addMember({
+          ...PLAYER,
+          roles: [DSR_PROG_ROLE, DSR_P6_ROLE],
+        });
+        await approve(flow, { progPoint: PartyStatus.Cleared });
+      });
+
+      it('removes the signup', () => {
+        expect(flow.db.read(SIGNUP_PATH)).toBeUndefined();
+      });
+
+      it("removes the player's encounter roles", () => {
+        expect(flow.discord.rolesOf(PLAYER.id)).toEqual([]);
+      });
+
+      it('congratulates the player in the signup channel', () => {
+        expect(flow.discord.channel(SIGNUP_CHANNEL)[0]?.content).toContain(
+          'Congratulations on clearing',
+        );
+      });
+    });
+
+    describe('and the reviewer cancels the approval', () => {
+      beforeEach(async () => {
+        flow.discord.react(
+          latestReview(flow),
+          SIGNUP_REVIEW_REACTIONS.APPROVED,
+          REVIEWER.id,
+        );
+        await flow.settle();
+        flow.discord.click(
+          flow.discord.latestDmTo(REVIEWER.id),
+          APPROVAL_CANCEL_BUTTON_ID,
+          REVIEWER.id,
+        );
+        await flow.settle();
+      });
+
+      it('leaves the signup pending', () => {
+        expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
+          status: SignupStatus.PENDING,
+        });
+      });
+
+      it("removes the reviewer's approve reaction so they can react again", () => {
+        expect(
+          latestReview(flow)
+            .reactions.get(SIGNUP_REVIEW_REACTIONS.APPROVED)
+            ?.has(REVIEWER.id),
+        ).toBe(false);
+      });
+    });
+
+    describe('and the reviewer declines it with a reason', () => {
+      const reason = SIGNUP_DECLINE_REASONS_CONFIG[0]?.reason ?? '';
+
+      beforeEach(() => decline(flow, reason));
+
+      it('marks it declined with the reason', () => {
+        expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
+          status: SignupStatus.DECLINED,
+          declineReason: reason,
+          reviewedBy: REVIEWER.username,
+        });
+      });
+
+      it('DMs the player the reason', () => {
+        expect(flow.discord.latestDmTo(PLAYER.id).content).toContain(
+          `**Reason:**\n> ${reason}`,
+        );
+      });
+
+      it('marks the review message as declined by the reviewer', () => {
+        const review = latestReview(flow);
+
+        expect(review.content).toBe(`Declined <@${PLAYER.id}>`);
+        expect(review.embeds[0]?.footer?.text).toBe(
+          `Declined by ${REVIEWER.username}`,
+        );
+      });
+    });
+
+    describe('and someone without the reviewer role reacts', () => {
+      it('ignores the reaction', async () => {
+        flow.discord.react(
+          latestReview(flow),
+          SIGNUP_REVIEW_REACTIONS.APPROVED,
+          PLAYER.id,
+        );
+        await flow.settle();
+
+        expect(flow.discord.dmsTo(PLAYER.id)).toEqual([]);
+        expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
+          status: SignupStatus.PENDING,
+        });
+      });
+    });
+
+    describe('and the approved signup is resubmitted', () => {
+      let approvedReview: FakeMessage;
+
+      beforeEach(async () => {
+        await approve(flow, { progPoint: 'P6' });
+        approvedReview = latestReview(flow);
+        await submitSignup(flow, 'confirm', { 'prog-point': 'P7' });
+      });
+
+      // Regression: a unit test once stubbed upsert() to return APPROVED (which
+      // it never does), so this protection was "tested" but never ran.
+      it('keeps the approved review message as a record of the decision', () => {
+        expect(approvedReview.deleted).toBe(false);
+        expect(flow.discord.channel(REVIEW_CHANNEL)).toHaveLength(2);
+      });
+
+      it('moves it back to review as an update', () => {
+        expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
+          status: SignupStatus.UPDATE_PENDING,
+          progPointRequested: 'P7',
+          reviewedBy: null,
+        });
+      });
+
+      it('shows the reviewer the previously approved prog point', () => {
+        expect(latestReview(flow).embeds[0]?.fields).toContainEqual(
+          expect.objectContaining({
+            name: 'Previously Approved Prog Point',
+            value: 'P6',
+          }),
+        );
+      });
+    });
+
+    describe('and the declined signup is resubmitted', () => {
+      it('keeps the declined review message as a record of the decision', async () => {
+        await decline(flow, SIGNUP_DECLINE_REASONS_CONFIG[0]?.reason ?? '');
+        const declinedReview = latestReview(flow);
+
+        await submitSignup(flow);
+
+        expect(declinedReview.deleted).toBe(false);
+        expect(flow.discord.channel(REVIEW_CHANNEL)).toHaveLength(2);
       });
     });
   });
