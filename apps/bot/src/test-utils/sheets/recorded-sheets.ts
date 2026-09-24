@@ -3,6 +3,7 @@ import { subscribe, unsubscribe } from 'node:diagnostics_channel';
 import { readFileSync, rmSync } from 'node:fs';
 import { basename, dirname, join, relative } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { gunzipSync } from 'node:zlib';
 import nock, { type BackMode, type Definition } from 'nock';
 import { expect } from 'vitest';
 import { createdRequest, HTTP_REQUEST_CREATED } from '../idle.js';
@@ -81,20 +82,41 @@ function stableOrder(definitions: Definition[]): Definition[] {
 }
 
 /**
+ * nock records a gzipped response as its compressed bytes in hex: unreadable,
+ * and a recording diff can't show what changed. Store the JSON Google sent
+ * instead; the client treats a plain JSON body exactly like a decompressed one.
+ */
+function decodeGzippedJson(definition: Definition): Definition {
+  const { response } = definition;
+  if (
+    definition.rawHeaders?.['content-encoding'] !== 'gzip' ||
+    !Array.isArray(response) ||
+    !response.every((chunk) => typeof chunk === 'string')
+  ) {
+    return definition;
+  }
+  const json: unknown = JSON.parse(
+    gunzipSync(Buffer.from(response.join(''), 'hex')).toString(),
+  );
+  if (!isRecord(json)) return definition;
+  const { 'content-encoding': _gzip, ...rawHeaders } = definition.rawHeaders;
+  return { ...definition, rawHeaders, response: json };
+}
+
+/**
  * Strips credentials before a recording is written: the OAuth token exchange
  * carries a signed JWT assertion (identifying the service account) and returns
  * an access token.
  */
 function scrub(definitions: Definition[]): Definition[] {
   return stableOrder(definitions).map((definition) => {
-    // keep only the headers the client needs to decode the body: Google gzips
-    // responses and nock records the compressed bytes
+    // keep only the headers the client needs to read the body
     const headers: Record<string, string | string[]> = {};
     for (const name of ['content-type', 'content-encoding']) {
       const value = definition.rawHeaders?.[name];
       if (value !== undefined) headers[name] = value;
     }
-    const scrubbed: Definition = { ...definition, rawHeaders: headers };
+    const scrubbed = decodeGzippedJson({ ...definition, rawHeaders: headers });
     if (String(definition.path).includes('/token')) {
       // the assertion is signed at request time, so replays can't match it; drop it
       scrubbed.body = undefined;

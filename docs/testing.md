@@ -105,7 +105,9 @@ against saved real responses, never the live API
 - **`pnpm test:record`** re-records against the real test spreadsheet using the
   dev service account (`apps/bot/.env.development` + `.env`, decrypted with
   `.env.keys`). It paces itself under Google's 60 requests/minute/user limit.
-  Credentials are redacted from recordings before they're written.
+  Credentials are redacted from recordings before they're written, and
+  responses are stored as the plain JSON Google sent, so a recording diff shows
+  exactly what changed.
 - **Re-record when a test's Sheets traffic changes.** A replay fails if the app
   makes a request that isn't in the recording, or doesn't make one that is.
   That's the signal that behaviour changed. Check the diff of the recordings
