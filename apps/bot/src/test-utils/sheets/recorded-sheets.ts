@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { subscribe, unsubscribe } from 'node:diagnostics_channel';
+import { readFileSync, rmSync } from 'node:fs';
 import { basename, dirname, join, relative } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import nock, { type BackMode, type Definition } from 'nock';
@@ -158,6 +159,7 @@ export async function startSheetsRecording(): Promise<{
   nock.back.setMode(MODE);
 
   const fixture = `${testName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.json`;
+  const fixturePath = join(nock.back.fixtures, fixture);
   const { nockDone, context } = await nock.back(fixture, {
     afterRecord: scrub,
   });
@@ -173,6 +175,14 @@ export async function startSheetsRecording(): Promise<{
   return {
     finish() {
       nockDone();
+      // A test that made no Sheets requests needs no recording: replay blocks the
+      // network, so a request it starts making later still fails the test.
+      if (
+        isRecordingSheets &&
+        readFileSync(fixturePath, 'utf8').trim() === '[]'
+      ) {
+        rmSync(fixturePath);
+      }
       try {
         if (!isRecordingSheets) context.assertScopesFinished();
       } finally {
