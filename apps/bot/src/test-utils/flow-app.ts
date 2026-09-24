@@ -1,14 +1,11 @@
 import { inspect } from 'node:util';
-import type { sheets_v4 } from '@googleapis/sheets';
 import type { LoggerService, Type } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { DISCORD_CLIENT } from '../discord/discord.decorators.js';
 import { DiscordService } from '../discord/discord.service.js';
 import { getFflogsSdkToken } from '../fflogs/fflogs.consts.js';
 import { FIRESTORE } from '../firebase/firebase.consts.js';
-import { SHEETS_CLIENT } from '../sheets/sheets.consts.js';
 import { SheetsService } from '../sheets/sheets.service.js';
-import { getSheetValues } from '../sheets/sheets.utils.js';
 import { BlacklistModule } from '../slash-commands/blacklist/blacklist.module.js';
 import { SignupModule } from '../slash-commands/signup/signup.module.js';
 import { TurboProgModule } from '../slash-commands/turboprog/turbo-prog.module.js';
@@ -16,7 +13,12 @@ import { DiscordMock } from './discord/discord-mock.js';
 import { FFLogsMock } from './fflogs/fflogs-mock.js';
 import { InMemoryFirestore } from './firestore/in-memory-firestore.js';
 import { createActivityTracker, waitUntilIdle } from './idle.js';
-import { startSheetsRecording } from './sheets/recorded-sheets.js';
+import {
+  type CellsCleared,
+  captureSheetsRequests,
+  startSheetsRecording,
+  type ValuesWrite,
+} from './sheets/recorded-sheets.js';
 
 /**
  * The feature modules flow specs boot. Signup's sagas dispatch into the
@@ -34,8 +36,10 @@ const TEST_SPREADSHEET_ID = '1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY';
 
 interface TestSheet {
   readonly spreadsheetId: string;
-  /** Cell values in an A1 range of the test spreadsheet, e.g. `DSR!I9:L`. */
-  read(range: string): Promise<string[][]>;
+  /** Values the app wrote to the spreadsheet in this test, in order. */
+  valuesWritten(): ValuesWrite[];
+  /** Cells the app cleared in this test (how a signup's row is removed). */
+  cellsCleared(): CellsCleared[];
 }
 
 export interface FlowApp {
@@ -103,6 +107,7 @@ export async function createFlowApp(): Promise<FlowApp> {
   // the tracker starts after recording: a failed start has nothing to dispose
   const recording = await startSheetsRecording();
   const activity = createActivityTracker();
+  const sheetsRequests = captureSheetsRequests();
 
   try {
     const moduleRef = await Test.createTestingModule({ imports: FLOW_MODULES })
@@ -121,14 +126,10 @@ export async function createFlowApp(): Promise<FlowApp> {
     await moduleRef.init();
 
     activity.trackCalls(moduleRef.get(SheetsService));
-    const sheetsClient = moduleRef.get<sheets_v4.Sheets>(SHEETS_CLIENT);
     const sheets: TestSheet = {
       spreadsheetId: TEST_SPREADSHEET_ID,
-      read: async (range) =>
-        (await getSheetValues(sheetsClient, {
-          spreadsheetId: TEST_SPREADSHEET_ID,
-          range,
-        })) ?? [],
+      valuesWritten: () => sheetsRequests.valuesWritten(),
+      cellsCleared: () => sheetsRequests.cellsCleared(),
     };
 
     return {
@@ -156,6 +157,7 @@ export async function createFlowApp(): Promise<FlowApp> {
           await moduleRef.close();
         } finally {
           activity.dispose();
+          sheetsRequests.dispose();
           try {
             recording.finish();
           } catch (error) {
@@ -182,6 +184,7 @@ export async function createFlowApp(): Promise<FlowApp> {
   } catch (error) {
     // don't leave nock intercepting or listeners subscribed for later spec files
     activity.dispose();
+    sheetsRequests.dispose();
     recording.abandon();
     throw error;
   }
