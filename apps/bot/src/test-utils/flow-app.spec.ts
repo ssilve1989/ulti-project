@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { describe, expect, it } from 'vitest';
 import { createFlowApp } from './flow-app.js';
 
@@ -27,5 +28,25 @@ describe('createFlowApp', () => {
       'No logged error matches',
     );
     await flow.close();
+  });
+
+  it('fails close() when a pressed component was never acknowledged, which Discord shows as a failed interaction', async () => {
+    const flow = await createFlowApp();
+    flow.discord.addMember({ id: 'u1', username: 'one' });
+    const message = await flow.discord.sendDirectMessage('u1', {
+      components: [
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId('go')
+            .setLabel('Go')
+            .setStyle(ButtonStyle.Primary),
+        ),
+      ],
+    });
+    const pending = message.awaitMessageComponent();
+    flow.discord.click(flow.discord.latestDmTo('u1'), 'go', 'u1');
+    await pending;
+
+    await expect(flow.close()).rejects.toThrow('never acknowledged');
   });
 });

@@ -1,36 +1,80 @@
-import { expiredReportError } from '../../fflogs/fflogs.consts.js';
-import type { FFLogsService } from '../../fflogs/fflogs.service.js';
-import { FFLOGS_REPORT_MAX_AGE_DAYS } from '../../slash-commands/signup/signup.consts.js';
+import { GraphQLError } from 'graphql';
+import { ClientError } from 'graphql-request';
+import type { FFLogsSDKClient } from '../../fflogs/fflogs.interfaces.js';
+import type { ReportDataQuery } from '../../fflogs/graphql/sdk.js';
 
-/** How the next checked report should look. `unreachable` mirrors the real service, which lets signups through for manual review. */
-type ReportAge = 'recent' | 'expired' | 'unreachable';
+/**
+ * Stands in for the FFLogs GraphQL API behind the SDK token, so the real
+ * FFLogsService (including its report-age check) runs in flow specs. Responses
+ * mirror the live API: an unknown report comes back as a GraphQL error, which
+ * graphql-request throws as a ClientError.
+ */
+export class FFLogsMock implements Pick<FFLogsSDKClient, 'reportData'> {
+  readonly requestedReports: string[] = [];
+  /** report code → when its last pull ended (epoch ms) */
+  private readonly reports = new Map<string, number>();
+  private offline = false;
 
-export class FFLogsMock implements Pick<FFLogsService, 'validateReportAge'> {
-  reportAge: ReportAge = 'recent';
-  readonly checkedReports: string[] = [];
+  /** A report whose last pull ended `daysAgo` days ago. */
+  addReport(code: string, { daysAgo }: { daysAgo: number }): void {
+    this.reports.set(
+      code,
+      Temporal.Now.instant().subtract({ hours: daysAgo * 24 })
+        .epochMilliseconds,
+    );
+  }
 
-  validateReportAge(
-    reportCode: string,
-  ): ReturnType<FFLogsService['validateReportAge']> {
-    this.checkedReports.push(reportCode);
+  /** Every request fails the way a network outage does. */
+  goOffline(): void {
+    this.offline = true;
+  }
 
-    switch (this.reportAge) {
-      case 'recent':
-        return Promise.resolve({ isValid: true, reportDate: new Date() });
-      case 'expired':
-        return Promise.resolve({
-          isValid: false,
-          errorMessage: expiredReportError(
-            FFLOGS_REPORT_MAX_AGE_DAYS + 7,
-            FFLOGS_REPORT_MAX_AGE_DAYS,
-          ),
-        });
-      case 'unreachable':
-        return Promise.resolve({
-          isValid: true,
-          errorMessage:
-            'Unable to validate report age due to API issues. Report will be reviewed manually.',
-        });
+  reportData({ code }: { code: string }): Promise<ReportDataQuery> {
+    this.requestedReports.push(code);
+
+    if (this.offline) {
+      return Promise.reject(
+        new TypeError('fetch failed', {
+          cause: new Error('getaddrinfo ENOTFOUND www.fflogs.com'),
+        }),
+      );
     }
+
+    const endTime = this.reports.get(code);
+    if (endTime === undefined) {
+      const body = {
+        errors: [
+          new GraphQLError('This report does not exist.', {
+            path: ['reportData', 'report'],
+          }),
+        ],
+        data: { reportData: { report: null } },
+      };
+      return Promise.reject(
+        new ClientError(
+          {
+            ...body,
+            status: 200,
+            headers: new Headers(),
+            body: JSON.stringify(body),
+          },
+          { query: 'query reportData($code: String!)', variables: { code } },
+        ),
+      );
+    }
+
+    return Promise.resolve({
+      __typename: 'Query',
+      reportData: {
+        __typename: 'ReportData',
+        report: {
+          __typename: 'Report',
+          code,
+          startTime: endTime - 3_600_000,
+          endTime,
+          title: 'Flow test report',
+        },
+      },
+    });
   }
 }

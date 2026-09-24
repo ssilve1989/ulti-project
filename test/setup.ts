@@ -1,10 +1,9 @@
+import { generateKeyPairSync } from 'node:crypto';
 import { vi } from 'vitest';
 
 // Global test setup - stub required environment variables
 vi.stubEnv('CLIENT_ID', 'test-client-id');
 vi.stubEnv('DISCORD_TOKEN', 'test-discord-token');
-vi.stubEnv('GCP_PRIVATE_KEY', 'test-gcp-private-key');
-vi.stubEnv('GCP_ACCOUNT_EMAIL', 'test@example.com');
 vi.stubEnv('GCP_PROJECT_ID', 'test-project-id');
 vi.stubEnv('APPLICATION_MODE', 'ultimate');
 vi.stubEnv('LOG_LEVEL', 'info');
@@ -25,3 +24,17 @@ vi.stubEnv('FIRESTORE_DATABASE_ID', 'test-db');
 
 // Optional configs
 vi.stubEnv('FFLOGS_API_ACCESS_TOKEN', 'test-fflogs-token');
+
+// Google credentials: flow specs replay recorded Sheets traffic, so a normal
+// run never needs (or sees) the real service account. Only a recording run
+// (NOCK_BACK_MODE=update, `pnpm test:record`) uses the real one from the env.
+// The stand-in key is a real RSA key because the auth client signs a JWT
+// before its (replayed) token request.
+if (process.env.NOCK_BACK_MODE !== 'update') {
+  const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 1024 });
+  vi.stubEnv('GCP_ACCOUNT_EMAIL', 'flow-tests@example.iam.gserviceaccount.com');
+  vi.stubEnv(
+    'GCP_PRIVATE_KEY',
+    privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
+  );
+}

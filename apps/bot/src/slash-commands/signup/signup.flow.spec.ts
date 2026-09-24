@@ -1,8 +1,11 @@
 import { Encounter, PartyStatus, SignupStatus } from '@ulti-project/shared';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import { SheetRanges } from '../../sheets/sheets.consts.js';
+import { SheetsService } from '../../sheets/sheets.service.js';
 import type { FakeMessage } from '../../test-utils/discord/fake-message.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
+import { stableTestKey } from '../../test-utils/sheets/recorded-sheets.js';
 import {
   APPROVAL_CANCEL_BUTTON_ID,
   APPROVAL_COMMENT_INPUT_ID,
@@ -21,7 +24,6 @@ import {
 const GUILD = 'guild-1';
 const REVIEW_CHANNEL = 'review-channel';
 const SIGNUP_CHANNEL = 'signup-channel';
-const SPREADSHEET = 'spreadsheet-1';
 const REVIEWER_ROLE = 'reviewer-role';
 const DSR_PROG_ROLE = 'dsr-prog-role';
 const DSR_CLEAR_ROLE = 'dsr-clear-role';
@@ -43,9 +45,20 @@ const SIGNUP_PATH = `signups/${SignupCollection.getKeyForSignup({
   encounter: Encounter.DSR,
 })}`;
 
+// Recording (pnpm test:record) talks to the real spreadsheet, which is slower
+// than replaying.
+vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
+
+/**
+ * This test's character: unique per test, so rows on the shared test
+ * spreadsheet never collide, and stable across runs, so recordings replay.
+ */
+let character = '';
+/** Whether this test approved a signup, i.e. wrote to the test spreadsheet. */
+let wroteToSheet = false;
+
 const SIGNUP_OPTIONS: Record<string, string | null> = {
   encounter: Encounter.DSR,
-  character: 'Test Character',
   world: 'Jenova',
   job: 'tank',
   'prog-point': 'P6',
@@ -59,7 +72,7 @@ function givenAGuild(flow: FlowApp): void {
     reviewChannel: REVIEW_CHANNEL,
     reviewerRole: REVIEWER_ROLE,
     signupChannel: SIGNUP_CHANNEL,
-    spreadsheetId: SPREADSHEET,
+    spreadsheetId: flow.sheets.spreadsheetId,
     progRoles: { DSR: DSR_PROG_ROLE },
     clearRoles: { DSR: DSR_CLEAR_ROLE },
     progPointRoles: { DSR: { P6: DSR_P6_ROLE } },
@@ -87,6 +100,7 @@ function givenAGuild(flow: FlowApp): void {
   flow.discord.addChannel(GUILD, SIGNUP_CHANNEL);
   flow.discord.addMember(PLAYER);
   flow.discord.addMember(REVIEWER);
+  flow.fflogs.addReport('abc123', { daysAgo: 3 });
 }
 
 type Answer = 'confirm' | 'cancel' | 'timeout' | 'none';
@@ -104,7 +118,7 @@ async function submitSignup(
     userId: PLAYER.id,
     guildId: GUILD,
     commandName: 'signup',
-    options: { ...SIGNUP_OPTIONS, ...overrides },
+    options: { ...SIGNUP_OPTIONS, character, ...overrides },
   });
 
   const done = flow.get(SignupCommandHandler).execute(interaction);
@@ -140,6 +154,7 @@ async function approve(
   flow: FlowApp,
   { progPoint, comment }: { progPoint: string; comment?: string },
 ): Promise<void> {
+  wroteToSheet = true;
   flow.discord.react(
     latestReview(flow),
     SIGNUP_REVIEW_REACTIONS.APPROVED,
@@ -180,15 +195,43 @@ async function decline(flow: FlowApp, reason: string): Promise<void> {
   await flow.settle();
 }
 
+/** This test's row in a party section of the DSR tab on the test spreadsheet. */
+async function sheetRow(
+  flow: FlowApp,
+  partyStatus: keyof typeof SheetRanges,
+): Promise<string[] | undefined> {
+  const { columnStart, columnEnd, rowStart } = SheetRanges[partyStatus];
+  const rows = await flow.sheets.read(
+    `${Encounter.DSR}!${columnStart}${rowStart}:${columnEnd}`,
+  );
+  return rows.find((row) => row[0]?.toLowerCase() === character);
+}
+
 describe('Signup lifecycle', () => {
   let flow: FlowApp;
 
   beforeEach(async () => {
+    character = `flow ${stableTestKey()}`;
+    wroteToSheet = false;
     flow = await createFlowApp();
     givenAGuild(flow);
   });
 
-  afterEach(() => flow.close());
+  afterEach(async () => {
+    try {
+      if (wroteToSheet) {
+        await flow
+          .get(SheetsService)
+          .removeSignup(
+            { encounter: Encounter.DSR, character, world: 'jenova' },
+            flow.sheets.spreadsheetId,
+          );
+      }
+    } finally {
+      // always close, or this app's listeners leak into the next test
+      await flow.close();
+    }
+  });
 
   describe('when a player submits a signup and confirms', () => {
     let reply: FakeMessage;
@@ -199,7 +242,7 @@ describe('Signup lifecycle', () => {
 
     it('stores it as pending', () => {
       expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
-        character: 'test character',
+        character,
         world: 'jenova',
         progPointRequested: 'P6',
         status: SignupStatus.PENDING,
@@ -208,10 +251,6 @@ describe('Signup lifecycle', () => {
 
     it('tells the player it was received', () => {
       expect(reply.content).toBe(SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED);
-    });
-
-    it('acknowledges the confirm button', () => {
-      expect(flow.discord.unacknowledged()).toEqual([]);
     });
 
     it('posts it for review with approve and decline reactions', () => {
@@ -270,7 +309,7 @@ describe('Signup lifecycle', () => {
 
   describe('when the FFLogs report is too old', () => {
     it('refuses the signup and explains the age limit', async () => {
-      flow.fflogs.reportAge = 'expired';
+      flow.fflogs.addReport('abc123', { daysAgo: 40 });
 
       const reply = await submitSignup(flow, 'none');
 
@@ -284,10 +323,25 @@ describe('Signup lifecycle', () => {
 
   describe('when FFLogs cannot be reached', () => {
     it('lets the signup through for manual review', async () => {
-      flow.fflogs.reportAge = 'unreachable';
+      flow.fflogs.goOffline();
 
       await submitSignup(flow);
 
+      expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
+        status: SignupStatus.PENDING,
+      });
+    });
+  });
+
+  describe('when the FFLogs report does not exist', () => {
+    // The FFLogs API answers with a GraphQL error, which the SDK throws, so
+    // FFLogsService treats it like an outage and lets the signup through.
+    it('lets the signup through for manual review', async () => {
+      await submitSignup(flow, 'confirm', {
+        'prog-proof-link': 'https://www.fflogs.com/reports/doesNotExist',
+      });
+
+      expect(flow.fflogs.requestedReports).toEqual(['doesNotExist']);
       expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
         status: SignupStatus.PENDING,
       });
@@ -313,7 +367,7 @@ describe('Signup lifecycle', () => {
         'prog-proof-link': 'https://www.youtube.com/watch?v=abc',
       });
 
-      expect(flow.fflogs.checkedReports).toEqual([]);
+      expect(flow.fflogs.requestedReports).toEqual([]);
       expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
         status: SignupStatus.PENDING,
       });
@@ -360,12 +414,12 @@ describe('Signup lifecycle', () => {
         );
       });
 
-      it('adds the player to the spreadsheet', () => {
-        expect(flow.sheets.rows(SPREADSHEET)).toEqual([
-          expect.objectContaining({
-            character: 'test character',
-            progPoint: 'P6',
-          }),
+      it('adds the player to the prog party section of the spreadsheet', async () => {
+        expect(await sheetRow(flow, PartyStatus.ProgParty)).toEqual([
+          expect.stringMatching(new RegExp(`^${character}$`, 'i')),
+          'Jenova',
+          'tank',
+          'P6',
         ]);
       });
 
@@ -429,24 +483,39 @@ describe('Signup lifecycle', () => {
       });
     });
 
-    describe('and the reviewer approves it at a clear-party prog point', () => {
-      it('swaps the prog role for the clear role', async () => {
-        flow.discord.addMember({ ...PLAYER, roles: [DSR_PROG_ROLE] });
-
+    describe('and a prog-party player is later approved at a clear-party prog point', () => {
+      beforeEach(async () => {
+        await approve(flow, { progPoint: 'P6' });
+        await submitSignup(flow, 'confirm', { 'prog-point': 'P7' });
         await approve(flow, { progPoint: 'P7' });
+      });
 
+      it('swaps the prog role for the clear role', () => {
         expect(flow.discord.rolesOf(PLAYER.id)).toContain(DSR_CLEAR_ROLE);
         expect(flow.discord.rolesOf(PLAYER.id)).not.toContain(DSR_PROG_ROLE);
       });
+
+      it('moves them from the prog party to the clear party section of the spreadsheet', async () => {
+        expect(await sheetRow(flow, PartyStatus.ProgParty)).toBeUndefined();
+        expect(await sheetRow(flow, PartyStatus.ClearParty)).toEqual([
+          expect.stringMatching(new RegExp(`^${character}$`, 'i')),
+          'Jenova',
+          'tank',
+          'P7',
+        ]);
+      });
     });
 
-    describe('and the reviewer marks it cleared', () => {
+    describe('and a prog-party player is later marked cleared', () => {
       beforeEach(async () => {
-        flow.discord.addMember({
-          ...PLAYER,
-          roles: [DSR_PROG_ROLE, DSR_P6_ROLE],
-        });
+        await approve(flow, { progPoint: 'P6' });
+        await submitSignup(flow, 'confirm', { 'prog-point': 'Cleared' });
         await approve(flow, { progPoint: PartyStatus.Cleared });
+      });
+
+      it('removes them from the spreadsheet', async () => {
+        expect(await sheetRow(flow, PartyStatus.ProgParty)).toBeUndefined();
+        expect(await sheetRow(flow, PartyStatus.ClearParty)).toBeUndefined();
       });
 
       it('removes the signup', () => {
@@ -458,7 +527,7 @@ describe('Signup lifecycle', () => {
       });
 
       it('congratulates the player in the signup channel', () => {
-        expect(flow.discord.channel(SIGNUP_CHANNEL)[0]?.content).toContain(
+        expect(flow.discord.channel(SIGNUP_CHANNEL).at(-1)?.content).toContain(
           'Congratulations on clearing',
         );
       });
