@@ -1,7 +1,7 @@
 import type { sheets_v4 } from '@googleapis/sheets';
 import { describe, expect, it, vi } from 'vitest';
 import { mockOf } from '../test-utils/mock-factory.js';
-import { updateSheet } from './sheets.utils.js';
+import { getSheetIdByName, updateSheet } from './sheets.utils.js';
 
 function createClient({
   update,
@@ -91,5 +91,29 @@ describe('updateSheet', () => {
     ).rejects.toThrow('some other API failure');
 
     expect(client.spreadsheets.batchUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe('getSheetIdByName', () => {
+  it("asks Google only for the tabs' ids and titles, not the whole spreadsheet", async () => {
+    const get = vi.fn().mockResolvedValue({
+      data: {
+        sheets: [
+          { properties: { title: 'TOP', sheetId: 7 } },
+          { properties: { title: 'DSR', sheetId: 42 } },
+        ],
+      },
+    });
+    const client = mockOf<sheets_v4.Sheets>({ spreadsheets: { get } });
+
+    await expect(
+      getSheetIdByName(client, 'spreadsheet-1', 'DSR'),
+    ).resolves.toBe(42);
+    expect(get).toHaveBeenCalledWith(
+      expect.objectContaining({
+        spreadsheetId: 'spreadsheet-1',
+        fields: 'sheets.properties(sheetId,title)',
+      }),
+    );
   });
 });

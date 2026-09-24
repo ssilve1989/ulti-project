@@ -180,6 +180,8 @@ export async function getSheetIdByName(
   const response = await client.spreadsheets.get({
     spreadsheetId,
     includeGridData: false,
+    // only what's needed to find the tab; the full metadata is ~40 KB
+    fields: 'sheets.properties(sheetId,title)',
   });
 
   const sheet = response.data.sheets?.find((sheet) => {
