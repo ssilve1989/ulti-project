@@ -1,6 +1,9 @@
+import { hasSubscribers } from 'node:diagnostics_channel';
 import { Logger } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { describe, expect, it } from 'vitest';
+import nock from 'nock';
+import { describe, expect, it, vi } from 'vitest';
 import { createFlowApp } from './flow-app.js';
 
 describe('createFlowApp', () => {
@@ -48,5 +51,18 @@ describe('createFlowApp', () => {
     await pending;
 
     await expect(flow.close()).rejects.toThrow('never acknowledged');
+  });
+
+  it('cleans up after itself when the app fails to start', async () => {
+    vi.spyOn(Test, 'createTestingModule').mockImplementationOnce(() => {
+      throw new Error('a provider could not be resolved');
+    });
+
+    await expect(createFlowApp()).rejects.toThrow(
+      'a provider could not be resolved',
+    );
+
+    expect(nock.isActive()).toBe(false);
+    expect(hasSubscribers('http.client.request.created')).toBe(false);
   });
 });

@@ -1,4 +1,4 @@
-import { createServer } from 'node:http';
+import { createServer, get } from 'node:http';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -52,6 +52,33 @@ describe('waitUntilIdle', () => {
     await waitUntilIdle(tracker);
 
     expect(finished).toBe(true);
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  it('waits for the response body, not just its headers', async () => {
+    const server = createServer((_request, response) => {
+      response.writeHead(200, { 'content-type': 'text/plain' });
+      response.write('first part');
+      setTimeout(() => response.end(' and the rest'), 200);
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, '127.0.0.1', resolve),
+    );
+    const address = server.address();
+    if (typeof address !== 'object' || address === null) {
+      throw new Error('expected the server to listen on a TCP port');
+    }
+    let body = '';
+
+    const request = get(`http://127.0.0.1:${address.port}/`, (response) => {
+      response.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
+    });
+    request.end();
+    await waitUntilIdle(tracker);
+
+    expect(body).toBe('first part and the rest');
     await new Promise((resolve) => server.close(resolve));
   });
 

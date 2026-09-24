@@ -463,4 +463,32 @@ describe('DiscordMock', () => {
       );
     });
   });
+
+  it('lists a modal submit the bot never acknowledged', async () => {
+    const message = await discord.sendDirectMessage('u1', {
+      components: [goButton()],
+    });
+    const pending = message.awaitMessageComponent();
+    discord.click(discord.latestDmTo('u1'), 'go', 'u1');
+    const click = await pending;
+    if (!click.isButton()) throw new Error('expected a button click');
+    await click.showModal(
+      new ModalBuilder()
+        .setCustomId('comment')
+        .setTitle('Comment')
+        .addComponents(
+          new ActionRowBuilder<TextInputBuilder>().addComponents(
+            new TextInputBuilder()
+              .setCustomId('text')
+              .setLabel('Text')
+              .setStyle(TextInputStyle.Short),
+          ),
+        ),
+    );
+    const submitted = click.awaitModalSubmit({ time: 1_000 });
+    discord.submitModal('u1', { text: 'nice' });
+    await submitted;
+
+    expect(discord.unacknowledged()).toEqual(['comment']);
+  });
 });

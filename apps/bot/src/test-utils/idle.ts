@@ -1,24 +1,26 @@
 import { subscribe, unsubscribe } from 'node:diagnostics_channel';
+import { ClientRequest } from 'node:http';
 
-/** Diagnostics channels Node publishes outbound HTTP requests on: node:http (used by gaxios/node-fetch, so the googleapis client) and undici (Node's fetch). */
-const REQUEST_STARTED = [
-  // `created`, not `start`: `start` only fires once DNS and TLS are done, so
-  // counting from it leaves a window where a request looks idle
-  'http.client.request.created',
-  'undici:request:create',
-];
-const REQUEST_ENDED = [
-  'http.client.response.finish',
-  'http.client.request.error',
-  'undici:request:trailers',
-  'undici:request:error',
-];
+/**
+ * node:http requests (gaxios uses node-fetch, so this covers the googleapis
+ * client) are counted from creation until the request's `close` event, which
+ * fires once the whole response body has arrived. Not from `start` (only after
+ * DNS and TLS) or `http.client.response.finish` (fires when headers arrive).
+ */
+const HTTP_REQUEST_CREATED = 'http.client.request.created';
+/** undici (Node's fetch): `trailers` fires once the body is complete. */
+const UNDICI_STARTED = 'undici:request:create';
+const UNDICI_ENDED = ['undici:request:trailers', 'undici:request:error'];
 
 /** How long waitUntilIdle() waits for the app to go idle before failing the test. */
 const IDLE_TIMEOUT_MS = 30_000;
 
 export interface ActivityTracker {
-  /** HTTP requests in flight plus tracked calls whose promise hasn't settled. */
+  /**
+   * HTTP requests in flight plus tracked calls whose promise hasn't settled.
+   * Work a client does after a request closes (decompressing, parsing) is only
+   * covered by tracked calls, so route external HTTP through a tracked adapter.
+   */
   readonly pending: number;
   /**
    * Counts every method call on `instance` as pending until its promise
@@ -54,8 +56,20 @@ export function createActivityTracker(): ActivityTracker {
   const finished = () => {
     requests--;
   };
-  for (const name of REQUEST_STARTED) subscribe(name, started);
-  for (const name of REQUEST_ENDED) subscribe(name, finished);
+  const httpRequestCreated = (message: unknown) => {
+    if (
+      typeof message === 'object' &&
+      message !== null &&
+      'request' in message &&
+      message.request instanceof ClientRequest
+    ) {
+      started();
+      message.request.once('close', finished);
+    }
+  };
+  subscribe(HTTP_REQUEST_CREATED, httpRequestCreated);
+  subscribe(UNDICI_STARTED, started);
+  for (const name of UNDICI_ENDED) subscribe(name, finished);
 
   const settleCall = () => {
     calls--;
@@ -84,8 +98,9 @@ export function createActivityTracker(): ActivityTracker {
       }
     },
     dispose() {
-      for (const name of REQUEST_STARTED) unsubscribe(name, started);
-      for (const name of REQUEST_ENDED) unsubscribe(name, finished);
+      unsubscribe(HTTP_REQUEST_CREATED, httpRequestCreated);
+      unsubscribe(UNDICI_STARTED, started);
+      for (const name of UNDICI_ENDED) unsubscribe(name, finished);
     },
   };
 }

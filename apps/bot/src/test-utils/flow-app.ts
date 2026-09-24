@@ -14,7 +14,11 @@ import { TurboProgModule } from '../slash-commands/turboprog/turbo-prog.module.j
 import { DiscordMock } from './discord/discord-mock.js';
 import { FFLogsMock } from './fflogs/fflogs-mock.js';
 import { InMemoryFirestore } from './firestore/in-memory-firestore.js';
-import { createActivityTracker, waitUntilIdle } from './idle.js';
+import {
+  type ActivityTracker,
+  createActivityTracker,
+  waitUntilIdle,
+} from './idle.js';
 import { startSheetsRecording } from './sheets/recorded-sheets.js';
 
 /**
@@ -100,8 +104,39 @@ export async function createFlowApp(): Promise<FlowApp> {
   const fflogs = new FFLogsMock();
   const logger = new RecordingLogger();
   const activity = createActivityTracker();
-  const finishRecording = await startSheetsRecording();
+  let recording: Awaited<ReturnType<typeof startSheetsRecording>>;
+  try {
+    recording = await startSheetsRecording();
+  } catch (error) {
+    activity.dispose();
+    throw error;
+  }
 
+  try {
+    return await startApp({ db, discord, fflogs, logger, activity, recording });
+  } catch (error) {
+    // don't leave nock intercepting or listeners subscribed for later spec files
+    activity.dispose();
+    recording.abandon();
+    throw error;
+  }
+}
+
+async function startApp({
+  db,
+  discord,
+  fflogs,
+  logger,
+  activity,
+  recording,
+}: {
+  db: InMemoryFirestore;
+  discord: DiscordMock;
+  fflogs: FFLogsMock;
+  logger: RecordingLogger;
+  activity: ActivityTracker;
+  recording: Awaited<ReturnType<typeof startSheetsRecording>>;
+}): Promise<FlowApp> {
   const moduleRef = await Test.createTestingModule({ imports: FLOW_MODULES })
     .overrideProvider(FIRESTORE)
     .useValue(db)
@@ -156,7 +191,7 @@ export async function createFlowApp(): Promise<FlowApp> {
       } finally {
         activity.dispose();
         try {
-          finishRecording();
+          recording.finish();
         } catch (error) {
           failures.push(describeLogged(error));
         }
