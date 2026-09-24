@@ -36,11 +36,15 @@ class SignupCollection {
   /**
    * Upserts a signup request into the database
    * @param signup
+   * @returns the written signup, and the document as it was before the write
+   * (undefined if it was newly created). The written status is only ever
+   * PENDING or UPDATE_PENDING, so `previous` is how callers tell whether the
+   * signup had already been reviewed.
    */
   @SentryTraced()
   public async upsert(
     props: CreateSignupDocumentProps,
-  ): Promise<SignupDocument> {
+  ): Promise<{ signup: SignupDocument; previous: SignupDocument | undefined }> {
     const key = SignupCollection.getKeyForSignup(props);
     const document = this.collection.doc(key);
     const expiresAt = Timestamp.fromMillis(
@@ -63,7 +67,7 @@ class SignupCollection {
         expiresAt,
       };
       await document.update(signupData);
-      return signupData;
+      return { signup: signupData, previous: existing };
     }
 
     const signupData = {
@@ -73,7 +77,7 @@ class SignupCollection {
     };
 
     await document.create(signupData);
-    return signupData;
+    return { signup: signupData, previous: undefined };
   }
 
   @SentryTraced()

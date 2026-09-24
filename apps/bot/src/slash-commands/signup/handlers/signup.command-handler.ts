@@ -127,18 +127,19 @@ class SignupCommandHandler implements ISlashCommand {
     request: SignupSchema,
     interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<SignupDocument | undefined> {
-    const [signup, reviewChannelId] = await Promise.all([
+    const [{ signup, previous }, reviewChannelId] = await Promise.all([
       this.repository.upsert(request),
       this.settingsService.getReviewChannel(interaction.guildId),
     ]);
 
-    if (signup?.reviewMessageId && reviewChannelId) {
+    if (previous?.reviewMessageId && reviewChannelId) {
       try {
-        if (shouldDeleteReviewMessageForSignup(signup)) {
+        // judge by the status before the upsert; the upserted signup is never APPROVED/DECLINED
+        if (shouldDeleteReviewMessageForSignup(previous)) {
           await this.discordService.deleteMessage(
             interaction.guildId,
             reviewChannelId,
-            signup.reviewMessageId,
+            previous.reviewMessageId,
           );
         }
       } catch (error: unknown) {
