@@ -82,7 +82,7 @@ describe('Signup Repository', () => {
       }),
     );
 
-    const result = await repository.upsert(signupRequest);
+    const { signup, previous } = await repository.upsert(signupRequest);
 
     expect(doc.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -94,11 +94,16 @@ describe('Signup Repository', () => {
     );
 
     expect(doc.create).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
+    expect(signup).toMatchObject({
       ...existingData,
       ...signupRequest,
       status: SignupStatus.UPDATE_PENDING,
       reviewedBy: null,
+    });
+    // the pre-update document is what callers need to know it was already reviewed
+    expect(previous).toMatchObject({
+      status: SignupStatus.APPROVED,
+      reviewedBy: 'someReviewer',
     });
   });
 
@@ -115,7 +120,7 @@ describe('Signup Repository', () => {
       }),
     );
 
-    const result = await repository.upsert(signupRequest);
+    const { signup, previous } = await repository.upsert(signupRequest);
 
     expect(doc.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -126,7 +131,8 @@ describe('Signup Repository', () => {
       }),
     );
 
-    expect(result.status).toBe(SignupStatus.PENDING);
+    expect(signup.status).toBe(SignupStatus.PENDING);
+    expect(previous?.status).toBe(SignupStatus.PENDING);
   });
 
   it('should call create if the document does not exist', async () => {
@@ -137,7 +143,7 @@ describe('Signup Repository', () => {
       }),
     );
 
-    const result = await repository.upsert(signupRequest);
+    const { signup, previous } = await repository.upsert(signupRequest);
 
     expect(doc.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -147,10 +153,11 @@ describe('Signup Repository', () => {
     );
 
     expect(doc.update).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
+    expect(signup).toMatchObject({
       ...signupRequest,
       status: SignupStatus.PENDING,
     });
+    expect(previous).toBeUndefined();
   });
 
   it('should call updateSignupStatus with the correct arguments', async () => {

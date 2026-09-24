@@ -96,6 +96,10 @@ describe('Signup Command Handler', () => {
     discordServiceMock.getDisplayName.mockResolvedValue('Test Character');
     errorService.handleCommandError.mockReturnValue(mockOf<EmbedBuilder>({}));
     settingsCollection.getReviewChannel.mockResolvedValue('review-channel-id');
+    signupCollectionMock.upsert.mockResolvedValue({
+      signup: partialMock<SignupDocument>({ status: SignupStatus.PENDING }),
+      previous: undefined,
+    });
     fflogsServiceMock.validateReportAge.mockResolvedValue({
       isValid: true,
       reportDate: new Date(),
@@ -159,12 +163,16 @@ describe('Signup Command Handler', () => {
       );
 
       interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
-      signupCollectionMock.upsert.mockResolvedValueOnce(
-        partialMock<SignupDocument>({
+      signupCollectionMock.upsert.mockResolvedValueOnce({
+        signup: partialMock<SignupDocument>({
+          status: SignupStatus.UPDATE_PENDING,
+          reviewMessageId: 'messageId123',
+        }),
+        previous: partialMock<SignupDocument>({
           status,
           reviewMessageId: 'messageId123',
         }),
-      );
+      });
 
       await command.execute(interaction);
 
@@ -190,12 +198,18 @@ describe('Signup Command Handler', () => {
       );
 
       interaction.editReply.mockResolvedValueOnce(confirmationInteraction);
-      signupCollectionMock.upsert.mockResolvedValueOnce(
-        partialMock<SignupDocument>({
+      // upsert always moves a previously reviewed signup to UPDATE_PENDING, so
+      // the prior status has to come from `previous`
+      signupCollectionMock.upsert.mockResolvedValueOnce({
+        signup: partialMock<SignupDocument>({
+          status: SignupStatus.UPDATE_PENDING,
+          reviewMessageId: 'messageId123',
+        }),
+        previous: partialMock<SignupDocument>({
           status,
           reviewMessageId: 'messageId123',
         }),
-      );
+      });
 
       await command.execute(interaction);
 
