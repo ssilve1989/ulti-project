@@ -2,6 +2,8 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ComponentType,
+  DiscordAPIError,
   DiscordjsError,
   DiscordjsErrorCodes,
   Events,
@@ -311,6 +313,154 @@ describe('DiscordMock', () => {
       await expect(click.update({ components: [] })).rejects.toMatchObject({
         code: DiscordjsErrorCodes.InteractionAlreadyReplied,
       });
+    });
+  });
+
+  describe('behaving like the real Discord API', () => {
+    it('rejects a role check for someone who is not a member', async () => {
+      await expect(
+        discord.userHasRole({
+          guildId: 'g1',
+          userId: 'stranger',
+          roleId: 'r1',
+        }),
+      ).rejects.toMatchObject({ code: 10007 });
+    });
+
+    it('rejects a display name lookup for someone who is not a member', async () => {
+      await expect(
+        discord.getDisplayName({ guildId: 'g1', userId: 'stranger' }),
+      ).rejects.toBeInstanceOf(DiscordAPIError);
+    });
+
+    it('rejects a direct message to an unknown user', async () => {
+      await expect(
+        discord.sendDirectMessage('stranger', 'hi'),
+      ).rejects.toMatchObject({ code: 10013 });
+    });
+
+    it("emits the bot's own reactions on the gateway, as Discord does", async () => {
+      discord.addChannel('g1', 'c1');
+      const reactors: Array<{ id: string; bot: boolean }> = [];
+      discord.client.on(
+        Events.MessageReactionAdd,
+        (_reaction: unknown, user: User) =>
+          reactors.push({ id: user.id, bot: user.bot }),
+      );
+      const channel = await discord.getTextChannel({
+        guildId: 'g1',
+        channelId: 'c1',
+      });
+
+      const sent = await channel?.send('review me');
+      await sent?.react('✅');
+
+      expect(reactors).toEqual([{ id: expect.any(String), bot: true }]);
+    });
+
+    it('rejects editing, reacting to or deleting a deleted message', async () => {
+      const message = await discord.sendDirectMessage('u1', 'hi');
+      await message.delete();
+
+      await expect(message.edit('again')).rejects.toMatchObject({
+        code: 10008,
+      });
+      await expect(message.react('✅')).rejects.toMatchObject({ code: 10008 });
+      await expect(message.delete()).rejects.toMatchObject({ code: 10008 });
+    });
+
+    it('only delivers the component type an awaiter asked for', async () => {
+      const message = await discord.sendDirectMessage('u1', {
+        components: [goButton()],
+      });
+      void message
+        .awaitMessageComponent({ componentType: ComponentType.StringSelect })
+        .catch(() => undefined);
+
+      expect(() => discord.click(discord.latestDmTo('u1'), 'go', 'u1')).toThrow(
+        'Nothing on message',
+      );
+    });
+
+    it('throws for a missing required command option, like discord.js', () => {
+      const { interaction } = discord.command({
+        userId: 'u1',
+        guildId: 'g1',
+        commandName: 'test',
+        options: {},
+      });
+
+      expect(() => interaction.options.getString('encounter', true)).toThrow(
+        'encounter',
+      );
+      expect(interaction.options.getString('notes')).toBeNull();
+    });
+
+    it("keeps each user's open modal separate", async () => {
+      discord.addMember({ id: 'u2', username: 'two' });
+      const openModalFor = async (userId: string, customId: string) => {
+        const message = await discord.sendDirectMessage(userId, {
+          components: [goButton()],
+        });
+        const pending = message.awaitMessageComponent();
+        discord.click(discord.latestDmTo(userId), 'go', userId);
+        const click = await pending;
+        if (!click.isButton()) throw new Error('expected a button click');
+        await click.showModal(
+          new ModalBuilder()
+            .setCustomId(customId)
+            .setTitle('Comment')
+            .addComponents(
+              new ActionRowBuilder<TextInputBuilder>().addComponents(
+                new TextInputBuilder()
+                  .setCustomId('text')
+                  .setLabel('Text')
+                  .setStyle(TextInputStyle.Short),
+              ),
+            ),
+        );
+        return click.awaitModalSubmit({ time: 1_000 });
+      };
+
+      const first = openModalFor('u1', 'first');
+      const second = openModalFor('u2', 'second');
+      await Promise.resolve();
+      await new Promise((resolve) => setImmediate(resolve));
+      discord.submitModal('u1', { text: 'one' });
+      discord.submitModal('u2', { text: 'two' });
+
+      await expect(first).resolves.toMatchObject({ customId: 'first' });
+      await expect(second).resolves.toMatchObject({ customId: 'second' });
+    });
+
+    it('does not deliver a modal submit the awaiter filters out', async () => {
+      const message = await discord.sendDirectMessage('u1', {
+        components: [goButton()],
+      });
+      const pending = message.awaitMessageComponent();
+      discord.click(discord.latestDmTo('u1'), 'go', 'u1');
+      const click = await pending;
+      if (!click.isButton()) throw new Error('expected a button click');
+      await click.showModal(
+        new ModalBuilder()
+          .setCustomId('comment')
+          .setTitle('Comment')
+          .addComponents(
+            new ActionRowBuilder<TextInputBuilder>().addComponents(
+              new TextInputBuilder()
+                .setCustomId('text')
+                .setLabel('Text')
+                .setStyle(TextInputStyle.Short),
+            ),
+          ),
+      );
+      void click
+        .awaitModalSubmit({ time: 1_000, filter: () => false })
+        .catch(() => undefined);
+
+      expect(() => discord.submitModal('u1', { text: 'x' })).toThrow(
+        'No modal is open and awaited',
+      );
     });
   });
 });

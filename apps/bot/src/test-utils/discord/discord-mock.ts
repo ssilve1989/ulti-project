@@ -2,8 +2,8 @@ import { EventEmitter } from 'node:events';
 import {
   type ButtonInteraction,
   type ChatInputCommandInteraction,
-  DiscordAPIError,
   DiscordjsErrorCodes,
+  DiscordjsTypeError,
   type DMChannel,
   Events,
   type GuildEmoji,
@@ -25,6 +25,7 @@ import {
   FakeMessage,
   type MessageLocation,
   type OutgoingPayload,
+  unknownResource,
 } from './fake-message.js';
 
 const BOT_USER_ID = 'bot-user';
@@ -37,15 +38,22 @@ interface FakeMember {
 }
 
 interface OpenModal {
-  userId: string;
   customId: string;
   message: FakeMessage;
 }
 
 interface ModalWaiter {
-  userId: string;
+  filter?: (interaction: ModalSubmitInteraction) => boolean;
   resolve: (interaction: ModalSubmitInteraction) => void;
   reject: (error: Error) => void;
+}
+
+/** The DiscordjsTypeError discord.js throws for a missing required option. */
+function missingOption(name: string): Error {
+  return Reflect.construct(DiscordjsTypeError, [
+    DiscordjsErrorCodes.CommandInteractionOptionNotFound,
+    name,
+  ]);
 }
 
 /** discord.js's per-interaction response state. */
@@ -62,15 +70,6 @@ const alreadyReplied = () =>
 
 const notReplied = () =>
   Promise.reject(discordjsError(DiscordjsErrorCodes.InteractionNotReplied));
-
-/** The DiscordAPIError the REST API returns for a missing channel or message. */
-function unknownResource(code: 10003 | 10008, path: string): DiscordAPIError {
-  const message = code === 10003 ? 'Unknown Channel' : 'Unknown Message';
-  return new DiscordAPIError({ message, code }, code, 404, 'GET', path, {
-    body: undefined,
-    files: undefined,
-  });
-}
 
 type DiscordServiceSurface = Pick<
   DiscordService,
@@ -116,8 +115,9 @@ export class DiscordMock implements DiscordServiceSurface {
   private readonly failingDms = new Set<string>();
   private readonly pressed: Array<{ customId: string; ack: Acknowledgement }> =
     [];
-  private openModal: OpenModal | undefined;
-  private modalWaiter: ModalWaiter | undefined;
+  /** userId → the modal shown to them, and what is awaiting its submit */
+  private readonly openModals = new Map<string, OpenModal>();
+  private readonly modalWaiters = new Map<string, ModalWaiter>();
   private nextId = 1;
 
   // --- world setup
@@ -214,8 +214,16 @@ export class DiscordMock implements DiscordServiceSurface {
       guildId,
       user: this.user(userId),
       options: {
-        getString: (name: string) => options[name] ?? null,
-        getAttachment: (name: string) => attachments[name] ?? null,
+        getString: (name: string, required = false) => {
+          const value = options[name] ?? null;
+          if (value === null && required) throw missingOption(name);
+          return value;
+        },
+        getAttachment: (name: string, required = false) => {
+          const value = attachments[name] ?? null;
+          if (value === null && required) throw missingOption(name);
+          return value;
+        },
       },
       deferReply: () => {
         if (answered(ack)) return alreadyReplied();
@@ -241,6 +249,10 @@ export class DiscordMock implements DiscordServiceSurface {
 
   react(message: FakeMessage, emoji: string, userId: string): void {
     message.addReaction(emoji, userId);
+    this.emitReaction(message, emoji, userId);
+  }
+
+  private emitReaction(message: FakeMessage, emoji: string, userId: string) {
     this.client.emit(
       Events.MessageReactionAdd,
       mockOf<MessageReaction>({
@@ -305,35 +317,42 @@ export class DiscordMock implements DiscordServiceSurface {
   }
 
   submitModal(userId: string, fields: Record<string, string>): void {
-    const modal = this.openModal;
-    const waiter = this.modalWaiter;
-    if (modal?.userId !== userId || waiter?.userId !== userId) {
+    const modal = this.openModals.get(userId);
+    const waiter = this.modalWaiters.get(userId);
+    if (!modal || !waiter) {
       throw new Error(`No modal is open and awaited for ${userId}`);
     }
-    this.openModal = undefined;
-    this.modalWaiter = undefined;
 
-    waiter.resolve(
-      mockOf<ModalSubmitInteraction>({
-        ...this.responses(modal.message, userId, {
-          deferred: false,
-          replied: false,
-        }),
-        customId: modal.customId,
-        user: this.user(userId),
-        message: modal.message.toMessage(),
-        fields: { getTextInputValue: (id: string) => fields[id] ?? '' },
-        isFromMessage: () => true,
+    const submit = mockOf<ModalSubmitInteraction>({
+      ...this.responses(modal.message, userId, {
+        deferred: false,
+        replied: false,
       }),
-    );
+      customId: modal.customId,
+      user: this.user(userId),
+      message: modal.message.toMessage(),
+      fields: { getTextInputValue: (id: string) => fields[id] ?? '' },
+      isFromMessage: () => true,
+    });
+    if (waiter.filter && !waiter.filter(submit)) {
+      throw new Error(
+        `No modal is open and awaited for ${userId} (its awaiter filtered this submit out)`,
+      );
+    }
+
+    this.openModals.delete(userId);
+    this.modalWaiters.delete(userId);
+    waiter.resolve(submit);
   }
 
   /** Times out every prompt the bot is still waiting on. */
   expireAll(): void {
     for (const message of this.messages) message.expire();
-    this.modalWaiter?.reject(collectorTimeoutError());
-    this.modalWaiter = undefined;
-    this.openModal = undefined;
+    for (const waiter of this.modalWaiters.values()) {
+      waiter.reject(collectorTimeoutError());
+    }
+    this.modalWaiters.clear();
+    this.openModals.clear();
   }
 
   // --- DiscordService surface
@@ -357,7 +376,7 @@ export class DiscordMock implements DiscordServiceSurface {
     const member = this.members.get(userId);
     return member
       ? Promise.resolve(member.displayName)
-      : Promise.reject(new Error(`Unknown member ${userId}`));
+      : Promise.reject(unknownResource(10007, `/members/${userId}`));
   }
 
   userHasRole({
@@ -368,9 +387,10 @@ export class DiscordMock implements DiscordServiceSurface {
     userId: string;
     roleId: string;
   }): Promise<boolean> {
-    return Promise.resolve(
-      this.members.get(userId)?.roles.has(roleId) ?? false,
-    );
+    const member = this.members.get(userId);
+    return member
+      ? Promise.resolve(member.roles.has(roleId))
+      : Promise.reject(unknownResource(10007, `/members/${userId}`));
   }
 
   getEmojiString(): string {
@@ -452,12 +472,16 @@ export class DiscordMock implements DiscordServiceSurface {
       location,
       BOT_USER_ID,
       payload,
+      (reacted, emoji) => this.emitReaction(reacted, emoji, BOT_USER_ID),
     );
     this.messages.push(message);
     return message;
   }
 
   private dm(userId: string, payload: OutgoingPayload): FakeMessage {
+    if (!this.members.has(userId)) {
+      throw unknownResource(10013, `/users/${userId}`);
+    }
     if (this.failingDms.has(userId)) {
       throw new Error(`Cannot send messages to this user (${userId})`);
     }
@@ -470,7 +494,7 @@ export class DiscordMock implements DiscordServiceSurface {
       id: userId,
       username: member?.username ?? userId,
       displayName: member?.displayName ?? userId,
-      bot: false,
+      bot: userId === BOT_USER_ID,
       partial: false,
       displayAvatarURL: () => `https://cdn.example/avatars/${userId}.png`,
       send: (payload: OutgoingPayload) =>
@@ -551,15 +575,18 @@ export class DiscordMock implements DiscordServiceSurface {
       message: message.toMessage(),
       showModal: (modal: ModalBuilder) =>
         answer('replied', () => {
-          this.openModal = {
-            userId,
+          this.openModals.set(userId, {
             customId: modal.toJSON().custom_id,
             message,
-          };
+          });
         }),
-      awaitModalSubmit: () =>
+      awaitModalSubmit: ({
+        filter,
+      }: {
+        filter?: (interaction: ModalSubmitInteraction) => boolean;
+      } = {}) =>
         new Promise<ModalSubmitInteraction>((resolve, reject) => {
-          this.modalWaiter = { userId, resolve, reject };
+          this.modalWaiters.set(userId, { filter, resolve, reject });
         }),
     };
   }
