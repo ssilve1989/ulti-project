@@ -8,6 +8,7 @@ import {
 } from '@ulti-project/shared';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
+import { EncountersService } from '../../../encounters/encounters.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../../signup/signup.consts.js';
 import { SlashCommand } from '../../slash-command.decorator.js';
@@ -21,6 +22,7 @@ class StatusCommandHandler implements ISlashCommand {
   constructor(
     private readonly service: StatusService,
     private readonly errorService: ErrorService,
+    private readonly encountersService: EncountersService,
   ) {}
 
   @SentryTraced()
@@ -38,7 +40,7 @@ class StatusCommandHandler implements ISlashCommand {
         encounters: signups.map((s) => s.encounter),
       });
 
-      const embed = this.createStatusEmbed(signups);
+      const embed = await this.createStatusEmbed(signups);
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       const errorEmbed = this.errorService.handleCommandError(
@@ -49,33 +51,50 @@ class StatusCommandHandler implements ISlashCommand {
     }
   }
 
-  private createStatusEmbed(signups: SignupDocument[]) {
-    const fields = signups.flatMap(({ encounter, status, partyStatus }) => {
-      const subfields = [
-        {
-          name: 'Encounter',
-          value: EncounterFriendlyDescription[encounter],
-          inline: true,
-        },
-        {
-          name: 'Status',
-          value: `${SIGNUP_REVIEW_REACTIONS[status]} ${SignupStatus[status]}`,
-          inline: true,
-        },
-      ];
+  private async createStatusEmbed(signups: SignupDocument[]) {
+    const rows = await Promise.all(
+      signups.map(async (signup) => ({
+        signup,
+        progPointLabel: await this.getProgPointLabel(signup),
+      })),
+    );
 
-      if (partyStatus) {
-        subfields.push({
-          value: partyStatus,
-          name: 'Party Type',
-          inline: true,
-        });
-      } else {
-        subfields.push({ name: '\u200B', value: '\u200B', inline: true });
-      }
+    const fields = rows.flatMap(
+      ({ signup: { encounter, status, partyStatus }, progPointLabel }) => {
+        const subfields = [
+          {
+            name: 'Encounter',
+            value: EncounterFriendlyDescription[encounter],
+            inline: true,
+          },
+          {
+            name: 'Status',
+            value: `${SIGNUP_REVIEW_REACTIONS[status]} ${SignupStatus[status]}`,
+            inline: true,
+          },
+        ];
 
-      return subfields;
-    });
+        if (partyStatus) {
+          subfields.push({
+            value: partyStatus,
+            name: 'Party Type',
+            inline: true,
+          });
+        } else {
+          subfields.push({ name: '\u200B', value: '\u200B', inline: true });
+        }
+
+        if (progPointLabel) {
+          subfields.push({
+            name: 'Prog Point',
+            value: progPointLabel,
+            inline: false,
+          });
+        }
+
+        return subfields;
+      },
+    );
 
     const embed = new EmbedBuilder().setTitle('Signup Summary');
 
@@ -85,6 +104,26 @@ class StatusCommandHandler implements ISlashCommand {
       );
     }
     return embed.addFields(fields);
+  }
+
+  private async getProgPointLabel({
+    encounter,
+    progPoint,
+  }: SignupDocument): Promise<string | undefined> {
+    if (!progPoint) return undefined;
+
+    // includes inactive prog points, so a since-deactivated approval still resolves
+    const progPoints = await this.encountersService.getAllProgPoints(encounter);
+    const label = progPoints.find(({ id }) => id === progPoint)?.label;
+
+    if (!label) {
+      Sentry.getCurrentScope().captureMessage(
+        `Approved prog point "${progPoint}" not found for encounter ${encounter}`,
+        'warning',
+      );
+    }
+
+    return label;
   }
 }
 
