@@ -153,7 +153,6 @@ const OTHER_REVIEWER = {
   roles: [REVIEWER_ROLE],
 };
 
-/** The reviewer approves the latest review at `progPoint`, optionally leaving a comment. */
 /** Someone reacts to the latest review message, and the bot handles it. */
 async function reactToReview(
   flow: FlowApp,
@@ -164,6 +163,7 @@ async function reactToReview(
   await flow.settle();
 }
 
+/** The reviewer approves the latest review at `progPoint`, optionally leaving a comment. */
 async function approve(
   flow: FlowApp,
   { progPoint, comment }: { progPoint: string; comment?: string },
