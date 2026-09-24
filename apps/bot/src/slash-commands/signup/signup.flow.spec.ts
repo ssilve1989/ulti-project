@@ -9,8 +9,10 @@ import {
   APPROVE_BUTTON_ID,
   APPROVE_WITH_COMMENT_BUTTON_ID,
 } from './approval-decision.components.js';
+import { CUSTOM_DECLINE_REASON_INPUT_ID } from './decline-reason.components.js';
 import { SignupCommandHandler } from './handlers/signup.command-handler.js';
 import {
+  CUSTOM_DECLINE_REASON_VALUE,
   SIGNUP_DECLINE_REASONS_CONFIG,
   SIGNUP_MESSAGES,
   SIGNUP_REVIEW_REACTIONS,
@@ -513,6 +515,31 @@ describe('Signup lifecycle', () => {
         expect(review.content).toBe(`Declined <@${PLAYER.id}>`);
         expect(review.embeds[0]?.footer?.text).toBe(
           `Declined by ${REVIEWER.username}`,
+        );
+      });
+    });
+
+    describe('and the reviewer declines it with a custom reason', () => {
+      const reason = 'Mechanics before P6 were not performed cleanly';
+
+      beforeEach(async () => {
+        await decline(flow, CUSTOM_DECLINE_REASON_VALUE);
+        flow.discord.submitModal(REVIEWER.id, {
+          [CUSTOM_DECLINE_REASON_INPUT_ID]: reason,
+        });
+        await flow.settle();
+      });
+
+      it('marks it declined with the custom reason', () => {
+        expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
+          status: SignupStatus.DECLINED,
+          declineReason: reason,
+        });
+      });
+
+      it('DMs the player the custom reason', () => {
+        expect(flow.discord.latestDmTo(PLAYER.id).content).toContain(
+          `**Reason:**\n> ${reason}`,
         );
       });
     });

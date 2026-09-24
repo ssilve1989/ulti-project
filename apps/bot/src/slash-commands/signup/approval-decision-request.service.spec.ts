@@ -107,10 +107,6 @@ describe('ApprovalDecisionRequestService', () => {
     reviewer = mockOf<User>({ id: 'reviewerId' });
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('collectDecision', () => {
     const buildProgPointOption = (value: string) =>
       mockOf<StringSelectMenuOptionBuilder>({
@@ -200,34 +196,6 @@ describe('ApprovalDecisionRequestService', () => {
         update: vi.fn().mockResolvedValue(undefined),
         followUp: vi.fn().mockResolvedValue(undefined),
       });
-
-    it('resolves with just the prog point when Approve is pressed', async () => {
-      const { fake, collect } = buildFakeCollector();
-      const message = buildMessage(fake);
-      const resultPromise = service['collectDecision'](
-        message,
-        reviewer,
-        selectRow,
-      );
-
-      const selectInteraction = buildSelectInteraction('point-a');
-      await collect(selectInteraction);
-      const approveInteraction = buildApproveInteraction();
-      await collect(approveInteraction);
-
-      expect(await resultPromise).toEqual({
-        type: 'approved',
-        progPoint: 'point-a',
-      });
-      expect(selectInteraction.update).toHaveBeenCalled();
-      expect(approveInteraction.update).toHaveBeenCalledWith({
-        components: [],
-      });
-      expect(approveInteraction.followUp).toHaveBeenCalledWith(
-        SIGNUP_MESSAGES.APPROVAL_CONFIRMATION_RECEIVED,
-      );
-      expect(fake.stop).toHaveBeenCalledTimes(1);
-    });
 
     it('flags the selected prog point as the menu default so it stays visible after re-render', async () => {
       const { fake, collect } = buildFakeCollector();
