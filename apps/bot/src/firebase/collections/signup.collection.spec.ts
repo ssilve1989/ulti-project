@@ -53,9 +53,10 @@ describe('SignupCollection', () => {
 
   describe('upsert', () => {
     it('stores a new signup as pending with an expiry', async () => {
-      const { previous } = await collection.upsert(aRequest());
+      const { signup, previous } = await collection.upsert(aRequest());
 
       expect(previous).toBeUndefined();
+      expect(signup).toEqual(db.read(PATH));
       expect(db.read(PATH)).toMatchObject({
         character: 'test character',
         status: SignupStatus.PENDING,
@@ -66,8 +67,9 @@ describe('SignupCollection', () => {
     it('keeps a still-pending signup pending and clears its reviewer', async () => {
       db.seed(PATH, aSignup({ reviewedBy: 'someone' }));
 
-      await collection.upsert(aRequest({ role: 'healer' }));
+      const { signup } = await collection.upsert(aRequest({ role: 'healer' }));
 
+      expect(signup).toEqual(db.read(PATH));
       expect(db.read(PATH)).toMatchObject({
         role: 'healer',
         status: SignupStatus.PENDING,
@@ -83,7 +85,7 @@ describe('SignupCollection', () => {
 
       const { signup, previous } = await collection.upsert(aRequest());
 
-      expect(signup.status).toBe(SignupStatus.UPDATE_PENDING);
+      expect(signup).toEqual(db.read(PATH));
       expect(previous).toMatchObject({
         status: SignupStatus.APPROVED,
         reviewMessageId: 'm1',

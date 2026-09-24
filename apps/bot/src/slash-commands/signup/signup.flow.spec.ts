@@ -46,16 +46,14 @@ const SIGNUP_PATH = `signups/${SignupCollection.getKeyForSignup({
 })}`;
 
 /**
- * This test's character: unique per test, so rows on the shared test
+ * The running test's character: unique per test, so rows on the shared test
  * spreadsheet never collide, and stable across runs, so recordings replay.
  */
-let character = '';
-/** Whether this test approved a signup, i.e. wrote to the test spreadsheet. */
-let wroteToSheet = false;
+const character = () => `flow ${stableTestKey()}`;
 
 /** Matches this test's character as the sheet writes it (title-cased). */
 const characterCell = () =>
-  expect.stringMatching(new RegExp(`^${character}$`, 'i'));
+  expect.stringMatching(new RegExp(`^${character()}$`, 'i'));
 
 const WORLD = 'Jenova';
 const DECLINE_REASON = SIGNUP_DECLINE_REASONS_CONFIG[0]?.reason ?? '';
@@ -121,7 +119,7 @@ async function submitSignup(
     userId: PLAYER.id,
     guildId: GUILD,
     commandName: 'signup',
-    options: { ...SIGNUP_OPTIONS, character, ...overrides },
+    options: { ...SIGNUP_OPTIONS, character: character(), ...overrides },
   });
 
   const done = flow.get(SignupCommandHandler).execute(interaction);
@@ -167,7 +165,6 @@ async function approve(
   flow: FlowApp,
   { progPoint, comment }: { progPoint: string; comment?: string },
 ): Promise<void> {
-  wroteToSheet = true;
   await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.APPROVED);
 
   const prompt = flow.discord.latestDmTo(REVIEWER.id);
@@ -207,19 +204,18 @@ describe('Signup lifecycle', () => {
   let flow: FlowApp;
 
   beforeEach(async () => {
-    character = `flow ${stableTestKey()}`;
-    wroteToSheet = false;
     flow = await createFlowApp();
     givenAGuild(flow);
 
     // returned as this hook's teardown, so it only runs if the app started
     return async () => {
       try {
-        if (wroteToSheet) {
+        // remove whatever this test wrote to the shared spreadsheet
+        if (flow.sheets.valuesWritten().length > 0) {
           await flow.get(SheetsService).removeSignup(
             {
               encounter: Encounter.DSR,
-              character,
+              character: character(),
               world: WORLD.toLowerCase(),
             },
             flow.sheets.spreadsheetId,
@@ -241,7 +237,7 @@ describe('Signup lifecycle', () => {
 
     it('stores it as pending', () => {
       expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
-        character,
+        character: character(),
         world: WORLD.toLowerCase(),
         progPointRequested: 'P6',
         status: SignupStatus.PENDING,
