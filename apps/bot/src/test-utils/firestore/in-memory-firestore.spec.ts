@@ -78,6 +78,17 @@ describe('InMemoryFirestore', () => {
       });
     });
 
+    it('replaces a field with an empty map on set() with merge, like Firestore', async () => {
+      db.seed('settings/g', { progRoles: { DSR: 'r1' } });
+
+      await db
+        .collection('settings')
+        .doc('g')
+        .set({ progRoles: {} }, { merge: true });
+
+      expect(db.read('settings/g')).toEqual({ progRoles: {} });
+    });
+
     it('replaces only the named nested map on set() with mergeFields', async () => {
       db.seed('settings/g', {
         progPointRoles: { DSR: { P6: 'r1', P7: 'r2' }, TOP: { P1: 'r3' } },

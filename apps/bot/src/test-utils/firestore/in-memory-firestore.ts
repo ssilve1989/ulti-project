@@ -64,12 +64,15 @@ function copyData(data: object): Data {
   );
 }
 
+/** Firestore's `merge: true`: non-empty maps merge field by field, while an empty map is a leaf value that replaces the field. */
 function mergeInto(target: Data, source: Data): Data {
   const result: Data = { ...target };
   for (const [key, value] of Object.entries(source)) {
     const existing = result[key];
     result[key] =
-      isPlainObject(existing) && isPlainObject(value)
+      isPlainObject(existing) &&
+      isPlainObject(value) &&
+      Object.keys(value).length > 0
         ? mergeInto(existing, value)
         : value;
   }
