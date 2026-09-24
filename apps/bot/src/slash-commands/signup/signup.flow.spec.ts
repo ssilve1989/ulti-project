@@ -1,7 +1,6 @@
 import { Encounter, PartyStatus, SignupStatus } from '@ulti-project/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import { SheetRanges } from '../../sheets/sheets.consts.js';
 import { SheetsService } from '../../sheets/sheets.service.js';
 import type { FakeMessage } from '../../test-utils/discord/fake-message.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
@@ -199,16 +198,9 @@ async function decline(flow: FlowApp, reason: string): Promise<void> {
   await flow.settle();
 }
 
-/** This test's row in a party section of the DSR tab on the test spreadsheet. */
-async function sheetRow(
-  flow: FlowApp,
-  partyStatus: keyof typeof SheetRanges,
-): Promise<string[] | undefined> {
-  const { columnStart, columnEnd, rowStart } = SheetRanges[partyStatus];
-  const rows = await flow.sheets.read(
-    `${Encounter.DSR}!${columnStart}${rowStart}:${columnEnd}`,
-  );
-  return rows.find((row) => row[0]?.toLowerCase() === character);
+/** The sheet row a write went to, e.g. 24 for `DSR!I24:L`. */
+function rowOf(range: string): number {
+  return Number(/!\D+(\d+):/.exec(range)?.[1]);
 }
 
 describe('Signup lifecycle', () => {
@@ -423,12 +415,12 @@ describe('Signup lifecycle', () => {
         );
       });
 
-      it('adds the player to the prog party section of the spreadsheet', async () => {
-        expect(await sheetRow(flow, PartyStatus.ProgParty)).toEqual([
-          characterCell(),
-          WORLD,
-          'tank',
-          'P6',
+      it('writes the player into the prog party section of the spreadsheet', () => {
+        expect(flow.sheets.valuesWritten()).toEqual([
+          {
+            range: expect.stringMatching(/^DSR!I\d+:L\d*$/),
+            values: [[characterCell(), WORLD, 'tank', 'P6']],
+          },
         ]);
       });
 
@@ -479,15 +471,16 @@ describe('Signup lifecycle', () => {
         expect(flow.db.read(SIGNUP_PATH)).not.toHaveProperty('comment');
       });
 
-      it('still approves the signup when the player cannot be DMed', async () => {
+      it('reports the failed DM and still completes the approval when the player cannot be DMed', async () => {
         flow.discord.failDirectMessagesTo(PLAYER.id);
 
         await approve(flow, { progPoint: 'P6', comment: 'Great clear' });
 
         flow.expectLoggedError(/Cannot send messages to this user/);
-        expect(flow.db.read(SIGNUP_PATH)).toMatchObject({
-          status: SignupStatus.APPROVED,
-        });
+        expect(flow.discord.rolesOf(PLAYER.id)).toContain(DSR_PROG_ROLE);
+        expect(
+          flow.discord.channel(SIGNUP_CHANNEL).map((m) => m.content),
+        ).toEqual([`<@${PLAYER.id}> Signup Approved!`]);
       });
     });
 
@@ -503,14 +496,17 @@ describe('Signup lifecycle', () => {
         expect(flow.discord.rolesOf(PLAYER.id)).not.toContain(DSR_PROG_ROLE);
       });
 
-      it('moves them from the prog party to the clear party section of the spreadsheet', async () => {
-        expect(await sheetRow(flow, PartyStatus.ProgParty)).toBeUndefined();
-        expect(await sheetRow(flow, PartyStatus.ClearParty)).toEqual([
-          characterCell(),
-          WORLD,
-          'tank',
-          'P7',
-        ]);
+      it('moves them from the prog party to the clear party section of the spreadsheet', () => {
+        const [progWrite, clearWrite] = flow.sheets.valuesWritten();
+
+        expect(clearWrite).toEqual({
+          range: expect.stringMatching(/^DSR!C\d+:F\d*$/),
+          values: [[characterCell(), WORLD, 'tank', 'P7']],
+        });
+        expect(flow.sheets.cellsCleared()).toContainEqual({
+          row: rowOf(progWrite?.range ?? ''),
+          columns: 'I:L',
+        });
       });
     });
 
@@ -521,9 +517,13 @@ describe('Signup lifecycle', () => {
         await approve(flow, { progPoint: PartyStatus.Cleared });
       });
 
-      it('removes them from the spreadsheet', async () => {
-        expect(await sheetRow(flow, PartyStatus.ProgParty)).toBeUndefined();
-        expect(await sheetRow(flow, PartyStatus.ClearParty)).toBeUndefined();
+      it('removes them from the spreadsheet', () => {
+        const [progWrite] = flow.sheets.valuesWritten();
+
+        expect(flow.sheets.cellsCleared()).toContainEqual({
+          row: rowOf(progWrite?.range ?? ''),
+          columns: 'I:L',
+        });
       });
 
       it('removes the signup', () => {

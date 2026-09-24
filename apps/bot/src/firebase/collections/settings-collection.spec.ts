@@ -72,6 +72,10 @@ describe('SettingsCollection', () => {
 
       db.seed(PATH, { reviewChannel: 'changed-outside-the-bot' });
 
+      // the stored document changed, so only a cached copy can still say 'review'
+      expect(db.read(PATH)).toEqual({
+        reviewChannel: 'changed-outside-the-bot',
+      });
       await expect(settings.getReviewChannel(GUILD)).resolves.toBe('review');
     });
 

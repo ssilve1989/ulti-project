@@ -51,22 +51,7 @@
     "body": "",
     "status": 200,
     "response": [
-      "1f8b08000000000002ff95904b4fc2401485f7fc8a6bd74da4d1a8b0d3d602a6425348581017177a0323f36866a61062fcefb660d289698d2ee671ee99fbcd99f9e801781ae596bc2178d13cbb9a04c324b81d787eed087c573a6282a4614ad647b2d9727ef10ec84b32556d552980d59bffb7f53c57fd9effdb2e416321e484b22ca07f7f1d0cbcb3f593926ab5858419db6e4f46d386b9549ae78d0c391ad3c8a226158ac90e544c52330d8fdc22d36e50c1b0912972cc99742ed5caee20e628aacf6a054fc92a78254d3277404fb42351b53a952cfa0f3629f708234d27e7c5b8b1253ae1d370e120678b713b2a2361604c47eec25e48aa831358e7a211cfa7ae5831574778d8acd739f66fba6916e5dec979f70debd5e3b3f7056d4cc5f1b7020000"
-    ],
-    "rawHeaders": {
-      "content-type": "application/json; charset=UTF-8",
-      "content-encoding": "gzip"
-    },
-    "responseIsBinary": false
-  },
-  {
-    "scope": "https://sheets.googleapis.com:443",
-    "method": "GET",
-    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DSR%21I9%3AL",
-    "body": "",
-    "status": 200,
-    "response": [
-      "1f8b08000000000002ff958e4d6bc2401086eff91563ce1e14a5546fad314d4b5a250a39480fa319ccd6fd80c94611e97fef2615b2053df4b00bef33330fef25000819f59ec22984d12aebbd4ea6e9703c09fbcd44e197e14828d29530ba59c916f9ea7776445953e5d8c625b8fe8ec7a459303c498b82dbd516a7a804767189120ba13b90b3b125c4129593b6f0b3ff57fc41d6c03b31e9c2133d5349ca9d7a248bfea34deb03c20bd3b93b9ae1ced6e8955fced69e72b14e6eab325215247492beec8db4397a85b9505d989fefd58aa539c1e36ebb2d7030ba6fb3a80f5ecf87ab2c68de77f003acf8a345df010000"
+      "1f8b08000000000002ff9590cb6ec2301045f7f98a69d6914afa14ecdaa401aa14a280c40275316a46e0e247643b2054f5df9b40a5585552b50b3fee5ccff1b53f3c005fa3dc903f023f5ee417d370948637433f681c81ef4ac74c90344cc9e6483e5f2dcede1e7945a6aead6b05b07e0dfeb69ee6badf0f7edba5682c449c5056250cee2fc3a17fb27e5232ad36903263bbede978d632574af3a2951147635a5936a45231d9834a486aa6e1815b64da0d2a18b632438e0593cea55ad92d241c45fd599de01959052fa449160ee891b624ea56a792c7ffc1a6d50e61ace9e8bc18df6c854ef82c5a3ac8f972d28dca491898d081bbb067926aef04d68568c5d3b12f56c2d5016ea9b8a24178dd4fb328774ecebb6f98d78c4fef0b61bf60edb7020000"
     ],
     "rawHeaders": {
       "content-type": "application/json; charset=UTF-8",
@@ -124,7 +109,7 @@
     "method": "PUT",
     "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DSR%21I13%3AL?valueInputOption=USER_ENTERED",
     "body": {
-      "values": [["Flow 8cbbda03", "Jenova", "tank", "P6"]]
+      "values": [["Flow 5ed2e013", "Jenova", "tank", "P6"]]
     },
     "status": 200,
     "response": [

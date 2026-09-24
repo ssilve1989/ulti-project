@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { subscribe } from 'node:diagnostics_channel';
+import { subscribe, unsubscribe } from 'node:diagnostics_channel';
 import { basename, dirname, join, relative } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import nock, { type BackMode, type Definition } from 'nock';
@@ -182,6 +182,114 @@ export async function startSheetsRecording(): Promise<{
     abandon() {
       nockDone();
       restore();
+    },
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function columnLetter(index: number): string {
+  return String.fromCharCode('A'.charCodeAt(0) + index);
+}
+
+/** A cell range the app wrote values to, e.g. `DSR!I24:L`. */
+export interface ValuesWrite {
+  range: string;
+  values: unknown;
+}
+
+/** Cells the app cleared (how SheetsService removes a signup's row). */
+export interface CellsCleared {
+  row: number;
+  columns: string;
+}
+
+/**
+ * Captures what the app sent to the Sheets API in this run, for asserting what
+ * it wrote. Assert on this, not on reading the sheet back: in a replay, a read
+ * returns the recorded sheet, not what this run wrote. Observation only: request
+ * bodies are copied as they're written and passed through unchanged.
+ */
+export function captureSheetsRequests() {
+  const requests: Array<{ method: string; path: string; chunks: Buffer[] }> =
+    [];
+
+  const onCreated = (message: unknown) => {
+    const request = createdRequest(message);
+    if (request?.host !== 'sheets.googleapis.com') return;
+    const chunks: Buffer[] = [];
+    const entry = {
+      method: request.method,
+      path: decodeURIComponent(request.path),
+      chunks,
+    };
+    requests.push(entry);
+    for (const name of ['write', 'end']) {
+      const original: unknown = Reflect.get(request, name);
+      if (typeof original !== 'function') continue;
+      Object.defineProperty(request, name, {
+        configurable: true,
+        writable: true,
+        value: (...args: unknown[]) => {
+          const [chunk] = args;
+          if (typeof chunk === 'string' || chunk instanceof Uint8Array) {
+            entry.chunks.push(Buffer.from(chunk));
+          }
+          return Reflect.apply(original, request, args);
+        },
+      });
+    }
+  };
+  subscribe(HTTP_REQUEST_CREATED, onCreated);
+
+  const bodies = () =>
+    requests.map(({ method, path, chunks }) => {
+      const text = Buffer.concat(chunks).toString();
+      const body: unknown = text ? JSON.parse(text) : undefined;
+      return { method, path, body };
+    });
+
+  return {
+    valuesWritten(): ValuesWrite[] {
+      return bodies().flatMap(({ method, path, body }) => {
+        const [, rest] = path.split('/values/');
+        if (method === 'GET' || rest === undefined || !isRecord(body)) {
+          return [];
+        }
+        const range = rest.split('?')[0]?.replace(/:append$/, '') ?? '';
+        return [{ range, values: body.values }];
+      });
+    },
+    cellsCleared(): CellsCleared[] {
+      return bodies().flatMap(({ path, body }) => {
+        if (!path.includes(':batchUpdate') || !isRecord(body)) return [];
+        const updates = Array.isArray(body.requests) ? body.requests : [];
+        return updates.flatMap((update: unknown) => {
+          const range =
+            isRecord(update) && isRecord(update.updateCells)
+              ? update.updateCells.range
+              : undefined;
+          if (
+            !isRecord(range) ||
+            typeof range.startRowIndex !== 'number' ||
+            typeof range.startColumnIndex !== 'number' ||
+            typeof range.endColumnIndex !== 'number'
+          ) {
+            return [];
+          }
+          return [
+            {
+              row: range.startRowIndex + 1,
+              columns: `${columnLetter(range.startColumnIndex)}:${columnLetter(range.endColumnIndex - 1)}`,
+            },
+          ];
+        });
+      });
+    },
+    dispose() {
+      unsubscribe(HTTP_REQUEST_CREATED, onCreated);
     },
   };
 }

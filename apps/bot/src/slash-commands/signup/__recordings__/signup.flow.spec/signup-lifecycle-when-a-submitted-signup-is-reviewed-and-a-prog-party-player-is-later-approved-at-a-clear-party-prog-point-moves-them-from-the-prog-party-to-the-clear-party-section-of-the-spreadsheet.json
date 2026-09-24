@@ -62,21 +62,6 @@
   {
     "scope": "https://sheets.googleapis.com:443",
     "method": "GET",
-    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DSR%21C9%3AF",
-    "body": "",
-    "status": 200,
-    "response": [
-      "1f8b08000000000002ff7d8ebb0e824010457bbe62dc9ac66810e8888889851a282c8cc504475d8559b28016c67f774112b0d06226b98f9cdca7052034f299840f224ce2d1dcf3a3f1d4137693e478553a9439712915379578b34b3ed91db39a4ae3ed8d82ee1b3f2005814e916559b5cdd65d11ab3bf6faa4542fb63358b04633a2750ef63771591705ac31bd0c78119296d4eb1039253d403a7f9151a61ee0baa983eee4f87b65857c1bceec6056732feb0d09b0fb873d010000"
-    ],
-    "rawHeaders": {
-      "content-type": "application/json; charset=UTF-8",
-      "content-encoding": "gzip"
-    },
-    "responseIsBinary": false
-  },
-  {
-    "scope": "https://sheets.googleapis.com:443",
-    "method": "GET",
     "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DSR%21I%3AL",
     "body": "",
     "status": 200,
@@ -112,21 +97,6 @@
     "status": 200,
     "response": [
       "1f8b08000000000002ff95905b4bc3401085dff32bc67d0e684090f64d137b91d886b4d087e2c3608676752f61765329e27f37a9609612451ff672e6ec7c7b76df2300c1687624c620b25579314fc679723d1271e7687cb19c494dc6496bba23e572b3faf20ea81a726d6ddb2a80ed53fcb7f534b7fd22fe6d97a3f3902a42d3d4707573998cc4c93aa7146c77904be787edf974d133379655d5cb54a173bdac3b526da5f9013521c392e15679941c06d5127b59a0c24a9ae052b67e0f1385bafdac41f082bc854762325500baa33de9b635a894d97fb079f38a30653a062fc667df6010be48d70172b99e0da34ad20e66f4a642d803197b080273a57b717ffc8e1575e323fa049d112f7d6a020000"
-    ],
-    "rawHeaders": {
-      "content-type": "application/json; charset=UTF-8",
-      "content-encoding": "gzip"
-    },
-    "responseIsBinary": false
-  },
-  {
-    "scope": "https://sheets.googleapis.com:443",
-    "method": "GET",
-    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DSR%21I9%3AL",
-    "body": "",
-    "status": 200,
-    "response": [
-      "1f8b08000000000002ff958ebb0ac2401045fb7cc5983a8d60633a356a94f8200a166231984157f701934411f1dfdd44312bd858ecc23d3373b8770fc067d407f243f0a355da9a74c3a4dde9fa41355178321c09453a1746572be962b37acd2e284bca2ddbda04efdff21169160c3d59a0e07ab5c6092a814d5ca2c44ce8066cd81447184954565ac35df02d9e536160464c3a73447d3a92b2a70e49a37fb44979461833dd9aa301ee8b129df2cbc1da512ed6f16f554a2a8798aed2954d499b8b539833d584e1ed53cbabdec37b023f9a2f9192010000"
     ],
     "rawHeaders": {
       "content-type": "application/json; charset=UTF-8",

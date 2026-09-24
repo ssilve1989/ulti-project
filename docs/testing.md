@@ -37,11 +37,14 @@ So:
   can't land in the same change, mark the test `it.fails(...)` with a comment
   naming the bug: it keeps asserting the intended behaviour and turns red once
   production is fixed.
-- **Prove a new test can fail.** Break the code path it covers (invert a
-  condition, drop an event publish), watch the test go red, and revert. A test
-  that stays green is testing something else. This is how a fake that diverged
-  from Firestore (it merged an empty map instead of replacing the field) was
-  caught while the harness was being built.
+- **Prove a new test can fail, through its own assertion.** Break the exact
+  thing the test's name claims (invert a condition, drop an event publish),
+  watch the test go red, and revert. Check that the failure is the test's own
+  `expect`, not an incidental harness check like a recording mismatch. A test
+  that stays green, or only fails for some other reason, doesn't test what it
+  claims. This is how a fake that diverged from Firestore (it merged an empty
+  map instead of replacing the field) was caught, and how three sheet
+  assertions that only read back replayed data were found.
 
 ## Flow spec or unit spec?
 
@@ -87,7 +90,7 @@ feature modules. Only what sits behind an external system is swapped:
 | Firestore | `InMemoryFirestore`, behind the `FIRESTORE` token | `db.seed(path, data)` / `db.read(path)` |
 | Discord | `DiscordMock`, as `DiscordService` and the client | set up members and channels (`addMember`, `addChannel(guildId, channelId)`); drive the bot with `command`, `react`, `click`, `choose` and `submitModal`; assert with `channel`, `dmsTo`, `rolesOf` |
 | FFLogs | `FFLogsMock`, behind the SDK token, so the real `FFLogsService` runs | `fflogs.addReport(code, { daysAgo })`, `fflogs.goOffline()` |
-| Google Sheets | **Recorded real traffic.** The real `SheetsService` and client run; their HTTP is replayed from recordings of the shared test spreadsheet | `sheets.read('DSR!I9:L')` to assert what's on the sheet |
+| Google Sheets | **Recorded real traffic.** The real `SheetsService` and client run; their HTTP is replayed from recordings of the shared test spreadsheet | `sheets.valuesWritten()` / `sheets.cellsCleared()`: what the app sent to Sheets in this test |
 
 ### Recorded Google Sheets traffic
 
@@ -106,6 +109,10 @@ against saved real responses, never the live API
   makes a request that isn't in the recording, or doesn't make one that is.
   That's the signal that behaviour changed. Check the diff of the recordings
   as part of the review.
+- Assert on what the app **sent** (`sheets.valuesWritten()`,
+  `sheets.cellsCleared()`), never by reading the sheet back. In a replay, a read
+  returns the recorded sheet, so it passes whether or not this run wrote
+  anything.
 - Tests write rows under a per-test character name (`stableTestKey()`): unique
   between tests, stable between runs. Only touch rows your test created, and
   remove them in cleanup. The spreadsheet is shared with manual testing.
