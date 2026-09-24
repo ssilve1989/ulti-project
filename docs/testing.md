@@ -100,7 +100,8 @@ against saved real responses, never the live API
 
 - **Normal runs** (`pnpm test`, pre-commit, CI) replay each test's recording
   from `__recordings__/` next to the spec, with the network disabled. They need
-  no credentials and use no quota.
+  no credentials and use no quota. A test that makes no Sheets requests has no
+  recording, and any Sheets request it later starts making fails.
 - **`pnpm test:record`** re-records against the real test spreadsheet using the
   dev service account (`apps/bot/.env.development` + `.env`, decrypted with
   `.env.keys`). It paces itself under Google's 60 requests/minute/user limit.
