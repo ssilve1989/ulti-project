@@ -7,7 +7,7 @@ import { generateKeyPairSync } from 'node:crypto';
  * once per worker (the suite runs with `isolate: false`).
  */
 export const STAND_IN_GCP_PRIVATE_KEY = generateKeyPairSync('rsa', {
-  modulusLength: 1024,
+  modulusLength: 2048,
 })
   .privateKey.export({ type: 'pkcs8', format: 'pem' })
   .toString();
