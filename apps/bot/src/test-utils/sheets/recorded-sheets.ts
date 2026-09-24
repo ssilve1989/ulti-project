@@ -76,12 +76,24 @@ async function waitForSheetsQuota(): Promise<void> {
 }
 
 /**
+ * Orders a recording by request so concurrent requests (e.g. reading two sheet
+ * sections in parallel) don't reorder it between recording runs and produce
+ * noisy diffs. Replay matches by request, not position, and the sort is stable,
+ * so repeats of the same request keep their recorded order.
+ */
+function stableOrder(definitions: Definition[]): Definition[] {
+  const key = ({ method, path, body }: Definition) =>
+    `${method ?? ''} ${String(path)} ${JSON.stringify(body ?? null)}`;
+  return [...definitions].sort((a, b) => key(a).localeCompare(key(b)));
+}
+
+/**
  * Strips credentials before a recording is written: the OAuth token exchange
  * carries a signed JWT assertion (identifying the service account) and returns
  * an access token.
  */
 function scrub(definitions: Definition[]): Definition[] {
-  return definitions.map((definition) => {
+  return stableOrder(definitions).map((definition) => {
     // keep only the headers the client needs to decode the body: Google gzips
     // responses and nock records the compressed bytes
     const headers: Record<string, string | string[]> = {};
@@ -125,11 +137,16 @@ export function stableTestKey(): string {
 
 /**
  * Starts recording (pnpm test:record) or replaying this test's Sheets traffic.
- * Returns a function that finishes it; when replaying, finishing fails if the
- * app didn't make every recorded request, meaning its Sheets usage changed and
- * the recording must be refreshed.
+ * When replaying, finishing fails if the app didn't make every recorded
+ * request, meaning its Sheets usage changed and the recording must be
+ * refreshed.
  */
-export async function startSheetsRecording(): Promise<() => void> {
+export async function startSheetsRecording(): Promise<{
+  /** Stops recording/replaying; when replaying, fails if a recorded request went unused. */
+  finish(): void;
+  /** Stops without checking, for when the test failed to even start. */
+  abandon(): void;
+}> {
   const { testPath, testName } = currentTest();
   if (isRecordingSheets) await waitForSheetsQuota();
   nock.back.fixtures = join(
@@ -146,14 +163,24 @@ export async function startSheetsRecording(): Promise<() => void> {
   // tests may run their own local servers (e.g. the harness's own spec)
   nock.enableNetConnect(/^(127\.0\.0\.1|localhost)(:\d+)?$/);
 
-  return () => {
-    nockDone();
-    try {
-      if (!isRecordingSheets) context.assertScopesFinished();
-    } finally {
-      nock.cleanAll();
-      nock.restore();
-      nock.enableNetConnect();
-    }
+  const restore = () => {
+    nock.cleanAll();
+    nock.restore();
+    nock.enableNetConnect();
+  };
+
+  return {
+    finish() {
+      nockDone();
+      try {
+        if (!isRecordingSheets) context.assertScopesFinished();
+      } finally {
+        restore();
+      }
+    },
+    abandon() {
+      nockDone();
+      restore();
+    },
   };
 }

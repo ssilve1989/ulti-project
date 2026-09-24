@@ -111,7 +111,12 @@ against saved real responses, never the live API
   remove them in cleanup. The spreadsheet is shared with manual testing.
 
 - Call `await flow.settle()` after driving the bot so event handlers and sagas
-  finish.
+  finish. It waits until no HTTP request is in flight and no call into a
+  tracked adapter (currently `SheetsService`) is pending. A client keeps
+  working after its request closes (decompressing, parsing), and only the
+  adapter's own promise covers that. So when a feature adds a new external
+  HTTP dependency, register its adapter with `activity.trackCalls` in
+  `flow-app.ts`.
 - Call `flow.close()` in `afterEach`. It times out any prompt still awaiting a
   click, and **fails the test if the app logged an error the test didn't
   expect**. Event handlers, sagas and reaction handling catch their own errors

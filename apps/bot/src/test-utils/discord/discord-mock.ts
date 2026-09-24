@@ -172,7 +172,7 @@ export class DiscordMock implements DiscordServiceSurface {
     return [...(this.members.get(userId)?.roles ?? [])];
   }
 
-  /** Custom ids of pressed components the bot never deferred, updated, replied to or answered with a modal. */
+  /** Custom ids of pressed components and submitted modals the bot never deferred, updated, replied to or answered with a modal. */
   unacknowledged(): string[] {
     return this.pressed
       .filter(({ ack }) => !answered(ack))
@@ -323,11 +323,10 @@ export class DiscordMock implements DiscordServiceSurface {
       throw new Error(`No modal is open and awaited for ${userId}`);
     }
 
+    const ack: Acknowledgement = { deferred: false, replied: false };
+    this.pressed.push({ customId: modal.customId, ack });
     const submit = mockOf<ModalSubmitInteraction>({
-      ...this.responses(modal.message, userId, {
-        deferred: false,
-        replied: false,
-      }),
+      ...this.responses(modal.message, userId, ack),
       customId: modal.customId,
       user: this.user(userId),
       message: modal.message.toMessage(),

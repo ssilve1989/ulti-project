@@ -45,9 +45,10 @@ const SIGNUP_PATH = `signups/${SignupCollection.getKeyForSignup({
   encounter: Encounter.DSR,
 })}`;
 
-// Recording (pnpm test:record) talks to the real spreadsheet, which is slower
-// than replaying.
-vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
+// Recording (pnpm test:record) talks to the real spreadsheet and paces itself
+// under Google's per-minute quota, which can mean waiting out a full minute
+// before a test's app starts. Replays finish in milliseconds.
+vi.setConfig({ testTimeout: 150_000, hookTimeout: 150_000 });
 
 /**
  * This test's character: unique per test, so rows on the shared test
@@ -209,15 +210,20 @@ async function sheetRow(
 
 describe('Signup lifecycle', () => {
   let flow: FlowApp;
+  /** false if createFlowApp failed, so afterEach doesn't close the previous test's app */
+  let started = false;
 
   beforeEach(async () => {
+    started = false;
     character = `flow ${stableTestKey()}`;
     wroteToSheet = false;
     flow = await createFlowApp();
+    started = true;
     givenAGuild(flow);
   });
 
   afterEach(async () => {
+    if (!started) return;
     try {
       if (wroteToSheet) {
         await flow
