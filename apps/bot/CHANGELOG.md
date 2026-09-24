@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.8.0](https://github.com/ssilve1989/ulti-project/compare/v2.7.3...v2.8.0) (2026-09-24)
+
+
+### Features
+
+* **status:** show approved prog point in /status embed ([#1551](https://github.com/ssilve1989/ulti-project/issues/1551)) ([42c71b2](https://github.com/ssilve1989/ulti-project/commit/42c71b216dc882ee5d087a513f502cc599457940))
+
+
+### Bug Fixes
+
+* **signup:** keep approved review message on resubmit ([aa023fa](https://github.com/ssilve1989/ulti-project/commit/aa023faab2978bf5708c4807e00d3c73b54abf46))
+* **signup:** restore maintaining approved review message on resubmit behavior ([#1553](https://github.com/ssilve1989/ulti-project/issues/1553)) ([aa023fa](https://github.com/ssilve1989/ulti-project/commit/aa023faab2978bf5708c4807e00d3c73b54abf46))
+
 ## [2.7.3](https://github.com/ssilve1989/ulti-project/compare/v2.7.2...v2.7.3) (2026-09-22)
 
 

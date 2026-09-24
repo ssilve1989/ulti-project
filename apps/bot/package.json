@@ -1,6 +1,6 @@
 {
   "name": "@ulti-project/bot",
-  "version": "2.7.3",
+  "version": "2.8.0",
   "description": "Ulti-Project Discord Bot",
   "author": "Aeo <aeo.games14@gmail.com>",
   "type": "module",
