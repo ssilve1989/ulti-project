@@ -1,5 +1,5 @@
 import { subscribe, unsubscribe } from 'node:diagnostics_channel';
-import { ClientRequest } from 'node:http';
+import { EventEmitter } from 'node:events';
 import { setImmediate, setTimeout } from 'node:timers/promises';
 
 /**
@@ -8,13 +8,37 @@ import { setImmediate, setTimeout } from 'node:timers/promises';
  */
 export const HTTP_REQUEST_CREATED = 'http.client.request.created';
 
-/** The request a `http.client.request.created` message carries, if it is one. */
-export function createdRequest(message: unknown): ClientRequest | undefined {
-  return typeof message === 'object' &&
-    message !== null &&
-    'request' in message &&
-    message.request instanceof ClientRequest
-    ? message.request
+/** A node:http client request, as `http.client.request.created` carries it. */
+export interface CreatedRequest {
+  readonly request: EventEmitter;
+  readonly host: string;
+  readonly method: string;
+  readonly path: string;
+}
+
+/**
+ * The request a `http.client.request.created` message carries, if it is one.
+ * Checked by shape, not `instanceof ClientRequest`: nock replaces
+ * `http.ClientRequest` while it intercepts, so a class captured then no longer
+ * matches the requests made after it restores (or the other way round).
+ */
+export function createdRequest(message: unknown): CreatedRequest | undefined {
+  if (
+    typeof message !== 'object' ||
+    message === null ||
+    !('request' in message) ||
+    !(message.request instanceof EventEmitter)
+  ) {
+    return undefined;
+  }
+  const { request } = message;
+  const host: unknown = Reflect.get(request, 'host');
+  const method: unknown = Reflect.get(request, 'method');
+  const path: unknown = Reflect.get(request, 'path');
+  return typeof host === 'string' &&
+    typeof method === 'string' &&
+    typeof path === 'string'
+    ? { request, host, method, path }
     : undefined;
 }
 
@@ -77,10 +101,10 @@ export function createActivityTracker(): ActivityTracker {
     }
   };
   const httpRequestCreated = (message: unknown) => {
-    const request = createdRequest(message);
-    if (request) {
+    const created = createdRequest(message);
+    if (created) {
       begin();
-      request.once('close', end);
+      created.request.once('close', end);
     }
   };
   subscribe(HTTP_REQUEST_CREATED, httpRequestCreated);

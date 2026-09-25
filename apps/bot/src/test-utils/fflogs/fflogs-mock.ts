@@ -15,13 +15,18 @@ export class FFLogsMock implements Pick<FFLogsSDKClient, 'reportData'> {
   private readonly reports = new Map<string, number>();
   private offline = false;
 
-  /** A report whose last pull ended `daysAgo` days ago. */
+  /**
+   * A report whose last pull ended at local noon `daysAgo` calendar days ago,
+   * so FFLogsService's day count is exact whatever the clock or DST.
+   */
   addReport(code: string, { daysAgo }: { daysAgo: number }): void {
-    this.reports.set(
-      code,
-      Temporal.Now.instant().subtract({ hours: daysAgo * 24 })
-        .epochMilliseconds,
-    );
+    const endTime = Temporal.Now.plainDateISO()
+      .subtract({ days: daysAgo })
+      .toZonedDateTime({
+        timeZone: Temporal.Now.timeZoneId(),
+        plainTime: '12:00',
+      }).epochMilliseconds;
+    this.reports.set(code, endTime);
   }
 
   /** Every request fails the way a network outage does. */

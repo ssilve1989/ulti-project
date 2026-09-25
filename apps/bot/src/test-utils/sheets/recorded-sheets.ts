@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { subscribe, unsubscribe } from 'node:diagnostics_channel';
-import { readFileSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { basename, dirname, join, relative } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { gunzipSync } from 'node:zlib';
@@ -37,37 +37,51 @@ const isRecordingSheets = MODE === 'update';
 
 const REDACTED = 'redacted-by-recorded-sheets';
 
-/**
- * Google allows 60 Sheets read and 60 write requests per minute per user, and
- * the service account is shared with manual testing. A recording run paces
- * itself below that; replays make no real requests and never wait.
- */
 const QUOTA_WINDOW_MS = 60_000;
 const QUOTA_BUDGET = 45;
-const sheetsRequests: Array<{ at: number; write: boolean }> = [];
 
-if (isRecordingSheets) {
-  subscribe(HTTP_REQUEST_CREATED, (message) => {
+/**
+ * Google allows 60 Sheets read and 60 write requests per minute per user, and
+ * the service account is shared with manual testing, so a recording run paces
+ * itself below that. The quota spans the whole run, so one pacer watches every
+ * test's requests; it keeps only the last minute of them.
+ */
+class SheetsQuotaPacer {
+  private requests: Array<{ at: number; write: boolean }> = [];
+
+  readonly observe = (message: unknown): void => {
     const request = createdRequest(message);
     if (request?.host === 'sheets.googleapis.com') {
-      sheetsRequests.push({ at: Date.now(), write: request.method !== 'GET' });
+      this.requests.push({ at: Date.now(), write: request.method !== 'GET' });
     }
-  });
-}
+  };
 
-/** Waits until reads and writes in the last minute are back under budget. */
-async function waitForSheetsQuota(): Promise<void> {
-  for (;;) {
-    const windowStart = Date.now() - QUOTA_WINDOW_MS;
-    const recent = sheetsRequests.filter(({ at }) => at > windowStart);
-    const reads = recent.filter(({ write }) => !write);
-    const writes = recent.filter(({ write }) => write);
-    const over = [reads, writes].find((kind) => kind.length >= QUOTA_BUDGET);
-    if (!over) return;
-    const oldest = over[0]?.at ?? Date.now();
-    await sleep(oldest + QUOTA_WINDOW_MS - Date.now() + 100);
+  /** Waits until reads and writes in the last minute are back under budget. */
+  async waitForBudget(): Promise<void> {
+    for (;;) {
+      const windowStart = Date.now() - QUOTA_WINDOW_MS;
+      this.requests = this.requests.filter(({ at }) => at > windowStart);
+      const reads = this.requests.filter(({ write }) => !write);
+      const writes = this.requests.filter(({ write }) => write);
+      const over = [reads, writes].find((kind) => kind.length >= QUOTA_BUDGET);
+      if (!over) return;
+      const oldest = over[0]?.at ?? Date.now();
+      await sleep(oldest + QUOTA_WINDOW_MS - Date.now() + 100);
+    }
   }
 }
+
+/** Only a recording run makes real requests, so only it needs pacing. */
+const quotaPacer = isRecordingSheets ? new SheetsQuotaPacer() : undefined;
+if (quotaPacer) subscribe(HTTP_REQUEST_CREATED, quotaPacer.observe);
+
+// Fixture names are paths relative to the repo root. The mode is set per
+// recording instead: setting it activates nock and blocks the network, which
+// must only happen while a flow app runs, not whenever this module is imported.
+nock.back.fixtures = process.cwd();
+// nock intercepts all of node:http as soon as it's imported; undo that so only
+// a running flow app's recording does
+nock.restore();
 
 /**
  * Orders a recording by request so concurrent requests (e.g. reading two sheet
@@ -166,22 +180,24 @@ export function stableTestKey(): string {
  * refreshed.
  */
 export async function startSheetsRecording(): Promise<{
+  /** The value grids the spreadsheet returned for reads of `range` (e.g. `DSR!I:L`), in order. */
+  valuesRead(range: string): unknown[];
   /** Stops recording/replaying; when replaying, fails if a recorded request went unused. */
   finish(): void;
   /** Stops without checking, for when the test failed to even start. */
   abandon(): void;
 }> {
   const { testPath, testName } = currentTest();
-  if (isRecordingSheets) await waitForSheetsQuota();
-  nock.back.fixtures = join(
-    dirname(testPath),
+  await quotaPacer?.waitForBudget();
+
+  const fixture = join(
+    relative(process.cwd(), dirname(testPath)),
     '__recordings__',
     basename(testPath, '.ts'),
+    `${testName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.json`,
   );
+  const fixturePath = join(process.cwd(), fixture);
   nock.back.setMode(MODE);
-
-  const fixture = `${testName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.json`;
-  const fixturePath = join(nock.back.fixtures, fixture);
   const { nockDone, context } = await nock.back(fixture, {
     afterRecord: scrub,
   });
@@ -194,7 +210,27 @@ export async function startSheetsRecording(): Promise<{
     nock.enableNetConnect();
   };
 
+  // what the recording holds so far, as it's (or will be) written to disk
+  const definitions = (): Definition[] =>
+    isRecordingSheets
+      ? scrub(nock.recorder.play().filter(isDefinition))
+      : replayed;
+  const replayed: Definition[] = isRecordingSheets
+    ? []
+    : existsSync(fixturePath)
+      ? parseDefinitions(readFileSync(fixturePath, 'utf8'))
+      : [];
+
   return {
+    valuesRead(range) {
+      return definitions().flatMap(({ method, path, response }) =>
+        method === 'GET' &&
+        decodeURIComponent(String(path)).endsWith(`/values/${range}`) &&
+        isRecord(response)
+          ? [response.values]
+          : [],
+      );
+    },
     finish() {
       nockDone();
       // A test that made no Sheets requests needs no recording: replay blocks the
@@ -204,6 +240,14 @@ export async function startSheetsRecording(): Promise<{
         readFileSync(fixturePath, 'utf8').trim() === '[]'
       ) {
         rmSync(fixturePath);
+        // and the recordings folders above it, if that leaves them empty
+        for (const folder of [
+          dirname(fixturePath),
+          dirname(dirname(fixturePath)),
+        ]) {
+          if (readdirSync(folder).length === 0)
+            rmSync(folder, { recursive: true });
+        }
       }
       try {
         if (!isRecordingSheets) context.assertScopesFinished();
@@ -222,20 +266,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function columnLetter(index: number): string {
-  return String.fromCharCode('A'.charCodeAt(0) + index);
+function isDefinition(value: unknown): value is Definition {
+  return (
+    isRecord(value) &&
+    typeof value.scope === 'string' &&
+    typeof value.path === 'string'
+  );
 }
 
-/** A cell range the app wrote values to, e.g. `DSR!I24:L`. */
-export interface ValuesWrite {
-  range: string;
-  values: unknown;
+/** A recording file's definitions. */
+function parseDefinitions(text: string): Definition[] {
+  const parsed: unknown = JSON.parse(text);
+  return Array.isArray(parsed) ? parsed.filter(isDefinition) : [];
 }
 
-/** Cells the app cleared (how SheetsService removes a signup's row). */
-export interface CellsCleared {
-  row: number;
-  columns: string;
+/** A request the app sent to change the spreadsheet, exactly as sent. */
+export interface SheetsWrite {
+  method: string;
+  /** decoded, including the query, e.g. `/v4/spreadsheets/…/values/DSR!I24:L?valueInputOption=USER_ENTERED` */
+  path: string;
+  body: unknown;
 }
 
 /**
@@ -249,12 +299,13 @@ export function captureSheetsRequests() {
     [];
 
   const onCreated = (message: unknown) => {
-    const request = createdRequest(message);
-    if (request?.host !== 'sheets.googleapis.com') return;
+    const created = createdRequest(message);
+    if (created?.host !== 'sheets.googleapis.com') return;
+    const { request } = created;
     const chunks: Buffer[] = [];
     const entry = {
-      method: request.method,
-      path: decodeURIComponent(request.path),
+      method: created.method,
+      path: decodeURIComponent(created.path),
       chunks,
     };
     requests.push(entry);
@@ -284,41 +335,9 @@ export function captureSheetsRequests() {
     });
 
   return {
-    valuesWritten(): ValuesWrite[] {
-      return bodies().flatMap(({ method, path, body }) => {
-        const [, rest] = path.split('/values/');
-        if (method === 'GET' || rest === undefined || !isRecord(body)) {
-          return [];
-        }
-        const range = rest.split('?')[0]?.replace(/:append$/, '') ?? '';
-        return [{ range, values: body.values }];
-      });
-    },
-    cellsCleared(): CellsCleared[] {
-      return bodies().flatMap(({ path, body }) => {
-        if (!path.includes(':batchUpdate') || !isRecord(body)) return [];
-        const updates = Array.isArray(body.requests) ? body.requests : [];
-        return updates.flatMap((update: unknown) => {
-          const range =
-            isRecord(update) && isRecord(update.updateCells)
-              ? update.updateCells.range
-              : undefined;
-          if (
-            !isRecord(range) ||
-            typeof range.startRowIndex !== 'number' ||
-            typeof range.startColumnIndex !== 'number' ||
-            typeof range.endColumnIndex !== 'number'
-          ) {
-            return [];
-          }
-          return [
-            {
-              row: range.startRowIndex + 1,
-              columns: `${columnLetter(range.startColumnIndex)}:${columnLetter(range.endColumnIndex - 1)}`,
-            },
-          ];
-        });
-      });
+    /** Every request that changes the spreadsheet (anything but a GET), in order. */
+    writes(): SheetsWrite[] {
+      return bodies().filter(({ method }) => method !== 'GET');
     },
     dispose() {
       unsubscribe(HTTP_REQUEST_CREATED, onCreated);

@@ -35,31 +35,54 @@ describe('proofOfProgLink validation', () => {
       ['youtube.com with www', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'],
       ['medal.tv', 'https://medal.tv/games/ff-xiv-online'],
       ['medal.tv any path', 'https://medal.tv/clips/abc123'],
-    ])('accepts a valid %s link', (_, url) => {
-      expect(parse({ proofOfProgLink: url }).success).toBe(true);
+    ])('accepts a valid %s link, unchanged', (_, url) => {
+      const result = parse({ proofOfProgLink: url });
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.data.proofOfProgLink).toBe(url);
     });
 
     test.each([
-      ['fflogs.com with port', 'https://fflogs.com:8443/reports/ABC123def456'],
-      ['uppercase hostname', 'https://FFLOGS.COM/reports/ABC123def456'],
+      [
+        'fflogs.com with port',
+        'https://fflogs.com:8443/reports/ABC123def456',
+        'https://fflogs.com:8443/reports/ABC123def456',
+      ],
+      [
+        'uppercase hostname',
+        'https://FFLOGS.COM/reports/ABC123def456',
+        'https://fflogs.com/reports/ABC123def456',
+      ],
       [
         'youtube.com with query params',
         'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=60s',
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=60s',
       ],
-    ])('accepts %s', (_, url) => {
-      expect(parse({ proofOfProgLink: url }).success).toBe(true);
+    ])('accepts %s', (_, url, stored) => {
+      const result = parse({ proofOfProgLink: url });
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.data.proofOfProgLink).toBe(stored);
     });
   });
 
   describe('normalizes the protocol', () => {
     test.each([
-      ['fflogs.com without protocol', 'fflogs.com/reports/ABC123def456'],
-      ['youtube.com without protocol', 'www.youtube.com/watch?v=dQw4w9WgXcQ'],
-    ])('should prepend https:// to %s', (_, url) => {
+      [
+        'fflogs.com without protocol',
+        'fflogs.com/reports/ABC123def456',
+        'https://fflogs.com/reports/ABC123def456',
+      ],
+      [
+        'youtube.com without protocol',
+        'www.youtube.com/watch?v=dQw4w9WgXcQ',
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      ],
+    ])('prepends https:// to %s', (_, url, normalized) => {
       const result = parse({ proofOfProgLink: url });
       expect(result.success).toBe(true);
       if (!result.success) return;
-      expect(result.data.proofOfProgLink).toMatch(/^https:\/\//);
+      expect(result.data.proofOfProgLink).toBe(normalized);
     });
 
     test('preserves an explicit http:// protocol', () => {
@@ -68,7 +91,9 @@ describe('proofOfProgLink validation', () => {
       });
       expect(result.success).toBe(true);
       if (!result.success) return;
-      expect(result.data.proofOfProgLink).toMatch(/^http:\/\//);
+      expect(result.data.proofOfProgLink).toBe(
+        'http://fflogs.com/reports/ABC123def456',
+      );
     });
 
     test('normalizes the parsed url', () => {
@@ -142,8 +167,13 @@ describe('proofOfProgLink validation', () => {
       ['http protocol without slashes', 'http:fflogs.com/reports/ABC123'],
       ['surrounding whitespace', '  https://fflogs.com/reports/ABC123  '],
       ['non-string value', 123],
-    ])('rejects %s', (_, url) => {
-      expect(parse({ proofOfProgLink: url }).success).toBe(false);
+    ])('rejects %s, as an invalid link', (_, url) => {
+      const result = parse({ proofOfProgLink: url });
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.error.issues.map((issue) => issue.path)).toEqual([
+        ['proofOfProgLink'],
+      ]);
     });
   });
 
