@@ -10,6 +10,7 @@ import {
 import {
   type CollectionReference,
   type DocumentData,
+  FieldValue,
   Firestore,
   type Query,
   Timestamp,
@@ -64,10 +65,14 @@ class SignupCollection {
             : SignupStatus.UPDATE_PENDING,
         // reset the reviewedBy field because it now has to be reviewed again
         reviewedBy: null,
+        declineReason: FieldValue.delete(),
         expiresAt,
       };
       await document.update(signupData);
-      return { signup: signupData, previous: existing };
+      return {
+        signup: { ...signupData, declineReason: undefined },
+        previous: existing,
+      };
     }
 
     const signupData = {
