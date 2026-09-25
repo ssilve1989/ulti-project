@@ -84,6 +84,12 @@ function copyValue(value: unknown, field: string): unknown {
     default:
       throw invalidValue(field, `Unsupported field value: ${typeof value}`);
   }
+  if (isDeleteSentinel(value)) {
+    // top-level deletes in update() and set() with merge are handled before this
+    throw new Error(
+      `FieldValue.delete() must appear at the top-level and can only be used in update() or set() with {merge:true} (found in field "${field}").`,
+    );
+  }
   if (value instanceof FieldValue) {
     return unsupported('FieldValue sentinels (serverTimestamp, increment, …)');
   }
@@ -114,6 +120,33 @@ function copyValue(value: unknown, field: string): unknown {
   throw invalidValue(
     field,
     `Couldn't serialize object of type "${type}". Firestore doesn't support JavaScript objects with custom prototypes (i.e. objects that were created via the "new" operator)`,
+  );
+}
+
+function isDeleteSentinel(value: unknown): boolean {
+  return value instanceof FieldValue && value.isEqual(FieldValue.delete());
+}
+
+/**
+ * Splits a write's top-level fields into the ones FieldValue.delete() removes
+ * and the rest, as update() and set() with merge apply them.
+ */
+function splitDeletes(data: object): { deleted: string[]; rest: Data } {
+  const entries = Object.entries(data);
+  return {
+    deleted: entries
+      .filter(([, value]) => isDeleteSentinel(value))
+      .map(([key]) => key),
+    rest: Object.fromEntries(
+      entries.filter(([, value]) => !isDeleteSentinel(value)),
+    ),
+  };
+}
+
+/** `data` without the fields in `keys`. */
+function without(data: Data, keys: readonly string[]): Data {
+  return Object.fromEntries(
+    Object.entries(data).filter(([key]) => !keys.includes(key)),
   );
 }
 
@@ -673,7 +706,7 @@ export class InMemoryFirestore {
 
   set(path: string, data: object, options: SetOptions = {}): void {
     this.assertReachable();
-    const incoming = copyData(data);
+    const incoming = options.merge ? {} : copyData(data);
     const existing = this.documents.get(path) ?? {};
 
     if (options.mergeFields) {
@@ -690,7 +723,8 @@ export class InMemoryFirestore {
       }
       this.write(path, copyData(next));
     } else if (options.merge) {
-      this.write(path, mergeInto(existing, incoming));
+      const { deleted, rest } = splitDeletes(data);
+      this.write(path, without(mergeInto(existing, copyData(rest)), deleted));
     } else {
       this.write(path, incoming);
     }
@@ -702,10 +736,13 @@ export class InMemoryFirestore {
     if (existing === undefined) {
       throw new Error(`NOT_FOUND: No document to update: ${path}`);
     }
-    const incoming = copyData(data);
-    const dotted = Object.keys(incoming).find((key) => key.includes('.'));
+    const { deleted, rest } = splitDeletes(data);
+    const incoming = copyData(rest);
+    const dotted = [...Object.keys(incoming), ...deleted].find((key) =>
+      key.includes('.'),
+    );
     if (dotted) unsupported(`dotted field paths in update() ("${dotted}")`);
-    this.write(path, { ...existing, ...incoming });
+    this.write(path, without({ ...existing, ...incoming }, deleted));
   }
 
   delete(path: string): void {

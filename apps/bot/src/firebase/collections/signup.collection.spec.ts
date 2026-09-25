@@ -93,6 +93,30 @@ describe('SignupCollection', () => {
       });
     });
 
+    it('clears the decline reason when a declined signup is resubmitted', async ({
+      db,
+      collection,
+    }) => {
+      const declined = aSignup({
+        status: SignupStatus.DECLINED,
+        reviewedBy: 'reviewer',
+        declineReason: 'no proof',
+      });
+      db.seed(PATH, declined);
+
+      const before = Date.now();
+      const { signup, previous } = await collection.upsert(aRequest());
+      const after = Date.now();
+
+      expect(previous).toEqual(declined);
+      expect(signup).toEqual(db.read(PATH));
+      expect(db.read(PATH)).toEqual({
+        ...aSignup({ reviewedBy: null }),
+        status: SignupStatus.UPDATE_PENDING,
+        expiresAt: signupExpiryFor(before, after),
+      });
+    });
+
     it('moves a reviewed signup to update-pending and reports what it replaced', async ({
       db,
       collection,
@@ -137,6 +161,52 @@ describe('SignupCollection', () => {
         progPoint: 'P6',
         partyStatus: PartyStatus.ProgParty,
         reviewedBy: 'reviewer',
+      }),
+    );
+  });
+
+  it('clears an earlier decline reason when approving', async ({
+    db,
+    collection,
+  }) => {
+    db.seed(
+      PATH,
+      aSignup({ status: SignupStatus.DECLINED, declineReason: 'no proof' }),
+    );
+
+    await collection.updateSignupStatus(
+      SignupStatus.APPROVED,
+      { ...KEY, progPoint: 'P6', partyStatus: PartyStatus.ProgParty },
+      'reviewer',
+    );
+
+    expect(db.read(PATH)).toEqual(
+      aSignup({
+        status: SignupStatus.APPROVED,
+        progPoint: 'P6',
+        partyStatus: PartyStatus.ProgParty,
+        reviewedBy: 'reviewer',
+      }),
+    );
+  });
+
+  it('keeps the decline reason when recording a decline', async ({
+    db,
+    collection,
+  }) => {
+    db.seed(PATH, aSignup({ declineReason: 'no proof' }));
+
+    await collection.updateSignupStatus(
+      SignupStatus.DECLINED,
+      { ...KEY, progPoint: undefined, partyStatus: undefined },
+      'reviewer',
+    );
+
+    expect(db.read(PATH)).toEqual(
+      aSignup({
+        status: SignupStatus.DECLINED,
+        reviewedBy: 'reviewer',
+        declineReason: 'no proof',
       }),
     );
   });
