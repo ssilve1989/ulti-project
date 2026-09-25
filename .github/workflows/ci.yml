@@ -18,7 +18,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4
       - run: pnpm install --frozen-lockfile
+      # Codegen introspects the live FFLogs API. A failed run leaves the
+      # committed schema/sdk untouched, so an upstream outage must not block CI.
       - run: pnpm graphql:codegen
+        continue-on-error: true
         env:
           FFLOGS_API_ACCESS_TOKEN: ${{ secrets.FFLOGS_API_ACCESS_TOKEN }}
       # These checks are mutually independent — they all consume the source and
