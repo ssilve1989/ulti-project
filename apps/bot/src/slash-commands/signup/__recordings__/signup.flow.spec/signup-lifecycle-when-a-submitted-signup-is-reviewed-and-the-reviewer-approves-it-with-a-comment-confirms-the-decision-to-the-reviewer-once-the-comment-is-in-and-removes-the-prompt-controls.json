@@ -185,36 +185,6 @@
   {
     "scope": "https://sheets.googleapis.com:443",
     "method": "GET",
-    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21C%3AF",
-    "body": "",
-    "status": 200,
-    "response": {
-      "range": "DMU!C1:F62",
-      "majorDimension": "ROWS",
-      "values": [
-        [],
-        ["UCOB"],
-        [],
-        ["Once your sign-up has been approved..."],
-        ["Wait for a Coordinator to contact you on Discord"],
-        [],
-        ["Clear Ready"],
-        ["IGN", "World", "Class", "prog point"],
-        ["Ikanashi Izuki", "Excalibur", "DRK (MT)", "DRK (MT)"],
-        ["Sauda Fusty", "Cactuar", "WHM", "Adds"],
-        ["Spirit Blossom", "Midgardsormr", "SGE", "Adds"],
-        ["Fye Ranulac", "Leviathan", "SMN", "Adds"],
-        ["Aeo Arcanist", "Jenova", "foo", "P5 Exas"]
-      ]
-    },
-    "rawHeaders": {
-      "content-type": "application/json; charset=UTF-8"
-    },
-    "responseIsBinary": false
-  },
-  {
-    "scope": "https://sheets.googleapis.com:443",
-    "method": "GET",
     "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21I%3AL",
     "body": "",
     "status": 200,
@@ -263,36 +233,7 @@
         ["Madeline Rose'", "Faerie", "Astro", "Fellruin"],
         ["Tio Tot", "Sargatanas", "RPR", "Fellruin"],
         ["Hiko Malqir", "Mateus", "Summoner", "Nael"],
-        ["Flow 07bd601a", "Jenova", "tank", "P6"]
-      ]
-    },
-    "rawHeaders": {
-      "content-type": "application/json; charset=UTF-8"
-    },
-    "responseIsBinary": false
-  },
-  {
-    "scope": "https://sheets.googleapis.com:443",
-    "method": "GET",
-    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21I%3AL",
-    "body": "",
-    "status": 200,
-    "response": {
-      "range": "DMU!I1:L62",
-      "majorDimension": "ROWS",
-      "values": [
-        [],
-        [],
-        [],
-        [],
-        [],
-        ["", "", "", "Last Cleanup 09/12"],
-        ["Prog List"],
-        ["IGN", "World", "Class", "prog point"],
-        ["Raya Angeles", "Rafflesia", "SGE", "Heavensfall"],
-        ["Madeline Rose'", "Faerie", "Astro", "Fellruin"],
-        ["Tio Tot", "Sargatanas", "RPR", "Fellruin"],
-        ["Hiko Malqir", "Mateus", "Summoner", "Nael"]
+        ["Flow E0d1c76e", "Jenova", "tank", "P6"]
       ]
     },
     "rawHeaders": {
@@ -351,7 +292,7 @@
     "method": "PUT",
     "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21I13%3AL?valueInputOption=USER_ENTERED",
     "body": {
-      "values": [["Flow 07bd601a", "Jenova", "tank", "P6"]]
+      "values": [["Flow E0d1c76e", "Jenova", "tank", "P6"]]
     },
     "status": 200,
     "response": {

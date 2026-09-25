@@ -204,6 +204,37 @@
         ["Sauda Fusty", "Cactuar", "WHM", "Adds"],
         ["Spirit Blossom", "Midgardsormr", "SGE", "Adds"],
         ["Fye Ranulac", "Leviathan", "SMN", "Adds"],
+        ["Aeo Arcanist", "Jenova", "foo", "P5 Exas"],
+        ["Flow C6c27816", "Jenova", "tank", "P7"]
+      ]
+    },
+    "rawHeaders": {
+      "content-type": "application/json; charset=UTF-8"
+    },
+    "responseIsBinary": false
+  },
+  {
+    "scope": "https://sheets.googleapis.com:443",
+    "method": "GET",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21C%3AF",
+    "body": "",
+    "status": 200,
+    "response": {
+      "range": "DMU!C1:F62",
+      "majorDimension": "ROWS",
+      "values": [
+        [],
+        ["UCOB"],
+        [],
+        ["Once your sign-up has been approved..."],
+        ["Wait for a Coordinator to contact you on Discord"],
+        [],
+        ["Clear Ready"],
+        ["IGN", "World", "Class", "prog point"],
+        ["Ikanashi Izuki", "Excalibur", "DRK (MT)", "DRK (MT)"],
+        ["Sauda Fusty", "Cactuar", "WHM", "Adds"],
+        ["Spirit Blossom", "Midgardsormr", "SGE", "Adds"],
+        ["Fye Ranulac", "Leviathan", "SMN", "Adds"],
         ["Aeo Arcanist", "Jenova", "foo", "P5 Exas"]
       ]
     },
@@ -262,8 +293,7 @@
         ["Raya Angeles", "Rafflesia", "SGE", "Heavensfall"],
         ["Madeline Rose'", "Faerie", "Astro", "Fellruin"],
         ["Tio Tot", "Sargatanas", "RPR", "Fellruin"],
-        ["Hiko Malqir", "Mateus", "Summoner", "Nael"],
-        ["Flow 07bd601a", "Jenova", "tank", "P6"]
+        ["Hiko Malqir", "Mateus", "Summoner", "Nael"]
       ]
     },
     "rawHeaders": {
@@ -325,10 +355,10 @@
           "updateCells": {
             "range": {
               "sheetId": 695983618,
-              "startRowIndex": 12,
-              "endRowIndex": 13,
-              "startColumnIndex": 8,
-              "endColumnIndex": 12
+              "startRowIndex": 13,
+              "endRowIndex": 14,
+              "startColumnIndex": 2,
+              "endColumnIndex": 6
             },
             "fields": "userEnteredValue"
           }
@@ -349,14 +379,14 @@
   {
     "scope": "https://sheets.googleapis.com:443",
     "method": "PUT",
-    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21I13%3AL?valueInputOption=USER_ENTERED",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21C14%3AF?valueInputOption=USER_ENTERED",
     "body": {
-      "values": [["Flow 07bd601a", "Jenova", "tank", "P6"]]
+      "values": [["Flow C6c27816", "Jenova", "tank", "P7"]]
     },
     "status": 200,
     "response": {
       "spreadsheetId": "1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY",
-      "updatedRange": "DMU!I13:L13",
+      "updatedRange": "DMU!C14:F14",
       "updatedRows": 1,
       "updatedColumns": 4,
       "updatedCells": 4

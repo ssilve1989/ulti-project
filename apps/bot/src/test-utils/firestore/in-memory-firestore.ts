@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { type FieldPath, FieldValue } from 'firebase-admin/firestore';
+import {
+  type FieldPath,
+  FieldValue,
+  Filter,
+  Timestamp,
+} from 'firebase-admin/firestore';
 
 type Data = Record<string, unknown>;
 type Operator = '==' | 'in' | '>' | '<';
@@ -9,6 +14,12 @@ interface Condition {
   operator: Operator;
   value: unknown;
 }
+
+/** A where() clause: one condition, or an OR of several (`Filter.or`). */
+type Clause = Condition | { readonly anyOf: readonly Condition[] };
+
+const conditionsIn = (clause: Clause): readonly Condition[] =>
+  'anyOf' in clause ? clause.anyOf : [clause];
 
 interface Ordering {
   field: string;
@@ -45,25 +56,72 @@ function isPlainObject(value: unknown): value is Data {
   );
 }
 
+/** The error Firestore raises before sending a value it can't store. */
+function invalidValue(field: string, problem: string): Error {
+  return new Error(
+    `Value for argument "data" is not a valid Firestore document. ${problem} (found in field "${field}").`,
+  );
+}
+
 /**
- * Deep-copies plain objects and arrays so stored documents can't be changed
- * through a returned reference, and drops `undefined` fields (the app enables
- * `ignoreUndefinedProperties`). Class instances such as `Timestamp` are kept.
+ * Converts a value to what Firestore stores, deep-copying maps and arrays so
+ * stored documents can't be changed through a returned reference. Like the
+ * real client it turns a `Date` into a `Timestamp`, drops `undefined` map
+ * fields (the app enables `ignoreUndefinedProperties`) and rejects what it
+ * can't serialize.
  */
-function copyValue(value: unknown): unknown {
+function copyValue(value: unknown, field: string): unknown {
+  if (value === null) return null;
+  switch (typeof value) {
+    case 'string':
+    case 'number':
+    case 'boolean':
+      return value;
+    case 'undefined':
+      throw invalidValue(field, 'Cannot use "undefined" as a Firestore value');
+    case 'object':
+      break;
+    default:
+      throw invalidValue(field, `Unsupported field value: ${typeof value}`);
+  }
   if (value instanceof FieldValue) {
     return unsupported('FieldValue sentinels (serverTimestamp, increment, …)');
   }
-  if (Array.isArray(value)) return value.map(copyValue);
-  if (isPlainObject(value)) return copyData(value);
-  return value;
+  if (value instanceof Timestamp) return value;
+  if (value instanceof Date) return Timestamp.fromDate(value);
+  if (Array.isArray(value)) {
+    return value.map((element, index) => {
+      if (Array.isArray(element)) {
+        throw invalidValue(field, 'Nested arrays are not supported');
+      }
+      return copyValue(element, `${field}.${index}`);
+    });
+  }
+  if (isPlainObject(value)) return copyData(value, `${field}.`);
+  // GeoPoint, DocumentReference, bytes and vectors are storable but unmodelled
+  const type = value.constructor?.name ?? 'Object';
+  if (
+    [
+      'GeoPoint',
+      'DocumentReference',
+      'Buffer',
+      'Uint8Array',
+      'VectorValue',
+    ].includes(type)
+  ) {
+    return unsupported(`${type} values`);
+  }
+  throw invalidValue(
+    field,
+    `Couldn't serialize object of type "${type}". Firestore doesn't support JavaScript objects with custom prototypes (i.e. objects that were created via the "new" operator)`,
+  );
 }
 
-function copyData(data: object): Data {
+function copyData(data: object, prefix = ''): Data {
   return Object.fromEntries(
     Object.entries(data)
       .filter(([, value]) => value !== undefined)
-      .map(([key, value]) => [key, copyValue(value)]),
+      .map(([key, value]) => [key, copyValue(value, `${prefix}${key}`)]),
   );
 }
 
@@ -123,6 +181,81 @@ function compare(a: unknown, b: unknown): number {
   return unsupported(`comparing a ${typeof a} with a ${typeof b}`);
 }
 
+function satisfies(data: Data, clause: Clause): boolean {
+  return 'anyOf' in clause
+    ? clause.anyOf.some((condition) => matches(data, condition))
+    : matches(data, clause);
+}
+
+/** Validates a where() condition the way Firestore does, or refuses what the fake doesn't model. */
+function condition(
+  field: unknown,
+  operator: unknown,
+  value: unknown,
+): Condition {
+  if (typeof field !== 'string') {
+    return unsupported(`FieldPath objects in where() ("${String(field)}")`);
+  }
+  if (field.includes('.')) {
+    return unsupported(`nested field paths in where() ("${field}")`);
+  }
+  if (typeof operator !== 'string' || !isOperator(operator)) {
+    return unsupported(`the "${String(operator)}" where() operator`);
+  }
+  if (value === undefined) {
+    throw new Error(
+      'Function Query.where() called with invalid data. Unsupported field value: undefined',
+    );
+  }
+  if (operator === 'in' && (!Array.isArray(value) || value.length === 0)) {
+    throw new Error("'in' filters require a non-empty array");
+  }
+  if (operator === 'in' && Array.isArray(value) && value.length > 30) {
+    throw new Error("'in' filters support at most 30 values");
+  }
+  if (operator === '==' && typeof value === 'object' && value !== null) {
+    return unsupported('== against maps, arrays or class instances');
+  }
+  return { field, operator, value };
+}
+
+/**
+ * The clauses a `Filter` stands for. Filter's fields aren't in its typings,
+ * so they're read by name: a unary filter has field/operator/value, a
+ * composite has filters and an 'AND'/'OR' operator.
+ */
+function clausesOf(filter: Filter): Clause[] {
+  const filters: unknown = Reflect.get(filter, 'filters');
+  const operator: unknown = Reflect.get(filter, 'operator');
+  if (!Array.isArray(filters)) {
+    return [
+      condition(
+        Reflect.get(filter, 'field'),
+        operator,
+        Reflect.get(filter, 'value'),
+      ),
+    ];
+  }
+  const conditions = filters.map((inner: unknown) => {
+    if (
+      !(inner instanceof Filter) ||
+      Array.isArray(Reflect.get(inner, 'filters'))
+    ) {
+      return unsupported(
+        'nested composite filters (Filter.or inside Filter.and, …)',
+      );
+    }
+    return condition(
+      Reflect.get(inner, 'field'),
+      Reflect.get(inner, 'operator'),
+      Reflect.get(inner, 'value'),
+    );
+  });
+  if (operator === 'AND') return conditions;
+  if (operator === 'OR') return [{ anyOf: conditions }];
+  return unsupported(`the "${String(operator)}" composite filter`);
+}
+
 function matches(data: Data, { field, operator, value }: Condition): boolean {
   const actual = data[field];
   switch (operator) {
@@ -135,6 +268,23 @@ function matches(data: Data, { field, operator, value }: Condition): boolean {
     case '<':
       return actual !== undefined && compare(actual, value) < 0;
   }
+}
+
+/** What Firestore resolves a write with. */
+class WriteResult {
+  constructor(readonly writeTime: Timestamp) {}
+
+  isEqual(other: WriteResult): boolean {
+    return this.writeTime.isEqual(other.writeTime);
+  }
+}
+
+/** Applies a write, resolving like Firestore or rejecting if it throws. */
+function written(write: () => void): Promise<WriteResult> {
+  return Promise.try(() => {
+    write();
+    return new WriteResult(Timestamp.now());
+  });
 }
 
 class DocumentSnapshot {
@@ -165,7 +315,7 @@ class QuerySnapshot {
 }
 
 interface QueryState {
-  readonly conditions: readonly Condition[];
+  readonly conditions: readonly Clause[];
   readonly orderings: readonly Ordering[];
   readonly maxResults?: number;
 }
@@ -185,32 +335,11 @@ class Query {
   }
 
   where(field: unknown, operator?: string, value?: unknown): Query {
-    if (typeof field !== 'string') {
-      return unsupported('Filter objects in where() (Filter.or / Filter.and)');
-    }
-    if (field.includes('.')) {
-      return unsupported(`nested field paths in where() ("${field}")`);
-    }
-    if (operator === undefined || !isOperator(operator)) {
-      return unsupported(`the "${operator}" where() operator`);
-    }
-    if (value === undefined) {
-      throw new Error(
-        'Function Query.where() called with invalid data. Unsupported field value: undefined',
-      );
-    }
-    if (operator === 'in' && (!Array.isArray(value) || value.length === 0)) {
-      throw new Error("'in' filters require a non-empty array");
-    }
-    if (operator === 'in' && Array.isArray(value) && value.length > 30) {
-      throw new Error("'in' filters support at most 30 values");
-    }
-    if (operator === '==' && typeof value === 'object' && value !== null) {
-      return unsupported('== against maps, arrays or class instances');
-    }
-    return this.with({
-      conditions: [...this.state.conditions, { field, operator, value }],
-    });
+    const clauses =
+      field instanceof Filter
+        ? clausesOf(field)
+        : [condition(field, operator, value)];
+    return this.with({ conditions: [...this.state.conditions, ...clauses] });
   }
 
   orderBy(field: string, direction: 'asc' | 'desc' = 'asc'): Query {
@@ -233,15 +362,16 @@ class Query {
    * exist and refuses them rather than pretending they work.
    */
   private assertServableWithoutCompositeIndex(): void {
+    const conditions = this.state.conditions.flatMap(conditionsIn);
     const inequalityFields = new Set(
-      this.state.conditions
+      conditions
         .filter(({ operator }) => operator === '>' || operator === '<')
         .map(({ field }) => field),
     );
     const [firstOrdering] = this.state.orderings;
     const filterOnOtherField =
       firstOrdering !== undefined &&
-      this.state.conditions.some(({ field }) => field !== firstOrdering.field);
+      conditions.some(({ field }) => field !== firstOrdering.field);
 
     if (inequalityFields.size > 1 || filterOnOtherField) {
       throw new Error(
@@ -250,23 +380,53 @@ class Query {
     }
   }
 
+  /**
+   * The order Firestore returns results in: the explicit orderBy()s, then any
+   * inequality-filtered field not already ordered (lexicographically), then the
+   * document id, the implicit ones in the last explicit direction (ascending
+   * when there is none), as the SDK's createImplicitOrderBy does.
+   */
+  private effectiveOrderings(): {
+    orderings: Ordering[];
+    idDirection: 'asc' | 'desc';
+  } {
+    const orderings = [...this.state.orderings];
+    const idDirection = orderings.at(-1)?.direction ?? 'asc';
+    const inequalityFields = [
+      ...new Set(
+        this.state.conditions
+          .flatMap(conditionsIn)
+          .filter(({ operator }) => operator === '>' || operator === '<')
+          .map(({ field }) => field),
+      ),
+    ].sort();
+    for (const field of inequalityFields) {
+      if (!orderings.some((ordering) => ordering.field === field)) {
+        orderings.push({ field, direction: idDirection });
+      }
+    }
+    return { orderings, idDirection };
+  }
+
   private run(): DocumentSnapshot[] {
     this.assertServableWithoutCompositeIndex();
+    const { orderings, idDirection } = this.effectiveOrderings();
     const docs = this.db
       .documentsIn(this.collectionPath)
       .filter(({ data }) =>
-        this.state.conditions.every((condition) => matches(data, condition)),
+        this.state.conditions.every((clause) => satisfies(data, clause)),
       )
       // Firestore leaves out documents missing an ordered-by field
       .filter(({ data }) =>
-        this.state.orderings.every(({ field }) => data[field] !== undefined),
+        orderings.every(({ field }) => data[field] !== undefined),
       )
       .sort((a, b) => {
-        for (const { field, direction } of this.state.orderings) {
+        for (const { field, direction } of orderings) {
           const result = compare(a.data[field], b.data[field]);
           if (result !== 0) return direction === 'asc' ? result : -result;
         }
-        return compare(a.id, b.id);
+        const byId = compare(a.id, b.id);
+        return idDirection === 'asc' ? byId : -byId;
       });
 
     const limited =
@@ -308,23 +468,23 @@ class DocumentReference {
   }
 
   get(): Promise<DocumentSnapshot> {
-    return Promise.resolve(this.db.snapshot(this));
+    return Promise.try(() => this.db.snapshot(this));
   }
 
-  create(data: object): Promise<void> {
-    return Promise.try(() => this.db.create(this.path, data));
+  create(data: object): Promise<WriteResult> {
+    return written(() => this.db.create(this.path, data));
   }
 
-  set(data: object, options?: SetOptions): Promise<void> {
-    return Promise.try(() => this.db.set(this.path, data, options));
+  set(data: object, options?: SetOptions): Promise<WriteResult> {
+    return written(() => this.db.set(this.path, data, options));
   }
 
-  update(data: object): Promise<void> {
-    return Promise.try(() => this.db.update(this.path, data));
+  update(data: object): Promise<WriteResult> {
+    return written(() => this.db.update(this.path, data));
   }
 
-  delete(): Promise<void> {
-    return Promise.try(() => this.db.delete(this.path));
+  delete(): Promise<WriteResult> {
+    return written(() => this.db.delete(this.path));
   }
 }
 
@@ -353,6 +513,10 @@ class PendingWrites {
     return this;
   }
 
+  protected get writeCount(): number {
+    return this.writes.length;
+  }
+
   protected get hasWrites(): boolean {
     return this.writes.length > 0;
   }
@@ -365,8 +529,16 @@ class PendingWrites {
 }
 
 class WriteBatch extends PendingWrites {
-  commit(): Promise<void> {
-    return Promise.try(() => this.apply());
+  /** Like Firestore, resolves with one write result per write. */
+  commit(): Promise<WriteResult[]> {
+    return Promise.try(() => {
+      this.apply();
+      const writeTime = Timestamp.now();
+      return Array.from(
+        { length: this.writeCount },
+        () => new WriteResult(writeTime),
+      );
+    });
   }
 }
 
@@ -407,6 +579,17 @@ export class InMemoryFirestore {
   private readonly documents = new Map<string, Data>();
   /** path → number of writes, for transaction contention checks */
   private readonly versions = new Map<string, number>();
+  private readonly writeListeners = new Set<(path: string) => void>();
+  private unreachable = false;
+
+  /**
+   * Makes every later read and write fail the way the Firestore client does
+   * when it can't reach Firestore: gRPC status 14, UNAVAILABLE. Seeding and
+   * reading as a test still work.
+   */
+  goOffline(): void {
+    this.unreachable = true;
+  }
 
   collection(path: string): CollectionReference {
     return new CollectionReference(this, path);
@@ -437,7 +620,17 @@ export class InMemoryFirestore {
 
   /** Test setup: writes a document directly, bypassing the app. */
   seed(path: string, data: object): void {
-    this.write(path, copyData(data));
+    this.store(path, copyData(data));
+  }
+
+  /**
+   * Test observation: calls `listener` with the path of every document the app
+   * creates, sets, updates or deletes (not seeds), as the write lands.
+   * Returns a function that stops listening.
+   */
+  onWrite(listener: (path: string) => void): () => void {
+    this.writeListeners.add(listener);
+    return () => this.writeListeners.delete(listener);
   }
 
   /** Test assertion: the stored document at `path`, or undefined. */
@@ -453,12 +646,14 @@ export class InMemoryFirestore {
   }
 
   snapshot(ref: DocumentReference): DocumentSnapshot {
+    this.assertReachable();
     return new DocumentSnapshot(ref, this.documents.get(ref.path));
   }
 
   documentsIn(
     collectionPath: string,
   ): Array<{ id: string; path: string; data: Data }> {
+    this.assertReachable();
     const prefix = `${collectionPath}/`;
     return [...this.documents]
       .filter(
@@ -469,6 +664,7 @@ export class InMemoryFirestore {
   }
 
   create(path: string, data: object): void {
+    this.assertReachable();
     if (this.documents.has(path)) {
       throw new Error(`ALREADY_EXISTS: Document already exists: ${path}`);
     }
@@ -476,6 +672,7 @@ export class InMemoryFirestore {
   }
 
   set(path: string, data: object, options: SetOptions = {}): void {
+    this.assertReachable();
     const incoming = copyData(data);
     const existing = this.documents.get(path) ?? {};
 
@@ -483,7 +680,13 @@ export class InMemoryFirestore {
       let next = existing;
       for (const field of options.mergeFields) {
         const segments = fieldSegments(field);
-        next = withValueAt(next, segments, valueAt(incoming, segments));
+        const value = valueAt(incoming, segments);
+        if (value === undefined) {
+          throw new Error(
+            `Input data is missing for field "${segments.join('.')}".`,
+          );
+        }
+        next = withValueAt(next, segments, value);
       }
       this.write(path, copyData(next));
     } else if (options.merge) {
@@ -494,6 +697,7 @@ export class InMemoryFirestore {
   }
 
   update(path: string, data: object): void {
+    this.assertReachable();
     const existing = this.documents.get(path);
     if (existing === undefined) {
       throw new Error(`NOT_FOUND: No document to update: ${path}`);
@@ -505,8 +709,10 @@ export class InMemoryFirestore {
   }
 
   delete(path: string): void {
+    this.assertReachable();
     this.documents.delete(path);
     this.versions.set(path, this.version(path) + 1);
+    this.notify(path);
   }
 
   /** Runs `apply`; if it throws, restores every document to its prior state. */
@@ -525,7 +731,25 @@ export class InMemoryFirestore {
   }
 
   private write(path: string, data: Data): void {
+    this.store(path, data);
+    this.notify(path);
+  }
+
+  private store(path: string, data: Data): void {
     this.documents.set(path, data);
     this.versions.set(path, this.version(path) + 1);
+  }
+
+  private assertReachable(): void {
+    if (this.unreachable) {
+      throw Object.assign(
+        new Error('14 UNAVAILABLE: No connection established'),
+        { code: 14, details: 'No connection established' },
+      );
+    }
+  }
+
+  private notify(path: string): void {
+    for (const listener of this.writeListeners) listener(path);
   }
 }

@@ -17,7 +17,8 @@ import { mockOf } from '../mock-factory.js';
 export type MessageLocation =
   | { kind: 'channel'; guildId: string; channelId: string }
   | { kind: 'dm'; userId: string }
-  | { kind: 'reply'; userId: string };
+  /** an interaction response; ephemeral ones only `userId` can see */
+  | { kind: 'reply'; userId: string; ephemeral: boolean };
 
 type OutgoingEmbed = Parameters<typeof EmbedBuilder.from>[0];
 
@@ -29,6 +30,8 @@ export type OutgoingPayload =
       embeds?: readonly OutgoingEmbed[] | null;
       components?: readonly unknown[] | null;
     };
+
+const SUPPORTED_PAYLOAD_KEYS = new Set(['content', 'embeds', 'components']);
 
 type InteractionFilter = (interaction: Interaction) => boolean;
 
@@ -88,6 +91,7 @@ export function discordjsError(
 export function unknownResource(
   code:
     | RESTJSONErrorCodes.UnknownChannel
+    | RESTJSONErrorCodes.UnknownGuild
     | RESTJSONErrorCodes.UnknownMember
     | RESTJSONErrorCodes.UnknownMessage
     | RESTJSONErrorCodes.UnknownUser,
@@ -95,6 +99,7 @@ export function unknownResource(
 ): DiscordAPIError {
   const message = {
     [RESTJSONErrorCodes.UnknownChannel]: 'Unknown Channel',
+    [RESTJSONErrorCodes.UnknownGuild]: 'Unknown Guild',
     [RESTJSONErrorCodes.UnknownMember]: 'Unknown Member',
     [RESTJSONErrorCodes.UnknownMessage]: 'Unknown Message',
     [RESTJSONErrorCodes.UnknownUser]: 'Unknown User',
@@ -103,6 +108,19 @@ export function unknownResource(
     body: undefined,
     files: undefined,
   });
+}
+
+/** The DiscordAPIError the API returns when a user doesn't accept DMs from the bot. */
+export function cannotMessageUser(channelId: string): DiscordAPIError {
+  const code = RESTJSONErrorCodes.CannotSendMessagesToThisUser;
+  return new DiscordAPIError(
+    { message: 'Cannot send messages to this user', code },
+    code,
+    403,
+    'POST',
+    `/channels/${channelId}/messages`,
+    { body: undefined, files: undefined },
+  );
 }
 
 /** The error discord.js raises when a collector ends without an interaction. */
@@ -159,6 +177,43 @@ class FakeCollector extends EventEmitter {
   }
 }
 
+/** An emoji as a reaction carries it: custom emojis have an id, unicode ones don't. */
+export interface ReactionEmoji {
+  id: string | null;
+  name: string;
+}
+
+/**
+ * What discord.js's resolvePartialEmoji makes of an emoji passed to react():
+ * a custom emoji (a GuildEmoji, or its `<:name:id>` mention) keeps its name
+ * and id, and a unicode emoji is just its name.
+ */
+export function resolveEmoji(emoji: unknown): ReactionEmoji {
+  if (typeof emoji === 'string') {
+    const custom = /^<a?:(\w+):(\d+)>$/.exec(emoji);
+    return custom?.[1] && custom[2]
+      ? { id: custom[2], name: custom[1] }
+      : { id: null, name: emoji };
+  }
+  if (typeof emoji === 'object' && emoji !== null) {
+    const id: unknown = Reflect.get(emoji, 'id');
+    const name: unknown = Reflect.get(emoji, 'name');
+    // a GuildEmoji, or an emoji already resolved (unicode ones have a null id)
+    if ((typeof id === 'string' || id === null) && typeof name === 'string') {
+      return { id, name };
+    }
+  }
+  throw new Error(`FakeMessage can't react with ${String(emoji)}`);
+}
+
+/** How discord.js keys a reaction in a message's reaction cache. */
+export const reactionKey = ({ id, name }: ReactionEmoji) => id ?? name;
+
+/** Everything a user sees of a message: where it is, its text, embeds and controls. */
+export function shown({ location, content, embeds, components }: FakeMessage) {
+  return { location, content, embeds, components };
+}
+
 export class FakeMessage {
   content: string | undefined;
   embeds: APIEmbed[] = [];
@@ -175,7 +230,10 @@ export class FakeMessage {
     readonly authorId: string,
     payload: OutgoingPayload,
     /** Called when the author reacts, so the mock can record it and emit the gateway event. */
-    private readonly onReact: (message: FakeMessage, emoji: string) => void,
+    private readonly onReact: (
+      message: FakeMessage,
+      emoji: ReactionEmoji,
+    ) => void,
   ) {
     this.apply(payload);
   }
@@ -184,6 +242,16 @@ export class FakeMessage {
     if (typeof payload === 'string') {
       this.content = payload;
       return;
+    }
+    // anything else (allowedMentions, files, flags, …) changes what users see
+    // or who gets pinged, so the fake refuses it rather than dropping it
+    const unsupported = Object.keys(payload).filter(
+      (key) => !SUPPORTED_PAYLOAD_KEYS.has(key),
+    );
+    if (unsupported.length > 0) {
+      throw new Error(
+        `FakeMessage does not support message options: ${unsupported.join(', ')}`,
+      );
     }
     if (payload.content !== undefined) {
       this.content = payload.content ?? undefined;
@@ -264,7 +332,14 @@ export class FakeMessage {
     }
   }
 
-  /** The discord.js-shaped view of this message handed to app code. */
+  /**
+   * The discord.js-shaped view of this message handed to app code. It's live:
+   * stated assumption, like role changes in DiscordMock, that Discord's
+   * gateway update for an edit reaches every `Message` the bot holds before
+   * the bot reads it again. (discord.js's `edit()` returns an updated clone and
+   * updates the cached message only when the gateway's MESSAGE_UPDATE
+   * arrives.)
+   */
   toMessage<InGuild extends boolean = boolean>(): Message<InGuild> {
     // getters below need the FakeMessage, not the literal they live on
     const fake = this;
@@ -290,8 +365,10 @@ export class FakeMessage {
       inGuild: () => location.kind === 'channel',
       edit: (payload: OutgoingPayload) => {
         if (fake.deleted) return fake.unknown();
-        fake.apply(payload);
-        return Promise.resolve(fake.toMessage());
+        return Promise.try(() => {
+          fake.apply(payload);
+          return fake.toMessage();
+        });
       },
       delete: () => {
         if (fake.deleted) return fake.unknown();
@@ -300,8 +377,7 @@ export class FakeMessage {
       },
       react: (emoji: unknown) => {
         if (fake.deleted) return fake.unknown();
-        fake.onReact(fake, String(emoji));
-        return Promise.resolve();
+        return Promise.try(() => fake.onReact(fake, resolveEmoji(emoji)));
       },
       reactions: {
         cache: {
