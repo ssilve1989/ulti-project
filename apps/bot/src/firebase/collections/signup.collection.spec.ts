@@ -13,6 +13,7 @@ import type {
   Query,
   Transaction,
 } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import {
   beforeEach,
   describe,
@@ -107,6 +108,30 @@ describe('Signup Repository', () => {
     });
   });
 
+  it('should clear a prior declineReason when moving to UPDATE_PENDING', async () => {
+    const existingData = {
+      ...signupRequest,
+      status: SignupStatus.DECLINED,
+      reviewedBy: 'someReviewer',
+      declineReason: 'lacks proof',
+    };
+    doc.get.mockResolvedValueOnce(
+      mockOf<DocumentSnapshot>({
+        exists: true,
+        data: () => existingData,
+      }),
+    );
+
+    const deleteSentinel = FieldValue.delete();
+    const { signup } = await repository.upsert(signupRequest);
+
+    expect(doc.update).toHaveBeenCalledWith(
+      expect.objectContaining({ declineReason: deleteSentinel }),
+    );
+    expect(signup).toMatchObject({ status: SignupStatus.UPDATE_PENDING });
+    expect(signup.declineReason).toBeUndefined();
+  });
+
   it('should preserve PENDING status when updating an existing PENDING signup', async () => {
     const existingData = {
       ...signupRequest,
@@ -170,7 +195,20 @@ describe('Signup Repository', () => {
     expect(doc.update).toHaveBeenCalledWith({
       status: SignupStatus.APPROVED,
       reviewedBy: 'reviewedBy',
+      declineReason: FieldValue.delete(),
     });
+  });
+
+  it('should not clear declineReason when setting DECLINED', async () => {
+    await repository.updateSignupStatus(
+      SignupStatus.DECLINED,
+      SIGNUP_KEY,
+      'reviewedBy',
+    );
+
+    expect(doc.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({ declineReason: FieldValue.delete() }),
+    );
   });
 
   it('should call setReviewMessageId with the correct arguments', async () => {
