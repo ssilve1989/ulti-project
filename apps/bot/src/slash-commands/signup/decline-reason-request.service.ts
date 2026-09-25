@@ -147,6 +147,24 @@ class DeclineReasonRequestService {
         reviewMessage,
         `Decline reason request timed out for signup ${signupId}`,
       );
+    } finally {
+      await this.removeReasonDropdown(dmMessage, signupId);
+    }
+  }
+
+  // The dropdown outlives its collector, so once the prompt ends (recorded,
+  // timed out, or gave up) it must go or it stays clickable but dead.
+  private async removeReasonDropdown(
+    dmMessage: Message<false> | InteractionResponse<false>,
+    signupId: string,
+  ): Promise<void> {
+    try {
+      await dmMessage.edit({ components: [] });
+    } catch (error) {
+      this.logger.warn(
+        error,
+        `Failed to remove the decline reason dropdown for signup ${signupId}`,
+      );
     }
   }
 
@@ -362,12 +380,9 @@ class DeclineReasonRequestService {
         flags: MessageFlags.Ephemeral,
       });
     }
-    return await Promise.all([
-      interaction.message?.edit({ components: [] }),
-      interaction.reply({
-        content: SIGNUP_MESSAGES.DECLINE_REASON_NOT_RECORDED,
-      }),
-    ]);
+    return await interaction.reply({
+      content: SIGNUP_MESSAGES.DECLINE_REASON_NOT_RECORDED,
+    });
   }
 
   private async handleTimeoutError(
