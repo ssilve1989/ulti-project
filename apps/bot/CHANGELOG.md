@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.8.1](https://github.com/ssilve1989/ulti-project/compare/v2.8.0...v2.8.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* **signup:** clear stale declineReason on resubmit and approval ([#1556](https://github.com/ssilve1989/ulti-project/issues/1556)) ([ab225fd](https://github.com/ssilve1989/ulti-project/commit/ab225fd83b97b6f20ce62701205ba33ee4365e5e))
+* **signup:** remove decline reason dropdown once the prompt ends ([#1555](https://github.com/ssilve1989/ulti-project/issues/1555)) ([a1a537c](https://github.com/ssilve1989/ulti-project/commit/a1a537c1d9334f704f7b6f0f205aae17fe11d6bc))
+
 ## [2.8.0](https://github.com/ssilve1989/ulti-project/compare/v2.7.3...v2.8.0) (2026-09-24)
 
 
