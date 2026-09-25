@@ -163,6 +163,9 @@ class SignupCollection {
       progPoint,
       reviewedBy,
       partyStatus,
+      ...(status !== SignupStatus.DECLINED && {
+        declineReason: FieldValue.delete(),
+      }),
     });
   }
 

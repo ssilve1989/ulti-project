@@ -195,7 +195,20 @@ describe('Signup Repository', () => {
     expect(doc.update).toHaveBeenCalledWith({
       status: SignupStatus.APPROVED,
       reviewedBy: 'reviewedBy',
+      declineReason: FieldValue.delete(),
     });
+  });
+
+  it('should not clear declineReason when setting DECLINED', async () => {
+    await repository.updateSignupStatus(
+      SignupStatus.DECLINED,
+      SIGNUP_KEY,
+      'reviewedBy',
+    );
+
+    expect(doc.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({ declineReason: FieldValue.delete() }),
+    );
   });
 
   it('should call setReviewMessageId with the correct arguments', async () => {
