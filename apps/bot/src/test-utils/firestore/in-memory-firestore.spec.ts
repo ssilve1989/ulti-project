@@ -482,6 +482,40 @@ describe('InMemoryFirestore', () => {
       ).rejects.toThrow('does not support dotted field paths');
     });
 
+    it('removes a field set to FieldValue.delete() in update() or set() with merge', async ({
+      db,
+    }) => {
+      db.seed('signups/a', { status: 'DECLINED', declineReason: 'late' });
+      db.seed('signups/b', { status: 'DECLINED', declineReason: 'late' });
+
+      await db
+        .collection('signups')
+        .doc('a')
+        .update({ status: 'APPROVED', declineReason: FieldValue.delete() });
+      await db
+        .collection('signups')
+        .doc('b')
+        .set({ declineReason: FieldValue.delete() }, { merge: true });
+
+      expect([db.read('signups/a'), db.read('signups/b')]).toEqual([
+        { status: 'APPROVED' },
+        { status: 'DECLINED' },
+      ]);
+    });
+
+    it('rejects FieldValue.delete() in create() or set() without merge', async ({
+      db,
+    }) => {
+      const ref = db.collection('signups').doc('a');
+
+      await expect(
+        ref.create({ declineReason: FieldValue.delete() }),
+      ).rejects.toThrow('FieldValue.delete() must appear at the top-level');
+      await expect(
+        ref.set({ declineReason: FieldValue.delete() }),
+      ).rejects.toThrow('FieldValue.delete() must appear at the top-level');
+    });
+
     it('refuses FieldValue sentinels it does not implement', async ({ db }) => {
       await expect(
         db

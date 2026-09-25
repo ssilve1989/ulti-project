@@ -675,7 +675,8 @@ const approvalPrompt = (components: unknown[], signup?: ShownSignup) => ({
   components,
 });
 
-const declineReasonPrompt = () => ({
+/** The prompt DMed to a declining reviewer; its reason menu goes once the prompt ends. */
+const declineReasonPrompt = ({ withMenu }: { withMenu: boolean }) => ({
   location: dmTo(REVIEWER.id),
   content: undefined,
   embeds: [
@@ -693,28 +694,30 @@ const declineReasonPrompt = () => ({
       footer: { text: 'This request will timeout in 5 minutes' },
     },
   ],
-  components: [
-    {
-      type: ComponentType.ActionRow,
-      components: [
+  components: !withMenu
+    ? []
+    : [
         {
-          type: ComponentType.StringSelect,
-          custom_id: `${DECLINE_REASON_SELECT_ID}-${PLAYER.id}-${Encounter.DMU}`,
-          placeholder: 'Select a reason for declining this signup',
-          options: [
-            ...SIGNUP_DECLINE_REASONS_CONFIG.map(({ reason }) => ({
-              label: reason,
-              value: reason,
-            })),
+          type: ComponentType.ActionRow,
+          components: [
             {
-              label: 'Other - provide custom reason',
-              value: CUSTOM_DECLINE_REASON_VALUE,
+              type: ComponentType.StringSelect,
+              custom_id: `${DECLINE_REASON_SELECT_ID}-${PLAYER.id}-${Encounter.DMU}`,
+              placeholder: 'Select a reason for declining this signup',
+              options: [
+                ...SIGNUP_DECLINE_REASONS_CONFIG.map(({ reason }) => ({
+                  label: reason,
+                  value: reason,
+                })),
+                {
+                  label: 'Other - provide custom reason',
+                  value: CUSTOM_DECLINE_REASON_VALUE,
+                },
+              ],
             },
           ],
         },
       ],
-    },
-  ],
 });
 
 /** The DM telling the player their signup was declined. */
@@ -1701,11 +1704,11 @@ describe('Signup lifecycle', () => {
         );
       });
 
-      it('asks the reviewer for a reason and privately confirms the one they chose', ({
+      it('removes the reason menu once a reason is chosen, and privately confirms it', ({
         flow,
       }) => {
         expect(flow.discord.dmsTo(REVIEWER.id).map(shown)).toEqual([
-          declineReasonPrompt(),
+          declineReasonPrompt({ withMenu: false }),
         ]);
         expect(flow.discord.repliesTo(REVIEWER.id).map(shown)).toEqual([
           textReply(
@@ -1773,9 +1776,12 @@ describe('Signup lifecycle', () => {
         );
       });
 
-      it('asks the reviewer for the reason in a modal and privately confirms it', ({
+      it('asks the reviewer for the reason in a modal, removes the reason menu and privately confirms it', ({
         flow,
       }) => {
+        expect(flow.discord.dmsTo(REVIEWER.id).map(shown)).toEqual([
+          declineReasonPrompt({ withMenu: false }),
+        ]);
         expect(flow.discord.modalsShownTo(REVIEWER.id)).toEqual([
           textModal(
             `${CUSTOM_DECLINE_REASON_MODAL_ID}-${PLAYER.id}-${Encounter.DMU}`,
@@ -1802,6 +1808,26 @@ describe('Signup lifecycle', () => {
       });
     });
 
+    describe('and the reviewer reacts to decline it', () => {
+      it('DMs the reviewer a menu of reasons to choose from', async ({
+        flow,
+      }) => {
+        await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.DECLINED);
+
+        expect(flow.discord.dmsTo(REVIEWER.id).map(shown)).toEqual([
+          declineReasonPrompt({ withMenu: true }),
+        ]);
+
+        // answer, so the prompt doesn't time out
+        flow.discord.choose(
+          flow.discord.latestDmTo(REVIEWER.id),
+          DECLINE_REASON,
+          REVIEWER.id,
+        );
+        await flow.settle();
+      });
+    });
+
     describe('and the reviewer declines it but never picks a reason', () => {
       it.beforeEach(async ({ flow }) => {
         await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.DECLINED);
@@ -1818,6 +1844,12 @@ describe('Signup lifecycle', () => {
             reviewedBy: REVIEWER.username,
           }),
         );
+      });
+
+      it("removes the reason menu from the reviewer's prompt", ({ flow }) => {
+        expect(flow.discord.dmsTo(REVIEWER.id).map(shown)).toEqual([
+          declineReasonPrompt({ withMenu: false }),
+        ]);
       });
 
       it('still tells the player the signup was declined', ({ flow }) => {
@@ -1957,13 +1989,12 @@ describe('Signup lifecycle', () => {
 
         await submitSignup(flow);
 
-        // the earlier decline reason is kept on the document
+        // the earlier decline reason no longer applies, so it's cleared
         expect(flow.db.read(SIGNUP_PATH)).toEqual(
           storedSignup(flow, {
             status: SignupStatus.UPDATE_PENDING,
             reviewMessageId: latestReview(flow).id,
             reviewedBy: null,
-            declineReason: DECLINE_REASON,
           }),
         );
       });
