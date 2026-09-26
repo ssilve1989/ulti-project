@@ -13,6 +13,15 @@ const it = base.extend<{ db: InMemoryFirestore }>({
   db: fresh(() => new InMemoryFirestore()),
 });
 
+/** The map stored under `field` of `data`, for mutating it in place. */
+function nestedMap(data: Record<string, unknown> | undefined, field: string) {
+  const value = data?.[field];
+  if (typeof value !== 'object' || value === null) {
+    throw new Error(`expected a map under ${field}`);
+  }
+  return value;
+}
+
 describe('InMemoryFirestore', () => {
   describe('documents', () => {
     it('reads back what was written', async ({ db }) => {
@@ -144,7 +153,18 @@ describe('InMemoryFirestore', () => {
       db.seed('settings/g', { progRoles: { DSR: 'r1' } });
 
       const data = (await db.collection('settings').doc('g').get()).data();
-      if (data) data.progRoles = { DSR: 'mutated' };
+      Reflect.set(nestedMap(data, 'progRoles'), 'DSR', 'mutated');
+
+      expect(db.read('settings/g')).toEqual({ progRoles: { DSR: 'r1' } });
+    });
+
+    it('returns copies from read(), so a test cannot change what is stored', ({
+      db,
+    }) => {
+      db.seed('settings/g', { progRoles: { DSR: 'r1' } });
+
+      const data = db.read('settings/g');
+      Reflect.set(nestedMap(data, 'progRoles'), 'DSR', 'mutated');
 
       expect(db.read('settings/g')).toEqual({ progRoles: { DSR: 'r1' } });
     });

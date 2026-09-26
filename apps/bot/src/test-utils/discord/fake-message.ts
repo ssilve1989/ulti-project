@@ -401,6 +401,7 @@ export class FakeMessage {
               ? {
                   users: {
                     remove: (userId: string) => {
+                      if (fake.deleted) return fake.unknown();
                       fake.removeReaction(emoji, userId);
                       return Promise.resolve();
                     },

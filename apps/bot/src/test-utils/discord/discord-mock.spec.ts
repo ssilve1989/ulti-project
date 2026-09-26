@@ -708,10 +708,15 @@ describe('DiscordMock', () => {
       expect(reactors).toEqual([{ id: BOT_USER_ID, bot: true }]);
     });
 
-    it('rejects editing, reacting to or deleting a deleted message', async ({
+    it('rejects editing, reacting to, removing a reaction from or deleting a deleted message', async ({
       discord,
     }) => {
-      const message = await discord.sendDirectMessage('u1', 'hi');
+      const message = await postInC1(discord, 'review me');
+      if (!message) throw new Error('expected a message in c1');
+      const [posted] = discord.channel('c1');
+      if (!posted) throw new Error('expected a message in c1');
+      discord.react(posted, '✅', 'u1');
+      const reaction = message.reactions.cache.get('✅');
       await message.delete();
       const unknownMessage = unknownResource(
         RESTJSONErrorCodes.UnknownMessage,
@@ -720,6 +725,9 @@ describe('DiscordMock', () => {
 
       await expect(message.edit('again')).rejects.toEqual(unknownMessage);
       await expect(message.react('✅')).rejects.toEqual(unknownMessage);
+      await expect(reaction?.users.remove('u1')).rejects.toEqual(
+        unknownMessage,
+      );
       await expect(message.delete()).rejects.toEqual(unknownMessage);
     });
 
