@@ -1,0 +1,369 @@
+[
+  {
+    "scope": "https://sheets.googleapis.com:443",
+    "method": "GET",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY?includeGridData=false&fields=sheets.properties%28sheetId%2Ctitle%29",
+    "body": "",
+    "status": 200,
+    "response": {
+      "sheets": [
+        {
+          "properties": {
+            "sheetId": 792299429,
+            "title": "UP (s2): DSR sign-ups"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 1907827565,
+            "title": "UP (s2): Hall of Fame"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 458809218,
+            "title": "UP (s3): TOP sign-ups"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 2084812092,
+            "title": "UP (s3): Hall of Fame"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 247985670,
+            "title": "Home"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 201928397,
+            "title": "UP (s4): Hall of Fame"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 658847633,
+            "title": "UP (s5): Hall of Fame"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 1959801617,
+            "title": "Copy of UP (s5): Hall of Fame"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 1038356143,
+            "title": "UCOB"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 695983618,
+            "title": "DMU"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 1037646000,
+            "title": "UWU"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 1813258016,
+            "title": "TEA"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 544647217,
+            "title": "UP Legacy: Hall of Fame"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 60449583,
+            "title": "Kizu's Home"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 41686528,
+            "title": "DSR"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 373722080,
+            "title": "TOP"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 1540872179,
+            "title": "FRU"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 314355198,
+            "title": "M4S"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 1992308786,
+            "title": "M1S"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 1935455943,
+            "title": "M2S"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 1666871941,
+            "title": "M3S"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 1203820944,
+            "title": "MID/LATE PROG (Season 4)"
+          }
+        },
+        {
+          "properties": {
+            "sheetId": 515893725,
+            "title": "EARLY PROG (Season 4)"
+          }
+        }
+      ]
+    },
+    "rawHeaders": {
+      "content-type": "application/json; charset=UTF-8"
+    },
+    "responseIsBinary": false
+  },
+  {
+    "scope": "https://sheets.googleapis.com:443",
+    "method": "GET",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21C%3AF",
+    "body": "",
+    "status": 200,
+    "response": {
+      "range": "DMU!C1:F62",
+      "majorDimension": "ROWS",
+      "values": [
+        [],
+        ["UCOB"],
+        [],
+        ["Once your sign-up has been approved..."],
+        ["Wait for a Coordinator to contact you on Discord"],
+        [],
+        ["Clear Ready"],
+        ["IGN", "World", "Class", "prog point"],
+        ["Ikanashi Izuki", "Excalibur", "DRK (MT)", "DRK (MT)"],
+        ["Sauda Fusty", "Cactuar", "WHM", "Adds"],
+        ["Spirit Blossom", "Midgardsormr", "SGE", "Adds"],
+        ["Fye Ranulac", "Leviathan", "SMN", "Adds"],
+        ["Aeo Arcanist", "Jenova", "foo", "P5 Exas"]
+      ]
+    },
+    "rawHeaders": {
+      "content-type": "application/json; charset=UTF-8"
+    },
+    "responseIsBinary": false
+  },
+  {
+    "scope": "https://sheets.googleapis.com:443",
+    "method": "GET",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21C%3AF",
+    "body": "",
+    "status": 200,
+    "response": {
+      "range": "DMU!C1:F62",
+      "majorDimension": "ROWS",
+      "values": [
+        [],
+        ["UCOB"],
+        [],
+        ["Once your sign-up has been approved..."],
+        ["Wait for a Coordinator to contact you on Discord"],
+        [],
+        ["Clear Ready"],
+        ["IGN", "World", "Class", "prog point"],
+        ["Ikanashi Izuki", "Excalibur", "DRK (MT)", "DRK (MT)"],
+        ["Sauda Fusty", "Cactuar", "WHM", "Adds"],
+        ["Spirit Blossom", "Midgardsormr", "SGE", "Adds"],
+        ["Fye Ranulac", "Leviathan", "SMN", "Adds"],
+        ["Aeo Arcanist", "Jenova", "foo", "P5 Exas"]
+      ]
+    },
+    "rawHeaders": {
+      "content-type": "application/json; charset=UTF-8"
+    },
+    "responseIsBinary": false
+  },
+  {
+    "scope": "https://sheets.googleapis.com:443",
+    "method": "GET",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21I%3AL",
+    "body": "",
+    "status": 200,
+    "response": {
+      "range": "DMU!I1:L62",
+      "majorDimension": "ROWS",
+      "values": [
+        [],
+        [],
+        [],
+        [],
+        [],
+        ["", "", "", "Last Cleanup 09/12"],
+        ["Prog List"],
+        ["IGN", "World", "Class", "prog point"],
+        ["Raya Angeles", "Rafflesia", "SGE", "Heavensfall"],
+        ["Madeline Rose'", "Faerie", "Astro", "Fellruin"],
+        ["Tio Tot", "Sargatanas", "RPR", "Fellruin"],
+        ["Hiko Malqir", "Mateus", "Summoner", "Nael"]
+      ]
+    },
+    "rawHeaders": {
+      "content-type": "application/json; charset=UTF-8"
+    },
+    "responseIsBinary": false
+  },
+  {
+    "scope": "https://sheets.googleapis.com:443",
+    "method": "GET",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21I%3AL",
+    "body": "",
+    "status": 200,
+    "response": {
+      "range": "DMU!I1:L62",
+      "majorDimension": "ROWS",
+      "values": [
+        [],
+        [],
+        [],
+        [],
+        [],
+        ["", "", "", "Last Cleanup 09/12"],
+        ["Prog List"],
+        ["IGN", "World", "Class", "prog point"],
+        ["Raya Angeles", "Rafflesia", "SGE", "Heavensfall"],
+        ["Madeline Rose'", "Faerie", "Astro", "Fellruin"],
+        ["Tio Tot", "Sargatanas", "RPR", "Fellruin"],
+        ["Hiko Malqir", "Mateus", "Summoner", "Nael"],
+        ["Flow 6fcc563c", "Jenova", "tank", "P6"]
+      ]
+    },
+    "rawHeaders": {
+      "content-type": "application/json; charset=UTF-8"
+    },
+    "responseIsBinary": false
+  },
+  {
+    "scope": "https://sheets.googleapis.com:443",
+    "method": "GET",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21I%3AL",
+    "body": "",
+    "status": 200,
+    "response": {
+      "range": "DMU!I1:L62",
+      "majorDimension": "ROWS",
+      "values": [
+        [],
+        [],
+        [],
+        [],
+        [],
+        ["", "", "", "Last Cleanup 09/12"],
+        ["Prog List"],
+        ["IGN", "World", "Class", "prog point"],
+        ["Raya Angeles", "Rafflesia", "SGE", "Heavensfall"],
+        ["Madeline Rose'", "Faerie", "Astro", "Fellruin"],
+        ["Tio Tot", "Sargatanas", "RPR", "Fellruin"],
+        ["Hiko Malqir", "Mateus", "Summoner", "Nael"]
+      ]
+    },
+    "rawHeaders": {
+      "content-type": "application/json; charset=UTF-8"
+    },
+    "responseIsBinary": false
+  },
+  {
+    "scope": "https://oauth2.googleapis.com:443",
+    "method": "POST",
+    "path": "/token",
+    "status": 200,
+    "response": {
+      "access_token": "redacted-by-recorded-sheets",
+      "expires_in": 3599,
+      "token_type": "Bearer"
+    },
+    "rawHeaders": {
+      "content-type": "application/json"
+    },
+    "responseIsBinary": false
+  },
+  {
+    "scope": "https://sheets.googleapis.com:443",
+    "method": "POST",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY:batchUpdate",
+    "body": {
+      "requests": [
+        {
+          "updateCells": {
+            "range": {
+              "sheetId": 695983618,
+              "startRowIndex": 12,
+              "endRowIndex": 13,
+              "startColumnIndex": 8,
+              "endColumnIndex": 12
+            },
+            "fields": "userEnteredValue"
+          }
+        }
+      ]
+    },
+    "status": 200,
+    "response": {
+      "spreadsheetId": "1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY",
+      "replies": [{}],
+      "commentUpdateState": "NO_UPDATES_REQUESTED"
+    },
+    "rawHeaders": {
+      "content-type": "application/json; charset=UTF-8"
+    },
+    "responseIsBinary": false
+  },
+  {
+    "scope": "https://sheets.googleapis.com:443",
+    "method": "PUT",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21I13%3AL?valueInputOption=USER_ENTERED",
+    "body": {
+      "values": [["Flow 6fcc563c", "Jenova", "tank", "P6"]]
+    },
+    "status": 200,
+    "response": {
+      "spreadsheetId": "1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY",
+      "updatedRange": "DMU!I13:L13",
+      "updatedRows": 1,
+      "updatedColumns": 4,
+      "updatedCells": 4
+    },
+    "rawHeaders": {
+      "content-type": "application/json; charset=UTF-8"
+    },
+    "responseIsBinary": false
+  }
+]

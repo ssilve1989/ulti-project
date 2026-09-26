@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { WHITELIST_VALIDATION_ERROR } from './signup.consts.js';
 import { signupSchema } from './signup.schema.js';
 
-const baseRequest = {
+const baseRequest = Object.freeze({
   character: 'Tester',
   discordId: '123456789',
   role: 'tank',
@@ -11,7 +11,16 @@ const baseRequest = {
   notes: null,
   username: 'TestUser',
   world: 'cactuar',
-};
+});
+
+/** The whole parsed signup for baseRequest, with `proofOfProgLink` as stored. */
+const parsedWith = (proofOfProgLink: string | null) => ({
+  ...baseRequest,
+  character: 'tester',
+  username: 'testuser',
+  screenshot: null,
+  proofOfProgLink,
+});
 
 function parse(
   overrides: Partial<Record<'proofOfProgLink' | 'screenshot', unknown>>,
@@ -35,47 +44,72 @@ describe('proofOfProgLink validation', () => {
       ['youtube.com with www', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'],
       ['medal.tv', 'https://medal.tv/games/ff-xiv-online'],
       ['medal.tv any path', 'https://medal.tv/clips/abc123'],
-    ])('should accept a valid %s link', (_, url) => {
-      expect(parse({ proofOfProgLink: url }).success).toBe(true);
+    ])('accepts a valid %s link, unchanged', (_, url) => {
+      const result = parse({ proofOfProgLink: url });
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.data).toEqual(parsedWith(url));
     });
 
     test.each([
-      ['fflogs.com with port', 'https://fflogs.com:8443/reports/ABC123def456'],
-      ['uppercase hostname', 'https://FFLOGS.COM/reports/ABC123def456'],
+      [
+        'fflogs.com with port',
+        'https://fflogs.com:8443/reports/ABC123def456',
+        'https://fflogs.com:8443/reports/ABC123def456',
+      ],
+      [
+        'uppercase hostname',
+        'https://FFLOGS.COM/reports/ABC123def456',
+        'https://fflogs.com/reports/ABC123def456',
+      ],
       [
         'youtube.com with query params',
         'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=60s',
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=60s',
       ],
-    ])('should accept %s', (_, url) => {
-      expect(parse({ proofOfProgLink: url }).success).toBe(true);
+    ])('accepts %s', (_, url, stored) => {
+      const result = parse({ proofOfProgLink: url });
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.data).toEqual(parsedWith(stored));
     });
   });
 
   describe('normalizes the protocol', () => {
     test.each([
-      ['fflogs.com without protocol', 'fflogs.com/reports/ABC123def456'],
-      ['youtube.com without protocol', 'www.youtube.com/watch?v=dQw4w9WgXcQ'],
-    ])('should prepend https:// to %s', (_, url) => {
+      [
+        'fflogs.com without protocol',
+        'fflogs.com/reports/ABC123def456',
+        'https://fflogs.com/reports/ABC123def456',
+      ],
+      [
+        'youtube.com without protocol',
+        'www.youtube.com/watch?v=dQw4w9WgXcQ',
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      ],
+    ])('prepends https:// to %s', (_, url, normalized) => {
       const result = parse({ proofOfProgLink: url });
       expect(result.success).toBe(true);
       if (!result.success) return;
-      expect(result.data.proofOfProgLink).toMatch(/^https:\/\//);
+      expect(result.data).toEqual(parsedWith(normalized));
     });
 
-    test('should preserve an explicit http:// protocol', () => {
+    test('preserves an explicit http:// protocol', () => {
       const result = parse({
         proofOfProgLink: 'http://fflogs.com/reports/ABC123def456',
       });
       expect(result.success).toBe(true);
       if (!result.success) return;
-      expect(result.data.proofOfProgLink).toMatch(/^http:\/\//);
+      expect(result.data).toEqual(
+        parsedWith('http://fflogs.com/reports/ABC123def456'),
+      );
     });
 
-    test('should normalize the parsed url', () => {
+    test('normalizes the parsed url', () => {
       const result = parse({ proofOfProgLink: 'youtube.com' });
       expect(result.success).toBe(true);
       if (!result.success) return;
-      expect(result.data.proofOfProgLink).toBe('https://youtube.com/');
+      expect(result.data).toEqual(parsedWith('https://youtube.com/'));
     });
   });
 
@@ -105,7 +139,7 @@ describe('proofOfProgLink validation', () => {
         'https://youtube.com@evil.com/watch?v=dQw4w9WgXcQ',
       ],
       ['whitelisted host as fragment', 'https://evil.com/report#fflogs.com'],
-    ])('should reject a link with %s', (_, url) => {
+    ])('rejects a link with %s', (_, url) => {
       const result = parse({ proofOfProgLink: url });
       expect(result.success).toBe(false);
       if (result.success) return;
@@ -125,7 +159,7 @@ describe('proofOfProgLink validation', () => {
       ['unrelated domain', 'https://example.com/reports/ABC123'],
       ['ip address', 'https://192.168.1.1/reports/ABC123'],
       ['trailing dot host', 'https://fflogs.com./reports/ABC123'],
-    ])('should reject a link from an %s', (_, url) => {
+    ])('rejects a link from an %s', (_, url) => {
       const result = parse({ proofOfProgLink: url });
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -142,22 +176,31 @@ describe('proofOfProgLink validation', () => {
       ['http protocol without slashes', 'http:fflogs.com/reports/ABC123'],
       ['surrounding whitespace', '  https://fflogs.com/reports/ABC123  '],
       ['non-string value', 123],
-    ])('should reject %s', (_, url) => {
-      expect(parse({ proofOfProgLink: url }).success).toBe(false);
+    ])('rejects %s, as an invalid link', (_, url) => {
+      const result = parse({ proofOfProgLink: url });
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.error.issues.map((issue) => issue.path)).toEqual([
+        ['proofOfProgLink'],
+      ]);
     });
   });
 
   describe('interaction with the screenshot requirement', () => {
-    test('should accept a null link when a screenshot is provided', () => {
+    test('accepts a null link when a screenshot is provided', () => {
       const result = parse({
         proofOfProgLink: null,
         screenshot: 'https://i.imgur.com/x.png',
       });
       expect(result.success).toBe(true);
-      if (result.success) expect(result.data.proofOfProgLink).toBeNull();
+      if (!result.success) return;
+      expect(result.data).toEqual({
+        ...parsedWith(null),
+        screenshot: 'https://i.imgur.com/x.png',
+      });
     });
 
-    test('should reject a null link when no screenshot is provided', () => {
+    test('rejects a null link when no screenshot is provided', () => {
       const result = parse({ proofOfProgLink: null });
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -167,7 +210,7 @@ describe('proofOfProgLink validation', () => {
       }
     });
 
-    test('should reject an undefined link even when a screenshot is provided', () => {
+    test('rejects an undefined link even when a screenshot is provided', () => {
       const result = parse({
         proofOfProgLink: undefined,
         screenshot: 'https://i.imgur.com/x.png',
@@ -182,7 +225,7 @@ describe('proofOfProgLink validation', () => {
       }
     });
 
-    test('should still reject an invalid link when a screenshot is provided', () => {
+    test('still rejects an invalid link when a screenshot is provided', () => {
       const result = parse({
         proofOfProgLink: 'https://fflogs.com.evil.com/reports/ABC123',
         screenshot: 'https://i.imgur.com/x.png',

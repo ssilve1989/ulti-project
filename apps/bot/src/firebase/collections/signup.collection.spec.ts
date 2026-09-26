@@ -1,387 +1,346 @@
 import { Test } from '@nestjs/testing';
 import {
+  type CreateSignupDocumentProps,
   Encounter,
+  PartyStatus,
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
-import type {
-  CollectionReference,
-  DocumentData,
-  DocumentReference,
-  DocumentSnapshot,
-  Firestore,
-  Query,
-  Transaction,
-} from 'firebase-admin/firestore';
-import { FieldValue } from 'firebase-admin/firestore';
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-  type Mock,
-  type Mocked,
-  vi,
-} from 'vitest';
-import type { SignupSchema } from '../../slash-commands/signup/signup.schema.js';
-import {
-  createAutoMock,
-  mockOf,
-  partialMock,
-} from '../../test-utils/mock-factory.js';
+import { Timestamp } from 'firebase-admin/firestore';
+import { test as base, describe, expect } from 'vitest';
+import { InMemoryFirestore } from '../../test-utils/firestore/in-memory-firestore.js';
+import { fresh } from '../../test-utils/fixtures.js';
+import { signupExpiryFor } from '../../test-utils/matchers.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
 import { SignupCollection } from './signup.collection.js';
 
-const SIGNUP_KEY = {
-  discordId: '12345',
-  encounter: Encounter.DSR,
-};
+const KEY = Object.freeze({ discordId: 'Player-1', encounter: Encounter.DSR });
+const PATH = `signups/${SignupCollection.getKeyForSignup(KEY)}`;
 
-describe('Signup Repository', () => {
-  let repository: SignupCollection;
-  let collection: Mocked<CollectionReference<DocumentData>>;
-  let doc: Mocked<DocumentReference<DocumentData>>;
-  let firestore: Mocked<Firestore>;
-  const signupRequest = partialMock<SignupSchema>(SIGNUP_KEY);
+function aRequest(
+  overrides: Partial<CreateSignupDocumentProps> = {},
+): CreateSignupDocumentProps {
+  return {
+    ...KEY,
+    character: 'test character',
+    world: 'jenova',
+    role: 'tank',
+    progPointRequested: 'P6',
+    username: 'player',
+    ...overrides,
+  };
+}
 
-  beforeEach(async () => {
-    doc = createAutoMock<DocumentReference<DocumentData>>();
+function aSignup(overrides: Partial<SignupDocument> = {}): SignupDocument {
+  return {
+    ...aRequest(),
+    status: SignupStatus.PENDING,
+    expiresAt: Timestamp.fromMillis(0),
+    ...overrides,
+  };
+}
 
-    collection = mockOf<Mocked<CollectionReference<DocumentData>>>({
-      get: vi.fn(),
-      where: vi.fn(),
-      limit: vi.fn(),
-      doc: vi.fn().mockReturnValue(doc),
+const it = base.extend<{
+  db: InMemoryFirestore;
+  collection: SignupCollection;
+}>({
+  db: fresh(() => new InMemoryFirestore()),
+  collection: async ({ db }, use) => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [SignupCollection, { provide: FIRESTORE, useValue: db }],
+    }).compile();
+    await use(moduleRef.get(SignupCollection));
+  },
+});
+
+describe('SignupCollection', () => {
+  describe('upsert', () => {
+    it('stores a new signup as pending with an expiry', async ({
+      db,
+      collection,
+    }) => {
+      const before = Date.now();
+      const { signup, previous } = await collection.upsert(aRequest());
+      const after = Date.now();
+
+      expect(previous).toBeUndefined();
+      expect(signup).toEqual(db.read(PATH));
+      expect(db.read(PATH)).toEqual({
+        ...aRequest(),
+        status: SignupStatus.PENDING,
+        expiresAt: signupExpiryFor(before, after),
+      });
     });
 
-    firestore = createAutoMock<Firestore>();
-    firestore.collection.mockReturnValue(collection);
+    it('keeps a still-pending signup pending and clears its reviewer', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(PATH, aSignup({ reviewedBy: 'someone' }));
 
-    const fixture = await Test.createTestingModule({
-      providers: [
-        SignupCollection,
-        { provide: FIRESTORE, useValue: firestore },
-      ],
-    })
-      .useMocker(createAutoMock)
-      .compile();
+      const before = Date.now();
+      const { signup, previous } = await collection.upsert(
+        aRequest({ role: 'healer' }),
+      );
+      const after = Date.now();
 
-    repository = fixture.get(SignupCollection);
-  });
+      expect(previous).toEqual(aSignup({ reviewedBy: 'someone' }));
+      expect(signup).toEqual(db.read(PATH));
+      expect(db.read(PATH)).toEqual({
+        ...aSignup({ role: 'healer', reviewedBy: null }),
+        expiresAt: signupExpiryFor(before, after),
+      });
+    });
 
-  it('should call update if document exists', async () => {
-    const existingData = {
-      ...signupRequest,
-      status: SignupStatus.APPROVED,
-      reviewedBy: 'someReviewer',
-    };
-    doc.get.mockResolvedValueOnce(
-      mockOf<DocumentSnapshot>({
-        exists: true,
-        data: () => existingData,
-      }),
-    );
+    it('clears the decline reason when a declined signup is resubmitted', async ({
+      db,
+      collection,
+    }) => {
+      const declined = aSignup({
+        status: SignupStatus.DECLINED,
+        reviewedBy: 'reviewer',
+        declineReason: 'no proof',
+      });
+      db.seed(PATH, declined);
 
-    const { signup, previous } = await repository.upsert(signupRequest);
+      const before = Date.now();
+      const { signup, previous } = await collection.upsert(aRequest());
+      const after = Date.now();
 
-    expect(doc.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...existingData,
-        ...signupRequest,
+      expect(previous).toEqual(declined);
+      expect(signup).toEqual(db.read(PATH));
+      expect(db.read(PATH)).toEqual({
+        ...aSignup({ reviewedBy: null }),
+        status: SignupStatus.UPDATE_PENDING,
+        expiresAt: signupExpiryFor(before, after),
+      });
+    });
+
+    it('moves a reviewed signup to update-pending and reports what it replaced', async ({
+      db,
+      collection,
+    }) => {
+      const approved = aSignup({
+        status: SignupStatus.APPROVED,
+        reviewMessageId: 'm1',
+        reviewedBy: 'reviewer',
+      });
+      db.seed(PATH, approved);
+
+      const before = Date.now();
+      const { signup, previous } = await collection.upsert(
+        aRequest({ progPointRequested: 'P7' }),
+      );
+      const after = Date.now();
+
+      expect(previous).toEqual(approved);
+      expect(signup).toEqual(db.read(PATH));
+      expect(db.read(PATH)).toEqual({
+        ...approved,
+        progPointRequested: 'P7',
         status: SignupStatus.UPDATE_PENDING,
         reviewedBy: null,
-      }),
-    );
-
-    expect(doc.create).not.toHaveBeenCalled();
-    expect(signup).toMatchObject({
-      ...existingData,
-      ...signupRequest,
-      status: SignupStatus.UPDATE_PENDING,
-      reviewedBy: null,
-    });
-    // the pre-update document is what callers need to know it was already reviewed
-    expect(previous).toMatchObject({
-      status: SignupStatus.APPROVED,
-      reviewedBy: 'someReviewer',
+        expiresAt: signupExpiryFor(before, after),
+      });
     });
   });
 
-  it('should clear a prior declineReason when moving to UPDATE_PENDING', async () => {
-    const existingData = {
-      ...signupRequest,
-      status: SignupStatus.DECLINED,
-      reviewedBy: 'someReviewer',
-      declineReason: 'lacks proof',
-    };
-    doc.get.mockResolvedValueOnce(
-      mockOf<DocumentSnapshot>({
-        exists: true,
-        data: () => existingData,
-      }),
-    );
+  it('records a review decision', async ({ db, collection }) => {
+    db.seed(PATH, aSignup());
 
-    const deleteSentinel = FieldValue.delete();
-    const { signup } = await repository.upsert(signupRequest);
-
-    expect(doc.update).toHaveBeenCalledWith(
-      expect.objectContaining({ declineReason: deleteSentinel }),
-    );
-    expect(signup).toMatchObject({ status: SignupStatus.UPDATE_PENDING });
-    expect(signup.declineReason).toBeUndefined();
-  });
-
-  it('should preserve PENDING status when updating an existing PENDING signup', async () => {
-    const existingData = {
-      ...signupRequest,
-      status: SignupStatus.PENDING,
-      reviewedBy: null,
-    };
-    doc.get.mockResolvedValueOnce(
-      mockOf<DocumentSnapshot>({
-        exists: true,
-        data: () => existingData,
-      }),
-    );
-
-    const { signup, previous } = await repository.upsert(signupRequest);
-
-    expect(doc.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...existingData,
-        ...signupRequest,
-        status: SignupStatus.PENDING, // Should remain PENDING
-        reviewedBy: null,
-      }),
-    );
-
-    expect(signup.status).toBe(SignupStatus.PENDING);
-    expect(previous?.status).toBe(SignupStatus.PENDING);
-  });
-
-  it('should call create if the document does not exist', async () => {
-    doc.get.mockResolvedValueOnce(
-      mockOf<DocumentSnapshot>({
-        exists: false,
-        data: () => null,
-      }),
-    );
-
-    const { signup, previous } = await repository.upsert(signupRequest);
-
-    expect(doc.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...signupRequest,
-        status: SignupStatus.PENDING,
-      }),
-    );
-
-    expect(doc.update).not.toHaveBeenCalled();
-    expect(signup).toMatchObject({
-      ...signupRequest,
-      status: SignupStatus.PENDING,
-    });
-    expect(previous).toBeUndefined();
-  });
-
-  it('should call updateSignupStatus with the correct arguments', async () => {
-    await repository.updateSignupStatus(
+    await collection.updateSignupStatus(
       SignupStatus.APPROVED,
-      SIGNUP_KEY,
-      'reviewedBy',
+      { ...KEY, progPoint: 'P6', partyStatus: PartyStatus.ProgParty },
+      'reviewer',
     );
 
-    expect(doc.update).toHaveBeenCalledWith({
-      status: SignupStatus.APPROVED,
-      reviewedBy: 'reviewedBy',
-      declineReason: FieldValue.delete(),
-    });
+    expect(db.read(PATH)).toEqual(
+      aSignup({
+        status: SignupStatus.APPROVED,
+        progPoint: 'P6',
+        partyStatus: PartyStatus.ProgParty,
+        reviewedBy: 'reviewer',
+      }),
+    );
   });
 
-  it('should not clear declineReason when setting DECLINED', async () => {
-    await repository.updateSignupStatus(
+  it('clears an earlier decline reason when approving', async ({
+    db,
+    collection,
+  }) => {
+    db.seed(
+      PATH,
+      aSignup({ status: SignupStatus.DECLINED, declineReason: 'no proof' }),
+    );
+
+    await collection.updateSignupStatus(
+      SignupStatus.APPROVED,
+      { ...KEY, progPoint: 'P6', partyStatus: PartyStatus.ProgParty },
+      'reviewer',
+    );
+
+    expect(db.read(PATH)).toEqual(
+      aSignup({
+        status: SignupStatus.APPROVED,
+        progPoint: 'P6',
+        partyStatus: PartyStatus.ProgParty,
+        reviewedBy: 'reviewer',
+      }),
+    );
+  });
+
+  it('keeps the decline reason when recording a decline', async ({
+    db,
+    collection,
+  }) => {
+    db.seed(PATH, aSignup({ declineReason: 'no proof' }));
+
+    await collection.updateSignupStatus(
       SignupStatus.DECLINED,
-      SIGNUP_KEY,
-      'reviewedBy',
+      { ...KEY, progPoint: undefined, partyStatus: undefined },
+      'reviewer',
     );
 
-    expect(doc.update).not.toHaveBeenCalledWith(
-      expect.objectContaining({ declineReason: FieldValue.delete() }),
+    expect(db.read(PATH)).toEqual(
+      aSignup({
+        status: SignupStatus.DECLINED,
+        reviewedBy: 'reviewer',
+        declineReason: 'no proof',
+      }),
     );
   });
 
-  it('should call setReviewMessageId with the correct arguments', async () => {
-    await repository.setReviewMessageId(SIGNUP_KEY, 'messageId');
+  describe('findByReviewId', () => {
+    it('finds the signup whose review message id was recorded', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(
+        'signups/other-DSR',
+        aSignup({ discordId: 'other', reviewMessageId: 'm0' }),
+      );
+      db.seed(PATH, aSignup());
+      await collection.setReviewMessageId(KEY, 'm1');
 
-    expect(doc.update).toHaveBeenCalledWith({
-      reviewMessageId: 'messageId',
+      await expect(collection.findByReviewId('m1')).resolves.toEqual(
+        aSignup({ reviewMessageId: 'm1' }),
+      );
+    });
+
+    it('throws when no signup has that review message', async ({
+      collection,
+    }) => {
+      await expect(collection.findByReviewId('m1')).rejects.toBeInstanceOf(
+        DocumentNotFoundException,
+      );
     });
   });
 
-  describe('#findByReviewId', () => {
-    const mockFetch = (empty: boolean, signup: SignupDocument) => {
-      collection.where.mockReturnValueOnce(
-        mockOf<Query<DocumentData>>({
-          limit: () => ({
-            get: () =>
-              Promise.resolve({
-                empty,
-                docs: [{ data: () => signup }],
-              }),
-          }),
-        }),
-      );
-    };
+  it('finds signups by the provided fields, ignoring empty ones', async ({
+    db,
+    collection,
+  }) => {
+    db.seed(PATH, aSignup());
+    db.seed(
+      'signups/other-DSR',
+      aSignup({ discordId: 'other', world: 'zalera' }),
+    );
 
-    it('should return a signup by review if exists', async () => {
-      const reviewMessageId = 'reviewMessageId';
-      const signup = partialMock<SignupDocument>({
-        ...SIGNUP_KEY,
-        reviewMessageId,
-        status: SignupStatus.PENDING,
-      });
+    const found = await collection.findAll({ world: 'jenova', notes: '' });
 
-      mockFetch(false, signup);
-
-      const result = await repository.findByReviewId(reviewMessageId);
-
-      expect(result).toEqual(signup);
-    });
-
-    it('should throw an error if no signup exists', () => {
-      mockFetch(true, partialMock<SignupDocument>({}));
-
-      return expect(
-        repository.findByReviewId('reviewMessageId'),
-      ).rejects.toThrow(DocumentNotFoundException);
-    });
+    expect(found).toEqual([aSignup()]);
   });
 
-  describe('#updateDeclineReasonIfActive', () => {
-    let transaction: Transaction;
-    let transactionGet: Mock;
-    let transactionUpdate: Mock;
+  it('removes only the signup matching character, world and encounter', async ({
+    db,
+    collection,
+  }) => {
+    const others = {
+      'signups/other-character-DSR': aSignup({
+        discordId: 'other-character',
+        character: 'someone else',
+      }),
+      'signups/other-world-DSR': aSignup({
+        discordId: 'other-world',
+        world: 'zalera',
+      }),
+      'signups/player-1-TOP': aSignup({ encounter: Encounter.TOP }),
+    };
+    db.seed(PATH, aSignup());
+    for (const [path, signup] of Object.entries(others)) db.seed(path, signup);
 
-    const mockCurrentDocument = (data: SignupDocument | null) => {
-      transactionGet.mockResolvedValueOnce(
-        mockOf<DocumentSnapshot<SignupDocument>>({
-          exists: data !== null,
-          data: () => data,
-        }),
-      );
+    const target: Pick<SignupDocument, 'character' | 'encounter' | 'world'> = {
+      character: 'test character',
+      world: 'jenova',
+      encounter: Encounter.DSR,
     };
 
-    beforeEach(() => {
-      transactionGet = vi.fn();
-      transactionUpdate = vi.fn();
-      transaction = mockOf<Transaction>({
-        get: transactionGet,
-        update: transactionUpdate,
-      });
-      firestore.runTransaction.mockImplementation((updateFunction) =>
-        updateFunction(transaction),
-      );
-    });
+    await collection.removeSignup(target);
 
-    it('writes the decline reason when the signup is still in the same declined round', async () => {
-      mockCurrentDocument(
-        partialMock<SignupDocument>({
-          ...SIGNUP_KEY,
-          status: SignupStatus.DECLINED,
-          reviewMessageId: 'm1',
-          reviewedBy: 'reviewer',
-        }),
-      );
+    expect(db.read(PATH)).toBeUndefined();
+    for (const [path, signup] of Object.entries(others)) {
+      expect(db.read(path)).toEqual(signup);
+    }
+  });
 
-      const result = await repository.updateDeclineReasonIfActive(
-        SIGNUP_KEY,
-        'lacks proof',
+  describe('updateDeclineReasonIfActive', () => {
+    const declined = Object.freeze(
+      aSignup({
+        status: SignupStatus.DECLINED,
+        reviewMessageId: 'm1',
+        reviewedBy: 'reviewer',
+      }),
+    );
+
+    it('writes the reason while the signup is still in the same declined round', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(PATH, declined);
+
+      const recorded = await collection.updateDeclineReasonIfActive(
+        KEY,
+        'no proof',
         'm1',
         'reviewer',
       );
 
-      expect(result).toBe(true);
-      expect(transactionUpdate).toHaveBeenCalledWith(doc, {
-        declineReason: 'lacks proof',
-      });
+      expect(recorded).toBe(true);
+      expect(db.read(PATH)).toEqual({ ...declined, declineReason: 'no proof' });
     });
 
-    it('does not write when the signup is no longer DECLINED', async () => {
-      mockCurrentDocument(
-        partialMock<SignupDocument>({
-          ...SIGNUP_KEY,
-          status: SignupStatus.UPDATE_PENDING,
-          reviewMessageId: 'm1',
-          reviewedBy: 'reviewer',
-        }),
-      );
+    it.for<[string, Partial<SignupDocument>]>([
+      ['it is no longer declined', { status: SignupStatus.UPDATE_PENDING }],
+      ['it has a new review message', { reviewMessageId: 'm2' }],
+      ['someone else has since reviewed it', { reviewedBy: 'other' }],
+    ])('does not write when %s', async ([, change], { db, collection }) => {
+      db.seed(PATH, { ...declined, ...change });
 
-      const result = await repository.updateDeclineReasonIfActive(
-        SIGNUP_KEY,
-        'lacks proof',
+      const recorded = await collection.updateDeclineReasonIfActive(
+        KEY,
+        'no proof',
         'm1',
         'reviewer',
       );
 
-      expect(result).toBe(false);
-      expect(transactionUpdate).not.toHaveBeenCalled();
+      expect(recorded).toBe(false);
+      expect(db.read(PATH)).toEqual({ ...declined, ...change });
     });
 
-    it('does not write when the review round has changed (new reviewMessageId)', async () => {
-      mockCurrentDocument(
-        partialMock<SignupDocument>({
-          ...SIGNUP_KEY,
-          status: SignupStatus.DECLINED,
-          reviewMessageId: 'm2',
-          reviewedBy: 'reviewer',
-        }),
-      );
-
-      const result = await repository.updateDeclineReasonIfActive(
-        SIGNUP_KEY,
-        'lacks proof',
+    it('does not write when the signup no longer exists', async ({
+      db,
+      collection,
+    }) => {
+      const recorded = await collection.updateDeclineReasonIfActive(
+        KEY,
+        'no proof',
         'm1',
         'reviewer',
       );
 
-      expect(result).toBe(false);
-      expect(transactionUpdate).not.toHaveBeenCalled();
-    });
-
-    it('does not write when the signup has since been reviewed by someone else', async () => {
-      mockCurrentDocument(
-        partialMock<SignupDocument>({
-          ...SIGNUP_KEY,
-          status: SignupStatus.DECLINED,
-          reviewMessageId: 'm1',
-          reviewedBy: 'otherReviewer',
-        }),
-      );
-
-      const result = await repository.updateDeclineReasonIfActive(
-        SIGNUP_KEY,
-        'lacks proof',
-        'm1',
-        'reviewer',
-      );
-
-      expect(result).toBe(false);
-      expect(transactionUpdate).not.toHaveBeenCalled();
-    });
-
-    it('does not write when the signup document no longer exists', async () => {
-      mockCurrentDocument(null);
-
-      const result = await repository.updateDeclineReasonIfActive(
-        SIGNUP_KEY,
-        'lacks proof',
-        'm1',
-        'reviewer',
-      );
-
-      expect(result).toBe(false);
-      expect(transactionUpdate).not.toHaveBeenCalled();
+      expect(recorded).toBe(false);
+      expect(db.read(PATH)).toBeUndefined();
     });
   });
 });
