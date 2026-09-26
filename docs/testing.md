@@ -72,7 +72,8 @@ So:
    asserts can break unnoticed. No `toMatchObject`, `objectContaining` or
    `toContain` on an output. In flow specs, a message is everything a user sees
    of it: where it is (channel, DM, or a reply and whether it's ephemeral), its
-   content, embeds and components (`shown(message)` in the signup flow spec).
+   content, embeds, components and reactions, and whether it's been deleted
+   (`shown(message)` from `test-utils/discord/fake-message.ts`).
    For values that differ per run, use a matcher that still checks the value,
    like `signupExpiryFor(from)` and `isoDateSince(from)` in
    `test-utils/matchers.ts`, not `expect.any(...)`.

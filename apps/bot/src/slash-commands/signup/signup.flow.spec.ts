@@ -24,6 +24,7 @@ import {
 } from '../../test-utils/discord/discord-mock.js';
 import {
   type FakeMessage,
+  reactionsOn,
   shown,
 } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
@@ -373,13 +374,6 @@ const rowCleared = (flow: FlowApp, section: Section, row: number) => ({
 
 // --- what users see
 
-/** Who reacted to a message, by emoji. */
-function reactionsOn(message: FakeMessage): Record<string, string[]> {
-  return Object.fromEntries(
-    [...message.reactions].map(([emoji, users]) => [emoji, [...users]]),
-  );
-}
-
 const IN_REVIEW_CHANNEL = Object.freeze({
   kind: 'channel',
   guildId: GUILD,
@@ -409,6 +403,8 @@ const textReply = (
   { ephemeral }: { ephemeral: boolean },
 ) => ({
   location: replyTo(userId, { ephemeral }),
+  reactions: {},
+  deleted: false,
   content,
   embeds: [],
   components: [],
@@ -485,15 +481,42 @@ const decidedBy = (flow: FlowApp, decision: 'Approved' | 'Declined') => ({
   timestamp: isoDateSince(flow.startedAt),
 });
 
-const pendingReview = (signup?: ShownSignup) => ({
+/** Reactions on a review message, by emoji, in the order users added them. */
+interface ReviewReactions {
+  approved?: readonly string[];
+  declined?: readonly string[];
+}
+
+/** The review's reactions: the bot's own ✅ and ❌, then whoever else reacted. */
+const reviewReactions = ({
+  approved = [],
+  declined = [],
+}: ReviewReactions) => ({
+  [SIGNUP_REVIEW_REACTIONS.APPROVED]: [BOT_USER_ID, ...approved],
+  [SIGNUP_REVIEW_REACTIONS.DECLINED]: [BOT_USER_ID, ...declined],
+});
+
+const pendingReview = (
+  signup?: ShownSignup,
+  reactions: ReviewReactions = {},
+) => ({
   location: IN_REVIEW_CHANNEL,
+  reactions: reviewReactions(reactions),
+  deleted: false,
   content: `Signup Review for <@${PLAYER.id}>`,
   embeds: [reviewEmbed(signup)],
   components: [],
 });
 
-const approvedReview = (flow: FlowApp, signup?: ShownSignup) => ({
+/** A review the reviewer approved, with their ✅ on it. */
+const approvedReview = (
+  flow: FlowApp,
+  signup?: ShownSignup,
+  reactions: ReviewReactions = { approved: [REVIEWER.id] },
+) => ({
   location: IN_REVIEW_CHANNEL,
+  reactions: reviewReactions(reactions),
+  deleted: false,
   content: `Signup Review for <@${PLAYER.id}>`,
   embeds: [
     {
@@ -506,8 +529,11 @@ const approvedReview = (flow: FlowApp, signup?: ShownSignup) => ({
   components: [],
 });
 
+/** A review the reviewer declined, with their ❌ on it. */
 const declinedReview = (flow: FlowApp) => ({
   location: IN_REVIEW_CHANNEL,
+  reactions: reviewReactions({ declined: [REVIEWER.id] }),
+  deleted: false,
   content: `Declined <@${PLAYER.id}>`,
   embeds: [
     {
@@ -528,14 +554,18 @@ const approvalAnnouncement = (
     title = `Signup Approved - ${ENCOUNTER_NAME} ${EMOJI_MENTION}`,
     content = `<@${PLAYER.id}> Signup Approved!`,
     screenshot,
+    reactions = {},
   }: {
     progPoint?: string;
     title?: string;
     content?: string;
     screenshot?: string;
+    reactions?: Record<string, string[]>;
   } = {},
 ) => ({
   location: IN_SIGNUP_CHANNEL,
+  reactions,
+  deleted: false,
   content,
   embeds: [
     {
@@ -578,6 +608,8 @@ function confirmationPrompt({
 
   return {
     location: replyTo(PLAYER.id, { ephemeral: true }),
+    reactions: {},
+    deleted: false,
     content: undefined,
     embeds: [
       {
@@ -670,6 +702,8 @@ function approvalButtons({ canApprove }: { canApprove: boolean }) {
 /** The approval prompt DMed to the reviewer for `signup`, with `components` as its controls. */
 const approvalPrompt = (components: unknown[], signup?: ShownSignup) => ({
   location: dmTo(REVIEWER.id),
+  reactions: {},
+  deleted: false,
   content: 'Please confirm the prog point of the following signup',
   embeds: [reviewEmbed(signup)],
   components,
@@ -678,6 +712,8 @@ const approvalPrompt = (components: unknown[], signup?: ShownSignup) => ({
 /** The prompt DMed to a declining reviewer; its reason menu goes once the prompt ends. */
 const declineReasonPrompt = ({ withMenu }: { withMenu: boolean }) => ({
   location: dmTo(REVIEWER.id),
+  reactions: {},
+  deleted: false,
   content: undefined,
   embeds: [
     {
@@ -723,6 +759,8 @@ const declineReasonPrompt = ({ withMenu }: { withMenu: boolean }) => ({
 /** The DM telling the player their signup was declined. */
 const declineDm = (flow: FlowApp, content: string) => ({
   location: dmTo(PLAYER.id),
+  reactions: {},
+  deleted: false,
   content,
   embeds: [
     {
@@ -790,6 +828,8 @@ const storedSignup = (flow: FlowApp, changes: Partial<SignupDocument>) => ({
 /** The FFLogs check's refusal, as the player's reply shows it. */
 const fflogsRefusal = (flow: FlowApp, description: string) => ({
   location: replyTo(PLAYER.id, { ephemeral: true }),
+  reactions: {},
+  deleted: false,
   content: undefined,
   embeds: [
     {
@@ -872,10 +912,6 @@ describe('Signup lifecycle', () => {
       expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
         pendingReview(),
       ]);
-      expect(reactionsOn(latestReview(flow))).toEqual({
-        [SIGNUP_REVIEW_REACTIONS.APPROVED]: [BOT_USER_ID],
-        [SIGNUP_REVIEW_REACTIONS.DECLINED]: [BOT_USER_ID],
-      });
     });
   });
 
@@ -924,6 +960,8 @@ describe('Signup lifecycle', () => {
       expect(flow.discord.channel(BLACKLIST_CHANNEL).map(shown)).toEqual([
         {
           location: IN_BLACKLIST_CHANNEL,
+          reactions: {},
+          deleted: false,
           content: undefined,
           embeds: [
             {
@@ -1121,6 +1159,8 @@ describe('Signup lifecycle', () => {
       expect(flow.discord.repliesTo(PLAYER.id).map(shown)).toEqual([
         {
           location: replyTo(PLAYER.id, { ephemeral: true }),
+          reactions: {},
+          deleted: false,
           content: undefined,
           embeds: [
             {
@@ -1144,6 +1184,8 @@ describe('Signup lifecycle', () => {
       expect(flow.discord.repliesTo(PLAYER.id).map(shown)).toEqual([
         {
           location: replyTo(PLAYER.id, { ephemeral: true }),
+          reactions: {},
+          deleted: false,
           content: undefined,
           embeds: [
             {
@@ -1278,6 +1320,8 @@ describe('Signup lifecycle', () => {
           approvalPrompt([]),
           {
             location: dmTo(REVIEWER.id),
+            reactions: {},
+            deleted: false,
             content: SIGNUP_MESSAGES.PROG_DM_TIMEOUT,
             embeds: [],
             components: [],
@@ -1350,10 +1394,6 @@ describe('Signup lifecycle', () => {
         expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
           approvedReview(flow),
         ]);
-        expect(reactionsOn(latestReview(flow))).toEqual({
-          [SIGNUP_REVIEW_REACTIONS.APPROVED]: [BOT_USER_ID, REVIEWER.id],
-          [SIGNUP_REVIEW_REACTIONS.DECLINED]: [BOT_USER_ID],
-        });
       });
 
       it('confirms the decision to the reviewer and removes the prompt controls', ({
@@ -1400,16 +1440,10 @@ describe('Signup lifecycle', () => {
         );
         // the review stays as approved; the bot leaves the late reaction be
         expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
-          approvedReview(flow),
+          approvedReview(flow, undefined, {
+            approved: [REVIEWER.id, OTHER_REVIEWER.id],
+          }),
         ]);
-        expect(reactionsOn(latestReview(flow))).toEqual({
-          [SIGNUP_REVIEW_REACTIONS.APPROVED]: [
-            BOT_USER_ID,
-            REVIEWER.id,
-            OTHER_REVIEWER.id,
-          ],
-          [SIGNUP_REVIEW_REACTIONS.DECLINED]: [BOT_USER_ID],
-        });
       });
     });
 
@@ -1476,6 +1510,8 @@ describe('Signup lifecycle', () => {
         expect(flow.discord.dmsTo(PLAYER.id).map(shown)).toEqual([
           {
             location: dmTo(PLAYER.id),
+            reactions: {},
+            deleted: false,
             content: `Your signup for **${ENCOUNTER_NAME}** was approved. The reviewer left you a comment:\n\n> Great clear\n> See you in P7`,
             embeds: [],
             components: [],
@@ -1645,6 +1681,10 @@ describe('Signup lifecycle', () => {
             progPoint: 'Cleared',
             title: 'Congratulations!',
             content: `<@${PLAYER.id}> Congratulations on clearing **${ENCOUNTER_NAME}**!`,
+            // the bot celebrates a clear with its clear emojis
+            reactions: Object.fromEntries(
+              CLEAR_EMOJIS.map(({ id }) => [id, [BOT_USER_ID]]),
+            ),
           }),
         ]);
       });
@@ -1761,10 +1801,6 @@ describe('Signup lifecycle', () => {
         expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
           declinedReview(flow),
         ]);
-        expect(reactionsOn(latestReview(flow))).toEqual({
-          [SIGNUP_REVIEW_REACTIONS.APPROVED]: [BOT_USER_ID],
-          [SIGNUP_REVIEW_REACTIONS.DECLINED]: [BOT_USER_ID, REVIEWER.id],
-        });
       });
     });
 
@@ -1988,12 +2024,8 @@ describe('Signup lifecycle', () => {
         await cancelApprovalPrompt(flow);
         // the review is untouched, and the bot leaves the player's reaction be
         expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
-          pendingReview(),
+          pendingReview(undefined, { approved: [PLAYER.id] }),
         ]);
-        expect(reactionsOn(latestReview(flow))).toEqual({
-          [SIGNUP_REVIEW_REACTIONS.APPROVED]: [BOT_USER_ID, PLAYER.id],
-          [SIGNUP_REVIEW_REACTIONS.DECLINED]: [BOT_USER_ID],
-        });
       });
     });
 
@@ -2048,6 +2080,8 @@ describe('Signup lifecycle', () => {
         expect(flow.discord.dmsTo(OTHER_REVIEWER.id).map(shown)).toEqual([
           {
             location: dmTo(OTHER_REVIEWER.id),
+            reactions: {},
+            deleted: false,
             content: SIGNUP_MESSAGES.SIGNUP_NOT_FOUND_FOR_REACTION,
             embeds: [],
             components: [],
