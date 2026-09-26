@@ -339,6 +339,13 @@ export function captureSheetsRequests() {
     writes(): SheetsWrite[] {
       return bodies().filter(({ method }) => method !== 'GET');
     },
+    /** How many times the app has read `range` (e.g. `DMU!I:L`) so far. */
+    readsOf(range: string): number {
+      return requests.filter(
+        ({ method, path }) =>
+          method === 'GET' && path.split('?')[0]?.endsWith(`/values/${range}`),
+      ).length;
+    },
     dispose() {
       unsubscribe(HTTP_REQUEST_CREATED, onCreated);
     },

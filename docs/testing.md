@@ -109,7 +109,7 @@ feature modules. Only what sits behind an external system is swapped:
 | Firestore | `InMemoryFirestore`, behind the `FIRESTORE` token | `db.seed(path, data)` / `db.read(path)`; `db.onWrite(listener)` to check what else had happened when the app wrote |
 | Discord | `DiscordMock`, as `DiscordService` and the client | set up members, channels and emojis (`addMember`, `addChannel(guildId, channelId)`, `addEmoji`); drive the bot with `command` (delivered through the real command listener, and only with commands and options the bot registered), `react`, `click`, `choose` and `submitModal`; assert with `channel`, `dmsTo`, `repliesTo`, `modalsShownTo`, `rolesOf` |
 | FFLogs | `FFLogsMock`, behind the SDK token, so the real `FFLogsService` runs | `fflogs.addReport(code, { daysAgo })`, `fflogs.goOffline()` |
-| Google Sheets | **Recorded real traffic.** The real `SheetsService` and client run; their HTTP is replayed from recordings of the shared test spreadsheet | `sheets.writes()`: every change the app sent to Sheets in this test, in full; `sheets.valuesRead(range)`: what the sheet returned when the app read it |
+| Google Sheets | **Recorded real traffic.** The real `SheetsService` and client run; their HTTP is replayed from recordings of the shared test spreadsheet | `sheets.writes()`: every change the app sent to Sheets in this test, in full; `sheets.valuesRead(range)`: what the sheet returned each time the app has read it so far |
 
 ### Recorded Google Sheets traffic
 

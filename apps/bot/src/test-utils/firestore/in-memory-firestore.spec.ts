@@ -603,7 +603,11 @@ describe('InMemoryFirestore', () => {
         '14 UNAVAILABLE',
       );
       await expect(ref.set({ name: 'B' })).rejects.toThrow('14 UNAVAILABLE');
-      expect(db.read('signups/a')).toEqual({ name: 'A' });
+      db.seed('signups/b', { name: 'seeded while offline' });
+      expect([db.read('signups/a'), db.read('signups/b')]).toEqual([
+        { name: 'A' },
+        { name: 'seeded while offline' },
+      ]);
     });
   });
 
