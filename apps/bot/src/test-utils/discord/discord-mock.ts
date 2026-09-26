@@ -219,6 +219,57 @@ function splitReply(payload: ReplyPayload): {
 }
 
 /**
+ * A command's reply: shown once, then edited in place. A deferred reply's
+ * visibility is fixed when it is deferred.
+ */
+class CommandReply {
+  private readonly userId: string;
+  private readonly create: (
+    location: MessageLocation,
+    payload: OutgoingPayload,
+  ) => FakeMessage;
+  private message: FakeMessage | undefined;
+  private deferredEphemeral: boolean | undefined;
+
+  constructor(
+    userId: string,
+    create: (
+      location: MessageLocation,
+      payload: OutgoingPayload,
+    ) => FakeMessage,
+  ) {
+    this.userId = userId;
+    this.create = create;
+  }
+
+  /** The reply, once one has been shown. */
+  sent(): FakeMessage | undefined {
+    return this.message;
+  }
+
+  defer(flags: MessageFlagsResolvable | undefined): void {
+    this.deferredEphemeral = isEphemeral(flags);
+  }
+
+  show(payload: ReplyPayload): Message<true> {
+    const { ephemeral, message } = splitReply(payload);
+    if (this.message) {
+      this.message.apply(message);
+      return this.message.toMessage<true>();
+    }
+    this.message = this.create(
+      {
+        kind: 'reply',
+        userId: this.userId,
+        ephemeral: this.deferredEphemeral ?? ephemeral,
+      },
+      message,
+    );
+    return this.message.toMessage<true>();
+  }
+}
+
+/**
  * Gives a fake interaction discord.js's live `deferred` and `replied` flags,
  * which app code reads to decide how to answer (e.g. `safeReply`).
  */
@@ -460,23 +511,15 @@ export class DiscordMock implements DiscordServiceSurface {
     assertSendable(registered, given);
 
     const ack: Acknowledgement = { deferred: false, replied: false };
-    let reply: FakeMessage | undefined;
-    // a deferred reply's visibility is fixed when it is deferred
-    let deferredEphemeral: boolean | undefined;
-    const show = (payload: ReplyPayload) => Promise.try(() => showNow(payload));
-    const showNow = (payload: ReplyPayload) => {
-      const { ephemeral, message } = splitReply(payload);
-      if (reply) {
-        reply.apply(message);
-      } else {
-        reply = this.createMessage(
-          { kind: 'reply', userId, ephemeral: deferredEphemeral ?? ephemeral },
-          message,
-        );
-      }
-      ack.replied = true;
-      return reply.toMessage<true>();
-    };
+    const reply = new CommandReply(userId, (location, payload) =>
+      this.createMessage(location, payload),
+    );
+    const show = (payload: ReplyPayload) =>
+      Promise.try(() => {
+        const shown = reply.show(payload);
+        ack.replied = true;
+        return shown;
+      });
 
     const interaction = withAckFlags(
       mockOf<ChatInputCommandInteraction<'cached'>>({
@@ -509,7 +552,7 @@ export class DiscordMock implements DiscordServiceSurface {
         deferReply: (options: { flags?: MessageFlagsResolvable } = {}) => {
           if (answered(ack)) return alreadyReplied();
           ack.deferred = true;
-          deferredEphemeral = isEphemeral(options.flags);
+          reply.defer(options.flags);
           return Promise.resolve();
         },
         reply: (payload: ReplyPayload) =>
@@ -537,8 +580,9 @@ export class DiscordMock implements DiscordServiceSurface {
     return {
       interaction,
       reply: () => {
-        if (!reply) throw new Error(`/${commandName} has not replied yet`);
-        return reply;
+        const sent = reply.sent();
+        if (!sent) throw new Error(`/${commandName} has not replied yet`);
+        return sent;
       },
     };
   }

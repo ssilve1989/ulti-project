@@ -182,12 +182,25 @@ function fieldSegments(field: string | FieldPath): string[] {
 }
 
 function valueAt(data: Data, segments: readonly string[]): unknown {
-  let current: unknown = data;
-  for (const segment of segments) {
-    if (!isPlainObject(current)) return undefined;
-    current = current[segment];
+  return segments.reduce<unknown>(
+    (current, segment) =>
+      isPlainObject(current) ? current[segment] : undefined,
+    data,
+  );
+}
+
+/** `target` with `field` copied from `source`, which must have it, as Firestore requires. */
+function withFieldFrom(
+  source: Data,
+  target: Data,
+  field: string | FieldPath,
+): Data {
+  const segments = fieldSegments(field);
+  const value = valueAt(source, segments);
+  if (value === undefined) {
+    throw new Error(`Input data is missing for field "${segments.join('.')}".`);
   }
-  return current;
+  return withValueAt(target, segments, value);
 }
 
 function withValueAt(
@@ -710,17 +723,10 @@ export class InMemoryFirestore {
     const existing = this.documents.get(path) ?? {};
 
     if (options.mergeFields) {
-      let next = existing;
-      for (const field of options.mergeFields) {
-        const segments = fieldSegments(field);
-        const value = valueAt(incoming, segments);
-        if (value === undefined) {
-          throw new Error(
-            `Input data is missing for field "${segments.join('.')}".`,
-          );
-        }
-        next = withValueAt(next, segments, value);
-      }
+      const next = options.mergeFields.reduce<Data>(
+        (merged, field) => withFieldFrom(incoming, merged, field),
+        existing,
+      );
       this.write(path, copyData(next));
     } else if (options.merge) {
       const { deleted, rest } = splitDeletes(data);

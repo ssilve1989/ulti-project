@@ -46,6 +46,9 @@ export function createdRequest(message: unknown): CreatedRequest | undefined {
 const UNDICI_STARTED = 'undici:request:create';
 const UNDICI_ENDED = ['undici:request:trailers', 'undici:request:error'];
 
+/** Consecutive event-loop turns with nothing pending that count as idle. */
+const IDLE_TURNS = 10;
+
 /** How long waitUntilIdle() waits for the app to go idle before failing the test. */
 const IDLE_TIMEOUT_MS = 30_000;
 
@@ -72,52 +75,71 @@ export interface ActivityTracker {
   dispose(): void;
 }
 
+/** The prototypes `instance` inherits methods from, below Object.prototype. */
+function prototypesOf(instance: object): object[] {
+  const prototype: unknown = Object.getPrototypeOf(instance);
+  return typeof prototype === 'object' &&
+    prototype !== null &&
+    prototype !== Object.prototype
+    ? [prototype, ...prototypesOf(prototype)]
+    : [];
+}
+
 function methodNames(instance: object): string[] {
-  const names = new Set<string>();
-  for (
-    let prototype = Object.getPrototypeOf(instance);
-    prototype !== null && prototype !== Object.prototype;
-    prototype = Object.getPrototypeOf(prototype)
-  ) {
-    for (const name of Object.getOwnPropertyNames(prototype)) {
-      if (name !== 'constructor') names.add(name);
-    }
-  }
-  return [...names];
+  const names = prototypesOf(instance).flatMap((prototype) =>
+    Object.getOwnPropertyNames(prototype),
+  );
+  return [...new Set(names)].filter((name) => name !== 'constructor');
+}
+
+/** The request an undici diagnostics message is about. */
+function undiciRequest(message: unknown): object | undefined {
+  const request: unknown =
+    typeof message === 'object' && message !== null
+      ? Reflect.get(message, 'request')
+      : undefined;
+  return typeof request === 'object' && request !== null ? request : undefined;
 }
 
 export function createActivityTracker(): ActivityTracker {
-  let pending = 0;
-  let waiters: Array<() => void> = [];
+  // each in-flight request or tracked call, until it finishes
+  const inFlight = new Set<object>();
+  const waiters = new Set<() => void>();
 
-  const begin = () => {
-    pending++;
+  const begin = (work: object) => {
+    inFlight.add(work);
   };
-  const end = () => {
-    pending--;
-    if (pending === 0) {
-      for (const wake of waiters) wake();
-      waiters = [];
-    }
+  const end = (work: object) => {
+    inFlight.delete(work);
+    if (inFlight.size > 0) return;
+    for (const wake of waiters) wake();
+    waiters.clear();
   };
   const httpRequestCreated = (message: unknown) => {
     const created = createdRequest(message);
-    if (created) {
-      begin();
-      created.request.once('close', end);
-    }
+    if (!created) return;
+    begin(created.request);
+    created.request.once('close', () => end(created.request));
+  };
+  const undiciStarted = (message: unknown) => {
+    const request = undiciRequest(message);
+    if (request) begin(request);
+  };
+  const undiciEnded = (message: unknown) => {
+    const request = undiciRequest(message);
+    if (request) end(request);
   };
   subscribe(HTTP_REQUEST_CREATED, httpRequestCreated);
-  subscribe(UNDICI_STARTED, begin);
-  for (const name of UNDICI_ENDED) subscribe(name, end);
+  subscribe(UNDICI_STARTED, undiciStarted);
+  for (const name of UNDICI_ENDED) subscribe(name, undiciEnded);
 
   return {
     get pending() {
-      return pending;
+      return inFlight.size;
     },
     drained() {
-      if (pending === 0) return Promise.resolve();
-      return new Promise((resolve) => waiters.push(resolve));
+      if (inFlight.size === 0) return Promise.resolve();
+      return new Promise((resolve) => waiters.add(resolve));
     },
     trackCalls(instance) {
       for (const name of methodNames(instance)) {
@@ -129,8 +151,11 @@ export function createActivityTracker(): ActivityTracker {
           value: (...args: unknown[]) => {
             const result: unknown = Reflect.apply(original, instance, args);
             if (result instanceof Promise) {
-              begin();
-              result.then(end, end);
+              begin(result);
+              result.then(
+                () => end(result),
+                () => end(result),
+              );
             }
             return result;
           },
@@ -139,8 +164,8 @@ export function createActivityTracker(): ActivityTracker {
     },
     dispose() {
       unsubscribe(HTTP_REQUEST_CREATED, httpRequestCreated);
-      unsubscribe(UNDICI_STARTED, begin);
-      for (const name of UNDICI_ENDED) unsubscribe(name, end);
+      unsubscribe(UNDICI_STARTED, undiciStarted);
+      for (const name of UNDICI_ENDED) unsubscribe(name, undiciEnded);
     },
   };
 }
@@ -152,19 +177,20 @@ export function createActivityTracker(): ActivityTracker {
  */
 export async function waitUntilIdle(tracker: ActivityTracker): Promise<void> {
   const deadline = setTimeout(IDLE_TIMEOUT_MS, 'timed out', { ref: false });
-  let idleTurns = 0;
-  while (idleTurns < 10) {
-    await setImmediate();
-    if (tracker.pending === 0) {
-      idleTurns++;
-      continue;
-    }
-    idleTurns = 0;
+  const drainedInTime = async () => {
     const outcome = await Promise.race([tracker.drained(), deadline]);
     if (outcome === 'timed out') {
       throw new Error(
         `The app did not go idle within ${IDLE_TIMEOUT_MS} ms (${tracker.pending} HTTP request(s) or tracked call(s) still pending)`,
       );
     }
-  }
+  };
+  const idleFor = async (idleTurns: number): Promise<void> => {
+    if (idleTurns >= IDLE_TURNS) return;
+    await setImmediate();
+    if (tracker.pending === 0) return idleFor(idleTurns + 1);
+    await drainedInTime();
+    return idleFor(0);
+  };
+  await idleFor(0);
 }
