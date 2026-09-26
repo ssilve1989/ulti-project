@@ -1828,6 +1828,49 @@ describe('Signup lifecycle', () => {
       });
     });
 
+    describe('and the player resubmits before the declining reviewer picks a reason', () => {
+      it.beforeEach(async ({ flow }) => {
+        await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.DECLINED);
+        await submitSignup(flow);
+        // the reviewer's prompt came before the resubmit
+        flow.discord.choose(
+          flow.discord.latestDmTo(REVIEWER.id),
+          DECLINE_REASON,
+          REVIEWER.id,
+        );
+        await flow.settle();
+        flow.expectReported(
+          /^warning: Decline reason not recorded for signup player-1-DMU, signup state changed/,
+        );
+      });
+
+      it('tells the reviewer the reason was not recorded, and removes the reason menu', ({
+        flow,
+      }) => {
+        expect(flow.discord.dmsTo(REVIEWER.id).map(shown)).toEqual([
+          declineReasonPrompt({ withMenu: false }),
+        ]);
+        expect(flow.discord.repliesTo(REVIEWER.id).map(shown)).toEqual([
+          textReply(REVIEWER.id, SIGNUP_MESSAGES.DECLINE_REASON_NOT_RECORDED, {
+            ephemeral: false,
+          }),
+        ]);
+      });
+
+      it('keeps the resubmitted signup pending review, without a reason, and tells the player nothing', ({
+        flow,
+      }) => {
+        expect(flow.db.read(SIGNUP_PATH)).toEqual(
+          storedSignup(flow, {
+            status: SignupStatus.UPDATE_PENDING,
+            reviewMessageId: latestReview(flow).id,
+            reviewedBy: null,
+          }),
+        );
+        expect(flow.discord.dmsTo(PLAYER.id)).toEqual([]);
+      });
+    });
+
     describe('and the reviewer declines it but never picks a reason', () => {
       it.beforeEach(async ({ flow }) => {
         await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.DECLINED);
