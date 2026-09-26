@@ -4,7 +4,7 @@ import {
   Filter,
   Timestamp,
 } from 'firebase-admin/firestore';
-import { test as base, describe, expect } from 'vitest';
+import { test as base, describe, expect, vi } from 'vitest';
 import { fresh } from '../fixtures.js';
 import { timestampBetween } from '../matchers.js';
 import { InMemoryFirestore } from './in-memory-firestore.js';
@@ -567,12 +567,11 @@ describe('InMemoryFirestore', () => {
     }) => {
       db.seed('counters/a', { count: 0 });
       const ref = db.collection('counters').doc('a');
-      let attempts = 0;
-
-      await db.runTransaction(async (tx) => {
-        attempts++;
+      const transaction = vi.fn<
+        Parameters<InMemoryFirestore['runTransaction']>[0]
+      >(async (tx) => {
         const snapshot = await tx.get(ref);
-        if (attempts === 1) {
+        if (transaction.mock.calls.length === 1) {
           // another writer lands between this transaction's read and commit
           await ref.update({ count: 10 });
         }
@@ -580,7 +579,9 @@ describe('InMemoryFirestore', () => {
         tx.update(ref, { count: typeof count === 'number' ? count + 1 : -1 });
       });
 
-      expect(attempts).toBe(2);
+      await db.runTransaction(transaction);
+
+      expect(transaction).toHaveBeenCalledTimes(2);
       expect(db.read('counters/a')).toEqual({ count: 11 });
     });
   });

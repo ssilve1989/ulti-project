@@ -307,22 +307,23 @@ export class FakeMessage {
 
   /** Hands an interaction to whatever is awaiting or collecting on this message. */
   dispatch(interaction: Interaction): void {
-    let handled = false;
-    for (const waiter of [...this.waiters]) {
-      if (!accepts(waiter.options, interaction)) continue;
-      this.waiters.delete(waiter);
-      waiter.resolve(interaction);
-      handled = true;
-    }
-    for (const collector of [...this.collectors]) {
-      if (!accepts(collector.options, interaction)) continue;
-      collector.emit('collect', interaction);
-      handled = true;
-    }
-    if (!handled) {
+    const waiters = [...this.waiters].filter((waiter) =>
+      accepts(waiter.options, interaction),
+    );
+    const collectors = [...this.collectors].filter((collector) =>
+      accepts(collector.options, interaction),
+    );
+    if (waiters.length === 0 && collectors.length === 0) {
       throw new Error(
         `Nothing on message ${this.id} is waiting for this interaction`,
       );
+    }
+    for (const waiter of waiters) {
+      this.waiters.delete(waiter);
+      waiter.resolve(interaction);
+    }
+    for (const collector of collectors) {
+      collector.emit('collect', interaction);
     }
   }
 

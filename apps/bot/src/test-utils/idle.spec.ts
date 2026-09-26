@@ -6,7 +6,8 @@ import {
   type RequestListener,
   type Server,
 } from 'node:http';
-import { setTimeout as sleep } from 'node:timers/promises';
+import { text } from 'node:stream/consumers';
+import { setImmediate, setTimeout as sleep } from 'node:timers/promises';
 import { test as base, describe, expect } from 'vitest';
 import { fresh } from './fixtures.js';
 import {
@@ -70,21 +71,19 @@ const it = base.extend<{
   ),
 });
 
+/** The body, if it has fully arrived by now; otherwise says it is still coming. */
+const settledBody = (body: Promise<string>) =>
+  Promise.race([body, setImmediate('still in flight')]);
+
 describe('waitUntilIdle', () => {
   it('waits for an HTTP request in flight', async ({ tracker, serve }) => {
     const url = await serve((_request, response) => {
       setTimeout(() => response.end('ok'), 200);
     });
-    let finished = false;
-
-    void fetch(url)
-      .then((response) => response.text())
-      .then(() => {
-        finished = true;
-      });
+    const body = fetch(url).then((response) => response.text());
     await waitUntilIdle(tracker);
 
-    expect(finished).toBe(true);
+    await expect(settledBody(body)).resolves.toBe('ok');
   });
 
   it('waits for the response body, not just its headers', async ({
@@ -96,17 +95,12 @@ describe('waitUntilIdle', () => {
       response.write('first part');
       setTimeout(() => response.end(' and the rest'), 200);
     });
-    let body = '';
-
-    const request = get(url, (response) => {
-      response.on('data', (chunk: Buffer) => {
-        body += chunk.toString();
-      });
+    const body = new Promise<string>((resolve) => {
+      get(url, (response) => resolve(text(response)));
     });
-    request.end();
     await waitUntilIdle(tracker);
 
-    expect(body).toBe('first part and the rest');
+    await expect(settledBody(body)).resolves.toBe('first part and the rest');
   });
 
   // nock swaps http.ClientRequest while it intercepts, and the ESM view of
