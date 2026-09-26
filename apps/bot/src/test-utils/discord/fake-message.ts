@@ -209,9 +209,24 @@ export function resolveEmoji(emoji: unknown): ReactionEmoji {
 /** How discord.js keys a reaction in a message's reaction cache. */
 export const reactionKey = ({ id, name }: ReactionEmoji) => id ?? name;
 
-/** Everything a user sees of a message: where it is, its text, embeds and controls. */
-export function shown({ location, content, embeds, components }: FakeMessage) {
-  return { location, content, embeds, components };
+/** Everything a user sees of a message: where it is, its text, embeds, controls and reactions, and whether it's still there. */
+export function shown(message: FakeMessage) {
+  const { location, content, embeds, components, deleted } = message;
+  return {
+    location,
+    content,
+    embeds,
+    components,
+    reactions: reactionsOn(message),
+    deleted,
+  };
+}
+
+/** Who reacted to a message, by emoji key (a unicode emoji, or a custom emoji's id). */
+export function reactionsOn(message: FakeMessage): Record<string, string[]> {
+  return Object.fromEntries(
+    [...message.reactions].map(([emoji, users]) => [emoji, [...users]]),
+  );
 }
 
 export class FakeMessage {

@@ -112,6 +112,8 @@ async function status(flow: FlowApp) {
 const summary = (embed: { fields?: APIEmbedField[]; description?: string }) => [
   {
     location: { kind: 'reply', userId: PLAYER.id, ephemeral: true },
+    reactions: {},
+    deleted: false,
     content: undefined,
     embeds: [{ title: 'Signup Summary', ...embed }],
     components: [],
@@ -240,6 +242,8 @@ describe('/status', () => {
     expect(replies).toEqual([
       {
         location: { kind: 'reply', userId: PLAYER.id, ephemeral: true },
+        reactions: {},
+        deleted: false,
         content: undefined,
         embeds: [
           {

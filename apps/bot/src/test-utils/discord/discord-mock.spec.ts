@@ -795,24 +795,23 @@ describe('DiscordMock', () => {
       expect([a.customId, b.customId]).toEqual(['comment', 'comment']);
     });
 
-    it('times out every modal awaiter on expireAll', async ({ discord }) => {
+    it('times out every modal awaiter on expireAll, with the error discord.js raises', async ({
+      discord,
+    }) => {
       const click = await openModal(discord);
-      const results = [
+      const pending = [
         click.awaitModalSubmit({ time: 1_000 }),
         click.awaitModalSubmit({ time: 1_000 }),
-      ].map((pending) =>
-        pending.then(
-          () => 'resolved',
-          () => 'timed out',
-        ),
-      );
+      ];
 
       discord.expireAll();
 
-      await expect(Promise.all(results)).resolves.toEqual([
-        'timed out',
-        'timed out',
-      ]);
+      const timeout = discordjsError(
+        DiscordjsErrorCodes.InteractionCollectorError,
+        ['time'],
+      );
+      await expect(pending[0]).rejects.toEqual(timeout);
+      await expect(pending[1]).rejects.toEqual(timeout);
     });
 
     it('does not deliver a modal submit the awaiter filters out', async ({

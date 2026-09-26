@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { WHITELIST_VALIDATION_ERROR } from './signup.consts.js';
 import { signupSchema } from './signup.schema.js';
 
-const baseRequest = {
+const baseRequest = Object.freeze({
   character: 'Tester',
   discordId: '123456789',
   role: 'tank',
@@ -11,7 +11,7 @@ const baseRequest = {
   notes: null,
   username: 'TestUser',
   world: 'cactuar',
-};
+});
 
 /** The whole parsed signup for baseRequest, with `proofOfProgLink` as stored. */
 const parsedWith = (proofOfProgLink: string | null) => ({
