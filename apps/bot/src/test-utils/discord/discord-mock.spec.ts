@@ -21,6 +21,7 @@ import { BOT_USER_ID, DiscordMock } from './discord-mock.js';
 import {
   cannotMessageUser,
   discordjsError,
+  shown,
   unknownResource,
 } from './fake-message.js';
 
@@ -98,6 +99,33 @@ describe('DiscordMock', () => {
     return pending;
   };
 
+  /** Posts `content` as the bot in channel c1 of g1; returns the sent message. */
+  const postInC1 = async (discord: DiscordMock, content: string) => {
+    const channel = await discord.getTextChannel({
+      guildId: 'g1',
+      channelId: 'c1',
+    });
+    return channel?.send(content);
+  };
+
+  /**
+   * DMs u1 `components` with something awaiting a click on them, as a
+   * prompt would, so the test can see whether a click gets through.
+   */
+  const dmAwaitingClick = async (
+    discord: DiscordMock,
+    components: ReadonlyArray<
+      | ActionRowBuilder<ButtonBuilder>
+      | ActionRowBuilder<StringSelectMenuBuilder>
+    >,
+  ) => {
+    const message = await discord.sendDirectMessage('u1', {
+      components: [...components],
+    });
+    void message.awaitMessageComponent().catch(() => undefined);
+    return message;
+  };
+
   /** Clicks a go button and answers it with a one-input modal. */
   const openModal = async (
     discord: DiscordMock,
@@ -137,19 +165,14 @@ describe('DiscordMock', () => {
   it('records direct messages', async ({ discord }) => {
     await discord.sendDirectMessage('u1', { content: 'hello' });
 
-    expect(
-      discord.dmsTo('u1').map(({ location, content, embeds, components }) => ({
-        location,
-        content,
-        embeds,
-        components,
-      })),
-    ).toEqual([
+    expect(discord.dmsTo('u1').map(shown)).toEqual([
       {
         location: { kind: 'dm', userId: 'u1' },
         content: 'hello',
         embeds: [],
         components: [],
+        reactions: {},
+        deleted: false,
       },
     ]);
   });
@@ -256,11 +279,7 @@ describe('DiscordMock', () => {
   it('emits MessageReactionAdd on the client when a user reacts', async ({
     discord,
   }) => {
-    const channel = await discord.getTextChannel({
-      guildId: 'g1',
-      channelId: 'c1',
-    });
-    await channel?.send('review me');
+    await postInC1(discord, 'review me');
     const seen: Array<{ emoji: string | null; userId: string }> = [];
     discord.client.on(
       Events.MessageReactionAdd,
@@ -316,11 +335,7 @@ describe('DiscordMock', () => {
   it('refuses a reaction the user already added, which Discord would not report again', async ({
     discord,
   }) => {
-    const channel = await discord.getTextChannel({
-      guildId: 'g1',
-      channelId: 'c1',
-    });
-    await channel?.send('review me');
+    await postInC1(discord, 'review me');
     const [review] = discord.channel('c1');
     if (!review) throw new Error('expected a message in c1');
     discord.react(review, '✅', 'u1');
@@ -399,11 +414,7 @@ describe('DiscordMock', () => {
     it('deletes a message only through the channel it was posted in', async ({
       discord,
     }) => {
-      const channel = await discord.getTextChannel({
-        guildId: 'g1',
-        channelId: 'c1',
-      });
-      const sent = await channel?.send('review me');
+      const sent = await postInC1(discord, 'review me');
       if (!sent) throw new Error('expected a sent message');
       const [posted] = discord.channel('c1');
       const unknownMessage = (channelId: string) =>
@@ -442,18 +453,15 @@ describe('DiscordMock', () => {
 
   describe('what a user can interact with', () => {
     it('refuses to click a disabled button', async ({ discord }) => {
-      const message = await discord.sendDirectMessage('u1', {
-        components: [
-          new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-              .setCustomId('go')
-              .setLabel('Go')
-              .setStyle(ButtonStyle.Primary)
-              .setDisabled(true),
-          ),
-        ],
-      });
-      void message.awaitMessageComponent().catch(() => undefined);
+      await dmAwaitingClick(discord, [
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId('go')
+            .setLabel('Go')
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(true),
+        ),
+      ]);
 
       expect(() => discord.click(discord.latestDmTo('u1'), 'go', 'u1')).toThrow(
         'disabled',
@@ -461,17 +469,14 @@ describe('DiscordMock', () => {
     });
 
     it('refuses to choose from a disabled select menu', async ({ discord }) => {
-      const message = await discord.sendDirectMessage('u1', {
-        components: [
-          new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-            new StringSelectMenuBuilder()
-              .setCustomId('point')
-              .addOptions({ label: 'P6', value: 'P6' })
-              .setDisabled(true),
-          ),
-        ],
-      });
-      void message.awaitMessageComponent().catch(() => undefined);
+      await dmAwaitingClick(discord, [
+        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('point')
+            .addOptions({ label: 'P6', value: 'P6' })
+            .setDisabled(true),
+        ),
+      ]);
 
       expect(() =>
         discord.choose(discord.latestDmTo('u1'), 'P6', 'u1'),
@@ -481,10 +486,7 @@ describe('DiscordMock', () => {
     it('refuses to choose a value the menu does not offer', async ({
       discord,
     }) => {
-      const message = await discord.sendDirectMessage('u1', {
-        components: [pointSelect()],
-      });
-      void message.awaitMessageComponent().catch(() => undefined);
+      await dmAwaitingClick(discord, [pointSelect()]);
 
       expect(() =>
         discord.choose(discord.latestDmTo('u1'), 'P9', 'u1'),
@@ -492,10 +494,7 @@ describe('DiscordMock', () => {
     });
 
     it('refuses to interact with a deleted message', async ({ discord }) => {
-      const message = await discord.sendDirectMessage('u1', {
-        components: [goButton()],
-      });
-      void message.awaitMessageComponent().catch(() => undefined);
+      const message = await dmAwaitingClick(discord, [goButton()]);
       await message.delete();
 
       expect(() => discord.click(discord.latestDmTo('u1'), 'go', 'u1')).toThrow(
@@ -506,10 +505,7 @@ describe('DiscordMock', () => {
     it("refuses someone else interacting with a user's DM", async ({
       discord,
     }) => {
-      const message = await discord.sendDirectMessage('u1', {
-        components: [goButton()],
-      });
-      void message.awaitMessageComponent().catch(() => undefined);
+      await dmAwaitingClick(discord, [goButton()]);
 
       expect(() => discord.click(discord.latestDmTo('u1'), 'go', 'u2')).toThrow(
         "u2 can't see message",
@@ -619,18 +615,22 @@ describe('DiscordMock', () => {
         flags: MessageFlags.Ephemeral,
       });
 
-      expect(
-        discord
-          .repliesTo('u1')
-          .map(({ location, content }) => ({ location, content })),
-      ).toEqual([
+      expect(discord.repliesTo('u1').map(shown)).toEqual([
         {
           location: { kind: 'reply', userId: 'u1', ephemeral: false },
           content: 'first',
+          embeds: [],
+          components: [],
+          reactions: {},
+          deleted: false,
         },
         {
           location: { kind: 'reply', userId: 'u1', ephemeral: true },
           content: 'second',
+          embeds: [],
+          components: [],
+          reactions: {},
+          deleted: false,
         },
       ]);
     });
@@ -702,12 +702,7 @@ describe('DiscordMock', () => {
         (_reaction: unknown, user: User) =>
           reactors.push({ id: user.id, bot: user.bot }),
       );
-      const channel = await discord.getTextChannel({
-        guildId: 'g1',
-        channelId: 'c1',
-      });
-
-      const sent = await channel?.send('review me');
+      const sent = await postInC1(discord, 'review me');
       await sent?.react('✅');
 
       expect(reactors).toEqual([{ id: BOT_USER_ID, bot: true }]);
@@ -891,27 +886,22 @@ describe('DiscordMock', () => {
     await click.reply('first');
     await click.followUp({ content: 'second', embeds: [{ title: 'T' }] });
 
-    expect(
-      discord
-        .repliesTo('u1')
-        .map(({ location, content, embeds, components }) => ({
-          location,
-          content,
-          embeds,
-          components,
-        })),
-    ).toEqual([
+    expect(discord.repliesTo('u1').map(shown)).toEqual([
       {
         location: { kind: 'reply', userId: 'u1', ephemeral: false },
         content: 'first',
         embeds: [],
         components: [],
+        reactions: {},
+        deleted: false,
       },
       {
         location: { kind: 'reply', userId: 'u1', ephemeral: false },
         content: 'second',
         embeds: [{ title: 'T' }],
         components: [],
+        reactions: {},
+        deleted: false,
       },
     ]);
   });
@@ -1061,11 +1051,7 @@ describe('DiscordMock', () => {
         (reaction: { emoji: { id: string | null; name: string | null } }) =>
           seen.push(reaction.emoji),
       );
-      const channel = await discord.getTextChannel({
-        guildId: 'g1',
-        channelId: 'c1',
-      });
-      const sent = await channel?.send('congratulations');
+      const sent = await postInC1(discord, 'congratulations');
       const [emoji] = discord.getEmojis(['cheer']);
 
       await sent?.react(emoji ?? 'missing');

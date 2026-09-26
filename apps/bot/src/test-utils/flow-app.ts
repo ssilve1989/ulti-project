@@ -29,7 +29,7 @@ import {
  * Flow specs boot every slash command feature, as the bot does: commands reach
  * their handlers through the real listener and registry.
  */
-const FLOW_MODULES = [SlashCommandsModule];
+const FLOW_MODULES = Object.freeze([SlashCommandsModule]);
 
 /**
  * The shared Google test spreadsheet flow specs record against (also used for
@@ -166,7 +166,9 @@ export async function createFlowApp(): Promise<FlowApp> {
   const stopWatchingSentry = logger.watchSentry();
 
   try {
-    const moduleRef = await Test.createTestingModule({ imports: FLOW_MODULES })
+    const moduleRef = await Test.createTestingModule({
+      imports: [...FLOW_MODULES],
+    })
       .overrideProvider(FIRESTORE)
       .useValue(db)
       .overrideProvider(DISCORD_CLIENT)
@@ -192,7 +194,9 @@ export async function createFlowApp(): Promise<FlowApp> {
     const sheets: TestSheet = {
       spreadsheetId: TEST_SPREADSHEET_ID,
       writes: () => sheetsRequests.writes(),
-      valuesRead: (range) => recording.valuesRead(range),
+      // only the reads the app has made so far, not every read in the recording
+      valuesRead: (range) =>
+        recording.valuesRead(range).slice(0, sheetsRequests.readsOf(range)),
     };
 
     return {

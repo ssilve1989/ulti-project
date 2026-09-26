@@ -1327,10 +1327,10 @@ describe('Signup lifecycle', () => {
             components: [],
           },
         ]);
-        expect(reactionsOn(latestReview(flow))).toEqual({
-          [SIGNUP_REVIEW_REACTIONS.APPROVED]: [BOT_USER_ID],
-          [SIGNUP_REVIEW_REACTIONS.DECLINED]: [BOT_USER_ID],
-        });
+        // the review is back as it was, without the reviewer's reaction
+        expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
+          pendingReview(),
+        ]);
         expect(flow.db.read(SIGNUP_PATH)).toEqual(
           storedSignup(flow, { reviewMessageId: latestReview(flow).id }),
         );
@@ -1740,10 +1740,9 @@ describe('Signup lifecycle', () => {
       it("removes the reviewer's approve reaction so they can react again", ({
         flow,
       }) => {
-        expect(reactionsOn(latestReview(flow))).toEqual({
-          [SIGNUP_REVIEW_REACTIONS.APPROVED]: [BOT_USER_ID],
-          [SIGNUP_REVIEW_REACTIONS.DECLINED]: [BOT_USER_ID],
-        });
+        expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
+          pendingReview(),
+        ]);
       });
 
       it('tells the reviewer the review was cancelled and removes the prompt controls', ({
@@ -1818,6 +1817,22 @@ describe('Signup lifecycle', () => {
               "Since you've already cleared this encounter, you won't be able to sign up for it again. Congratulations on your clear! 🎉",
             ),
           ),
+        ]);
+      });
+
+      it('marks it and its review message declined with the reason', ({
+        flow,
+      }) => {
+        expect(flow.db.read(SIGNUP_PATH)).toEqual(
+          storedSignup(flow, {
+            status: SignupStatus.DECLINED,
+            reviewMessageId: latestReview(flow).id,
+            reviewedBy: REVIEWER.username,
+            declineReason: reason,
+          }),
+        );
+        expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
+          declinedReview(flow),
         ]);
       });
     });
@@ -1964,6 +1979,12 @@ describe('Signup lifecycle', () => {
         ]);
       });
 
+      it('marks the review message as declined by the reviewer', ({ flow }) => {
+        expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
+          declinedReview(flow),
+        ]);
+      });
+
       it("removes the reason menu from the reviewer's prompt", ({ flow }) => {
         expect(flow.discord.dmsTo(REVIEWER.id).map(shown)).toEqual([
           declineReasonPrompt({ withMenu: false }),
@@ -1987,6 +2008,12 @@ describe('Signup lifecycle', () => {
             reviewedBy: REVIEWER.username,
           }),
         );
+      });
+
+      it('marks the review message as declined by the reviewer', ({ flow }) => {
+        expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
+          declinedReview(flow),
+        ]);
       });
 
       it("removes the reason menu from the reviewer's prompt", ({ flow }) => {
@@ -2087,10 +2114,11 @@ describe('Signup lifecycle', () => {
             components: [],
           },
         ]);
-        expect(reactionsOn(oldReview)).toEqual({
-          [SIGNUP_REVIEW_REACTIONS.APPROVED]: [BOT_USER_ID, REVIEWER.id],
-          [SIGNUP_REVIEW_REACTIONS.DECLINED]: [BOT_USER_ID],
-        });
+        // both reviews as they were, without the late reaction
+        expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
+          approvedReview(flow),
+          pendingReview({ progPoint: 'P7', previouslyApproved: 'P6' }),
+        ]);
       });
 
       it('DMs the reviewer approving the update the signup with its previously approved prog point', async ({
