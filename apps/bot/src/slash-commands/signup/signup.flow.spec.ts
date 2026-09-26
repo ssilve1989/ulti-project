@@ -350,6 +350,17 @@ const rowWritten = (
   body: { values: [[shownCharacter(), WORLD, 'tank', progPoint]] },
 });
 
+/** The request rewriting this test's player's existing `row` of `section` at `progPoint`. */
+const rowUpdated = (
+  flow: FlowApp,
+  section: Section,
+  row: number,
+  progPoint: string,
+) => ({
+  ...rowWritten(flow, section, row, progPoint),
+  path: `/v4/spreadsheets/${flow.sheets.spreadsheetId}/values/DMU!${section.start}${row}:${section.end}${row}?valueInputOption=USER_ENTERED`,
+});
+
 /** The request clearing `row` of `section` (Sheets indexes are zero-based, end-exclusive). */
 const rowCleared = (flow: FlowApp, section: Section, row: number) => ({
   method: 'POST',
@@ -2144,6 +2155,18 @@ describe('Signup lifecycle', () => {
         expect(shown(latestReview(flow))).toEqual(
           pendingReview({ progPoint: 'P7', previouslyApproved: 'P6' }),
         );
+      });
+
+      it('rewrites their existing prog party row when the update is approved in the same section', async ({
+        flow,
+      }) => {
+        await approve(flow, { progPoint: 'P6' });
+
+        const row = nextFreeRow(flow, PROG_PARTY);
+        expect(flow.sheets.writes()).toEqual([
+          rowWritten(flow, PROG_PARTY, row, 'P6'),
+          rowUpdated(flow, PROG_PARTY, row, 'P6'),
+        ]);
       });
     });
 
