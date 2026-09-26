@@ -352,9 +352,20 @@ describe('DiscordMock', () => {
     discord.submitModal('u1', { text: 'nice' });
 
     const submit = await submitted;
-    expect(submit.customId).toBe('comment');
-    expect(submit.user.id).toBe('u1');
-    expect(submit.fields.getTextInputValue('text')).toBe('nice');
+    // everything the app reads off a modal submit
+    expect({
+      customId: submit.customId,
+      userId: submit.user.id,
+      text: submit.fields.getTextInputValue('text'),
+      fromMessage: submit.isFromMessage(),
+      messageId: submit.message?.id,
+    }).toEqual({
+      customId: 'comment',
+      userId: 'u1',
+      text: 'nice',
+      fromMessage: true,
+      messageId: discord.latestDmTo('u1').id,
+    });
   });
 
   describe('channels', () => {

@@ -868,16 +868,6 @@ describe('Signup lifecycle', () => {
       ]);
     });
 
-    it('raises no blacklist alert for a player who is not blacklisted', ({
-      flow,
-    }) => {
-      // the review is what triggers the blacklist check
-      expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
-        pendingReview(),
-      ]);
-      expect(flow.discord.channel(BLACKLIST_CHANNEL)).toEqual([]);
-    });
-
     it('posts it for review with approve and decline reactions', ({ flow }) => {
       expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
         pendingReview(),
@@ -889,8 +879,38 @@ describe('Signup lifecycle', () => {
     });
   });
 
+  /**
+   * Blacklists someone else, by both discord id and character name. Its id
+   * sorts before the player's entry, so a search that ignored who it's
+   * looking for would find this one first.
+   */
+  const blacklistSomeoneElse = (flow: FlowApp) =>
+    flow.db.seed(`blacklist/${GUILD}/documents/a-someone-else`, {
+      characterName: 'someone else',
+      discordId: 'someone-else',
+      reason: 'Spam',
+      lodestoneId: null,
+    });
+
+  describe('when a player who is not blacklisted submits a signup', () => {
+    it('raises no blacklist alert', async ({ flow }) => {
+      blacklistSomeoneElse(flow);
+
+      await submitSignup(flow);
+
+      // the review is what triggers the blacklist check
+      expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
+        pendingReview(),
+      ]);
+      expect(flow.discord.channel(BLACKLIST_CHANNEL)).toEqual([]);
+    });
+  });
+
   describe('when a blacklisted player submits a signup', () => {
-    it('alerts the blacklist channel, linking the review', async ({ flow }) => {
+    it('alerts the blacklist channel about them alone, linking the review', async ({
+      flow,
+    }) => {
+      blacklistSomeoneElse(flow);
       flow.db.seed(`blacklist/${GUILD}/documents/entry-1`, {
         characterName: null,
         discordId: PLAYER.id,
@@ -1378,6 +1398,18 @@ describe('Signup lifecycle', () => {
             reviewedBy: REVIEWER.username,
           }),
         );
+        // the review stays as approved; the bot leaves the late reaction be
+        expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
+          approvedReview(flow),
+        ]);
+        expect(reactionsOn(latestReview(flow))).toEqual({
+          [SIGNUP_REVIEW_REACTIONS.APPROVED]: [
+            BOT_USER_ID,
+            REVIEWER.id,
+            OTHER_REVIEWER.id,
+          ],
+          [SIGNUP_REVIEW_REACTIONS.DECLINED]: [BOT_USER_ID],
+        });
       });
     });
 
@@ -1871,6 +1903,38 @@ describe('Signup lifecycle', () => {
       });
     });
 
+    describe('and the reviewer picks a custom reason but never submits it', () => {
+      it.beforeEach(async ({ flow }) => {
+        await decline(flow, CUSTOM_DECLINE_REASON_VALUE);
+        flow.discord.expireAll();
+        await flow.settle();
+        flow.expectReported(
+          /^warning: Custom decline reason modal timed out for signup player-1-DMU/,
+        );
+      });
+
+      it('marks it declined without a reason and tells the player', ({
+        flow,
+      }) => {
+        expect(flow.db.read(SIGNUP_PATH)).toEqual(
+          storedSignup(flow, {
+            status: SignupStatus.DECLINED,
+            reviewMessageId: latestReview(flow).id,
+            reviewedBy: REVIEWER.username,
+          }),
+        );
+        expect(flow.discord.dmsTo(PLAYER.id).map(shown)).toEqual([
+          declineDm(flow, SIGNUP_MESSAGES.SIGNUP_SUBMISSION_DENIED),
+        ]);
+      });
+
+      it("removes the reason menu from the reviewer's prompt", ({ flow }) => {
+        expect(flow.discord.dmsTo(REVIEWER.id).map(shown)).toEqual([
+          declineReasonPrompt({ withMenu: false }),
+        ]);
+      });
+    });
+
     describe('and the reviewer declines it but never picks a reason', () => {
       it.beforeEach(async ({ flow }) => {
         await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.DECLINED);
@@ -1922,6 +1986,14 @@ describe('Signup lifecycle', () => {
         );
 
         await cancelApprovalPrompt(flow);
+        // the review is untouched, and the bot leaves the player's reaction be
+        expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
+          pendingReview(),
+        ]);
+        expect(reactionsOn(latestReview(flow))).toEqual({
+          [SIGNUP_REVIEW_REACTIONS.APPROVED]: [BOT_USER_ID, PLAYER.id],
+          [SIGNUP_REVIEW_REACTIONS.DECLINED]: [BOT_USER_ID],
+        });
       });
     });
 

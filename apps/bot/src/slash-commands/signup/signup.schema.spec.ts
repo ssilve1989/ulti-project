@@ -13,6 +13,15 @@ const baseRequest = {
   world: 'cactuar',
 };
 
+/** The whole parsed signup for baseRequest, with `proofOfProgLink` as stored. */
+const parsedWith = (proofOfProgLink: string | null) => ({
+  ...baseRequest,
+  character: 'tester',
+  username: 'testuser',
+  screenshot: null,
+  proofOfProgLink,
+});
+
 function parse(
   overrides: Partial<Record<'proofOfProgLink' | 'screenshot', unknown>>,
 ) {
@@ -39,7 +48,7 @@ describe('proofOfProgLink validation', () => {
       const result = parse({ proofOfProgLink: url });
       expect(result.success).toBe(true);
       if (!result.success) return;
-      expect(result.data.proofOfProgLink).toBe(url);
+      expect(result.data).toEqual(parsedWith(url));
     });
 
     test.each([
@@ -62,7 +71,7 @@ describe('proofOfProgLink validation', () => {
       const result = parse({ proofOfProgLink: url });
       expect(result.success).toBe(true);
       if (!result.success) return;
-      expect(result.data.proofOfProgLink).toBe(stored);
+      expect(result.data).toEqual(parsedWith(stored));
     });
   });
 
@@ -82,7 +91,7 @@ describe('proofOfProgLink validation', () => {
       const result = parse({ proofOfProgLink: url });
       expect(result.success).toBe(true);
       if (!result.success) return;
-      expect(result.data.proofOfProgLink).toBe(normalized);
+      expect(result.data).toEqual(parsedWith(normalized));
     });
 
     test('preserves an explicit http:// protocol', () => {
@@ -91,8 +100,8 @@ describe('proofOfProgLink validation', () => {
       });
       expect(result.success).toBe(true);
       if (!result.success) return;
-      expect(result.data.proofOfProgLink).toBe(
-        'http://fflogs.com/reports/ABC123def456',
+      expect(result.data).toEqual(
+        parsedWith('http://fflogs.com/reports/ABC123def456'),
       );
     });
 
@@ -100,7 +109,7 @@ describe('proofOfProgLink validation', () => {
       const result = parse({ proofOfProgLink: 'youtube.com' });
       expect(result.success).toBe(true);
       if (!result.success) return;
-      expect(result.data.proofOfProgLink).toBe('https://youtube.com/');
+      expect(result.data).toEqual(parsedWith('https://youtube.com/'));
     });
   });
 
@@ -184,7 +193,11 @@ describe('proofOfProgLink validation', () => {
         screenshot: 'https://i.imgur.com/x.png',
       });
       expect(result.success).toBe(true);
-      if (result.success) expect(result.data.proofOfProgLink).toBeNull();
+      if (!result.success) return;
+      expect(result.data).toEqual({
+        ...parsedWith(null),
+        screenshot: 'https://i.imgur.com/x.png',
+      });
     });
 
     test('rejects a null link when no screenshot is provided', () => {

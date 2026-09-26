@@ -1,6 +1,6 @@
 import { hasSubscribers } from 'node:diagnostics_channel';
 import { Logger } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import nock from 'nock';
@@ -107,4 +107,37 @@ describe('createFlowApp', () => {
       false,
     );
   });
+
+  // not the fixture: this test creates an app that fails to start
+  base(
+    "gives Nest's logging back when the app fails after taking it over",
+    async () => {
+      // compile() has already routed Nest's logging to the app when init() fails
+      const init = vi
+        .spyOn(TestingModule.prototype, 'init')
+        .mockRejectedValueOnce(new Error('a module failed to initialise'));
+      try {
+        await expect(createFlowApp()).rejects.toThrow(
+          'a module failed to initialise',
+        );
+      } finally {
+        init.mockRestore();
+      }
+
+      const written: string[] = [];
+      const stderr = vi
+        .spyOn(process.stderr, 'write')
+        .mockImplementation((chunk) => {
+          written.push(String(chunk));
+          return true;
+        });
+      try {
+        new Logger('SomeHandler').error('logged after a failed start');
+      } finally {
+        stderr.mockRestore();
+      }
+
+      expect(written.join('')).toContain('logged after a failed start');
+    },
+  );
 });
