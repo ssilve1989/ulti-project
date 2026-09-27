@@ -136,6 +136,39 @@ describe('Encounters', () => {
     });
   });
 
+  describe('when an encounter has no prog points for some parties', () => {
+    it('lists only the parties it has prog points for', async ({ flow }) => {
+      flow.db.seed(`encounters/${Encounter.TOP}`, {
+        name: 'The Omega Protocol',
+        description: 'TOP',
+        active: true,
+      });
+      flow.db.seed(`encounters/${Encounter.TOP}/prog-points/P5`, {
+        id: 'P5',
+        label: 'Phase 5: Delta',
+        partyStatus: PartyStatus.ProgParty,
+        order: 0,
+        active: true,
+      });
+
+      expect(await viewEncounters(flow, Encounter.TOP)).toEqual(
+        privateEmbed({
+          title: 'The Omega Protocol Configuration',
+          description: 'Total prog points: 1',
+          fields: [
+            { name: '📈 Prog Party Threshold', value: 'Not set' },
+            { name: '🎯 Clear Party Threshold', value: 'Not set' },
+            {
+              name: '🟠 Prog Party (1)',
+              value: '• ✅ Phase 5: Delta (P5)',
+              inline: false,
+            },
+          ],
+        }),
+      );
+    });
+  });
+
   describe('when an admin views an encounter that has not been set up', () => {
     it('says it was not found', async ({ flow }) => {
       expect(await viewEncounters(flow, Encounter.TOP)).toEqual([

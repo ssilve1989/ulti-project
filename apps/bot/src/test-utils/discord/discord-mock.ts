@@ -353,6 +353,15 @@ export class DiscordMock {
     });
   }
 
+  /** The member leaves the server; Discord still knows them as a user. */
+  removeMember(userId: string): void {
+    const member = this.members.get(userId);
+    if (!member) throw new Error(`${userId} is not a member`);
+    this.members.delete(userId);
+    const { id, username, globalName } = member;
+    this.users.set(userId, { id, username, globalName });
+  }
+
   /** Adds a Discord user who isn't in the bot's guilds (e.g. one who left). */
   addUser({
     id,

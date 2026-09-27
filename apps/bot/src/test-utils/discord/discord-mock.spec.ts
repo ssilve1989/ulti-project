@@ -467,6 +467,18 @@ describe('DiscordMock', () => {
     expect(discord.rolesOf('u3')).toEqual(['admin-role', 'r1']);
   });
 
+  it('keeps a member who left as a user, no longer found in the guild', async ({
+    discord,
+    service,
+  }) => {
+    discord.removeMember('u2');
+
+    expect([
+      await service.getGuildMember({ guildId: 'g1', memberId: 'u2' }),
+      (await discord.client.users.fetch('u2')).username,
+    ]).toEqual([undefined, 'two']);
+  });
+
   it('removes a role from every member holding it', async ({
     discord,
     service,

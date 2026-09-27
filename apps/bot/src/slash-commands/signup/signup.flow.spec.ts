@@ -507,12 +507,18 @@ const approvalAnnouncement = (
     content = `<@${PLAYER.id}> Signup Approved!`,
     screenshot,
     reactions = {},
+    proofLink = PROOF_LINK,
+    playerInServer = true,
   }: {
     progPoint?: string;
     title?: string;
     content?: string;
     screenshot?: string;
     reactions?: Record<string, string[]>;
+    /** the link the player proved their prog point with, if any */
+    proofLink?: string | null;
+    /** whether the player is still in the server, which shows their avatar */
+    playerInServer?: boolean;
   } = {},
 ) => ({
   location: IN_SIGNUP_CHANNEL,
@@ -528,13 +534,17 @@ const approvalAnnouncement = (
         { name: 'Job', value: 'tank', inline: true },
         { name: 'Prog Point', value: progPoint, inline: true },
         EMPTY_FIELD,
-        {
-          name: 'Prog Proof Link',
-          value: `[View](${PROOF_LINK})`,
-          inline: true,
-        },
+        ...(proofLink === null
+          ? []
+          : [
+              {
+                name: 'Prog Proof Link',
+                value: `[View](${proofLink})`,
+                inline: true,
+              },
+            ]),
       ],
-      thumbnail: { url: avatarUrl(PLAYER.id) },
+      ...(playerInServer && { thumbnail: { url: avatarUrl(PLAYER.id) } }),
       ...imageOf(screenshot),
       ...decidedBy(flow, 'Approved'),
     },
@@ -1218,6 +1228,72 @@ describe('Signup lifecycle', () => {
     });
   });
 
+  describe('when a player proves their prog point with a screenshot alone', () => {
+    const screenshot = 'https://cdn.example/attachments/proof.png';
+    it.beforeEach(({ flow }) =>
+      submitSignup(
+        flow,
+        'confirm',
+        { 'prog-proof-link': null },
+        { screenshot: { url: screenshot } },
+      ),
+    );
+
+    it('stores it with no link', ({ flow }) => {
+      expect(flow.db.read(SIGNUP_PATH)).toEqual(
+        storedSignup(flow, {
+          proofOfProgLink: null,
+          screenshot,
+          reviewMessageId: latestReview(flow).id,
+        }),
+      );
+    });
+
+    it('announces the approval with the screenshot and no link', async ({
+      flow,
+    }) => {
+      await approve(flow, { progPoint: 'P6' });
+
+      expect(flow.discord.channel(SIGNUP_CHANNEL).map(shown)).toEqual([
+        approvalAnnouncement(flow, { screenshot, proofLink: null }),
+      ]);
+    });
+  });
+
+  describe('when a signup is approved in a guild that configured no roles or signup channel', () => {
+    it.beforeEach(async ({ flow }) => {
+      const settingsPath = `settings/${GUILD}`;
+      const {
+        progRoles: _prog,
+        clearRoles: _clear,
+        progPointRoles: _progPoint,
+        signupChannel: _signup,
+        ...unconfigured
+      } = flow.db.read(settingsPath) ?? {};
+      flow.db.seed(settingsPath, unconfigured);
+      await submitSignup(flow);
+      await approve(flow, { progPoint: 'P6' });
+    });
+
+    it('approves it without giving roles or announcing it', ({ flow }) => {
+      expect([
+        flow.db.read(SIGNUP_PATH),
+        flow.discord.rolesOf(PLAYER.id),
+        flow.discord.channel(SIGNUP_CHANNEL),
+      ]).toEqual([
+        storedSignup(flow, {
+          status: SignupStatus.APPROVED,
+          reviewMessageId: latestReview(flow).id,
+          progPoint: 'P6',
+          partyStatus: PartyStatus.ProgParty,
+          reviewedBy: REVIEWER.username,
+        }),
+        [],
+        [],
+      ]);
+    });
+  });
+
   describe('when a pending signup is resubmitted', () => {
     it('replaces its review message and stays pending', async ({ flow }) => {
       await submitSignup(flow);
@@ -1305,6 +1381,19 @@ describe('Signup lifecycle', () => {
         ]);
 
         await cancelApprovalPrompt(flow);
+      });
+    });
+
+    describe('and the player leaves the server before it is approved', () => {
+      it.beforeEach(async ({ flow }) => {
+        flow.discord.removeMember(PLAYER.id);
+        await approve(flow, { progPoint: 'P6' });
+      });
+
+      it('announces the approval without their avatar', ({ flow }) => {
+        expect(flow.discord.channel(SIGNUP_CHANNEL).map(shown)).toEqual([
+          approvalAnnouncement(flow, { playerInServer: false }),
+        ]);
       });
     });
 

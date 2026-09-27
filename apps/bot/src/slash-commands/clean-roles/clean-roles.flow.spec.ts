@@ -183,6 +183,50 @@ describe('Clean roles', () => {
     });
   });
 
+  describe('when only prog point roles are configured', () => {
+    it('cleans those', async ({ flow }) => {
+      flow.db.seed(SETTINGS_PATH, {
+        progPointRoles: ROLE_SETTINGS.progPointRoles,
+      });
+      flow.discord.addMember({ ...LAPSED, roles: [DMU_P6.id] });
+
+      const replies = await cleanRoles(flow);
+
+      expect([replies, flow.discord.rolesOf(LAPSED.id)]).toEqual([
+        summary(
+          '**Total Roles Processed:** 1',
+          '**Total Members Processed:** 2',
+          '**Total Roles Removed:** 1',
+          '',
+          '**Role Details:**',
+          '• **DMU P6**: 1/2 removed',
+          '',
+          '✅ Role cleanup completed successfully!',
+        ),
+        [],
+      ]);
+    });
+  });
+
+  describe('when every configured role was deleted from the server', () => {
+    it('warns about each and cleans nothing', async ({ flow }) => {
+      flow.db.seed(SETTINGS_PATH, { progRoles: { DMU: 'deleted-role' } });
+
+      const replies = await cleanRoles(flow);
+
+      flow.expectReported(/^warning: Role deleted-role not found in guild/);
+      expect(replies).toEqual(
+        summary(
+          '**Total Roles Processed:** 0',
+          '**Total Members Processed:** 0',
+          '**Total Roles Removed:** 0',
+          '',
+          '✅ All members with clear/prog roles have active signups!',
+        ),
+      );
+    });
+  });
+
   describe('when the bot may not remove one of the roles', () => {
     it('reports each member it failed, and leaves them the role', async ({
       flow,

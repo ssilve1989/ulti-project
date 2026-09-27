@@ -256,6 +256,56 @@ describe('Remove signup', () => {
     });
   });
 
+  describe('when the encounter has no prog point roles', () => {
+    it('takes away its prog and clear roles only', async ({ flow }) => {
+      const { progPointRoles: _, ...withoutProgPointRoles } = SETTINGS;
+      flow.db.seed(`settings/${GUILD}`, withoutProgPointRoles);
+      givenASignup(flow, await postReview(flow), APPROVED);
+
+      await removeSignup(flow, PLAYER.id);
+
+      expect(flow.discord.rolesOf(PLAYER.id)).toEqual([P6_ROLE, OTHER_ROLE]);
+    });
+  });
+
+  describe('when a reviewer removes the signup of a player who left the server', () => {
+    it('removes it', async ({ flow }) => {
+      givenASignup(flow, await postReview(flow), {
+        ...APPROVED,
+        discordId: 'left-1',
+      });
+      const leftPath = `signups/${SignupCollection.getKeyForSignup({
+        discordId: 'left-1',
+        encounter: Encounter.DMU,
+      })}`;
+
+      const replies = await removeSignup(flow, REVIEWER.id);
+
+      expect([flow.db.read(leftPath), replies]).toEqual([
+        undefined,
+        removalReply(REVIEWER.id, REMOVAL_SUCCESS),
+      ]);
+    });
+  });
+
+  describe('when no review channel is configured any more', () => {
+    it('removes the pending signup, leaving its review alone', async ({
+      flow,
+    }) => {
+      const { reviewChannel: _, ...withoutReviewChannel } = SETTINGS;
+      flow.db.seed(`settings/${GUILD}`, withoutReviewChannel);
+      givenASignup(flow, await postReview(flow));
+
+      const replies = await removeSignup(flow, PLAYER.id);
+
+      expect([
+        flow.db.read(signupPath()),
+        reviewsShown(flow).length,
+        replies,
+      ]).toEqual([undefined, 1, removalReply(PLAYER.id, REMOVAL_SUCCESS)]);
+    });
+  });
+
   describe('when the approved signup is on the spreadsheet', () => {
     it('clears its row', async ({ flow }) => {
       const { spreadsheetId } = flow.sheets;
