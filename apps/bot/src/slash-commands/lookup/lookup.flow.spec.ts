@@ -1,13 +1,6 @@
-import {
-  Encounter,
-  PartyStatus,
-  type SignupDocument,
-  SignupStatus,
-} from '@ulti-project/shared';
+import { Encounter, PartyStatus, SignupStatus } from '@ulti-project/shared';
 import { Colors, PermissionFlagsBits } from 'discord.js';
-import { Timestamp } from 'firebase-admin/firestore';
 import { test as base, describe, expect } from 'vitest';
-import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
@@ -16,6 +9,7 @@ import {
   expectCommandErrorReported,
   replyTo,
 } from '../../test-utils/replies.js';
+import { seedSignup } from '../../test-utils/signups.js';
 
 const GUILD = 'guild-1';
 const ADMIN = Object.freeze({
@@ -23,7 +17,6 @@ const ADMIN = Object.freeze({
   username: 'admin',
   permissions: PermissionFlagsBits.Administrator,
 });
-const CHARACTER = 'flow tester';
 
 const it = base.extend<{ flow: FlowApp }>({
   flow: fresh(
@@ -36,27 +29,6 @@ const it = base.extend<{ flow: FlowApp }>({
     (flow) => flow.close(),
   ),
 });
-
-/** Stores a signup as the signup flow writes one, reviewed or not. */
-function seedSignup(flow: FlowApp, signup: Partial<SignupDocument>): void {
-  const stored: SignupDocument = {
-    character: CHARACTER,
-    discordId: 'player-1',
-    encounter: Encounter.DSR,
-    notes: null,
-    proofOfProgLink: 'https://www.fflogs.com/reports/abc123',
-    progPointRequested: 'P6 Wroth Flames',
-    role: 'tank',
-    screenshot: null,
-    username: 'player',
-    world: 'jenova',
-    expiresAt: Timestamp.fromMillis(Date.now() + 86_400_000),
-    reviewMessageId: 'review-message-1',
-    status: SignupStatus.PENDING,
-    ...signup,
-  };
-  flow.db.seed(`signups/${SignupCollection.getKeyForSignup(stored)}`, stored);
-}
 
 /** The admin runs /lookup and the bot answers. */
 async function lookup(flow: FlowApp, options: Record<string, string>) {
