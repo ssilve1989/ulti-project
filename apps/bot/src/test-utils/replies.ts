@@ -53,6 +53,6 @@ export function expectCommandErrorReported(flow: FlowApp, message: string) {
   flow.expectReported(new RegExp(`^Sentry exception: ${error}`));
   flow.expectReported(new RegExp(`^error: \\{\\n\\s+err: ${error}`));
   flow.expectReported(
-    new RegExp(`^error: .*Command error: ${escaped(message)}`),
+    new RegExp(`^error: .*Command error: ${escaped(message)}`, 's'),
   );
 }

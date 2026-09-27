@@ -36,6 +36,7 @@ import {
   type FakeChannel,
   type FakeMember,
   type FakeRole,
+  type FakeUser,
   FakeViews,
   type FakeWorld,
   permissionsOf,
@@ -290,6 +291,8 @@ function pickableMenu(
  */
 export class DiscordMock {
   private readonly members = new Map<string, FakeMember>();
+  /** Discord users who aren't in any of the bot's guilds */
+  private readonly users = new Map<string, FakeUser>();
   private readonly commands = new Map<string, RegisteredCommand>();
   /** The bot's emoji cache: id → name */
   private readonly emojis = new Map<string, string>();
@@ -348,6 +351,19 @@ export class DiscordMock {
       permissions: permissionsOf(permissions),
       roles: new Set(roles),
     });
+  }
+
+  /** Adds a Discord user who isn't in the bot's guilds (e.g. one who left). */
+  addUser({
+    id,
+    username,
+    globalName = null,
+  }: {
+    id: string;
+    username: string;
+    globalName?: string | null;
+  }): void {
+    this.users.set(id, { id, username, globalName });
   }
 
   /** Adds a text channel, and its guild if it's new. Members belong to every guild. */
@@ -750,6 +766,7 @@ export class DiscordMock {
       channel: (channelId) => this.channels.get(channelId),
       members: () => [...this.members.values()],
       member: (userId) => this.members.get(userId),
+      user: (userId) => this.members.get(userId) ?? this.users.get(userId),
       emojis: () => this.emojis,
       canBeMessaged: (userId) => !this.failingDms.has(userId),
       post: ({ guildId, id }, payload) =>
@@ -767,14 +784,18 @@ export class DiscordMock {
   /** The users, roles and channels of `guildId` a command option can pick. */
   private optionTargets(guildId: string): OptionTargets {
     return {
+      // Discord resolves any user; only a guild member comes with a member
       user: (userId) => {
         const member = this.members.get(userId);
-        return (
-          member && {
+        if (member) {
+          return {
             user: this.views.user(userId),
             member: this.views.member(guildId, member),
-          }
-        );
+          };
+        }
+        return this.users.has(userId)
+          ? { user: this.views.user(userId) }
+          : undefined;
       },
       role: (roleId) => {
         const role = this.guilds.get(guildId)?.get(roleId);

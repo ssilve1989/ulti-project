@@ -1246,6 +1246,36 @@ describe('DiscordMock', () => {
       });
     });
 
+    it('resolves a user outside the guild to a user without a member, like Discord', async ({
+      discord,
+      service,
+    }) => {
+      discord.addMember({
+        id: 'admin',
+        username: 'admin',
+        permissions: PermissionFlagsBits.Administrator,
+      });
+      discord.addUser({ id: 'gone', username: 'left-the-server' });
+
+      const { options } = grant(discord, 'admin', {
+        player: 'gone',
+        role: 'r1',
+      }).interaction;
+
+      expect({
+        user: options.getUser('player', true).username,
+        member: options.getMember('player'),
+        guildMember: await service.getGuildMember({
+          guildId: 'g1',
+          memberId: 'gone',
+        }),
+      }).toEqual({
+        user: 'left-the-server',
+        member: null,
+        guildMember: undefined,
+      });
+    });
+
     it('only lets an option pick a user, role or channel the guild has', ({
       discord,
     }) => {

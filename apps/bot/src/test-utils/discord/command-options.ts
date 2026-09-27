@@ -25,7 +25,7 @@ export type OptionValue = string | number | boolean;
 
 /** Finds the users, roles and channels a command's options refer to, as Discord resolves them. */
 export interface OptionTargets {
-  user(id: string): { user: User; member: GuildMember } | undefined;
+  user(id: string): { user: User; member?: GuildMember } | undefined;
   role(id: string): Role | undefined;
   channel(id: string): TextChannel | undefined;
 }

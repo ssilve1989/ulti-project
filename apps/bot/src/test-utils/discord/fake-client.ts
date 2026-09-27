@@ -30,11 +30,15 @@ export const BOT_USER_ID = 'bot-user';
 export const avatarUrl = (userId: string) =>
   `https://cdn.example/avatars/${userId}.png`;
 
-export interface FakeMember {
+/** A Discord user, whether or not they're in the bot's guilds. */
+export interface FakeUser {
   readonly id: string;
   readonly username: string;
   /** the user's Discord-wide display name, if they set one */
   readonly globalName: string | null;
+}
+
+export interface FakeMember extends FakeUser {
   /** the member's name in the guild (their nickname, else their global name) */
   readonly displayName: string;
   /** their guild permissions, as Discord computes them from their roles */
@@ -61,6 +65,8 @@ export interface FakeWorld {
   readonly channel: (channelId: string) => FakeChannel | undefined;
   readonly members: () => FakeMember[];
   readonly member: (userId: string) => FakeMember | undefined;
+  /** a guild member, or a user who isn't in the guild */
+  readonly user: (userId: string) => FakeUser | undefined;
   readonly emojis: () => ReadonlyMap<string, string>;
   readonly canBeMessaged: (userId: string) => boolean;
   readonly post: (
@@ -146,13 +152,13 @@ export class FakeViews {
   }
 
   user(userId: string): User {
-    const member = this.world.member(userId);
+    const user = this.world.user(userId);
     return mockOf<User>({
       id: userId,
-      username: member?.username ?? userId,
-      globalName: member?.globalName ?? null,
+      username: user?.username ?? userId,
+      globalName: user?.globalName ?? null,
       // like discord.js's User.displayName; a guild nickname is the member's
-      displayName: member?.globalName ?? member?.username ?? userId,
+      displayName: user?.globalName ?? user?.username ?? userId,
       bot: userId === BOT_USER_ID,
       partial: false,
       displayAvatarURL: () => avatarUrl(userId),
@@ -286,7 +292,7 @@ export class FakeViews {
   }
 
   private fetchUser(userId: string): Promise<User> {
-    return userId === BOT_USER_ID || this.world.member(userId)
+    return userId === BOT_USER_ID || this.world.user(userId)
       ? Promise.resolve(this.user(userId))
       : Promise.reject(
           unknownResource(RESTJSONErrorCodes.UnknownUser, `/users/${userId}`),

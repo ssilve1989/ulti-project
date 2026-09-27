@@ -996,6 +996,27 @@ describe('Signup lifecycle', () => {
     });
   });
 
+  describe('when a blacklisted player signs up in a guild that turned blacklist alerts off', () => {
+    it('alerts no channel and warns that none is set', async ({ flow }) => {
+      const settingsPath = `settings/${GUILD}`;
+      flow.db.seed(settingsPath, {
+        ...flow.db.read(settingsPath),
+        blacklistChannelIds: [],
+      });
+      flow.db.seed(`blacklist/${GUILD}/documents/entry-1`, {
+        characterName: null,
+        discordId: PLAYER.id,
+        reason: 'Harassment',
+        lodestoneId: 12345,
+      });
+
+      await submitSignup(flow);
+
+      flow.expectReported(/^warning: No blacklist channels set for guild/);
+      expect(flow.discord.channel(BLACKLIST_CHANNEL)).toEqual([]);
+    });
+  });
+
   describe('when the player cancels', () => {
     it('stores nothing, posts no review and says it was cancelled', async ({
       flow,
