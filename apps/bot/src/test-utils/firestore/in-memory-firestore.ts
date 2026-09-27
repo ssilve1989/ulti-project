@@ -7,7 +7,7 @@ import {
 } from 'firebase-admin/firestore';
 
 type Data = Record<string, unknown>;
-type Operator = '==' | 'in' | '>';
+type Operator = '==' | 'in';
 
 interface Condition {
   field: string;
@@ -21,9 +21,9 @@ type Clause = Condition | { readonly anyOf: readonly Condition[] };
 const conditionsIn = (clause: Clause): readonly Condition[] =>
   'anyOf' in clause ? clause.anyOf : [clause];
 
+/** An ascending orderBy(), the only order the app asks for. */
 interface Ordering {
   field: string;
-  direction: 'asc' | 'desc';
 }
 
 interface SetOptions {
@@ -31,7 +31,7 @@ interface SetOptions {
   mergeFields?: ReadonlyArray<string | FieldPath>;
 }
 
-const OPERATORS: ReadonlySet<string> = new Set<Operator>(['==', 'in', '>']);
+const OPERATORS: ReadonlySet<string> = new Set<Operator>(['==', 'in']);
 
 function isOperator(value: string): value is Operator {
   return OPERATORS.has(value);
@@ -303,8 +303,6 @@ function matches(data: Data, { field, operator, value }: Condition): boolean {
       return actual === value;
     case 'in':
       return Array.isArray(value) && value.includes(actual);
-    case '>':
-      return actual !== undefined && compare(actual, value) > 0;
   }
 }
 
@@ -371,10 +369,9 @@ class Query {
     return this.with({ conditions: [...this.state.conditions, ...clauses] });
   }
 
-  orderBy(field: string, direction: 'asc' | 'desc' = 'asc'): Query {
-    return this.with({
-      orderings: [...this.state.orderings, { field, direction }],
-    });
+  orderBy(field: string, direction = 'asc'): Query {
+    if (direction !== 'asc') unsupported(`"${direction}" orderBy()`);
+    return this.with({ orderings: [...this.state.orderings, { field }] });
   }
 
   limit(count: number): Query {
@@ -391,61 +388,22 @@ class Query {
    * exist and refuses them rather than pretending they work.
    */
   private assertServableWithoutCompositeIndex(): void {
-    const conditions = this.state.conditions.flatMap(conditionsIn);
-    const inequalityFields = new Set(
-      conditions
-        .filter(({ operator }) => operator === '>')
-        .map(({ field }) => field),
-    );
     const [firstOrdering] = this.state.orderings;
     const filterOnOtherField =
       firstOrdering !== undefined &&
-      conditions.some(({ field }) => field !== firstOrdering.field);
-
-    // equality filters merge single-field indexes; a range filter can't
-    const rangeWithOtherField =
-      inequalityFields.size > 0 &&
-      conditions.some(({ field }) => !inequalityFields.has(field));
-
-    if (
-      inequalityFields.size > 1 ||
-      rangeWithOtherField ||
-      filterOnOtherField
-    ) {
+      this.state.conditions
+        .flatMap(conditionsIn)
+        .some(({ field }) => field !== firstOrdering.field);
+    if (filterOnOtherField) {
       throw new Error(
         `This query on "${this.collectionPath}" needs a composite index; real Firestore rejects it unless one is deployed, and this repo has no index config.`,
       );
     }
   }
 
-  /**
-   * The order Firestore returns results in: the explicit orderBy()s, then the
-   * inequality-filtered field if not already ordered (there's at most one, see
-   * above), then the document id, the implicit ones in the last explicit
-   * direction (ascending when there is none), as the SDK's
-   * createImplicitOrderBy does.
-   */
-  private effectiveOrderings(): {
-    orderings: Ordering[];
-    idDirection: 'asc' | 'desc';
-  } {
-    const orderings = [...this.state.orderings];
-    const idDirection = orderings.at(-1)?.direction ?? 'asc';
-    const inequality = this.state.conditions
-      .flatMap(conditionsIn)
-      .find(({ operator }) => operator === '>');
-    if (
-      inequality &&
-      !orderings.some(({ field }) => field === inequality.field)
-    ) {
-      orderings.push({ field: inequality.field, direction: idDirection });
-    }
-    return { orderings, idDirection };
-  }
-
   private run(): DocumentSnapshot[] {
     this.assertServableWithoutCompositeIndex();
-    const { orderings, idDirection } = this.effectiveOrderings();
+    const { orderings } = this.state;
     const docs = this.db
       .documentsIn(this.collectionPath)
       .filter(({ data }) =>
@@ -456,12 +414,12 @@ class Query {
         orderings.every(({ field }) => data[field] !== undefined),
       )
       .sort((a, b) => {
-        for (const { field, direction } of orderings) {
+        // then by document id, as Firestore does
+        for (const { field } of orderings) {
           const result = compare(a.data[field], b.data[field]);
-          if (result !== 0) return direction === 'asc' ? result : -result;
+          if (result !== 0) return result;
         }
-        const byId = compare(a.id, b.id);
-        return idDirection === 'asc' ? byId : -byId;
+        return compare(a.id, b.id);
       });
 
     const limited =
@@ -522,45 +480,15 @@ class ContentionError extends Error {}
 /** Firestore's default number of attempts for a contended transaction. */
 const MAX_TRANSACTION_ATTEMPTS = 5;
 
-class PendingWrites {
+class Transaction {
   private readonly writes: Array<() => void> = [];
-
-  constructor(protected readonly db: InMemoryFirestore) {}
-
-  set(ref: DocumentReference, data: object, options?: SetOptions): this {
-    this.writes.push(() => this.db.set(ref.path, data, options));
-    return this;
-  }
-
-  update(ref: DocumentReference, data: object): this {
-    this.writes.push(() => this.db.update(ref.path, data));
-    return this;
-  }
-
-  protected get hasWrites(): boolean {
-    return this.writes.length > 0;
-  }
-
-  protected apply(): void {
-    this.db.atomically(() => {
-      for (const write of this.writes) write();
-    });
-  }
-}
-
-class WriteBatch extends PendingWrites {
-  /** Commits every write, or none; resolves with nothing, like each write. */
-  commit(): Promise<void> {
-    return Promise.try(() => this.apply());
-  }
-}
-
-class Transaction extends PendingWrites {
   /** path → document version when this transaction read it */
   private readonly reads = new Map<string, number>();
 
+  constructor(private readonly db: InMemoryFirestore) {}
+
   get(ref: DocumentReference): Promise<DocumentSnapshot> {
-    if (this.hasWrites) {
+    if (this.writes.length > 0) {
       return Promise.reject(
         new Error(
           'Firestore transactions require all reads to be executed before all writes',
@@ -578,7 +506,19 @@ class Transaction extends PendingWrites {
         throw new ContentionError(`${path} changed during the transaction`);
       }
     }
-    this.apply();
+    this.db.atomically(() => {
+      for (const write of this.writes) write();
+    });
+  }
+
+  set(ref: DocumentReference, data: object, options?: SetOptions): this {
+    this.writes.push(() => this.db.set(ref.path, data, options));
+    return this;
+  }
+
+  update(ref: DocumentReference, data: object): this {
+    this.writes.push(() => this.db.update(ref.path, data));
+    return this;
   }
 }
 
@@ -606,10 +546,6 @@ export class InMemoryFirestore {
 
   collection(path: string): CollectionReference {
     return new CollectionReference(this, path);
-  }
-
-  batch(): WriteBatch {
-    return new WriteBatch(this);
   }
 
   /** Like Firestore, reruns the callback when a document it read changed before commit. */

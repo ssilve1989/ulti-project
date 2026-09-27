@@ -24,13 +24,13 @@ export interface Section {
 }
 
 /**
- * The row after the last filled one in `section` when the app read it (its
- * `read`-th read): where the app should add a new signup.
+ * The row after the last filled one in `section` when the app first read it:
+ * where the app should add a new signup.
  */
-export function nextFreeRow(flow: FlowApp, section: Section, read = 0): number {
-  const values = flow.sheets.valuesRead(`DMU!${section.start}:${section.end}`)[
-    read
-  ];
+export function nextFreeRow(flow: FlowApp, section: Section): number {
+  const [values] = flow.sheets.valuesRead(
+    `DMU!${section.start}:${section.end}`,
+  );
   if (!Array.isArray(values)) {
     throw new Error(
       `The app never read section ${section.start}:${section.end}`,

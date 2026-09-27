@@ -195,23 +195,20 @@ describe('InMemoryFirestore', () => {
       expect(snapshot.docs.map((doc) => doc.id)).toEqual(['b']);
     });
 
-    it('filters with >', async ({ db }) => {
+    it('orders and limits', async ({ db }) => {
       const snapshot = await db
         .collection('signups')
-        .where('order', '>', 1)
-        .get();
-
-      expect(snapshot.docs.map((doc) => doc.id)).toEqual(['a', 'c']);
-    });
-
-    it('orders descending and limits', async ({ db }) => {
-      const snapshot = await db
-        .collection('signups')
-        .orderBy('order', 'desc')
+        .orderBy('order')
         .limit(2)
         .get();
 
-      expect(snapshot.docs.map((doc) => doc.id)).toEqual(['c', 'a']);
+      expect(snapshot.docs.map((doc) => doc.id)).toEqual(['b', 'a']);
+    });
+
+    it('refuses a descending order, which it does not implement', ({ db }) => {
+      expect(() => db.collection('signups').orderBy('order', 'desc')).toThrow(
+        'does not support "desc" orderBy()',
+      );
     });
 
     it('does not include subcollection documents in the parent collection', async ({
@@ -309,62 +306,18 @@ describe('InMemoryFirestore', () => {
       db.seed('orders/z', { order: 2 });
     });
 
-    it('orders an inequality query by the filtered field, then the id', async ({
+    it('orders by the field, then by id, leaving out documents missing it', async ({
       db,
     }) => {
-      const snapshot = await db
-        .collection('orders')
-        .where('order', '>', 0)
-        .get();
-
-      expect(snapshot.docs.map((doc) => doc.id)).toEqual(['c', 'z', 'a', 'b']);
-    });
-
-    it('leaves out documents missing the ordered-by field', async ({ db }) => {
       db.seed('orders/unordered', { name: 'no order field' });
 
       const snapshot = await db.collection('orders').orderBy('order').get();
 
       expect(snapshot.docs.map((doc) => doc.id)).toEqual(['c', 'z', 'a', 'b']);
     });
-
-    it('breaks ties by id in the direction of the last orderBy', async ({
-      db,
-    }) => {
-      const snapshot = await db
-        .collection('orders')
-        .orderBy('order', 'desc')
-        .get();
-
-      expect(snapshot.docs.map((doc) => doc.id)).toEqual(['b', 'a', 'z', 'c']);
-    });
   });
 
-  describe('batches and transactions', () => {
-    it('applies every batched write on commit', async ({ db }) => {
-      db.seed('items/a', { order: 0 });
-      db.seed('items/b', { order: 1 });
-      const batch = db.batch();
-
-      batch.update(db.collection('items').doc('a'), { order: 1 });
-      batch.update(db.collection('items').doc('b'), { order: 0 });
-      await batch.commit();
-
-      expect(db.read('items/a')).toEqual({ order: 1 });
-      expect(db.read('items/b')).toEqual({ order: 0 });
-    });
-
-    it('applies nothing when one batched write fails', async ({ db }) => {
-      db.seed('items/a', { order: 0 });
-      const batch = db.batch();
-
-      batch.update(db.collection('items').doc('a'), { order: 5 });
-      batch.update(db.collection('items').doc('missing'), { order: 1 });
-
-      await expect(batch.commit()).rejects.toThrow('NOT_FOUND');
-      expect(db.read('items/a')).toEqual({ order: 0 });
-    });
-
+  describe('transactions', () => {
     it('commits transaction writes after the callback resolves', async ({
       db,
     }) => {
@@ -463,22 +416,6 @@ describe('InMemoryFirestore', () => {
         progRoles: { DSR: 'r1' },
         reviewChannel: 'c1',
       });
-    });
-
-    it('rejects a query filtering two fields by inequality, which needs a composite index', async ({
-      db,
-    }) => {
-      await expect(
-        db.collection('signups').where('a', '>', 1).where('b', '>', 2).get(),
-      ).rejects.toThrow('composite index');
-    });
-
-    it('rejects a query combining an inequality with a filter on another field, which needs a composite index', async ({
-      db,
-    }) => {
-      await expect(
-        db.collection('signups').where('a', '==', 1).where('b', '>', 2).get(),
-      ).rejects.toThrow('composite index');
     });
 
     it('refuses == against a map, which it does not implement', ({ db }) => {

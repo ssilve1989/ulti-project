@@ -903,6 +903,33 @@ describe('Signup lifecycle', () => {
     });
   });
 
+  /** Another Discord account, blacklisted with the player's character. */
+  const OTHER_ACCOUNT = '100000000000000009';
+
+  /** The alert posted for the latest review, naming the blacklist entry in `entryFields`. */
+  const blacklistAlert = (flow: FlowApp, entryFields: unknown[]) => ({
+    location: IN_BLACKLIST_CHANNEL,
+    reactions: {},
+    deleted: false,
+    content: undefined,
+    embeds: [
+      {
+        title: 'Blacklisted User Detected',
+        description: 'A blacklisted user has been detected signing up',
+        fields: [
+          ...entryFields,
+          {
+            name: 'Signup',
+            value: `https://discord.com/channels/${GUILD}/${REVIEW_CHANNEL}/${latestReview(flow).id}`,
+            inline: true,
+          },
+        ],
+        timestamp: isoDateSince(flow.startedAt),
+      },
+    ],
+    components: [],
+  });
+
   describe('when a blacklisted player submits a signup', () => {
     it('alerts the blacklist channel about them alone, linking the review', async ({
       flow,
@@ -917,36 +944,43 @@ describe('Signup lifecycle', () => {
 
       await submitSignup(flow);
 
-      const review = latestReview(flow);
       expect(flow.discord.channel(BLACKLIST_CHANNEL).map(shown)).toEqual([
-        {
-          location: IN_BLACKLIST_CHANNEL,
-          reactions: {},
-          deleted: false,
-          content: undefined,
-          embeds: [
-            {
-              title: 'Blacklisted User Detected',
-              description: 'A blacklisted user has been detected signing up',
-              fields: [
-                {
-                  name: 'Player',
-                  value: titleCase(`${PLAYER.displayName} (<@${PLAYER.id}>)`),
-                  inline: true,
-                },
-                { name: 'Reason', value: 'Harassment', inline: true },
-                { name: 'Lodestone ID', value: '12345', inline: true },
-                {
-                  name: 'Signup',
-                  value: `https://discord.com/channels/${GUILD}/${REVIEW_CHANNEL}/${review.id}`,
-                  inline: true,
-                },
-              ],
-              timestamp: isoDateSince(flow.startedAt),
-            },
-          ],
-          components: [],
-        },
+        blacklistAlert(flow, [
+          {
+            name: 'Player',
+            value: titleCase(`${PLAYER.displayName} (<@${PLAYER.id}>)`),
+            inline: true,
+          },
+          { name: 'Reason', value: 'Harassment', inline: true },
+          { name: 'Lodestone ID', value: '12345', inline: true },
+        ]),
+      ]);
+    });
+  });
+
+  describe("when a signup's character is blacklisted under another Discord account", () => {
+    it('alerts the blacklist channel about that entry, linking the review', async ({
+      flow,
+    }) => {
+      flow.db.seed(`blacklist/${GUILD}/documents/${OTHER_ACCOUNT}`, {
+        characterName: character(),
+        discordId: OTHER_ACCOUNT,
+        reason: 'Harassment',
+        lodestoneId: null,
+      });
+
+      await submitSignup(flow);
+
+      expect(flow.discord.channel(BLACKLIST_CHANNEL).map(shown)).toEqual([
+        blacklistAlert(flow, [
+          {
+            name: 'Player',
+            value: titleCase(`${character()} (<@${OTHER_ACCOUNT}>)`),
+            inline: true,
+          },
+          { name: 'Reason', value: 'Harassment', inline: true },
+          EMPTY_FIELD,
+        ]),
       ]);
     });
   });
@@ -1259,6 +1293,32 @@ describe('Signup lifecycle', () => {
     });
   });
 
+  describe('when a signup is approved after its signup channel was deleted', () => {
+    it('reports the failed announcement and still approves it', async ({
+      flow,
+    }) => {
+      const settingsPath = `settings/${GUILD}`;
+      flow.db.seed(settingsPath, {
+        ...flow.db.read(settingsPath),
+        signupChannel: 'deleted-channel',
+      });
+      await submitSignup(flow);
+
+      await approve(flow, { progPoint: 'P6' });
+
+      flow.expectReported(/^Sentry exception: DiscordAPIError\[10003\]/);
+      expect(flow.db.read(SIGNUP_PATH)).toEqual(
+        storedSignup(flow, {
+          status: SignupStatus.APPROVED,
+          reviewMessageId: latestReview(flow).id,
+          progPoint: 'P6',
+          partyStatus: PartyStatus.ProgParty,
+          reviewedBy: REVIEWER.username,
+        }),
+      );
+    });
+  });
+
   describe('when a signup is approved in a guild that configured no roles or signup channel', () => {
     it.beforeEach(async ({ flow }) => {
       const settingsPath = `settings/${GUILD}`;
@@ -1289,6 +1349,28 @@ describe('Signup lifecycle', () => {
         }),
         [],
         [],
+      ]);
+    });
+  });
+
+  describe('when a pending signup is resubmitted after a moderator deleted its review', () => {
+    it('reports the failed delete and posts a new review', async ({ flow }) => {
+      await submitSignup(flow);
+      await latestReview(flow).toMessage().delete();
+
+      await submitSignup(flow);
+
+      flow.expectReported(/^Sentry exception: DiscordAPIError\[10008\]/);
+      flow.expectReported(/^error: \{\n\s+err: DiscordAPIError\[10008\]/);
+      expect([
+        flow.discord.channel(REVIEW_CHANNEL).map(shown),
+        flow.db.read(SIGNUP_PATH),
+      ]).toEqual([
+        [pendingReview()],
+        storedSignup(flow, {
+          reviewMessageId: latestReview(flow).id,
+          reviewedBy: null,
+        }),
       ]);
     });
   });

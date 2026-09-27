@@ -227,11 +227,14 @@ function optionResolver(
   options: readonly CommandInteractionOption<'cached'>[],
 ): CommandInteractionOptionResolver<'cached'> {
   // its constructor is library-internal in the typings, like DiscordjsError's
-  return Reflect.construct(CommandInteractionOptionResolver, [
-    client,
-    options,
-    {},
-  ]);
+  const resolver: unknown = Reflect.construct(
+    CommandInteractionOptionResolver,
+    [client, options, {}],
+  );
+  if (!(resolver instanceof CommandInteractionOptionResolver)) {
+    throw new Error('expected a CommandInteractionOptionResolver');
+  }
+  return resolver;
 }
 
 /** Throws unless `userId` can see `message` and it still exists, as Discord requires to use it. */
@@ -534,16 +537,23 @@ export class DiscordMock {
         editReply: (payload: ReplyPayload) =>
           answered(ack) ? show(payload) : notReplied(),
         followUp: (payload: ReplyPayload) =>
-          answered(ack)
-            ? Promise.try(() => {
-                const { ephemeral, message } = splitReply(payload);
-                ack.replied = true;
-                return this.createMessage(
-                  { kind: 'reply', userId, ephemeral },
-                  message,
-                ).toMessage<true>();
-              })
-            : notReplied(),
+          // Discord turns the first follow-up to a deferred reply into that reply
+          ack.deferred && reply.sent() === undefined
+            ? Promise.reject(
+                new Error(
+                  'DiscordMock does not model a follow-up to a deferred reply before editReply',
+                ),
+              )
+            : answered(ack)
+              ? Promise.try(() => {
+                  const { ephemeral, message } = splitReply(payload);
+                  ack.replied = true;
+                  return this.createMessage(
+                    { kind: 'reply', userId, ephemeral },
+                    message,
+                  ).toMessage<true>();
+                })
+              : notReplied(),
         inCachedGuild: () => true,
         isChatInputCommand: () => true,
       }),

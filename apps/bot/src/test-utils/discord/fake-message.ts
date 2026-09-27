@@ -107,7 +107,10 @@ export function discordjsError(
     | typeof DiscordjsError
     | typeof DiscordjsTypeError = DiscordjsError,
 ): Error {
-  return Reflect.construct(ErrorClass, [code, ...args]);
+  const error: unknown = Reflect.construct(ErrorClass, [code, ...args]);
+  if (!(error instanceof ErrorClass))
+    throw new Error('expected a DiscordjsError');
+  return error;
 }
 
 /** The DiscordAPIError the REST API returns for a resource that doesn't exist. */
