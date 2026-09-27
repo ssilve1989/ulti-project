@@ -1,7 +1,7 @@
 import type { FlowApp } from '../flow-app.js';
 
 /** The DMU tab of the test spreadsheet. */
-export const DMU_TAB_ID = 695983618;
+const DMU_TAB_ID = 695983618;
 
 /** The DMU tab's party sections: their columns, and those as zero-based indexes. */
 export const PROG_PARTY: Section = Object.freeze({
