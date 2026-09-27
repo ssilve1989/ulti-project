@@ -12,7 +12,7 @@ import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import {
   commandErrorReply,
   expectCommandErrorReported,
-  replyTo,
+  privateReply,
   textReply,
 } from '../../test-utils/replies.js';
 import { seedSignup } from '../../test-utils/signups.js';
@@ -134,14 +134,7 @@ const counts = ({
   ].join('\n');
 
 const privateEmbed = (embed: object) => [
-  {
-    location: replyTo(ADMIN.id, { ephemeral: true }),
-    reactions: {},
-    deleted: false,
-    content: undefined,
-    embeds: [embed],
-    components: [],
-  },
+  privateReply(ADMIN.id, { embeds: [embed] }),
 ];
 
 const field = (name: string, value: string) => ({

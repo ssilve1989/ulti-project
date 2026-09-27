@@ -9,7 +9,7 @@ import { test as base, describe, expect } from 'vitest';
 import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
-import { replyTo } from '../../test-utils/replies.js';
+import { privateReply } from '../../test-utils/replies.js';
 import { seedSignup } from '../../test-utils/signups.js';
 import {
   SEARCH_ENCOUNTER_SELECTOR_ID,
@@ -101,14 +101,7 @@ const shownToAdmin = (flow: FlowApp) =>
 
 /** The admin's private search message, showing `embed` and `components`. */
 const searchMessage = (embed: object, components: unknown[]) => [
-  {
-    location: replyTo(ADMIN.id, { ephemeral: true }),
-    reactions: {},
-    deleted: false,
-    content: undefined,
-    embeds: [embed],
-    components,
-  },
+  privateReply(ADMIN.id, { embeds: [embed], components }),
 ];
 
 const row = (...components: unknown[]) => ({
@@ -354,15 +347,11 @@ describe('Search', () => {
       await flow.settle();
 
       expect(shownToAdmin(flow)).toEqual([
-        {
-          location: replyTo(ADMIN.id, { ephemeral: true }),
-          reactions: {},
-          deleted: false,
+        privateReply(ADMIN.id, {
           content:
             'Search session has expired. Please run the command again if needed.',
           embeds: [START_EMBED],
-          components: [],
-        },
+        }),
       ]);
     });
   });

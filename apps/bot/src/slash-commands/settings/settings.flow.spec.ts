@@ -13,7 +13,7 @@ import {
   commandErrorEmbed,
   commandErrorReply,
   expectCommandErrorReported,
-  replyTo,
+  privateReply,
   textReply,
 } from '../../test-utils/replies.js';
 import { BLACKLIST_CHANNELS_SELECT_ID } from './subcommands/blacklist-channels/blacklist-channels.components.js';
@@ -123,24 +123,6 @@ async function settings(
 
 const repliesToAdmin = (flow: FlowApp) =>
   flow.discord.repliesTo(ADMIN.id).map(shown);
-
-/** A private reply to the admin with `embeds` and `components`. */
-const privateReply = ({
-  content,
-  embeds = [],
-  components = [],
-}: {
-  content?: string;
-  embeds?: unknown[];
-  components?: unknown[];
-}) => ({
-  location: replyTo(ADMIN.id, { ephemeral: true }),
-  reactions: {},
-  deleted: false,
-  content,
-  embeds,
-  components,
-});
 
 describe('Settings', () => {
   describe('channels', () => {
@@ -315,7 +297,7 @@ describe('Settings', () => {
 
         expectCommandErrorReported(flow, 'Collector received no interactions');
         expect(prompt).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             content: `Select ${which}`,
             components: [progPointMenu],
           }),
@@ -347,7 +329,7 @@ describe('Settings', () => {
 
         it('replaces the menu with what was mapped', ({ flow }) => {
           expect(repliesToAdmin(flow)).toEqual([
-            privateReply({
+            privateReply(ADMIN.id, {
               content: `Mapped 2 prog point(s) to <@&${P6_ROLE}>`,
             }),
           ]);
@@ -374,7 +356,7 @@ describe('Settings', () => {
 
       it('replaces the menu with how many were removed', ({ flow }) => {
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             content: 'Removed mappings for 1 prog point(s)',
           }),
         ]);
@@ -395,7 +377,7 @@ describe('Settings', () => {
 
         expectCommandErrorReported(flow, 'Collector received no interactions');
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             content: `Select the prog points that should assign <@&${P6_ROLE}>`,
             embeds: [commandErrorEmbed(flow)],
           }),
@@ -443,7 +425,7 @@ describe('Settings', () => {
         await settings(flow, 'blacklist-channels');
 
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             content: INSTRUCTIONS,
             components: [channelMenu([OTHER_CHANNEL])],
           }),
@@ -458,7 +440,7 @@ describe('Settings', () => {
         await settings(flow, 'blacklist-channels');
 
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             content: INSTRUCTIONS,
             components: [channelMenu([MODERATION_CHANNEL])],
           }),
@@ -484,7 +466,7 @@ describe('Settings', () => {
         flow,
       }) => {
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             content: `${INSTRUCTIONS}\n\nSaved! Blacklist notifications will be sent to: <#${BLACKLIST_CHANNEL}>, <#${OTHER_CHANNEL}>`,
             components: [channelMenu([BLACKLIST_CHANNEL, OTHER_CHANNEL])],
           }),
@@ -507,7 +489,7 @@ describe('Settings', () => {
 
       it('confirms notifications are disabled', ({ flow }) => {
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             content: `${INSTRUCTIONS}\n\nSaved! Blacklist notifications are now disabled.`,
             components: [channelMenu([])],
           }),
@@ -528,7 +510,7 @@ describe('Settings', () => {
           /^error: Error: 14 UNAVAILABLE.*Failed to update blacklist channels/s,
         );
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             content: INSTRUCTIONS,
             components: [channelMenu([])],
           }),
@@ -544,7 +526,7 @@ describe('Settings', () => {
         await flow.settle();
 
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             content:
               'This menu has expired. Run /settings blacklist-channels again if needed.',
           }),
@@ -660,7 +642,7 @@ describe('Settings', () => {
         await view(flow);
 
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             embeds: [overview()],
             components: [navRow('overview')],
           }),
@@ -673,7 +655,7 @@ describe('Settings', () => {
         await press(flow, reply, SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID);
 
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             embeds: [
               {
                 title: 'Settings — Encounter Roles',
@@ -696,7 +678,7 @@ describe('Settings', () => {
         await press(flow, reply, SETTINGS_VIEW_PROG_POINT_ROLES_BUTTON_ID);
 
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             embeds: [
               {
                 title: 'Settings — Prog Point Roles',
@@ -717,7 +699,7 @@ describe('Settings', () => {
         await flow.settle();
 
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             embeds: [
               {
                 title: 'Settings — Prog Point Roles — DMU',
@@ -743,13 +725,13 @@ describe('Settings', () => {
 
         expect([backToOverview, repliesToAdmin(flow)]).toEqual([
           [
-            privateReply({
+            privateReply(ADMIN.id, {
               embeds: [overview()],
               components: [navRow('overview')],
             }),
           ],
           [
-            privateReply({
+            privateReply(ADMIN.id, {
               embeds: [
                 {
                   title: 'Settings — Prog Point Roles — DMU',
@@ -771,7 +753,7 @@ describe('Settings', () => {
         await flow.settle();
 
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             content:
               'Settings view has expired. Run /settings view again if needed.',
             embeds: [overview()],
@@ -788,7 +770,7 @@ describe('Settings', () => {
         await press(flow, reply, SETTINGS_VIEW_PROG_POINT_ROLES_BUTTON_ID);
 
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             embeds: [
               {
                 title: 'Settings — Prog Point Roles',
@@ -809,7 +791,7 @@ describe('Settings', () => {
         await view(flow);
 
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             embeds: [
               overview([
                 field(
@@ -836,7 +818,7 @@ describe('Settings', () => {
         );
         flow.expectReported(/^error: .*Requested entity was not found/s);
         expect(repliesToAdmin(flow)).toEqual([
-          privateReply({
+          privateReply(ADMIN.id, {
             embeds: [
               overview([
                 field(

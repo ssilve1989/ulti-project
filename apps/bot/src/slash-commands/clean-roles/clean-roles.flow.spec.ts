@@ -7,7 +7,7 @@ import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import {
   commandErrorReply,
   expectCommandErrorReported,
-  replyTo,
+  privateReply,
   textReply,
 } from '../../test-utils/replies.js';
 import { seedSignup } from '../../test-utils/signups.js';
@@ -250,11 +250,7 @@ describe('Clean roles', () => {
 
   describe('when an admin previews a clean-up', () => {
     const preview = (fields: unknown[]) => [
-      {
-        location: replyTo(ADMIN.id, { ephemeral: true }),
-        reactions: {},
-        deleted: false,
-        content: undefined,
+      privateReply(ADMIN.id, {
         embeds: [
           {
             title: '🔍 Clean Roles - Dry Run Preview',
@@ -265,8 +261,7 @@ describe('Clean roles', () => {
             },
           },
         ],
-        components: [],
-      },
+      }),
     ];
 
     const field = (name: string, value: string) => ({

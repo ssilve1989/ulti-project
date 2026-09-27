@@ -12,6 +12,7 @@ import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import {
   commandErrorReply,
   expectCommandErrorReported,
+  privateReply,
 } from '../../test-utils/replies.js';
 import { seedSignup } from '../../test-utils/signups.js';
 
@@ -100,14 +101,7 @@ async function status(flow: FlowApp) {
 
 /** The private summary /status replies with, and nothing else. */
 const summary = (embed: { fields?: APIEmbedField[]; description?: string }) => [
-  {
-    location: { kind: 'reply', userId: PLAYER.id, ephemeral: true },
-    reactions: {},
-    deleted: false,
-    content: undefined,
-    embeds: [{ title: 'Signup Summary', ...embed }],
-    components: [],
-  },
+  privateReply(PLAYER.id, { embeds: [{ title: 'Signup Summary', ...embed }] }),
 ];
 
 const dsr = (status: string) => [

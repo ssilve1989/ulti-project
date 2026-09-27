@@ -3,7 +3,6 @@ import {
   type APIApplicationCommandOption,
   ApplicationCommandOptionType,
   type Attachment,
-  ChannelType,
   type CommandInteractionOption,
   type GuildMember,
   type PermissionsBitField,
@@ -66,7 +65,7 @@ function valueOption(
     throw new Error(`${label} is an Integer, not ${value}`);
   }
   assertWithinChoices(label, option, value);
-  assertWithinLimits(label, option, value);
+  assertWithinLength(label, option, value);
   return { value };
 }
 
@@ -83,28 +82,27 @@ function assertWithinChoices(
   }
 }
 
-/** A text option's length limits, or a number option's range. */
-function limitsOf(option: APIApplicationCommandBasicOption): [number, number] {
-  if (option.type === ApplicationCommandOptionType.String) {
-    return [option.min_length ?? 0, option.max_length ?? 6000];
-  }
-  const min = 'min_value' in option ? option.min_value : undefined;
-  const max = 'max_value' in option ? option.max_value : undefined;
-  return [min ?? Number.NEGATIVE_INFINITY, max ?? Number.POSITIVE_INFINITY];
-}
-
-/** Throws unless a text value fits its length limits, and a number its range. */
-function assertWithinLimits(
+/**
+ * Throws unless a text value fits the option's length limits. The Discord
+ * client never sends an empty text option.
+ */
+function assertWithinLength(
   label: string,
   option: APIApplicationCommandBasicOption,
   value: OptionValue,
 ): void {
-  if (typeof value === 'boolean') return;
-  const size = typeof value === 'string' ? value.length : value;
-  const [min, max] = limitsOf(option);
-  if (size < min || size > max) {
-    const given = typeof value === 'string' ? `${size} characters` : value;
-    throw new Error(`Discord won't send ${label} with ${given}`);
+  if (
+    option.type !== ApplicationCommandOptionType.String ||
+    typeof value !== 'string'
+  ) {
+    return;
+  }
+  const { length } = value;
+  if (
+    length < (option.min_length ?? 1) ||
+    length > (option.max_length ?? 6000)
+  ) {
+    throw new Error(`Discord won't send ${label} with ${length} characters`);
   }
 }
 
@@ -118,7 +116,7 @@ function targetOption(
   if (typeof value !== 'string') {
     throw new Error(`${label} takes the id of a ${typeName(option.type)}`);
   }
-  const resolved = resolveTarget(label, option, value, targets);
+  const resolved = resolveTarget(option, value, targets);
   if (!resolved) {
     throw new Error(
       `${label} can't pick ${value}: there is no such ${typeName(option.type)} in the guild`,
@@ -129,7 +127,6 @@ function targetOption(
 
 /** The user, role or channel an id picks, if the guild has it. */
 function resolveTarget(
-  label: string,
   option: APIApplicationCommandBasicOption,
   id: string,
   targets: OptionTargets,
@@ -142,26 +139,11 @@ function resolveTarget(
       return role && { role };
     }
     case ApplicationCommandOptionType.Channel: {
-      assertChannelType(label, option);
       const channel = targets.channel(id);
       return channel && { channel };
     }
     default:
       return undefined;
-  }
-}
-
-/** The fake's channels are all text channels; Discord only offers the types an option allows. */
-function assertChannelType(
-  label: string,
-  option: APIApplicationCommandBasicOption,
-): void {
-  const types = 'channel_types' in option ? (option.channel_types ?? []) : [];
-  if (
-    types.length > 0 &&
-    !types.some((type) => type === ChannelType.GuildText)
-  ) {
-    throw new Error(`${label} doesn't offer text channels`);
   }
 }
 
@@ -228,15 +210,6 @@ function declaredOptions(
   const subcommands = options.filter(
     (option) => option.type === ApplicationCommandOptionType.Subcommand,
   );
-  if (
-    options.some(
-      (option) => option.type === ApplicationCommandOptionType.SubcommandGroup,
-    )
-  ) {
-    throw new Error(
-      `DiscordMock does not support subcommand groups (/${command.name})`,
-    );
-  }
   if (subcommands.length === 0) {
     if (subcommand !== undefined) {
       throw new Error(`/${command.name} has no subcommands`);

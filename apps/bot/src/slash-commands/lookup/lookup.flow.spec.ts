@@ -7,7 +7,7 @@ import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import {
   commandErrorReply,
   expectCommandErrorReported,
-  replyTo,
+  privateReply,
 } from '../../test-utils/replies.js';
 import { seedSignup } from '../../test-utils/signups.js';
 
@@ -43,14 +43,7 @@ async function lookup(flow: FlowApp, options: Record<string, string>) {
 }
 
 const privateEmbeds = (embeds: unknown[]) => [
-  {
-    location: replyTo(ADMIN.id, { ephemeral: true }),
-    reactions: {},
-    deleted: false,
-    content: undefined,
-    embeds,
-    components: [],
-  },
+  privateReply(ADMIN.id, { embeds }),
 ];
 
 const field = (name: string, value: string, inline = true) => ({

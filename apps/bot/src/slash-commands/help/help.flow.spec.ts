@@ -4,7 +4,7 @@ import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import { isoDateSince } from '../../test-utils/matchers.js';
-import { replyTo } from '../../test-utils/replies.js';
+import { privateReply } from '../../test-utils/replies.js';
 
 const GUILD = 'guild-1';
 const PLAYER = Object.freeze({ id: 'player-1', username: 'player' });
@@ -81,11 +81,7 @@ const helpReply = (
   fields: unknown[],
   footer: string,
 ) => [
-  {
-    location: replyTo(userId, { ephemeral: true }),
-    reactions: {},
-    deleted: false,
-    content: undefined,
+  privateReply(userId, {
     embeds: [
       {
         title: '📚 Bot Commands Help',
@@ -96,8 +92,7 @@ const helpReply = (
         footer: { text: footer },
       },
     ],
-    components: [],
-  },
+  }),
 ];
 
 describe('Help', () => {

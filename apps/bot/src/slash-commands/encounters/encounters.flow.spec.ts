@@ -4,7 +4,7 @@ import { test as base, describe, expect } from 'vitest';
 import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
-import { replyTo, textReply } from '../../test-utils/replies.js';
+import { privateReply, textReply } from '../../test-utils/replies.js';
 
 const GUILD = 'guild-1';
 const ADMIN = Object.freeze({
@@ -71,14 +71,7 @@ async function viewEncounters(flow: FlowApp, encounter?: Encounter) {
 }
 
 const privateEmbed = (embed: object) => [
-  {
-    location: replyTo(ADMIN.id, { ephemeral: true }),
-    reactions: {},
-    deleted: false,
-    content: undefined,
-    embeds: [{ color: Colors.Blue, ...embed }],
-    components: [],
-  },
+  privateReply(ADMIN.id, { embeds: [{ color: Colors.Blue, ...embed }] }),
 ];
 
 describe('Encounters', () => {

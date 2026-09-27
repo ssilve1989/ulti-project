@@ -4,7 +4,7 @@ import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import { isoDateSince } from '../../test-utils/matchers.js';
-import { replyTo } from '../../test-utils/replies.js';
+import { privateReply } from '../../test-utils/replies.js';
 
 const GUILD = 'guild-1';
 const HELPER_ROLE = Object.freeze({ id: 'helper-role', name: 'Helper' });
@@ -65,14 +65,7 @@ async function retire(
 }
 
 const privateEmbed = (embed: object) => [
-  {
-    location: replyTo(ADMIN.id, { ephemeral: true }),
-    reactions: {},
-    deleted: false,
-    content: undefined,
-    embeds: [embed],
-    components: [],
-  },
+  privateReply(ADMIN.id, { embeds: [embed] }),
 ];
 
 /** The summary of a retirement: how many members held the role, and how many were moved. */

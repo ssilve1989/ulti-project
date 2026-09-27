@@ -8,6 +8,7 @@ import { isoDateSince } from '../../test-utils/matchers.js';
 import {
   commandErrorReply,
   expectCommandErrorReported,
+  privateReply,
   textReply,
 } from '../../test-utils/replies.js';
 
@@ -319,20 +320,16 @@ describe('Blacklist', () => {
 
   describe('when an admin displays the blacklist', () => {
     /** The private list of `count` entries, shown as `fields`. */
-    const listReply = (count: number, fields: unknown[]) => ({
-      location: { kind: 'reply', userId: ADMIN.id, ephemeral: true },
-      reactions: {},
-      deleted: false,
-      content: undefined,
-      embeds: [
-        {
-          title: 'Blacklist',
-          description: `There are ${count} users on the blacklist.`,
-          fields,
-        },
-      ],
-      components: [],
-    });
+    const listReply = (count: number, fields: unknown[]) =>
+      privateReply(ADMIN.id, {
+        embeds: [
+          {
+            title: 'Blacklist',
+            description: `There are ${count} users on the blacklist.`,
+            fields,
+          },
+        ],
+      });
 
     it('lists every entry, naming each by character, else display name', async ({
       flow,

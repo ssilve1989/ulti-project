@@ -16,7 +16,7 @@ import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import {
   commandErrorReply,
   expectCommandErrorReported,
-  replyTo,
+  privateReply,
 } from '../../test-utils/replies.js';
 import {
   nextFreeRow,
@@ -184,11 +184,7 @@ const removalReply = (
     world = WORLD,
   }: { color?: number; world?: string } = {},
 ) => [
-  {
-    location: replyTo(userId, { ephemeral: true }),
-    reactions: {},
-    deleted: false,
-    content: undefined,
+  privateReply(userId, {
     embeds: [
       {
         title: 'Remove Signup',
@@ -205,8 +201,7 @@ const removalReply = (
         ],
       },
     ],
-    components: [],
-  },
+  }),
 ];
 
 const reviewsShown = (flow: FlowApp) =>
@@ -386,11 +381,7 @@ describe('Remove signup', () => {
   describe('when the world is not a North American world', () => {
     it('explains, privately, what to correct', async ({ flow }) => {
       expect(await removeSignup(flow, PLAYER.id, { world: 'Moogle' })).toEqual([
-        {
-          location: replyTo(PLAYER.id, { ephemeral: true }),
-          reactions: {},
-          deleted: false,
-          content: undefined,
+        privateReply(PLAYER.id, {
           embeds: [
             {
               title: 'Remove Signup - Validation Error',
@@ -399,8 +390,7 @@ describe('Remove signup', () => {
               color: Colors.Red,
             },
           ],
-          components: [],
-        },
+        }),
       ]);
     });
   });

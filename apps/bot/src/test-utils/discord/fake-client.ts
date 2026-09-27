@@ -145,18 +145,10 @@ export class FakeViews {
           : this.fetchMember(guildId, userId),
     };
     const roles = {
-      get cache() {
-        return collectionOf(views.roleViews(guildId));
-      },
-      get everyone() {
-        return views.role(guildId, views.everyone(guildId));
-      },
       /** Like RoleManager.fetch in discord.js 14.27: null for a role the guild doesn't have. */
-      fetch: (roleId?: string) =>
+      fetch: (roleId: string) =>
         Promise.resolve(
-          roleId === undefined
-            ? collectionOf(this.roleViews(guildId))
-            : (this.roleViews(guildId).find(({ id }) => id === roleId) ?? null),
+          this.roleViews(guildId).find(({ id }) => id === roleId) ?? null,
         ),
     };
     const channels = {

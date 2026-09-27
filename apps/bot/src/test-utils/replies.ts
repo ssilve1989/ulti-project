@@ -22,6 +22,23 @@ export const textReply = (
   components: [],
 });
 
+/** A private answer to one of `userId`'s interactions, as `shown()` gives it. */
+export const privateReply = (
+  userId: string,
+  {
+    content,
+    embeds = [],
+    components = [],
+  }: { content?: string; embeds?: unknown[]; components?: unknown[] } = {},
+) => ({
+  location: replyTo(userId, { ephemeral: true }),
+  reactions: {},
+  deleted: false,
+  content,
+  embeds,
+  components,
+});
+
 /** The embed a command answers with when it fails unexpectedly. */
 export const commandErrorEmbed = (flow: FlowApp) => ({
   title: 'Command Error',
@@ -31,14 +48,8 @@ export const commandErrorEmbed = (flow: FlowApp) => ({
 });
 
 /** A command's private answer when it fails unexpectedly. */
-export const commandErrorReply = (flow: FlowApp, userId: string) => ({
-  location: replyTo(userId, { ephemeral: true }),
-  reactions: {},
-  deleted: false,
-  content: undefined,
-  embeds: [commandErrorEmbed(flow)],
-  components: [],
-});
+export const commandErrorReply = (flow: FlowApp, userId: string) =>
+  privateReply(userId, { embeds: [commandErrorEmbed(flow)] });
 
 const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
