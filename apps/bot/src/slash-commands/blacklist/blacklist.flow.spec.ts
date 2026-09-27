@@ -122,7 +122,7 @@ const noticeInEachChannel = (
 const field = (name: string, value: string) => ({ name, value, inline: true });
 
 /** The blank field that keeps a row of three inline fields aligned. */
-const EMPTY_FIELD = field('\u200b', '\u200b');
+const EMPTY_FIELD = Object.freeze(field('\u200b', '\u200b'));
 
 describe('Blacklist', () => {
   describe('when an admin blacklists a member', () => {

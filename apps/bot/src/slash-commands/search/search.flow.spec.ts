@@ -115,19 +115,23 @@ const START_EMBED = Object.freeze({
   color: Colors.Blue,
 });
 
-const ENCOUNTER_MENU = row({
-  type: ComponentType.StringSelect,
-  custom_id: SEARCH_ENCOUNTER_SELECTOR_ID,
-  placeholder: 'Select an encounter',
-  options: [{ label: 'Dancing Mad (Ultimate)', value: Encounter.DMU }],
-});
+const ENCOUNTER_MENU = Object.freeze(
+  row({
+    type: ComponentType.StringSelect,
+    custom_id: SEARCH_ENCOUNTER_SELECTOR_ID,
+    placeholder: 'Select an encounter',
+    options: [{ label: 'Dancing Mad (Ultimate)', value: Encounter.DMU }],
+  }),
+);
 
-const RESET_ROW = row({
-  type: ComponentType.Button,
-  custom_id: SEARCH_RESET_BUTTON_ID,
-  label: 'Reset Search',
-  style: ButtonStyle.Secondary,
-});
+const RESET_ROW = Object.freeze(
+  row({
+    type: ComponentType.Button,
+    custom_id: SEARCH_RESET_BUTTON_ID,
+    label: 'Reset Search',
+    style: ButtonStyle.Secondary,
+  }),
+);
 
 const pageButtons = ({ first, last }: { first: boolean; last: boolean }) =>
   row(

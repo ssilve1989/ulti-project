@@ -1749,7 +1749,7 @@ describe('Signup lifecycle', () => {
         await approve(flow, { progPoint: PartyStatus.Cleared });
       });
 
-      it("removes the player's clear role", ({ flow }) => {
+      it("removes the player's encounter roles", ({ flow }) => {
         expect(flow.discord.rolesOf(PLAYER.id)).toEqual([]);
       });
 

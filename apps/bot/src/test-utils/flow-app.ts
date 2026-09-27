@@ -75,8 +75,10 @@ export interface FlowApp {
    */
   expectReported(pattern: RegExp): void;
   /**
-   * Closes the app (once; later calls do nothing); fails if it logged an error the test didn't expect or
-   * left a pressed component unacknowledged.
+   * Closes the app (once; later calls do nothing). Fails if the app reported a
+   * problem the test didn't expect (an error, warning or Sentry report), left a
+   * pressed component unacknowledged, or didn't make every recorded Sheets
+   * request.
    */
   close(): Promise<void>;
 }

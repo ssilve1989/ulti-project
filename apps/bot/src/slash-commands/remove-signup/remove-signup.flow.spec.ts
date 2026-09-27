@@ -328,6 +328,35 @@ describe('Remove signup', () => {
     });
   });
 
+  describe('when a player removes an approved signup they resubmitted', () => {
+    it('clears its row and deletes the pending update review', async ({
+      flow,
+    }) => {
+      const { spreadsheetId } = flow.sheets;
+      flow.db.seed(`settings/${GUILD}`, { ...SETTINGS, spreadsheetId });
+      const signup = givenASignup(flow, await postReview(flow), {
+        ...APPROVED,
+        status: SignupStatus.UPDATE_PENDING,
+      });
+      // the row the bot wrote when the signup was first approved
+      await flow.get(SheetsService).upsertSignup(signup, spreadsheetId);
+      const row = nextFreeRow(flow, PROG_PARTY);
+      const written = flow.sheets.writes().length;
+
+      const replies = await removeSignup(flow, PLAYER.id);
+
+      expect([
+        flow.sheets.writes().slice(written),
+        reviewsShown(flow),
+        replies,
+      ]).toEqual([
+        [rowCleared(flow, PROG_PARTY, row)],
+        [],
+        removalReply(PLAYER.id, REMOVAL_SUCCESS),
+      ]);
+    });
+  });
+
   describe('when the approved signup is not on the spreadsheet', () => {
     it('removes it and says the sheet had no entry', async ({ flow }) => {
       flow.db.seed(`settings/${GUILD}`, {

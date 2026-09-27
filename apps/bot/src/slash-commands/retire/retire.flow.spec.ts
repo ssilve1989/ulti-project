@@ -111,7 +111,7 @@ describe('Retire', () => {
     });
   });
 
-  describe('when nobody holds the helper role', () => {
+  describe('when nobody holds the role being retired', () => {
     it('says no member was processed', async ({ flow }) => {
       expect(
         await retire(flow, { from: RETIRED_ROLE.id, to: HELPER_ROLE.id }),

@@ -96,7 +96,11 @@ function seedSignups(flow: FlowApp): void {
   approved(flow, 'd-other', 'P3', { encounter: Encounter.TOP });
   // no longer in the server
   approved(flow, 'e-left', 'P6');
-  approved(flow, NEWCOMER, 'P5', { partyStatus: PartyStatus.ClearParty });
+  // resubmitted since, so pending an update
+  approved(flow, NEWCOMER, 'P5', {
+    partyStatus: PartyStatus.ClearParty,
+    status: SignupStatus.UPDATE_PENDING,
+  });
   seedSignup(flow, { discordId: 'g-pending', encounter: Encounter.DMU });
   approved(flow, LINGERING, 'P7');
 }
@@ -151,13 +155,15 @@ const field = (name: string, value: string) => ({
   inline: false,
 });
 
-const CHANGES = field(
-  'Changes',
-  [
-    `<@${PROMOTED}> DMU: +<@&${P6_ROLE}> \u2212<@&${P5_ROLE}>`,
-    `<@${NEWCOMER}> DMU: +<@&${P5_ROLE}>`,
-    `<@${LINGERING}> DMU: \u2212<@&${P5_ROLE}>`,
-  ].join('\n'),
+const CHANGES = Object.freeze(
+  field(
+    'Changes',
+    [
+      `<@${PROMOTED}> DMU: +<@&${P6_ROLE}> \u2212<@&${P5_ROLE}>`,
+      `<@${NEWCOMER}> DMU: +<@&${P5_ROLE}>`,
+      `<@${LINGERING}> DMU: \u2212<@&${P5_ROLE}>`,
+    ].join('\n'),
+  ),
 );
 
 const rolesOfMembers = (flow: FlowApp) =>
