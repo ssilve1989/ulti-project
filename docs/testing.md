@@ -168,9 +168,12 @@ against saved real responses, never the live API
   `goOffline()` or `addReport(code, { daysAgo })`), not as
   `mockRejectedValue` in a spec.
 - `DiscordMock` enforces what Discord enforces:
-  - Roles belong to a guild, and members can only hold, gain or lose roles
-    their guild has. Fetching an unknown role gives `null`, as discord.js
-    does.
+  - Roles belong to a guild, and members can only hold roles their guild
+    has. Fetching an unknown role gives `null`, as discord.js does. Adding or
+    removing one unknown role rejects with the API's 10011; removing several
+    ignores roles the member doesn't hold, as discord.js does. A role added
+    with `aboveBot: true` sits above the bot's own, so changing it rejects
+    with the API's 50013.
   - Channels belong to a guild (`addChannel(guildId, channelId)`). Fetching one
     through another guild rejects with discord.js's `GuildChannelUnowned`, and
     an unknown guild, channel, member or message with the API's 404 codes.

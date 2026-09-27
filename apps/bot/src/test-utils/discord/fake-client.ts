@@ -20,6 +20,7 @@ import {
   cannotMessageUser,
   discordjsError,
   type FakeMessage,
+  missingPermissions,
   type OutgoingPayload,
   unknownResource,
 } from './fake-message.js';
@@ -49,6 +50,8 @@ export interface FakeMember extends FakeUser {
 export interface FakeRole {
   readonly id: string;
   readonly name: string;
+  /** above the bot's highest role, so the bot may not give or take it */
+  readonly aboveBot?: boolean;
 }
 
 /** A guild text channel, the only kind the app uses. */
@@ -189,13 +192,19 @@ export class FakeViews {
           );
         },
         add: (roles: string | readonly string[]) =>
-          this.changeRoles(guildId, roles, (roleId) =>
-            member.roles.add(roleId),
-          ),
+          typeof roles === 'string'
+            ? this.changeRole(guildId, member, roles, 'PUT')
+            : this.addRoles(guildId, member, roles),
+        // like discord.js, removing several sets the member's roles to the
+        // rest, so a role they don't hold (or the guild lacks) changes nothing
         remove: (roles: string | readonly string[]) =>
-          this.changeRoles(guildId, roles, (roleId) =>
-            member.roles.delete(roleId),
-          ),
+          typeof roles === 'string'
+            ? this.changeRole(guildId, member, roles, 'DELETE')
+            : this.setRoles(
+                guildId,
+                member,
+                [...member.roles].filter((roleId) => !roles.includes(roleId)),
+              ),
       },
     });
   }
@@ -342,25 +351,91 @@ export class FakeViews {
   }
 
   /**
-   * Adds or removes roles the guild has; a role it doesn't have is refused,
-   * as the API refuses it.
+   * Adds or removes one role, as discord.js does through the API: a role the
+   * guild doesn't have is a 404.
    */
-  private changeRoles(
+  private changeRole(
     guildId: string,
-    roles: string | readonly string[],
-    apply: (roleId: string) => void,
+    member: FakeMember,
+    roleId: string,
+    method: 'PUT' | 'DELETE',
   ): Promise<void> {
-    const known = new Set(this.world.roles(guildId).map(({ id }) => id));
-    const unknown = [roles].flat().filter((roleId) => !known.has(roleId));
-    if (unknown.length > 0) {
+    if (!this.hasRole(guildId, roleId)) {
       return Promise.reject(
-        new Error(
-          `Guild ${guildId} has no role ${unknown.join(', ')}; DiscordMock refuses what the API would reject`,
+        unknownResource(
+          RESTJSONErrorCodes.UnknownRole,
+          `/guilds/${guildId}/members/${member.id}/roles/${roleId}`,
+          method,
         ),
       );
     }
-    for (const roleId of [roles].flat()) apply(roleId);
+    if (this.isAboveBot(guildId, roleId)) {
+      return Promise.reject(
+        missingPermissions(
+          method,
+          `/guilds/${guildId}/members/${member.id}/roles/${roleId}`,
+        ),
+      );
+    }
+    if (method === 'PUT') member.roles.add(roleId);
+    else member.roles.delete(roleId);
     return Promise.resolve();
+  }
+
+  /**
+   * Sets the member's roles, as discord.js does to change several at once.
+   * Changing a role above the bot's is refused like the API refuses it.
+   */
+  private setRoles(
+    guildId: string,
+    member: FakeMember,
+    roleIds: readonly string[],
+  ): Promise<void> {
+    const changed = [
+      ...[...member.roles].filter((roleId) => !roleIds.includes(roleId)),
+      ...roleIds.filter((roleId) => !member.roles.has(roleId)),
+    ];
+    if (changed.some((roleId) => this.isAboveBot(guildId, roleId))) {
+      return Promise.reject(
+        missingPermissions('PATCH', `/guilds/${guildId}/members/${member.id}`),
+      );
+    }
+    member.roles.clear();
+    for (const roleId of roleIds) member.roles.add(roleId);
+    return Promise.resolve();
+  }
+
+  /**
+   * Adds several roles, which discord.js does by setting the member's roles.
+   * What the API answers when that includes a role the guild lacks isn't
+   * modelled, so it's refused.
+   */
+  private addRoles(
+    guildId: string,
+    member: FakeMember,
+    roleIds: readonly string[],
+  ): Promise<void> {
+    const unknown = roleIds.filter((roleId) => !this.hasRole(guildId, roleId));
+    if (unknown.length > 0) {
+      return Promise.reject(
+        new Error(
+          `DiscordMock does not model setting roles guild ${guildId} lacks (${unknown.join(', ')})`,
+        ),
+      );
+    }
+    return this.setRoles(guildId, member, [
+      ...new Set([...member.roles, ...roleIds]),
+    ]);
+  }
+
+  private isAboveBot(guildId: string, roleId: string): boolean {
+    return this.world
+      .roles(guildId)
+      .some(({ id, aboveBot }) => id === roleId && aboveBot === true);
+  }
+
+  private hasRole(guildId: string, roleId: string): boolean {
+    return this.world.roles(guildId).some(({ id }) => id === roleId);
   }
 }
 

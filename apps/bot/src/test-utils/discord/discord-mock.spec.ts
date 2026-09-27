@@ -24,6 +24,7 @@ import { BOT_USER_ID, DiscordMock } from './discord-mock.js';
 import {
   cannotMessageUser,
   discordjsError,
+  missingPermissions,
   shown,
   unknownResource,
 } from './fake-message.js';
@@ -407,7 +408,29 @@ describe('DiscordMock', () => {
     expect(discord.rolesOf('u1')).toEqual(['r2']);
   });
 
-  it("refuses a role change with a role the member's guild does not have, as the API does", async ({
+  it("rejects adding or removing one role the member's guild does not have, as the API does", async ({
+    discord,
+    service,
+  }) => {
+    const member = await service.getGuildMember({
+      guildId: 'g1',
+      memberId: 'u1',
+    });
+    const unknownRole = (method: string) =>
+      unknownResource(
+        RESTJSONErrorCodes.UnknownRole,
+        '/guilds/g1/members/u1/roles/r9',
+        method,
+      );
+
+    await expect(member?.roles.add('r9')).rejects.toEqual(unknownRole('PUT'));
+    await expect(member?.roles.remove('r9')).rejects.toEqual(
+      unknownRole('DELETE'),
+    );
+    expect(discord.rolesOf('u1')).toEqual(['r1']);
+  });
+
+  it('ignores roles the member does not hold when removing several, like discord.js', async ({
     discord,
     service,
   }) => {
@@ -416,10 +439,32 @@ describe('DiscordMock', () => {
       memberId: 'u1',
     });
 
-    await expect(member?.roles.add('r9')).rejects.toThrow(
-      'Guild g1 has no role r9',
+    await member?.roles.remove(['r1', 'r2', 'r9']);
+
+    expect(discord.rolesOf('u1')).toEqual([]);
+  });
+
+  it("refuses the bot changing a role above its own, with the API's Missing Permissions", async ({
+    discord,
+    service,
+  }) => {
+    discord.addRole('g1', { id: 'admin-role', name: 'Admin', aboveBot: true });
+    discord.addMember({ id: 'u3', username: 'three', roles: ['admin-role'] });
+    const member = await service.getGuildMember({
+      guildId: 'g1',
+      memberId: 'u3',
+    });
+
+    await expect(member?.roles.remove('admin-role')).rejects.toEqual(
+      missingPermissions('DELETE', '/guilds/g1/members/u3/roles/admin-role'),
     );
-    expect(discord.rolesOf('u1')).toEqual(['r1']);
+    await expect(member?.roles.remove(['admin-role'])).rejects.toEqual(
+      missingPermissions('PATCH', '/guilds/g1/members/u3'),
+    );
+    await expect(member?.roles.add(['r1', 'admin-role'])).resolves.toBe(
+      undefined,
+    );
+    expect(discord.rolesOf('u3')).toEqual(['admin-role', 'r1']);
   });
 
   it('removes a role from every member holding it', async ({

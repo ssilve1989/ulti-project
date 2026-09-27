@@ -117,17 +117,20 @@ export function unknownResource(
     | RESTJSONErrorCodes.UnknownGuild
     | RESTJSONErrorCodes.UnknownMember
     | RESTJSONErrorCodes.UnknownMessage
+    | RESTJSONErrorCodes.UnknownRole
     | RESTJSONErrorCodes.UnknownUser,
   path: string,
+  method = 'GET',
 ): DiscordAPIError {
   const message = {
     [RESTJSONErrorCodes.UnknownChannel]: 'Unknown Channel',
     [RESTJSONErrorCodes.UnknownGuild]: 'Unknown Guild',
     [RESTJSONErrorCodes.UnknownMember]: 'Unknown Member',
     [RESTJSONErrorCodes.UnknownMessage]: 'Unknown Message',
+    [RESTJSONErrorCodes.UnknownRole]: 'Unknown Role',
     [RESTJSONErrorCodes.UnknownUser]: 'Unknown User',
   }[code];
-  return new DiscordAPIError({ message, code }, code, 404, 'GET', path, {
+  return new DiscordAPIError({ message, code }, code, 404, method, path, {
     body: undefined,
     files: undefined,
   });
@@ -142,6 +145,22 @@ export function cannotMessageUser(channelId: string): DiscordAPIError {
     403,
     'POST',
     `/channels/${channelId}/messages`,
+    { body: undefined, files: undefined },
+  );
+}
+
+/** The DiscordAPIError the API returns when the bot may not do something (e.g. manage a role above its own). */
+export function missingPermissions(
+  method: string,
+  path: string,
+): DiscordAPIError {
+  const code = RESTJSONErrorCodes.MissingPermissions;
+  return new DiscordAPIError(
+    { message: 'Missing Permissions', code },
+    code,
+    403,
+    method,
+    path,
     { body: undefined, files: undefined },
   );
 }
