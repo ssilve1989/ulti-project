@@ -33,6 +33,8 @@ const PROMOTED = 'a-promoted';
 const UP_TO_DATE = 'b-up-to-date';
 /** Approved at P5 before prog point roles existed. */
 const NEWCOMER = 'f-newcomer';
+/** Approved at P7, holding its P6 role and still the P5 one. */
+const LINGERING = 'h-lingering';
 
 const it = base.extend<{ flow: FlowApp }>({
   flow: fresh(
@@ -53,6 +55,11 @@ const it = base.extend<{ flow: FlowApp }>({
         roles: [P6_ROLE],
       });
       flow.discord.addMember({ id: NEWCOMER, username: NEWCOMER });
+      flow.discord.addMember({
+        id: LINGERING,
+        username: LINGERING,
+        roles: [P5_ROLE, P6_ROLE],
+      });
       flow.discord.addMember({ id: 'c-cleared', username: 'c-cleared' });
       flow.discord.addMember({ id: 'd-other', username: 'd-other' });
       flow.db.seed(SETTINGS_PATH, {
@@ -91,6 +98,7 @@ function seedSignups(flow: FlowApp): void {
   approved(flow, 'e-left', 'P6');
   approved(flow, NEWCOMER, 'P5', { partyStatus: PartyStatus.ClearParty });
   seedSignup(flow, { discordId: 'g-pending', encounter: Encounter.DMU });
+  approved(flow, LINGERING, 'P7');
 }
 
 /** The admin runs /sync-prog-roles; returns what they were shown. */
@@ -122,7 +130,7 @@ const counts = ({
   changedLabel?: string;
 }) =>
   [
-    '**Signups Examined:** 6',
+    '**Signups Examined:** 7',
     `**Members ${changedLabel}:** ${changed}`,
     `**Roles Added:** ${added}`,
     `**Roles Removed:** ${removed}`,
@@ -148,11 +156,14 @@ const CHANGES = field(
   [
     `<@${PROMOTED}> DMU: +<@&${P6_ROLE}> −<@&${P5_ROLE}>`,
     `<@${NEWCOMER}> DMU: +<@&${P5_ROLE}>`,
+    `<@${LINGERING}> DMU: \u2212<@&${P5_ROLE}>`,
   ].join('\n'),
 );
 
 const rolesOfMembers = (flow: FlowApp) =>
-  [PROMOTED, UP_TO_DATE, NEWCOMER].map((id) => flow.discord.rolesOf(id));
+  [PROMOTED, UP_TO_DATE, NEWCOMER, LINGERING].map((id) =>
+    flow.discord.rolesOf(id),
+  );
 
 describe('Sync prog roles', () => {
   describe("when an admin syncs roles to active signups' prog points", () => {
@@ -161,7 +172,12 @@ describe('Sync prog roles', () => {
     it('gives each member the role of their prog point, and takes the others', ({
       flow,
     }) => {
-      expect(rolesOfMembers(flow)).toEqual([[P6_ROLE], [P6_ROLE], [P5_ROLE]]);
+      expect(rolesOfMembers(flow)).toEqual([
+        [P6_ROLE],
+        [P6_ROLE],
+        [P5_ROLE],
+        [P6_ROLE],
+      ]);
     });
 
     it('tells the admin, privately, what it changed and skipped', ({
@@ -174,7 +190,7 @@ describe('Sync prog roles', () => {
           fields: [
             field(
               'Summary',
-              counts({ changed: 2, added: 2, removed: 1, errors: 0 }),
+              counts({ changed: 3, added: 2, removed: 2, errors: 0 }),
             ),
             CHANGES,
           ],
@@ -195,9 +211,9 @@ describe('Sync prog roles', () => {
             field(
               'Summary',
               counts({
-                changed: 2,
+                changed: 3,
                 added: 2,
-                removed: 1,
+                removed: 2,
                 errors: 0,
                 changedLabel: 'To Change',
               }),
@@ -206,7 +222,7 @@ describe('Sync prog roles', () => {
           ],
           footer: { text: '💡 Run without dry-run to apply these changes' },
         }),
-        [[P5_ROLE], [P6_ROLE], []],
+        [[P5_ROLE], [P6_ROLE], [], [P5_ROLE, P6_ROLE]],
       ]);
     });
   });
@@ -217,8 +233,8 @@ describe('Sync prog roles', () => {
 
       const replies = await syncProgRoles(flow);
 
-      // one member couldn't lose the P5 role, the other couldn't gain it
-      for (const _ of [PROMOTED, NEWCOMER]) {
+      // two members couldn't lose the P5 role, and one couldn't gain it
+      for (const _ of [PROMOTED, NEWCOMER, LINGERING]) {
         flow.expectReported(
           /^Sentry exception: DiscordAPIError\[50013\]: Missing Permissions/,
         );
@@ -233,11 +249,11 @@ describe('Sync prog roles', () => {
           fields: [
             field(
               'Summary',
-              counts({ changed: 0, added: 0, removed: 0, errors: 2 }),
+              counts({ changed: 0, added: 0, removed: 0, errors: 3 }),
             ),
           ],
         }),
-        [[P5_ROLE], [P6_ROLE], []],
+        [[P5_ROLE], [P6_ROLE], [], [P5_ROLE, P6_ROLE]],
       ]);
     });
   });
