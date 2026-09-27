@@ -461,9 +461,7 @@ describe('DiscordMock', () => {
     await expect(member?.roles.remove(['admin-role'])).rejects.toEqual(
       missingPermissions('PATCH', '/guilds/g1/members/u3'),
     );
-    await expect(member?.roles.add(['r1', 'admin-role'])).resolves.toBe(
-      undefined,
-    );
+    await member?.roles.add(['r1', 'admin-role']);
     expect(discord.rolesOf('u3')).toEqual(['admin-role', 'r1']);
   });
 
@@ -477,6 +475,18 @@ describe('DiscordMock', () => {
       await service.getGuildMember({ guildId: 'g1', memberId: 'u2' }),
       (await discord.client.users.fetch('u2')).username,
     ]).toEqual([undefined, 'two']);
+  });
+
+  it("lists a role's members only once they are cached, like discord.js", async ({
+    discord,
+  }) => {
+    const guild = await discord.client.guilds.fetch('g1');
+    const role = await guild.roles.fetch('r1');
+    const before = role?.members.map(({ id }) => id);
+
+    await guild.members.fetch();
+
+    expect([before, role?.members.map(({ id }) => id)]).toEqual([[], ['u1']]);
   });
 
   it('removes a role from every member holding it', async ({
@@ -786,6 +796,18 @@ describe('DiscordMock', () => {
       });
     });
 
+    it('refuses editReply after a reply, which the fake does not model', async ({
+      discord,
+      service,
+    }) => {
+      const click = await clickGo({ discord, service });
+      await click.reply('hi');
+
+      await expect(click.editReply('again')).rejects.toThrow(
+        'only models editReply after deferUpdate or update',
+      );
+    });
+
     it('rejects updating a component interaction that was already deferred', async ({
       discord,
       service,
@@ -949,17 +971,23 @@ describe('DiscordMock', () => {
       discord.react(posted, '✅', 'u1');
       const reaction = message.reactions.cache.get('✅');
       await message.delete();
-      const unknownMessage = unknownResource(
-        RESTJSONErrorCodes.UnknownMessage,
-        `/channels/messages/${message.id}`,
-      );
+      const unknownMessage = (method: string, path = '') =>
+        unknownResource(
+          RESTJSONErrorCodes.UnknownMessage,
+          `/channels/c1/messages/${message.id}${path}`,
+          method,
+        );
 
-      await expect(message.edit('again')).rejects.toEqual(unknownMessage);
-      await expect(message.react('✅')).rejects.toEqual(unknownMessage);
-      await expect(reaction?.users.remove('u1')).rejects.toEqual(
-        unknownMessage,
+      await expect(message.edit('again')).rejects.toEqual(
+        unknownMessage('PATCH'),
       );
-      await expect(message.delete()).rejects.toEqual(unknownMessage);
+      await expect(message.react('✅')).rejects.toEqual(
+        unknownMessage('PUT', '/reactions/✅/@me'),
+      );
+      await expect(reaction?.users.remove('u1')).rejects.toEqual(
+        unknownMessage('DELETE', '/reactions/✅/u1'),
+      );
+      await expect(message.delete()).rejects.toEqual(unknownMessage('DELETE'));
     });
 
     it('only delivers the component type an awaiter asked for', async ({

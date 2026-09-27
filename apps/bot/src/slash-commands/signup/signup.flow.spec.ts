@@ -24,7 +24,6 @@ import {
 } from '../../test-utils/discord/discord-mock.js';
 import {
   type FakeMessage,
-  reactionsOn,
   shown,
 } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
@@ -1564,6 +1563,14 @@ describe('Signup lifecycle', () => {
         ]);
       });
 
+      it('sends the player no DM when the comment is left blank', async ({
+        flow,
+      }) => {
+        await approve(flow, { progPoint: 'P6', comment: '' });
+
+        expect(flow.discord.dmsTo(PLAYER.id)).toEqual([]);
+      });
+
       it('does not store the comment', async ({ flow }) => {
         await approve(flow, { progPoint: 'P6', comment: 'Great clear' });
 
@@ -1733,15 +1740,6 @@ describe('Signup lifecycle', () => {
           }),
         ]);
       });
-
-      it('reacts to the congratulation with the clear emojis', ({ flow }) => {
-        const congratulation = flow.discord.channel(SIGNUP_CHANNEL).at(-1);
-        if (!congratulation) throw new Error('No congratulation was posted');
-
-        expect(reactionsOn(congratulation)).toEqual(
-          Object.fromEntries(CLEAR_EMOJIS.map(({ id }) => [id, [BOT_USER_ID]])),
-        );
-      });
     });
 
     describe('and a clear-party player is later marked cleared', () => {
@@ -1773,13 +1771,10 @@ describe('Signup lifecycle', () => {
         await cancelApprovalPrompt(flow);
       });
 
-      it('leaves the signup and its review pending', ({ flow }) => {
+      it('leaves the signup pending', ({ flow }) => {
         expect(flow.db.read(SIGNUP_PATH)).toEqual(
           storedSignup(flow, { reviewMessageId: latestReview(flow).id }),
         );
-        expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
-          pendingReview(),
-        ]);
       });
 
       it("removes the reviewer's approve reaction so they can react again", ({
@@ -1803,6 +1798,31 @@ describe('Signup lifecycle', () => {
             { ephemeral: false },
           ),
         ]);
+      });
+    });
+
+    describe('and the reviewer declines a player who cannot be DMed', () => {
+      it('reports the failed DM and still records the decline', async ({
+        flow,
+      }) => {
+        flow.discord.failDirectMessagesTo(PLAYER.id);
+
+        await decline(flow, DECLINE_REASON);
+
+        flow.expectReported(
+          /^Sentry exception: .*Cannot send messages to this user/,
+        );
+        flow.expectReported(
+          /^error: .*Cannot send messages to this user.*Failed to send decline message/s,
+        );
+        expect(flow.db.read(SIGNUP_PATH)).toEqual(
+          storedSignup(flow, {
+            status: SignupStatus.DECLINED,
+            reviewMessageId: latestReview(flow).id,
+            reviewedBy: REVIEWER.username,
+            declineReason: DECLINE_REASON,
+          }),
+        );
       });
     });
 

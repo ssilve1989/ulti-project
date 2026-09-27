@@ -285,7 +285,11 @@ export function commandOptions(
       resolveOption(commandName, optionNamed(name), value, targets),
     ),
     ...Object.entries(given.attachments).map(([name, attachment]) => {
-      optionNamed(name);
+      if (optionNamed(name).type !== ApplicationCommandOptionType.Attachment) {
+        throw new Error(
+          `/${commandName}'s "${name}" option is not an Attachment`,
+        );
+      }
       return attachmentOption(name, attachment);
     }),
   ];

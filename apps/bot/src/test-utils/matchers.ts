@@ -37,15 +37,3 @@ export function isoDateSince(from: number): Matcher {
     toString: () => `ISO date since ${new Date(from).toISOString()}`,
   };
 }
-
-/** Matches a Timestamp from between `from` and `to` (epoch ms). */
-export function timestampBetween(from: number, to: number): Matcher {
-  return {
-    asymmetricMatch: (actual) =>
-      actual instanceof Timestamp &&
-      actual.toMillis() >= from &&
-      actual.toMillis() <= to,
-    toString: () =>
-      `Timestamp between ${new Date(from).toISOString()} and ${new Date(to).toISOString()}`,
-  };
-}

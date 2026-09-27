@@ -268,7 +268,7 @@ export function shown(message: FakeMessage) {
 }
 
 /** Who reacted to a message, by emoji key (a unicode emoji, or a custom emoji's id). */
-export function reactionsOn(message: FakeMessage): Record<string, string[]> {
+function reactionsOn(message: FakeMessage): Record<string, string[]> {
   return Object.fromEntries(
     [...message.reactions].map(([emoji, users]) => [emoji, [...users]]),
   );
@@ -367,12 +367,32 @@ export class FakeMessage {
     }
   }
 
+  /**
+   * Where the message is. A reply is in the channel its interaction came
+   * from, which the fake doesn't track, so it refuses.
+   */
+  private located(): Exclude<MessageLocation, { kind: 'reply' }> {
+    const { location } = this;
+    if (location.kind === 'reply') {
+      throw new Error(`DiscordMock does not model where reply ${this.id} is`);
+    }
+    return location;
+  }
+
+  private get channelId(): string {
+    const location = this.located();
+    return location.kind === 'channel'
+      ? location.channelId
+      : `dm-${location.userId}`;
+  }
+
   /** Rejects like the API does for a message that no longer exists. */
-  private unknown(): Promise<never> {
+  private unknown(method: string, path = ''): Promise<never> {
     return Promise.reject(
       unknownResource(
         RESTJSONErrorCodes.UnknownMessage,
-        `/channels/messages/${this.id}`,
+        `/channels/${this.channelId}/messages/${this.id}${path}`,
+        method,
       ),
     );
   }
@@ -399,15 +419,16 @@ export class FakeMessage {
   toMessage<InGuild extends boolean = boolean>(): Message<InGuild> {
     // getters below need the FakeMessage, not the literal they live on
     const fake = this;
-    const { location } = this;
 
     return mockOf<Message<InGuild>>({
       id: this.id,
-      channelId:
-        location.kind === 'channel'
-          ? location.channelId
-          : `dm-${location.userId}`,
-      guildId: location.kind === 'channel' ? location.guildId : null,
+      get channelId() {
+        return fake.channelId;
+      },
+      get guildId() {
+        const located = fake.located();
+        return located.kind === 'channel' ? located.guildId : null;
+      },
       author: { id: this.authorId },
       get content() {
         return fake.content ?? '';
@@ -418,22 +439,25 @@ export class FakeMessage {
       get components() {
         return fake.components;
       },
-      inGuild: () => location.kind === 'channel',
+      inGuild: () => fake.located().kind === 'channel',
       edit: (payload: OutgoingPayload) => {
-        if (fake.deleted) return fake.unknown();
+        if (fake.deleted) return fake.unknown('PATCH');
         return Promise.try(() => {
           fake.apply(payload);
           return fake.toMessage();
         });
       },
       delete: () => {
-        if (fake.deleted) return fake.unknown();
+        if (fake.deleted) return fake.unknown('DELETE');
         fake.deleted = true;
         return Promise.resolve(fake.toMessage());
       },
       react: (emoji: unknown) => {
-        if (fake.deleted) return fake.unknown();
-        return Promise.try(() => fake.onReact(fake, resolveEmoji(emoji)));
+        const reaction = resolveEmoji(emoji);
+        if (fake.deleted) {
+          return fake.unknown('PUT', `/reactions/${reactionKey(reaction)}/@me`);
+        }
+        return Promise.try(() => fake.onReact(fake, reaction));
       },
       reactions: {
         cache: {
@@ -442,7 +466,12 @@ export class FakeMessage {
               ? {
                   users: {
                     remove: (userId: string) => {
-                      if (fake.deleted) return fake.unknown();
+                      if (fake.deleted) {
+                        return fake.unknown(
+                          'DELETE',
+                          `/reactions/${emoji}/${userId}`,
+                        );
+                      }
                       fake.removeReaction(emoji, userId);
                       return Promise.resolve();
                     },

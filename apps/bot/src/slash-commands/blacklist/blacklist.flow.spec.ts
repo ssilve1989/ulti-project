@@ -364,7 +364,7 @@ describe('Blacklist', () => {
       ]);
     });
 
-    it('names an entry by mention alone when its user has left and it has no character', async ({
+    it('shows just the bracketed mention for an entry with no character whose user has left', async ({
       flow,
     }) => {
       flow.db.seed(entryPath(FORMER_MEMBER.id), {

@@ -6,7 +6,6 @@ import {
 } from 'firebase-admin/firestore';
 import { test as base, describe, expect, vi } from 'vitest';
 import { fresh } from '../fixtures.js';
-import { timestampBetween } from '../matchers.js';
 import { InMemoryFirestore } from './in-memory-firestore.js';
 
 const it = base.extend<{ db: InMemoryFirestore }>({
@@ -167,12 +166,6 @@ describe('InMemoryFirestore', () => {
       Reflect.set(nestedMap(data, 'progRoles'), 'DSR', 'mutated');
 
       expect(db.read('settings/g')).toEqual({ progRoles: { DSR: 'r1' } });
-    });
-
-    it('generates an id for add()', async ({ db }) => {
-      const ref = await db.collection('signups').add({ name: 'A' });
-
-      expect(db.read(`signups/${ref.id}`)).toEqual({ name: 'A' });
     });
   });
 
@@ -486,6 +479,14 @@ describe('InMemoryFirestore', () => {
       ).rejects.toThrow('composite index');
     });
 
+    it('rejects a query combining an inequality with a filter on another field, which needs a composite index', async ({
+      db,
+    }) => {
+      await expect(
+        db.collection('signups').where('a', '==', 1).where('b', '>', 2).get(),
+      ).rejects.toThrow('composite index');
+    });
+
     it('refuses == against a map, which it does not implement', ({ db }) => {
       expect(() =>
         db.collection('signups').where('progRoles', '==', { DSR: 'r1' }),
@@ -628,44 +629,6 @@ describe('InMemoryFirestore', () => {
       expect([db.read('signups/a'), db.read('signups/b')]).toEqual([
         { name: 'A' },
         { name: 'seeded while offline' },
-      ]);
-    });
-  });
-
-  describe('write results', () => {
-    it('resolves each write with its write time, like Firestore', async ({
-      db,
-    }) => {
-      const ref = db.collection('signups').doc('a');
-      const before = Date.now();
-
-      const results = [
-        await ref.create({ name: 'A' }),
-        await ref.set({ name: 'B' }),
-        await ref.update({ name: 'C' }),
-        await ref.delete(),
-      ];
-
-      const written = { writeTime: timestampBetween(before, Date.now()) };
-      expect(results).toEqual([written, written, written, written]);
-    });
-
-    it('resolves a batch commit with one write result per write', async ({
-      db,
-    }) => {
-      db.seed('items/a', { order: 0 });
-      const batch = db.batch();
-      batch.update(db.collection('items').doc('a'), { order: 1 });
-      batch.set(db.collection('items').doc('b'), { order: 2 });
-
-      const before = Date.now();
-      const results = await batch.commit();
-
-      // a batch commits at one time
-      const [first] = results;
-      expect(results).toEqual([
-        { writeTime: timestampBetween(before, Date.now()) },
-        first,
       ]);
     });
   });

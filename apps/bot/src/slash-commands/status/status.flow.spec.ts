@@ -4,13 +4,16 @@ import {
   type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
-import { type APIEmbedField, Colors } from 'discord.js';
-import { Timestamp } from 'firebase-admin/firestore';
+import { type APIEmbedField } from 'discord.js';
 import { test as base, describe, expect } from 'vitest';
 import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
-import { isoDateSince } from '../../test-utils/matchers.js';
+import {
+  commandErrorReply,
+  expectCommandErrorReported,
+} from '../../test-utils/replies.js';
+import { seedSignup } from '../../test-utils/signups.js';
 
 const GUILD = 'guild-1';
 const PLAYER = Object.freeze({ id: 'player-1', username: 'player' });
@@ -21,32 +24,21 @@ const NO_PARTY_TYPE = Object.freeze({
   inline: true,
 });
 
-/**
- * A stored signup of the player's, as the signup flow writes it: posted for
- * review, then approved by a reviewer at a prog point, which always comes with
- * its party status.
- */
-function aSignup(changes: Partial<SignupDocument>): SignupDocument {
-  return {
-    character: 'test character',
+/** The player's signup, approved at `progPoint` in a prog party, as the signup flow stores it. */
+const approved = (
+  flow: FlowApp,
+  progPoint: string,
+  changes: Partial<SignupDocument> = {},
+) =>
+  seedSignup(flow, {
     discordId: PLAYER.id,
     encounter: Encounter.DSR,
-    notes: null,
-    proofOfProgLink: 'https://www.fflogs.com/reports/abc123',
-    progPointRequested: 'P6 Wroth Flames',
-    role: 'tank',
-    screenshot: null,
-    username: PLAYER.username,
-    world: 'jenova',
-    expiresAt: Timestamp.fromMillis(Date.now() + 86_400_000),
-    reviewMessageId: 'review-message-1',
     status: SignupStatus.APPROVED,
-    progPoint: 'P6 Wroth Flames',
+    progPoint,
     partyStatus: PartyStatus.ProgParty,
     reviewedBy: 'reviewer',
     ...changes,
-  };
-}
+  });
 
 const PROG_PARTY_TYPE = Object.freeze({
   name: 'Party Type',
@@ -97,14 +89,12 @@ function seedProgPoints(flow: FlowApp): void {
 
 /** Runs /status as the player and returns every reply they got. */
 async function status(flow: FlowApp) {
-  const { reply } = flow.discord.command({
+  flow.discord.command({
     userId: PLAYER.id,
     guildId: GUILD,
     commandName: 'status',
   });
   await flow.settle();
-  // the command answers through its first reply; follow-ups come after it
-  reply();
   return flow.discord.repliesTo(PLAYER.id).map(shown);
 }
 
@@ -125,137 +115,102 @@ const dsr = (status: string) => [
   { name: 'Status', value: status, inline: true },
 ];
 
-describe('/status', () => {
-  it('shows the label of the approved prog point, not the requested one, even once the prog point is inactive', async ({
-    flow,
-  }) => {
-    flow.db.seed(
-      'signups/player-1-DSR',
-      aSignup({ progPoint: 'P7 Dragon King' }),
-    );
+describe('Status', () => {
+  describe('when a player checks an approved signup', () => {
+    it('shows the label of the approved prog point, even once it is inactive', async ({
+      flow,
+    }) => {
+      approved(flow, 'P7 Dragon King');
 
-    await expect(status(flow)).resolves.toEqual(
-      summary({
-        fields: [
-          ...dsr('✅ APPROVED'),
-          PROG_PARTY_TYPE,
-          {
-            name: 'Prog Point',
-            value: 'Phase 7: Dragon King Thordan',
-            inline: false,
-          },
-        ],
-      }),
-    );
+      await expect(status(flow)).resolves.toEqual(
+        summary({
+          fields: [
+            ...dsr('✅ APPROVED'),
+            PROG_PARTY_TYPE,
+            {
+              name: 'Prog Point',
+              value: 'Phase 7: Dragon King Thordan',
+              inline: false,
+            },
+          ],
+        }),
+      );
+    });
   });
 
-  it('omits the prog point field when the signup has no approved prog point', async ({
-    flow,
-  }) => {
-    flow.db.seed(
-      'signups/player-1-DSR',
-      // a new signup: posted for review, not reviewed yet
-      aSignup({
-        status: SignupStatus.PENDING,
-        progPoint: undefined,
-        partyStatus: undefined,
-        reviewedBy: undefined,
-      }),
-    );
+  describe('when the signup has not been reviewed yet', () => {
+    it('shows no prog point or party', async ({ flow }) => {
+      seedSignup(flow, { discordId: PLAYER.id, encounter: Encounter.DSR });
 
-    await expect(status(flow)).resolves.toEqual(
-      summary({ fields: [...dsr(':question: PENDING'), NO_PARTY_TYPE] }),
-    );
+      await expect(status(flow)).resolves.toEqual(
+        summary({ fields: [...dsr(':question: PENDING'), NO_PARTY_TYPE] }),
+      );
+    });
   });
 
-  it('omits the field and warns Sentry when the prog point id is unknown', async ({
-    flow,
-  }) => {
-    flow.db.seed(
-      'signups/player-1-DSR',
-      aSignup({ progPoint: 'deleted-prog-point' }),
-    );
+  describe('when the approved prog point no longer exists', () => {
+    it('shows no prog point and warns Sentry', async ({ flow }) => {
+      approved(flow, 'deleted-prog-point');
 
-    await expect(status(flow)).resolves.toEqual(
-      summary({ fields: [...dsr('✅ APPROVED'), PROG_PARTY_TYPE] }),
-    );
-    flow.expectReported(
-      /^Sentry warning: Approved prog point "deleted-prog-point" not found for encounter DSR$/,
-    );
+      await expect(status(flow)).resolves.toEqual(
+        summary({ fields: [...dsr('✅ APPROVED'), PROG_PARTY_TYPE] }),
+      );
+      flow.expectReported(
+        /^Sentry warning: Approved prog point "deleted-prog-point" not found for encounter DSR$/,
+      );
+    });
   });
 
-  it('resolves each signup against its own encounter', async ({ flow }) => {
-    flow.db.seed(
-      'signups/player-1-DSR',
-      aSignup({ progPoint: 'P6 Wroth Flames' }),
-    );
-    flow.db.seed(
-      'signups/player-1-TOP',
-      aSignup({ encounter: Encounter.TOP, progPoint: 'P5 Delta' }),
-    );
+  describe('when the player has signups for several encounters', () => {
+    it("shows each with its own encounter's prog point", async ({ flow }) => {
+      approved(flow, 'P6 Wroth Flames');
+      approved(flow, 'P5 Delta', { encounter: Encounter.TOP });
 
-    await expect(status(flow)).resolves.toEqual(
-      summary({
-        fields: [
-          ...dsr('✅ APPROVED'),
-          PROG_PARTY_TYPE,
-          { name: 'Prog Point', value: 'Phase 6: Wroth Flames', inline: false },
-          {
-            name: 'Encounter',
-            value: '[TOP] The Omega Protocol',
-            inline: true,
-          },
-          { name: 'Status', value: '✅ APPROVED', inline: true },
-          PROG_PARTY_TYPE,
-          { name: 'Prog Point', value: 'Phase 5: Delta', inline: false },
-        ],
-      }),
-    );
+      await expect(status(flow)).resolves.toEqual(
+        summary({
+          fields: [
+            ...dsr('✅ APPROVED'),
+            PROG_PARTY_TYPE,
+            {
+              name: 'Prog Point',
+              value: 'Phase 6: Wroth Flames',
+              inline: false,
+            },
+            {
+              name: 'Encounter',
+              value: '[TOP] The Omega Protocol',
+              inline: true,
+            },
+            { name: 'Status', value: '✅ APPROVED', inline: true },
+            PROG_PARTY_TYPE,
+            { name: 'Prog Point', value: 'Phase 5: Delta', inline: false },
+          ],
+        }),
+      );
+    });
   });
 
-  it("ignores other players' signups, saying the player has none", async ({
-    flow,
-  }) => {
-    flow.db.seed(
-      'signups/someone-else-DSR',
-      aSignup({ discordId: 'someone-else' }),
-    );
+  describe('when only other players have signed up', () => {
+    it('says the player has no signups', async ({ flow }) => {
+      approved(flow, 'P6 Wroth Flames', { discordId: 'someone-else' });
 
-    await expect(status(flow)).resolves.toEqual(
-      summary({
-        description:
-          'You have no active signups. Use /signup to signup for an encounter.',
-      }),
-    );
+      await expect(status(flow)).resolves.toEqual(
+        summary({
+          description:
+            'You have no active signups. Use /signup to signup for an encounter.',
+        }),
+      );
+    });
   });
 
-  it('replies with a command error, privately, when Firestore cannot be reached', async ({
-    flow,
-  }) => {
-    flow.db.goOffline();
+  describe('when Firestore cannot be reached', () => {
+    it('replies with a command error, privately', async ({ flow }) => {
+      flow.db.goOffline();
 
-    const replies = await status(flow);
+      const replies = await status(flow);
 
-    flow.expectReported(/^Sentry exception: Error: 14 UNAVAILABLE/);
-    flow.expectReported(/^error: \{\n\s+err: Error: 14 UNAVAILABLE/);
-    flow.expectReported(/^error: .*Command error: 14 UNAVAILABLE/);
-    expect(replies).toEqual([
-      {
-        location: { kind: 'reply', userId: PLAYER.id, ephemeral: true },
-        reactions: {},
-        deleted: false,
-        content: undefined,
-        embeds: [
-          {
-            title: 'Command Error',
-            description:
-              'An unexpected error occurred. Please try again later.',
-            color: Colors.Red,
-            timestamp: isoDateSince(flow.startedAt),
-          },
-        ],
-        components: [],
-      },
-    ]);
+      expectCommandErrorReported(flow, '14 UNAVAILABLE');
+      expect(replies).toEqual([commandErrorReply(flow, PLAYER.id)]);
+    });
   });
 });

@@ -80,7 +80,9 @@ describe('waitUntilIdle', () => {
     const url = await serve((_request, response) => {
       setTimeout(() => response.end('ok'), 200);
     });
-    const body = fetch(url).then((response) => response.text());
+    const body = new Promise<string>((resolve) => {
+      get(url, (response) => resolve(text(response)));
+    });
     await waitUntilIdle(tracker);
 
     await expect(settledBody(body)).resolves.toBe('ok');

@@ -42,10 +42,6 @@ export function createdRequest(message: unknown): CreatedRequest | undefined {
     : undefined;
 }
 
-/** undici (Node's fetch): `trailers` fires once the body is complete. */
-const UNDICI_STARTED = 'undici:request:create';
-const UNDICI_ENDED = ['undici:request:trailers', 'undici:request:error'];
-
 /** Consecutive event-loop turns with nothing pending that count as idle. */
 const IDLE_TURNS = 10;
 
@@ -92,15 +88,6 @@ function methodNames(instance: object): string[] {
   return [...new Set(names)].filter((name) => name !== 'constructor');
 }
 
-/** The request an undici diagnostics message is about. */
-function undiciRequest(message: unknown): object | undefined {
-  const request: unknown =
-    typeof message === 'object' && message !== null
-      ? Reflect.get(message, 'request')
-      : undefined;
-  return typeof request === 'object' && request !== null ? request : undefined;
-}
-
 export function createActivityTracker(): ActivityTracker {
   // each in-flight request or tracked call, until it finishes
   const inFlight = new Set<object>();
@@ -121,17 +108,7 @@ export function createActivityTracker(): ActivityTracker {
     begin(created.request);
     created.request.once('close', () => end(created.request));
   };
-  const undiciStarted = (message: unknown) => {
-    const request = undiciRequest(message);
-    if (request) begin(request);
-  };
-  const undiciEnded = (message: unknown) => {
-    const request = undiciRequest(message);
-    if (request) end(request);
-  };
   subscribe(HTTP_REQUEST_CREATED, httpRequestCreated);
-  subscribe(UNDICI_STARTED, undiciStarted);
-  for (const name of UNDICI_ENDED) subscribe(name, undiciEnded);
 
   return {
     get pending() {
@@ -164,8 +141,6 @@ export function createActivityTracker(): ActivityTracker {
     },
     dispose() {
       unsubscribe(HTTP_REQUEST_CREATED, httpRequestCreated);
-      unsubscribe(UNDICI_STARTED, undiciStarted);
-      for (const name of UNDICI_ENDED) unsubscribe(name, undiciEnded);
     },
   };
 }

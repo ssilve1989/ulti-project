@@ -93,11 +93,22 @@ const collectionOf = <T extends { id: string }>(items: readonly T[]) =>
 /**
  * The discord.js views of the fake's state. Every view reads the state when
  * it's used, so a view the bot holds sees later changes. Stated assumption,
- * as for the rest of the fake: Discord's gateway updates (role changes, the
- * member list) reach the bot's caches before it next reads them.
+ * as for the rest of the fake: Discord's gateway updates (role changes) reach
+ * the bot's caches before it next reads them. As in discord.js, a guild's
+ * member cache holds only the members the bot fetched or who used a command.
  */
 export class FakeViews {
+  /** guildId → ids of the members discord.js has cached */
+  private readonly memberCache = new Map<string, Set<string>>();
+
   constructor(private readonly world: FakeWorld) {}
+
+  /** Caches a member, as discord.js does when they use a command. */
+  cacheMember(guildId: string, userId: string): void {
+    const cached = this.memberCache.get(guildId) ?? new Set<string>();
+    cached.add(userId);
+    this.memberCache.set(guildId, cached);
+  }
 
   client(emitter: EventEmitter): Client {
     // getters on the literal need the views, not the literal they live on
@@ -125,12 +136,12 @@ export class FakeViews {
     const views = this;
     const members = {
       get cache() {
-        return collectionOf(views.memberViews(guildId));
+        return collectionOf(views.cachedMemberViews(guildId));
       },
-      /** Like GuildMemberManager.fetch: one member (10007 for a non-member), or every member. */
+      /** Like GuildMemberManager.fetch: one member (10007 for a non-member), or every member; either is cached. */
       fetch: (userId?: string) =>
         userId === undefined
-          ? Promise.resolve(collectionOf(this.memberViews(guildId)))
+          ? Promise.resolve(collectionOf(this.fetchAllMembers(guildId)))
           : this.fetchMember(guildId, userId),
     };
     const roles = {
@@ -214,11 +225,11 @@ export class FakeViews {
     return mockOf<Role>({
       id: role.id,
       name: role.name,
-      /** Like Role.members: the guild's members holding it (every member, for @everyone). */
+      /** Like Role.members: the cached members holding it (all of them, for @everyone). */
       get members() {
         return collectionOf(
           views
-            .memberViews(guildId)
+            .cachedMemberViews(guildId)
             .filter(
               (member) =>
                 role.id === guildId || member.roles.cache.has(role.id),
@@ -269,6 +280,17 @@ export class FakeViews {
     return this.world.members().map((member) => this.member(guildId, member));
   }
 
+  private cachedMemberViews(guildId: string): GuildMember[] {
+    const cached = this.memberCache.get(guildId);
+    return this.memberViews(guildId).filter(({ id }) => cached?.has(id));
+  }
+
+  private fetchAllMembers(guildId: string): GuildMember[] {
+    const members = this.memberViews(guildId);
+    for (const { id } of members) this.cacheMember(guildId, id);
+    return members;
+  }
+
   private guildCollection(): Collection<string, Guild> {
     return collectionOf(this.world.guildIds().map((id) => this.guild(id)));
   }
@@ -290,6 +312,7 @@ export class FakeViews {
 
   private fetchMember(guildId: string, userId: string): Promise<GuildMember> {
     const member = this.world.member(userId);
+    if (member) this.cacheMember(guildId, userId);
     return member
       ? Promise.resolve(this.member(guildId, member))
       : Promise.reject(
@@ -359,7 +382,7 @@ export class FakeViews {
     member: FakeMember,
     roleId: string,
     method: 'PUT' | 'DELETE',
-  ): Promise<void> {
+  ): Promise<GuildMember> {
     if (!this.hasRole(guildId, roleId)) {
       return Promise.reject(
         unknownResource(
@@ -379,7 +402,7 @@ export class FakeViews {
     }
     if (method === 'PUT') member.roles.add(roleId);
     else member.roles.delete(roleId);
-    return Promise.resolve();
+    return Promise.resolve(this.member(guildId, member));
   }
 
   /**
@@ -390,7 +413,7 @@ export class FakeViews {
     guildId: string,
     member: FakeMember,
     roleIds: readonly string[],
-  ): Promise<void> {
+  ): Promise<GuildMember> {
     const changed = [
       ...[...member.roles].filter((roleId) => !roleIds.includes(roleId)),
       ...roleIds.filter((roleId) => !member.roles.has(roleId)),
@@ -402,7 +425,7 @@ export class FakeViews {
     }
     member.roles.clear();
     for (const roleId of roleIds) member.roles.add(roleId);
-    return Promise.resolve();
+    return Promise.resolve(this.member(guildId, member));
   }
 
   /**
@@ -414,7 +437,7 @@ export class FakeViews {
     guildId: string,
     member: FakeMember,
     roleIds: readonly string[],
-  ): Promise<void> {
+  ): Promise<GuildMember> {
     const unknown = roleIds.filter((roleId) => !this.hasRole(guildId, roleId));
     if (unknown.length > 0) {
       return Promise.reject(

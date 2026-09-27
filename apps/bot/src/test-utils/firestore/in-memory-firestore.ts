@@ -316,21 +316,12 @@ function matches(data: Data, { field, operator, value }: Condition): boolean {
   }
 }
 
-/** What Firestore resolves a write with. */
-class WriteResult {
-  constructor(readonly writeTime: Timestamp) {}
-
-  isEqual(other: WriteResult): boolean {
-    return this.writeTime.isEqual(other.writeTime);
-  }
-}
-
-/** Applies a write, resolving like Firestore or rejecting if it throws. */
-function written(write: () => void): Promise<WriteResult> {
-  return Promise.try(() => {
-    write();
-    return new WriteResult(Timestamp.now());
-  });
+/**
+ * Applies a write, rejecting if it throws. Firestore resolves a write with its
+ * write time; nothing in the app reads it, so the fake resolves with nothing.
+ */
+function written(write: () => void): Promise<void> {
+  return Promise.try(write);
 }
 
 class DocumentSnapshot {
@@ -419,7 +410,16 @@ class Query {
       firstOrdering !== undefined &&
       conditions.some(({ field }) => field !== firstOrdering.field);
 
-    if (inequalityFields.size > 1 || filterOnOtherField) {
+    // equality filters merge single-field indexes; a range filter can't
+    const rangeWithOtherField =
+      inequalityFields.size > 0 &&
+      conditions.some(({ field }) => !inequalityFields.has(field));
+
+    if (
+      inequalityFields.size > 1 ||
+      rangeWithOtherField ||
+      filterOnOtherField
+    ) {
       throw new Error(
         `This query on "${this.collectionPath}" needs a composite index; real Firestore rejects it unless one is deployed, and this repo has no index config.`,
       );
@@ -491,12 +491,6 @@ class CollectionReference extends Query {
   doc(id: string = randomUUID()): DocumentReference {
     return new DocumentReference(this.db, `${this.collectionPath}/${id}`);
   }
-
-  async add(data: object): Promise<DocumentReference> {
-    const ref = this.doc();
-    await ref.create(data);
-    return ref;
-  }
 }
 
 class DocumentReference {
@@ -517,19 +511,19 @@ class DocumentReference {
     return Promise.try(() => this.db.snapshot(this));
   }
 
-  create(data: object): Promise<WriteResult> {
+  create(data: object): Promise<void> {
     return written(() => this.db.create(this.path, data));
   }
 
-  set(data: object, options?: SetOptions): Promise<WriteResult> {
+  set(data: object, options?: SetOptions): Promise<void> {
     return written(() => this.db.set(this.path, data, options));
   }
 
-  update(data: object): Promise<WriteResult> {
+  update(data: object): Promise<void> {
     return written(() => this.db.update(this.path, data));
   }
 
-  delete(): Promise<WriteResult> {
+  delete(): Promise<void> {
     return written(() => this.db.delete(this.path));
   }
 }
@@ -559,10 +553,6 @@ class PendingWrites {
     return this;
   }
 
-  protected get writeCount(): number {
-    return this.writes.length;
-  }
-
   protected get hasWrites(): boolean {
     return this.writes.length > 0;
   }
@@ -575,16 +565,9 @@ class PendingWrites {
 }
 
 class WriteBatch extends PendingWrites {
-  /** Like Firestore, resolves with one write result per write. */
-  commit(): Promise<WriteResult[]> {
-    return Promise.try(() => {
-      this.apply();
-      const writeTime = Timestamp.now();
-      return Array.from(
-        { length: this.writeCount },
-        () => new WriteResult(writeTime),
-      );
-    });
+  /** Commits every write, or none; resolves with nothing, like each write. */
+  commit(): Promise<void> {
+    return Promise.try(() => this.apply());
   }
 }
 

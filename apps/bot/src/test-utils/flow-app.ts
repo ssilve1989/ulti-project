@@ -61,7 +61,7 @@ export interface FlowApp {
   /** The Google test spreadsheet (recorded, then replayed), read through the app's own client. */
   readonly sheets: TestSheet;
   readonly fflogs: FFLogsMock;
-  /** Resolves a real provider, e.g. the command handler a test invokes. */
+  /** Resolves a real provider, for setup a test does through the app (e.g. `DiscordService`). */
   get<T>(token: Type<T>): T;
   /**
    * Waits until the app is idle: fire-and-forget work (event handlers, sagas,

@@ -161,9 +161,10 @@ against saved real responses, never the live API
   `Sentry exception:`, `Sentry warning:`).
 - The fakes behave exactly like the real system or refuse loudly. A fake that
   quietly differs from the real thing is a bug in the fake. They implement only
-  what current flows use, and they fail loudly on
-  anything else (`InMemoryFirestore does not support …`,
-  `… is not a function`). Extend the fake when a new flow needs more. Model the
+  what current flows use. Calling something they don't model fails
+  (`InMemoryFirestore does not support …`, `… is not a function`), but a
+  discord.js property they don't model reads as `undefined`, so check the
+  fake covers what new code reads. Extend the fake when a new flow needs more. Model the
   failure modes of the real system as named options on the fake (like
   `goOffline()` or `addReport(code, { daysAgo })`), not as
   `mockRejectedValue` in a spec.

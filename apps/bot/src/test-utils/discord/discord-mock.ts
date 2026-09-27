@@ -321,6 +321,7 @@ export class DiscordMock {
 
   // --- world setup
 
+  /** Adds a member to every guild; adding one again replaces them (e.g. to change their roles). */
   addMember({
     id,
     username,
@@ -381,7 +382,7 @@ export class DiscordMock {
     this.channels.set(channelId, { id: channelId, guildId, name });
   }
 
-  /** Adds a role to a guild, and the guild if it's new. */
+  /** Adds a role to a guild, and the guild if it's new; adding it again replaces it (e.g. to raise it above the bot). */
   addRole(guildId: string, role: FakeRole): void {
     this.addGuild(guildId).set(role.id, role);
   }
@@ -495,6 +496,7 @@ export class DiscordMock {
       );
     }
     assertPermitted(registered, userId, member.permissions);
+    this.views.cacheMember(guildId, userId);
     const resolverOptions = commandOptions(
       registered,
       { subcommand, options, attachments },
@@ -561,6 +563,7 @@ export class DiscordMock {
 
   /** `userId` reacts to `message` with `emoji` (a unicode emoji, a custom emoji or its mention). */
   react(message: FakeMessage, emoji: unknown, userId: string): void {
+    this.assertKnownUser(userId);
     assertInteractive(message, userId);
     const reaction = resolveEmoji(emoji);
     if (message.reactions.get(reactionKey(reaction))?.has(userId)) {
@@ -583,6 +586,7 @@ export class DiscordMock {
   }
 
   click(message: FakeMessage, customId: string, userId: string): void {
+    this.assertKnownUser(userId);
     assertInteractive(message, userId);
     const buttons = message.componentsOfType(ComponentType.Button);
     const button = buttons.find((candidate) => candidate.customId === customId);
@@ -612,6 +616,7 @@ export class DiscordMock {
     values: string | readonly string[],
     userId: string,
   ): void {
+    this.assertKnownUser(userId);
     const picked = [values].flat();
     const menu = pickableMenu(
       message,
@@ -642,6 +647,7 @@ export class DiscordMock {
     channelIds: readonly string[],
     userId: string,
   ): void {
+    this.assertKnownUser(userId);
     const menu = pickableMenu(
       message,
       ComponentType.ChannelSelect,
@@ -819,6 +825,17 @@ export class DiscordMock {
     };
   }
 
+  /** Throws unless Discord knows `userId` (the bot, a member or another user). */
+  private assertKnownUser(userId: string): void {
+    if (
+      userId !== BOT_USER_ID &&
+      !this.members.has(userId) &&
+      !this.users.has(userId)
+    ) {
+      throw new Error(`${userId} is not a user Discord knows; add them first`);
+    }
+  }
+
   private addGuild(guildId: string): Map<string, FakeRole> {
     const roles = this.guilds.get(guildId) ?? new Map<string, FakeRole>();
     this.guilds.set(guildId, roles);
@@ -844,22 +861,38 @@ export class DiscordMock {
       this.createMessage({ kind: 'reply', userId, ephemeral }, reply);
     };
 
+    // deferUpdate and update leave the component's message as the
+    // interaction's reply, which editReply then edits
+    const answeredOnMessage = { value: false };
+    const onMessage = () => {
+      answeredOnMessage.value = true;
+    };
+
     return {
-      deferUpdate: () => answer(ack, 'deferred', () => undefined),
+      deferUpdate: () => answer(ack, 'deferred', onMessage),
       update: (payload: OutgoingPayload) =>
-        answer(ack, 'replied', () => message.apply(payload)),
+        answer(ack, 'replied', () => {
+          message.apply(payload);
+          onMessage();
+        }),
       reply: (payload: ReplyPayload) =>
         answer(ack, 'replied', () => post(payload)),
       followUp: (payload: ReplyPayload) =>
         answered(ack) ? Promise.try(() => post(payload)) : notReplied(),
-      // once deferred or updated, the interaction's reply is the message itself
-      editReply: (payload: OutgoingPayload) =>
-        answered(ack)
-          ? Promise.try(() => {
-              message.apply(payload);
-              return message.toMessage();
-            })
-          : notReplied(),
+      editReply: (payload: OutgoingPayload) => {
+        if (!answered(ack)) return notReplied();
+        if (!answeredOnMessage.value) {
+          return Promise.reject(
+            new Error(
+              'DiscordMock only models editReply after deferUpdate or update',
+            ),
+          );
+        }
+        return Promise.try(() => {
+          message.apply(payload);
+          return message.toMessage();
+        });
+      },
     };
   }
 
