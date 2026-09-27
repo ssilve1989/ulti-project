@@ -1,34 +1,44 @@
 import { EventEmitter } from 'node:events';
 import {
-  type APIApplicationCommandOption,
   type APIModalInteractionResponseCallbackData,
-  ApplicationCommandOptionType,
   type ButtonInteraction,
   type ChatInputCommandInteraction,
+  type Client,
+  type CommandInteractionOption,
+  CommandInteractionOptionResolver,
   ComponentType,
   DiscordjsErrorCodes,
   DiscordjsTypeError,
-  type DMChannel,
   Events,
-  type GuildEmoji,
-  type GuildMember,
   type Message,
   MessageFlags,
   MessageFlagsBitField,
   type MessageFlagsResolvable,
-  MessagePayload,
   type MessageReaction,
   type ModalBuilder,
   type ModalSubmitInteraction,
-  RESTJSONErrorCodes,
+  type PermissionResolvable,
+  ReactionType,
   type StringSelectMenuInteraction,
-  type TextChannel,
-  type User,
 } from 'discord.js';
-import type { DiscordService } from '../../discord/discord.service.js';
 import { mockOf } from '../mock-factory.js';
 import {
-  cannotMessageUser,
+  assertPermitted,
+  commandOptions,
+  type OptionTargets,
+  type OptionValue,
+  type RegisteredCommand,
+} from './command-options.js';
+import {
+  BOT_USER_ID,
+  type FakeChannel,
+  type FakeMember,
+  type FakeRole,
+  FakeViews,
+  type FakeWorld,
+  permissionsOf,
+} from './fake-client.js';
+import {
   collectorTimeoutError,
   discordjsError,
   FakeMessage,
@@ -36,24 +46,9 @@ import {
   type OutgoingPayload,
   reactionKey,
   resolveEmoji,
-  unknownResource,
 } from './fake-message.js';
 
-export const BOT_USER_ID = 'bot-user';
-
-/** The avatar URL every fake user has. */
-export const avatarUrl = (userId: string) =>
-  `https://cdn.example/avatars/${userId}.png`;
-
-interface FakeMember {
-  id: string;
-  username: string;
-  /** the user's Discord-wide display name, if they set one */
-  globalName: string | null;
-  /** the member's name in the guild (their nickname, else their global name) */
-  displayName: string;
-  roles: Set<string>;
-}
+export { avatarUrl, BOT_USER_ID } from './fake-client.js';
 
 interface OpenModal {
   modal: APIModalInteractionResponseCallbackData;
@@ -94,81 +89,6 @@ interface ModalWaiter {
   filter?: (interaction: ModalSubmitInteraction) => boolean;
   resolve: (interaction: ModalSubmitInteraction) => void;
   reject: (error: Error) => void;
-}
-
-/** The DiscordjsTypeError discord.js throws for a missing required option. */
-const missingOption = (name: string) =>
-  discordjsError(
-    DiscordjsErrorCodes.CommandInteractionOptionNotFound,
-    [name],
-    DiscordjsTypeError,
-  );
-
-/** A command as registered with Discord (what a slash command builder's toJSON() gives). */
-interface RegisteredCommand {
-  name: string;
-  options?: readonly APIApplicationCommandOption[];
-}
-
-interface GivenOption {
-  type: ApplicationCommandOptionType;
-  value: string;
-}
-
-/** Throws unless `option` accepts `given`: the right type, within its choices and length limits. */
-function assertAccepts(
-  commandName: string,
-  option: APIApplicationCommandOption,
-  { type, value }: GivenOption,
-): void {
-  const label = `/${commandName}'s "${option.name}" option`;
-  if (option.type !== type) {
-    throw new Error(
-      `${label} is a ${ApplicationCommandOptionType[option.type]}, not a ${ApplicationCommandOptionType[type]}`,
-    );
-  }
-  if (option.type !== ApplicationCommandOptionType.String) return;
-  const { choices } = option;
-  if (choices && !choices.some((choice) => choice.value === value)) {
-    throw new Error(
-      `${label} only offers ${choices.map((choice) => choice.value).join(', ')} (got "${value}")`,
-    );
-  }
-  if (
-    value.length < (option.min_length ?? 0) ||
-    value.length > (option.max_length ?? 6000)
-  ) {
-    throw new Error(
-      `Discord won't send ${label} with ${value.length} characters`,
-    );
-  }
-}
-
-/**
- * Throws unless the Discord client would send /name with these options: every
- * option declared and acceptable, and every required option given.
- */
-function assertSendable(
-  command: RegisteredCommand,
-  given: ReadonlyMap<string, GivenOption>,
-): void {
-  const declared = new Map(
-    (command.options ?? []).map((option) => [option.name, option]),
-  );
-  for (const [name, value] of given) {
-    const option = declared.get(name);
-    if (!option) {
-      throw new Error(`/${command.name} has no "${name}" option`);
-    }
-    assertAccepts(command.name, option, value);
-  }
-  for (const option of declared.values()) {
-    if ('required' in option && option.required && !given.has(option.name)) {
-      throw new Error(
-        `Discord won't send /${command.name} without its required "${option.name}" option`,
-      );
-    }
-  }
 }
 
 /** discord.js's per-interaction response state. */
@@ -297,17 +217,18 @@ function answer(
   });
 }
 
-type DiscordServiceSurface = Pick<
-  DiscordService,
-  | 'deleteMessage'
-  | 'getDisplayName'
-  | 'getEmojis'
-  | 'getEmojiString'
-  | 'getGuildMember'
-  | 'getTextChannel'
-  | 'sendDirectMessage'
-  | 'userHasRole'
->;
+/** discord.js's own option resolver over the options the fake resolved. */
+function optionResolver(
+  client: Client,
+  options: readonly CommandInteractionOption<'cached'>[],
+): CommandInteractionOptionResolver<'cached'> {
+  // its constructor is library-internal in the typings, like DiscordjsError's
+  return Reflect.construct(CommandInteractionOptionResolver, [
+    client,
+    options,
+    {},
+  ]);
+}
 
 /** Throws unless `userId` can see `message` and it still exists, as Discord requires to use it. */
 function assertInteractive(message: FakeMessage, userId: string): void {
@@ -329,21 +250,19 @@ function assertInteractive(message: FakeMessage, userId: string): void {
 }
 
 /**
- * A small Discord world (members, channels, messages) standing in for
- * `DiscordService` and the discord.js client in flow specs. Tests set the world
- * up, drive the bot the way Discord would (commands, clicks, reactions), and
- * assert on what the bot sent.
+ * A small Discord world (guilds, roles, members, channels, messages) behind a
+ * fake discord.js client, which the app's real DiscordService and handlers use
+ * in flow specs. Tests set the world up, drive the bot the way Discord would
+ * (commands, clicks, reactions), and assert on what the bot sent.
  */
-export class DiscordMock implements DiscordServiceSurface {
-  /** Stands in for the discord.js Client; the app subscribes to gateway events on it. */
-  readonly client = new EventEmitter();
+export class DiscordMock {
   private readonly members = new Map<string, FakeMember>();
   private readonly commands = new Map<string, RegisteredCommand>();
   /** The bot's emoji cache: id → name */
   private readonly emojis = new Map<string, string>();
-  private readonly guilds = new Set<string>();
-  /** channelId → the guild it belongs to */
-  private readonly channels = new Map<string, string>();
+  /** guildId → its roles (besides @everyone), by id */
+  private readonly guilds = new Map<string, Map<string, FakeRole>>();
+  private readonly channels = new Map<string, FakeChannel>();
   private readonly messages: FakeMessage[] = [];
   private readonly failingDms = new Set<string>();
   private readonly pressed: Array<{ customId: string; ack: Acknowledgement }> =
@@ -360,6 +279,9 @@ export class DiscordMock implements DiscordServiceSurface {
     modal: APIModalInteractionResponseCallbackData;
   }> = [];
   private nextId = 1;
+  private readonly views = new FakeViews(this.world());
+  /** The discord.js Client the app gets; it subscribes to gateway events on it. */
+  readonly client = this.views.client(new EventEmitter());
 
   // --- world setup
 
@@ -369,27 +291,41 @@ export class DiscordMock implements DiscordServiceSurface {
     globalName = null,
     displayName = globalName ?? username,
     roles = [],
+    permissions = [],
   }: {
     id: string;
     username: string;
     globalName?: string | null;
     /** the guild display name (a nickname); defaults to the global name */
     displayName?: string;
+    /** roles the member holds; each must have been added with addRole */
     roles?: readonly string[];
+    /** the member's guild permissions (e.g. Administrator) */
+    permissions?: PermissionResolvable;
   }): void {
+    const unknown = roles.filter((roleId) => !this.hasRole(roleId));
+    if (unknown.length > 0) {
+      throw new Error(`No guild has role ${unknown.join(', ')}; add it first`);
+    }
     this.members.set(id, {
       id,
       username,
       globalName,
       displayName,
+      permissions: permissionsOf(permissions),
       roles: new Set(roles),
     });
   }
 
   /** Adds a text channel, and its guild if it's new. Members belong to every guild. */
-  addChannel(guildId: string, channelId: string): void {
-    this.guilds.add(guildId);
-    this.channels.set(channelId, guildId);
+  addChannel(guildId: string, channelId: string, name = channelId): void {
+    this.addGuild(guildId);
+    this.channels.set(channelId, { id: channelId, guildId, name });
+  }
+
+  /** Adds a role to a guild, and the guild if it's new. */
+  addRole(guildId: string, role: FakeRole): void {
+    this.addGuild(guildId).set(role.id, role);
   }
 
   /** Adds a custom emoji the bot can use. */
@@ -467,13 +403,16 @@ export class DiscordMock implements DiscordServiceSurface {
     userId,
     guildId,
     commandName,
+    subcommand,
     options = {},
     attachments = {},
   }: {
     userId: string;
     guildId: string;
     commandName: string;
-    options?: Record<string, string | null>;
+    subcommand?: string;
+    /** option values; users, roles and channels are given by id */
+    options?: Record<string, OptionValue | null>;
     attachments?: Record<string, { url: string }>;
   }): {
     interaction: ChatInputCommandInteraction<'cached'>;
@@ -485,7 +424,8 @@ export class DiscordMock implements DiscordServiceSurface {
         `The bot is not in guild ${guildId}, so Discord can't deliver its commands`,
       );
     }
-    if (!this.members.has(userId)) {
+    const member = this.members.get(userId);
+    if (!member) {
       throw new Error(
         `${userId} is not a member of guild ${guildId}, so they can't run /${commandName}`,
       );
@@ -496,19 +436,12 @@ export class DiscordMock implements DiscordServiceSurface {
         `No /${commandName} command is registered (registered: ${[...this.commands.keys()].join(', ') || 'none'})`,
       );
     }
-    const given = new Map<string, GivenOption>();
-    for (const [name, value] of Object.entries(options)) {
-      if (value !== null) {
-        given.set(name, { type: ApplicationCommandOptionType.String, value });
-      }
-    }
-    for (const [name, { url }] of Object.entries(attachments)) {
-      given.set(name, {
-        type: ApplicationCommandOptionType.Attachment,
-        value: url,
-      });
-    }
-    assertSendable(registered, given);
+    assertPermitted(registered, userId, member.permissions);
+    const resolverOptions = commandOptions(
+      registered,
+      { subcommand, options, attachments },
+      this.optionTargets(guildId),
+    );
 
     const ack: Acknowledgement = { deferred: false, replied: false };
     const reply = new CommandReply(userId, (location, payload) =>
@@ -525,30 +458,11 @@ export class DiscordMock implements DiscordServiceSurface {
       mockOf<ChatInputCommandInteraction<'cached'>>({
         commandName,
         guildId,
-        user: this.user(userId),
-        options: {
-          getString: (name: string, required = false) => {
-            const value = options[name] ?? null;
-            if (value === null && required) throw missingOption(name);
-            return value;
-          },
-          getAttachment: (name: string, required = false) => {
-            const value = attachments[name] ?? null;
-            if (value === null && required) throw missingOption(name);
-            return value;
-          },
-          // the fake's commands have no subcommands
-          getSubcommand: (required = true) => {
-            if (required) {
-              throw discordjsError(
-                DiscordjsErrorCodes.CommandInteractionOptionNoSubcommand,
-                [],
-                DiscordjsTypeError,
-              );
-            }
-            return null;
-          },
-        },
+        user: this.views.user(userId),
+        member: this.views.member(guildId, member),
+        memberPermissions: member.permissions,
+        // discord.js's own resolver, so option getters behave as in production
+        options: optionResolver(this.client, resolverOptions),
         deferReply: (options: { flags?: MessageFlagsResolvable } = {}) => {
           if (answered(ack)) return alreadyReplied();
           ack.deferred = true;
@@ -605,7 +519,8 @@ export class DiscordMock implements DiscordServiceSurface {
         emoji: reaction,
         message: message.toMessage<true>(),
       }),
-      this.user(userId),
+      this.views.user(userId),
+      { type: ReactionType.Normal, burst: false },
     );
   }
 
@@ -702,7 +617,7 @@ export class DiscordMock implements DiscordServiceSurface {
       mockOf<ModalSubmitInteraction>({
         ...this.responses(message, userId, ack),
         customId: modal.custom_id,
-        user: this.user(userId),
+        user: this.views.user(userId),
         message: message.toMessage(),
         fields: {
           getTextInputValue: (id: string) => {
@@ -747,121 +662,6 @@ export class DiscordMock implements DiscordServiceSurface {
     this.openModals.clear();
   }
 
-  // --- DiscordService surface
-
-  /** Like the real one: undefined for a guild the bot isn't in, or for a non-member. */
-  getGuildMember({
-    memberId,
-    guildId,
-  }: {
-    memberId: string;
-    guildId: string;
-  }): Promise<GuildMember | undefined> {
-    const member = this.guilds.has(guildId)
-      ? this.members.get(memberId)
-      : undefined;
-    return Promise.resolve(member && this.guildMember(member));
-  }
-
-  getDisplayName({
-    userId,
-    guildId,
-  }: {
-    guildId: string;
-    userId: string;
-  }): Promise<string> {
-    return this.member(guildId, userId).then(({ displayName }) => displayName);
-  }
-
-  userHasRole({
-    userId,
-    guildId,
-    roleId,
-  }: {
-    guildId: string;
-    userId: string;
-    roleId: string;
-  }): Promise<boolean> {
-    return this.member(guildId, userId).then(({ roles }) => roles.has(roleId));
-  }
-
-  /** Like the real one: the emoji's mention if the bot has it, else ''. */
-  getEmojiString(emojiId: string): string {
-    return this.emojis.has(emojiId) ? `<:_:${emojiId}>` : '';
-  }
-
-  /** Like the real one: the bot's emojis with these names, in the order given. */
-  getEmojis(emojiNames: string[]): GuildEmoji[] {
-    return emojiNames.flatMap((name) =>
-      [...this.emojis]
-        .filter(([, emojiName]) => emojiName === name)
-        .slice(0, 1)
-        .map(([id]) =>
-          mockOf<GuildEmoji>({ id, name, toString: () => `<:${name}:${id}>` }),
-        ),
-    );
-  }
-
-  getTextChannel({
-    guildId,
-    channelId,
-  }: {
-    guildId: string;
-    channelId: string;
-  }): Promise<TextChannel | null> {
-    const error = this.channelError(guildId, channelId);
-    if (error) return Promise.reject(error);
-    return Promise.resolve(
-      mockOf<TextChannel>({
-        id: channelId,
-        guildId,
-        send: (payload: OutgoingPayload) =>
-          Promise.try(() =>
-            this.createMessage(
-              { kind: 'channel', guildId, channelId },
-              payload,
-            ).toMessage<true>(),
-          ),
-      }),
-    );
-  }
-
-  sendDirectMessage(
-    userId: string,
-    message: Parameters<DMChannel['send']>[0],
-  ): Promise<Message<false>> {
-    if (message instanceof MessagePayload) {
-      return Promise.reject(
-        new Error('DiscordMock does not support MessagePayload'),
-      );
-    }
-    return Promise.try(() => this.dm(userId, message).toMessage<false>());
-  }
-
-  deleteMessage(
-    guildId: string,
-    channelId: string,
-    messageId: string,
-  ): Promise<Message | undefined> {
-    const error = this.channelError(guildId, channelId);
-    if (error) return Promise.reject(error);
-    const path = `/channels/${channelId}/messages/${messageId}`;
-    const message = this.messages.find(
-      ({ id, location, deleted }) =>
-        id === messageId &&
-        location.kind === 'channel' &&
-        location.channelId === channelId &&
-        !deleted,
-    );
-    if (!message) {
-      return Promise.reject(
-        unknownResource(RESTJSONErrorCodes.UnknownMessage, path),
-      );
-    }
-    message.deleted = true;
-    return Promise.resolve(message.toMessage());
-  }
-
   // --- internals
 
   private createMessage(
@@ -879,102 +679,61 @@ export class DiscordMock implements DiscordServiceSurface {
     return message;
   }
 
-  /** Rejects like `guilds.fetch` + `members.fetch` for an unknown guild or a non-member. */
-  private member(guildId: string, userId: string): Promise<FakeMember> {
-    if (!this.guilds.has(guildId)) {
-      return Promise.reject(
-        unknownResource(RESTJSONErrorCodes.UnknownGuild, `/guilds/${guildId}`),
-      );
-    }
-    const member = this.members.get(userId);
-    return member
-      ? Promise.resolve(member)
-      : Promise.reject(
-          unknownResource(
-            RESTJSONErrorCodes.UnknownMember,
-            `/guilds/${guildId}/members/${userId}`,
-          ),
+  /** What the discord.js views read from, and do to, this fake's state. */
+  private world(): FakeWorld {
+    return {
+      guildIds: () => [...this.guilds.keys()],
+      roles: (guildId) => [...(this.guilds.get(guildId)?.values() ?? [])],
+      channel: (channelId) => this.channels.get(channelId),
+      members: () => [...this.members.values()],
+      member: (userId) => this.members.get(userId),
+      emojis: () => this.emojis,
+      canBeMessaged: (userId) => !this.failingDms.has(userId),
+      post: ({ guildId, id }, payload) =>
+        this.createMessage(
+          { kind: 'channel', guildId, channelId: id },
+          payload,
+        ),
+      dm: (userId, payload) =>
+        this.createMessage({ kind: 'dm', userId }, payload),
+      message: (channelId, messageId) =>
+        this.channel(channelId).find(({ id }) => id === messageId),
+    };
+  }
+
+  /** The users, roles and channels of `guildId` a command option can pick. */
+  private optionTargets(guildId: string): OptionTargets {
+    return {
+      user: (userId) => {
+        const member = this.members.get(userId);
+        return (
+          member && {
+            user: this.views.user(userId),
+            member: this.views.member(guildId, member),
+          }
         );
-  }
-
-  /**
-   * What `guilds.fetch(guildId)` then `guild.channels.fetch(channelId)`
-   * raises, if anything: an unknown guild or channel is a 404, and a channel
-   * of another guild is discord.js's GuildChannelUnowned.
-   */
-  private channelError(guildId: string, channelId: string): Error | undefined {
-    if (!this.guilds.has(guildId)) {
-      return unknownResource(
-        RESTJSONErrorCodes.UnknownGuild,
-        `/guilds/${guildId}`,
-      );
-    }
-    const owner = this.channels.get(channelId);
-    if (owner === undefined) {
-      return unknownResource(
-        RESTJSONErrorCodes.UnknownChannel,
-        `/channels/${channelId}`,
-      );
-    }
-    return owner === guildId
-      ? undefined
-      : discordjsError(DiscordjsErrorCodes.GuildChannelUnowned);
-  }
-
-  private dm(userId: string, payload: OutgoingPayload): FakeMessage {
-    if (!this.members.has(userId)) {
-      throw unknownResource(RESTJSONErrorCodes.UnknownUser, `/users/${userId}`);
-    }
-    if (this.failingDms.has(userId)) {
-      throw cannotMessageUser(`dm-${userId}`);
-    }
-    return this.createMessage({ kind: 'dm', userId }, payload);
-  }
-
-  private user(userId: string): User {
-    const member = this.members.get(userId);
-    return mockOf<User>({
-      id: userId,
-      username: member?.username ?? userId,
-      globalName: member?.globalName ?? null,
-      // like discord.js's User.displayName; a guild nickname is the member's
-      displayName: member?.globalName ?? member?.username ?? userId,
-      bot: userId === BOT_USER_ID,
-      partial: false,
-      displayAvatarURL: () => avatarUrl(userId),
-      send: (payload: OutgoingPayload) =>
-        Promise.try(() => this.dm(userId, payload).toMessage<false>()),
-    });
-  }
-
-  /**
-   * A member whose role changes apply at once. Stated assumption: in
-   * discord.js, `roles.add(id)`/`remove(id)` leave the cached member unchanged
-   * until Discord's gateway sends the member update, and an array
-   * `add`/`remove` sets the whole role list from that cache. The fake assumes
-   * the update has arrived before the bot's next role call, so every call sees
-   * current roles.
-   */
-  private guildMember(member: FakeMember): GuildMember {
-    const change =
-      (apply: (roleId: string) => void) =>
-      (roles: string | readonly string[]) => {
-        for (const roleId of [roles].flat()) apply(roleId);
-        return Promise.resolve();
-      };
-
-    const user = this.user(member.id);
-    return mockOf<GuildMember>({
-      id: member.id,
-      displayName: member.displayName,
-      user,
-      displayAvatarURL: user.displayAvatarURL,
-      roles: {
-        cache: { has: (roleId: string) => member.roles.has(roleId) },
-        add: change((roleId) => member.roles.add(roleId)),
-        remove: change((roleId) => member.roles.delete(roleId)),
       },
-    });
+      role: (roleId) => {
+        const role = this.guilds.get(guildId)?.get(roleId);
+        return role && this.views.role(guildId, role);
+      },
+      channel: (channelId) => {
+        const channel = this.channels.get(channelId);
+        return channel?.guildId === guildId
+          ? this.views.channel(channel)
+          : undefined;
+      },
+    };
+  }
+
+  private addGuild(guildId: string): Map<string, FakeRole> {
+    const roles = this.guilds.get(guildId) ?? new Map<string, FakeRole>();
+    this.guilds.set(guildId, roles);
+    return roles;
+  }
+
+  private hasRole(roleId: string): boolean {
+    return [...this.guilds.values()].some((roles) => roles.has(roleId));
   }
 
   /**
@@ -1018,7 +777,7 @@ export class DiscordMock implements DiscordServiceSurface {
         ...specific,
         ...this.responses(message, userId, ack),
         customId,
-        user: this.user(userId),
+        user: this.views.user(userId),
         message: message.toMessage(),
         // showModal answers the interaction, like reply does
         showModal: (modal: ModalBuilder) =>

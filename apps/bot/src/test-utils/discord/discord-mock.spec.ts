@@ -2,20 +2,22 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ChannelType,
   ComponentType,
   DiscordjsErrorCodes,
   DiscordjsTypeError,
   Events,
   MessageFlags,
   ModalBuilder,
+  PermissionFlagsBits,
   RESTJSONErrorCodes,
   SlashCommandBuilder,
   StringSelectMenuBuilder,
   TextInputBuilder,
   TextInputStyle,
-  type User,
 } from 'discord.js';
 import { test as base, describe, expect } from 'vitest';
+import { DiscordService } from '../../discord/discord.service.js';
 import { fresh } from '../fixtures.js';
 import { BOT_USER_ID, DiscordMock } from './discord-mock.js';
 import {
@@ -40,10 +42,18 @@ const pointSelect = () =>
       .addOptions({ label: 'P6', value: 'P6' }),
   );
 
-const it = base.extend<{ discord: DiscordMock }>({
+/** The fake Discord, and the app's real DiscordService over its client. */
+interface Bot {
+  discord: DiscordMock;
+  service: DiscordService;
+}
+
+const it = base.extend<Bot>({
   discord: fresh(() => {
     const discord = new DiscordMock();
     discord.addChannel('g1', 'c1');
+    discord.addRole('g1', { id: 'r1', name: 'One' });
+    discord.addRole('g1', { id: 'r2', name: 'Two' });
     discord.addMember({ id: 'u1', username: 'one', roles: ['r1'] });
     discord.addMember({ id: 'u2', username: 'two' });
     discord.registerCommands([
@@ -72,9 +82,34 @@ const it = base.extend<{ discord: DiscordMock }>({
         .addAttachmentOption((option) =>
           option.setName('proof').setDescription('Proof'),
         ),
+      new SlashCommandBuilder()
+        .setName('grant')
+        .setDescription('An admin command with a subcommand')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName('role')
+            .setDescription('Grant a role')
+            .addUserOption((option) =>
+              option
+                .setName('player')
+                .setDescription('Player')
+                .setRequired(true),
+            )
+            .addRoleOption((option) =>
+              option.setName('role').setDescription('Role').setRequired(true),
+            )
+            .addChannelOption((option) =>
+              option
+                .setName('log')
+                .setDescription('Log channel')
+                .addChannelTypes(ChannelType.GuildText),
+            ),
+        ),
     ]);
     return discord;
   }),
+  service: ({ discord }, use) => use(new DiscordService(discord.client)),
 });
 
 /** What the app reads off a component interaction. */
@@ -90,8 +125,8 @@ const pressed = (interaction: {
 
 describe('DiscordMock', () => {
   /** DMs `userId` a go button, clicks it, and returns the click the bot received. */
-  const clickGo = async (discord: DiscordMock, userId = 'u1') => {
-    const message = await discord.sendDirectMessage(userId, {
+  const clickGo = async ({ discord, service }: Bot, userId = 'u1') => {
+    const message = await service.sendDirectMessage(userId, {
       components: [goButton()],
     });
     const pending = message.awaitMessageComponent();
@@ -100,8 +135,8 @@ describe('DiscordMock', () => {
   };
 
   /** Posts `content` as the bot in channel c1 of g1; returns the sent message. */
-  const postInC1 = async (discord: DiscordMock, content: string) => {
-    const channel = await discord.getTextChannel({
+  const postInC1 = async ({ service }: Bot, content: string) => {
+    const channel = await service.getTextChannel({
       guildId: 'g1',
       channelId: 'c1',
     });
@@ -113,13 +148,13 @@ describe('DiscordMock', () => {
    * prompt would, so the test can see whether a click gets through.
    */
   const dmAwaitingClick = async (
-    discord: DiscordMock,
+    { service }: Bot,
     components: ReadonlyArray<
       | ActionRowBuilder<ButtonBuilder>
       | ActionRowBuilder<StringSelectMenuBuilder>
     >,
   ) => {
-    const message = await discord.sendDirectMessage('u1', {
+    const message = await service.sendDirectMessage('u1', {
       components: [...components],
     });
     void message.awaitMessageComponent().catch(() => undefined);
@@ -128,7 +163,7 @@ describe('DiscordMock', () => {
 
   /** Clicks a go button and answers it with a one-input modal. */
   const openModal = async (
-    discord: DiscordMock,
+    bot: Bot,
     {
       userId = 'u1',
       customId = 'comment',
@@ -141,7 +176,7 @@ describe('DiscordMock', () => {
       minLength?: number;
     } = {},
   ) => {
-    const click = await clickGo(discord, userId);
+    const click = await clickGo(bot, userId);
     if (!click.isButton()) throw new Error('expected a button click');
     const input = new TextInputBuilder()
       .setCustomId('text')
@@ -162,8 +197,8 @@ describe('DiscordMock', () => {
     return click;
   };
 
-  it('records direct messages', async ({ discord }) => {
-    await discord.sendDirectMessage('u1', { content: 'hello' });
+  it('records direct messages', async ({ discord, service }) => {
+    await service.sendDirectMessage('u1', { content: 'hello' });
 
     expect(discord.dmsTo('u1').map(shown)).toEqual([
       {
@@ -179,18 +214,20 @@ describe('DiscordMock', () => {
 
   it('rejects direct messages to a user whose DMs fail, like the API', async ({
     discord,
+    service,
   }) => {
     discord.failDirectMessagesTo('u1');
 
-    await expect(discord.sendDirectMessage('u1', 'hello')).rejects.toEqual(
+    await expect(service.sendDirectMessage('u1', 'hello')).rejects.toEqual(
       cannotMessageUser('dm-u1'),
     );
   });
 
   it('resolves a pending awaitMessageComponent when the user clicks', async ({
     discord,
+    service,
   }) => {
-    const message = await discord.sendDirectMessage('u1', {
+    const message = await service.sendDirectMessage('u1', {
       components: [goButton()],
     });
     const pending = message.awaitMessageComponent({
@@ -208,8 +245,9 @@ describe('DiscordMock', () => {
 
   it('delivers a chosen select value to a component collector', async ({
     discord,
+    service,
   }) => {
-    const message = await discord.sendDirectMessage('u1', {
+    const message = await service.sendDirectMessage('u1', {
       components: [pointSelect()],
     });
     const collected: string[] = [];
@@ -226,16 +264,20 @@ describe('DiscordMock', () => {
 
   it('refuses to click a component the message does not have', async ({
     discord,
+    service,
   }) => {
-    await discord.sendDirectMessage('u1', { components: [goButton()] });
+    await service.sendDirectMessage('u1', { components: [goButton()] });
 
     expect(() => discord.click(discord.latestDmTo('u1'), 'stop', 'u1')).toThrow(
       'has no component "stop"',
     );
   });
 
-  it('refuses an interaction nothing is waiting for', async ({ discord }) => {
-    await discord.sendDirectMessage('u1', { components: [goButton()] });
+  it('refuses an interaction nothing is waiting for', async ({
+    discord,
+    service,
+  }) => {
+    await service.sendDirectMessage('u1', { components: [goButton()] });
 
     expect(() => discord.click(discord.latestDmTo('u1'), 'go', 'u1')).toThrow(
       'Nothing on message',
@@ -244,8 +286,9 @@ describe('DiscordMock', () => {
 
   it('lists pressed components the bot never acknowledged', async ({
     discord,
+    service,
   }) => {
-    const message = await discord.sendDirectMessage('u1', {
+    const message = await service.sendDirectMessage('u1', {
       components: [goButton()],
     });
     const pending = message.awaitMessageComponent();
@@ -258,8 +301,9 @@ describe('DiscordMock', () => {
 
   it('times out every pending prompt on expireAll with the error discord.js raises', async ({
     discord,
+    service,
   }) => {
-    const message = await discord.sendDirectMessage('u1', {
+    const message = await service.sendDirectMessage('u1', {
       components: [goButton()],
     });
     const pending = message.awaitMessageComponent();
@@ -278,13 +322,12 @@ describe('DiscordMock', () => {
 
   it('emits MessageReactionAdd on the client when a user reacts', async ({
     discord,
+    service,
   }) => {
-    await postInC1(discord, 'review me');
+    await postInC1({ discord, service }, 'review me');
     const seen: Array<{ emoji: string | null; userId: string }> = [];
-    discord.client.on(
-      Events.MessageReactionAdd,
-      (reaction: { emoji: { name: string | null } }, user: User) =>
-        seen.push({ emoji: reaction.emoji.name, userId: user.id }),
+    discord.client.on(Events.MessageReactionAdd, (reaction, user) =>
+      seen.push({ emoji: reaction.emoji.name, userId: user.id }),
     );
 
     const [review] = discord.channel('c1');
@@ -297,6 +340,7 @@ describe('DiscordMock', () => {
 
   it('names a user by their global name, and a member by their guild nickname, like discord.js', async ({
     discord,
+    service,
   }) => {
     discord.addMember({
       id: 'u3',
@@ -304,7 +348,7 @@ describe('DiscordMock', () => {
       globalName: 'Three Global',
       displayName: 'Three Nickname',
     });
-    const member = await discord.getGuildMember({
+    const member = await service.getGuildMember({
       guildId: 'g1',
       memberId: 'u3',
     });
@@ -314,14 +358,14 @@ describe('DiscordMock', () => {
       'Three Nickname',
     ]);
     await expect(
-      discord.getDisplayName({ guildId: 'g1', userId: 'u3' }),
+      service.getDisplayName({ guildId: 'g1', userId: 'u3' }),
     ).resolves.toBe('Three Nickname');
   });
 
   it('names a user with no global name by their username', async ({
-    discord,
+    service,
   }) => {
-    const member = await discord.getGuildMember({
+    const member = await service.getGuildMember({
       guildId: 'g1',
       memberId: 'u1',
     });
@@ -334,8 +378,9 @@ describe('DiscordMock', () => {
 
   it('refuses a reaction the user already added, which Discord would not report again', async ({
     discord,
+    service,
   }) => {
-    await postInC1(discord, 'review me');
+    await postInC1({ discord, service }, 'review me');
     const [review] = discord.channel('c1');
     if (!review) throw new Error('expected a message in c1');
     discord.react(review, '✅', 'u1');
@@ -347,8 +392,9 @@ describe('DiscordMock', () => {
 
   it('applies role changes made through a guild member', async ({
     discord,
+    service,
   }) => {
-    const member = await discord.getGuildMember({
+    const member = await service.getGuildMember({
       guildId: 'g1',
       memberId: 'u1',
     });
@@ -359,10 +405,41 @@ describe('DiscordMock', () => {
     expect(discord.rolesOf('u1')).toEqual(['r2']);
   });
 
+  it("refuses a role change with a role the member's guild does not have, as the API does", async ({
+    discord,
+    service,
+  }) => {
+    const member = await service.getGuildMember({
+      guildId: 'g1',
+      memberId: 'u1',
+    });
+
+    await expect(member?.roles.add('r9')).rejects.toThrow(
+      'Guild g1 has no role r9',
+    );
+    expect(discord.rolesOf('u1')).toEqual(['r1']);
+  });
+
+  it('removes a role from every member holding it', async ({
+    discord,
+    service,
+  }) => {
+    discord.addMember({ id: 'u3', username: 'three', roles: ['r1', 'r2'] });
+
+    const removed = await service.removeRole('g1', 'r1');
+
+    expect([removed, discord.rolesOf('u1'), discord.rolesOf('u3')]).toEqual([
+      2,
+      [],
+      ['r2'],
+    ]);
+  });
+
   it('hands a submitted modal to the interaction awaiting it', async ({
     discord,
+    service,
   }) => {
-    const click = await openModal(discord);
+    const click = await openModal({ discord, service });
     const submitted = click.awaitModalSubmit({ time: 1_000 });
     discord.submitModal('u1', { text: 'nice' });
 
@@ -386,26 +463,27 @@ describe('DiscordMock', () => {
   describe('channels', () => {
     it('rejects fetching a channel through another guild, like discord.js', async ({
       discord,
+      service,
     }) => {
       discord.addChannel('g2', 'c2');
 
       await expect(
-        discord.getTextChannel({ guildId: 'g2', channelId: 'c1' }),
+        service.getTextChannel({ guildId: 'g2', channelId: 'c1' }),
       ).rejects.toEqual(
         discordjsError(DiscordjsErrorCodes.GuildChannelUnowned),
       );
     });
 
     it('rejects fetching a channel that does not exist, or through a guild the bot is not in', async ({
-      discord,
+      service,
     }) => {
       await expect(
-        discord.getTextChannel({ guildId: 'g1', channelId: 'missing' }),
+        service.getTextChannel({ guildId: 'g1', channelId: 'missing' }),
       ).rejects.toEqual(
         unknownResource(RESTJSONErrorCodes.UnknownChannel, '/channels/missing'),
       );
       await expect(
-        discord.getTextChannel({ guildId: 'g9', channelId: 'c1' }),
+        service.getTextChannel({ guildId: 'g9', channelId: 'c1' }),
       ).rejects.toEqual(
         unknownResource(RESTJSONErrorCodes.UnknownGuild, '/guilds/g9'),
       );
@@ -413,8 +491,9 @@ describe('DiscordMock', () => {
 
     it('deletes a message only through the channel it was posted in', async ({
       discord,
+      service,
     }) => {
-      const sent = await postInC1(discord, 'review me');
+      const sent = await postInC1({ discord, service }, 'review me');
       if (!sent) throw new Error('expected a sent message');
       const [posted] = discord.channel('c1');
       const unknownMessage = (channelId: string) =>
@@ -424,22 +503,23 @@ describe('DiscordMock', () => {
         );
 
       discord.addChannel('g1', 'c2');
-      await expect(discord.deleteMessage('g1', 'c2', sent.id)).rejects.toEqual(
+      await expect(service.deleteMessage('g1', 'c2', sent.id)).rejects.toEqual(
         unknownMessage('c2'),
       );
       expect(posted?.deleted).toBe(false);
 
-      await discord.deleteMessage('g1', 'c1', sent.id);
+      await service.deleteMessage('g1', 'c1', sent.id);
       expect(posted?.deleted).toBe(true);
-      await expect(discord.deleteMessage('g1', 'c1', sent.id)).rejects.toEqual(
+      await expect(service.deleteMessage('g1', 'c1', sent.id)).rejects.toEqual(
         unknownMessage('c1'),
       );
     });
 
     it('refuses message options it does not model instead of dropping them', async ({
       discord,
+      service,
     }) => {
-      const channel = await discord.getTextChannel({
+      const channel = await service.getTextChannel({
         guildId: 'g1',
         channelId: 'c1',
       });
@@ -452,8 +532,8 @@ describe('DiscordMock', () => {
   });
 
   describe('what a user can interact with', () => {
-    it('refuses to click a disabled button', async ({ discord }) => {
-      await dmAwaitingClick(discord, [
+    it('refuses to click a disabled button', async ({ discord, service }) => {
+      await dmAwaitingClick({ discord, service }, [
         new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
             .setCustomId('go')
@@ -468,8 +548,11 @@ describe('DiscordMock', () => {
       );
     });
 
-    it('refuses to choose from a disabled select menu', async ({ discord }) => {
-      await dmAwaitingClick(discord, [
+    it('refuses to choose from a disabled select menu', async ({
+      discord,
+      service,
+    }) => {
+      await dmAwaitingClick({ discord, service }, [
         new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
           new StringSelectMenuBuilder()
             .setCustomId('point')
@@ -485,16 +568,20 @@ describe('DiscordMock', () => {
 
     it('refuses to choose a value the menu does not offer', async ({
       discord,
+      service,
     }) => {
-      await dmAwaitingClick(discord, [pointSelect()]);
+      await dmAwaitingClick({ discord, service }, [pointSelect()]);
 
       expect(() =>
         discord.choose(discord.latestDmTo('u1'), 'P9', 'u1'),
       ).toThrow('does not offer "P9"');
     });
 
-    it('refuses to interact with a deleted message', async ({ discord }) => {
-      const message = await dmAwaitingClick(discord, [goButton()]);
+    it('refuses to interact with a deleted message', async ({
+      discord,
+      service,
+    }) => {
+      const message = await dmAwaitingClick({ discord, service }, [goButton()]);
       await message.delete();
 
       expect(() => discord.click(discord.latestDmTo('u1'), 'go', 'u1')).toThrow(
@@ -504,8 +591,9 @@ describe('DiscordMock', () => {
 
     it("refuses someone else interacting with a user's DM", async ({
       discord,
+      service,
     }) => {
-      await dmAwaitingClick(discord, [goButton()]);
+      await dmAwaitingClick({ discord, service }, [goButton()]);
 
       expect(() => discord.click(discord.latestDmTo('u1'), 'go', 'u2')).toThrow(
         "u2 can't see message",
@@ -560,8 +648,9 @@ describe('DiscordMock', () => {
 
     it('rejects updating a component interaction that was already deferred', async ({
       discord,
+      service,
     }) => {
-      const click = await clickGo(discord);
+      const click = await clickGo({ discord, service });
       await click.deferUpdate();
 
       await expect(click.update({ components: [] })).rejects.toEqual(
@@ -589,8 +678,9 @@ describe('DiscordMock', () => {
 
     it('reports whether a component interaction was answered', async ({
       discord,
+      service,
     }) => {
-      const click = await clickGo(discord);
+      const click = await clickGo({ discord, service });
 
       const before = [click.deferred, click.replied];
       await click.update({ components: [] });
@@ -637,8 +727,9 @@ describe('DiscordMock', () => {
 
     it('refuses reply flags other than ephemeral instead of dropping them', async ({
       discord,
+      service,
     }) => {
-      const click = await clickGo(discord);
+      const click = await clickGo({ discord, service });
 
       await expect(
         click.reply({ content: 'hi', flags: MessageFlags.SuppressEmbeds }),
@@ -650,10 +741,10 @@ describe('DiscordMock', () => {
 
   describe('behaving like the real Discord API', () => {
     it('rejects a role check for someone who is not a member', async ({
-      discord,
+      service,
     }) => {
       await expect(
-        discord.userHasRole({
+        service.userHasRole({
           guildId: 'g1',
           userId: 'stranger',
           roleId: 'r1',
@@ -667,42 +758,41 @@ describe('DiscordMock', () => {
     });
 
     it('rejects a display name lookup in a guild the bot is not in', async ({
-      discord,
+      service,
     }) => {
       await expect(
-        discord.getDisplayName({ guildId: 'g9', userId: 'u1' }),
+        service.getDisplayName({ guildId: 'g9', userId: 'u1' }),
       ).rejects.toEqual(
         unknownResource(RESTJSONErrorCodes.UnknownGuild, '/guilds/g9'),
       );
     });
 
     it('finds no guild member for a non-member or a guild the bot is not in', async ({
-      discord,
+      service,
     }) => {
       await expect(
-        discord.getGuildMember({ guildId: 'g1', memberId: 'stranger' }),
+        service.getGuildMember({ guildId: 'g1', memberId: 'stranger' }),
       ).resolves.toBeUndefined();
       await expect(
-        discord.getGuildMember({ guildId: 'g9', memberId: 'u1' }),
+        service.getGuildMember({ guildId: 'g9', memberId: 'u1' }),
       ).resolves.toBeUndefined();
     });
 
-    it('rejects a direct message to an unknown user', async ({ discord }) => {
-      await expect(discord.sendDirectMessage('stranger', 'hi')).rejects.toEqual(
+    it('rejects a direct message to an unknown user', async ({ service }) => {
+      await expect(service.sendDirectMessage('stranger', 'hi')).rejects.toEqual(
         unknownResource(RESTJSONErrorCodes.UnknownUser, '/users/stranger'),
       );
     });
 
     it("emits the bot's own reactions on the gateway, as Discord does", async ({
       discord,
+      service,
     }) => {
       const reactors: Array<{ id: string; bot: boolean }> = [];
-      discord.client.on(
-        Events.MessageReactionAdd,
-        (_reaction: unknown, user: User) =>
-          reactors.push({ id: user.id, bot: user.bot }),
+      discord.client.on(Events.MessageReactionAdd, (_reaction, user) =>
+        reactors.push({ id: user.id, bot: user.bot }),
       );
-      const sent = await postInC1(discord, 'review me');
+      const sent = await postInC1({ discord, service }, 'review me');
       await sent?.react('✅');
 
       expect(reactors).toEqual([{ id: BOT_USER_ID, bot: true }]);
@@ -710,8 +800,9 @@ describe('DiscordMock', () => {
 
     it('rejects editing, reacting to, removing a reaction from or deleting a deleted message', async ({
       discord,
+      service,
     }) => {
-      const message = await postInC1(discord, 'review me');
+      const message = await postInC1({ discord, service }, 'review me');
       if (!message) throw new Error('expected a message in c1');
       const [posted] = discord.channel('c1');
       if (!posted) throw new Error('expected a message in c1');
@@ -733,8 +824,9 @@ describe('DiscordMock', () => {
 
     it('only delivers the component type an awaiter asked for', async ({
       discord,
+      service,
     }) => {
-      const message = await discord.sendDirectMessage('u1', {
+      const message = await service.sendDirectMessage('u1', {
         components: [goButton()],
       });
       void message
@@ -768,12 +860,19 @@ describe('DiscordMock', () => {
 
     it("delivers each user's submit to the awaiters whose filter accepts it", async ({
       discord,
+      service,
     }) => {
       const first = (
-        await openModal(discord, { userId: 'u1', customId: 'first' })
+        await openModal(
+          { discord, service },
+          { userId: 'u1', customId: 'first' },
+        )
       ).awaitModalSubmit({ time: 1_000, filter: (i) => i.user.id === 'u1' });
       const second = (
-        await openModal(discord, { userId: 'u2', customId: 'second' })
+        await openModal(
+          { discord, service },
+          { userId: 'u2', customId: 'second' },
+        )
       ).awaitModalSubmit({ time: 1_000, filter: (i) => i.user.id === 'u2' });
       discord.submitModal('u1', { text: 'one' });
       discord.submitModal('u2', { text: 'two' });
@@ -787,8 +886,9 @@ describe('DiscordMock', () => {
 
     it('delivers a submit to every awaiter that accepts it, like discord.js collectors', async ({
       discord,
+      service,
     }) => {
-      const click = await openModal(discord);
+      const click = await openModal({ discord, service });
       const earlier = click.awaitModalSubmit({ time: 1_000 });
       const later = click.awaitModalSubmit({ time: 1_000 });
 
@@ -800,8 +900,9 @@ describe('DiscordMock', () => {
 
     it('times out every modal awaiter on expireAll, with the error discord.js raises', async ({
       discord,
+      service,
     }) => {
-      const click = await openModal(discord);
+      const click = await openModal({ discord, service });
       const pending = [
         click.awaitModalSubmit({ time: 1_000 }),
         click.awaitModalSubmit({ time: 1_000 }),
@@ -819,8 +920,9 @@ describe('DiscordMock', () => {
 
     it('does not deliver a modal submit the awaiter filters out', async ({
       discord,
+      service,
     }) => {
-      const click = await openModal(discord);
+      const click = await openModal({ discord, service });
       void click
         .awaitModalSubmit({ time: 1_000, filter: () => false })
         .catch(() => undefined);
@@ -832,8 +934,9 @@ describe('DiscordMock', () => {
 
     it('refuses a modal submit the Discord client would not allow', async ({
       discord,
+      service,
     }) => {
-      const click = await openModal(discord);
+      const click = await openModal({ discord, service });
       void click.awaitModalSubmit({ time: 1_000 }).catch(() => undefined);
 
       expect(() => discord.submitModal('u1', { other: 'x' })).toThrow(
@@ -849,8 +952,9 @@ describe('DiscordMock', () => {
 
     it('refuses a modal input shorter than its minimum length', async ({
       discord,
+      service,
     }) => {
-      const click = await openModal(discord, { minLength: 3 });
+      const click = await openModal({ discord, service }, { minLength: 3 });
       void click.awaitModalSubmit({ time: 1_000 }).catch(() => undefined);
 
       expect(() => discord.submitModal('u1', { text: 'ab' })).toThrow(
@@ -860,8 +964,9 @@ describe('DiscordMock', () => {
 
     it('submits an unfilled optional input as empty and throws for an input the modal lacks', async ({
       discord,
+      service,
     }) => {
-      const click = await openModal(discord, { required: false });
+      const click = await openModal({ discord, service }, { required: false });
       const submitted = click.awaitModalSubmit({ time: 1_000 });
       discord.submitModal('u1', {});
 
@@ -877,8 +982,11 @@ describe('DiscordMock', () => {
     });
   });
 
-  it('lists a modal submit the bot never acknowledged', async ({ discord }) => {
-    const click = await openModal(discord);
+  it('lists a modal submit the bot never acknowledged', async ({
+    discord,
+    service,
+  }) => {
+    const click = await openModal({ discord, service });
     const submitted = click.awaitModalSubmit({ time: 1_000 });
     discord.submitModal('u1', { text: 'nice' });
     await submitted;
@@ -888,8 +996,9 @@ describe('DiscordMock', () => {
 
   it('records the replies and follow-ups a user receives on their interactions', async ({
     discord,
+    service,
   }) => {
-    const click = await clickGo(discord);
+    const click = await clickGo({ discord, service });
 
     await click.reply('first');
     await click.followUp({ content: 'second', embeds: [{ title: 'T' }] });
@@ -935,8 +1044,9 @@ describe('DiscordMock', () => {
 
   it('shows interaction replies publicly unless they are flagged ephemeral', async ({
     discord,
+    service,
   }) => {
-    const click = await clickGo(discord);
+    const click = await clickGo({ discord, service });
 
     await click.reply('everyone sees this');
     await click.followUp({ content: 'secret', flags: MessageFlags.Ephemeral });
@@ -947,8 +1057,8 @@ describe('DiscordMock', () => {
     ]);
   });
 
-  it('records the modals shown to a user', async ({ discord }) => {
-    await openModal(discord);
+  it('records the modals shown to a user', async ({ discord, service }) => {
+    await openModal({ discord, service });
 
     expect(discord.modalsShownTo('u1')).toEqual([
       {
@@ -974,6 +1084,106 @@ describe('DiscordMock', () => {
   });
 
   describe('slash commands', () => {
+    const grant = (
+      discord: DiscordMock,
+      userId: string,
+      options: Record<string, string>,
+    ) =>
+      discord.command({
+        userId,
+        guildId: 'g1',
+        commandName: 'grant',
+        subcommand: 'role',
+        options,
+      });
+
+    it('only delivers a command with default member permissions from members who have them', ({
+      discord,
+    }) => {
+      discord.addMember({
+        id: 'admin',
+        username: 'admin',
+        permissions: PermissionFlagsBits.Administrator,
+      });
+
+      expect(() => grant(discord, 'u1', { player: 'u2', role: 'r1' })).toThrow(
+        'u1 lacks the permissions /grant requires',
+      );
+      expect(() =>
+        grant(discord, 'admin', { player: 'u2', role: 'r1' }),
+      ).not.toThrow();
+    });
+
+    it('only delivers a command with subcommands with one of them picked', ({
+      discord,
+    }) => {
+      discord.addMember({
+        id: 'admin',
+        username: 'admin',
+        permissions: PermissionFlagsBits.Administrator,
+      });
+
+      expect(() =>
+        discord.command({
+          userId: 'admin',
+          guildId: 'g1',
+          commandName: 'grant',
+          options: { player: 'u2', role: 'r1' },
+        }),
+      ).toThrow("Discord won't send /grant without one of its subcommands");
+    });
+
+    it("resolves user, role and channel options to the guild's, like discord.js", ({
+      discord,
+    }) => {
+      discord.addMember({
+        id: 'admin',
+        username: 'admin',
+        permissions: PermissionFlagsBits.Administrator,
+      });
+
+      const { options } = grant(discord, 'admin', {
+        player: 'u2',
+        role: 'r1',
+        log: 'c1',
+      }).interaction;
+
+      expect({
+        subcommand: options.getSubcommand(),
+        player: options.getUser('player', true).username,
+        member: options.getMember('player')?.displayName,
+        role: options.getRole('role', true).name,
+        log: options.getChannel('log')?.id,
+      }).toEqual({
+        subcommand: 'role',
+        player: 'two',
+        member: 'two',
+        role: 'One',
+        log: 'c1',
+      });
+    });
+
+    it('only lets an option pick a user, role or channel the guild has', ({
+      discord,
+    }) => {
+      discord.addMember({
+        id: 'admin',
+        username: 'admin',
+        permissions: PermissionFlagsBits.Administrator,
+      });
+      discord.addChannel('g2', 'c2');
+
+      expect(() =>
+        grant(discord, 'admin', { player: 'stranger', role: 'r1' }),
+      ).toThrow('there is no such User in the guild');
+      expect(() =>
+        grant(discord, 'admin', { player: 'u2', role: 'r9' }),
+      ).toThrow('there is no such Role in the guild');
+      expect(() =>
+        grant(discord, 'admin', { player: 'u2', role: 'r1', log: 'c2' }),
+      ).toThrow('there is no such Channel in the guild');
+    });
+
     const run = (
       discord: DiscordMock,
       commandName: string,
@@ -984,11 +1194,11 @@ describe('DiscordMock', () => {
       discord,
     }) => {
       const received: string[] = [];
-      discord.client.on(
-        Events.InteractionCreate,
-        (interaction: { commandName: string }) =>
-          received.push(interaction.commandName),
-      );
+      discord.client.on(Events.InteractionCreate, (interaction) => {
+        if (interaction.isChatInputCommand()) {
+          received.push(interaction.commandName);
+        }
+      });
 
       run(discord, 'test', { encounter: 'DSR' });
 
@@ -1032,7 +1242,7 @@ describe('DiscordMock', () => {
         'with 1 characters',
       );
       expect(() => run(discord, 'strict', { name: 'ok', proof: 'x' })).toThrow(
-        `"proof" option is a Attachment, not a String`,
+        '"proof" option is an Attachment',
       );
     });
   });
@@ -1040,27 +1250,27 @@ describe('DiscordMock', () => {
   describe('emojis', () => {
     it('mentions an emoji the bot has, and gives nothing for one it lacks', ({
       discord,
+      service,
     }) => {
       discord.addEmoji({ id: 'e1', name: 'cheer' });
 
       expect([
-        discord.getEmojiString('e1'),
-        discord.getEmojiString('e2'),
+        service.getEmojiString('e1'),
+        service.getEmojiString('e2'),
       ]).toEqual(['<:_:e1>', '']);
     });
 
     it('reports a custom emoji reaction by name and id, and caches it by id, like discord.js', async ({
       discord,
+      service,
     }) => {
       discord.addEmoji({ id: '123456789012345678', name: 'cheer' });
       const seen: Array<{ id: string | null; name: string | null }> = [];
-      discord.client.on(
-        Events.MessageReactionAdd,
-        (reaction: { emoji: { id: string | null; name: string | null } }) =>
-          seen.push(reaction.emoji),
+      discord.client.on(Events.MessageReactionAdd, (reaction) =>
+        seen.push(reaction.emoji),
       );
-      const sent = await postInC1(discord, 'congratulations');
-      const [emoji] = discord.getEmojis(['cheer']);
+      const sent = await postInC1({ discord, service }, 'congratulations');
+      const [emoji] = service.getEmojis(['cheer']);
 
       await sent?.react(emoji ?? 'missing');
 
@@ -1073,12 +1283,13 @@ describe('DiscordMock', () => {
 
     it('finds emojis by name in the order asked, skipping missing ones', ({
       discord,
+      service,
     }) => {
       discord.addEmoji({ id: 'e1', name: 'cheer' });
       discord.addEmoji({ id: 'e2', name: 'hype' });
 
       expect(
-        discord
+        service
           .getEmojis(['hype', 'missing', 'cheer'])
           .map((emoji) => String(emoji)),
       ).toEqual(['<:hype:e2>', '<:cheer:e1>']);

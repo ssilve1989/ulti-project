@@ -150,6 +150,15 @@ function givenAGuild(flow: FlowApp): void {
   flow.discord.addChannel(GUILD, REVIEW_CHANNEL);
   flow.discord.addChannel(GUILD, SIGNUP_CHANNEL);
   flow.discord.addChannel(GUILD, BLACKLIST_CHANNEL);
+  for (const id of [
+    REVIEWER_ROLE,
+    DMU_PROG_ROLE,
+    DMU_CLEAR_ROLE,
+    DMU_P6_ROLE,
+    DMU_P7_ROLE,
+  ]) {
+    flow.discord.addRole(GUILD, { id, name: id });
+  }
   flow.discord.addMember(PLAYER);
   flow.discord.addMember(REVIEWER);
   for (const emoji of [ENCOUNTER_EMOJI, ...CLEAR_EMOJIS]) {

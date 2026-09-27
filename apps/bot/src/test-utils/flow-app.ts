@@ -9,7 +9,6 @@ import { Test } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
 import { vi } from 'vitest';
 import { DISCORD_CLIENT } from '../discord/discord.decorators.js';
-import { DiscordService } from '../discord/discord.service.js';
 import { getFflogsSdkToken } from '../fflogs/fflogs.consts.js';
 import { FIRESTORE } from '../firebase/firebase.consts.js';
 import { SheetsService } from '../sheets/sheets.service.js';
@@ -173,8 +172,6 @@ export async function createFlowApp(): Promise<FlowApp> {
       .useValue(db)
       .overrideProvider(DISCORD_CLIENT)
       .useValue(discord.client)
-      .overrideProvider(DiscordService)
-      .useValue(discord)
       .overrideProvider(getFflogsSdkToken())
       .useValue(fflogs)
       .setLogger(logger)

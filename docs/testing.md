@@ -107,7 +107,7 @@ feature modules. Only what sits behind an external system is swapped:
 | External system | In flow specs | What tests do with it |
 |---|---|---|
 | Firestore | `InMemoryFirestore`, behind the `FIRESTORE` token | `db.seed(path, data)` / `db.read(path)`; `db.onWrite(listener)` to check what else had happened when the app wrote |
-| Discord | `DiscordMock`, as `DiscordService` and the client | set up members, channels and emojis (`addMember`, `addChannel(guildId, channelId)`, `addEmoji`); drive the bot with `command` (delivered through the real command listener, and only with commands and options the bot registered), `react`, `click`, `choose` and `submitModal`; assert with `channel`, `dmsTo`, `repliesTo`, `modalsShownTo`, `rolesOf` |
+| Discord | `DiscordMock`'s fake discord.js client, behind the `DISCORD_CLIENT` token, so the real `DiscordService` runs | set up channels, roles, members and emojis (`addChannel(guildId, channelId)`, `addRole(guildId, role)`, `addMember` with roles that exist, `addEmoji`); drive the bot with `command` (delivered through the real command listener, only with commands, subcommands and options the bot registered, and only by members with the command's permissions), `react`, `click`, `choose` and `submitModal`; assert with `channel`, `dmsTo`, `repliesTo`, `modalsShownTo`, `rolesOf` |
 | FFLogs | `FFLogsMock`, behind the SDK token, so the real `FFLogsService` runs | `fflogs.addReport(code, { daysAgo })`, `fflogs.goOffline()` |
 | Google Sheets | **Recorded real traffic.** The real `SheetsService` and client run; their HTTP is replayed from recordings of the shared test spreadsheet | `sheets.writes()`: every change the app sent to Sheets in this test, in full; `sheets.valuesRead(range)`: what the sheet returned each time the app has read it so far |
 
@@ -165,6 +165,9 @@ against saved real responses, never the live API
   `goOffline()` or `addReport(code, { daysAgo })`), not as
   `mockRejectedValue` in a spec.
 - `DiscordMock` enforces what Discord enforces:
+  - Roles belong to a guild, and members can only hold, gain or lose roles
+    their guild has. Fetching an unknown role gives `null`, as discord.js
+    does.
   - Channels belong to a guild (`addChannel(guildId, channelId)`). Fetching one
     through another guild rejects with discord.js's `GuildChannelUnowned`, and
     an unknown guild, channel, member or message with the API's 404 codes.

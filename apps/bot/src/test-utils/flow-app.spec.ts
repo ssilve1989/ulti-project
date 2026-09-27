@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/nestjs';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import nock from 'nock';
 import { test as base, describe, expect, vi } from 'vitest';
+import { DiscordService } from '../discord/discord.service.js';
 import { fresh } from './fixtures.js';
 import { createFlowApp, type FlowApp } from './flow-app.js';
 import { HTTP_REQUEST_CREATED } from './idle.js';
@@ -64,7 +65,7 @@ describe('createFlowApp', () => {
     flow,
   }) => {
     flow.discord.addMember({ id: 'u1', username: 'one' });
-    const message = await flow.discord.sendDirectMessage('u1', {
+    const message = await flow.get(DiscordService).sendDirectMessage('u1', {
       components: [
         new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
