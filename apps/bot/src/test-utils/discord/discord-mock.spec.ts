@@ -2,6 +2,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ChannelSelectMenuBuilder,
   ChannelType,
   ComponentType,
   DiscordjsErrorCodes,
@@ -152,6 +153,7 @@ describe('DiscordMock', () => {
     components: ReadonlyArray<
       | ActionRowBuilder<ButtonBuilder>
       | ActionRowBuilder<StringSelectMenuBuilder>
+      | ActionRowBuilder<ChannelSelectMenuBuilder>
     >,
   ) => {
     const message = await service.sendDirectMessage('u1', {
@@ -532,6 +534,65 @@ describe('DiscordMock', () => {
   });
 
   describe('what a user can interact with', () => {
+    const channelSelect = () =>
+      new ActionRowBuilder<ChannelSelectMenuBuilder>().addComponents(
+        new ChannelSelectMenuBuilder()
+          .setCustomId('channels')
+          .addChannelTypes(ChannelType.GuildText)
+          .setMinValues(0)
+          .setMaxValues(2),
+      );
+
+    it('delivers the channels chosen in a channel select menu', async ({
+      discord,
+      service,
+    }) => {
+      discord.addChannel('g1', 'c2');
+      const message = await service.sendDirectMessage('u1', {
+        components: [channelSelect()],
+      });
+      const pending = message.awaitMessageComponent();
+
+      discord.chooseChannels(discord.latestDmTo('u1'), ['c1', 'c2'], 'u1');
+
+      const chosen = await pending;
+      expect(chosen.isChannelSelectMenu() && chosen.values).toEqual([
+        'c1',
+        'c2',
+      ]);
+    });
+
+    it('refuses to choose a channel that does not exist, or more channels than the menu takes', async ({
+      discord,
+      service,
+    }) => {
+      discord.addChannel('g1', 'c2');
+      discord.addChannel('g1', 'c3');
+      await dmAwaitingClick({ discord, service }, [channelSelect()]);
+
+      expect(() =>
+        discord.chooseChannels(discord.latestDmTo('u1'), ['missing'], 'u1'),
+      ).toThrow(`can't offer missing`);
+      expect(() =>
+        discord.chooseChannels(
+          discord.latestDmTo('u1'),
+          ['c1', 'c2', 'c3'],
+          'u1',
+        ),
+      ).toThrow('takes 0-2 values, not 3');
+    });
+
+    it('refuses to choose several values in a menu that takes one', async ({
+      discord,
+      service,
+    }) => {
+      await dmAwaitingClick({ discord, service }, [pointSelect()]);
+
+      expect(() =>
+        discord.choose(discord.latestDmTo('u1'), ['P6', 'P6'], 'u1'),
+      ).toThrow('takes 1-1 values, not 2');
+    });
+
     it('refuses to click a disabled button', async ({ discord, service }) => {
       await dmAwaitingClick({ discord, service }, [
         new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -644,6 +705,28 @@ describe('DiscordMock', () => {
       await expect(interaction.editReply('hi')).rejects.toEqual(
         discordjsError(DiscordjsErrorCodes.InteractionNotReplied),
       );
+    });
+
+    it('edits the message a component is on through editReply, once the interaction is answered', async ({
+      discord,
+      service,
+    }) => {
+      const click = await clickGo({ discord, service });
+
+      await expect(click.editReply('too early')).rejects.toEqual(
+        discordjsError(DiscordjsErrorCodes.InteractionNotReplied),
+      );
+      await click.deferUpdate();
+      await click.editReply({ content: 'done', components: [] });
+
+      expect(shown(discord.latestDmTo('u1'))).toEqual({
+        location: { kind: 'dm', userId: 'u1' },
+        content: 'done',
+        embeds: [],
+        components: [],
+        reactions: {},
+        deleted: false,
+      });
     });
 
     it('rejects updating a component interaction that was already deferred', async ({

@@ -2,6 +2,8 @@ import { EventEmitter } from 'node:events';
 import {
   type APIModalInteractionResponseCallbackData,
   type ButtonInteraction,
+  type ChannelSelectMenuInteraction,
+  ChannelType,
   type ChatInputCommandInteraction,
   type Client,
   type CommandInteractionOption,
@@ -39,6 +41,7 @@ import {
   permissionsOf,
 } from './fake-client.js';
 import {
+  type ComponentRef,
   collectorTimeoutError,
   discordjsError,
   FakeMessage,
@@ -247,6 +250,36 @@ function assertInteractive(message: FakeMessage, userId: string): void {
       `${userId} can't see message ${message.id}; only ${privateTo} can`,
     );
   }
+}
+
+/**
+ * The message's only select menu of `type`, if `userId` could pick `values`
+ * in it: it's enabled and takes that many values.
+ */
+function pickableMenu(
+  message: FakeMessage,
+  type: ComponentType,
+  values: readonly string[],
+  userId: string,
+): ComponentRef {
+  assertInteractive(message, userId);
+  const [menu, ...others] = message.componentsOfType(type);
+  if (menu === undefined || others.length > 0) {
+    throw new Error(
+      `Message ${message.id} must have exactly one ${ComponentType[type]} menu to choose from`,
+    );
+  }
+  if (menu.disabled) {
+    throw new Error(
+      `Select menu "${menu.customId}" on message ${message.id} is disabled`,
+    );
+  }
+  if (values.length < menu.minValues || values.length > menu.maxValues) {
+    throw new Error(
+      `Select menu "${menu.customId}" takes ${menu.minValues}-${menu.maxValues} values, not ${values.length}`,
+    );
+  }
+  return menu;
 }
 
 /**
@@ -526,7 +559,7 @@ export class DiscordMock {
 
   click(message: FakeMessage, customId: string, userId: string): void {
     assertInteractive(message, userId);
-    const buttons = message.buttons();
+    const buttons = message.componentsOfType(ComponentType.Button);
     const button = buttons.find((candidate) => candidate.customId === customId);
     if (!button) {
       throw new Error(
@@ -539,30 +572,32 @@ export class DiscordMock {
       );
     }
     message.dispatch(
-      this.componentInteraction<ButtonInteraction>(message, userId, customId, {
-        isButton: () => true,
-        isStringSelectMenu: () => false,
-      }),
+      this.componentInteraction<ButtonInteraction>(
+        message,
+        userId,
+        customId,
+        ComponentType.Button,
+      ),
     );
   }
 
-  /** Picks `value` in the message's only select menu. */
-  choose(message: FakeMessage, value: string, userId: string): void {
-    assertInteractive(message, userId);
-    const [menu, ...others] = message.selectMenus();
-    if (menu === undefined || others.length > 0) {
+  /** Picks `values` (one, or several if it allows) in the message's only select menu. */
+  choose(
+    message: FakeMessage,
+    values: string | readonly string[],
+    userId: string,
+  ): void {
+    const picked = [values].flat();
+    const menu = pickableMenu(
+      message,
+      ComponentType.StringSelect,
+      picked,
+      userId,
+    );
+    const unoffered = picked.filter((value) => !menu.values.includes(value));
+    if (unoffered.length > 0) {
       throw new Error(
-        `Message ${message.id} must have exactly one select menu to choose from`,
-      );
-    }
-    if (menu.disabled) {
-      throw new Error(
-        `Select menu "${menu.customId}" on message ${message.id} is disabled`,
-      );
-    }
-    if (!menu.values.includes(value)) {
-      throw new Error(
-        `Select menu "${menu.customId}" does not offer "${value}" (offers: ${menu.values.join(', ')})`,
+        `Select menu "${menu.customId}" does not offer "${unoffered.join('", "')}" (offers: ${menu.values.join(', ')})`,
       );
     }
     message.dispatch(
@@ -570,11 +605,39 @@ export class DiscordMock {
         message,
         userId,
         menu.customId,
-        {
-          values: [value],
-          isButton: () => false,
-          isStringSelectMenu: () => true,
-        },
+        ComponentType.StringSelect,
+        { values: picked },
+      ),
+    );
+  }
+
+  /** Picks `channelIds` in the message's only channel select menu. */
+  chooseChannels(
+    message: FakeMessage,
+    channelIds: readonly string[],
+    userId: string,
+  ): void {
+    const menu = pickableMenu(
+      message,
+      ComponentType.ChannelSelect,
+      channelIds,
+      userId,
+    );
+    const offered = ({ channelTypes }: { channelTypes: number[] }) =>
+      channelTypes.length === 0 || channelTypes.includes(ChannelType.GuildText);
+    const unknown = channelIds.filter((id) => !this.channels.has(id));
+    if (unknown.length > 0 || !offered(menu)) {
+      throw new Error(
+        `Channel select menu "${menu.customId}" can't offer ${[...unknown, ...(offered(menu) ? [] : ['text channels'])].join(', ')}`,
+      );
+    }
+    message.dispatch(
+      this.componentInteraction<ChannelSelectMenuInteraction>(
+        message,
+        userId,
+        menu.customId,
+        ComponentType.ChannelSelect,
+        { values: [...channelIds] },
       ),
     );
   }
@@ -759,16 +822,28 @@ export class DiscordMock {
         answer(ack, 'replied', () => post(payload)),
       followUp: (payload: ReplyPayload) =>
         answered(ack) ? Promise.try(() => post(payload)) : notReplied(),
+      // once deferred or updated, the interaction's reply is the message itself
+      editReply: (payload: OutgoingPayload) =>
+        answered(ack)
+          ? Promise.try(() => {
+              message.apply(payload);
+              return message.toMessage();
+            })
+          : notReplied(),
     };
   }
 
   private componentInteraction<
-    T extends ButtonInteraction | StringSelectMenuInteraction,
+    T extends
+      | ButtonInteraction
+      | StringSelectMenuInteraction
+      | ChannelSelectMenuInteraction,
   >(
     message: FakeMessage,
     userId: string,
     customId: string,
-    specific: Partial<Record<keyof T, unknown>>,
+    componentType: ComponentType,
+    specific: Partial<Record<keyof T, unknown>> = {},
   ): T {
     const ack: Acknowledgement = { deferred: false, replied: false };
     this.pressed.push({ customId, ack });
@@ -776,6 +851,11 @@ export class DiscordMock {
       mockOf<T>({
         ...specific,
         ...this.responses(message, userId, ack),
+        componentType,
+        isButton: () => componentType === ComponentType.Button,
+        isStringSelectMenu: () => componentType === ComponentType.StringSelect,
+        isChannelSelectMenu: () =>
+          componentType === ComponentType.ChannelSelect,
         customId,
         user: this.views.user(userId),
         message: message.toMessage(),

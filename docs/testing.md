@@ -3,8 +3,8 @@
 The bot's tests form a pyramid:
 
 - **Flow specs** (`<feature>.flow.spec.ts`) boot the real Nest modules for a
-  feature, fake only external systems, and describe what users see. `/signup`
-  and `/status` have one so far; every slash-command feature is meant to.
+  feature, fake only external systems, and describe what users see. Every
+  slash-command feature is meant to have one.
 - **Unit specs** (`<file>.spec.ts`) cover code with branching logic you can
   exercise directly.
 
@@ -74,6 +74,9 @@ So:
    of it: where it is (channel, DM, or a reply and whether it's ephemeral), its
    content, embeds, components and reactions, and whether it's been deleted
    (`shown(message)` from `test-utils/discord/fake-message.ts`).
+   `test-utils/replies.ts` has the shapes every command shares (`textReply`,
+   `commandErrorReply`), and `expectCommandErrorReported` for what a failed
+   command reports.
    For values that differ per run, use a matcher that still checks the value,
    like `signupExpiryFor(from)` and `isoDateSince(from)` in
    `test-utils/matchers.ts`, not `expect.any(...)`.
@@ -107,7 +110,7 @@ feature modules. Only what sits behind an external system is swapped:
 | External system | In flow specs | What tests do with it |
 |---|---|---|
 | Firestore | `InMemoryFirestore`, behind the `FIRESTORE` token | `db.seed(path, data)` / `db.read(path)`; `db.onWrite(listener)` to check what else had happened when the app wrote |
-| Discord | `DiscordMock`'s fake discord.js client, behind the `DISCORD_CLIENT` token, so the real `DiscordService` runs | set up channels, roles, members and emojis (`addChannel(guildId, channelId)`, `addRole(guildId, role)`, `addMember` with roles that exist, `addEmoji`); drive the bot with `command` (delivered through the real command listener, only with commands, subcommands and options the bot registered, and only by members with the command's permissions), `react`, `click`, `choose` and `submitModal`; assert with `channel`, `dmsTo`, `repliesTo`, `modalsShownTo`, `rolesOf` |
+| Discord | `DiscordMock`'s fake discord.js client, behind the `DISCORD_CLIENT` token, so the real `DiscordService` runs | set up channels, roles, members and emojis (`addChannel(guildId, channelId)`, `addRole(guildId, role)`, `addMember` with roles that exist, `addEmoji`); drive the bot with `command` (delivered through the real command listener, only with commands, subcommands and options the bot registered, and only by members with the command's permissions), `react`, `click`, `choose` (one value or several), `chooseChannels` and `submitModal`; assert with `channel`, `dmsTo`, `repliesTo`, `modalsShownTo`, `rolesOf` |
 | FFLogs | `FFLogsMock`, behind the SDK token, so the real `FFLogsService` runs | `fflogs.addReport(code, { daysAgo })`, `fflogs.goOffline()` |
 | Google Sheets | **Recorded real traffic.** The real `SheetsService` and client run; their HTTP is replayed from recordings of the shared test spreadsheet | `sheets.writes()`: every change the app sent to Sheets in this test, in full; `sheets.valuesRead(range)`: what the sheet returned each time the app has read it so far |
 

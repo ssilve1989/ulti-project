@@ -55,6 +55,12 @@ function accepts(
   ) {
     return false;
   }
+  if (
+    componentType === ComponentType.ChannelSelect &&
+    !interaction.isChannelSelectMenu()
+  ) {
+    return false;
+  }
   return filter === undefined || filter(interaction);
 }
 
@@ -68,8 +74,25 @@ export interface ComponentRef {
   customId: string;
   type: number;
   disabled: boolean;
-  /** option values, for select menus */
+  /** option values, for string select menus */
   values: string[];
+  /** how many values a select menu takes (Discord's defaults are 1 and 1) */
+  minValues: number;
+  maxValues: number;
+  /** the channel types a channel select menu offers (empty: every type) */
+  channelTypes: number[];
+}
+
+const numberIn = (value: object, key: string): number | undefined => {
+  const found: unknown = Reflect.get(value, key);
+  return typeof found === 'number' ? found : undefined;
+};
+
+function channelTypesIn(value: object): number[] {
+  const types: unknown = Reflect.get(value, 'channel_types');
+  return Array.isArray(types)
+    ? types.filter((type): type is number => typeof type === 'number')
+    : [];
 }
 
 /**
@@ -156,6 +179,9 @@ function componentsIn(value: unknown): ComponentRef[] {
             type: value.type,
             disabled: 'disabled' in value && value.disabled === true,
             values: optionValues(value),
+            minValues: numberIn(value, 'min_values') ?? 1,
+            maxValues: numberIn(value, 'max_values') ?? 1,
+            channelTypes: channelTypesIn(value),
           },
         ]
       : [];
@@ -283,15 +309,10 @@ export class FakeMessage {
     }
   }
 
-  buttons(): ComponentRef[] {
+  /** The message's components of one type (e.g. its string select menus). */
+  componentsOfType(componentType: ComponentType): ComponentRef[] {
     return componentsIn(this.components).filter(
-      ({ type }) => type === ComponentType.Button,
-    );
-  }
-
-  selectMenus(): ComponentRef[] {
-    return componentsIn(this.components).filter(
-      ({ type }) => type === ComponentType.StringSelect,
+      ({ type }) => type === componentType,
     );
   }
 

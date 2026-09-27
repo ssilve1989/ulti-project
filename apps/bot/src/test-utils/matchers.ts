@@ -1,7 +1,7 @@
 import { Timestamp } from 'firebase-admin/firestore';
 
 /** Vitest treats any object with `asymmetricMatch` as a matcher inside `toEqual`. */
-interface Matcher {
+export interface Matcher {
   asymmetricMatch: (actual: unknown) => boolean;
   toString: () => string;
 }

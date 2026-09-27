@@ -30,6 +30,12 @@ import {
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import { isoDateSince, signupExpiryFor } from '../../test-utils/matchers.js';
+import {
+  commandErrorReply,
+  expectCommandErrorReported,
+  replyTo,
+  textReply,
+} from '../../test-utils/replies.js';
 import { stableTestKey } from '../../test-utils/sheets/recorded-sheets.js';
 import {
   APPROVAL_CANCEL_BUTTON_ID,
@@ -410,26 +416,6 @@ const IN_SIGNUP_CHANNEL = Object.freeze({
   channelId: SIGNUP_CHANNEL,
 });
 const dmTo = (userId: string) => ({ kind: 'dm', userId });
-const replyTo = (userId: string, { ephemeral }: { ephemeral: boolean }) => ({
-  kind: 'reply',
-  userId,
-  ephemeral,
-});
-
-/** A text-only answer to one of `userId`'s interactions. */
-const textReply = (
-  userId: string,
-  content: string,
-  { ephemeral }: { ephemeral: boolean },
-) => ({
-  location: replyTo(userId, { ephemeral }),
-  reactions: {},
-  deleted: false,
-  content,
-  embeds: [],
-  components: [],
-});
-
 const EMPTY_FIELD = Object.freeze({
   name: '​',
   value: '​',
@@ -1173,26 +1159,9 @@ describe('Signup lifecycle', () => {
 
       await startSignup(flow);
 
-      flow.expectReported(/^Sentry exception: Error: 14 UNAVAILABLE/);
-      flow.expectReported(/^error: \{\n\s+err: Error: 14 UNAVAILABLE/);
-      flow.expectReported(/^error: .*Command error: 14 UNAVAILABLE/);
+      expectCommandErrorReported(flow, '14 UNAVAILABLE');
       expect(flow.discord.repliesTo(PLAYER.id).map(shown)).toEqual([
-        {
-          location: replyTo(PLAYER.id, { ephemeral: true }),
-          reactions: {},
-          deleted: false,
-          content: undefined,
-          embeds: [
-            {
-              title: 'Command Error',
-              description:
-                'An unexpected error occurred. Please try again later.',
-              color: Colors.Red,
-              timestamp: isoDateSince(flow.startedAt),
-            },
-          ],
-          components: [],
-        },
+        commandErrorReply(flow, PLAYER.id),
       ]);
     });
   });
