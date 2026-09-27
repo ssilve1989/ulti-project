@@ -154,7 +154,7 @@ const field = (name: string, value: string) => ({
 const CHANGES = field(
   'Changes',
   [
-    `<@${PROMOTED}> DMU: +<@&${P6_ROLE}> −<@&${P5_ROLE}>`,
+    `<@${PROMOTED}> DMU: +<@&${P6_ROLE}> \u2212<@&${P5_ROLE}>`,
     `<@${NEWCOMER}> DMU: +<@&${P5_ROLE}>`,
     `<@${LINGERING}> DMU: \u2212<@&${P5_ROLE}>`,
   ].join('\n'),

@@ -537,6 +537,7 @@ export class DiscordMock {
           answered(ack)
             ? Promise.try(() => {
                 const { ephemeral, message } = splitReply(payload);
+                ack.replied = true;
                 return this.createMessage(
                   { kind: 'reply', userId, ephemeral },
                   message,
@@ -803,6 +804,8 @@ export class DiscordMock {
       user: (userId) => {
         const member = this.members.get(userId);
         if (member) {
+          // discord.js caches a member picked in an option
+          this.views.cacheMember(guildId, userId);
           return {
             user: this.views.user(userId),
             member: this.views.member(guildId, member),
@@ -878,7 +881,12 @@ export class DiscordMock {
       reply: (payload: ReplyPayload) =>
         answer(ack, 'replied', () => post(payload)),
       followUp: (payload: ReplyPayload) =>
-        answered(ack) ? Promise.try(() => post(payload)) : notReplied(),
+        answered(ack)
+          ? Promise.try(() => {
+              post(payload);
+              ack.replied = true;
+            })
+          : notReplied(),
       editReply: (payload: OutgoingPayload) => {
         if (!answered(ack)) return notReplied();
         if (!answeredOnMessage.value) {
@@ -890,6 +898,7 @@ export class DiscordMock {
         }
         return Promise.try(() => {
           message.apply(payload);
+          ack.replied = true;
           return message.toMessage();
         });
       },

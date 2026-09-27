@@ -276,18 +276,12 @@ describe('InMemoryFirestore', () => {
       expect(snapshot.docs.map((doc) => doc.id)).toEqual(['b', 'c']);
     });
 
-    it('matches all of the conditions in a Filter.and', async ({ db }) => {
-      const snapshot = await db
-        .collection('signups')
-        .where(
-          Filter.and(
-            Filter.where('status', '==', 'PENDING'),
-            Filter.where('order', '==', 3),
-          ),
-        )
-        .get();
-
-      expect(snapshot.docs.map((doc) => doc.id)).toEqual(['c']);
+    it('refuses a Filter.and, which it does not implement', ({ db }) => {
+      expect(() =>
+        db
+          .collection('signups')
+          .where(Filter.and(Filter.where('status', '==', 'PENDING'))),
+      ).toThrow('does not support the "AND" composite filter');
     });
 
     it('refuses nested composite filters it does not implement', ({ db }) => {
@@ -475,7 +469,7 @@ describe('InMemoryFirestore', () => {
       db,
     }) => {
       await expect(
-        db.collection('signups').where('a', '>', 1).where('b', '<', 2).get(),
+        db.collection('signups').where('a', '>', 1).where('b', '>', 2).get(),
       ).rejects.toThrow('composite index');
     });
 

@@ -95,7 +95,8 @@ const collectionOf = <T extends { id: string }>(items: readonly T[]) =>
  * it's used, so a view the bot holds sees later changes. Stated assumption,
  * as for the rest of the fake: Discord's gateway updates (role changes) reach
  * the bot's caches before it next reads them. As in discord.js, a guild's
- * member cache holds only the members the bot fetched or who used a command.
+ * member cache holds only the members the bot fetched, who used a command or
+ * were picked in one of its options.
  */
 export class FakeViews {
   /** guildId → ids of the members discord.js has cached */

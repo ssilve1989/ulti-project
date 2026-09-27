@@ -161,7 +161,7 @@ against saved real responses, never the live API
   `Sentry exception:`, `Sentry warning:`).
 - The fakes behave exactly like the real system or refuse loudly. A fake that
   quietly differs from the real thing is a bug in the fake. They implement only
-  what current flows use. Calling something they don't model fails
+  what the app uses. Calling something they don't model fails
   (`InMemoryFirestore does not support …`, `… is not a function`), but a
   discord.js property they don't model reads as `undefined`, so check the
   fake covers what new code reads. Extend the fake when a new flow needs more. Model the
@@ -176,7 +176,8 @@ against saved real responses, never the live API
     with `aboveBot: true` sits above the bot's own, so changing it rejects
     with the API's 50013.
   - As in discord.js, a guild's member cache (and so `role.members`) holds
-    only the members the bot fetched or who used a command, so code that reads
+    only the members the bot fetched, who used a command or were picked in one
+    of its options, so code that reads
     it must fetch the members first.
   - Channels belong to a guild (`addChannel(guildId, channelId)`). Fetching one
     through another guild rejects with discord.js's `GuildChannelUnowned`, and

@@ -7,7 +7,7 @@ import {
 } from 'firebase-admin/firestore';
 
 type Data = Record<string, unknown>;
-type Operator = '==' | 'in' | '>' | '<';
+type Operator = '==' | 'in' | '>';
 
 interface Condition {
   field: string;
@@ -31,12 +31,7 @@ interface SetOptions {
   mergeFields?: ReadonlyArray<string | FieldPath>;
 }
 
-const OPERATORS: ReadonlySet<string> = new Set<Operator>([
-  '==',
-  'in',
-  '>',
-  '<',
-]);
+const OPERATORS: ReadonlySet<string> = new Set<Operator>(['==', 'in', '>']);
 
 function isOperator(value: string): value is Operator {
   return OPERATORS.has(value);
@@ -297,7 +292,6 @@ function clausesOf(filter: Filter): Clause[] {
       Reflect.get(inner, 'value'),
     );
   });
-  if (operator === 'AND') return conditions;
   if (operator === 'OR') return [{ anyOf: conditions }];
   return unsupported(`the "${String(operator)}" composite filter`);
 }
@@ -311,8 +305,6 @@ function matches(data: Data, { field, operator, value }: Condition): boolean {
       return Array.isArray(value) && value.includes(actual);
     case '>':
       return actual !== undefined && compare(actual, value) > 0;
-    case '<':
-      return actual !== undefined && compare(actual, value) < 0;
   }
 }
 
@@ -402,7 +394,7 @@ class Query {
     const conditions = this.state.conditions.flatMap(conditionsIn);
     const inequalityFields = new Set(
       conditions
-        .filter(({ operator }) => operator === '>' || operator === '<')
+        .filter(({ operator }) => operator === '>')
         .map(({ field }) => field),
     );
     const [firstOrdering] = this.state.orderings;
@@ -427,10 +419,11 @@ class Query {
   }
 
   /**
-   * The order Firestore returns results in: the explicit orderBy()s, then any
-   * inequality-filtered field not already ordered (lexicographically), then the
-   * document id, the implicit ones in the last explicit direction (ascending
-   * when there is none), as the SDK's createImplicitOrderBy does.
+   * The order Firestore returns results in: the explicit orderBy()s, then the
+   * inequality-filtered field if not already ordered (there's at most one, see
+   * above), then the document id, the implicit ones in the last explicit
+   * direction (ascending when there is none), as the SDK's
+   * createImplicitOrderBy does.
    */
   private effectiveOrderings(): {
     orderings: Ordering[];
@@ -438,18 +431,14 @@ class Query {
   } {
     const orderings = [...this.state.orderings];
     const idDirection = orderings.at(-1)?.direction ?? 'asc';
-    const inequalityFields = [
-      ...new Set(
-        this.state.conditions
-          .flatMap(conditionsIn)
-          .filter(({ operator }) => operator === '>' || operator === '<')
-          .map(({ field }) => field),
-      ),
-    ].sort();
-    for (const field of inequalityFields) {
-      if (!orderings.some((ordering) => ordering.field === field)) {
-        orderings.push({ field, direction: idDirection });
-      }
+    const inequality = this.state.conditions
+      .flatMap(conditionsIn)
+      .find(({ operator }) => operator === '>');
+    if (
+      inequality &&
+      !orderings.some(({ field }) => field === inequality.field)
+    ) {
+      orderings.push({ field: inequality.field, direction: idDirection });
     }
     return { orderings, idDirection };
   }
@@ -548,11 +537,6 @@ class PendingWrites {
     return this;
   }
 
-  delete(ref: DocumentReference): this {
-    this.writes.push(() => this.db.delete(ref.path));
-    return this;
-  }
-
   protected get hasWrites(): boolean {
     return this.writes.length > 0;
   }
@@ -601,7 +585,7 @@ class Transaction extends PendingWrites {
 /**
  * In-memory stand-in for the Firestore SDK, provided under the `FIRESTORE`
  * token so the real collection classes run against it. It implements only the
- * operations the collections use and throws on anything else, so it can't
+ * operations the app's collections use and throws on anything else, so it can't
  * silently diverge from real Firestore.
  */
 export class InMemoryFirestore {

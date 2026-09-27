@@ -205,7 +205,17 @@ const removalReply = (
 ];
 
 const reviewsShown = (flow: FlowApp) =>
-  flow.discord.channel(REVIEW_CHANNEL).map(({ id }) => id);
+  flow.discord.channel(REVIEW_CHANNEL).map(shown);
+
+/** The review postReview() posts, as it's still shown when kept. */
+const KEPT_REVIEW = Object.freeze({
+  location: { kind: 'channel', guildId: GUILD, channelId: REVIEW_CHANNEL },
+  reactions: {},
+  deleted: false,
+  content: 'Signup Approval',
+  embeds: [],
+  components: [],
+});
 
 describe('Remove signup', () => {
   describe('when a player removes their pending signup', () => {
@@ -240,9 +250,9 @@ describe('Remove signup', () => {
     it('deletes it, but keeps its review as a record of the decision', ({
       flow,
     }) => {
-      expect([flow.db.read(signupPath()), reviewsShown(flow).length]).toEqual([
+      expect([flow.db.read(signupPath()), reviewsShown(flow)]).toEqual([
         undefined,
-        1,
+        [KEPT_REVIEW],
       ]);
     });
 
@@ -293,11 +303,9 @@ describe('Remove signup', () => {
 
       const replies = await removeSignup(flow, PLAYER.id);
 
-      expect([
-        flow.db.read(signupPath()),
-        reviewsShown(flow).length,
-        replies,
-      ]).toEqual([undefined, 1, removalReply(PLAYER.id, REMOVAL_SUCCESS)]);
+      expect([flow.db.read(signupPath()), reviewsShown(flow), replies]).toEqual(
+        [undefined, [KEPT_REVIEW], removalReply(PLAYER.id, REMOVAL_SUCCESS)],
+      );
     });
   });
 

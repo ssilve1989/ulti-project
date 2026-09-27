@@ -8,20 +8,6 @@ export const replyTo = (
   { ephemeral }: { ephemeral: boolean },
 ) => ({ kind: 'reply', userId, ephemeral });
 
-/** A text-only answer to one of `userId`'s interactions, as `shown()` gives it. */
-export const textReply = (
-  userId: string,
-  content: string,
-  { ephemeral }: { ephemeral: boolean },
-) => ({
-  location: replyTo(userId, { ephemeral }),
-  reactions: {},
-  deleted: false,
-  content,
-  embeds: [],
-  components: [],
-});
-
 /** A private answer to one of `userId`'s interactions, as `shown()` gives it. */
 export const privateReply = (
   userId: string,
@@ -37,6 +23,16 @@ export const privateReply = (
   content,
   embeds,
   components,
+});
+
+/** A text-only answer to one of `userId`'s interactions, which may be public. */
+export const textReply = (
+  userId: string,
+  content: string,
+  { ephemeral }: { ephemeral: boolean },
+) => ({
+  ...privateReply(userId, { content }),
+  location: replyTo(userId, { ephemeral }),
 });
 
 /** The embed a command answers with when it fails unexpectedly. */

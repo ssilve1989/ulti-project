@@ -8,9 +8,9 @@ import { SignupCollection } from '../firebase/collections/signup.collection.js';
 import type { FlowApp } from './flow-app.js';
 
 /**
- * Stores a signup as the signup flow writes one: pending review unless
- * `signup` says otherwise (a reviewed one comes with its prog point and party
- * status). Returns what was stored.
+ * Stores a signup with the fields the signup flow writes: pending review
+ * unless `signup` says otherwise (a reviewed one comes with its prog point and
+ * party status). Returns what was stored.
  */
 export function seedSignup(
   flow: FlowApp,
