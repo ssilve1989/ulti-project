@@ -4,7 +4,8 @@ The bot's tests form a pyramid:
 
 - **Flow specs** (`<feature>.flow.spec.ts`) boot the real Nest modules for a
   feature, fake only external systems, and describe what users see. Every
-  slash-command feature is meant to have one.
+  slash-command feature is meant to have one, except the ones being removed
+  (`docs/flow-port.md` lists them).
 - **Unit specs** (`<file>.spec.ts`) cover code with branching logic you can
   exercise directly.
 

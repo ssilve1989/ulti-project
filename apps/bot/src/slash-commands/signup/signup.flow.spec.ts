@@ -65,6 +65,7 @@ import {
 
 const GUILD = 'guild-1';
 const REVIEW_CHANNEL = 'review-channel';
+const GHOST_CHANNEL = 'ghost-channel';
 const SIGNUP_CHANNEL = 'signup-channel';
 const BLACKLIST_CHANNEL = 'blacklist-channel';
 const REVIEWER_ROLE = 'reviewer-role';
@@ -1060,6 +1061,32 @@ describe('Signup lifecycle', () => {
         }),
       ]);
       expect(flow.db.read(SIGNUP_PATH)).toBeUndefined();
+    });
+  });
+
+  describe('when the configured review channel does not exist', () => {
+    it('confirms the signup but posts no review, and reports it', async ({
+      flow,
+    }) => {
+      flow.db.seed(`settings/${GUILD}`, {
+        ...flow.db.read(`settings/${GUILD}`),
+        reviewChannel: GHOST_CHANNEL,
+      });
+
+      const reply = await startSignup(flow);
+      flow.discord.click(reply(), 'confirm', PLAYER.id);
+      await flow.settle();
+
+      flow.expectReported(
+        /^error: Command handler which execution was triggered by Saga has thrown an unhandled exception\. DiscordAPIError\[10003\]: Unknown Channel/,
+      );
+      expect(flow.db.read(SIGNUP_PATH)).toEqual(storedSignup(flow, {}));
+      expect(flow.discord.channel(GHOST_CHANNEL)).toEqual([]);
+      expect(flow.discord.repliesTo(PLAYER.id).map(shown)).toEqual([
+        textReply(PLAYER.id, SIGNUP_MESSAGES.SIGNUP_SUBMISSION_CONFIRMED, {
+          ephemeral: true,
+        }),
+      ]);
     });
   });
 

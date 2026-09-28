@@ -303,6 +303,8 @@ class SignupCommandHandler implements ISlashCommand {
             };
           }
         } catch (error: unknown) {
+          // unreachable: FFLogsService.validateReportAge never throws; it
+          // catches API failures itself and returns isValid: false
           this.logger.warn(error, 'Error validating FFLogs report age');
           return {
             success: false,
@@ -315,6 +317,8 @@ class SignupCommandHandler implements ISlashCommand {
 
       return { success: true };
     } catch (_: unknown) {
+      // unreachable: the schema normalises and validates proofOfProgLink
+      // (z.url({ normalize: true })), so new URL() above cannot throw
       return {
         success: false,
         errorMessage: 'Invalid URL format. Please provide a valid URL.',

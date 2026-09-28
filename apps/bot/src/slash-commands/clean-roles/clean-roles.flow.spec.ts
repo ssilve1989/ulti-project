@@ -355,6 +355,61 @@ describe('Clean roles', () => {
         ]),
       );
     });
+
+    it("cuts off roles with changes when they would exceed Discord's field limit", async ({
+      flow,
+    }) => {
+      // 22 bulk roles each held by a member with no active signup, plus the
+      // lapsed DMU Clear member: 23 roles with changes, more than fit in the
+      // 25 fields a preview embed allows
+      const bulkRoles = Array.from({ length: 22 }, (_, i) => ({
+        id: `bulk-role-${i}`,
+        name: `Bulk Role ${i}`,
+        memberId: `bulk-member-${i}`,
+      }));
+      for (const { id, name, memberId } of bulkRoles) {
+        flow.discord.addRole(GUILD, { id, name });
+        flow.discord.addMember({
+          id: memberId,
+          username: memberId,
+          roles: [id],
+        });
+      }
+      flow.db.seed(SETTINGS_PATH, {
+        ...ROLE_SETTINGS,
+        progRoles: Object.fromEntries(
+          bulkRoles.map(({ id }, i) => [`B${i}`, id]),
+        ),
+      });
+
+      const replies = await cleanRoles(flow, { dryRun: true });
+
+      expect(replies).toEqual(
+        preview([
+          field(
+            '📊 Processing Summary',
+            '**Roles Processed:** 24\n**Role Assignments Processed:** 24\n**Role Assignments to Remove:** 23',
+          ),
+          field(
+            '👥 Member Analysis',
+            '**Total Active Signups:** 1\n**Members with Roles (Before):** 24\n**Members with Roles (After):** 1\n**Members to Lose Roles:** 23',
+          ),
+          field(
+            '✅ Validation Check',
+            'Expected: Members after removal should match or be less than active signups\n**Expected Result:** Members with roles after cleanup ≤ Active signups\n**Actual Result:** 1 ≤ 1 = PASS',
+          ),
+          ...bulkRoles
+            .slice(0, 21)
+            .map(({ name, memberId }) =>
+              field(
+                `🎭 ${name} (1 removals)`,
+                `• <@${memberId}> (${memberId})`,
+              ),
+            ),
+          field('⚠️ Additional Roles', '... and 2 more roles with changes'),
+        ]),
+      );
+    });
   });
 
   describe('when no roles are configured', () => {

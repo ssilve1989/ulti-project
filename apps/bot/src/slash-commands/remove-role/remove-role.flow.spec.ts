@@ -72,4 +72,44 @@ describe('Remove role', () => {
       ]);
     });
   });
+
+  describe('when the role sits above the bot', () => {
+    const ABOVE_ROLE = 'above-role';
+
+    it('leaves the role in place and tells the admin how many removals failed', async ({
+      flow,
+    }) => {
+      flow.discord.addRole(GUILD, {
+        id: ABOVE_ROLE,
+        name: 'Above',
+        aboveBot: true,
+      });
+      flow.discord.addMember({
+        id: 'member-4',
+        username: 'four',
+        roles: [ABOVE_ROLE],
+      });
+
+      flow.discord.command({
+        userId: ADMIN.id,
+        guildId: GUILD,
+        commandName: 'remove-role',
+        options: { role: ABOVE_ROLE },
+      });
+      await flow.settle();
+
+      flow.expectReported(/^Sentry exception:/);
+      flow.expectReported(
+        /^error: failed to remove role Above from member four/,
+      );
+      expect(flow.discord.rolesOf('member-4')).toEqual([ABOVE_ROLE]);
+      expect(flow.discord.repliesTo(ADMIN.id).map(shown)).toEqual([
+        textReply(
+          ADMIN.id,
+          'Removed Above from 0 of 1 members, but 1 failed.',
+          { ephemeral: true },
+        ),
+      ]);
+    });
+  });
 });

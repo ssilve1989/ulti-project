@@ -82,6 +82,9 @@ class RetireCommandHandler implements ISlashCommand {
         `Role retirement complete: ${result.successCount} successful, ${result.failCount} failed`,
       );
     } catch (error: unknown) {
+      // flow-untested: retireRole absorbs member-level failures into its
+      // counts, and the fake's guild/member/role fetches resolve instead of
+      // rejecting, so this only fires on a real API outage
       this.logger.error(error, 'Error during role retirement');
       await interaction.editReply({
         embeds: [

@@ -439,9 +439,28 @@ describe('DiscordMock', () => {
       memberId: 'u1',
     });
 
-    await member?.roles.remove(['r1', 'r2', 'r9']);
+    await member?.roles.remove(['r1', 'r2']);
 
     expect(discord.rolesOf('u1')).toEqual([]);
+  });
+
+  it('rejects removing several that include a role the guild lacks, like discord.js', async ({
+    discord,
+    service,
+  }) => {
+    const member = await service.getGuildMember({
+      guildId: 'g1',
+      memberId: 'u1',
+    });
+
+    await expect(member?.roles.remove(['r1', 'r9'])).rejects.toEqual(
+      discordjsError(
+        DiscordjsErrorCodes.InvalidElement,
+        ['Array or Collection', 'roles', 'r9'],
+        DiscordjsTypeError,
+      ),
+    );
+    expect(discord.rolesOf('u1')).toEqual(['r1']);
   });
 
   it("refuses the bot changing a role above its own, with the API's Missing Permissions", async ({
@@ -498,7 +517,7 @@ describe('DiscordMock', () => {
     const removed = await service.removeRole('g1', 'r1');
 
     expect([removed, discord.rolesOf('u1'), discord.rolesOf('u3')]).toEqual([
-      2,
+      { total: 2, failCount: 0 },
       [],
       ['r2'],
     ]);

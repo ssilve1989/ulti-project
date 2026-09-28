@@ -537,24 +537,19 @@ export class DiscordMock {
         editReply: (payload: ReplyPayload) =>
           answered(ack) ? show(payload) : notReplied(),
         followUp: (payload: ReplyPayload) =>
-          // the API makes the first follow-up after a deferred reply edit its
-          // loading message, ignoring the ephemeral flag, rather than post one
-          ack.deferred && reply.sent() === undefined
-            ? Promise.reject(
-                new Error(
-                  'DiscordMock does not model a follow-up to a deferred reply before editReply',
-                ),
-              )
-            : answered(ack)
-              ? Promise.try(() => {
-                  const { ephemeral, message } = splitReply(payload);
-                  ack.replied = true;
-                  return this.createMessage(
-                    { kind: 'reply', userId, ephemeral },
-                    message,
-                  ).toMessage<true>();
-                })
-              : notReplied(),
+          // like discord.js, a follow-up posts a new message through the
+          // interaction webhook; a deferred reply's loading message stays, and
+          // editReply is what replaces it instead
+          answered(ack)
+            ? Promise.try(() => {
+                const { ephemeral, message } = splitReply(payload);
+                ack.replied = true;
+                return this.createMessage(
+                  { kind: 'reply', userId, ephemeral },
+                  message,
+                ).toMessage<true>();
+              })
+            : notReplied(),
         inCachedGuild: () => true,
         isChatInputCommand: () => true,
       }),

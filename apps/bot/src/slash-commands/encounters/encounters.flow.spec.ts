@@ -229,5 +229,57 @@ describe('Encounters', () => {
         }),
       );
     });
+
+    it('still shows an encounter that has prog points but no document', async ({
+      flow,
+    }) => {
+      flow.db.seed(`encounters/${Encounter.TOP}/prog-points/P5`, {
+        id: 'P5',
+        label: 'Phase 5: Delta',
+        partyStatus: PartyStatus.ProgParty,
+        order: 0,
+        active: true,
+      });
+
+      expect(await viewEncounters(flow)).toEqual(
+        privateEmbed({
+          title: 'All Encounters Overview',
+          description: 'Configuration status for all encounters:',
+          fields: [
+            {
+              name: '⚠️ Partial data TOP',
+              value: '[TOP] The Omega Protocol\nProg Points: 1',
+              inline: true,
+            },
+          ],
+        }),
+      );
+    });
+
+    it('flags every encounter and says to run the migration when loading fails', async ({
+      flow,
+    }) => {
+      flow.db.goOffline();
+
+      const replies = await viewEncounters(flow);
+
+      for (const encounter of Object.keys(Encounter)) {
+        flow.expectReported(
+          new RegExp(`Failed to load data for encounter ${encounter}`),
+        );
+      }
+      expect(replies).toEqual(
+        privateEmbed({
+          title: 'All Encounters Overview',
+          description:
+            'No encounter data found. Run the migration script to populate data from constants.',
+          fields: Object.keys(Encounter).map((key) => ({
+            name: `❌ ${key}`,
+            value: 'Error loading data',
+            inline: true,
+          })),
+        }),
+      );
+    });
   });
 });

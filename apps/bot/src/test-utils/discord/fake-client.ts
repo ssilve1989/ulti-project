@@ -4,6 +4,7 @@ import {
   type Client,
   Collection,
   DiscordjsErrorCodes,
+  DiscordjsTypeError,
   type DMChannel,
   type Guild,
   type GuildEmoji,
@@ -199,16 +200,10 @@ export class FakeViews {
           typeof roles === 'string'
             ? this.changeRole(guildId, member, roles, 'PUT')
             : this.addRoles(guildId, member, roles),
-        // like discord.js, removing several sets the member's roles to the
-        // rest, so a role they don't hold (or the guild lacks) changes nothing
         remove: (roles: string | readonly string[]) =>
           typeof roles === 'string'
             ? this.changeRole(guildId, member, roles, 'DELETE')
-            : this.setRoles(
-                guildId,
-                member,
-                [...member.roles].filter((roleId) => !roles.includes(roleId)),
-              ),
+            : this.removeRoles(guildId, member, roles),
       },
     });
   }
@@ -442,6 +437,34 @@ export class FakeViews {
     return this.setRoles(guildId, member, [
       ...new Set([...member.roles, ...roleIds]),
     ]);
+  }
+
+  /**
+   * Removes several roles, as discord.js does: each role resolves against the
+   * guild first and one the guild lacks throws DiscordjsTypeError, then the
+   * member's roles are set to the rest. Roles the member doesn't hold are
+   * simply skipped.
+   */
+  private removeRoles(
+    guildId: string,
+    member: FakeMember,
+    roleIds: readonly string[],
+  ): Promise<GuildMember> {
+    const unknown = roleIds.find((roleId) => !this.hasRole(guildId, roleId));
+    if (unknown !== undefined) {
+      return Promise.reject(
+        discordjsError(
+          DiscordjsErrorCodes.InvalidElement,
+          ['Array or Collection', 'roles', unknown],
+          DiscordjsTypeError,
+        ),
+      );
+    }
+    return this.setRoles(
+      guildId,
+      member,
+      [...member.roles].filter((roleId) => !roleIds.includes(roleId)),
+    );
   }
 
   private isAboveBot(guildId: string, roleId: string): boolean {
