@@ -12,7 +12,7 @@ import {
   PartialGroupDMChannel,
   type TextBasedChannel,
 } from 'discord.js';
-import { from, lastValueFrom, mergeMap } from 'rxjs';
+import { from, lastValueFrom, mergeMap, reduce } from 'rxjs';
 import { InjectDiscordClient } from './discord.decorators.js';
 
 @Injectable()
@@ -156,7 +156,15 @@ class DiscordService {
    * Removes the role from all members in the guild
    * @param roleId
    */
-  public async removeRole(guildId: string, roleId: string): Promise<number> {
+  public async removeRole(
+    guildId: string,
+    roleId: string,
+  ): Promise<{
+    roleFound: boolean;
+    totalMembers: number;
+    successCount: number;
+    failCount: number;
+  }> {
     const guild = await this.client.guilds.fetch(guildId);
     // we need to update the cache of guild members because `roles.members` only returns currently cached members
     await guild.members.fetch();
@@ -165,7 +173,12 @@ class DiscordService {
 
     if (!role) {
       this.logger.warn(`role ${roleId} not found in guild ${guildId}`);
-      return 0;
+      return {
+        roleFound: false,
+        totalMembers: 0,
+        successCount: 0,
+        failCount: 0,
+      };
     }
 
     const { members } = role;
@@ -175,18 +188,34 @@ class DiscordService {
     const task$ = from(members.values()).pipe(
       mergeMap(
         (member) =>
-          member.roles.remove(roleId).catch((err) => {
-            Sentry.getCurrentScope().captureException(err);
-            this.logger.error(
-              `failed to remove role ${role.name} from member ${member.displayName}`,
-            );
-          }),
+          member.roles
+            .remove(roleId)
+            .then(() => ({ successCount: 1, failCount: 0 }))
+            .catch((err) => {
+              Sentry.getCurrentScope().captureException(err);
+              this.logger.error(
+                `failed to remove role ${role.name} from member ${member.displayName}`,
+              );
+              return { successCount: 0, failCount: 1 };
+            }),
         50,
+      ),
+      reduce(
+        (counts, result) => ({
+          successCount: counts.successCount + result.successCount,
+          failCount: counts.failCount + result.failCount,
+        }),
+        { successCount: 0, failCount: 0 },
       ),
     );
 
-    await lastValueFrom(task$, { defaultValue: undefined });
-    return members.size;
+    const { successCount, failCount } = await lastValueFrom(task$);
+    return {
+      roleFound: true,
+      totalMembers: members.size,
+      successCount,
+      failCount,
+    };
   }
 
   /**

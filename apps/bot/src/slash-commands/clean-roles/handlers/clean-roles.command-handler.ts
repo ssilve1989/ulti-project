@@ -20,6 +20,7 @@ import type {
   CleanRolesResult,
   DryRunResult,
   NormalResult,
+  NormalRoleResult,
   ProcessingContext,
   ProcessingStrategy,
 } from '../clean-roles.interfaces.js';
@@ -239,35 +240,44 @@ class CleanRolesCommandHandler implements ISlashCommand {
       `**Total Roles Processed:** ${result.totalRolesProcessed}`,
       `**Total Members Processed:** ${result.totalMembersProcessed}`,
       `**Total Roles Removed:** ${result.totalRolesRemoved}`,
+      `**Failed Removals:** ${result.totalFailedRemovals ?? 0}`,
     ];
 
     if (result.processedRoles.length > 0) {
       lines.push('', '**Role Details:**');
       for (const roleInfo of result.processedRoles) {
-        if (roleInfo.rolesRemoved > 0) {
-          lines.push(
-            `• **${roleInfo.roleName}**: ${roleInfo.rolesRemoved}/${roleInfo.membersProcessed} removed`,
-          );
-        } else if (roleInfo.membersProcessed > 0) {
-          lines.push(
-            `• **${roleInfo.roleName}**: 0/${roleInfo.membersProcessed} removed (all have active signups)`,
-          );
-        } else {
-          lines.push(`• **${roleInfo.roleName}**: No members had this role`);
-        }
+        lines.push(this.formatRoleSummary(roleInfo));
       }
     }
 
-    if (result.totalRolesRemoved === 0) {
-      lines.push(
-        '',
-        '✅ All members with clear/prog roles have active signups!',
-      );
-    } else {
-      lines.push('', '✅ Role cleanup completed successfully!');
-    }
-
+    lines.push('', this.formatCleanupOutcome(result));
     return lines.join('\n');
+  }
+
+  private formatRoleSummary(roleInfo: NormalRoleResult): string {
+    const failed = roleInfo.failedRemovals ?? 0;
+    const skipped = roleInfo.skippedActiveSignups ?? 0;
+    if (roleInfo.rolesRemoved > 0 || failed > 0) {
+      const details = [
+        ...(failed > 0 ? [`${failed} failed`] : []),
+        ...(skipped > 0 ? [`${skipped} kept for active signups`] : []),
+      ];
+      const outcome = `${roleInfo.rolesRemoved}/${roleInfo.membersProcessed} removed`;
+      return `• **${roleInfo.roleName}**: ${outcome}${details.length ? ` (${details.join(', ')})` : ''}`;
+    }
+    if (roleInfo.membersProcessed > 0) {
+      return `• **${roleInfo.roleName}**: 0/${roleInfo.membersProcessed} removed (${skipped} kept for active signups)`;
+    }
+    return `• **${roleInfo.roleName}**: No members had this role`;
+  }
+
+  private formatCleanupOutcome(result: NormalResult): string {
+    if ((result.totalFailedRemovals ?? 0) > 0) {
+      return '⚠️ Role cleanup completed with failed removals.';
+    }
+    return result.totalRolesRemoved === 0
+      ? '✅ No role removals were needed; members with active signups kept their roles.'
+      : '✅ Role cleanup completed successfully!';
   }
 
   private createDryRunEmbed(result: DryRunResult): EmbedBuilder {

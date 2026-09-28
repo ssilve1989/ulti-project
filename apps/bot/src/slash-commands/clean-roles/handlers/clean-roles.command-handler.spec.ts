@@ -425,7 +425,39 @@ describe('CleanRolesCommandHandler', () => {
       const summary = handler['createSummaryMessage'](result);
 
       expect(summary).toContain(
-        'All members with clear/prog roles have active signups!',
+        'No role removals were needed; members with active signups kept their roles.',
+      );
+    });
+
+    it('should report failed removals without claiming all members have active signups', () => {
+      const result = {
+        isDryRun: false as const,
+        totalRolesProcessed: 1,
+        totalMembersProcessed: 3,
+        totalRolesRemoved: 0,
+        totalFailedRemovals: 3,
+        totalActiveSignups: 0,
+        uniqueMembersWithRoles: 3,
+        uniqueMembersAfterRemoval: 0,
+        processedRoles: [
+          {
+            roleId: 'role-1',
+            roleName: 'Test Role',
+            membersProcessed: 3,
+            rolesRemoved: 0,
+            failedRemovals: 3,
+            skippedActiveSignups: 0,
+          },
+        ],
+      };
+
+      const summary = handler['createSummaryMessage'](result);
+
+      expect(summary).toContain('**Failed Removals:** 3');
+      expect(summary).toContain('3 failed');
+      expect(summary).toContain('completed with failed removals');
+      expect(summary).not.toContain(
+        'All members with clear/prog roles have active signups',
       );
     });
 

@@ -76,6 +76,8 @@ describe('NormalStrategy', () => {
         roleName: 'Test Role',
         membersProcessed: 2,
         rolesRemoved: 1,
+        failedRemovals: 0,
+        skippedActiveSignups: 1,
       });
 
       // Should not remove role from member-1 (has active signup)
@@ -107,6 +109,8 @@ describe('NormalStrategy', () => {
         roleName: 'Empty Role',
         membersProcessed: 0,
         rolesRemoved: 0,
+        failedRemovals: 0,
+        skippedActiveSignups: 0,
       });
     });
 
@@ -141,6 +145,8 @@ describe('NormalStrategy', () => {
         roleName: 'Test Role',
         membersProcessed: 1,
         rolesRemoved: 0,
+        failedRemovals: 0,
+        skippedActiveSignups: 1,
       });
 
       expect(mockRoleManager1.remove).not.toHaveBeenCalled();
@@ -177,6 +183,8 @@ describe('NormalStrategy', () => {
         roleName: 'Test Role',
         membersProcessed: 1,
         rolesRemoved: 0, // Should be 0 because the removal failed
+        failedRemovals: 1,
+        skippedActiveSignups: 0,
       });
 
       expect(mockRoleManager1.remove).toHaveBeenCalledWith(
@@ -226,6 +234,7 @@ describe('NormalStrategy', () => {
         totalRolesProcessed: 2,
         totalMembersProcessed: 5,
         totalRolesRemoved: 3,
+        totalFailedRemovals: 0,
         totalActiveSignups: 3,
         uniqueMembersWithRoles: 5,
         uniqueMembersAfterRemoval: 2, // Only user-4 and user-5 have active signups
@@ -252,6 +261,7 @@ describe('NormalStrategy', () => {
         totalRolesProcessed: 0,
         totalMembersProcessed: 0,
         totalRolesRemoved: 0,
+        totalFailedRemovals: 0,
         totalActiveSignups: 0,
         uniqueMembersWithRoles: 0,
         uniqueMembersAfterRemoval: 0,

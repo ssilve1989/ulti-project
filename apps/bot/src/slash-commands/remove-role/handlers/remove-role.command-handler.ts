@@ -25,8 +25,19 @@ class RemoveRoleCommandHandler implements ISlashCommand {
 
     this.logger.log(`Removing role ${role.id} from all guild members`);
 
-    await this.discordService.removeRole(guildId, role.id);
-    await interaction.editReply('Success!');
+    const result = await this.discordService.removeRole(guildId, role.id);
+    if (!result.roleFound) {
+      await interaction.editReply(
+        'Role was not found; no removals were attempted.',
+      );
+      return;
+    }
+
+    const message =
+      result.failCount > 0
+        ? `Role removal completed with failures.\nSuccessful removals: ${result.successCount}/${result.totalMembers}\nFailed removals: ${result.failCount}`
+        : `Success! Removed role from ${result.successCount}/${result.totalMembers} members.`;
+    await interaction.editReply(message);
   }
 }
 
