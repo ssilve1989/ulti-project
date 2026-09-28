@@ -45,7 +45,7 @@ class SlashCommandsService {
           (span) => {
             return Sentry.withScope(async (scope) => {
               scope.setUser({
-                userId: interaction.user.id,
+                id: interaction.user.id,
                 username: interaction.user.username,
               });
 
