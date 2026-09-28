@@ -238,6 +238,7 @@ describe('Signup Command Handler', () => {
     );
     expect(interaction.editReply).toHaveBeenCalledWith({
       embeds: [mockErrorEmbed],
+      components: [],
     });
   });
 
