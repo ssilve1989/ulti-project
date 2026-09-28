@@ -28,6 +28,107 @@ import { CleanRolesSlashCommand } from '../clean-roles.slash-command.js';
 import { DryRunStrategy } from '../dry-run.strategy.js';
 import { NormalStrategy } from '../normal.strategy.js';
 
+const MAX_EMBED_FIELDS = 25;
+const MAX_EMBED_TOTAL_LENGTH = 6000;
+const MAX_EMBED_FIELD_VALUE_LENGTH = 1024;
+
+function getEmbedCharacterCount(embed: EmbedBuilder): number {
+  const data = embed.data;
+  return (
+    (data.title?.length ?? 0) +
+    (data.description?.length ?? 0) +
+    (data.footer?.text.length ?? 0) +
+    (data.author?.name.length ?? 0) +
+    (data.fields ?? []).reduce(
+      (total, field) => total + field.name.length + field.value.length,
+      0,
+    )
+  );
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: TODO: Follow up
+function addDryRunRoleFields(
+  embed: EmbedBuilder,
+  processedRoles: DryRunResult['processedRoles'],
+): void {
+  const rolesWithRemovals = processedRoles.filter(
+    (role) => role.rolesRemoved > 0,
+  );
+
+  if (rolesWithRemovals.length === 0) {
+    embed.addFields({
+      name: '✅ No Changes Required',
+      value: 'All members with clear/prog roles have active signups!',
+      inline: false,
+    });
+    return;
+  }
+
+  const availableFields = MAX_EMBED_FIELDS - (embed.data.fields?.length ?? 0);
+  const hasAdditionalRoles = rolesWithRemovals.length > availableFields;
+  const roleFieldLimit = hasAdditionalRoles
+    ? availableFields - 1
+    : availableFields;
+
+  let addedRoleCount = 0;
+  for (const roleInfo of rolesWithRemovals.slice(0, roleFieldLimit)) {
+    const members = roleInfo.membersToRemove || [];
+    const memberList = members
+      .slice(0, 10) // Limit to 10 members per role to avoid embed size limits
+      .map((member) => `• ${userMention(member.id)} (${member.displayName})`)
+      .join('\n');
+
+    const moreCount = members.length - 10;
+    const value =
+      memberList + (moreCount > 0 ? `\n... and ${moreCount} more` : '') ||
+      'No members to remove';
+    const fieldValue =
+      value.length <= MAX_EMBED_FIELD_VALUE_LENGTH
+        ? value
+        : `${value.slice(0, MAX_EMBED_FIELD_VALUE_LENGTH - 1)}…`;
+
+    const field = {
+      name: `🎭 ${roleInfo.roleName} (${roleInfo.rolesRemoved} removals)`,
+      value: fieldValue,
+      inline: false,
+    };
+    const remainingRoleCount = rolesWithRemovals.length - addedRoleCount - 1;
+    const omittedRoleCount = remainingRoleCount + 1;
+    const additionalRolesField = {
+      name: '⚠️ Additional Roles',
+      value: `… and ${omittedRoleCount} more roles with changes`,
+      inline: false,
+    };
+    const needsAdditionalRolesField =
+      hasAdditionalRoles || remainingRoleCount > 0;
+    const reservedLength = needsAdditionalRolesField
+      ? additionalRolesField.name.length + additionalRolesField.value.length
+      : 0;
+
+    if (
+      getEmbedCharacterCount(embed) +
+        field.name.length +
+        field.value.length +
+        reservedLength >
+      MAX_EMBED_TOTAL_LENGTH
+    ) {
+      break;
+    }
+
+    embed.addFields(field);
+    addedRoleCount++;
+  }
+
+  const additionalRoleCount = rolesWithRemovals.length - addedRoleCount;
+  if (additionalRoleCount > 0) {
+    embed.addFields({
+      name: '⚠️ Additional Roles',
+      value: `… and ${additionalRoleCount} more roles with changes`,
+      inline: false,
+    });
+  }
+}
+
 @Injectable()
 @SlashCommand({ builder: CleanRolesSlashCommand })
 class CleanRolesCommandHandler implements ISlashCommand {
@@ -324,51 +425,11 @@ class CleanRolesCommandHandler implements ISlashCommand {
       inline: false,
     });
 
-    // Add fields for each role with members to remove
-    const rolesWithRemovals = result.processedRoles.filter(
-      (role) => role.rolesRemoved > 0,
-    );
-
-    if (rolesWithRemovals.length === 0) {
-      embed.addFields({
-        name: '✅ No Changes Required',
-        value: 'All members with clear/prog roles have active signups!',
-        inline: false,
-      });
-    } else {
-      for (const roleInfo of rolesWithRemovals.slice(0, 25)) {
-        // Discord embed limit
-        const members = roleInfo.membersToRemove || [];
-        const memberList = members
-          .slice(0, 10) // Limit to 10 members per role to avoid embed size limits
-          .map(
-            (member) => `• ${userMention(member.id)} (${member.displayName})`,
-          )
-          .join('\n');
-
-        const moreCount = members.length - 10;
-        const fieldValue =
-          memberList + (moreCount > 0 ? `\n... and ${moreCount} more` : '');
-
-        embed.addFields({
-          name: `🎭 ${roleInfo.roleName} (${roleInfo.rolesRemoved} removals)`,
-          value: fieldValue || 'No members to remove',
-          inline: false,
-        });
-      }
-
-      if (rolesWithRemovals.length > 25) {
-        embed.addFields({
-          name: '⚠️ Additional Roles',
-          value: `... and ${rolesWithRemovals.length - 25} more roles with changes`,
-          inline: false,
-        });
-      }
-    }
-
     embed.setFooter({
       text: '💡 Run without --dry-run to execute these changes',
     });
+
+    addDryRunRoleFields(embed, result.processedRoles);
 
     return embed;
   }
