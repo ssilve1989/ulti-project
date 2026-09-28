@@ -52,6 +52,17 @@ class SlashCommandsService {
               scope.setTag('command', interaction.commandName);
               scope.setTag('guild_id', interaction.guildId);
 
+              const subcommand = interaction.options.getSubcommand(false);
+
+              // Sentry drops `undefined` attributes but stringifies `null` into
+              // the literal "null", so coerce before handing them over.
+              Sentry.metrics.count('discord.command.invoked', 1, {
+                attributes: {
+                  command: interaction.commandName,
+                  subcommand: subcommand ?? undefined,
+                },
+              });
+
               try {
                 this.logger.debug(
                   `dispatching command: ${interaction.commandName}`,
