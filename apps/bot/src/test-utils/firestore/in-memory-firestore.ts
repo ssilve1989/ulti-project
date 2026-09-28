@@ -622,6 +622,11 @@ export class InMemoryFirestore {
 
   set(path: string, data: object, options: SetOptions = {}): void {
     this.assertReachable();
+    if ('merge' in options && 'mergeFields' in options) {
+      throw new Error(
+        'options is not a valid set() options argument. You cannot specify both "merge" and "mergeFields".',
+      );
+    }
     const incoming = options.merge ? {} : copyData(data);
     const existing = this.documents.get(path) ?? {};
 

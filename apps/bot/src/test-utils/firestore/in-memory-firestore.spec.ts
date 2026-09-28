@@ -418,6 +418,28 @@ describe('InMemoryFirestore', () => {
       });
     });
 
+    it('rejects set() naming both merge and mergeFields, which Firestore refuses to combine', async ({
+      db,
+    }) => {
+      db.seed('settings/g', { progPointRoles: { DSR: { P6: 'r1' } } });
+
+      await expect(
+        db
+          .collection('settings')
+          .doc('g')
+          .set(
+            { progPointRoles: { DSR: { P6: 'r9' } } },
+            {
+              merge: true,
+              mergeFields: [new FieldPath('progPointRoles', 'DSR')],
+            },
+          ),
+      ).rejects.toThrow('You cannot specify both "merge" and "mergeFields"');
+      expect(db.read('settings/g')).toEqual({
+        progPointRoles: { DSR: { P6: 'r1' } },
+      });
+    });
+
     it('refuses == against a map, which it does not implement', ({ db }) => {
       expect(() =>
         db.collection('signups').where('progRoles', '==', { DSR: 'r1' }),
