@@ -181,7 +181,7 @@ export class ViewEncounterCommandHandler implements ISlashCommand {
         hasData = true;
         const status = encounter ? '✅ Configured' : '⚠️ Partial data';
         const description =
-          encounter?.name ??
+          encounter?.name ||
           (isEncounter(encounterId)
             ? EncounterFriendlyDescription[encounterId]
             : undefined);
