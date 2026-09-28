@@ -128,6 +128,12 @@ const SIGNUP_OPTIONS: Readonly<Record<string, string | null>> = Object.freeze({
   notes: null,
 });
 
+/** Changes the guild's stored settings, keeping the rest. */
+function updateSettings(flow: FlowApp, changes: Record<string, unknown>): void {
+  const path = `settings/${GUILD}`;
+  flow.db.seed(path, { ...flow.db.read(path), ...changes });
+}
+
 /** A guild configured for DMU signups, with a player and a reviewer. */
 function givenAGuild(flow: FlowApp): void {
   flow.db.seed(`settings/${GUILD}`, {
@@ -987,11 +993,7 @@ describe('Signup lifecycle', () => {
 
   describe('when a blacklisted player signs up in a guild that turned blacklist alerts off', () => {
     it('alerts no channel and warns that none is set', async ({ flow }) => {
-      const settingsPath = `settings/${GUILD}`;
-      flow.db.seed(settingsPath, {
-        ...flow.db.read(settingsPath),
-        blacklistChannelIds: [],
-      });
+      updateSettings(flow, { blacklistChannelIds: [] });
       flow.db.seed(`blacklist/${GUILD}/documents/entry-1`, {
         characterName: null,
         discordId: PLAYER.id,
@@ -1297,11 +1299,7 @@ describe('Signup lifecycle', () => {
     it('reports the failed announcement and still approves it', async ({
       flow,
     }) => {
-      const settingsPath = `settings/${GUILD}`;
-      flow.db.seed(settingsPath, {
-        ...flow.db.read(settingsPath),
-        signupChannel: 'deleted-channel',
-      });
+      updateSettings(flow, { signupChannel: 'deleted-channel' });
       await submitSignup(flow);
 
       await approve(flow, { progPoint: 'P6' });

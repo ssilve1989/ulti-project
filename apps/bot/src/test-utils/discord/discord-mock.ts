@@ -537,7 +537,8 @@ export class DiscordMock {
         editReply: (payload: ReplyPayload) =>
           answered(ack) ? show(payload) : notReplied(),
         followUp: (payload: ReplyPayload) =>
-          // Discord turns the first follow-up to a deferred reply into that reply
+          // the API makes the first follow-up after a deferred reply edit its
+          // loading message, ignoring the ephemeral flag, rather than post one
           ack.deferred && reply.sent() === undefined
             ? Promise.reject(
                 new Error(
