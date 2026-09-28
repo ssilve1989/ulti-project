@@ -301,6 +301,71 @@ describe('CleanRolesCommandHandler', () => {
       expect(embed.data.fields).toHaveLength(4); // Summary, Member Analysis, Validation, Role details
     });
 
+    it('should summarize changed roles that exceed the embed field limit', () => {
+      const result = {
+        isDryRun: true as const,
+        totalRolesProcessed: 23,
+        totalMembersProcessed: 23,
+        totalRolesRemoved: 23,
+        totalActiveSignups: 0,
+        uniqueMembersWithRoles: 23,
+        uniqueMembersAfterRemoval: 0,
+        processedRoles: Array.from({ length: 23 }, (_, index) => ({
+          roleId: `role-${index + 1}`,
+          roleName: `Role ${index + 1}`,
+          membersProcessed: 1,
+          rolesRemoved: 1,
+          membersToRemove: [
+            {
+              id: `user-${index + 1}`,
+              displayName: `User ${index + 1}`,
+              username: `user${index + 1}`,
+            },
+          ],
+        })),
+      };
+
+      const embed = handler['createDryRunEmbed'](result);
+      const additionalRolesField = embed.data.fields?.[24];
+
+      expect(embed.data.fields).toHaveLength(25);
+      expect(additionalRolesField?.value).toContain(
+        '2 more roles with changes',
+      );
+    });
+
+    it('should keep role member details within the embed field value limit', () => {
+      const result = {
+        isDryRun: true as const,
+        totalRolesProcessed: 1,
+        totalMembersProcessed: 1,
+        totalRolesRemoved: 1,
+        totalActiveSignups: 0,
+        uniqueMembersWithRoles: 1,
+        uniqueMembersAfterRemoval: 0,
+        processedRoles: [
+          {
+            roleId: 'role-1',
+            roleName: 'Test Role',
+            membersProcessed: 1,
+            rolesRemoved: 1,
+            membersToRemove: [
+              {
+                id: 'user-1',
+                displayName: 'A'.repeat(1100),
+                username: 'userone',
+              },
+            ],
+          },
+        ],
+      };
+
+      const embed = handler['createDryRunEmbed'](result);
+      const roleField = embed.data.fields?.[3];
+
+      expect(roleField?.value).toHaveLength(1024);
+    });
+
     it('should show validation pass when members after removal <= active signups', () => {
       const result = {
         isDryRun: true as const,
