@@ -25,6 +25,8 @@ export class NormalStrategy implements ProcessingStrategy<NormalRoleResult> {
       roleName: role.name,
       membersProcessed: role.members.size,
       rolesRemoved: 0,
+      failedRemovals: 0,
+      skippedActiveSignups: 0,
     };
 
     if (role.members.size === 0) {
@@ -62,6 +64,10 @@ export class NormalStrategy implements ProcessingStrategy<NormalRoleResult> {
       (sum, result) => sum + result.rolesRemoved,
       0,
     );
+    const totalFailedRemovals = processedRoles.reduce(
+      (sum, result) => sum + (result.failedRemovals ?? 0),
+      0,
+    );
 
     const membersWhoWillKeepRoles = new Set<string>();
     for (const memberId of context.allMembersWithRoles) {
@@ -75,6 +81,7 @@ export class NormalStrategy implements ProcessingStrategy<NormalRoleResult> {
       totalRolesProcessed,
       totalMembersProcessed,
       totalRolesRemoved,
+      totalFailedRemovals,
       totalActiveSignups: context.activeSignups.length,
       uniqueMembersWithRoles: context.allMembersWithRoles.size,
       uniqueMembersAfterRemoval: membersWhoWillKeepRoles.size,
@@ -89,7 +96,11 @@ export class NormalStrategy implements ProcessingStrategy<NormalRoleResult> {
     roleResult: NormalRoleResult,
   ): Promise<void> {
     const hasActiveSignup = activeSignupDiscordIds.has(member.id);
-    if (hasActiveSignup) return;
+    if (hasActiveSignup) {
+      roleResult.skippedActiveSignups =
+        (roleResult.skippedActiveSignups ?? 0) + 1;
+      return;
+    }
 
     try {
       await member.roles.remove(
@@ -101,6 +112,7 @@ export class NormalStrategy implements ProcessingStrategy<NormalRoleResult> {
         `Removed role ${role.name} from ${member.displayName} (${member.id}) - no active signups`,
       );
     } catch (error) {
+      roleResult.failedRemovals = (roleResult.failedRemovals ?? 0) + 1;
       this.logger.error(
         error,
         `Failed to process member ${member.displayName} (${member.id}) for role ${role.name}`,

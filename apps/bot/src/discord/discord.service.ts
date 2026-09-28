@@ -156,7 +156,15 @@ class DiscordService {
    * Removes the role from all members in the guild
    * @param roleId
    */
-  public async removeRole(guildId: string, roleId: string): Promise<number> {
+  public async removeRole(
+    guildId: string,
+    roleId: string,
+  ): Promise<{
+    roleFound: boolean;
+    totalMembers: number;
+    successCount: number;
+    failCount: number;
+  }> {
     const guild = await this.client.guilds.fetch(guildId);
     // we need to update the cache of guild members because `roles.members` only returns currently cached members
     await guild.members.fetch();
@@ -165,28 +173,46 @@ class DiscordService {
 
     if (!role) {
       this.logger.warn(`role ${roleId} not found in guild ${guildId}`);
-      return 0;
+      return {
+        roleFound: false,
+        totalMembers: 0,
+        successCount: 0,
+        failCount: 0,
+      };
     }
 
     const { members } = role;
 
     this.logger.log(`found ${members.size} members with role ${role.name}`);
 
+    let successCount = 0;
+    let failCount = 0;
     const task$ = from(members.values()).pipe(
       mergeMap(
         (member) =>
-          member.roles.remove(roleId).catch((err) => {
-            Sentry.getCurrentScope().captureException(err);
-            this.logger.error(
-              `failed to remove role ${role.name} from member ${member.displayName}`,
-            );
-          }),
+          member.roles
+            .remove(roleId)
+            .then(() => {
+              successCount++;
+            })
+            .catch((err) => {
+              failCount++;
+              Sentry.getCurrentScope().captureException(err);
+              this.logger.error(
+                `failed to remove role ${role.name} from member ${member.displayName}`,
+              );
+            }),
         50,
       ),
     );
 
     await lastValueFrom(task$, { defaultValue: undefined });
-    return members.size;
+    return {
+      roleFound: true,
+      totalMembers: members.size,
+      successCount,
+      failCount,
+    };
   }
 
   /**
