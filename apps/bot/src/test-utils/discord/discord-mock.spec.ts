@@ -379,17 +379,39 @@ describe('DiscordMock', () => {
     ]);
   });
 
-  it('refuses a reaction the user already added, which Discord would not report again', async ({
+  it('changes nothing when the user already gave a reaction, as Discord only reports one being added', async ({
     discord,
     service,
   }) => {
     await postInC1({ discord, service }, 'review me');
+    const seen: string[] = [];
+    discord.client.on(Events.MessageReactionAdd, () => seen.push('add'));
     const [review] = discord.channel('c1');
     if (!review) throw new Error('expected a message in c1');
+
+    discord.react(review, '✅', 'u1');
     discord.react(review, '✅', 'u1');
 
-    expect(() => discord.react(review, '✅', 'u1')).toThrow(
-      'u1 already reacted ✅',
+    expect(seen).toEqual(['add']);
+    expect([...review.reactions]).toEqual([['✅', new Set(['u1'])]]);
+  });
+
+  it('resolves a repeated reaction by the bot, as the REST call Discord answers with 204 is idempotent', async ({
+    discord,
+    service,
+  }) => {
+    const message = await postInC1({ discord, service }, 'review me');
+    const seen: string[] = [];
+    discord.client.on(Events.MessageReactionAdd, (_reaction, user) =>
+      seen.push(user.id),
+    );
+
+    await message?.react('✅');
+    await message?.react('✅');
+
+    expect(seen).toEqual([BOT_USER_ID]);
+    expect(discord.channel('c1')[0]?.reactions.get('✅')).toEqual(
+      new Set([BOT_USER_ID]),
     );
   });
 

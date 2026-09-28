@@ -574,10 +574,10 @@ export class DiscordMock {
     assertInteractive(message, userId);
     const reaction = resolveEmoji(emoji);
     if (message.reactions.get(reactionKey(reaction))?.has(userId)) {
-      // Discord only reports a reaction being added, not one already there
-      throw new Error(
-        `${userId} already reacted ${reaction.name} to message ${message.id}`,
-      );
+      // Discord only reports a reaction being added, and its REST call for one
+      // already there succeeds, so a reaction the user already gave changes
+      // nothing and is not reported again
+      return;
     }
     message.addReaction(reactionKey(reaction), userId);
     this.client.emit(
