@@ -440,7 +440,7 @@ class SignupCommandHandler implements ISlashCommand {
       }
     }
 
-    await interaction.editReply({ embeds: [errorEmbed] });
+    await interaction.editReply({ embeds: [errorEmbed], components: [] });
   }
 }
 
