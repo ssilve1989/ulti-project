@@ -91,3 +91,9 @@ Deferred (not findings, not for this branch):
 
 - The `settings turbo-prog` subcommand is uncovered by `settings.flow.spec.ts`
   and covered only by its unit spec. It goes with the feature.
+- `clean-roles.command-handler.ts:207` logs `roles > 0 ? 'processed' :
+  'processed'`; the ternary picks the same word either way. Cosmetic log
+  wording, outside the four review categories.
+- The invite-cleaner test logs "Failed to delete invite old-invite" from a
+  background job after its app closes, while passing. Pre-existing noise,
+  outside the flow-spec port.
