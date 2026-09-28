@@ -12,7 +12,7 @@ import {
   PartialGroupDMChannel,
   type TextBasedChannel,
 } from 'discord.js';
-import { from, lastValueFrom, mergeMap } from 'rxjs';
+import { from, lastValueFrom, mergeMap, reduce } from 'rxjs';
 import { InjectDiscordClient } from './discord.decorators.js';
 
 @Injectable()
@@ -185,28 +185,31 @@ class DiscordService {
 
     this.logger.log(`found ${members.size} members with role ${role.name}`);
 
-    let successCount = 0;
-    let failCount = 0;
     const task$ = from(members.values()).pipe(
       mergeMap(
         (member) =>
           member.roles
             .remove(roleId)
-            .then(() => {
-              successCount++;
-            })
+            .then(() => ({ successCount: 1, failCount: 0 }))
             .catch((err) => {
-              failCount++;
               Sentry.getCurrentScope().captureException(err);
               this.logger.error(
                 `failed to remove role ${role.name} from member ${member.displayName}`,
               );
+              return { successCount: 0, failCount: 1 };
             }),
         50,
       ),
+      reduce(
+        (counts, result) => ({
+          successCount: counts.successCount + result.successCount,
+          failCount: counts.failCount + result.failCount,
+        }),
+        { successCount: 0, failCount: 0 },
+      ),
     );
 
-    await lastValueFrom(task$, { defaultValue: undefined });
+    const { successCount, failCount } = await lastValueFrom(task$);
     return {
       roleFound: true,
       totalMembers: members.size,
