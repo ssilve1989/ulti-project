@@ -539,7 +539,7 @@ describe('DiscordMock', () => {
     const removed = await service.removeRole('g1', 'r1');
 
     expect([removed, discord.rolesOf('u1'), discord.rolesOf('u3')]).toEqual([
-      { total: 2, failCount: 0 },
+      { roleFound: true, totalMembers: 2, successCount: 2, failCount: 0 },
       [],
       ['r2'],
     ]);

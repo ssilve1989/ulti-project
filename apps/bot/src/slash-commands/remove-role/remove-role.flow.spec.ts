@@ -68,7 +68,9 @@ describe('Remove role', () => {
 
     it('tells the admin, privately, it worked', ({ flow }) => {
       expect(flow.discord.repliesTo(ADMIN.id).map(shown)).toEqual([
-        textReply(ADMIN.id, 'Success!', { ephemeral: true }),
+        textReply(ADMIN.id, 'Success! Removed role from 2/2 members.', {
+          ephemeral: true,
+        }),
       ]);
     });
   });
@@ -106,7 +108,7 @@ describe('Remove role', () => {
       expect(flow.discord.repliesTo(ADMIN.id).map(shown)).toEqual([
         textReply(
           ADMIN.id,
-          'Removed Above from 0 of 1 members, but 1 failed.',
+          'Role removal completed with failures.\nSuccessful removals: 0/1\nFailed removals: 1',
           { ephemeral: true },
         ),
       ]);

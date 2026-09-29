@@ -70,7 +70,7 @@ Met:
 - Flow specs for `signup`, `status`, `settings`, `blacklist`, `lookup`,
   `search`, `encounters`, `help`, `clean-roles`, `remove-signup`, `retire`,
   `remove-role`, `sync-prog-roles`.
-- `pnpm test:ci` green: 57 files, 742 tests. `pnpm check`, `pnpm build:check`
+- `pnpm test:ci` green: 57 files, 744 tests. `pnpm check`, `pnpm build:check`
   and `pnpm knip` pass.
 - A review round was run. Its findings were triaged: fake divergences fixed
   (`discord-mock.ts` follow-up, `fake-client.ts` array role removal), production
@@ -82,6 +82,12 @@ Met:
   (`signup.command-handler` FFLogs/URL catches, `send-signup-review` unset
   channel, `view-settings` catch, `clean-roles` per-role catch, `retire` outer
   catch).
+- The branch then rebased onto master, which had independently shipped its own
+  versions of two of those production fixes (remove-role honest failure
+  reporting, clean-roles embed field cap) and a Sentry per-command counter. The
+  duplicates were dropped; the flow specs were kept and their expectations
+  realigned to master's implementations, so the branch carries no fixes of its
+  own for remove-role or clean-roles (only the flow coverage for them).
 
 Not met:
 
