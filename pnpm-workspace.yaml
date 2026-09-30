@@ -54,7 +54,7 @@ catalog:
   "@commitlint/cli": ^21.2.3
   "@commitlint/config-conventional": ^21.2.3
   "@commitlint/cz-commitlint": ^21.2.3
-  "@dotenvx/dotenvx": ^2.23.0
+  "@dotenvx/dotenvx": ^2.30.0
   "@googleapis/sheets": ^14.0.0
   "@graphql-codegen/cli": 7.4.2
   "@graphql-codegen/schema-ast": ^6.1.0
