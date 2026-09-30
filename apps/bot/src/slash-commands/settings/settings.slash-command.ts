@@ -113,22 +113,6 @@ const EditSpreadsheetSubcommand = new SlashCommandSubcommandBuilder()
       .setRequired(true),
   );
 
-const EditTurboProgSubcommand = new SlashCommandSubcommandBuilder()
-  .setName('turbo-prog')
-  .setDescription('Edit turbo prog settings')
-  .addBooleanOption((option) =>
-    option
-      .setName('active')
-      .setDescription('Whether or not turbo prog is currently active')
-      .setRequired(true),
-  )
-  .addStringOption((option) =>
-    option
-      .setName('spreadsheet-id')
-      .setDescription('The id of the spreadsheet to use for turbo prog')
-      .setRequired(false),
-  );
-
 const ViewSettingsSubcommand = new SlashCommandSubcommandBuilder()
   .setName('view')
   .setDescription('view the current bot settings');
@@ -143,5 +127,4 @@ export const SettingsSlashCommand = new SlashCommandBuilder()
   .addSubcommand(EditEncounterRolesSubcommand)
   .addSubcommand(EditProgPointRolesSubcommand)
   .addSubcommand(EditSpreadsheetSubcommand)
-  .addSubcommand(EditTurboProgSubcommand)
   .addSubcommand(ViewSettingsSubcommand);

@@ -6,7 +6,6 @@ const sheetsSchema = z.object({
   // since this was turned on.
   GOOGLE_APIS_HTTP2: z.stringbool().default(false),
   GOOGLE_UNIVERSE_DOMAIN: z.string().default('googleapis.com'),
-  TURBO_PROG_SHEET_NAME: z.string().default('Bot'),
 });
 
 export const sheetsConfig = sheetsSchema.parse(process.env);

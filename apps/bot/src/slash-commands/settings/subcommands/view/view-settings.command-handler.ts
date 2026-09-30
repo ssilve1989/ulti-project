@@ -69,8 +69,6 @@ class ViewSettingsCommandHandler implements ISlashCommand {
 
       scope.setContext('settings_data', {
         hasSpreadsheet: !!settings.spreadsheetId,
-        hasTurboProgSpreadsheet: !!settings.turboProgSpreadsheetId,
-        turboProgActive: settings.turboProgActive,
         configuredChannels: [
           settings.autoModChannelId,
           settings.reviewChannel,
@@ -87,15 +85,6 @@ class ViewSettingsCommandHandler implements ISlashCommand {
 
       // fetched once so navigating back to the overview never re-hits the Sheets API
       const spreadsheetFields: APIEmbedField[] = [];
-
-      if (settings.turboProgSpreadsheetId) {
-        spreadsheetFields.push(
-          await this.buildSpreadsheetField(
-            'Turbo Prog Spreadsheet',
-            settings.turboProgSpreadsheetId,
-          ),
-        );
-      }
 
       if (settings.spreadsheetId) {
         spreadsheetFields.push(
