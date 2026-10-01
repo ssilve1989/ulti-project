@@ -4,6 +4,7 @@ import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { basename, dirname, join, relative } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { gunzipSync } from 'node:zlib';
+import { isEncounter } from '@ulti-project/shared';
 import nock, { type BackMode, type Definition } from 'nock';
 import { expect } from 'vitest';
 import { createdRequest, HTTP_REQUEST_CREATED } from '../idle.js';
@@ -118,6 +119,26 @@ function decodeGzippedJson(definition: Definition): Definition {
 }
 
 /**
+ * The app only ever looks a tab up by an encounter's name, so a recorded tab
+ * list keeps just the encounter tabs. The rest of the spreadsheet is none of a
+ * test's business.
+ */
+function keepEncounterTabs(definition: Definition): Definition {
+  const { response } = definition;
+  if (!isRecord(response) || !Array.isArray(response.sheets)) {
+    return definition;
+  }
+  const sheets: unknown[] = response.sheets.filter((sheet: unknown) => {
+    const title =
+      isRecord(sheet) && isRecord(sheet.properties)
+        ? sheet.properties.title
+        : undefined;
+    return typeof title === 'string' && isEncounter(title);
+  });
+  return { ...definition, response: { ...response, sheets } };
+}
+
+/**
  * Strips credentials before a recording is written: the OAuth token exchange
  * carries a signed JWT assertion (identifying the service account) and returns
  * an access token.
@@ -130,7 +151,9 @@ function scrub(definitions: Definition[]): Definition[] {
       const value = definition.rawHeaders?.[name];
       if (value !== undefined) headers[name] = value;
     }
-    const scrubbed = decodeGzippedJson({ ...definition, rawHeaders: headers });
+    const scrubbed = keepEncounterTabs(
+      decodeGzippedJson({ ...definition, rawHeaders: headers }),
+    );
     if (String(definition.path).includes('/token')) {
       // the assertion is signed at request time, so replays can't match it; drop it
       scrubbed.body = undefined;
