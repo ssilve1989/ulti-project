@@ -20,11 +20,6 @@ minimumReleaseAge: 7200
 minimumReleaseAgeIgnoreMissingTime: true
 minimumReleaseAgeExclude:
   - typescript
-  - "@nestjs/common@12.0.2"
-  - "@nestjs/core@11.1.18"
-  - "@nestjs/core@12.0.2"
-  - "@nestjs/testing@12.0.2"
-  - nestjs-pino@5.2.0
   - "@typescript/typescript-aix-ppc64@7.0.2"
   - "@typescript/typescript-darwin-arm64@7.0.2"
   - "@typescript/typescript-darwin-x64@7.0.2"
