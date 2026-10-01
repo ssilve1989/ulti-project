@@ -250,6 +250,29 @@ describe('Blacklist', () => {
     });
   });
 
+  describe('when a guild never chose blacklist channels but has a moderation channel', () => {
+    it('notifies the moderation channel', async ({ flow }) => {
+      flow.db.seed(`settings/${GUILD}`, {
+        autoModChannelId: BLACKLIST_CHANNEL,
+      });
+
+      await blacklist(flow, 'add', { user: PLAYER.id, reason: 'Harassment' });
+
+      expect(blacklistChannels(flow)).toEqual([
+        [
+          updateNotice(flow, BLACKLIST_CHANNEL, {
+            change: 'added to',
+            fields: [
+              field('User', `Player Nick (<@${PLAYER.id}>)`),
+              field('Reason', 'Harassment'),
+            ],
+          }),
+        ],
+        [],
+      ]);
+    });
+  });
+
   describe('when a blacklist channel no longer exists', () => {
     it('reports it and still notifies the other channels', async ({ flow }) => {
       flow.db.seed(`settings/${GUILD}`, {

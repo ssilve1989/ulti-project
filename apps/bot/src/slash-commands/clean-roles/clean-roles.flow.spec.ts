@@ -238,7 +238,7 @@ describe('Clean roles', () => {
     }) => {
       flow.discord.addRole(GUILD, { ...DMU_CLEAR, aboveBot: true });
 
-      await cleanRoles(flow);
+      const replies = await cleanRoles(flow);
 
       flow.expectReported(
         /^error: DiscordAPIError\[50013\]: Missing Permissions.*Failed to process member Lapsed Nick \(lapsed-1\) for role DMU Clear/s,
@@ -246,9 +246,22 @@ describe('Clean roles', () => {
       flow.expectReported(
         /^Sentry exception: DiscordAPIError\[50013\]: Missing Permissions/,
       );
-      expect(flow.discord.rolesOf(LAPSED.id)).toEqual([
-        DMU_CLEAR.id,
-        OTHER_ROLE,
+      expect([replies, flow.discord.rolesOf(LAPSED.id)]).toEqual([
+        summary(
+          '**Total Roles Processed:** 4',
+          '**Total Members Processed:** 4',
+          '**Total Roles Removed:** 1',
+          '**Failed Removals:** 1',
+          '',
+          '**Role Details:**',
+          '• **DMU Prog**: 1/2 removed (1 kept for active signups)',
+          '• **TOP Prog**: No members had this role',
+          '• **DMU Clear**: 0/1 removed (1 failed)',
+          '• **DMU P6**: 0/1 removed (1 kept for active signups)',
+          '',
+          '⚠️ Role cleanup completed with failed removals.',
+        ),
+        [DMU_CLEAR.id, OTHER_ROLE],
       ]);
     });
   });

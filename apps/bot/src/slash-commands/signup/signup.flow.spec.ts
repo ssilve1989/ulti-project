@@ -992,6 +992,37 @@ describe('Signup lifecycle', () => {
     });
   });
 
+  describe('when a blacklisted player signs up in a guild that never chose blacklist channels', () => {
+    it('alerts the moderation channel', async ({ flow }) => {
+      const { blacklistChannelIds: _, ...settings } =
+        flow.db.read(`settings/${GUILD}`) ?? {};
+      flow.db.seed(`settings/${GUILD}`, {
+        ...settings,
+        autoModChannelId: BLACKLIST_CHANNEL,
+      });
+      flow.db.seed(`blacklist/${GUILD}/documents/entry-1`, {
+        characterName: null,
+        discordId: PLAYER.id,
+        reason: 'Harassment',
+        lodestoneId: 12345,
+      });
+
+      await submitSignup(flow);
+
+      expect(flow.discord.channel(BLACKLIST_CHANNEL).map(shown)).toEqual([
+        blacklistAlert(flow, [
+          {
+            name: 'Player',
+            value: titleCase(`${PLAYER.displayName} (<@${PLAYER.id}>)`),
+            inline: true,
+          },
+          { name: 'Reason', value: 'Harassment', inline: true },
+          { name: 'Lodestone ID', value: '12345', inline: true },
+        ]),
+      ]);
+    });
+  });
+
   describe('when a blacklisted player signs up in a guild that turned blacklist alerts off', () => {
     it('alerts no channel and warns that none is set', async ({ flow }) => {
       updateSettings(flow, { blacklistChannelIds: [] });
