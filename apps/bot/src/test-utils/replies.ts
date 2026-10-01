@@ -47,8 +47,6 @@ export const commandErrorEmbed = (flow: FlowApp) => ({
 export const commandErrorReply = (flow: FlowApp, userId: string) =>
   privateReply(userId, { embeds: [commandErrorEmbed(flow)] });
 
-const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 /**
  * Declares what a command reports when it fails with an error whose message
  * starts with `message` (e.g. `14 UNAVAILABLE`): the exception sent to Sentry,
@@ -56,10 +54,10 @@ const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  */
 export function expectCommandErrorReported(flow: FlowApp, message: string) {
   // how an error prints: its class, any code, and its message
-  const error = `\\w*Error(?: \\[\\w+\\])?: ${escaped(message)}`;
+  const error = `\\w*Error(?: \\[\\w+\\])?: ${RegExp.escape(message)}`;
   flow.expectReported(new RegExp(`^Sentry exception: ${error}`));
   flow.expectReported(new RegExp(`^error: \\{\\n\\s+err: ${error}`));
   flow.expectReported(
-    new RegExp(`^error: .*Command error: ${escaped(message)}`, 's'),
+    new RegExp(`^error: .*Command error: ${RegExp.escape(message)}`, 's'),
   );
 }
