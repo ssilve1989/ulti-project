@@ -27,6 +27,7 @@ export default defineConfig({
       exclude: [
         'apps/bot/src/slash-commands/**/*{-command.ts,.command.ts}',
         '**/*.module.ts',
+        'apps/bot/src/test-utils/**',
         'apps/cli/**',
       ],
       provider: 'v8',

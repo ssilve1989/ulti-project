@@ -114,4 +114,29 @@ describe('Remove role', () => {
       ]);
     });
   });
+
+  describe('when the role is deleted while the command is running', () => {
+    it('tells the admin the role was not found, removing nothing', async ({
+      flow,
+    }) => {
+      flow.discord.command({
+        userId: ADMIN.id,
+        guildId: GUILD,
+        commandName: 'remove-role',
+        options: { role: PROG_ROLE },
+      });
+      // the option was resolved when the command arrived; the role goes before the bot looks it up
+      flow.discord.deleteRole(GUILD, PROG_ROLE);
+      await flow.settle();
+
+      flow.expectReported(
+        new RegExp(`^warning: role ${PROG_ROLE} not found in guild ${GUILD}`),
+      );
+      expect(flow.discord.repliesTo(ADMIN.id).map(shown)).toEqual([
+        textReply(ADMIN.id, 'Role was not found; no removals were attempted.', {
+          ephemeral: true,
+        }),
+      ]);
+    });
+  });
 });

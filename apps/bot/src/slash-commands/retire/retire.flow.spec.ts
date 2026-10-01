@@ -176,4 +176,29 @@ describe('Retire', () => {
       );
     });
   });
+
+  describe('when Discord fails while the bot looks up the guild', () => {
+    it.beforeEach(({ flow }) => flow.discord.failGuildFetches());
+
+    it('tells the admin it failed, changing no roles', async ({ flow }) => {
+      const replies = await retire(flow, {
+        from: HELPER_ROLE.id,
+        to: RETIRED_ROLE.id,
+      });
+
+      flow.expectReported(/^error: HTTPError.*Error during role retirement/s);
+      expect([replies, rolesOfEveryone(flow)]).toEqual([
+        privateEmbed({
+          title: 'Role Retirement Failed',
+          description: 'An error occurred while processing role retirement.',
+          color: Colors.Red,
+        }),
+        [
+          [HELPER_ROLE.id, OTHER_ROLE],
+          [HELPER_ROLE.id, OTHER_ROLE],
+          [OTHER_ROLE],
+        ],
+      ]);
+    });
+  });
 });

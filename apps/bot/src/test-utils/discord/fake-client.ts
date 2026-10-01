@@ -20,6 +20,7 @@ import { mockOf } from '../mock-factory.js';
 import {
   cannotMessageUser,
   discordjsError,
+  discordUnavailable,
   type FakeMessage,
   missingPermissions,
   type OutgoingPayload,
@@ -73,6 +74,8 @@ export interface FakeWorld {
   readonly user: (userId: string) => FakeUser | undefined;
   readonly emojis: () => ReadonlyMap<string, string>;
   readonly canBeMessaged: (userId: string) => boolean;
+  /** whether Discord is failing guild fetches (an outage) */
+  readonly guildsUnavailable: () => boolean;
   readonly post: (
     channel: FakeChannel,
     payload: OutgoingPayload,
@@ -293,6 +296,9 @@ export class FakeViews {
   }
 
   private fetchGuild(guildId: string): Promise<Guild> {
+    if (this.world.guildsUnavailable()) {
+      return Promise.reject(discordUnavailable('GET', `/guilds/${guildId}`));
+    }
     return this.world.guildIds().includes(guildId)
       ? Promise.resolve(this.guild(guildId))
       : Promise.reject(unknownGuild(guildId));

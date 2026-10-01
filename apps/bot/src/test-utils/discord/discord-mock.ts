@@ -304,6 +304,7 @@ export class DiscordMock {
   private readonly channels = new Map<string, FakeChannel>();
   private readonly messages: FakeMessage[] = [];
   private readonly failingDms = new Set<string>();
+  private guildFetchesFail = false;
   private readonly pressed: Array<{ customId: string; ack: Acknowledgement }> =
     [];
   /** userId → the modal shown to them, and what is awaiting its submit */
@@ -390,6 +391,15 @@ export class DiscordMock {
     this.addGuild(guildId).set(role.id, role);
   }
 
+  /** Deletes a role from its guild; members who held it no longer do, as in Discord. */
+  deleteRole(guildId: string, roleId: string): void {
+    const roles = this.guilds.get(guildId);
+    if (!roles?.delete(roleId)) {
+      throw new Error(`Guild ${guildId} has no role ${roleId} to delete`);
+    }
+    for (const member of this.members.values()) member.roles.delete(roleId);
+  }
+
   /** Adds a custom emoji the bot can use. */
   addEmoji({ id, name }: { id: string; name: string }): void {
     this.emojis.set(id, name);
@@ -407,6 +417,11 @@ export class DiscordMock {
 
   failDirectMessagesTo(userId: string): void {
     this.failingDms.add(userId);
+  }
+
+  /** From now on Discord fails every guild fetch with a server error, as in an outage; interactions still work. */
+  failGuildFetches(): void {
+    this.guildFetchesFail = true;
   }
 
   // --- queries
@@ -791,6 +806,7 @@ export class DiscordMock {
       user: (userId) => this.members.get(userId) ?? this.users.get(userId),
       emojis: () => this.emojis,
       canBeMessaged: (userId) => !this.failingDms.has(userId),
+      guildsUnavailable: () => this.guildFetchesFail,
       post: ({ guildId, id }, payload) =>
         this.createMessage(
           { kind: 'channel', guildId, channelId: id },

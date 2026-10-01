@@ -24,6 +24,7 @@ import { BOT_USER_ID, DiscordMock } from './discord-mock.js';
 import {
   cannotMessageUser,
   discordjsError,
+  discordUnavailable,
   missingPermissions,
   shown,
   unknownResource,
@@ -224,6 +225,36 @@ describe('DiscordMock', () => {
     await expect(service.sendDirectMessage('u1', 'hello')).rejects.toEqual(
       cannotMessageUser('dm-u1'),
     );
+  });
+
+  it('fails guild fetches with a server error once Discord is down, as in an outage', async ({
+    discord,
+    service,
+  }) => {
+    discord.failGuildFetches();
+
+    await expect(service.retireRole('g1', 'r1', 'r2')).rejects.toEqual(
+      discordUnavailable('GET', '/guilds/g1'),
+    );
+  });
+
+  it('takes a deleted role from its holders, and fetching it gives null, as discord.js does', async ({
+    discord,
+    service,
+  }) => {
+    discord.deleteRole('g1', 'r1');
+
+    expect(discord.rolesOf('u1')).toEqual([]);
+    expect(await service.removeRole('g1', 'r1')).toEqual({
+      roleFound: false,
+      totalMembers: 0,
+      successCount: 0,
+      failCount: 0,
+    });
+  });
+
+  it('refuses to delete a role the guild does not have', ({ discord }) => {
+    expect(() => discord.deleteRole('g1', 'r9')).toThrow(/no role r9/);
   });
 
   it('resolves a pending awaitMessageComponent when the user clicks', async ({

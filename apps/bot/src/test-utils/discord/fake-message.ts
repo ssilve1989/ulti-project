@@ -7,6 +7,7 @@ import {
   DiscordjsErrorCodes,
   DiscordjsTypeError,
   EmbedBuilder,
+  HTTPError,
   type Interaction,
   isJSONEncodable,
   type Message,
@@ -137,6 +138,17 @@ export function unknownResource(
     body: undefined,
     files: undefined,
   });
+}
+
+/** The HTTPError discord.js throws when Discord answers with a server error (an outage). */
+export function discordUnavailable(method: string, path: string): HTTPError {
+  return new HTTPError(
+    500,
+    'Internal Server Error',
+    method,
+    `https://discord.com/api/v10${path}`,
+    { body: undefined, files: undefined },
+  );
 }
 
 /** The DiscordAPIError the API returns when a user doesn't accept DMs from the bot. */
