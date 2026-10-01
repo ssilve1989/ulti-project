@@ -12,7 +12,6 @@ vi.stubEnv('NODE_ENV', 'test');
 vi.stubEnv('DISCORD_REFRESH_COMMANDS', 'false');
 
 // Sheets config
-vi.stubEnv('TURBO_PROG_SHEET_NAME', 'TurboProg');
 vi.stubEnv('GOOGLE_APIS_HTTP2', 'false');
 vi.stubEnv('GOOGLE_UNIVERSE_DOMAIN', 'googleapis.com');
 

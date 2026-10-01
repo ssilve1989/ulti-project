@@ -181,7 +181,6 @@ export function buildOverviewEmbed(
     reviewChannel,
     reviewerRole,
     signupChannel,
-    turboProgActive,
   } = settings;
 
   const progPointEncounters = getConfiguredProgPointEncounters(progPointRoles);
@@ -221,11 +220,6 @@ export function buildOverviewEmbed(
     {
       name: 'Reviewer Role',
       value: formatRole(reviewerRole),
-      inline: true,
-    },
-    {
-      name: 'Turbo Prog Active',
-      value: turboProgActive ? 'Yes' : 'No',
       inline: true,
     },
     ...spreadsheetFields,

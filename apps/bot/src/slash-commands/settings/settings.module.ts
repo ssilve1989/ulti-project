@@ -9,7 +9,6 @@ import { EditProgPointRolesCommandHandler } from './subcommands/prog-point-roles
 import { EditReviewerCommandHandler } from './subcommands/reviewer/edit-reviewer.command-handler.js';
 import { EditEncounterRolesCommandHandler } from './subcommands/roles/edit-encounter-roles.command-handler.js';
 import { EditSpreadsheetCommandHandler } from './subcommands/spreadsheet/edit-spreadsheet.command-handler.js';
-import { EditTurboProgCommandHandler } from './subcommands/turbo-prog/edit-turbo-prog.command-handler.js';
 import { ViewSettingsCommandHandler } from './subcommands/view/view-settings.command-handler.js';
 
 @Module({
@@ -21,7 +20,6 @@ import { ViewSettingsCommandHandler } from './subcommands/view/view-settings.com
     EditProgPointRolesCommandHandler,
     EditReviewerCommandHandler,
     EditSpreadsheetCommandHandler,
-    EditTurboProgCommandHandler,
     ViewSettingsCommandHandler,
   ],
 })

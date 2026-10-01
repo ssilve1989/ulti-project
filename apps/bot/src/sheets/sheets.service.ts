@@ -10,10 +10,8 @@ import {
 import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
 import { AsyncQueue } from '../common/async-queue/async-queue.js';
-import { sheetsConfig } from '../config/sheets.js';
 import { EncountersService } from '../encounters/encounters.service.js';
 import { ErrorService } from '../error/error.service.js';
-import type { TurboProgEntry } from '../slash-commands/turboprog/turbo-prog.interfaces.js';
 import { type SheetRangeConfig, SheetRanges } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
 import {
@@ -24,10 +22,6 @@ import {
   getSheetValues,
   updateSheet,
 } from './sheets.utils.js';
-import {
-  TURBP_PROG_SHEET_STARTING_ROW,
-  TurboProgSheetRanges,
-} from './turbo-prog-sheets/turbo-prog-sheets.consts.js';
 
 type NonClearedPartyStatus =
   | typeof PartyStatus.EarlyProgParty
@@ -43,9 +37,8 @@ type PartyTypes = NonClearedPartyStatus[];
 @Injectable()
 class SheetsService implements OnApplicationShutdown {
   private readonly logger: Logger = new Logger(SheetsService.name);
-  // Separate queues for regular signups and TurboProg operations
+  // Serializes signup writes to avoid concurrent-write races on the sheet
   private readonly signupQueue = new AsyncQueue();
-  private readonly turboProgQueue = new AsyncQueue();
 
   constructor(
     @InjectSheetsClient() private readonly client: sheets_v4.Sheets,
@@ -55,7 +48,6 @@ class SheetsService implements OnApplicationShutdown {
 
   onApplicationShutdown(): void {
     this.signupQueue.complete();
-    this.turboProgQueue.complete();
   }
 
   // Regular signup methods
@@ -90,75 +82,6 @@ class SheetsService implements OnApplicationShutdown {
         this.logger.warn(msg);
       }
     }
-  }
-
-  // TurboProg methods - merged from TurboProgSheetsService
-
-  /**
-   * Upsert a TurboProg entry into the spreadsheet
-   * @param entry The TurboProg entry to insert or update
-   * @param spreadsheetId The ID of the spreadsheet
-   * @returns A promise that resolves when the operation is complete
-   */
-  @SentryTraced()
-  public upsertTurboProgEntry(entry: TurboProgEntry, spreadsheetId: string) {
-    return this.turboProgQueue.add(() =>
-      this.upsertTurboProgRow(entry, spreadsheetId),
-    );
-  }
-
-  /**
-   * Remove a TurboProg entry from the spreadsheet
-   * @param entry The entry to remove (only character and encounter are required)
-   * @param spreadsheetId The ID of the spreadsheet
-   */
-  @SentryTraced()
-  public removeTurboProgEntry(
-    { encounter, character }: Pick<TurboProgEntry, 'encounter' | 'character'>,
-    spreadsheetId: string,
-  ) {
-    return this.turboProgQueue.add(async () => {
-      const range = TurboProgSheetRanges[encounter];
-      // Skip if this encounter doesn't support TurboProg
-      if (!range) {
-        return;
-      }
-
-      const sheetName = sheetsConfig.TURBO_PROG_SHEET_NAME;
-      const { rowIndex } = await findCharacterRowIndex(this.client, {
-        spreadsheetId,
-        range: `${sheetName}!${range.start}:${range.end}`,
-        predicate: (values) => values.has(character.toLowerCase()),
-      });
-
-      if (rowIndex !== -1) {
-        const sheetId = await getSheetIdByName(
-          this.client,
-          spreadsheetId,
-          sheetName,
-        );
-
-        const request: sheets_v4.Schema$Request = {
-          updateCells: {
-            range: {
-              sheetId,
-              startRowIndex: rowIndex,
-              endRowIndex: rowIndex + 1,
-              startColumnIndex: columnToIndex(range.start),
-              endColumnIndex: columnToIndex(range.end) + 1,
-            },
-            fields: 'userEnteredValue',
-          },
-        };
-
-        await this.client.spreadsheets.batchUpdate({
-          spreadsheetId,
-          requestBody: {
-            requests: [request],
-          },
-        });
-      }
-    });
   }
 
   // Original methods
@@ -399,45 +322,6 @@ class SheetsService implements OnApplicationShutdown {
           throw e;
         });
     }
-  }
-
-  // Private methods for TurboProg
-
-  /**
-   * Inserts or updates a TurboProg entry in the sheet
-   */
-  @SentryTraced()
-  private async upsertTurboProgRow(
-    { encounter, character, job, progPoint }: TurboProgEntry,
-    spreadsheetId: string,
-  ) {
-    const sheetName = sheetsConfig.TURBO_PROG_SHEET_NAME;
-    const range = TurboProgSheetRanges[encounter];
-
-    const { rowIndex, sheetValues } = await findCharacterRowIndex(this.client, {
-      spreadsheetId,
-      range: `${sheetName}!${range.start}:${range.end}`,
-      predicate: (values) => values.has(character.toLowerCase()),
-    });
-
-    const rowOffset = sheetValues
-      ? sheetValues.length + 1
-      : TURBP_PROG_SHEET_STARTING_ROW;
-
-    const values = [titleCase(character), job, progPoint];
-    const updateRange =
-      rowIndex === -1
-        ? `${sheetName}!${range.start}${rowOffset}:${range.end}`
-        : `${sheetName}!${range.start}${rowIndex + 1}:${range.end}${
-            rowIndex + 1
-          }`;
-
-    await updateSheet(this.client, {
-      spreadsheetId,
-      range: updateRange,
-      values: [values],
-      type: 'update',
-    });
   }
 
   // Original private methods

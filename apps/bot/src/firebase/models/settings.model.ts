@@ -8,8 +8,6 @@ export interface SettingsDocument extends DocumentData {
   blacklistChannelIds?: string[];
   signupChannel?: string;
   spreadsheetId?: string;
-  turboProgActive?: boolean;
-  turboProgSpreadsheetId?: string;
 
   progRoles?: {
     [key in keyof typeof Encounter]?: string;

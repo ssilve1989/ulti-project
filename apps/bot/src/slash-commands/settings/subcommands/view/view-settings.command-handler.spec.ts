@@ -43,7 +43,6 @@ describe('ViewSettingsCommandHandler', () => {
     reviewChannel: 'review-chan',
     signupChannel: 'signup-chan',
     reviewerRole: 'reviewer-role',
-    turboProgActive: true,
     progRoles: { TOP: 'top-prog' },
     clearRoles: { TOP: 'top-clear', DSR: 'dsr-clear' },
     progPointRoles: { TOP: { P1: 'r1', P2: 'r2' }, DSR: { P3: 'r3' } },

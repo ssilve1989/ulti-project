@@ -3,7 +3,6 @@ import { type ICommand, type IEvent, ofType, Saga } from '@nestjs/cqrs';
 import { filter, map, mergeMap, Observable } from 'rxjs';
 import { BlacklistSearchCommand } from '../blacklist/blacklist.commands.js';
 import { RemoveSignupEvent } from '../remove-signup/remove-signup.events.js';
-import { TurboProgRemoveSignupCommand } from '../turboprog/commands/turbo-prog.commands.js';
 import { RemoveRolesCommand } from './commands/signup.commands.js';
 import {
   SignupApprovalSentEvent,
@@ -31,7 +30,6 @@ class SignupSagas {
 
   /**
    * When a signup is approved, check if it has cleared status and remove roles if it does
-   * Additionally will dispatch a command to clear the signup from the TurboProg sheet
    * @param event$
    * @returns
    */
@@ -46,18 +44,11 @@ class SignupSagas {
           signup.discordId,
           signup.encounter,
         ),
-        new TurboProgRemoveSignupCommand(
-          {
-            character: signup.character,
-            encounter: signup.encounter,
-          },
-          message.guildId,
-        ),
       ]),
     );
 
   /**
-   * When a signup is removed, dispatch a command to remove it from the TurboProg sheet
+   * When a signup is removed, dispatch a command to remove the signup's roles
    * @param event$
    * @returns
    */
@@ -66,9 +57,8 @@ class SignupSagas {
     event$.pipe(
       ofType(RemoveSignupEvent),
       mergeMap(
-        ({ dto: { character, encounter }, ids: { discordId, guildId } }) => [
+        ({ dto: { encounter }, ids: { discordId, guildId } }) => [
           new RemoveRolesCommand(guildId, discordId, encounter),
-          new TurboProgRemoveSignupCommand({ character, encounter }, guildId),
         ],
         10,
       ),

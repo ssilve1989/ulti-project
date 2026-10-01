@@ -1,17 +1,13 @@
 import { sheets, sheets_v4 } from '@googleapis/sheets';
 import { Test } from '@nestjs/testing';
 import { Encounter, PartyStatus } from '@ulti-project/shared';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EncountersService } from '../encounters/encounters.service.js';
 import { ErrorService } from '../error/error.service.js';
 import { mockOf, withInternals } from '../test-utils/mock-factory.js';
 import { SHEETS_CLIENT } from './sheets.consts.js';
 import { SheetsService } from './sheets.service.js';
 import * as sheetsUtils from './sheets.utils.js';
-import { TurboProgSheetRanges } from './turbo-prog-sheets/turbo-prog-sheets.consts.js';
-
-// Define regex patterns at top level for better performance
-const TURBO_PROG_RANGE_PATTERN = /TurboProg!A\d+:D/;
 
 vi.mock('@googleapis/sheets', () => ({
   sheets_v4: {},
@@ -134,7 +130,6 @@ describe('Sheets Service', () => {
         .spyOn(
           withInternals<{
             getRemoveRequestsForRange: (...args: unknown[]) => Promise<unknown>;
-            upsertTurboProgRow: (...args: unknown[]) => Promise<unknown>;
           }>(service),
           'getRemoveRequestsForRange',
         )
@@ -174,7 +169,6 @@ describe('Sheets Service', () => {
       vi.spyOn(
         withInternals<{
           getRemoveRequestsForRange: (...args: unknown[]) => Promise<unknown>;
-          upsertTurboProgRow: (...args: unknown[]) => Promise<unknown>;
         }>(service),
         'getRemoveRequestsForRange',
       ).mockResolvedValue([mockRequest]);
@@ -191,244 +185,6 @@ describe('Sheets Service', () => {
       expect(batchUpdateSpy).toHaveBeenCalledWith(client, 'test-sheet-id', [
         mockRequest,
       ]);
-    });
-  });
-
-  // Tests for TurboProg functionality (consolidated from TurboProgSheetsService)
-  describe('#upsertTurboProgEntry', () => {
-    it('should queue and execute the upsert operation', async () => {
-      // Mock the private method that does the actual work
-      const upsertTurboProgRowSpy = vi
-        .spyOn(
-          withInternals<{
-            getRemoveRequestsForRange: (...args: unknown[]) => Promise<unknown>;
-            upsertTurboProgRow: (...args: unknown[]) => Promise<unknown>;
-          }>(service),
-          'upsertTurboProgRow',
-        )
-        .mockResolvedValue(undefined);
-
-      const mockEntry = {
-        character: 'TestChar',
-        job: 'WAR',
-        progPoint: 'P1',
-        encounter: Encounter.DSR,
-      };
-
-      await service.upsertTurboProgEntry(mockEntry, 'test-spreadsheet-id');
-
-      // Verify the private method was called with the correct parameters
-      expect(upsertTurboProgRowSpy).toHaveBeenCalledWith(
-        mockEntry,
-        'test-spreadsheet-id',
-      );
-    });
-  });
-
-  describe('#removeTurboProgEntry', () => {
-    afterEach(() => {
-      // Restore only the spies this block installs on real modules
-      // (`sheetsUtils`, the Sheets client). `vi.resetAllMocks()` would wipe
-      // every mock in the shared registry — a cross-file hazard under
-      // `test.isolate: false`.
-      vi.restoreAllMocks();
-    });
-
-    it('should skip if encounter does not support TurboProg', async () => {
-      // Mock an encounter that doesn't have a range defined
-      // TOP has no range configured, so it exercises the unsupported path
-      const mockEncounter = Encounter.TOP;
-
-      // Mock findCharacterRowIndex - should not be called
-      const findCharacterRowIndexSpy = vi.spyOn(
-        sheetsUtils,
-        'findCharacterRowIndex',
-      );
-
-      await service.removeTurboProgEntry(
-        {
-          encounter: mockEncounter,
-          character: 'TestChar',
-        },
-        'test-spreadsheet-id',
-      );
-
-      // Verify findCharacterRowIndex was not called
-      expect(findCharacterRowIndexSpy).not.toHaveBeenCalled();
-    });
-
-    it('should remove an entry when found', async () => {
-      // Mock the TurboProgSheetRanges
-      const mockRange = { start: 'A', end: 'D' };
-      const originalRanges = { ...TurboProgSheetRanges };
-      TurboProgSheetRanges[Encounter.DSR] = mockRange;
-
-      // Mock findCharacterRowIndex to return a row
-      vi.spyOn(sheetsUtils, 'findCharacterRowIndex').mockResolvedValue({
-        rowIndex: 5,
-        sheetValues: [['TestChar', 'WAR', 'P1', 'Weekends']],
-      });
-
-      // Mock getSheetIdByName
-      vi.spyOn(sheetsUtils, 'getSheetIdByName').mockResolvedValue(456);
-
-      // Spy on batchUpdate
-      const batchUpdateSpy = vi
-        .spyOn(client.spreadsheets, 'batchUpdate')
-        .mockResolvedValue(
-          mockOf<Awaited<ReturnType<typeof client.spreadsheets.batchUpdate>>>(
-            {},
-          ),
-        );
-
-      await service.removeTurboProgEntry(
-        {
-          encounter: Encounter.DSR,
-          character: 'TestChar',
-        },
-        'test-spreadsheet-id',
-      );
-
-      // Verify batchUpdate was called with the correct parameters
-      expect(batchUpdateSpy).toHaveBeenCalledWith({
-        spreadsheetId: 'test-spreadsheet-id',
-        requestBody: {
-          requests: [
-            expect.objectContaining({
-              updateCells: expect.objectContaining({
-                range: expect.objectContaining({
-                  sheetId: 456,
-                  startRowIndex: 5,
-                  endRowIndex: 6,
-                }),
-              }),
-            }),
-          ],
-        },
-      });
-
-      // Restore the original TurboProgSheetRanges
-      Object.assign(TurboProgSheetRanges, originalRanges);
-    });
-
-    it('should do nothing if entry not found', async () => {
-      // Mock the TurboProgSheetRanges
-      const mockRange = { start: 'A', end: 'D' };
-      const originalRanges = { ...TurboProgSheetRanges };
-      TurboProgSheetRanges[Encounter.DSR] = mockRange;
-
-      // Mock findCharacterRowIndex to return -1 (not found)
-      vi.spyOn(sheetsUtils, 'findCharacterRowIndex').mockResolvedValue({
-        rowIndex: -1,
-        sheetValues: [],
-      });
-
-      // Spy on batchUpdate
-      const batchUpdateSpy = vi.spyOn(client.spreadsheets, 'batchUpdate');
-
-      await service.removeTurboProgEntry(
-        {
-          encounter: Encounter.DSR,
-          character: 'NonExistentChar',
-        },
-        'test-spreadsheet-id',
-      );
-
-      // Verify batchUpdate was not called
-      expect(batchUpdateSpy).not.toHaveBeenCalled();
-
-      // Restore the original TurboProgSheetRanges
-      Object.assign(TurboProgSheetRanges, originalRanges);
-    });
-  });
-
-  // Test coverage for private method upsertTurboProgRow through the public method
-  describe('upsertTurboProgRow (via upsertTurboProgEntry)', () => {
-    it('should update an existing row when found', async () => {
-      // Mock the TurboProgSheetRanges
-      const mockRange = { start: 'A', end: 'D' };
-      const originalRanges = { ...TurboProgSheetRanges };
-      TurboProgSheetRanges[Encounter.DSR] = mockRange;
-
-      // Mock findCharacterRowIndex to return a row
-      vi.spyOn(sheetsUtils, 'findCharacterRowIndex').mockResolvedValue({
-        rowIndex: 3,
-        sheetValues: [['TestChar', 'WAR', 'P1', 'Weekends']],
-      });
-
-      // Mock updateSheet
-      const updateSheetSpy = vi
-        .spyOn(sheetsUtils, 'updateSheet')
-        .mockResolvedValue(
-          mockOf<Awaited<ReturnType<typeof sheetsUtils.updateSheet>>>({}),
-        );
-
-      const mockEntry = {
-        character: 'TestChar',
-        job: 'WAR',
-        progPoint: 'P2',
-        encounter: Encounter.DSR,
-      };
-
-      await service.upsertTurboProgEntry(mockEntry, 'test-spreadsheet-id');
-
-      // Verify updateSheet was called with correct arguments for updating existing row
-      expect(updateSheetSpy).toHaveBeenCalledWith(
-        client,
-        expect.objectContaining({
-          spreadsheetId: 'test-spreadsheet-id',
-          range: 'TurboProg!A4:D4', // row + 1 as index starts at 0
-          values: [['TestChar', 'WAR', 'P2']],
-          type: 'update',
-        }),
-      );
-
-      // Restore the original TurboProgSheetRanges
-      Object.assign(TurboProgSheetRanges, originalRanges);
-    });
-
-    it('should add a new row when entry not found', async () => {
-      // Mock the TurboProgSheetRanges
-      const mockRange = { start: 'A', end: 'D' };
-      const originalRanges = { ...TurboProgSheetRanges };
-      TurboProgSheetRanges[Encounter.DSR] = mockRange;
-
-      // Mock findCharacterRowIndex to return not found
-      vi.spyOn(sheetsUtils, 'findCharacterRowIndex').mockResolvedValue({
-        rowIndex: -1,
-        sheetValues: [['ExistingChar', 'PLD', 'P1', 'Weekends']], // One existing row
-      });
-
-      // Mock updateSheet
-      const updateSheetSpy = vi
-        .spyOn(sheetsUtils, 'updateSheet')
-        .mockResolvedValue(
-          mockOf<Awaited<ReturnType<typeof sheetsUtils.updateSheet>>>({}),
-        );
-
-      const mockEntry = {
-        character: 'NewChar',
-        job: 'DRG',
-        progPoint: 'P1',
-        encounter: Encounter.DSR,
-      };
-
-      await service.upsertTurboProgEntry(mockEntry, 'test-spreadsheet-id');
-
-      // Verify updateSheet was called with correct arguments for adding a new row
-      // Should use sheetValues.length + 1 for the new row
-      expect(updateSheetSpy).toHaveBeenCalledWith(
-        client,
-        expect.objectContaining({
-          spreadsheetId: 'test-spreadsheet-id',
-          range: expect.stringMatching(TURBO_PROG_RANGE_PATTERN), // Using pre-defined regex pattern
-          values: [['NewChar', 'DRG', 'P1']],
-          type: 'update',
-        }),
-      );
-
-      // Restore the original TurboProgSheetRanges
-      Object.assign(TurboProgSheetRanges, originalRanges);
     });
   });
 });
