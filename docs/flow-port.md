@@ -8,9 +8,8 @@ and no further review rounds are run.
 
 ## Done means
 
-1. **Every slash-command feature has a flow spec**, or is listed under
-   [Scope exceptions](#scope-exceptions). The features that count are the ones
-   with a handler wired into `SlashCommandsModule`.
+1. **Every slash-command feature has a flow spec.** The features that count are
+   the ones with a handler wired into `SlashCommandsModule`.
 2. **No handler has its own spec.** No `*.command-handler.spec.ts` remains for a
    feature that has a flow spec (`docs/testing.md` rule: "Command and event
    handlers are glue code").
@@ -20,18 +19,6 @@ and no further review rounds are run.
    defensive guard production never takes may stay uncovered, and says why in a
    comment.
 4. **Green**: `pnpm test:ci`, `pnpm check`, `pnpm build:check`, `pnpm knip`.
-
-## Scope exceptions
-
-- **`turboprog` (the `turbo-prog` and `final-push` commands, and the
-  `settings turbo-prog` subcommand) is being removed.** It is not ported. Its
-  two handler unit specs stay until the feature is deleted:
-  `turboprog/handlers/turbo-prog.command-handler.spec.ts` and
-  `settings/subcommands/turbo-prog/edit-turbo-prog.command-handler.spec.ts`.
-  They are the only handler specs the port leaves behind.
-- `finalpush/final-push-signup.slash-command.ts` builds a command and has no
-  handler of its own; its behaviour is `TurboProgCommandHandler`, so it is
-  covered by the same exception.
 
 ## The review gate
 
@@ -95,8 +82,6 @@ Not met:
 
 Deferred (not findings, not for this branch):
 
-- The `settings turbo-prog` subcommand is uncovered by `settings.flow.spec.ts`
-  and covered only by its unit spec. It goes with the feature.
 - `clean-roles.command-handler.ts:309` logs `roles > 0 ? 'processed' :
   'processed'`; the ternary picks the same word either way. Cosmetic log
   wording, outside the four review categories.

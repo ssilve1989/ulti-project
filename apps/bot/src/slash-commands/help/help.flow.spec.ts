@@ -53,7 +53,7 @@ const PUBLIC_COMMANDS = Object.freeze({
 const MANAGEMENT_COMMANDS = Object.freeze({
   name: '⚙️ Management Commands',
   value:
-    '**/settings** - Configure/Review the bots roles and channel settings\n└ Subcommands: `blacklist-channels`, `channels`, `reviewer`, `encounter-roles`, `prog-point-roles`, `spreadsheet`, `turbo-prog`, `view`',
+    '**/settings** - Configure/Review the bots roles and channel settings\n└ Subcommands: `blacklist-channels`, `channels`, `reviewer`, `encounter-roles`, `prog-point-roles`, `spreadsheet`, `view`',
   inline: false,
 });
 
@@ -68,8 +68,6 @@ const ADMINISTRATOR_COMMANDS = Object.freeze({
     '**/retire** - Retire all members of the current helper role',
     '**/search** - Search for users by encounter and prog point',
     '**/sync-prog-roles** - Retroactively apply prog point mapped roles for active signups',
-    '**/final-push** - signup for the final push event!',
-    '**/turbo-prog** - signup for the current turbo prog event!',
   ].join('\n'),
   inline: false,
 });
@@ -129,7 +127,7 @@ describe('Help', () => {
           flow,
           ADMIN.id,
           [PUBLIC_COMMANDS, MANAGEMENT_COMMANDS, ADMINISTRATOR_COMMANDS],
-          'Showing 14 available commands • You have Administrator permissions',
+          'Showing 12 available commands • You have Administrator permissions',
         ),
       );
     });

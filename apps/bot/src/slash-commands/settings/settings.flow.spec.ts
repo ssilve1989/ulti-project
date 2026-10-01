@@ -586,7 +586,6 @@ describe('Settings', () => {
         field('Review Channel', `<#${REVIEW_CHANNEL}>`),
         field('Signup Channel', `<#${SIGNUP_CHANNEL}>`),
         field('Reviewer Role', `<@&${REVIEWER_ROLE}>`),
-        field('Turbo Prog Active', 'No'),
         ...spreadsheetFields,
         field('Prog Roles', '1 encounter configured'),
         field('Clear Roles', '1 encounter configured'),
