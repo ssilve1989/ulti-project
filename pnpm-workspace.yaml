@@ -20,34 +20,9 @@ minimumReleaseAge: 7200
 minimumReleaseAgeIgnoreMissingTime: true
 minimumReleaseAgeExclude:
   - typescript
-  - "@nestjs/core@11.1.18"
-  - "@typescript/typescript-aix-ppc64@7.0.2"
-  - "@typescript/typescript-darwin-arm64@7.0.2"
-  - "@typescript/typescript-darwin-x64@7.0.2"
-  - "@typescript/typescript-freebsd-arm64@7.0.2"
-  - "@typescript/typescript-freebsd-x64@7.0.2"
-  - "@typescript/typescript-linux-arm64@7.0.2"
-  - "@typescript/typescript-linux-arm@7.0.2"
-  - "@typescript/typescript-linux-loong64@7.0.2"
-  - "@typescript/typescript-linux-mips64el@7.0.2"
-  - "@typescript/typescript-linux-ppc64@7.0.2"
-  - "@typescript/typescript-linux-riscv64@7.0.2"
-  - "@typescript/typescript-linux-s390x@7.0.2"
-  - "@typescript/typescript-linux-x64@7.0.2"
-  - "@typescript/typescript-netbsd-arm64@7.0.2"
-  - "@typescript/typescript-netbsd-x64@7.0.2"
-  - "@typescript/typescript-openbsd-arm64@7.0.2"
-  - "@typescript/typescript-openbsd-x64@7.0.2"
-  - "@typescript/typescript-sunos-x64@7.0.2"
-  - "@typescript/typescript-win32-arm64@7.0.2"
-  - "@typescript/typescript-win32-x64@7.0.2"
-  - "vitest@5.0.0"
-  - "@vitest/coverage-v8@5.0.0"
-  - "@vitest/ui@5.0.0"
-  - "@vitest/mocker@5.0.0"
-  - "@vitest/pretty-format@5.0.0"
-  - "@vitest/spy@5.0.0"
-  - "@vitest/utils@5.0.0"
+  - "@typescript/*"
+  - vitest
+  - "@vitest/*"
 catalog:
   "@biomejs/biome": 2.5.14
   "@clack/prompts": ^1.8.1
@@ -61,13 +36,13 @@ catalog:
   "@graphql-codegen/typescript": 6.1.0
   "@graphql-codegen/typescript-graphql-request": ^7.1.0
   "@graphql-codegen/typescript-operations": 6.1.7
-  "@nestjs/common": ^11.2.6
-  "@nestjs/core": ^11.2.6
-  "@nestjs/cqrs": ^11.0.3
-  "@nestjs/testing": ^11.2.6
+  "@nestjs/common": ^12.0.2
+  "@nestjs/core": ^12.0.2
+  "@nestjs/cqrs": ^12.0.0
+  "@nestjs/testing": ^12.0.2
   "@sentry/cli": ^3.7.0
-  "@sentry/nestjs": ^10.74.0
-  "@sentry/profiling-node": ^10.74.0
+  "@sentry/nestjs": ^11.0.0
+  "@sentry/profiling-node": ^11.0.0
   "@types/node": ^26.5.1
   "@vitest/coverage-v8": ^5.0.1
   "@vitest/ui": ^5.0.1
