@@ -83,10 +83,6 @@ describe('DeclineReasonRequestService', () => {
     signupId = `${signup.discordId}-${signup.encounter}`;
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('requestDeclineReason', () => {
     it('resolves without an unhandled rejection and reports a non-timeout error from the reaction collector', async () => {
       const collectorError = new Error('boom - not a timeout');
@@ -327,33 +323,6 @@ describe('DeclineReasonRequestService', () => {
       expect(discordService.sendDirectMessage).not.toHaveBeenCalled();
       expect(repository.findById).not.toHaveBeenCalled();
     });
-
-    it('records the reason and dispatches the event when the signup is still actively declined', async () => {
-      repository.updateDeclineReasonIfActive.mockResolvedValueOnce(true);
-      repository.findById.mockResolvedValue(
-        partialMock<SignupDocument>({
-          status: SignupStatus.DECLINED,
-          reviewMessageId: signup.reviewMessageId,
-          reviewedBy: reviewer.username,
-        }),
-      );
-
-      const result = await service['updateSignupWithDeclineReason'](
-        signup,
-        'lacks proof',
-        reviewer,
-        reviewMessage,
-      );
-
-      expect(repository.updateDeclineReasonIfActive).toHaveBeenCalledWith(
-        { discordId: signup.discordId, encounter: signup.encounter },
-        'lacks proof',
-        signup.reviewMessageId,
-        reviewer.username,
-      );
-      expect(result).toBe(true);
-      expect(discordService.sendDirectMessage).not.toHaveBeenCalled();
-    });
   });
 
   describe('publishGuardedDeclineReasonEvent', () => {
@@ -476,32 +445,6 @@ describe('DeclineReasonRequestService', () => {
         content: expect.stringContaining('not recorded'),
       });
       expect(discordService.sendDirectMessage).not.toHaveBeenCalled();
-    });
-
-    it('replies ephemerally with a success message when recorded', async () => {
-      const interaction = buildModalInteraction();
-      repository.updateDeclineReasonIfActive.mockResolvedValueOnce(true);
-      repository.findById.mockResolvedValue(
-        partialMock<SignupDocument>({
-          status: SignupStatus.DECLINED,
-          reviewMessageId: signup.reviewMessageId,
-          reviewedBy: reviewer.username,
-        }),
-      );
-
-      await service['handleCustomReasonSubmit'](
-        interaction,
-        signup,
-        reviewer,
-        reviewMessage,
-      );
-
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          content: expect.stringContaining('recorded'),
-          flags: expect.anything(),
-        }),
-      );
     });
   });
 });

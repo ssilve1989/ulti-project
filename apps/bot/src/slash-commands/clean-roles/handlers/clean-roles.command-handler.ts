@@ -309,6 +309,9 @@ class CleanRolesCommandHandler implements ISlashCommand {
           `Completed processing role ${role.name}: ${roleResult.rolesRemoved}/${roleResult.membersProcessed} roles ${roleResult.rolesRemoved > 0 ? 'processed' : 'processed'}`,
         );
       } catch (error) {
+        // flow-untested: this fires only when guild.roles.fetch rejects or
+        // processRole throws outside processMember (which catches its own),
+        // and the fake's roles.fetch resolves to null for an unknown role
         this.errorService.captureError(error, {
           message: `Failed to process role ${roleId}`,
         });

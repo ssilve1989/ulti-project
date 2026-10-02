@@ -39,6 +39,10 @@ class SendSignupReviewCommandHandler
       await this.settingsCollection.getReviewChannel(guildId);
 
     if (!reviewChannel) {
+      // Only reachable if the review channel is cleared between the signup's
+      // validation and this command: SettingsCollection caches settings, so a
+      // flow test cannot reproduce it by seeding (the flow spec's no-channel
+      // case is blocked earlier at validateConfiguration).
       this.logger.warn(`no review channel set for guild ${guildId}`);
       return;
     }

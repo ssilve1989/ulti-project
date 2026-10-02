@@ -41,6 +41,8 @@ class ViewSettingsCommandHandler implements ISlashCommand {
         await this.sheetsService.getSheetMetadata(spreadsheetId);
       return { name, value: `[${title}](${url})`, inline: true };
     } catch (error) {
+      // flow-untested: the recorded-sheets replay only holds 200 and 404
+      // responses, so a quota or 5xx (which rethrows here) can't be produced
       this.errorService.captureError(error);
       return {
         name,

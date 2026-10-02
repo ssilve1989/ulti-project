@@ -52,6 +52,7 @@
     "@nestjs/testing": "catalog:",
     "@sentry/cli": "catalog:",
     "@types/node": "catalog:",
+    "nock": "catalog:",
     "vitest": "catalog:"
   }
 }

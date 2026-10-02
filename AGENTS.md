@@ -69,3 +69,9 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
 
+## Testing
+
+Before writing or changing tests, read `docs/testing.md`. It covers when to
+write a flow spec (`*.flow.spec.ts`: real Nest wiring with the fakes in
+`apps/bot/src/test-utils/`) versus a unit spec, and the naming, assertion and
+setup rules both follow.

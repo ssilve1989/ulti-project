@@ -1,111 +1,137 @@
 import { Test } from '@nestjs/testing';
 import { Encounter } from '@ulti-project/shared';
-import { FieldPath } from 'firebase-admin/firestore';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  createAutoMock,
-  withInternals,
-} from '../../test-utils/mock-factory.js';
+import { test as base, describe, expect } from 'vitest';
+import { InMemoryFirestore } from '../../test-utils/firestore/in-memory-firestore.js';
+import { fresh } from '../../test-utils/fixtures.js';
 import { FIRESTORE } from '../firebase.consts.js';
 import { SettingsCollection } from './settings-collection.js';
 
-describe.each([{ cache: true }, { cache: false }])(
-  'SettingsCollection with cache: $cache',
-  ({ cache }) => {
-    let service: SettingsCollection;
-    let firestoreMock: { collection: ReturnType<typeof vi.fn> };
-    let collectionMock: {
-      doc: ReturnType<typeof vi.fn>;
-      where: ReturnType<typeof vi.fn>;
-      limit: ReturnType<typeof vi.fn>;
-      get: ReturnType<typeof vi.fn>;
-    };
-    let docMock: {
-      set: ReturnType<typeof vi.fn>;
-      get: ReturnType<typeof vi.fn>;
-      update: ReturnType<typeof vi.fn>;
-      create: ReturnType<typeof vi.fn>;
-    };
-    const guildId = 'guildId';
+const GUILD = 'guild-1';
+const PATH = `settings/${GUILD}`;
 
-    beforeEach(async () => {
-      docMock = {
-        set: vi.fn(),
-        get: vi.fn().mockResolvedValue({ data: () => undefined }),
-        update: vi.fn(),
-        create: vi.fn(),
-      };
-      collectionMock = {
-        doc: vi.fn().mockReturnValue(docMock),
-        where: vi.fn(),
-        limit: vi.fn(),
-        get: vi.fn(),
-      };
-      firestoreMock = { collection: vi.fn().mockReturnValue(collectionMock) };
-
-      const module = await Test.createTestingModule({
-        providers: [
-          SettingsCollection,
-          { provide: FIRESTORE, useValue: firestoreMock },
-        ],
-      })
-        .useMocker(createAutoMock)
-        .compile();
-
-      service = module.get<SettingsCollection>(SettingsCollection);
-      // Mock the cache behavior by setting up service internal cache
-      if (cache) {
-        withInternals<{ cache: Map<string, unknown> }>(service).cache.set(
-          'settings:guildId',
-          {},
-        );
-      }
-    });
-
-    it('should call upsert with with correct arguments', async () => {
-      const settings = { reviewChannel: 'channel', reviewerRole: 'role' };
-
-      await service.upsert(guildId, settings);
-
-      expect(firestoreMock.collection).toHaveBeenCalledWith('settings');
-      expect(collectionMock.doc).toHaveBeenCalledWith(guildId);
-      expect(docMock.set).toHaveBeenCalledWith(settings, { merge: true });
-    });
-
-    it('should call getReviewChannel with correct arguments', async () => {
-      await service.getReviewChannel(guildId);
-      expect(firestoreMock.collection).toHaveBeenCalledWith('settings');
-
-      if (cache) {
-        expect(collectionMock.doc).not.toHaveBeenCalled();
-      } else {
-        expect(collectionMock.doc).toHaveBeenCalledWith(guildId);
-        expect(docMock.get).toHaveBeenCalled();
-      }
-    });
-
-    it('should call getSettings with correct arguments', async () => {
-      await service.getSettings(guildId);
-      expect(firestoreMock.collection).toHaveBeenCalledWith('settings');
-
-      if (cache) {
-        expect(collectionMock.doc).not.toHaveBeenCalled();
-      } else {
-        expect(collectionMock.doc).toHaveBeenCalledWith(guildId);
-        expect(docMock.get).toHaveBeenCalled();
-      }
-    });
-
-    it('should replace the encounter prog point roles map on setProgPointRoles', async () => {
-      const progPointRoles = { P1: 'role-1', P2: 'role-2' };
-
-      await service.setProgPointRoles(guildId, Encounter.TOP, progPointRoles);
-
-      expect(collectionMock.doc).toHaveBeenCalledWith(guildId);
-      expect(docMock.set).toHaveBeenCalledWith(
-        { progPointRoles: { [Encounter.TOP]: progPointRoles } },
-        { mergeFields: [new FieldPath('progPointRoles', Encounter.TOP)] },
-      );
-    });
+const it = base.extend<{
+  db: InMemoryFirestore;
+  settings: SettingsCollection;
+}>({
+  db: fresh(() => new InMemoryFirestore()),
+  settings: async ({ db }, use) => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [SettingsCollection, { provide: FIRESTORE, useValue: db }],
+    }).compile();
+    await use(moduleRef.get(SettingsCollection));
   },
-);
+});
+
+describe('SettingsCollection', () => {
+  it('reads the review channel from stored settings', async ({
+    db,
+    settings,
+  }) => {
+    db.seed(PATH, { reviewChannel: 'review' });
+
+    await expect(settings.getReviewChannel(GUILD)).resolves.toBe('review');
+  });
+
+  it('reads the whole stored settings document', async ({ db, settings }) => {
+    db.seed(PATH, {
+      reviewChannel: 'review',
+      signupChannel: 'signups',
+      progRoles: { DSR: 'r1' },
+    });
+
+    await expect(settings.getSettings(GUILD)).resolves.toEqual(db.read(PATH));
+  });
+
+  it('returns undefined for a guild with no settings', async ({ settings }) => {
+    await expect(settings.getSettings(GUILD)).resolves.toBeUndefined();
+  });
+
+  it('merges an upsert into the existing settings', async ({
+    db,
+    settings,
+  }) => {
+    db.seed(PATH, { reviewChannel: 'review', progRoles: { DSR: 'r1' } });
+
+    await settings.upsert(GUILD, { signupChannel: 'signups' });
+
+    expect(db.read(PATH)).toEqual({
+      reviewChannel: 'review',
+      signupChannel: 'signups',
+      progRoles: { DSR: 'r1' },
+    });
+  });
+
+  it('ignores empty role maps so they do not wipe existing roles', async ({
+    db,
+    settings,
+  }) => {
+    db.seed(PATH, { progRoles: { DSR: 'r1' }, clearRoles: { DSR: 'c1' } });
+
+    await settings.upsert(GUILD, { progRoles: {}, clearRoles: {} });
+
+    expect(db.read(PATH)).toEqual({
+      progRoles: { DSR: 'r1' },
+      clearRoles: { DSR: 'c1' },
+    });
+  });
+
+  it('replaces only the given encounter prog point role map', async ({
+    db,
+    settings,
+  }) => {
+    db.seed(PATH, {
+      progPointRoles: { DSR: { P6: 'r1', P7: 'r2' }, TOP: { P1: 'r3' } },
+    });
+
+    await settings.setProgPointRoles(GUILD, Encounter.DSR, { P6: 'r9' });
+
+    expect(db.read(PATH)).toEqual({
+      progPointRoles: { DSR: { P6: 'r9' }, TOP: { P1: 'r3' } },
+    });
+  });
+
+  describe('caching', () => {
+    it('serves settings from cache after the first read', async ({
+      db,
+      settings,
+    }) => {
+      db.seed(PATH, { reviewChannel: 'review' });
+      await settings.getSettings(GUILD);
+
+      db.seed(PATH, { reviewChannel: 'changed-outside-the-bot' });
+
+      // the stored document changed, so only a cached copy can still say 'review'
+      await expect(settings.getSettings(GUILD)).resolves.toEqual({
+        reviewChannel: 'review',
+      });
+    });
+
+    it('refreshes the cache when settings are written', async ({
+      db,
+      settings,
+    }) => {
+      db.seed(PATH, { reviewChannel: 'review' });
+      await settings.getSettings(GUILD);
+
+      await settings.upsert(GUILD, { reviewChannel: 'new-review' });
+
+      await expect(settings.getSettings(GUILD)).resolves.toEqual({
+        reviewChannel: 'new-review',
+      });
+    });
+
+    it('refreshes the cache when prog point roles are set', async ({
+      db,
+      settings,
+    }) => {
+      db.seed(PATH, { progPointRoles: { DSR: { P6: 'r1' } } });
+      await settings.getSettings(GUILD);
+
+      await settings.setProgPointRoles(GUILD, Encounter.DSR, { P6: 'r9' });
+
+      await expect(settings.getSettings(GUILD)).resolves.toEqual({
+        progPointRoles: { DSR: { P6: 'r9' } },
+      });
+    });
+  });
+});

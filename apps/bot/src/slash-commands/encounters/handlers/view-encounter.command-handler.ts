@@ -164,7 +164,13 @@ export class ViewEncounterCommandHandler implements ISlashCommand {
 
     let hasData = false;
 
-    for (const { key, encounter, progPoints, error } of encounterResults) {
+    for (const {
+      key,
+      encounterId,
+      encounter,
+      progPoints,
+      error,
+    } of encounterResults) {
       if (error) {
         embed.addFields({
           name: `❌ ${key}`,
@@ -176,8 +182,8 @@ export class ViewEncounterCommandHandler implements ISlashCommand {
         const status = encounter ? '✅ Configured' : '⚠️ Partial data';
         const description =
           encounter?.name ||
-          (encounter && isEncounter(encounter.id)
-            ? EncounterFriendlyDescription[encounter.id]
+          (isEncounter(encounterId)
+            ? EncounterFriendlyDescription[encounterId]
             : undefined);
 
         embed.addFields({
