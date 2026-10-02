@@ -2,6 +2,7 @@ import type { LoggerService } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import {
+  type ApprovedSignupDocument,
   Encounter,
   PartyStatus,
   type SignupDocument,
@@ -49,8 +50,10 @@ const DEFAULT_SETTINGS = {
   autoModChannelId: AUTOMOD_CHANNEL,
 };
 
-function createSignup(overrides: Partial<SignupDocument> = {}): SignupDocument {
-  return partialMock<SignupDocument>({
+function createSignup(
+  overrides: Partial<ApprovedSignupDocument> = {},
+): ApprovedSignupDocument {
+  return partialMock<ApprovedSignupDocument>({
     character: 'Test Character',
     discordId: 'discord-1',
     encounter: Encounter.TOP,

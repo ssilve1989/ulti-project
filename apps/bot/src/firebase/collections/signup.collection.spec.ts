@@ -1,10 +1,14 @@
 import { Test } from '@nestjs/testing';
 import {
+  type ApprovedSignupDocument,
   type CreateSignupDocumentProps,
+  type DeclinedSignupDocument,
   Encounter,
   PartyStatus,
+  type PendingSignupDocument,
   type SignupDocument,
   SignupStatus,
+  type UpdatePendingSignupDocument,
 } from '@ulti-project/shared';
 import { Timestamp } from 'firebase-admin/firestore';
 import { test as base, describe, expect } from 'vitest';
@@ -32,10 +36,24 @@ function aRequest(
   };
 }
 
-function aSignup(overrides: Partial<SignupDocument> = {}): SignupDocument {
+function aSignup(
+  overrides: Partial<PendingSignupDocument> = {},
+): PendingSignupDocument {
   return {
     ...aRequest(),
     status: SignupStatus.PENDING,
+    expiresAt: Timestamp.fromMillis(0),
+    ...overrides,
+  };
+}
+
+function aDeclinedSignup(
+  overrides: Partial<DeclinedSignupDocument> = {},
+): DeclinedSignupDocument {
+  return {
+    ...aRequest(),
+    status: SignupStatus.DECLINED,
+    reviewedBy: 'reviewer',
     expiresAt: Timestamp.fromMillis(0),
     ...overrides,
   };
@@ -73,11 +91,8 @@ describe('SignupCollection', () => {
       });
     });
 
-    it('keeps a still-pending signup pending and clears its reviewer', async ({
-      db,
-      collection,
-    }) => {
-      db.seed(PATH, aSignup({ reviewedBy: 'someone' }));
+    it('keeps a still-pending signup pending', async ({ db, collection }) => {
+      db.seed(PATH, aSignup());
 
       const before = Date.now();
       const { signup, previous } = await collection.upsert(
@@ -85,7 +100,7 @@ describe('SignupCollection', () => {
       );
       const after = Date.now();
 
-      expect(previous).toEqual(aSignup({ reviewedBy: 'someone' }));
+      expect(previous).toEqual(aSignup());
       expect(signup).toEqual(db.read(PATH));
       expect(db.read(PATH)).toEqual({
         ...aSignup({ role: 'healer', reviewedBy: null }),
@@ -97,11 +112,7 @@ describe('SignupCollection', () => {
       db,
       collection,
     }) => {
-      const declined = aSignup({
-        status: SignupStatus.DECLINED,
-        reviewedBy: 'reviewer',
-        declineReason: 'no proof',
-      });
+      const declined = aDeclinedSignup({ declineReason: 'no proof' });
       db.seed(PATH, declined);
 
       const before = Date.now();
@@ -117,15 +128,19 @@ describe('SignupCollection', () => {
       });
     });
 
-    it('moves a reviewed signup to update-pending and reports what it replaced', async ({
+    it('moves a reviewed signup to update-pending, keeping what its review decided, and reports what it replaced', async ({
       db,
       collection,
     }) => {
-      const approved = aSignup({
+      const approved: ApprovedSignupDocument = {
+        ...aRequest(),
         status: SignupStatus.APPROVED,
+        expiresAt: Timestamp.fromMillis(0),
         reviewMessageId: 'm1',
         reviewedBy: 'reviewer',
-      });
+        progPoint: 'P6',
+        partyStatus: PartyStatus.ProgParty,
+      };
       db.seed(PATH, approved);
 
       const before = Date.now();
@@ -146,69 +161,72 @@ describe('SignupCollection', () => {
     });
   });
 
-  it('records a review decision', async ({ db, collection }) => {
+  it('records an approval', async ({ db, collection }) => {
     db.seed(PATH, aSignup());
 
-    await collection.updateSignupStatus(
-      SignupStatus.APPROVED,
+    await collection.approveSignup(
       { ...KEY, progPoint: 'P6', partyStatus: PartyStatus.ProgParty },
       'reviewer',
     );
 
-    expect(db.read(PATH)).toEqual(
-      aSignup({
-        status: SignupStatus.APPROVED,
-        progPoint: 'P6',
-        partyStatus: PartyStatus.ProgParty,
-        reviewedBy: 'reviewer',
-      }),
-    );
+    expect(db.read(PATH)).toEqual({
+      ...aSignup(),
+      status: SignupStatus.APPROVED,
+      progPoint: 'P6',
+      partyStatus: PartyStatus.ProgParty,
+      reviewedBy: 'reviewer',
+    });
   });
 
   it('clears an earlier decline reason when approving', async ({
     db,
     collection,
   }) => {
-    db.seed(
-      PATH,
-      aSignup({ status: SignupStatus.DECLINED, declineReason: 'no proof' }),
-    );
+    db.seed(PATH, aDeclinedSignup({ declineReason: 'no proof' }));
 
-    await collection.updateSignupStatus(
-      SignupStatus.APPROVED,
+    await collection.approveSignup(
       { ...KEY, progPoint: 'P6', partyStatus: PartyStatus.ProgParty },
       'reviewer',
     );
 
-    expect(db.read(PATH)).toEqual(
-      aSignup({
-        status: SignupStatus.APPROVED,
-        progPoint: 'P6',
-        partyStatus: PartyStatus.ProgParty,
-        reviewedBy: 'reviewer',
-      }),
-    );
+    expect(db.read(PATH)).toEqual({
+      ...aSignup(),
+      status: SignupStatus.APPROVED,
+      progPoint: 'P6',
+      partyStatus: PartyStatus.ProgParty,
+      reviewedBy: 'reviewer',
+    });
   });
 
-  it('keeps the decline reason when recording a decline', async ({
+  it('records a decline', async ({ db, collection }) => {
+    db.seed(PATH, aSignup());
+
+    await collection.declineSignup(KEY, 'reviewer');
+
+    expect(db.read(PATH)).toEqual(aDeclinedSignup());
+  });
+
+  it('leaves what an earlier review decided when declining a resubmitted signup', async ({
     db,
     collection,
   }) => {
-    db.seed(PATH, aSignup({ declineReason: 'no proof' }));
+    const resubmitted: UpdatePendingSignupDocument = {
+      ...aRequest(),
+      status: SignupStatus.UPDATE_PENDING,
+      expiresAt: Timestamp.fromMillis(0),
+      reviewedBy: null,
+      progPoint: 'P6',
+      partyStatus: PartyStatus.ProgParty,
+    };
+    db.seed(PATH, resubmitted);
 
-    await collection.updateSignupStatus(
-      SignupStatus.DECLINED,
-      { ...KEY, progPoint: undefined, partyStatus: undefined },
-      'reviewer',
-    );
+    await collection.declineSignup(KEY, 'reviewer');
 
-    expect(db.read(PATH)).toEqual(
-      aSignup({
-        status: SignupStatus.DECLINED,
-        reviewedBy: 'reviewer',
-        declineReason: 'no proof',
-      }),
-    );
+    expect(db.read(PATH)).toEqual({
+      ...resubmitted,
+      status: SignupStatus.DECLINED,
+      reviewedBy: 'reviewer',
+    });
   });
 
   describe('findByReviewId', () => {
@@ -285,13 +303,7 @@ describe('SignupCollection', () => {
   });
 
   describe('updateDeclineReasonIfActive', () => {
-    const declined = Object.freeze(
-      aSignup({
-        status: SignupStatus.DECLINED,
-        reviewMessageId: 'm1',
-        reviewedBy: 'reviewer',
-      }),
-    );
+    const declined = Object.freeze(aDeclinedSignup({ reviewMessageId: 'm1' }));
 
     it('writes the reason while the signup is still in the same declined round', async ({
       db,

@@ -2,11 +2,11 @@ import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import {
+  type ApprovedSignupDocument,
   Encounter,
   EncounterEmoji,
   EncounterFriendlyDescription,
   PartyStatus,
-  type SignupDocument,
 } from '@ulti-project/shared';
 import { Colors, EmbedBuilder, Message, User, userMention } from 'discord.js';
 import {
@@ -93,7 +93,7 @@ class SendApprovedMessageEventHandler
       discordId,
       proofOfProgLink,
       screenshot,
-    }: SignupDocument,
+    }: ApprovedSignupDocument,
   ): Promise<EmbedBuilder> {
     const progPointFieldValue = progPoint ?? progPointRequested;
     const emoji = this.discordService.getEmojiString(EncounterEmoji[encounter]);

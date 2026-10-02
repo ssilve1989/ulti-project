@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import type { SignupDocument } from '@ulti-project/shared';
+import type {
+  DeclinedSignupDocument,
+  SignupDocument,
+} from '@ulti-project/shared';
 import { SignupStatus } from '@ulti-project/shared';
 import type {
   Message,
@@ -53,7 +56,7 @@ const collectorTimeoutError = (): DiscordjsError => {
 
 describe('DeclineReasonRequestService', () => {
   let service: DeclineReasonRequestService;
-  let signup: SignupDocument;
+  let signup: DeclinedSignupDocument;
   let reviewer: User;
   let reviewMessage: Message<true>;
   let signupId: string;
@@ -71,7 +74,7 @@ describe('DeclineReasonRequestService', () => {
     repository = fixture.get(SignupCollection);
     discordService = fixture.get(DiscordService);
 
-    signup = partialMock<SignupDocument>({
+    signup = partialMock<DeclinedSignupDocument>({
       discordId: 'abc123',
       encounter: 'DSR',
       reviewMessageId: 'messageId',
@@ -331,7 +334,7 @@ describe('DeclineReasonRequestService', () => {
         partialMock<SignupDocument>({
           status: SignupStatus.UPDATE_PENDING,
           reviewMessageId: signup.reviewMessageId,
-          reviewedBy: reviewer.username,
+          reviewedBy: null,
         }),
       );
 
