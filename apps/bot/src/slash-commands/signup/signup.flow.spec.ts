@@ -1452,6 +1452,43 @@ describe('Signup lifecycle', () => {
     });
   });
 
+  describe('when the encounter has no emoji configured', () => {
+    const TITLE_WITHOUT_EMOJI = `Signup Approval - ${ENCOUNTER_NAME}`;
+
+    it.beforeEach(({ flow }) => {
+      flow.db.seed(`encounters/${Encounter.DMU}`, {
+        name: 'DMU',
+        description: 'Dancing Mad',
+        active: true,
+      });
+    });
+
+    it('posts the review without an emoji in its title', async ({ flow }) => {
+      await submitSignup(flow);
+
+      const review = pendingReview();
+      expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
+        {
+          ...review,
+          embeds: [{ ...review.embeds[0], title: TITLE_WITHOUT_EMOJI }],
+        },
+      ]);
+    });
+
+    it('announces the approval without an emoji in its title', async ({
+      flow,
+    }) => {
+      await submitSignup(flow);
+      await approve(flow, { progPoint: 'P6' });
+
+      expect(flow.discord.channel(SIGNUP_CHANNEL).map(shown)).toEqual([
+        approvalAnnouncement(flow, {
+          title: `Signup Approved - ${ENCOUNTER_NAME}`,
+        }),
+      ]);
+    });
+  });
+
   describe('when a submitted signup is reviewed', () => {
     it.beforeEach(async ({ flow }) => {
       await submitSignup(flow);
