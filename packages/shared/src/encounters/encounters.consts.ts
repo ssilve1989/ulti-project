@@ -30,20 +30,6 @@ export const EncounterFriendlyDescription = Object.freeze({
   [Encounter.DMU]: 'Dancing Mad (Ultimate)',
 });
 
-// these identifiers are specific to the ulti-project sausfest discord
-// the bot would need to be part of that discord for these to render correctly
-// this is brittle because if the emojis change in the server these references will fail
-// alternatively we could always lookup the emojis and cache their names at startup but forgoing that for now
-export const EncounterEmoji: Record<string, string> = Object.freeze({
-  [Encounter.DSR]: '1128006062780448768',
-  [Encounter.TEA]: '1128006067419369612',
-  [Encounter.TOP]: '1128023323796852877',
-  [Encounter.UCOB]: '1128006065930375333',
-  [Encounter.UWU]: '1128006064701444188',
-  [Encounter.FRU]: '1314628063782506506',
-  [Encounter.DMU]: '1524331552530763816',
-});
-
 // prog point lookup hash for each encounter and what party type the prog point belongs to
 // along with their label for the slash command options
 export type ProgPointOption = {

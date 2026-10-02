@@ -1,6 +1,5 @@
 import {
   Encounter,
-  EncounterEmoji,
   PartyStatus,
   type SignupDocument,
   SignupStatus,
@@ -110,7 +109,7 @@ const PROOF_LINK = 'https://www.fflogs.com/reports/abc123';
 const ENCOUNTER_NAME = 'Dancing Mad (Ultimate)';
 /** The encounter's emoji, and the reactions the bot adds to a congratulation. */
 const ENCOUNTER_EMOJI = Object.freeze({
-  id: EncounterEmoji[Encounter.DMU] ?? '',
+  id: '1524331552530763816',
   name: 'dmu',
 });
 const CLEAR_EMOJIS = Object.freeze(
@@ -151,6 +150,7 @@ function givenAGuild(flow: FlowApp): void {
     name: 'DMU',
     description: 'Dancing Mad',
     active: true,
+    emoji: ENCOUNTER_EMOJI.id,
   });
   flow.db.seed(`encounters/${Encounter.DMU}/prog-points/P6`, {
     id: 'P6',
@@ -1449,6 +1449,43 @@ describe('Signup lifecycle', () => {
           reviewedBy: null,
         }),
       );
+    });
+  });
+
+  describe('when the encounter has no emoji configured', () => {
+    const TITLE_WITHOUT_EMOJI = `Signup Approval - ${ENCOUNTER_NAME}`;
+
+    it.beforeEach(({ flow }) => {
+      flow.db.seed(`encounters/${Encounter.DMU}`, {
+        name: 'DMU',
+        description: 'Dancing Mad',
+        active: true,
+      });
+    });
+
+    it('posts the review without an emoji in its title', async ({ flow }) => {
+      await submitSignup(flow);
+
+      const review = pendingReview();
+      expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
+        {
+          ...review,
+          embeds: [{ ...review.embeds[0], title: TITLE_WITHOUT_EMOJI }],
+        },
+      ]);
+    });
+
+    it('announces the approval without an emoji in its title', async ({
+      flow,
+    }) => {
+      await submitSignup(flow);
+      await approve(flow, { progPoint: 'P6' });
+
+      expect(flow.discord.channel(SIGNUP_CHANNEL).map(shown)).toEqual([
+        approvalAnnouncement(flow, {
+          title: `Signup Approved - ${ENCOUNTER_NAME}`,
+        }),
+      ]);
     });
   });
 

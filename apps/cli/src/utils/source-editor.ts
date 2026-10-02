@@ -24,7 +24,6 @@ export interface EncounterSourceEdits {
   name: string;
   description: string;
   mode: 'legacy' | 'ultimate' | 'savage';
-  emoji?: string;
   fflogsIds?: number[];
   ultimateToFlip?: string;
 }
@@ -98,29 +97,6 @@ export function addToEncounterFriendlyDescription(
   return (
     source.slice(0, closingIdx) +
     `\n  [Encounter.${key}]: '${value}',` +
-    source.slice(closingIdx)
-  );
-}
-
-/** Appends `  [Encounter.KEY]: 'snowflakeId',` inside EncounterEmoji. */
-export function addToEncounterEmoji(
-  source: string,
-  key: string,
-  snowflake: string,
-): string {
-  const marker =
-    'export const EncounterEmoji: Record<string, string> = Object.freeze({';
-  const startIdx = source.indexOf(marker);
-  if (startIdx === -1)
-    throw new Error('Could not find EncounterEmoji in encounters.consts.ts');
-
-  const closingIdx = source.indexOf('\n});', startIdx);
-  if (closingIdx === -1)
-    throw new Error('Could not find closing of EncounterEmoji');
-
-  return (
-    source.slice(0, closingIdx) +
-    `\n  [Encounter.${key}]: '${snowflake}',` +
     source.slice(closingIdx)
   );
 }
@@ -211,12 +187,6 @@ export function planSourceEdits(edits: EncounterSourceEdits): SourceChange[] {
     file: encountersFile,
     description: `+ EncounterFriendlyDescription: [Encounter.${edits.id}]: '${edits.name}'`,
   });
-  if (edits.emoji) {
-    changes.push({
-      file: encountersFile,
-      description: `+ EncounterEmoji: [Encounter.${edits.id}]: '${edits.emoji}'`,
-    });
-  }
   changes.push({
     file: encountersFile,
     description: `+ ENCOUNTER_CHOICES: { name: '${edits.name}', value: Encounter.${edits.id}, mode: '${edits.mode}' }`,
@@ -254,13 +224,6 @@ export function applySourceEdits(edits: EncounterSourceEdits): void {
     edits.id,
     edits.name,
   );
-  if (edits.emoji) {
-    encountersSource = addToEncounterEmoji(
-      encountersSource,
-      edits.id,
-      edits.emoji,
-    );
-  }
   if (edits.ultimateToFlip) {
     encountersSource = flipEncounterModeToLegacy(
       encountersSource,

@@ -3,6 +3,7 @@ id: TEA
 name: "[TEA] The Epic of Alexander"
 description: "[TEA] The Epic of Alexander"
 active: true
+emoji: '1128006067419369612'
 progPartyThreshold: BJCC
 clearPartyThreshold: Final Word
 progPoints:

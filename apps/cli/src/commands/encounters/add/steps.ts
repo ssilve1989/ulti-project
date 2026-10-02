@@ -29,7 +29,6 @@ export function buildSourceEdits(
     name: config.name,
     description: config.description,
     mode: config.mode,
-    emoji: config.emoji,
     fflogsIds: config.fflogsEncounterIds,
     ultimateToFlip,
   };
@@ -174,6 +173,7 @@ export async function seedFirestoreStep(
       name: config.name,
       description: config.description,
       active: true,
+      emoji: config.emoji,
       progPartyThreshold: config.progPartyThreshold,
       clearPartyThreshold: config.clearPartyThreshold,
     });
