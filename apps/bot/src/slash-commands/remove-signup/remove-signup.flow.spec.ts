@@ -1,4 +1,5 @@
 import {
+  type ApprovedSignupDocument,
   Encounter,
   PartyStatus,
   type SignupDocument,
@@ -24,7 +25,11 @@ import {
   rowCleared,
 } from '../../test-utils/sheets/dmu-sheet.js';
 import { stableTestKey } from '../../test-utils/sheets/recorded-sheets.js';
-import { seedSignup } from '../../test-utils/signups.js';
+import {
+  type ApprovedSeed,
+  type SeedOverrides,
+  seedSignup,
+} from '../../test-utils/signups.js';
 import { SIGNUP_MESSAGES } from '../signup/signup.consts.js';
 import {
   REMOVAL_MISSING_PERMISSIONS,
@@ -140,7 +145,17 @@ async function postReview(flow: FlowApp): Promise<string> {
 function givenASignup(
   flow: FlowApp,
   reviewMessageId: string,
-  changes: Partial<SignupDocument> = {},
+  changes: ApprovedSeed,
+): ApprovedSignupDocument;
+function givenASignup(
+  flow: FlowApp,
+  reviewMessageId: string,
+  changes?: SeedOverrides,
+): SignupDocument;
+function givenASignup(
+  flow: FlowApp,
+  reviewMessageId: string,
+  changes: SeedOverrides = {},
 ): SignupDocument {
   return seedSignup(flow, {
     discordId: PLAYER.id,
@@ -334,12 +349,19 @@ describe('Remove signup', () => {
     }) => {
       const { spreadsheetId } = flow.sheets;
       flow.db.seed(`settings/${GUILD}`, { ...SETTINGS, spreadsheetId });
-      const signup = givenASignup(flow, await postReview(flow), {
+      const reviewMessageId = await postReview(flow);
+      // the row the bot wrote when the signup was first approved
+      await flow
+        .get(SheetsService)
+        .upsertSignup(
+          givenASignup(flow, reviewMessageId, APPROVED),
+          spreadsheetId,
+        );
+      // and then the player resubmitted it
+      givenASignup(flow, reviewMessageId, {
         ...APPROVED,
         status: SignupStatus.UPDATE_PENDING,
       });
-      // the row the bot wrote when the signup was first approved
-      await flow.get(SheetsService).upsertSignup(signup, spreadsheetId);
       const row = nextFreeRow(flow, PROG_PARTY);
       const written = flow.sheets.writes().length;
 

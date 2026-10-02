@@ -3,6 +3,7 @@ import { Injectable, Logger, type OnApplicationShutdown } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import {
+  type ApprovedSignupDocument,
   Encounter,
   PartyStatus,
   type SignupDocument,
@@ -60,7 +61,7 @@ class SheetsService implements OnApplicationShutdown {
    */
   @SentryTraced()
   public upsertSignup(
-    { partyStatus, ...signup }: SignupDocument,
+    { partyStatus, ...signup }: ApprovedSignupDocument,
     spreadsheetId: string,
   ) {
     switch (partyStatus) {
@@ -395,9 +396,18 @@ class SheetsService implements OnApplicationShutdown {
     character,
     world,
     role,
-    progPoint = '',
-  }: SignupDocument): string[] {
-    return [titleCase(character), titleCase(world), role, progPoint];
+    progPoint,
+    progPointRequested,
+  }: Pick<
+    ApprovedSignupDocument,
+    'character' | 'world' | 'role' | 'progPoint' | 'progPointRequested'
+  >): string[] {
+    return [
+      titleCase(character),
+      titleCase(world),
+      role,
+      progPoint ?? progPointRequested,
+    ];
   }
 
   private async isProgEncounter(encounter: Encounter): Promise<boolean> {

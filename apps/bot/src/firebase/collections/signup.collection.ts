@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import {
+  type ApprovedSignupDocument,
+  type AwaitingReviewSignupDocument,
   type CreateSignupDocumentProps,
+  type PendingSignupDocument,
   type SignupCompositeKeyProps as SignupCompositeKey,
   type SignupDocument,
   SignupStatus,
@@ -14,6 +17,7 @@ import {
   Firestore,
   type Query,
   Timestamp,
+  type UpdateData,
 } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
@@ -55,27 +59,32 @@ class SignupCollection {
     const existing = snapshot.data();
 
     if (existing) {
-      const signupData = {
-        ...existing,
+      const signupData: AwaitingReviewSignupDocument = {
         ...props,
+        reviewMessageId: existing.reviewMessageId,
         // if there is already a signup and it is still PENDING we do nothing, otherwise we move it to UPDATE_PENDING
-        status:
-          existing.status === SignupStatus.PENDING
-            ? SignupStatus.PENDING
-            : SignupStatus.UPDATE_PENDING,
+        ...(existing.status === SignupStatus.PENDING
+          ? { status: SignupStatus.PENDING }
+          : {
+              status: SignupStatus.UPDATE_PENDING,
+              // what the earlier review decided stays until the update is reviewed
+              progPoint: existing.progPoint,
+              partyStatus: existing.partyStatus,
+            }),
         // reset the reviewedBy field because it now has to be reviewed again
         reviewedBy: null,
-        declineReason: FieldValue.delete(),
         expiresAt,
       };
-      await document.update(signupData);
-      return {
-        signup: { ...signupData, declineReason: undefined },
-        previous: existing,
+      const updateData: UpdateData<SignupDocument> = {
+        ...signupData,
+        declineReason: FieldValue.delete(),
       };
+
+      await document.update(updateData);
+      return { signup: signupData, previous: existing };
     }
 
-    const signupData = {
+    const signupData: PendingSignupDocument = {
       ...props,
       expiresAt,
       status: SignupStatus.PENDING,
@@ -149,24 +158,33 @@ class SignupCollection {
    * @returns
    */
   @SentryTraced()
-  public updateSignupStatus(
-    status: SignupStatus,
+  public approveSignup(
     {
       partyStatus,
       progPoint,
       ...key
-    }: SignupCompositeKey & Pick<SignupDocument, 'progPoint' | 'partyStatus'>,
+    }: SignupCompositeKey &
+      Pick<ApprovedSignupDocument, 'progPoint' | 'partyStatus'>,
     reviewedBy: string,
   ) {
-    return this.collection.doc(SignupCollection.getKeyForSignup(key)).update({
-      status,
+    const updateData: UpdateData<SignupDocument> = {
+      declineReason: FieldValue.delete(),
+      partyStatus,
       progPoint,
       reviewedBy,
-      partyStatus,
-      ...(status !== SignupStatus.DECLINED && {
-        declineReason: FieldValue.delete(),
-      }),
-    });
+      status: SignupStatus.APPROVED,
+    };
+
+    return this.collection
+      .doc(SignupCollection.getKeyForSignup(key))
+      .update(updateData);
+  }
+
+  @SentryTraced()
+  public declineSignup(key: SignupCompositeKey, reviewedBy: string) {
+    return this.collection
+      .doc(SignupCollection.getKeyForSignup(key))
+      .update({ reviewedBy, status: SignupStatus.DECLINED });
   }
 
   /**

@@ -1,7 +1,7 @@
 import {
+  type ApprovedSignupDocument,
   Encounter,
   PartyStatus,
-  type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
 import { PermissionFlagsBits } from 'discord.js';
@@ -77,7 +77,7 @@ const approved = (
   flow: FlowApp,
   discordId: string,
   progPoint: string,
-  changes: Partial<SignupDocument> = {},
+  changes: Partial<ApprovedSignupDocument> = {},
 ) =>
   seedSignup(flow, {
     discordId,
@@ -97,9 +97,12 @@ function seedSignups(flow: FlowApp): void {
   // no longer in the server
   approved(flow, 'e-left', 'P6');
   // resubmitted since, so pending an update
-  approved(flow, NEWCOMER, 'P5', {
-    partyStatus: PartyStatus.ClearParty,
+  seedSignup(flow, {
+    discordId: NEWCOMER,
+    encounter: Encounter.DMU,
     status: SignupStatus.UPDATE_PENDING,
+    progPoint: 'P5',
+    partyStatus: PartyStatus.ClearParty,
   });
   seedSignup(flow, { discordId: 'g-pending', encounter: Encounter.DMU });
   approved(flow, LINGERING, 'P7');

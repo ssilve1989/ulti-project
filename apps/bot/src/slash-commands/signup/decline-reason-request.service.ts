@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
-import type { SignupDocument } from '@ulti-project/shared';
+import type { DeclinedSignupDocument } from '@ulti-project/shared';
 import { SignupStatus } from '@ulti-project/shared';
 import {
   ActionRowBuilder,
@@ -48,7 +48,7 @@ class DeclineReasonRequestService {
 
   @SentryTraced()
   async requestDeclineReason(
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
   ): Promise<void> {
@@ -88,7 +88,7 @@ class DeclineReasonRequestService {
 
   private async handleDeclineReasonInteractions(
     dmMessage: Message<false> | InteractionResponse<false>,
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
   ): Promise<void> {
@@ -170,7 +170,7 @@ class DeclineReasonRequestService {
 
   private async handleReasonSelection(
     interaction: StringSelectMenuInteraction,
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     signupId: string,
     reviewer: User,
     reviewMessage: Message<true>,
@@ -238,7 +238,7 @@ class DeclineReasonRequestService {
 
   private async handleCustomReasonSubmit(
     interaction: ModalSubmitInteraction,
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
   ): Promise<void> {
@@ -257,7 +257,7 @@ class DeclineReasonRequestService {
   }
 
   private async updateSignupWithDeclineReason(
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     declineReason: string,
     reviewer: User,
     reviewMessage: Message<true>,
@@ -301,7 +301,7 @@ class DeclineReasonRequestService {
   }
 
   private async publishGuardedDeclineReasonEvent(
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
     declineReason?: string,
@@ -335,7 +335,7 @@ class DeclineReasonRequestService {
   }
 
   private async isSignupStillActivelyDeclined(
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     reviewer: User,
   ): Promise<boolean> {
     const current = await this.signupCollection.findById(
@@ -355,7 +355,7 @@ class DeclineReasonRequestService {
 
   private async notifyReviewerStateChanged(
     reviewer: User,
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
   ): Promise<void> {
     try {
       await this.discordService.sendDirectMessage(reviewer.id, {
@@ -387,7 +387,7 @@ class DeclineReasonRequestService {
 
   private async handleTimeoutError(
     error: unknown,
-    signup: SignupDocument,
+    signup: DeclinedSignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
     context: string,
@@ -410,7 +410,7 @@ class DeclineReasonRequestService {
 
   private reportError(
     error: unknown,
-    context: { signup: SignupDocument; reviewer: User },
+    context: { signup: DeclinedSignupDocument; reviewer: User },
   ): void {
     const scope = Sentry.getCurrentScope();
     scope.setExtra('signup', context.signup);

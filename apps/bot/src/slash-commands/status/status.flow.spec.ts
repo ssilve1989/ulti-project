@@ -1,7 +1,7 @@
 import {
+  type ApprovedSignupDocument,
   Encounter,
   PartyStatus,
-  type SignupDocument,
   SignupStatus,
 } from '@ulti-project/shared';
 import { type APIEmbedField } from 'discord.js';
@@ -29,7 +29,7 @@ const NO_PARTY_TYPE = Object.freeze({
 const approved = (
   flow: FlowApp,
   progPoint: string,
-  changes: Partial<SignupDocument> = {},
+  changes: Partial<ApprovedSignupDocument> = {},
 ) =>
   seedSignup(flow, {
     discordId: PLAYER.id,

@@ -1,4 +1,8 @@
-import type { SignupDocument } from '@ulti-project/shared';
+import type {
+  ApprovedSignupDocument,
+  DeclinedSignupDocument,
+  SignupDocument,
+} from '@ulti-project/shared';
 import { Message, User } from 'discord.js';
 import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
 
@@ -11,7 +15,7 @@ export class SignupCreatedEvent {
 
 export class SignupApprovedEvent {
   constructor(
-    public readonly signup: SignupDocument,
+    public readonly signup: ApprovedSignupDocument,
     public readonly settings: SettingsDocument,
     public readonly reviewedBy: User,
     public readonly message: Message<true>,
@@ -21,7 +25,7 @@ export class SignupApprovedEvent {
 
 export class SignupDeclinedEvent {
   constructor(
-    public readonly signup: SignupDocument,
+    public readonly signup: DeclinedSignupDocument,
     public readonly reviewedBy: User,
     public readonly message: Message<true>,
   ) {}
@@ -29,7 +33,7 @@ export class SignupDeclinedEvent {
 
 export class SignupDeclineReasonCollectedEvent {
   constructor(
-    public readonly signup: SignupDocument,
+    public readonly signup: DeclinedSignupDocument,
     public readonly reviewedBy: User,
     public readonly message: Message<true>,
     public readonly declineReason?: string,
