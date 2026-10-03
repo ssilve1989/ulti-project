@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.9.0](https://github.com/ssilve1989/ulti-project/compare/v2.8.0...v2.9.0) (2026-10-03)
+
+
+### Features
+
+* **bot:** record a Sentry counter per slash command invocation ([#1564](https://github.com/ssilve1989/ulti-project/issues/1564)) ([9eac551](https://github.com/ssilve1989/ulti-project/commit/9eac551311985bfcf80ef40f92ec8fc9b6ac39f9))
+
+
+### Bug Fixes
+
+* **bot:** clear signup confirmation buttons on error ([#1565](https://github.com/ssilve1989/ulti-project/issues/1565)) ([9d892e7](https://github.com/ssilve1989/ulti-project/commit/9d892e79d4c342fc1f5bbf4a81ecada01f0c4e72))
+* **bot:** keep clean-roles dry-run embeds within limits ([#1567](https://github.com/ssilve1989/ulti-project/issues/1567)) ([2e6bf38](https://github.com/ssilve1989/ulti-project/commit/2e6bf382f5b95a7dc4a33db94ac1809dc9b2e408))
+* **bot:** report role removal failures ([#1566](https://github.com/ssilve1989/ulti-project/issues/1566)) ([0feceb6](https://github.com/ssilve1989/ulti-project/commit/0feceb6de2ff2371ff9b37d27c7e7731402561ad))
+* **deps:** correct stale lockfile that split firebase-admin into two instances ([#1579](https://github.com/ssilve1989/ulti-project/issues/1579)) ([0340e04](https://github.com/ssilve1989/ulti-project/commit/0340e04cf02dba2ad57de3a732a045eae0912310))
+* **signup:** clear stale declineReason on resubmit and approval ([#1556](https://github.com/ssilve1989/ulti-project/issues/1556)) ([ab225fd](https://github.com/ssilve1989/ulti-project/commit/ab225fd83b97b6f20ce62701205ba33ee4365e5e))
+* **signup:** remove decline reason dropdown once the prompt ends ([#1555](https://github.com/ssilve1989/ulti-project/issues/1555)) ([a1a537c](https://github.com/ssilve1989/ulti-project/commit/a1a537c1d9334f704f7b6f0f205aae17fe11d6bc))
+
 ## [2.8.0](https://github.com/ssilve1989/ulti-project/compare/v2.7.3...v2.8.0) (2026-09-24)
 
 
