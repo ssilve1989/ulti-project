@@ -18,6 +18,7 @@
     "commit": "git-cz",
     "commitlint": "commitlint --edit",
     "docker:build": "pnpm --filter @ulti-project/bot docker:build",
+    "docker:start-dev": "bash scripts/docker-run.sh",
     "format": "biome format --write",
     "graphql:codegen": "pnpm --filter @ulti-project/bot graphql:codegen",
     "knip": "knip",
