@@ -39,12 +39,6 @@
     // Referenced only as pino's transport target string in app.module.ts
     // (`target: 'pino-pretty'`), resolved dynamically by pino at runtime —
     // never statically imported.
-    "pino-pretty",
-    // Never imported. Declared at the workspace root so pnpm resolves `debug`'s
-    // optional `supports-color` peer to one version in every project
-    // (resolvePeersFromWorkspaceRoot). Without it, the projects can get
-    // separate `firebase-admin` instances, and Firestore rejects a Timestamp
-    // made by one copy when it's written through the other.
-    "supports-color"
+    "pino-pretty"
   ]
 }
