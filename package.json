@@ -46,6 +46,7 @@
     "commitizen": "catalog:",
     "knip": "catalog:",
     "lefthook": "catalog:",
+    "supports-color": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
