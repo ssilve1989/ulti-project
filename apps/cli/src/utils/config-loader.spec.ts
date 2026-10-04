@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PartyStatus } from '@ulti-project/shared';
@@ -6,18 +6,19 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { stringify } from 'yaml';
 import { loadEncounterConfig } from './config-loader.ts';
 
-const TMP_DIR = join(tmpdir(), 'cli-config-loader-test');
+// Unique per test so concurrent runs on one machine can't delete each other's files.
+let tmpDir: string;
 
 beforeEach(() => {
-  mkdirSync(TMP_DIR, { recursive: true });
+  tmpDir = mkdtempSync(join(tmpdir(), 'cli-config-loader-'));
 });
 
 afterEach(() => {
-  rmSync(TMP_DIR, { recursive: true, force: true });
+  rmSync(tmpDir, { recursive: true, force: true });
 });
 
 function writeConfig(filename: string, content: string): string {
-  const filePath = join(TMP_DIR, filename);
+  const filePath = join(tmpDir, filename);
   writeFileSync(filePath, content);
   return filePath;
 }
