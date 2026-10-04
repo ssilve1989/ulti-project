@@ -34,7 +34,15 @@ export default defineConfig({
     },
     // The options below are inherited by every project via `extends: true`.
     pool: 'threads',
-    ...(recordingSheets && { testTimeout: 150_000, hookTimeout: 150_000 }),
+    // A recording run writes to one shared spreadsheet, so spec files run one
+    // at a time: in parallel, two files can claim the same free row and record
+    // each other's data, and each worker's quota pacer would only see its own
+    // requests.
+    ...(recordingSheets && {
+      testTimeout: 150_000,
+      hookTimeout: 150_000,
+      fileParallelism: false,
+    }),
     // Spec files share one module registry (no per-file re-evaluation). This is
     // ~2.8x faster than isolated runs; the trade-off is that specs must not leak
     // shared state — global mock resets (`vi.resetAllMocks`) and module mocks of
