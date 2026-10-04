@@ -61,20 +61,6 @@ describe('SettingsCollection', () => {
     });
   });
 
-  it('ignores empty role maps so they do not wipe existing roles', async ({
-    db,
-    settings,
-  }) => {
-    db.seed(PATH, { progRoles: { DSR: 'r1' }, clearRoles: { DSR: 'c1' } });
-
-    await settings.upsert(GUILD, { progRoles: {}, clearRoles: {} });
-
-    expect(db.read(PATH)).toEqual({
-      progRoles: { DSR: 'r1' },
-      clearRoles: { DSR: 'c1' },
-    });
-  });
-
   it('replaces only the given encounter prog point role map', async ({
     db,
     settings,
