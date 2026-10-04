@@ -84,6 +84,27 @@ export async function getSheetValues(
 }
 
 /**
+ * Gets the row values of several ranges of one spreadsheet in a single request
+ * @param client
+ * @param param1
+ * @returns the values of each range, in the order the ranges were given
+ */
+export async function getSheetValuesBatch(
+  client: sheets_v4.Sheets,
+  { ranges, spreadsheetId }: { spreadsheetId: string; ranges: string[] },
+): Promise<SheetValues[]> {
+  const response = await client.spreadsheets.values.batchGet(
+    {
+      spreadsheetId,
+      ranges,
+    },
+    { timeout: 30_000 },
+  );
+
+  return ranges.map((_, index) => response.data.valueRanges?.[index]?.values);
+}
+
+/**
  * Updates a given sheet with the provided values
  * @param client
  * @param props
