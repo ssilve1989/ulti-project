@@ -17,6 +17,7 @@ vi.mock('@googleapis/sheets', () => ({
       batchUpdate: vi.fn(),
       values: {
         get: vi.fn(),
+        batchGet: vi.fn(),
         update: vi.fn(),
       },
     },
@@ -116,13 +117,12 @@ describe('Sheets Service', () => {
     });
 
     it('cleans the first tab of the spreadsheet, whose sheet ID is 0', async () => {
-      vi.spyOn(sheetsUtils, 'getSheetIdByName').mockResolvedValue(0);
       vi.spyOn(client.spreadsheets, 'get').mockResolvedValue(
         mockOf<Awaited<ReturnType<typeof client.spreadsheets.get>>>({
           data: {
             sheets: [
               {
-                properties: { hidden: false },
+                properties: { sheetId: 0, hidden: false },
                 data: [
                   {
                     rowData: [
@@ -151,6 +151,118 @@ describe('Sheets Service', () => {
       });
 
       expect(batchUpdateSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('#removeSignup', () => {
+    it('looks the tab up once and clears the character from both sections of a prog encounter', async () => {
+      const batchUpdateSpy = vi
+        .spyOn(sheetsUtils, 'batchUpdate')
+        .mockResolvedValue(
+          mockOf<Awaited<ReturnType<typeof sheetsUtils.batchUpdate>>>({}),
+        );
+      const getSpy = vi.spyOn(client.spreadsheets, 'get');
+      getSpy.mockReset();
+      getSpy.mockResolvedValue(
+        mockOf<Awaited<ReturnType<typeof client.spreadsheets.get>>>({
+          data: { sheets: [{ properties: { sheetId: 7, title: 'DSR' } }] },
+        }),
+      );
+      const batchGetSpy = vi.spyOn(client.spreadsheets.values, 'batchGet');
+      batchGetSpy.mockReset();
+      batchGetSpy.mockResolvedValue(
+        mockOf<Awaited<ReturnType<typeof client.spreadsheets.values.batchGet>>>(
+          {
+            data: {
+              valueRanges: [
+                {
+                  values: [
+                    ['Other', 'Server'],
+                    ['Me', 'Server'],
+                  ],
+                },
+                { values: [['Me', 'Server']] },
+              ],
+            },
+          },
+        ),
+      );
+
+      await service.removeSignup(
+        { encounter: Encounter.DSR, character: 'Me', world: 'Server' },
+        'test-sheet-id',
+      );
+
+      expect(getSpy).toHaveBeenCalledTimes(1);
+      expect(batchGetSpy).toHaveBeenCalledTimes(1);
+      expect(batchUpdateSpy).toHaveBeenCalledWith(client, 'test-sheet-id', [
+        {
+          updateCells: {
+            range: {
+              sheetId: 7,
+              startRowIndex: 1,
+              endRowIndex: 2,
+              startColumnIndex: 8,
+              endColumnIndex: 12,
+            },
+            fields: 'userEnteredValue',
+          },
+        },
+        {
+          updateCells: {
+            range: {
+              sheetId: 7,
+              startRowIndex: 0,
+              endRowIndex: 1,
+              startColumnIndex: 2,
+              endColumnIndex: 6,
+            },
+            fields: 'userEnteredValue',
+          },
+        },
+      ]);
+    });
+  });
+
+  describe('#cleanSheet', () => {
+    it('writes each section to the tab id returned with its own grid data', async () => {
+      const batchUpdateSpy = vi
+        .spyOn(sheetsUtils, 'batchUpdate')
+        .mockResolvedValue(
+          mockOf<Awaited<ReturnType<typeof sheetsUtils.batchUpdate>>>({}),
+        );
+      const getSpy = vi.spyOn(client.spreadsheets, 'get');
+      getSpy.mockReset();
+      getSpy.mockResolvedValue(
+        mockOf<Awaited<ReturnType<typeof client.spreadsheets.get>>>({
+          data: {
+            sheets: [
+              {
+                properties: { sheetId: 7, hidden: false },
+                data: [
+                  {
+                    rowData: [
+                      { values: [{ userEnteredValue: { stringValue: 'Me' } }] },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      );
+
+      await service.cleanSheet({
+        spreadsheetId: 'test-id',
+        encounter: Encounter.TOP,
+      });
+
+      expect(getSpy).toHaveBeenCalledTimes(2);
+      expect(
+        batchUpdateSpy.mock.calls.map(([, , requests]) =>
+          requests.map((request) => request.updateCells?.range?.sheetId),
+        ),
+      ).toEqual([[7], [7]]);
     });
   });
 
