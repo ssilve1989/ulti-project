@@ -35,12 +35,7 @@ class EditSpreadsheetCommandHandler implements ISlashCommand {
         spreadsheetId,
       });
 
-      const settings = await this.settingsCollection.getSettings(
-        interaction.guildId,
-      );
-
       await this.settingsCollection.upsert(interaction.guildId, {
-        ...settings,
         spreadsheetId,
       });
 

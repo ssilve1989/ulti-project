@@ -20,28 +20,8 @@ class SettingsCollection {
   }
 
   @SentryTraced()
-  public async upsert(
-    guildId: string,
-    { progRoles, clearRoles, ...settings }: Partial<SettingsDocument>,
-  ) {
-    // prevent empty object from overriding all existing prog roles
-    // quick n dirty fix for now
-    const progRolesUpdate =
-      progRoles && Object.keys(progRoles).length === 0 ? undefined : progRoles;
-
-    const clearRolesUpdate =
-      clearRoles && Object.keys(clearRoles).length === 0
-        ? undefined
-        : clearRoles;
-
-    await this.collection.doc(guildId).set(
-      {
-        ...settings,
-        progRoles: progRolesUpdate,
-        clearRoles: clearRolesUpdate,
-      },
-      { merge: true },
-    );
+  public async upsert(guildId: string, settings: Partial<SettingsDocument>) {
+    await this.collection.doc(guildId).set(settings, { merge: true });
 
     await this.updateCache(guildId);
   }

@@ -38,20 +38,9 @@ class EditEncounterRolesCommandHandler implements ISlashCommand {
         clearRoleName: clearRole.name,
       });
 
-      const settings = await this.settingsCollection.getSettings(
-        interaction.guildId,
-      );
-
       await this.settingsCollection.upsert(interaction.guildId, {
-        ...settings,
-        progRoles: {
-          ...settings?.progRoles,
-          [encounter]: progRole.id,
-        },
-        clearRoles: {
-          ...settings?.clearRoles,
-          [encounter]: clearRole.id,
-        },
+        progRoles: { [encounter]: progRole.id },
+        clearRoles: { [encounter]: clearRole.id },
       });
 
       await interaction.editReply('Encounter roles updated!');

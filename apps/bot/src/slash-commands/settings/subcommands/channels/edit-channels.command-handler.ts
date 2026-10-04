@@ -40,12 +40,7 @@ class EditChannelsCommandHandler implements ISlashCommand {
         hasAutoModChannel: !!autoModChannelId,
       });
 
-      const settings = await this.settingsCollection.getSettings(
-        interaction.guildId,
-      );
-
       await this.settingsCollection.upsert(interaction.guildId, {
-        ...settings,
         reviewChannel: reviewChannel?.id,
         signupChannel: signupChannel?.id,
         autoModChannelId: autoModChannelId?.id,

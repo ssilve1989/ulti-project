@@ -33,12 +33,7 @@ class EditReviewerCommandHandler implements ISlashCommand {
         roleName: reviewerRole.name,
       });
 
-      const settings = await this.settingsCollection.getSettings(
-        interaction.guildId,
-      );
-
       await this.settingsCollection.upsert(interaction.guildId, {
-        ...settings,
         reviewerRole: reviewerRole.id,
       });
 

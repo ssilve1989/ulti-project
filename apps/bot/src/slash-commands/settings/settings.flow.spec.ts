@@ -42,6 +42,7 @@ const BLACKLIST_CHANNEL = 'blacklist-channel';
 const OTHER_CHANNEL = 'other-channel';
 
 const REVIEWER_ROLE = 'reviewer-role';
+const OTHER_ROLE = 'other-role';
 const PROG_ROLE = 'dmu-prog-role';
 const CLEAR_ROLE = 'dmu-clear-role';
 const P6_ROLE = 'dmu-p6-role';
@@ -246,6 +247,20 @@ describe('Settings', () => {
             ephemeral: true,
           }),
         ]);
+      });
+    });
+
+    describe('when other settings changed elsewhere since the bot last read them', () => {
+      it('keeps the newer settings', async ({ flow }) => {
+        await settings(flow, 'reviewer', { 'reviewer-role': REVIEWER_ROLE });
+        flow.db.seed(SETTINGS_PATH, { reviewerRole: OTHER_ROLE });
+
+        await settings(flow, 'spreadsheet', { 'spreadsheet-id': 'sheet-1' });
+
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          reviewerRole: OTHER_ROLE,
+          spreadsheetId: 'sheet-1',
+        });
       });
     });
   });
