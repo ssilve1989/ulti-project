@@ -4,7 +4,12 @@ import { test as base, describe, expect } from 'vitest';
 import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
-import { privateReply, textReply } from '../../test-utils/replies.js';
+import {
+  commandErrorReply,
+  expectCommandErrorReported,
+  privateReply,
+  textReply,
+} from '../../test-utils/replies.js';
 
 const GUILD = 'guild-1';
 const ADMIN = Object.freeze({
@@ -171,21 +176,15 @@ describe('Encounters', () => {
   });
 
   describe('when viewing an encounter fails', () => {
-    it('reports it and says, privately, to try again', async ({ flow }) => {
+    it('replies with a command error, privately, and reports it', async ({
+      flow,
+    }) => {
       flow.db.goOffline();
 
       const replies = await viewEncounters(flow, Encounter.DSR);
 
-      flow.expectReported(
-        /^error: Error: 14 UNAVAILABLE.*Error viewing encounter data/s,
-      );
-      expect(replies).toEqual([
-        textReply(
-          ADMIN.id,
-          '❌ An error occurred while viewing encounter data. Please try again.',
-          { ephemeral: true },
-        ),
-      ]);
+      expectCommandErrorReported(flow, '14 UNAVAILABLE');
+      expect(replies).toEqual([commandErrorReply(flow, ADMIN.id)]);
     });
   });
 

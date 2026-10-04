@@ -36,7 +36,7 @@ export const textReply = (
 });
 
 /** The embed a command answers with when it fails unexpectedly. */
-export const commandErrorEmbed = (flow: FlowApp) => ({
+const commandErrorEmbed = (flow: FlowApp) => ({
   title: 'Command Error',
   description: 'An unexpected error occurred. Please try again later.',
   color: Colors.Red,

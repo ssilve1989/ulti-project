@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import * as Sentry from '@sentry/nestjs';
-import { SentryTraced } from '@sentry/nestjs';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import {
   Colors,
@@ -9,7 +8,6 @@ import {
   MessageFlags,
   PermissionsBitField,
 } from 'discord.js';
-import { ErrorService } from '../../../error/error.service.js';
 import { SlashCommand } from '../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../slash-command.interface.js';
 import { SlashCommandRegistry } from '../../slash-command-registry.service.js';
@@ -25,10 +23,7 @@ import {
 class HelpCommandHandler implements ISlashCommand {
   private registry!: SlashCommandRegistry;
 
-  constructor(
-    private readonly moduleRef: ModuleRef,
-    private readonly errorService: ErrorService,
-  ) {}
+  constructor(private readonly moduleRef: ModuleRef) {}
 
   private getRegistry(): SlashCommandRegistry {
     if (!this.registry) {
@@ -39,7 +34,6 @@ class HelpCommandHandler implements ISlashCommand {
     return this.registry;
   }
 
-  @SentryTraced()
   async execute(
     interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<void> {
@@ -55,45 +49,37 @@ class HelpCommandHandler implements ISlashCommand {
         ) ?? false,
     });
 
-    try {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-      const isAdmin =
-        interaction.memberPermissions?.has(
-          PermissionsBitField.Flags.Administrator,
-        ) ?? false;
-      const canManageGuild =
-        interaction.memberPermissions?.has(
-          PermissionsBitField.Flags.ManageGuild,
-        ) ?? false;
+    const isAdmin =
+      interaction.memberPermissions?.has(
+        PermissionsBitField.Flags.Administrator,
+      ) ?? false;
+    const canManageGuild =
+      interaction.memberPermissions?.has(
+        PermissionsBitField.Flags.ManageGuild,
+      ) ?? false;
 
-      const allCommands = getAvailableCommands(
-        this.getRegistry().getAllBuilders(),
-      );
-      const availableCommands = filterCommandsByPermissions(
-        allCommands,
-        isAdmin,
-        canManageGuild,
-      );
+    const allCommands = getAvailableCommands(
+      this.getRegistry().getAllBuilders(),
+    );
+    const availableCommands = filterCommandsByPermissions(
+      allCommands,
+      isAdmin,
+      canManageGuild,
+    );
 
-      scope.setContext('help_processing', {
-        totalCommands: allCommands.length,
-        availableCommands: availableCommands.length,
-      });
+    scope.setContext('help_processing', {
+      totalCommands: allCommands.length,
+      availableCommands: availableCommands.length,
+    });
 
-      const embed = this.createHelpEmbed(
-        availableCommands,
-        isAdmin,
-        canManageGuild,
-      );
-      await interaction.editReply({ embeds: [embed] });
-    } catch (error) {
-      const errorEmbed = this.errorService.handleCommandError(
-        error,
-        interaction,
-      );
-      await interaction.editReply({ embeds: [errorEmbed] });
-    }
+    const embed = this.createHelpEmbed(
+      availableCommands,
+      isAdmin,
+      canManageGuild,
+    );
+    await interaction.editReply({ embeds: [embed] });
   }
 
   private createHelpEmbed(

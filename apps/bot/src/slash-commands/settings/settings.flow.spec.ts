@@ -10,7 +10,6 @@ import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import {
-  commandErrorEmbed,
   commandErrorReply,
   expectCommandErrorReported,
   privateReply,
@@ -310,7 +309,6 @@ describe('Settings', () => {
         flow.discord.expireAll();
         await flow.settle();
 
-        expectCommandErrorReported(flow, 'Collector received no interactions');
         expect(prompt).toEqual([
           privateReply(ADMIN.id, {
             content: `Select ${which}`,
@@ -379,7 +377,7 @@ describe('Settings', () => {
     });
 
     describe('when the admin does not pick in time', () => {
-      it('replaces the menu with a command error and stores nothing', async ({
+      it('says the menu expired, removing it, and stores nothing', async ({
         flow,
       }) => {
         await settings(flow, 'prog-point-roles', {
@@ -390,11 +388,10 @@ describe('Settings', () => {
         flow.discord.expireAll();
         await flow.settle();
 
-        expectCommandErrorReported(flow, 'Collector received no interactions');
         expect(repliesToAdmin(flow)).toEqual([
           privateReply(ADMIN.id, {
-            content: `Select the prog points that should assign <@&${P6_ROLE}>`,
-            embeds: [commandErrorEmbed(flow)],
+            content:
+              'This menu has expired. Run /settings prog-point-roles again if needed.',
           }),
         ]);
         expect(flow.db.read(SETTINGS_PATH)).toBeUndefined();

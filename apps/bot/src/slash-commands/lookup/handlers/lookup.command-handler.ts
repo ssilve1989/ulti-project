@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import { SentryTraced } from '@sentry/nestjs';
 import type { SignupDocument } from '@ulti-project/shared';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import {
@@ -38,57 +37,45 @@ class LookupCommandHandler implements ISlashCommand {
     private readonly errorService: ErrorService,
   ) {}
 
-  @SentryTraced()
   async execute(
     interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<void> {
-    try {
-      const scope = Sentry.getCurrentScope();
-      const { options, guildId } = interaction;
+    const scope = Sentry.getCurrentScope();
+    const { options, guildId } = interaction;
 
-      const lookupResult = this.getLookupRequest(options);
+    const lookupResult = this.getLookupRequest(options);
 
-      if (!lookupResult.success) {
-        const errorEmbed = this.createValidationErrorEmbed(lookupResult.error);
-        await interaction.reply({
-          embeds: [errorEmbed],
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      const dto = lookupResult.data;
-
-      // Add command-specific context
-      scope.setContext('lookup_request', {
-        character: dto.character,
-        world: dto.world,
-      });
-
-      const results = await this.signupsCollection.findAll(dto);
-
-      const withBlacklistInfo = await Promise.all(
-        results.map((r) => this.mapBlacklistInfo(guildId, r)),
-      );
-
-      // Add context about results
-      scope.setContext('lookup_results', {
-        signupCount: results.length,
-        worlds: [...new Set(results.map((r) => r.world))],
-      });
-
-      const embeds = this.createLookupEmbeds(withBlacklistInfo, dto);
-      await interaction.reply({ embeds, flags: MessageFlags.Ephemeral });
-    } catch (error) {
-      const errorEmbed = this.errorService.handleCommandError(
-        error,
-        interaction,
-      );
+    if (!lookupResult.success) {
+      const errorEmbed = this.createValidationErrorEmbed(lookupResult.error);
       await interaction.reply({
         embeds: [errorEmbed],
         flags: MessageFlags.Ephemeral,
       });
+      return;
     }
+
+    const dto = lookupResult.data;
+
+    // Add command-specific context
+    scope.setContext('lookup_request', {
+      character: dto.character,
+      world: dto.world,
+    });
+
+    const results = await this.signupsCollection.findAll(dto);
+
+    const withBlacklistInfo = await Promise.all(
+      results.map((r) => this.mapBlacklistInfo(guildId, r)),
+    );
+
+    // Add context about results
+    scope.setContext('lookup_results', {
+      signupCount: results.length,
+      worlds: [...new Set(results.map((r) => r.world))],
+    });
+
+    const embeds = this.createLookupEmbeds(withBlacklistInfo, dto);
+    await interaction.reply({ embeds, flags: MessageFlags.Ephemeral });
   }
 
   private async mapBlacklistInfo(

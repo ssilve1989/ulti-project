@@ -43,60 +43,43 @@ class RetireCommandHandler implements ISlashCommand {
       return;
     }
 
-    try {
-      // Use the new retireRole method to handle the role retirement
-      const result = await this.discordService.retireRole(
-        interaction.guildId,
-        currentHelperRole.id,
-        retiredHelperRole.id,
-      );
+    // Use the new retireRole method to handle the role retirement
+    const result = await this.discordService.retireRole(
+      interaction.guildId,
+      currentHelperRole.id,
+      retiredHelperRole.id,
+    );
 
-      // Send completion message
-      const resultEmbed = new EmbedBuilder()
-        .setTitle('Role Retirement Complete')
-        .setDescription(
-          `Replaced ${currentHelperRole.name} with ${retiredHelperRole.name}`,
-        )
-        .addFields([
-          {
-            name: 'Total members processed',
-            value: result.totalMembers.toString(),
-            inline: true,
-          },
-          {
-            name: 'Successful updates',
-            value: result.successCount.toString(),
-            inline: true,
-          },
-          {
-            name: 'Failed updates',
-            value: result.failCount.toString(),
-            inline: true,
-          },
-        ])
-        .setColor(result.failCount > 0 ? Colors.Yellow : Colors.Green)
-        .setTimestamp();
+    // Send completion message
+    const resultEmbed = new EmbedBuilder()
+      .setTitle('Role Retirement Complete')
+      .setDescription(
+        `Replaced ${currentHelperRole.name} with ${retiredHelperRole.name}`,
+      )
+      .addFields([
+        {
+          name: 'Total members processed',
+          value: result.totalMembers.toString(),
+          inline: true,
+        },
+        {
+          name: 'Successful updates',
+          value: result.successCount.toString(),
+          inline: true,
+        },
+        {
+          name: 'Failed updates',
+          value: result.failCount.toString(),
+          inline: true,
+        },
+      ])
+      .setColor(result.failCount > 0 ? Colors.Yellow : Colors.Green)
+      .setTimestamp();
 
-      await interaction.editReply({ embeds: [resultEmbed] });
-      this.logger.log(
-        `Role retirement complete: ${result.successCount} successful, ${result.failCount} failed`,
-      );
-    } catch (error: unknown) {
-      // flow-untested: retireRole absorbs member-level failures into its
-      // counts, and the fake's guild/member/role fetches resolve instead of
-      // rejecting, so this only fires on a real API outage
-      this.logger.error(error, 'Error during role retirement');
-      await interaction.editReply({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle('Role Retirement Failed')
-            .setDescription(
-              'An error occurred while processing role retirement.',
-            )
-            .setColor(Colors.Red),
-        ],
-      });
-    }
+    await interaction.editReply({ embeds: [resultEmbed] });
+    this.logger.log(
+      `Role retirement complete: ${result.successCount} successful, ${result.failCount} failed`,
+    );
   }
 }
 
