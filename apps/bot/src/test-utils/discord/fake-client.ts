@@ -150,6 +150,10 @@ export class FakeViews {
           : this.fetchMember(guildId, userId),
     };
     const roles = {
+      /** Like RoleManager.cache: every role the guild has, @everyone included. */
+      get cache() {
+        return collectionOf(views.roleViews(guildId));
+      },
       /** Like RoleManager.fetch in discord.js 14.27: null for a role the guild doesn't have. */
       fetch: (roleId: string) =>
         Promise.resolve(
@@ -216,6 +220,8 @@ export class FakeViews {
     return mockOf<Role>({
       id: role.id,
       name: role.name,
+      /** Like Role.editable: whether the bot may give or take it. */
+      editable: role.aboveBot !== true,
       /** Like Role.members: the cached members holding it (all of them, for @everyone). */
       get members() {
         return collectionOf(
