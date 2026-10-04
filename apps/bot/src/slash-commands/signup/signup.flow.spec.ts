@@ -36,11 +36,14 @@ import {
   textReply,
 } from '../../test-utils/replies.js';
 import {
+  batchUpdated,
   CLEAR_PARTY,
+  clearRow,
   nextFreeRow,
   PROG_PARTY,
   rowCleared,
   type Section,
+  writeRow,
 } from '../../test-utils/sheets/dmu-sheet.js';
 import { stableTestKey } from '../../test-utils/sheets/recorded-sheets.js';
 import {
@@ -327,28 +330,17 @@ async function decline(flow: FlowApp, reason: string): Promise<void> {
   await flow.settle();
 }
 
-/** The request writing this test's player into `row` of `section` at `progPoint`. */
+/** A batch request writing this test's player into `row` of `section` at `progPoint`. */
+const playerRow = (section: Section, row: number, progPoint: string) =>
+  writeRow(section, row, [shownCharacter(), WORLD, 'tank', progPoint]);
+
+/** The request writing this test's player into `row` of `section` at `progPoint`, on its own. */
 const rowWritten = (
   flow: FlowApp,
   section: Section,
   row: number,
   progPoint: string,
-) => ({
-  method: 'PUT',
-  path: `/v4/spreadsheets/${flow.sheets.spreadsheetId}/values/DMU!${section.start}${row}:${section.end}?valueInputOption=USER_ENTERED`,
-  body: { values: [[shownCharacter(), WORLD, 'tank', progPoint]] },
-});
-
-/** The request rewriting this test's player's existing `row` of `section` at `progPoint`. */
-const rowUpdated = (
-  flow: FlowApp,
-  section: Section,
-  row: number,
-  progPoint: string,
-) => ({
-  ...rowWritten(flow, section, row, progPoint),
-  path: `/v4/spreadsheets/${flow.sheets.spreadsheetId}/values/DMU!${section.start}${row}:${section.end}${row}?valueInputOption=USER_ENTERED`,
-});
+) => batchUpdated(flow, playerRow(section, row, progPoint));
 
 // --- what users see
 
@@ -1828,8 +1820,12 @@ describe('Signup lifecycle', () => {
 
         expect(flow.sheets.writes()).toEqual([
           rowWritten(flow, PROG_PARTY, progRow, 'P6'),
-          rowCleared(flow, PROG_PARTY, progRow),
-          rowWritten(flow, CLEAR_PARTY, nextFreeRow(flow, CLEAR_PARTY), 'P7'),
+          // one batch, so the player can't be left in neither section
+          batchUpdated(
+            flow,
+            clearRow(PROG_PARTY, progRow),
+            playerRow(CLEAR_PARTY, nextFreeRow(flow, CLEAR_PARTY), 'P7'),
+          ),
         ]);
       });
     });
@@ -2363,7 +2359,7 @@ describe('Signup lifecycle', () => {
         const row = nextFreeRow(flow, PROG_PARTY);
         expect(flow.sheets.writes()).toEqual([
           rowWritten(flow, PROG_PARTY, row, 'P6'),
-          rowUpdated(flow, PROG_PARTY, row, 'P6'),
+          rowWritten(flow, PROG_PARTY, row, 'P6'),
         ]);
       });
     });
