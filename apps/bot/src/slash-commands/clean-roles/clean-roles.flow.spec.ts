@@ -233,7 +233,7 @@ describe('Clean roles', () => {
   });
 
   describe('when the bot may not remove one of the roles', () => {
-    it('reports each member it failed, and leaves them the role', async ({
+    it('warns it cannot, counts its members as failed, and still removes their other roles', async ({
       flow,
     }) => {
       flow.discord.addRole(GUILD, { ...DMU_CLEAR, aboveBot: true });
@@ -241,10 +241,7 @@ describe('Clean roles', () => {
       const replies = await cleanRoles(flow);
 
       flow.expectReported(
-        /^error: DiscordAPIError\[50013\]: Missing Permissions.*Failed to process member Lapsed Nick \(lapsed-1\) for role DMU Clear/s,
-      );
-      flow.expectReported(
-        /^Sentry exception: DiscordAPIError\[50013\]: Missing Permissions/,
+        /^warning: Cannot remove role DMU Clear \(dmu-clear-role\) from 1 member/,
       );
       expect([replies, flow.discord.rolesOf(LAPSED.id)]).toEqual([
         summary(
@@ -301,7 +298,7 @@ describe('Clean roles', () => {
           ),
           field(
             '👥 Member Analysis',
-            '**Total Active Signups:** 1\n**Members with Roles (Before):** 2\n**Members with Roles (After):** 1\n**Members to Lose Roles:** 1',
+            '**Total Active Signups:** 1\n**Members with Roles (Before):** 2\n**Members with Roles (After):** 1\n**Members Losing All Roles:** 1',
           ),
           field(
             '✅ Validation Check',
@@ -312,6 +309,34 @@ describe('Clean roles', () => {
         ]),
         [DMU_PROG.id, DMU_CLEAR.id, OTHER_ROLE],
       ]);
+    });
+
+    it('flags a role the bot may not remove instead of listing it as removed, as the clean-up would', async ({
+      flow,
+    }) => {
+      flow.discord.addRole(GUILD, { ...DMU_CLEAR, aboveBot: true });
+
+      expect(await cleanRoles(flow, { dryRun: true })).toEqual(
+        preview([
+          field(
+            '📊 Processing Summary',
+            "**Roles Processed:** 4\n**Role Assignments Processed:** 4\n**Role Assignments to Remove:** 1\n**Role Assignments That Can't Be Removed:** 1",
+          ),
+          field(
+            '👥 Member Analysis',
+            '**Total Active Signups:** 1\n**Members with Roles (Before):** 2\n**Members with Roles (After):** 2\n**Members Losing All Roles:** 0',
+          ),
+          field(
+            '⚠️ Validation Check',
+            'Warning: Members after removal exceeds active signups - this may indicate an issue\n**Expected Result:** Members with roles after cleanup ≤ Active signups\n**Actual Result:** 2 ≤ 1 = FAIL',
+          ),
+          field('🎭 DMU Prog (1 removals)', `• <@${LAPSED.id}> (Lapsed Nick)`),
+          field(
+            "⚠️ DMU Clear (1 can't be removed)",
+            "The bot can't remove this role: it's managed, above the bot's highest role, or the bot lacks Manage Roles.",
+          ),
+        ]),
+      );
     });
 
     it('says no change is needed when everyone with a role is active', async ({
@@ -327,7 +352,7 @@ describe('Clean roles', () => {
           ),
           field(
             '👥 Member Analysis',
-            '**Total Active Signups:** 1\n**Members with Roles (Before):** 1\n**Members with Roles (After):** 1\n**Members to Lose Roles:** 0',
+            '**Total Active Signups:** 1\n**Members with Roles (Before):** 1\n**Members with Roles (After):** 1\n**Members Losing All Roles:** 0',
           ),
           field(
             '✅ Validation Check',
@@ -355,7 +380,7 @@ describe('Clean roles', () => {
           ),
           field(
             '👥 Member Analysis',
-            '**Total Active Signups:** 1\n**Members with Roles (Before):** 13\n**Members with Roles (After):** 1\n**Members to Lose Roles:** 12',
+            '**Total Active Signups:** 1\n**Members with Roles (Before):** 13\n**Members with Roles (After):** 1\n**Members Losing All Roles:** 12',
           ),
           field(
             '✅ Validation Check',
@@ -410,7 +435,7 @@ describe('Clean roles', () => {
           ),
           field(
             '👥 Member Analysis',
-            '**Total Active Signups:** 1\n**Members with Roles (Before):** 24\n**Members with Roles (After):** 1\n**Members to Lose Roles:** 23',
+            '**Total Active Signups:** 1\n**Members with Roles (Before):** 24\n**Members with Roles (After):** 1\n**Members Losing All Roles:** 23',
           ),
           field(
             '✅ Validation Check',

@@ -1,5 +1,5 @@
 import type { SignupDocument } from '@ulti-project/shared';
-import type { Guild, Role } from 'discord.js';
+import type { GuildMember, Role } from 'discord.js';
 
 interface MemberToRemove {
   id: string;
@@ -15,6 +15,7 @@ export interface BaseRoleResult {
 }
 
 export interface DryRunRoleResult extends BaseRoleResult {
+  unremovable: number;
   membersToRemove: MemberToRemove[];
 }
 
@@ -34,6 +35,7 @@ interface BaseCleanRolesResult {
 
 export interface DryRunResult extends BaseCleanRolesResult {
   isDryRun: true;
+  totalUnremovable: number;
   processedRoles: DryRunRoleResult[];
 }
 
@@ -45,17 +47,27 @@ export interface NormalResult extends BaseCleanRolesResult {
 
 export type CleanRolesResult = DryRunResult | NormalResult;
 
+/** What a clean-up does to one role's holders; both runs follow it. */
+export interface RoleRemovalPlan {
+  role: Role;
+  /** holders with an active signup, who keep the role */
+  kept: GuildMember[];
+  /** holders without one, whose role the bot removes */
+  toRemove: GuildMember[];
+  /** holders without one, whose role the bot may not remove */
+  unremovable: GuildMember[];
+}
+
 export interface ProcessingContext {
-  guild: Guild;
-  guildId: string;
-  allRoleIds: Set<string>;
+  plans: RoleRemovalPlan[];
   activeSignups: SignupDocument[];
-  activeSignupDiscordIds: Set<string>;
   allMembersWithRoles: Set<string>;
+  /** members who still hold a configured role after the clean-up */
+  membersKeepingRoles: Set<string>;
 }
 
 export interface ProcessingStrategy<T extends BaseRoleResult> {
-  processRole(role: Role, activeSignupDiscordIds: Set<string>): Promise<T>;
+  processRoles(plans: RoleRemovalPlan[]): Promise<T[]>;
   createResult(
     context: ProcessingContext,
     processedRoles: T[],
