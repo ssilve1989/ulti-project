@@ -45,19 +45,25 @@ export class ErrorService {
    * @param options - Options for logging and Sentry reporting
    */
   captureError(error: unknown, options?: ErrorHandlingOptions): void {
-    this.processError(error, options);
+    // Here `message` is log context; in `handleCommandError` it is the
+    // user-facing embed text, so only this path forwards it to the log.
+    this.processError(error, options, options?.message);
   }
 
   /**
    * Shared error processing logic for Sentry reporting and basic logging
    */
-  private processError(error: unknown, options?: ErrorHandlingOptions): void {
+  private processError(
+    error: unknown,
+    options?: ErrorHandlingOptions,
+    logMessage?: string,
+  ): void {
     if (options?.capture ?? true) {
       Sentry.getCurrentScope().captureException(error);
     }
 
     if (options?.log ?? true) {
-      this.logErrorWithoutInteraction(error);
+      this.logErrorWithoutInteraction(error, logMessage);
     }
   }
 
