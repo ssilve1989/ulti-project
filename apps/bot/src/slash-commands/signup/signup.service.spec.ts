@@ -178,7 +178,10 @@ describe('SignupService', () => {
       const reaction = mockOf<MessageReaction>({
         message,
         partial: false,
-        emoji: mockOf<ReactionEmoji>({ name: 'emojiName' }),
+        // a review reaction, in a guild with no reviewer role: the error path
+        emoji: mockOf<ReactionEmoji>({
+          name: SIGNUP_REVIEW_REACTIONS.APPROVED,
+        }),
       });
 
       await expect(

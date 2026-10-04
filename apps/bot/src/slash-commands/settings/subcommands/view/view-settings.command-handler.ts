@@ -42,7 +42,10 @@ class ViewSettingsCommandHandler implements ISlashCommand {
     } catch (error) {
       // flow-untested: the recorded-sheets replay only holds 200 and 404
       // responses, so a quota or 5xx (which rethrows here) can't be produced
-      this.errorService.captureError(error);
+      Sentry.withScope((scope) => {
+        scope.setExtra('spreadsheetId', spreadsheetId);
+        this.errorService.captureError(error);
+      });
       return {
         name,
         value: 'Unable to fetch sheet info',

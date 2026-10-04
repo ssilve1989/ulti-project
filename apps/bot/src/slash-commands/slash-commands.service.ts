@@ -17,6 +17,7 @@ import {
   retry,
   timer,
 } from 'rxjs';
+import { withUnitOfWork } from '../common/sentry.js';
 import { appConfig } from '../config/app.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
 import { replyPrivately } from '../discord/discord.helpers.js';
@@ -39,7 +40,7 @@ class SlashCommandsService {
         return;
       }
 
-      return Sentry.startNewTrace(() => {
+      return withUnitOfWork(() => {
         return Sentry.startSpanManual(
           { name: interaction.commandName, op: 'command' },
           (span) => {

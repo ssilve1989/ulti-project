@@ -410,10 +410,11 @@ class DeclineReasonRequestService {
     error: unknown,
     context: { signup: DeclinedSignupDocument; reviewer: User },
   ): void {
-    const scope = Sentry.getCurrentScope();
-    scope.setExtra('signup', context.signup);
-    scope.setExtra('reviewer', context.reviewer);
-    scope.captureException(error);
+    Sentry.withScope((scope) => {
+      scope.setExtra('signup', context.signup);
+      scope.setExtra('reviewer', context.reviewer);
+      scope.captureException(error);
+    });
   }
 }
 

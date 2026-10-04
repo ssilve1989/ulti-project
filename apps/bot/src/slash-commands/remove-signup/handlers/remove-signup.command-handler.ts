@@ -186,9 +186,10 @@ class RemoveSignupCommandHandler implements ISlashCommand {
           );
         }
       } catch (e) {
-        const scope = Sentry.getCurrentScope();
-        scope.setExtra('signup', signup);
-        scope.captureException(e);
+        Sentry.withScope((scope) => {
+          scope.setExtra('signup', signup);
+          scope.captureException(e);
+        });
       }
     }
 

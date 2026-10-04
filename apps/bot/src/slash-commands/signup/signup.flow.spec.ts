@@ -1080,6 +1080,39 @@ describe('Signup lifecycle', () => {
     });
   });
 
+  describe('when a reviewer reacts in a guild with no reviewer role configured', () => {
+    it('reports the missing role, tells the reviewer it failed, and takes back their reaction', async ({
+      flow,
+    }) => {
+      const { reviewerRole, ...settings } =
+        flow.db.read(`settings/${GUILD}`) ?? {};
+      flow.db.seed(`settings/${GUILD}`, settings);
+      await submitSignup(flow);
+
+      await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.APPROVED);
+
+      flow.expectReported(
+        /^Sentry exception: Error: No reviewer role configured for guild/,
+      );
+      flow.expectReported(
+        /^error: \{\n\s+err: Error: No reviewer role configured for guild/,
+      );
+      expect(flow.discord.dmsTo(REVIEWER.id).map(shown)).toEqual([
+        {
+          location: dmTo(REVIEWER.id),
+          reactions: {},
+          deleted: false,
+          content: SIGNUP_MESSAGES.GENERIC_APPROVAL_ERROR,
+          embeds: [],
+          components: [],
+        },
+      ]);
+      expect(flow.discord.channel(REVIEW_CHANNEL).map(shown)).toEqual([
+        pendingReview(),
+      ]);
+    });
+  });
+
   describe('when the configured review channel does not exist', () => {
     it('confirms the signup but posts no review, and reports it', async ({
       flow,

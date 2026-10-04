@@ -45,9 +45,10 @@ export class RemoveRolesCommandHandler
         );
       }
     } catch (error) {
-      const scope = Sentry.getCurrentScope();
-      scope.setExtras({ encounter, userId });
-      scope.captureException(error);
+      Sentry.withScope((scope) => {
+        scope.setExtras({ encounter, userId });
+        scope.captureException(error);
+      });
     }
   }
 }

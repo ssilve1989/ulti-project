@@ -111,9 +111,10 @@ class FFLogsService {
       };
     } catch (error: unknown) {
       // Handle API errors gracefully - don't fail signup if FFLogs is down
-      const scope = Sentry.getCurrentScope();
-      scope.setExtra('fflogs_error', JSON.stringify(error, null, 2));
-      scope.captureMessage('FFLogs API Failure', 'warning');
+      Sentry.withScope((scope) => {
+        scope.setExtra('fflogs_error', JSON.stringify(error, null, 2));
+        scope.captureMessage('FFLogs API Failure', 'warning');
+      });
 
       const errorMessage = getErrorMessage(error);
       this.logger.warn(errorMessage);

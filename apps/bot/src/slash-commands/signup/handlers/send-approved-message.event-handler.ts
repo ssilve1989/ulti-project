@@ -52,9 +52,10 @@ class SendApprovedMessageEventHandler
     });
 
     if (!channel) {
-      const scope = Sentry.getCurrentScope();
-      scope.setExtras({ signupChannel, guildId });
-      scope.captureMessage('Text Channel not found');
+      Sentry.withScope((scope) => {
+        scope.setExtras({ signupChannel, guildId });
+        scope.captureMessage('Text Channel not found');
+      });
       return;
     }
 
