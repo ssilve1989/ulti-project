@@ -11,7 +11,6 @@ import {
   Colors,
   ComponentType,
   channelLink,
-  DiscordjsErrorCodes,
   EmbedBuilder,
   MessageFlags,
 } from 'discord.js';
@@ -31,6 +30,7 @@ import {
 import { createFields } from '../../../common/embed-helpers.js';
 import { appConfig } from '../../../config/app.js';
 import { UnhandledButtonInteractionException } from '../../../discord/discord.exceptions.js';
+import { isCollectorTimeout } from '../../../discord/discord.helpers.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { FFLogsService } from '../../../fflogs/fflogs.service.js';
@@ -64,12 +64,6 @@ type FFLogsValidationResult =
       errorMessage: string;
       errorType: 'format' | 'age';
     };
-
-/** the user didn't click confirm or cancel before the prompt expired */
-const isConfirmationTimeout = (error: unknown) =>
-  error instanceof Error &&
-  'code' in error &&
-  error.code === DiscordjsErrorCodes.InteractionCollectorError;
 
 @Injectable()
 @SlashCommand({ builder: createSignupSlashCommand(appConfig.APPLICATION_MODE) })
@@ -405,7 +399,8 @@ class SignupCommandHandler implements ISlashCommand {
         );
       }
     } catch (error: unknown) {
-      if (!isConfirmationTimeout(error)) throw error;
+      // the user didn't click confirm or cancel before the prompt expired
+      if (!isCollectorTimeout(error)) throw error;
 
       this.errorService.captureError(error);
       await interaction.editReply({

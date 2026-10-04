@@ -4,7 +4,6 @@ import {
   ChatInputCommandInteraction,
   Client,
   Events,
-  MessageFlags,
   REST,
   Routes,
 } from 'discord.js';
@@ -139,9 +138,7 @@ class SlashCommandsService {
     const payload = { embeds: [errorEmbed], components: [] };
 
     try {
-      await (interaction.deferred || interaction.replied
-        ? safeReply(interaction, payload)
-        : interaction.reply({ ...payload, flags: MessageFlags.Ephemeral }));
+      await safeReply(interaction, payload);
     } catch (replyError) {
       this.logger.error(
         {

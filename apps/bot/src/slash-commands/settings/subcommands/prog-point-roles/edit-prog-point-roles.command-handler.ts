@@ -7,6 +7,7 @@ import type {
 } from 'discord.js';
 import { ActionRowBuilder, MessageFlags, roleMention } from 'discord.js';
 import { isSameUserFilter } from '../../../../common/collection-filters.js';
+import { isCollectorTimeout } from '../../../../discord/discord.helpers.js';
 import { EncountersComponentsService } from '../../../../encounters/encounters-components.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SlashCommand } from '../../../slash-command.decorator.js';
@@ -58,10 +59,25 @@ class EditProgPointRolesCommandHandler implements ISlashCommand {
       components: [row],
     });
 
-    const selection = await message.awaitMessageComponent({
-      time: 60_000 * 2, // 2 minutes
-      filter: isSameUserFilter(interaction.user),
-    });
+    const selection = await message
+      .awaitMessageComponent({
+        time: 60_000 * 2, // 2 minutes
+        filter: isSameUserFilter(interaction.user),
+      })
+      .catch((error: unknown) => {
+        // the admin didn't pick before the menu expired
+        if (isCollectorTimeout(error)) return undefined;
+        throw error;
+      });
+
+    if (!selection) {
+      await interaction.editReply({
+        content:
+          'This menu has expired. Run /settings prog-point-roles again if needed.',
+        components: [],
+      });
+      return;
+    }
 
     if (
       selection.customId !== PROG_POINT_ROLES_SELECT_ID ||

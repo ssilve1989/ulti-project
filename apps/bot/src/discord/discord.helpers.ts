@@ -1,8 +1,10 @@
 import {
   type ChatInputCommandInteraction,
+  DiscordjsErrorCodes,
   type Embed,
   type InteractionReplyOptions,
   type Message,
+  MessageFlags,
   MessageReaction,
   type PartialMessageReaction,
   type PartialUser,
@@ -44,29 +46,34 @@ type SafeReplyOptions = Pick<
   'content' | 'embeds' | 'components' | 'files' | 'allowedMentions'
 >;
 
-/**
- * safely replies to an interaction based on its state
- * @param interaction
- * @param payload
- * @returns
- */
 export function getFirstEmbed(message: Message): Embed {
   const embed = message.embeds.at(0);
   if (!embed) throw new Error(`Expected embed on message ${message.id}`);
   return embed;
 }
 
+/**
+ * privately replies to an interaction based on its state. A deferred reply is
+ * edited, so it stays as private as it was deferred (every command defers
+ * ephemerally).
+ */
 export function safeReply(
   interaction: ChatInputCommandInteraction,
-  payload: string | SafeReplyOptions,
+  payload: SafeReplyOptions,
 ) {
   if (interaction.deferred) {
     return interaction.editReply(payload);
   }
 
   if (interaction.replied) {
-    return interaction.followUp(payload);
+    return interaction.followUp({ ...payload, flags: MessageFlags.Ephemeral });
   }
 
-  return interaction.reply(payload);
+  return interaction.reply({ ...payload, flags: MessageFlags.Ephemeral });
 }
+
+/** the error discord.js rejects with when a collector ends without the interaction it waited for */
+export const isCollectorTimeout = (error: unknown) =>
+  error instanceof Error &&
+  'code' in error &&
+  error.code === DiscordjsErrorCodes.InteractionCollectorError;

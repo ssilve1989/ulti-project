@@ -28,18 +28,10 @@ export class ViewEncounterCommandHandler implements ISlashCommand {
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    try {
-      if (encounterId) {
-        await this.showSingleEncounter(interaction, encounterId);
-      } else {
-        await this.showAllEncounters(interaction);
-      }
-    } catch (error) {
-      this.logger.error(error, 'Error viewing encounter data');
-      await interaction.editReply({
-        content:
-          '❌ An error occurred while viewing encounter data. Please try again.',
-      });
+    if (encounterId) {
+      await this.showSingleEncounter(interaction, encounterId);
+    } else {
+      await this.showAllEncounters(interaction);
     }
   }
 

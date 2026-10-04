@@ -1,7 +1,8 @@
-import type {
-  ChatInputCommandInteraction,
-  PartialMessageReaction,
-  PartialUser,
+import {
+  type ChatInputCommandInteraction,
+  MessageFlags,
+  type PartialMessageReaction,
+  type PartialUser,
 } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import { mockOf } from '../test-utils/mock-factory.js';
@@ -63,31 +64,44 @@ describe('Discord Helper Methods', () => {
 });
 
 describe('safeReply', () => {
-  const payload = 'test payload';
+  const payload = Object.freeze({ content: 'test payload' });
+  const privatePayload = Object.freeze({
+    ...payload,
+    flags: MessageFlags.Ephemeral,
+  });
   const testCases = [
     {
+      // the deferral already made the reply private
       scenario: 'deferred',
       interactionProps: { deferred: true, replied: false },
       expectedMethod: 'editReply',
+      expectedPayload: payload,
       resolvedValue: 'edited',
     },
     {
       scenario: 'replied',
       interactionProps: { deferred: false, replied: true },
       expectedMethod: 'followUp',
+      expectedPayload: privatePayload,
       resolvedValue: 'followed up',
     },
     {
       scenario: 'default',
       interactionProps: { deferred: false, replied: false },
       expectedMethod: 'reply',
+      expectedPayload: privatePayload,
       resolvedValue: 'replied',
     },
   ];
 
   it.each(testCases)(
-    'calls $expectedMethod when interaction is $scenario',
-    async ({ interactionProps, expectedMethod, resolvedValue }) => {
+    'answers privately with $expectedMethod when the interaction is $scenario',
+    async ({
+      interactionProps,
+      expectedMethod,
+      expectedPayload,
+      resolvedValue,
+    }) => {
       const methodFn = vi.fn().mockResolvedValue(resolvedValue);
       const interaction = mockOf<ChatInputCommandInteraction>({
         deferred: interactionProps.deferred,
@@ -98,7 +112,7 @@ describe('safeReply', () => {
       });
 
       const result = await safeReply(interaction, payload);
-      expect(methodFn).toHaveBeenCalledWith(payload);
+      expect(methodFn).toHaveBeenCalledWith(expectedPayload);
       expect(result).toBe(resolvedValue);
     },
   );
