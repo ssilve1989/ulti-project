@@ -114,15 +114,18 @@ class SyncProgRolesCommandHandler implements ISlashCommand {
         return;
       }
 
-      const signups = await this.signupCollection.findByStatusIn([
-        SignupStatus.APPROVED,
-        SignupStatus.UPDATE_PENDING,
+      const [signups, guild] = await Promise.all([
+        this.signupCollection.findByStatusIn([
+          SignupStatus.APPROVED,
+          SignupStatus.UPDATE_PENDING,
+        ]),
+        this.discordService.client.guilds
+          .fetch(interaction.guildId)
+          .then(async (guild) => {
+            await guild.members.fetch();
+            return guild;
+          }),
       ]);
-
-      const guild = await this.discordService.client.guilds.fetch(
-        interaction.guildId,
-      );
-      await guild.members.fetch();
 
       const result = await this.sweep({
         signups,

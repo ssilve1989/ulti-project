@@ -243,17 +243,18 @@ class RemoveSignupCommandHandler implements ISlashCommand {
     guildId: string,
     reviewerRole = '',
   ) {
-    const hasRole = await this.discordService.userHasRole({
-      userId: user.id,
-      roleId: reviewerRole,
-      guildId,
-    });
-
-    const signup = await this.signupsRepository.findOneOrFail({
-      character,
-      encounter,
-      world,
-    });
+    const [hasRole, signup] = await Promise.all([
+      this.discordService.userHasRole({
+        userId: user.id,
+        roleId: reviewerRole,
+        guildId,
+      }),
+      this.signupsRepository.findOneOrFail({
+        character,
+        encounter,
+        world,
+      }),
+    ]);
     return { canModify: hasRole || signup.discordId === user.id, signup };
   }
 
