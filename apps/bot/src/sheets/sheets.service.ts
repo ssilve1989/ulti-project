@@ -304,6 +304,7 @@ class SheetsService implements OnApplicationShutdown {
       const response = await this.client.spreadsheets.get({
         spreadsheetId,
         includeGridData: false,
+        fields: 'properties.title',
       });
 
       // Assuming you want the name of the first sheet
