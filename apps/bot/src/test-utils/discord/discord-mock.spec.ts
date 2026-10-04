@@ -561,6 +561,36 @@ describe('DiscordMock', () => {
     expect([before, role?.members.map(({ id }) => id)]).toEqual([[], ['u1']]);
   });
 
+  it("holds the guild's roles in its role cache, like discord.js", async ({
+    discord,
+  }) => {
+    const guild = await discord.client.guilds.fetch('g1');
+    discord.deleteRole('g1', 'r1');
+    discord.addRole('g1', { id: 'r3', name: 'Three' });
+
+    expect(guild.roles.cache.map(({ id, name }) => ({ id, name }))).toEqual([
+      { id: 'g1', name: '@everyone' },
+      { id: 'r2', name: 'Two' },
+      { id: 'r3', name: 'Three' },
+    ]);
+  });
+
+  it("reports only roles below the bot's own as editable, like discord.js", async ({
+    discord,
+  }) => {
+    discord.addRole('g1', { id: 'admin-role', name: 'Admin', aboveBot: true });
+    const guild = await discord.client.guilds.fetch('g1');
+
+    expect(
+      guild.roles.cache.map(({ id, editable }) => ({ id, editable })),
+    ).toEqual([
+      { id: 'g1', editable: true },
+      { id: 'r1', editable: true },
+      { id: 'r2', editable: true },
+      { id: 'admin-role', editable: false },
+    ]);
+  });
+
   it('removes a role from every member holding it', async ({
     discord,
     service,

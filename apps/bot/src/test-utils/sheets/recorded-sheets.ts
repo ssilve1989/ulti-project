@@ -203,8 +203,8 @@ export function stableTestKey(): string {
  * refreshed.
  */
 export async function startSheetsRecording(): Promise<{
-  /** The value grids the spreadsheet returned for reads of `range` (e.g. `DSR!I:L`), in order. */
-  valuesRead(range: string): unknown[];
+  /** The value grids the spreadsheet returned to the app's reads of `range` (e.g. `DSR!I:L`), made as `requestPaths` (from `readPaths`), in order. */
+  valuesRead(range: string, requestPaths: string[]): unknown[];
   /** Stops recording/replaying; when replaying, fails if a recorded request went unused. */
   finish(): void;
   /** Stops without checking, for when the test failed to even start. */
@@ -245,14 +245,25 @@ export async function startSheetsRecording(): Promise<{
       : [];
 
   return {
-    valuesRead(range) {
-      return definitions().flatMap(({ method, path, response }) =>
-        method === 'GET' &&
-        decodeURIComponent(String(path)).endsWith(`/values/${range}`) &&
-        isRecord(response)
-          ? [response.values]
-          : [],
-      );
+    valuesRead(range, requestPaths) {
+      // each request the app made gets the recorded response to that same
+      // request, repeats of it answered in order
+      const seen = new Map<string, number>();
+      return requestPaths.map((requestPath) => {
+        const occurrence = seen.get(requestPath) ?? 0;
+        seen.set(requestPath, occurrence + 1);
+        const recorded = definitions().filter(
+          ({ method, path }) =>
+            method === 'GET' &&
+            decodeURIComponent(String(path)) === requestPath,
+        )[occurrence];
+        const response = recorded?.response;
+        if (!isRecord(response)) return undefined;
+        if (!Array.isArray(response.valueRanges)) return response.values;
+        const valueRange: unknown =
+          response.valueRanges[rangesRead(requestPath).indexOf(range)];
+        return isRecord(valueRange) ? valueRange.values : undefined;
+      });
     },
     finish() {
       nockDone();
@@ -283,6 +294,19 @@ export async function startSheetsRecording(): Promise<{
       restore();
     },
   };
+}
+
+/**
+ * The ranges a Sheets read request asks for: one for `values/{range}`, several
+ * for `values:batchGet?ranges=…&ranges=…`. `path` is decoded.
+ */
+function rangesRead(path: string): string[] {
+  const [pathname = '', query = ''] = path.split('?');
+  if (pathname.endsWith('/values:batchGet')) {
+    return new URLSearchParams(query).getAll('ranges');
+  }
+  const [, range] = pathname.split('/values/');
+  return range === undefined ? [] : [range];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -362,12 +386,14 @@ export function captureSheetsRequests() {
     writes(): SheetsWrite[] {
       return bodies().filter(({ method }) => method !== 'GET');
     },
-    /** How many times the app has read `range` (e.g. `DMU!I:L`) so far. */
-    readsOf(range: string): number {
-      return requests.filter(
-        ({ method, path }) =>
-          method === 'GET' && path.split('?')[0]?.endsWith(`/values/${range}`),
-      ).length;
+    /** The decoded path (with query) of each read of `range` the app has made so far, in order. */
+    readPaths(range: string): string[] {
+      return requests
+        .filter(
+          ({ method, path }) =>
+            method === 'GET' && rangesRead(path).includes(range),
+        )
+        .map(({ path }) => path);
     },
     dispose() {
       unsubscribe(HTTP_REQUEST_CREATED, onCreated);

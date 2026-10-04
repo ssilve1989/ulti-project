@@ -1,201 +1,159 @@
 import { Logger } from '@nestjs/common';
 import type { SignupDocument } from '@ulti-project/shared';
-import type { Guild, GuildMember, Role, User } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
-import {
-  createAutoMock,
-  mockOf,
-  partialMock,
-} from '../../test-utils/mock-factory.js';
+import { test as base, describe, expect } from 'vitest';
+import { fresh } from '../../test-utils/fixtures.js';
+import { createAutoMock, partialMock } from '../../test-utils/mock-factory.js';
 import type {
   DryRunRoleResult,
   ProcessingContext,
 } from './clean-roles.interfaces.js';
+import {
+  memberWith,
+  processRoles,
+  roleHeldBy,
+} from './clean-roles.test-helpers.js';
+import { planRoleRemovals } from './clean-roles.utils.js';
 import { DryRunStrategy } from './dry-run.strategy.js';
 
-describe('DryRunStrategy', () => {
-  let strategy: DryRunStrategy;
-  let mockLogger: Logger;
+const it = base.extend<{ strategy: DryRunStrategy }>({
+  strategy: fresh(() => new DryRunStrategy(createAutoMock<Logger>())),
+});
 
-  beforeEach(() => {
-    mockLogger = createAutoMock<Logger>();
-    strategy = new DryRunStrategy(mockLogger);
+describe('DryRunStrategy', () => {
+  describe('when members without an active signup hold a role', () => {
+    it('lists them as losing it, and leaves members with an active signup off', async ({
+      strategy,
+    }) => {
+      const active = memberWith('active');
+      const lapsed = memberWith('lapsed');
+
+      expect(
+        await processRoles(
+          strategy,
+          [roleHeldBy('r1', [active, lapsed])],
+          new Set([active.id]),
+        ),
+      ).toEqual([
+        {
+          roleId: 'r1',
+          roleName: 'Role r1',
+          membersProcessed: 2,
+          rolesRemoved: 1,
+          removable: true,
+          membersToRemove: [
+            { id: 'lapsed', displayName: 'Nick lapsed', username: 'lapsed' },
+          ],
+        },
+      ]);
+    });
   });
 
-  describe('processRole', () => {
-    it('should process role and return dry run result with members to remove', async () => {
-      const mockUser1 = mockOf<User>({ username: 'user1' });
-      const mockUser2 = mockOf<User>({ username: 'user2' });
-
-      const mockMember1 = mockOf<GuildMember>({
-        id: 'member-1',
-        displayName: 'Member One',
-        user: mockUser1,
-      });
-
-      const mockMember2 = mockOf<GuildMember>({
-        id: 'member-2',
-        displayName: 'Member Two',
-        user: mockUser2,
-      });
-
-      const mockRole = mockOf<Role>({
-        id: 'role-1',
-        name: 'Test Role',
-        members: new Map([
-          ['member-1', mockMember1],
-          ['member-2', mockMember2],
-        ]),
-      });
-
-      const activeSignupDiscordIds = new Set(['member-1']); // Only member-1 has active signup
-
-      const result = await strategy.processRole(
-        mockRole,
-        activeSignupDiscordIds,
-      );
-
-      expect(result).toEqual({
-        roleId: 'role-1',
-        roleName: 'Test Role',
-        membersProcessed: 2,
-        rolesRemoved: 1,
-        membersToRemove: [
-          {
-            id: 'member-2',
-            displayName: 'Member Two',
-            username: 'user2',
-          },
-        ],
-      });
+  describe('when a role has no members', () => {
+    it('reports it with nothing to remove', async ({ strategy }) => {
+      expect(
+        await processRoles(strategy, [roleHeldBy('r1', [])], new Set()),
+      ).toEqual([
+        {
+          roleId: 'r1',
+          roleName: 'Role r1',
+          membersProcessed: 0,
+          rolesRemoved: 0,
+          removable: true,
+          membersToRemove: [],
+        },
+      ]);
     });
+  });
 
-    it('should handle empty role', async () => {
-      const mockRole = mockOf<Role>({
-        id: 'role-1',
-        name: 'Empty Role',
-        members: new Map(),
-      });
-
-      const activeSignupDiscordIds = new Set<string>();
-
-      const result = await strategy.processRole(
-        mockRole,
-        activeSignupDiscordIds,
-      );
-
-      expect(result).toEqual({
-        roleId: 'role-1',
-        roleName: 'Empty Role',
-        membersProcessed: 0,
-        rolesRemoved: 0,
-        membersToRemove: [],
-      });
-    });
-
-    it('should not remove members with active signups', async () => {
-      const mockUser1 = mockOf<User>({ username: 'user1' });
-      const mockMember1 = mockOf<GuildMember>({
-        id: 'member-1',
-        displayName: 'Member One',
-        user: mockUser1,
-      });
-
-      const mockRole = mockOf<Role>({
-        id: 'role-1',
-        name: 'Test Role',
-        members: new Map([['member-1', mockMember1]]),
-      });
-
-      const activeSignupDiscordIds = new Set(['member-1']); // Member has active signup
-
-      const result = await strategy.processRole(
-        mockRole,
-        activeSignupDiscordIds,
-      );
-
-      expect(result).toEqual({
-        roleId: 'role-1',
-        roleName: 'Test Role',
-        membersProcessed: 1,
-        rolesRemoved: 0,
-        membersToRemove: [],
-      });
+  describe('when the bot may not remove a role', () => {
+    it('counts the holders who would keep it instead of listing them', async ({
+      strategy,
+    }) => {
+      expect(
+        await processRoles(
+          strategy,
+          [roleHeldBy('r1', [memberWith('lapsed')], { editable: false })],
+          new Set(),
+        ),
+      ).toEqual([
+        {
+          roleId: 'r1',
+          roleName: 'Role r1',
+          membersProcessed: 1,
+          rolesRemoved: 0,
+          removable: false,
+          unremovable: 1,
+        },
+      ]);
     });
   });
 
   describe('createResult', () => {
-    it('should create dry run result with correct totals', () => {
+    it('totals the roles, and counts members who keep a role', ({
+      strategy,
+    }) => {
       const processedRoles: DryRunRoleResult[] = [
         {
           roleId: 'role-1',
           roleName: 'Role One',
           membersProcessed: 3,
-          rolesRemoved: 2,
+          rolesRemoved: 3,
+          removable: true,
           membersToRemove: [
-            { id: 'user-1', displayName: 'User One', username: 'user1' },
-            { id: 'user-2', displayName: 'User Two', username: 'user2' },
+            { id: 'user-1', displayName: 'Nick user-1', username: 'user-1' },
+            { id: 'user-2', displayName: 'Nick user-2', username: 'user-2' },
+            { id: 'user-3', displayName: 'Nick user-3', username: 'user-3' },
           ],
         },
         {
           roleId: 'role-2',
           roleName: 'Role Two',
           membersProcessed: 2,
-          rolesRemoved: 1,
-          membersToRemove: [
-            { id: 'user-3', displayName: 'User Three', username: 'user3' },
-          ],
+          rolesRemoved: 0,
+          removable: false,
+          unremovable: 1,
         },
       ];
-
+      // user-4 has an active signup; user-5 keeps role-2, which the bot can't remove
       const context: ProcessingContext = {
-        guild: mockOf<Guild>({}),
-        guildId: 'guild-1',
-        allRoleIds: new Set(['role-1', 'role-2']),
-        activeSignups: partialMock<SignupDocument[]>([{}, {}, {}]), // 3 active signups
-        activeSignupDiscordIds: new Set(['user-4', 'user-5']), // 2 unique Discord IDs with signups
-        allMembersWithRoles: new Set([
-          'user-1',
-          'user-2',
-          'user-3',
-          'user-4',
-          'user-5',
-        ]), // 5 members with roles
+        plans: planRoleRemovals(
+          [
+            roleHeldBy('role-1', [
+              memberWith('user-1'),
+              memberWith('user-2'),
+              memberWith('user-3'),
+            ]),
+            roleHeldBy('role-2', [memberWith('user-4'), memberWith('user-5')], {
+              editable: false,
+            }),
+          ],
+          new Set(['user-4']),
+        ),
+        activeSignups: partialMock<SignupDocument[]>([{}, {}, {}]),
       };
 
-      const result = strategy.createResult(context, processedRoles);
-
-      expect(result).toEqual({
+      expect(strategy.createResult(context, processedRoles)).toEqual({
         isDryRun: true,
         totalRolesProcessed: 2,
         totalMembersProcessed: 5,
         totalRolesRemoved: 3,
+        totalUnremovable: 1,
         totalActiveSignups: 3,
         uniqueMembersWithRoles: 5,
-        uniqueMembersAfterRemoval: 2, // Only user-4 and user-5 have active signups
+        uniqueMembersAfterRemoval: 2,
         processedRoles,
       });
     });
 
-    it('should handle empty processed roles', () => {
-      const processedRoles: DryRunRoleResult[] = [];
-
-      const context: ProcessingContext = {
-        guild: mockOf<Guild>({}),
-        guildId: 'guild-1',
-        allRoleIds: new Set(),
-        activeSignups: [],
-        activeSignupDiscordIds: new Set(),
-        allMembersWithRoles: new Set(),
-      };
-
-      const result = strategy.createResult(context, processedRoles);
-
-      expect(result).toEqual({
+    it('reports zeroes when no roles were processed', ({ strategy }) => {
+      expect(
+        strategy.createResult({ plans: [], activeSignups: [] }, []),
+      ).toEqual({
         isDryRun: true,
         totalRolesProcessed: 0,
         totalMembersProcessed: 0,
         totalRolesRemoved: 0,
+        totalUnremovable: 0,
         totalActiveSignups: 0,
         uniqueMembersWithRoles: 0,
         uniqueMembersAfterRemoval: 0,

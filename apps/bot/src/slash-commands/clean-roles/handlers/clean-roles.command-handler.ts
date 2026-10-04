@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import { SentryTraced } from '@sentry/nestjs';
 import { SignupStatus } from '@ulti-project/shared';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import {
@@ -8,6 +7,7 @@ import {
   embedLength,
   type Guild,
   MessageFlags,
+  type Role,
   userMention,
 } from 'discord.js';
 import { DiscordService } from '../../../discord/discord.service.js';
@@ -20,12 +20,14 @@ import type {
   BaseRoleResult,
   CleanRolesResult,
   DryRunResult,
+  DryRunRoleResult,
   NormalResult,
   NormalRoleResult,
   ProcessingContext,
   ProcessingStrategy,
 } from '../clean-roles.interfaces.js';
 import { CleanRolesSlashCommand } from '../clean-roles.slash-command.js';
+import { planRoleRemovals, UNREMOVABLE_REASON } from '../clean-roles.utils.js';
 import { DryRunStrategy } from '../dry-run.strategy.js';
 import { NormalStrategy } from '../normal.strategy.js';
 
@@ -41,15 +43,45 @@ function additionalRolesField(count: number) {
   };
 }
 
+function dryRunRoleField(roleInfo: DryRunRoleResult) {
+  if (!roleInfo.removable) {
+    return {
+      name: `⚠️ ${roleInfo.roleName} (${roleInfo.unremovable} can't be removed)`,
+      value: `The bot can't remove this role: ${UNREMOVABLE_REASON}.`,
+      inline: false,
+    };
+  }
+
+  const members = roleInfo.membersToRemove;
+  const memberList = members
+    .slice(0, 10) // Limit to 10 members per role to avoid embed size limits
+    .map((member) => `• ${userMention(member.id)} (${member.displayName})`)
+    .join('\n');
+
+  const moreCount = members.length - 10;
+  const value =
+    memberList + (moreCount > 0 ? `\n... and ${moreCount} more` : '');
+  const fieldValue =
+    value.length <= MAX_EMBED_FIELD_VALUE_LENGTH
+      ? value
+      : `${value.slice(0, MAX_EMBED_FIELD_VALUE_LENGTH - 1)}…`;
+
+  return {
+    name: `🎭 ${roleInfo.roleName} (${roleInfo.rolesRemoved} removals)`,
+    value: fieldValue,
+    inline: false,
+  };
+}
+
 function addDryRunRoleFields(
   embed: EmbedBuilder,
   processedRoles: DryRunResult['processedRoles'],
 ): void {
-  const rolesWithRemovals = processedRoles.filter(
-    (role) => role.rolesRemoved > 0,
+  const rolesWithChanges = processedRoles.filter((role) =>
+    role.removable ? role.rolesRemoved > 0 : role.unremovable > 0,
   );
 
-  if (rolesWithRemovals.length === 0) {
+  if (rolesWithChanges.length === 0) {
     embed.addFields({
       name: '✅ No Changes Required',
       value: 'All members with clear/prog roles have active signups!',
@@ -59,33 +91,15 @@ function addDryRunRoleFields(
   }
 
   const availableFields = MAX_EMBED_FIELDS - (embed.data.fields?.length ?? 0);
-  const hasAdditionalRoles = rolesWithRemovals.length > availableFields;
+  const hasAdditionalRoles = rolesWithChanges.length > availableFields;
   const roleFieldLimit = hasAdditionalRoles
     ? availableFields - 1
     : availableFields;
 
   let addedRoleCount = 0;
-  for (const roleInfo of rolesWithRemovals.slice(0, roleFieldLimit)) {
-    const members = roleInfo.membersToRemove;
-    const memberList = members
-      .slice(0, 10) // Limit to 10 members per role to avoid embed size limits
-      .map((member) => `• ${userMention(member.id)} (${member.displayName})`)
-      .join('\n');
-
-    const moreCount = members.length - 10;
-    const value =
-      memberList + (moreCount > 0 ? `\n... and ${moreCount} more` : '');
-    const fieldValue =
-      value.length <= MAX_EMBED_FIELD_VALUE_LENGTH
-        ? value
-        : `${value.slice(0, MAX_EMBED_FIELD_VALUE_LENGTH - 1)}…`;
-
-    const field = {
-      name: `🎭 ${roleInfo.roleName} (${roleInfo.rolesRemoved} removals)`,
-      value: fieldValue,
-      inline: false,
-    };
-    const omittedRoleCount = rolesWithRemovals.length - addedRoleCount;
+  for (const roleInfo of rolesWithChanges.slice(0, roleFieldLimit)) {
+    const field = dryRunRoleField(roleInfo);
+    const omittedRoleCount = rolesWithChanges.length - addedRoleCount;
     const additionalField = additionalRolesField(omittedRoleCount);
     const reservedLength =
       hasAdditionalRoles || omittedRoleCount > 1
@@ -106,7 +120,7 @@ function addDryRunRoleFields(
     addedRoleCount++;
   }
 
-  const additionalRoleCount = rolesWithRemovals.length - addedRoleCount;
+  const additionalRoleCount = rolesWithChanges.length - addedRoleCount;
   if (additionalRoleCount > 0) {
     embed.addFields(additionalRolesField(additionalRoleCount));
   }
@@ -124,62 +138,53 @@ class CleanRolesCommandHandler implements ISlashCommand {
     private readonly errorService: ErrorService,
   ) {}
 
-  @SentryTraced()
   async execute(interaction: ChatInputCommandInteraction<'cached'>) {
-    try {
-      const scope = Sentry.getCurrentScope();
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const scope = Sentry.getCurrentScope();
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-      const { guildId, options } = interaction;
-      const isDryRun = options.getBoolean('dry-run') ?? false;
+    const { guildId, options } = interaction;
+    const isDryRun = options.getBoolean('dry-run') ?? false;
 
-      // Add command-specific context
-      scope.setContext('clean_roles_operation', {
-        isDryRun,
+    // Add command-specific context
+    scope.setContext('clean_roles_operation', {
+      isDryRun,
+    });
+
+    this.logger.log(
+      `Starting clean-roles operation for guild ${guildId} (dry-run: ${isDryRun})`,
+    );
+
+    if (isDryRun) {
+      const result = await this.processCleanRolesCore(guildId, true);
+
+      // Add context about dry run results
+      scope.setContext('dry_run_results', {
+        totalRolesProcessed: result.totalRolesProcessed,
+        totalMembersProcessed: result.totalMembersProcessed,
+        totalRolesRemoved: result.totalRolesRemoved,
+        uniqueMembersWithRoles: result.uniqueMembersWithRoles,
       });
 
+      const embed = this.createDryRunEmbed(result);
+      await interaction.editReply({ embeds: [embed] });
       this.logger.log(
-        `Starting clean-roles operation for guild ${guildId} (dry-run: ${isDryRun})`,
+        `Clean-roles dry-run completed for guild ${guildId}: ${result.totalRolesRemoved}/${result.totalMembersProcessed} roles would be removed across ${result.totalRolesProcessed} roles`,
       );
+    } else {
+      const result = await this.processCleanRolesCore(guildId, false);
 
-      if (isDryRun) {
-        const result = await this.processCleanRolesCore(guildId, true);
+      // Add context about operation results
+      scope.setContext('operation_results', {
+        totalRolesProcessed: result.totalRolesProcessed,
+        totalMembersProcessed: result.totalMembersProcessed,
+        totalRolesRemoved: result.totalRolesRemoved,
+      });
 
-        // Add context about dry run results
-        scope.setContext('dry_run_results', {
-          totalRolesProcessed: result.totalRolesProcessed,
-          totalMembersProcessed: result.totalMembersProcessed,
-          totalRolesRemoved: result.totalRolesRemoved,
-          uniqueMembersWithRoles: result.uniqueMembersWithRoles,
-        });
-
-        const embed = this.createDryRunEmbed(result);
-        await interaction.editReply({ embeds: [embed] });
-        this.logger.log(
-          `Clean-roles dry-run completed for guild ${guildId}: ${result.totalRolesRemoved}/${result.totalMembersProcessed} roles would be removed across ${result.totalRolesProcessed} roles`,
-        );
-      } else {
-        const result = await this.processCleanRolesCore(guildId, false);
-
-        // Add context about operation results
-        scope.setContext('operation_results', {
-          totalRolesProcessed: result.totalRolesProcessed,
-          totalMembersProcessed: result.totalMembersProcessed,
-          totalRolesRemoved: result.totalRolesRemoved,
-        });
-
-        const summary = this.createSummaryMessage(result);
-        await interaction.editReply(summary);
-        this.logger.log(
-          `Clean-roles operation completed for guild ${guildId}: ${result.totalRolesRemoved}/${result.totalMembersProcessed} roles removed across ${result.totalRolesProcessed} roles`,
-        );
-      }
-    } catch (error) {
-      const errorEmbed = this.errorService.handleCommandError(
-        error,
-        interaction,
+      const summary = this.createSummaryMessage(result);
+      await interaction.editReply(summary);
+      this.logger.log(
+        `Clean-roles operation completed for guild ${guildId}: ${result.totalRolesRemoved}/${result.totalMembersProcessed} roles removed across ${result.totalRolesProcessed} roles`,
       );
-      await interaction.editReply({ embeds: [errorEmbed] });
     }
   }
 
@@ -254,18 +259,12 @@ class CleanRolesCommandHandler implements ISlashCommand {
       `Found ${activeSignups.length} active signups for ${activeSignupDiscordIds.size} unique Discord users`,
     );
 
-    const allMembersWithRoles = await this.collectMembersWithRoles(
-      guild,
-      allRoleIds,
-    );
-
     return {
-      guild,
-      guildId,
-      allRoleIds,
+      plans: planRoleRemovals(
+        this.resolveRoles(guild, allRoleIds),
+        activeSignupDiscordIds,
+      ),
       activeSignups,
-      activeSignupDiscordIds,
-      allMembersWithRoles,
     };
   }
 
@@ -273,54 +272,32 @@ class CleanRolesCommandHandler implements ISlashCommand {
     context: ProcessingContext,
     strategy: ProcessingStrategy<T>,
   ): Promise<T[]> {
-    const results: T[] = [];
+    const results = await strategy.processRoles(context.plans);
 
-    for (const roleId of context.allRoleIds) {
-      try {
-        const role = await context.guild.roles.fetch(roleId);
-        if (!role) {
-          this.logger.warn(
-            `Role ${roleId} not found in guild ${context.guildId}`,
-          );
-          continue;
-        }
-
-        const roleResult = await strategy.processRole(
-          role,
-          context.activeSignupDiscordIds,
-        );
-        results.push(roleResult);
-
-        this.logger.log(
-          `Completed processing role ${role.name}: ${roleResult.rolesRemoved}/${roleResult.membersProcessed} roles processed`,
-        );
-      } catch (error) {
-        // flow-untested: this fires only when guild.roles.fetch rejects or
-        // processRole throws outside processMember (which catches its own),
-        // and the fake's roles.fetch resolves to null for an unknown role
-        this.errorService.captureError(error, {
-          message: `Failed to process role ${roleId}`,
-        });
-      }
+    for (const roleResult of results) {
+      this.logger.log(
+        `Completed processing role ${roleResult.roleName}: ${roleResult.rolesRemoved}/${roleResult.membersProcessed} roles processed`,
+      );
     }
 
     return results;
   }
 
-  private async collectMembersWithRoles(
-    guild: Guild,
-    allRoleIds: Set<string>,
-  ): Promise<Set<string>> {
-    const allMembersWithRoles = new Set<string>();
+  /**
+   * The configured roles, from the role cache the Guilds intent keeps current,
+   * so no REST call is made and a deleted role is simply absent.
+   */
+  private resolveRoles(guild: Guild, allRoleIds: Set<string>): Role[] {
+    const roles: Role[] = [];
     for (const roleId of allRoleIds) {
-      const role = await guild.roles.fetch(roleId);
+      const role = guild.roles.cache.get(roleId);
       if (role) {
-        for (const member of role.members.values()) {
-          allMembersWithRoles.add(member.id);
-        }
+        roles.push(role);
+      } else {
+        this.logger.warn(`Role ${roleId} not found in guild ${guild.id}`);
       }
     }
-    return allMembersWithRoles;
+    return roles;
   }
 
   private createSummaryMessage(result: NormalResult): string {
@@ -381,6 +358,11 @@ class CleanRolesCommandHandler implements ISlashCommand {
             `**Roles Processed:** ${result.totalRolesProcessed}`,
             `**Role Assignments Processed:** ${result.totalMembersProcessed}`,
             `**Role Assignments to Remove:** ${result.totalRolesRemoved}`,
+            ...(result.totalUnremovable > 0
+              ? [
+                  `**Role Assignments That Can't Be Removed:** ${result.totalUnremovable}`,
+                ]
+              : []),
           ].join('\n'),
           inline: false,
         },
@@ -390,7 +372,7 @@ class CleanRolesCommandHandler implements ISlashCommand {
             `**Total Active Signups:** ${result.totalActiveSignups}`,
             `**Members with Roles (Before):** ${result.uniqueMembersWithRoles}`,
             `**Members with Roles (After):** ${result.uniqueMembersAfterRemoval}`,
-            `**Members to Lose Roles:** ${result.uniqueMembersWithRoles - result.uniqueMembersAfterRemoval}`,
+            `**Members Losing All Roles:** ${result.uniqueMembersWithRoles - result.uniqueMembersAfterRemoval}`,
           ].join('\n'),
           inline: false,
         },

@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import { SentryTraced } from '@sentry/nestjs';
 import { type SignupDocument, SignupStatus } from '@ulti-project/shared';
 import type { APIEmbedField, ChatInputCommandInteraction } from 'discord.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
@@ -9,7 +8,6 @@ import {
   encounterField,
 } from '../../../common/components/fields.js';
 import { EncountersService } from '../../../encounters/encounters.service.js';
-import { ErrorService } from '../../../error/error.service.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../../signup/signup.consts.js';
 import { SlashCommand } from '../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../slash-command.interface.js';
@@ -21,34 +19,24 @@ import { StatusSlashCommand } from '../status.slash-command.js';
 class StatusCommandHandler implements ISlashCommand {
   constructor(
     private readonly service: StatusService,
-    private readonly errorService: ErrorService,
     private readonly encountersService: EncountersService,
   ) {}
 
-  @SentryTraced()
   async execute(interaction: ChatInputCommandInteraction<'cached'>) {
     const scope = Sentry.getCurrentScope();
-    try {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-      const signups = await this.service.getSignups(interaction.user.id);
+    const signups = await this.service.getSignups(interaction.user.id);
 
-      // Add context about the results
-      scope.setContext('status_results', {
-        signupCount: signups.length,
-        hasSignups: signups.length > 0,
-        encounters: signups.map((s) => s.encounter),
-      });
+    // Add context about the results
+    scope.setContext('status_results', {
+      signupCount: signups.length,
+      hasSignups: signups.length > 0,
+      encounters: signups.map((s) => s.encounter),
+    });
 
-      const embed = await this.createStatusEmbed(signups);
-      await interaction.editReply({ embeds: [embed] });
-    } catch (error) {
-      const errorEmbed = this.errorService.handleCommandError(
-        error,
-        interaction,
-      );
-      await interaction.editReply({ embeds: [errorEmbed] });
-    }
+    const embed = await this.createStatusEmbed(signups);
+    await interaction.editReply({ embeds: [embed] });
   }
 
   private async createStatusEmbed(signups: SignupDocument[]) {

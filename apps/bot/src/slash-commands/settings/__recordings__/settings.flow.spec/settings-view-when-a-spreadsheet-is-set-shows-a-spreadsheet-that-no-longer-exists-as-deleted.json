@@ -2,7 +2,7 @@
   {
     "scope": "https://sheets.googleapis.com:443",
     "method": "GET",
-    "path": "/v4/spreadsheets/deleted-spreadsheet?includeGridData=false",
+    "path": "/v4/spreadsheets/deleted-spreadsheet?includeGridData=false&fields=properties.title",
     "body": "",
     "status": 404,
     "response": {

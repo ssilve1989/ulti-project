@@ -62,6 +62,25 @@ async function growSheetRows(
   ]);
 }
 
+/** Sends a write, and when it exceeds the sheet's grid limits, grows the sheet once and sends it again. */
+async function growingRowsIfFull<T>(
+  client: sheets_v4.Sheets,
+  spreadsheetId: string,
+  range: string,
+  send: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await send();
+  } catch (error) {
+    if (!isGridLimitExceededError(error)) {
+      throw error;
+    }
+
+    await growSheetRows(client, spreadsheetId, range);
+    return send();
+  }
+}
+
 /**
  * Gets the row values of a given sheet and range
  * @param client
@@ -84,12 +103,33 @@ export async function getSheetValues(
 }
 
 /**
+ * Gets the row values of several ranges of one spreadsheet in a single request
+ * @param client
+ * @param param1
+ * @returns the values of each range, in the order the ranges were given
+ */
+export async function getSheetValuesBatch(
+  client: sheets_v4.Sheets,
+  { ranges, spreadsheetId }: { spreadsheetId: string; ranges: string[] },
+): Promise<SheetValues[]> {
+  const response = await client.spreadsheets.values.batchGet(
+    {
+      spreadsheetId,
+      ranges,
+    },
+    { timeout: 30_000 },
+  );
+
+  return ranges.map((_, index) => response.data.valueRanges?.[index]?.values);
+}
+
+/**
  * Updates a given sheet with the provided values
  * @param client
  * @param props
  * @returns
  */
-export async function updateSheet(
+export function updateSheet(
   client: sheets_v4.Sheets,
   { spreadsheetId, type, values, range }: UpdateSheetProps,
   options?: MethodOptions,
@@ -113,16 +153,7 @@ export async function updateSheet(
       ? client.spreadsheets.values.update(payload, options)
       : client.spreadsheets.values.append(payload, options);
 
-  try {
-    return await sendRequest();
-  } catch (error) {
-    if (!isGridLimitExceededError(error)) {
-      throw error;
-    }
-
-    await growSheetRows(client, spreadsheetId, range);
-    return sendRequest();
-  }
+  return growingRowsIfFull(client, spreadsheetId, range, sendRequest);
 }
 
 export function batchUpdate(
@@ -139,6 +170,30 @@ export function batchUpdate(
       },
     },
     options,
+  );
+}
+
+/**
+ * Sends `requests` as one `batchUpdate`, which Google applies atomically: all
+ * of them or none. Grows the sheet when they exceed its grid limits.
+ *
+ * The client only retries rate limits and server errors for idempotent HTTP
+ * methods, and `batchUpdate` is a POST. Its cell writes target fixed
+ * coordinates, so resending them is safe, and this opts POST into those
+ * retries.
+ * @param range an A1 range on the tab the requests write to, to grow it if needed
+ */
+export function batchWrite(
+  client: sheets_v4.Sheets,
+  spreadsheetId: string,
+  requests: sheets_v4.Schema$Request[],
+  range: string,
+): Promise<SheetsResponse<sheets_v4.Schema$BatchUpdateSpreadsheetResponse>> {
+  return growingRowsIfFull(client, spreadsheetId, range, () =>
+    batchUpdate(client, spreadsheetId, requests, {
+      timeout: 30_000,
+      retryConfig: { httpMethodsToRetry: ['POST'] },
+    }),
   );
 }
 

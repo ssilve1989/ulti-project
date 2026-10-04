@@ -10,7 +10,6 @@ import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import {
-  commandErrorEmbed,
   commandErrorReply,
   expectCommandErrorReported,
   privateReply,
@@ -42,6 +41,7 @@ const BLACKLIST_CHANNEL = 'blacklist-channel';
 const OTHER_CHANNEL = 'other-channel';
 
 const REVIEWER_ROLE = 'reviewer-role';
+const OTHER_ROLE = 'other-role';
 const PROG_ROLE = 'dmu-prog-role';
 const CLEAR_ROLE = 'dmu-clear-role';
 const P6_ROLE = 'dmu-p6-role';
@@ -248,6 +248,20 @@ describe('Settings', () => {
         ]);
       });
     });
+
+    describe('when other settings changed elsewhere since the bot last read them', () => {
+      it('keeps the newer settings', async ({ flow }) => {
+        await settings(flow, 'reviewer', { 'reviewer-role': REVIEWER_ROLE });
+        flow.db.seed(SETTINGS_PATH, { reviewerRole: OTHER_ROLE });
+
+        await settings(flow, 'spreadsheet', { 'spreadsheet-id': 'sheet-1' });
+
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          reviewerRole: OTHER_ROLE,
+          spreadsheetId: 'sheet-1',
+        });
+      });
+    });
   });
 
   describe('prog-point-roles', () => {
@@ -295,7 +309,6 @@ describe('Settings', () => {
         flow.discord.expireAll();
         await flow.settle();
 
-        expectCommandErrorReported(flow, 'Collector received no interactions');
         expect(prompt).toEqual([
           privateReply(ADMIN.id, {
             content: `Select ${which}`,
@@ -364,7 +377,7 @@ describe('Settings', () => {
     });
 
     describe('when the admin does not pick in time', () => {
-      it('replaces the menu with a command error and stores nothing', async ({
+      it('says the menu expired, removing it, and stores nothing', async ({
         flow,
       }) => {
         await settings(flow, 'prog-point-roles', {
@@ -375,11 +388,10 @@ describe('Settings', () => {
         flow.discord.expireAll();
         await flow.settle();
 
-        expectCommandErrorReported(flow, 'Collector received no interactions');
         expect(repliesToAdmin(flow)).toEqual([
           privateReply(ADMIN.id, {
-            content: `Select the prog points that should assign <@&${P6_ROLE}>`,
-            embeds: [commandErrorEmbed(flow)],
+            content:
+              'This menu has expired. Run /settings prog-point-roles again if needed.',
           }),
         ]);
         expect(flow.db.read(SETTINGS_PATH)).toBeUndefined();

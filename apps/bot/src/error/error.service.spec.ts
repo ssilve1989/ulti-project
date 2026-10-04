@@ -100,6 +100,19 @@ describe('ErrorService', () => {
       expect(result.data.description).toBe(message);
     });
 
+    test('should keep the real error in the log when a user message is given', () => {
+      const error = new Error('Test error');
+
+      service.handleCommandError(error, mockInteraction, {
+        message: 'Custom error message for user',
+      });
+
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        { err: error },
+        'Error: Test error',
+      );
+    });
+
     test('should log error with structured context', () => {
       const error = new Error('Test error');
 
@@ -177,6 +190,17 @@ describe('ErrorService', () => {
       expect(loggerErrorSpy).toHaveBeenCalledWith(
         { err: error },
         'Error: Test error',
+      );
+    });
+
+    test('should log the context message when one is given', () => {
+      const error = new Error('Test error');
+
+      service.captureError(error, { message: 'Failed to process role 123' });
+
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        { err: error },
+        'Error: Failed to process role 123',
       );
     });
 

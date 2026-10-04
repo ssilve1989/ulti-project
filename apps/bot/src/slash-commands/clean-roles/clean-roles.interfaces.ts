@@ -1,5 +1,5 @@
 import type { SignupDocument } from '@ulti-project/shared';
-import type { Guild, Role } from 'discord.js';
+import type { GuildMember, Role } from 'discord.js';
 
 interface MemberToRemove {
   id: string;
@@ -14,9 +14,20 @@ export interface BaseRoleResult {
   rolesRemoved: number;
 }
 
-export interface DryRunRoleResult extends BaseRoleResult {
+interface RemovableDryRunRoleResult extends BaseRoleResult {
+  removable: true;
   membersToRemove: MemberToRemove[];
 }
+
+/** A role the bot may not remove: its `unremovable` stale holders keep it. */
+interface UnremovableDryRunRoleResult extends BaseRoleResult {
+  removable: false;
+  unremovable: number;
+}
+
+export type DryRunRoleResult =
+  | RemovableDryRunRoleResult
+  | UnremovableDryRunRoleResult;
 
 export interface NormalRoleResult extends BaseRoleResult {
   failedRemovals: number;
@@ -34,6 +45,7 @@ interface BaseCleanRolesResult {
 
 export interface DryRunResult extends BaseCleanRolesResult {
   isDryRun: true;
+  totalUnremovable: number;
   processedRoles: DryRunRoleResult[];
 }
 
@@ -45,17 +57,24 @@ export interface NormalResult extends BaseCleanRolesResult {
 
 export type CleanRolesResult = DryRunResult | NormalResult;
 
+/** What a clean-up does to one role's holders; both runs follow it. */
+export interface RoleRemovalPlan {
+  role: Role;
+  /** holders with an active signup, who keep the role */
+  kept: GuildMember[];
+  /** holders without one, who lose the role if it is removable */
+  stale: GuildMember[];
+  /** whether the bot may remove the role (Role.editable) */
+  removable: boolean;
+}
+
 export interface ProcessingContext {
-  guild: Guild;
-  guildId: string;
-  allRoleIds: Set<string>;
+  plans: RoleRemovalPlan[];
   activeSignups: SignupDocument[];
-  activeSignupDiscordIds: Set<string>;
-  allMembersWithRoles: Set<string>;
 }
 
 export interface ProcessingStrategy<T extends BaseRoleResult> {
-  processRole(role: Role, activeSignupDiscordIds: Set<string>): Promise<T>;
+  processRoles(plans: RoleRemovalPlan[]): Promise<T[]>;
   createResult(
     context: ProcessingContext,
     processedRoles: T[],

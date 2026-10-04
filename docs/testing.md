@@ -175,7 +175,7 @@ against saved real responses, never the live API
     removing one unknown role rejects with the API's 10011; removing several
     ignores roles the member doesn't hold, as discord.js does. A role added
     with `aboveBot: true` sits above the bot's own, so changing it rejects
-    with the API's 50013.
+    with the API's 50013, and its `editable` is false.
   - As in discord.js, a guild's member cache (and so `role.members`) holds
     only the members the bot fetched, who used a command or were picked in one
     of its options, so code that reads

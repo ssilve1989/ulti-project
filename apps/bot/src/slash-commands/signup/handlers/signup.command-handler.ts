@@ -2,7 +2,6 @@ import { URL } from 'node:url';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
-import { SentryTraced } from '@sentry/nestjs';
 import type { SignupDocument } from '@ulti-project/shared';
 import { EncounterFriendlyDescription } from '@ulti-project/shared';
 import {
@@ -12,7 +11,6 @@ import {
   Colors,
   ComponentType,
   channelLink,
-  DiscordjsErrorCodes,
   EmbedBuilder,
   MessageFlags,
 } from 'discord.js';
@@ -32,6 +30,10 @@ import {
 import { createFields } from '../../../common/embed-helpers.js';
 import { appConfig } from '../../../config/app.js';
 import { UnhandledButtonInteractionException } from '../../../discord/discord.exceptions.js';
+import {
+  isCollectorTimeout,
+  recordExpiredPrompt,
+} from '../../../discord/discord.helpers.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { FFLogsService } from '../../../fflogs/fflogs.service.js';
@@ -81,7 +83,6 @@ class SignupCommandHandler implements ISlashCommand {
     private readonly errorService: ErrorService,
   ) {}
 
-  @SentryTraced()
   async execute(
     interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<void> {
@@ -401,28 +402,15 @@ class SignupCommandHandler implements ISlashCommand {
         );
       }
     } catch (error: unknown) {
-      await this.handleConfirmationError(error, interaction);
+      // the user didn't click confirm or cancel before the prompt expired
+      if (!isCollectorTimeout(error)) throw error;
+
+      recordExpiredPrompt(interaction);
+      await interaction.editReply({
+        content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
+        ...CLEAR_EMBED,
+      });
     }
-  }
-
-  private async handleConfirmationError(
-    error: unknown,
-    interaction: ChatInputCommandInteraction<'cached'>,
-  ): Promise<void> {
-    const errorEmbed = this.errorService.handleCommandError(error, interaction);
-
-    if (error && typeof error === 'object' && 'code' in error) {
-      if (error.code === DiscordjsErrorCodes.InteractionCollectorError) {
-        await interaction.editReply({
-          content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
-          embeds: [],
-          components: [],
-        });
-        return;
-      }
-    }
-
-    await interaction.editReply({ embeds: [errorEmbed], components: [] });
   }
 }
 

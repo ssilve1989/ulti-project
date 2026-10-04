@@ -75,3 +75,20 @@ Before writing or changing tests, read `docs/testing.md`. It covers when to
 write a flow spec (`*.flow.spec.ts`: real Nest wiring with the fakes in
 `apps/bot/src/test-utils/`) versus a unit spec, and the naming, assertion and
 setup rules both follow.
+
+## Slash command handlers
+
+- Let unexpected errors propagate. The dispatcher
+  (`apps/bot/src/slash-commands/slash-commands.service.ts`) reports them to
+  Sentry and shows the user the standard error. Catch only what you turn into a
+  specific message, such as a missing document.
+- Defer with `MessageFlags.Ephemeral`. The dispatcher's `replyPrivately` edits a
+  deferred reply in place, so a public deferral would post errors publicly.
+- Don't put `@SentryTraced()` on a handler that writes to
+  `Sentry.getCurrentScope()` (`setContext`, `setExtra`). The decorator's span
+  gets its own scope, so that data never reaches the dispatcher's error report,
+  and no test catches it.
+- A prompt the user lets expire (`isCollectorTimeout` in
+  `apps/bot/src/discord/discord.helpers.ts`) isn't an error. Tell them, remove
+  the components and call `recordExpiredPrompt`, which counts it and logs it to
+  Sentry without raising an issue.

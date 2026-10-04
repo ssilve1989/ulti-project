@@ -4,7 +4,11 @@ import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import { isoDateSince } from '../../test-utils/matchers.js';
-import { privateReply } from '../../test-utils/replies.js';
+import {
+  commandErrorReply,
+  expectCommandErrorReported,
+  privateReply,
+} from '../../test-utils/replies.js';
 
 const GUILD = 'guild-1';
 const HELPER_ROLE = Object.freeze({ id: 'helper-role', name: 'Helper' });
@@ -180,19 +184,17 @@ describe('Retire', () => {
   describe('when Discord fails while the bot looks up the guild', () => {
     it.beforeEach(({ flow }) => flow.discord.failGuildFetches());
 
-    it('tells the admin it failed, changing no roles', async ({ flow }) => {
+    it('tells the admin it failed and reports it, changing no roles', async ({
+      flow,
+    }) => {
       const replies = await retire(flow, {
         from: HELPER_ROLE.id,
         to: RETIRED_ROLE.id,
       });
 
-      flow.expectReported(/^error: HTTPError.*Error during role retirement/s);
+      expectCommandErrorReported(flow, 'Internal Server Error');
       expect([replies, rolesOfEveryone(flow)]).toEqual([
-        privateEmbed({
-          title: 'Role Retirement Failed',
-          description: 'An error occurred while processing role retirement.',
-          color: Colors.Red,
-        }),
+        [commandErrorReply(flow, ADMIN.id)],
         [
           [HELPER_ROLE.id, OTHER_ROLE],
           [HELPER_ROLE.id, OTHER_ROLE],

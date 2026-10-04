@@ -1,37 +1,18 @@
 import type { Logger } from '@nestjs/common';
-import type { GuildMember, Role } from 'discord.js';
 import type {
   DryRunResult,
   DryRunRoleResult,
   ProcessingContext,
   ProcessingStrategy,
+  RoleRemovalPlan,
 } from './clean-roles.interfaces.js';
 import { summarizeProcessedRoles } from './clean-roles.utils.js';
 
 export class DryRunStrategy implements ProcessingStrategy<DryRunRoleResult> {
   constructor(private readonly logger: Logger) {}
 
-  processRole(
-    role: Role,
-    activeSignupDiscordIds: Set<string>,
-  ): Promise<DryRunRoleResult> {
-    this.logger.log(
-      `Processing role ${role.name} (${role.id}) with ${role.members.size} members`,
-    );
-
-    const roleResult: DryRunRoleResult = {
-      roleId: role.id,
-      roleName: role.name,
-      membersProcessed: role.members.size,
-      rolesRemoved: 0,
-      membersToRemove: [],
-    };
-
-    for (const member of role.members.values()) {
-      this.processMember(member, role, activeSignupDiscordIds, roleResult);
-    }
-
-    return Promise.resolve(roleResult);
+  processRoles(plans: RoleRemovalPlan[]): Promise<DryRunRoleResult[]> {
+    return Promise.resolve(plans.map((plan) => this.processRole(plan)));
   }
 
   createResult(
@@ -41,27 +22,45 @@ export class DryRunStrategy implements ProcessingStrategy<DryRunRoleResult> {
     return {
       isDryRun: true,
       ...summarizeProcessedRoles(context, processedRoles),
+      totalUnremovable: processedRoles.reduce(
+        (sum, result) => sum + (result.removable ? 0 : result.unremovable),
+        0,
+      ),
       processedRoles,
     };
   }
 
-  private processMember(
-    member: GuildMember,
-    role: Role,
-    activeSignupDiscordIds: Set<string>,
-    roleResult: DryRunRoleResult,
-  ): void {
-    const hasActiveSignup = activeSignupDiscordIds.has(member.id);
-    if (hasActiveSignup) return;
-
-    roleResult.membersToRemove.push({
-      id: member.id,
-      displayName: member.displayName,
-      username: member.user.username,
-    });
-    roleResult.rolesRemoved++;
+  private processRole({
+    role,
+    kept,
+    stale,
+    removable,
+  }: RoleRemovalPlan): DryRunRoleResult {
+    const membersProcessed = kept.length + stale.length;
     this.logger.log(
-      `[DRY-RUN] Would remove role ${role.name} from ${member.displayName} (${member.id}) - no active signups`,
+      `Processing role ${role.name} (${role.id}) with ${membersProcessed} members`,
     );
+
+    const base = { roleId: role.id, roleName: role.name, membersProcessed };
+    if (!removable) {
+      return { ...base, rolesRemoved: 0, removable, unremovable: stale.length };
+    }
+
+    for (const member of stale) {
+      this.logger.log(
+        `[DRY-RUN] Would remove role ${role.name} from ${member.displayName} (${member.id}) - no active signups`,
+      );
+    }
+
+    return {
+      ...base,
+      rolesRemoved: stale.length,
+      removable,
+      membersToRemove: stale.map((member) => ({
+        id: member.id,
+        displayName: member.displayName,
+        username: member.user.username,
+      })),
+    };
   }
 }

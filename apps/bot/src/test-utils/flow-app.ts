@@ -195,7 +195,7 @@ export async function createFlowApp(): Promise<FlowApp> {
       writes: () => sheetsRequests.writes(),
       // only the reads the app has made so far, not every read in the recording
       valuesRead: (range) =>
-        recording.valuesRead(range).slice(0, sheetsRequests.readsOf(range)),
+        recording.valuesRead(range, sheetsRequests.readPaths(range)),
     };
 
     return {

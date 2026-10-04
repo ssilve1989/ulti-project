@@ -93,61 +93,53 @@ class SyncProgRolesCommandHandler implements ISlashCommand {
   async execute(
     interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<void> {
-    try {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-      const dryRun = interaction.options.getBoolean('dry-run') ?? false;
+    const dryRun = interaction.options.getBoolean('dry-run') ?? false;
 
-      const settings = await this.settingsCollection.getSettings(
-        interaction.guildId,
+    const settings = await this.settingsCollection.getSettings(
+      interaction.guildId,
+    );
+    const progPointRoles = settings?.progPointRoles;
+
+    const hasMappings = Object.values(progPointRoles ?? {}).some(
+      (mapping) => Object.keys(mapping ?? {}).length > 0,
+    );
+
+    if (!hasMappings) {
+      await interaction.editReply(
+        'No prog point role mappings configured. Use `/settings prog-point-roles` first.',
       );
-      const progPointRoles = settings?.progPointRoles;
-
-      const hasMappings = Object.values(progPointRoles ?? {}).some(
-        (mapping) => Object.keys(mapping ?? {}).length > 0,
-      );
-
-      if (!hasMappings) {
-        await interaction.editReply(
-          'No prog point role mappings configured. Use `/settings prog-point-roles` first.',
-        );
-        return;
-      }
-
-      const [signups, guild] = await Promise.all([
-        this.signupCollection.findByStatusIn([
-          SignupStatus.APPROVED,
-          SignupStatus.UPDATE_PENDING,
-        ]),
-        this.discordService.client.guilds
-          .fetch(interaction.guildId)
-          .then(async (guild) => {
-            await guild.members.fetch();
-            return guild;
-          }),
-      ]);
-
-      const result = await this.sweep({
-        signups,
-        guild,
-        progPointRoles,
-        dryRun,
-      });
-
-      this.logger.log(
-        `sync-prog-roles${dryRun ? ' (dry-run)' : ''}: ${result.changed}/${result.examined} signups changed, ${result.errors} errors`,
-      );
-
-      await interaction.editReply({
-        embeds: [this.createSummaryEmbed(result, dryRun)],
-      });
-    } catch (error) {
-      const errorEmbed = this.errorService.handleCommandError(
-        error,
-        interaction,
-      );
-      await interaction.editReply({ embeds: [errorEmbed] });
+      return;
     }
+
+    const [signups, guild] = await Promise.all([
+      this.signupCollection.findByStatusIn([
+        SignupStatus.APPROVED,
+        SignupStatus.UPDATE_PENDING,
+      ]),
+      this.discordService.client.guilds
+        .fetch(interaction.guildId)
+        .then(async (guild) => {
+          await guild.members.fetch();
+          return guild;
+        }),
+    ]);
+
+    const result = await this.sweep({
+      signups,
+      guild,
+      progPointRoles,
+      dryRun,
+    });
+
+    this.logger.log(
+      `sync-prog-roles${dryRun ? ' (dry-run)' : ''}: ${result.changed}/${result.examined} signups changed, ${result.errors} errors`,
+    );
+
+    await interaction.editReply({
+      embeds: [this.createSummaryEmbed(result, dryRun)],
+    });
   }
 
   private async sweep({

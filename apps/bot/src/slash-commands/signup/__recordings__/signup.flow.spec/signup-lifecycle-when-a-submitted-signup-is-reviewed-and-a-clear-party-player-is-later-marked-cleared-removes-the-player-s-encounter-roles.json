@@ -22,26 +22,18 @@
   {
     "scope": "https://sheets.googleapis.com:443",
     "method": "GET",
-    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21C%3AF",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY?includeGridData=false&fields=sheets.properties%28sheetId%2Ctitle%29",
     "body": "",
     "status": 200,
     "response": {
-      "range": "DMU!C1:F62",
-      "majorDimension": "ROWS",
-      "values": [
-        [],
-        ["UCOB"],
-        [],
-        ["Once your sign-up has been approved..."],
-        ["Wait for a Coordinator to contact you on Discord"],
-        [],
-        ["Clear Ready"],
-        ["IGN", "World", "Class", "prog point"],
-        ["Ikanashi Izuki", "Excalibur", "DRK (MT)", "DRK (MT)"],
-        ["Sauda Fusty", "Cactuar", "WHM", "Adds"],
-        ["Spirit Blossom", "Midgardsormr", "SGE", "Adds"],
-        ["Fye Ranulac", "Leviathan", "SMN", "Adds"],
-        ["Aeo Arcanist", "Jenova", "foo", "P5 Exas"]
+      "sheets": [
+        { "properties": { "sheetId": 1038356143, "title": "UCOB" } },
+        { "properties": { "sheetId": 695983618, "title": "DMU" } },
+        { "properties": { "sheetId": 1037646000, "title": "UWU" } },
+        { "properties": { "sheetId": 1813258016, "title": "TEA" } },
+        { "properties": { "sheetId": 41686528, "title": "DSR" } },
+        { "properties": { "sheetId": 373722080, "title": "TOP" } },
+        { "properties": { "sheetId": 1540872179, "title": "FRU" } }
       ]
     },
     "rawHeaders": { "content-type": "application/json; charset=UTF-8" },
@@ -50,27 +42,49 @@
   {
     "scope": "https://sheets.googleapis.com:443",
     "method": "GET",
-    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21C%3AF",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values:batchGet?ranges=DMU%21I%3AL&ranges=DMU%21C%3AF",
     "body": "",
     "status": 200,
     "response": {
-      "range": "DMU!C1:F62",
-      "majorDimension": "ROWS",
-      "values": [
-        [],
-        ["UCOB"],
-        [],
-        ["Once your sign-up has been approved..."],
-        ["Wait for a Coordinator to contact you on Discord"],
-        [],
-        ["Clear Ready"],
-        ["IGN", "World", "Class", "prog point"],
-        ["Ikanashi Izuki", "Excalibur", "DRK (MT)", "DRK (MT)"],
-        ["Sauda Fusty", "Cactuar", "WHM", "Adds"],
-        ["Spirit Blossom", "Midgardsormr", "SGE", "Adds"],
-        ["Fye Ranulac", "Leviathan", "SMN", "Adds"],
-        ["Aeo Arcanist", "Jenova", "foo", "P5 Exas"],
-        ["Flow 6ec5545c", "Jenova", "tank", "P7"]
+      "spreadsheetId": "1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY",
+      "valueRanges": [
+        {
+          "range": "DMU!I1:L62",
+          "majorDimension": "ROWS",
+          "values": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            ["", "", "", "Last Cleanup 09/12"],
+            ["Prog List"],
+            ["IGN", "World", "Class", "prog point"],
+            ["Raya Angeles", "Rafflesia", "SGE", "Heavensfall"],
+            ["Madeline Rose'", "Faerie", "Astro", "Fellruin"],
+            ["Tio Tot", "Sargatanas", "RPR", "Fellruin"],
+            ["Hiko Malqir", "Mateus", "Summoner", "Nael"]
+          ]
+        },
+        {
+          "range": "DMU!C1:F62",
+          "majorDimension": "ROWS",
+          "values": [
+            [],
+            ["UCOB"],
+            [],
+            ["Once your sign-up has been approved..."],
+            ["Wait for a Coordinator to contact you on Discord"],
+            [],
+            ["Clear Ready"],
+            ["IGN", "World", "Class", "prog point"],
+            ["Ikanashi Izuki", "Excalibur", "DRK (MT)", "DRK (MT)"],
+            ["Sauda Fusty", "Cactuar", "WHM", "Adds"],
+            ["Spirit Blossom", "Midgardsormr", "SGE", "Adds"],
+            ["Fye Ranulac", "Leviathan", "SMN", "Adds"],
+            ["Aeo Arcanist", "Jenova", "foo", "P5 Forsaken"]
+          ]
+        }
       ]
     },
     "rawHeaders": { "content-type": "application/json; charset=UTF-8" },
@@ -79,26 +93,50 @@
   {
     "scope": "https://sheets.googleapis.com:443",
     "method": "GET",
-    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21C%3AF",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values:batchGet?ranges=DMU%21I%3AL&ranges=DMU%21C%3AF",
     "body": "",
     "status": 200,
     "response": {
-      "range": "DMU!C1:F62",
-      "majorDimension": "ROWS",
-      "values": [
-        [],
-        ["UCOB"],
-        [],
-        ["Once your sign-up has been approved..."],
-        ["Wait for a Coordinator to contact you on Discord"],
-        [],
-        ["Clear Ready"],
-        ["IGN", "World", "Class", "prog point"],
-        ["Ikanashi Izuki", "Excalibur", "DRK (MT)", "DRK (MT)"],
-        ["Sauda Fusty", "Cactuar", "WHM", "Adds"],
-        ["Spirit Blossom", "Midgardsormr", "SGE", "Adds"],
-        ["Fye Ranulac", "Leviathan", "SMN", "Adds"],
-        ["Aeo Arcanist", "Jenova", "foo", "P5 Exas"]
+      "spreadsheetId": "1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY",
+      "valueRanges": [
+        {
+          "range": "DMU!I1:L62",
+          "majorDimension": "ROWS",
+          "values": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            ["", "", "", "Last Cleanup 09/12"],
+            ["Prog List"],
+            ["IGN", "World", "Class", "prog point"],
+            ["Raya Angeles", "Rafflesia", "SGE", "Heavensfall"],
+            ["Madeline Rose'", "Faerie", "Astro", "Fellruin"],
+            ["Tio Tot", "Sargatanas", "RPR", "Fellruin"],
+            ["Hiko Malqir", "Mateus", "Summoner", "Nael"]
+          ]
+        },
+        {
+          "range": "DMU!C1:F62",
+          "majorDimension": "ROWS",
+          "values": [
+            [],
+            ["UCOB"],
+            [],
+            ["Once your sign-up has been approved..."],
+            ["Wait for a Coordinator to contact you on Discord"],
+            [],
+            ["Clear Ready"],
+            ["IGN", "World", "Class", "prog point"],
+            ["Ikanashi Izuki", "Excalibur", "DRK (MT)", "DRK (MT)"],
+            ["Sauda Fusty", "Cactuar", "WHM", "Adds"],
+            ["Spirit Blossom", "Midgardsormr", "SGE", "Adds"],
+            ["Fye Ranulac", "Leviathan", "SMN", "Adds"],
+            ["Aeo Arcanist", "Jenova", "foo", "P5 Forsaken"],
+            ["Flow 6ec5545c", "Jenova", "tank", "P7"]
+          ]
+        }
       ]
     },
     "rawHeaders": { "content-type": "application/json; charset=UTF-8" },
@@ -107,79 +145,49 @@
   {
     "scope": "https://sheets.googleapis.com:443",
     "method": "GET",
-    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21I%3AL",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values:batchGet?ranges=DMU%21I%3AL&ranges=DMU%21C%3AF",
     "body": "",
     "status": 200,
     "response": {
-      "range": "DMU!I1:L62",
-      "majorDimension": "ROWS",
-      "values": [
-        [],
-        [],
-        [],
-        [],
-        [],
-        ["", "", "", "Last Cleanup 09/12"],
-        ["Prog List"],
-        ["IGN", "World", "Class", "prog point"],
-        ["Raya Angeles", "Rafflesia", "SGE", "Heavensfall"],
-        ["Madeline Rose'", "Faerie", "Astro", "Fellruin"],
-        ["Tio Tot", "Sargatanas", "RPR", "Fellruin"],
-        ["Hiko Malqir", "Mateus", "Summoner", "Nael"]
-      ]
-    },
-    "rawHeaders": { "content-type": "application/json; charset=UTF-8" },
-    "responseIsBinary": false
-  },
-  {
-    "scope": "https://sheets.googleapis.com:443",
-    "method": "GET",
-    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21I%3AL",
-    "body": "",
-    "status": 200,
-    "response": {
-      "range": "DMU!I1:L62",
-      "majorDimension": "ROWS",
-      "values": [
-        [],
-        [],
-        [],
-        [],
-        [],
-        ["", "", "", "Last Cleanup 09/12"],
-        ["Prog List"],
-        ["IGN", "World", "Class", "prog point"],
-        ["Raya Angeles", "Rafflesia", "SGE", "Heavensfall"],
-        ["Madeline Rose'", "Faerie", "Astro", "Fellruin"],
-        ["Tio Tot", "Sargatanas", "RPR", "Fellruin"],
-        ["Hiko Malqir", "Mateus", "Summoner", "Nael"]
-      ]
-    },
-    "rawHeaders": { "content-type": "application/json; charset=UTF-8" },
-    "responseIsBinary": false
-  },
-  {
-    "scope": "https://sheets.googleapis.com:443",
-    "method": "GET",
-    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21I%3AL",
-    "body": "",
-    "status": 200,
-    "response": {
-      "range": "DMU!I1:L62",
-      "majorDimension": "ROWS",
-      "values": [
-        [],
-        [],
-        [],
-        [],
-        [],
-        ["", "", "", "Last Cleanup 09/12"],
-        ["Prog List"],
-        ["IGN", "World", "Class", "prog point"],
-        ["Raya Angeles", "Rafflesia", "SGE", "Heavensfall"],
-        ["Madeline Rose'", "Faerie", "Astro", "Fellruin"],
-        ["Tio Tot", "Sargatanas", "RPR", "Fellruin"],
-        ["Hiko Malqir", "Mateus", "Summoner", "Nael"]
+      "spreadsheetId": "1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY",
+      "valueRanges": [
+        {
+          "range": "DMU!I1:L62",
+          "majorDimension": "ROWS",
+          "values": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            ["", "", "", "Last Cleanup 09/12"],
+            ["Prog List"],
+            ["IGN", "World", "Class", "prog point"],
+            ["Raya Angeles", "Rafflesia", "SGE", "Heavensfall"],
+            ["Madeline Rose'", "Faerie", "Astro", "Fellruin"],
+            ["Tio Tot", "Sargatanas", "RPR", "Fellruin"],
+            ["Hiko Malqir", "Mateus", "Summoner", "Nael"]
+          ]
+        },
+        {
+          "range": "DMU!C1:F62",
+          "majorDimension": "ROWS",
+          "values": [
+            [],
+            ["UCOB"],
+            [],
+            ["Once your sign-up has been approved..."],
+            ["Wait for a Coordinator to contact you on Discord"],
+            [],
+            ["Clear Ready"],
+            ["IGN", "World", "Class", "prog point"],
+            ["Ikanashi Izuki", "Excalibur", "DRK (MT)", "DRK (MT)"],
+            ["Sauda Fusty", "Cactuar", "WHM", "Adds"],
+            ["Spirit Blossom", "Midgardsormr", "SGE", "Adds"],
+            ["Fye Ranulac", "Leviathan", "SMN", "Adds"],
+            ["Aeo Arcanist", "Jenova", "foo", "P5 Forsaken"]
+          ]
+        }
       ]
     },
     "rawHeaders": { "content-type": "application/json; charset=UTF-8" },
@@ -229,16 +237,39 @@
   },
   {
     "scope": "https://sheets.googleapis.com:443",
-    "method": "PUT",
-    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY/values/DMU%21C14%3AF?valueInputOption=USER_ENTERED",
-    "body": { "values": [["Flow 6ec5545c", "Jenova", "tank", "P7"]] },
+    "method": "POST",
+    "path": "/v4/spreadsheets/1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY:batchUpdate",
+    "body": {
+      "requests": [
+        {
+          "updateCells": {
+            "range": {
+              "sheetId": 695983618,
+              "startRowIndex": 13,
+              "endRowIndex": 14,
+              "startColumnIndex": 2,
+              "endColumnIndex": 6
+            },
+            "rows": [
+              {
+                "values": [
+                  { "userEnteredValue": { "stringValue": "Flow 6ec5545c" } },
+                  { "userEnteredValue": { "stringValue": "Jenova" } },
+                  { "userEnteredValue": { "stringValue": "tank" } },
+                  { "userEnteredValue": { "stringValue": "P7" } }
+                ]
+              }
+            ],
+            "fields": "userEnteredValue"
+          }
+        }
+      ]
+    },
     "status": 200,
     "response": {
       "spreadsheetId": "1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY",
-      "updatedRange": "DMU!C14:F14",
-      "updatedRows": 1,
-      "updatedColumns": 4,
-      "updatedCells": 4
+      "replies": [{}],
+      "commentUpdateState": "NO_UPDATES_REQUESTED"
     },
     "rawHeaders": { "content-type": "application/json; charset=UTF-8" },
     "responseIsBinary": false

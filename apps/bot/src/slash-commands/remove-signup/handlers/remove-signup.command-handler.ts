@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
-import { SentryTraced } from '@sentry/nestjs';
 import { type SignupDocument, SignupStatus } from '@ulti-project/shared';
 import {
   type APIUser,
@@ -62,7 +61,6 @@ class RemoveSignupCommandHandler implements ISlashCommand {
     private readonly eventBus: EventBus,
   ) {}
 
-  @SentryTraced()
   async execute(
     interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<void> {
