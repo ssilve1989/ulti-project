@@ -101,12 +101,6 @@ describe('createFlowApp', () => {
 
     expect(nock.isActive()).toBe(false);
     expect(hasSubscribers(HTTP_REQUEST_CREATED)).toBe(false);
-    expect(vi.isMockFunction(Sentry.Scope.prototype.captureException)).toBe(
-      false,
-    );
-    expect(vi.isMockFunction(Sentry.Scope.prototype.captureMessage)).toBe(
-      false,
-    );
   });
 
   // not the fixture: this test creates an app that fails to start

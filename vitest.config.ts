@@ -5,6 +5,9 @@ const sharedIndex = fileURLToPath(
   new URL('./packages/shared/src/index.ts', import.meta.url),
 );
 const setupFile = fileURLToPath(new URL('./test/setup.ts', import.meta.url));
+const botSetupFile = fileURLToPath(
+  new URL('./test/setup-bot.ts', import.meta.url),
+);
 
 // Recording flow specs' Google Sheets traffic (pnpm test:record) talks to the
 // real spreadsheet and paces itself under Google's per-minute quota, which can
@@ -61,6 +64,7 @@ export default defineConfig({
           name: 'bot',
           root: './apps/bot',
           include: ['src/**/*.spec.ts'],
+          setupFiles: [botSetupFile],
         },
       },
       {
