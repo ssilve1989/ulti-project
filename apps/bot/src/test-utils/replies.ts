@@ -64,7 +64,7 @@ export function expectCommandErrorReported(flow: FlowApp, message: string) {
 /**
  * Declares what an event handler reports when it fails with an error whose
  * message starts with `message` (e.g. `Unknown Channel`): CQRS logs it, and
- * AppService sends it to Sentry and logs it.
+ * AppService sends it to Sentry.
  */
 export function expectEventHandlerErrorReported(
   flow: FlowApp,
@@ -75,7 +75,6 @@ export function expectEventHandlerErrorReported(
     new RegExp(`^error: ".*" has thrown an unhandled exception\\. ${error}`),
   );
   flow.expectReported(new RegExp(`^Sentry exception: ${error}`));
-  flow.expectReported(new RegExp(`^error: \\{\\n\\s+err: ${error}`));
 }
 
 /**

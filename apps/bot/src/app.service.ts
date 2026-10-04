@@ -20,7 +20,8 @@ class AppService implements OnApplicationShutdown {
         // its trace, tags and user without the cause leaking back into it
         Sentry.withScope((scope) => {
           scope.setExtra('cause', cause);
-          this.errorService.captureError(exception);
+          // CQRS has already logged it
+          this.errorService.captureError(exception, { log: false });
         });
       },
     });
