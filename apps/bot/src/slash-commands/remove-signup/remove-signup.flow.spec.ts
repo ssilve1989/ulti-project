@@ -503,6 +503,9 @@ describe('Remove signup', () => {
       await removeSignup(flow, PLAYER.id);
 
       flow.expectReported(
+        /^error: Command handler which execution was triggered by Saga has thrown an unhandled exception\. DiscordAPIError\[50013\]: Missing Permissions/,
+      );
+      flow.expectReported(
         /^Sentry exception: DiscordAPIError\[50013\]: Missing Permissions/,
       );
       expect([

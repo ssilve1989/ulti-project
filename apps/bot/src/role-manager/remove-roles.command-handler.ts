@@ -1,6 +1,5 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import { DiscordService } from '../discord/discord.service.js';
 import { SettingsCollection } from '../firebase/collections/settings-collection.js';
@@ -19,36 +18,29 @@ export class RemoveRolesCommandHandler
 
   @SentryTraced()
   async execute({ encounter, userId, guildId }: RemoveRolesCommand) {
-    try {
-      const [member, settings] = await Promise.all([
-        this.discordService.getGuildMember({
-          guildId,
-          memberId: userId,
-        }),
-        this.settingsCollection.getSettings(guildId),
-      ]);
+    const [member, settings] = await Promise.all([
+      this.discordService.getGuildMember({
+        guildId,
+        memberId: userId,
+      }),
+      this.settingsCollection.getSettings(guildId),
+    ]);
 
-      const roles = [
-        ...new Set(
-          [
-            settings?.clearRoles?.[encounter],
-            settings?.progRoles?.[encounter],
-            ...Object.values(settings?.progPointRoles?.[encounter] ?? {}),
-          ].filter((roleId): roleId is string => Boolean(roleId)),
-        ),
-      ];
+    const roles = [
+      ...new Set(
+        [
+          settings?.clearRoles?.[encounter],
+          settings?.progRoles?.[encounter],
+          ...Object.values(settings?.progPointRoles?.[encounter] ?? {}),
+        ].filter((roleId): roleId is string => Boolean(roleId)),
+      ),
+    ];
 
-      if (member && roles.length > 0) {
-        await member.roles.remove(roles);
-        this.logger.log(
-          `removed roles ${roles.join(', ')} from ${member.user.username}`,
-        );
-      }
-    } catch (error) {
-      Sentry.withScope((scope) => {
-        scope.setExtras({ encounter, userId });
-        scope.captureException(error);
-      });
+    if (member && roles.length > 0) {
+      await member.roles.remove(roles);
+      this.logger.log(
+        `removed roles ${roles.join(', ')} from ${member.user.username}`,
+      );
     }
   }
 }
