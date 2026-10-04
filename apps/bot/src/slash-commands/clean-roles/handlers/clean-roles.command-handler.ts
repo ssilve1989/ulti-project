@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import { SentryTraced } from '@sentry/nestjs';
 import { SignupStatus } from '@ulti-project/shared';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import {
@@ -124,62 +123,53 @@ class CleanRolesCommandHandler implements ISlashCommand {
     private readonly errorService: ErrorService,
   ) {}
 
-  @SentryTraced()
   async execute(interaction: ChatInputCommandInteraction<'cached'>) {
-    try {
-      const scope = Sentry.getCurrentScope();
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const scope = Sentry.getCurrentScope();
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-      const { guildId, options } = interaction;
-      const isDryRun = options.getBoolean('dry-run') ?? false;
+    const { guildId, options } = interaction;
+    const isDryRun = options.getBoolean('dry-run') ?? false;
 
-      // Add command-specific context
-      scope.setContext('clean_roles_operation', {
-        isDryRun,
+    // Add command-specific context
+    scope.setContext('clean_roles_operation', {
+      isDryRun,
+    });
+
+    this.logger.log(
+      `Starting clean-roles operation for guild ${guildId} (dry-run: ${isDryRun})`,
+    );
+
+    if (isDryRun) {
+      const result = await this.processCleanRolesCore(guildId, true);
+
+      // Add context about dry run results
+      scope.setContext('dry_run_results', {
+        totalRolesProcessed: result.totalRolesProcessed,
+        totalMembersProcessed: result.totalMembersProcessed,
+        totalRolesRemoved: result.totalRolesRemoved,
+        uniqueMembersWithRoles: result.uniqueMembersWithRoles,
       });
 
+      const embed = this.createDryRunEmbed(result);
+      await interaction.editReply({ embeds: [embed] });
       this.logger.log(
-        `Starting clean-roles operation for guild ${guildId} (dry-run: ${isDryRun})`,
+        `Clean-roles dry-run completed for guild ${guildId}: ${result.totalRolesRemoved}/${result.totalMembersProcessed} roles would be removed across ${result.totalRolesProcessed} roles`,
       );
+    } else {
+      const result = await this.processCleanRolesCore(guildId, false);
 
-      if (isDryRun) {
-        const result = await this.processCleanRolesCore(guildId, true);
+      // Add context about operation results
+      scope.setContext('operation_results', {
+        totalRolesProcessed: result.totalRolesProcessed,
+        totalMembersProcessed: result.totalMembersProcessed,
+        totalRolesRemoved: result.totalRolesRemoved,
+      });
 
-        // Add context about dry run results
-        scope.setContext('dry_run_results', {
-          totalRolesProcessed: result.totalRolesProcessed,
-          totalMembersProcessed: result.totalMembersProcessed,
-          totalRolesRemoved: result.totalRolesRemoved,
-          uniqueMembersWithRoles: result.uniqueMembersWithRoles,
-        });
-
-        const embed = this.createDryRunEmbed(result);
-        await interaction.editReply({ embeds: [embed] });
-        this.logger.log(
-          `Clean-roles dry-run completed for guild ${guildId}: ${result.totalRolesRemoved}/${result.totalMembersProcessed} roles would be removed across ${result.totalRolesProcessed} roles`,
-        );
-      } else {
-        const result = await this.processCleanRolesCore(guildId, false);
-
-        // Add context about operation results
-        scope.setContext('operation_results', {
-          totalRolesProcessed: result.totalRolesProcessed,
-          totalMembersProcessed: result.totalMembersProcessed,
-          totalRolesRemoved: result.totalRolesRemoved,
-        });
-
-        const summary = this.createSummaryMessage(result);
-        await interaction.editReply(summary);
-        this.logger.log(
-          `Clean-roles operation completed for guild ${guildId}: ${result.totalRolesRemoved}/${result.totalMembersProcessed} roles removed across ${result.totalRolesProcessed} roles`,
-        );
-      }
-    } catch (error) {
-      const errorEmbed = this.errorService.handleCommandError(
-        error,
-        interaction,
+      const summary = this.createSummaryMessage(result);
+      await interaction.editReply(summary);
+      this.logger.log(
+        `Clean-roles operation completed for guild ${guildId}: ${result.totalRolesRemoved}/${result.totalMembersProcessed} roles removed across ${result.totalRolesProcessed} roles`,
       );
-      await interaction.editReply({ embeds: [errorEmbed] });
     }
   }
 

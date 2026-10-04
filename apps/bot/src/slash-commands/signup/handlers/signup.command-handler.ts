@@ -2,7 +2,6 @@ import { URL } from 'node:url';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import * as Sentry from '@sentry/nestjs';
-import { SentryTraced } from '@sentry/nestjs';
 import type { SignupDocument } from '@ulti-project/shared';
 import { EncounterFriendlyDescription } from '@ulti-project/shared';
 import {
@@ -66,6 +65,12 @@ type FFLogsValidationResult =
       errorType: 'format' | 'age';
     };
 
+/** the user didn't click confirm or cancel before the prompt expired */
+const isConfirmationTimeout = (error: unknown) =>
+  error instanceof Error &&
+  'code' in error &&
+  error.code === DiscordjsErrorCodes.InteractionCollectorError;
+
 @Injectable()
 @SlashCommand({ builder: createSignupSlashCommand(appConfig.APPLICATION_MODE) })
 class SignupCommandHandler implements ISlashCommand {
@@ -81,7 +86,6 @@ class SignupCommandHandler implements ISlashCommand {
     private readonly errorService: ErrorService,
   ) {}
 
-  @SentryTraced()
   async execute(
     interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<void> {
@@ -401,28 +405,14 @@ class SignupCommandHandler implements ISlashCommand {
         );
       }
     } catch (error: unknown) {
-      await this.handleConfirmationError(error, interaction);
+      if (!isConfirmationTimeout(error)) throw error;
+
+      this.errorService.captureError(error);
+      await interaction.editReply({
+        content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
+        ...CLEAR_EMBED,
+      });
     }
-  }
-
-  private async handleConfirmationError(
-    error: unknown,
-    interaction: ChatInputCommandInteraction<'cached'>,
-  ): Promise<void> {
-    const errorEmbed = this.errorService.handleCommandError(error, interaction);
-
-    if (error && typeof error === 'object' && 'code' in error) {
-      if (error.code === DiscordjsErrorCodes.InteractionCollectorError) {
-        await interaction.editReply({
-          content: SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT,
-          embeds: [],
-          components: [],
-        });
-        return;
-      }
-    }
-
-    await interaction.editReply({ embeds: [errorEmbed], components: [] });
   }
 }
 

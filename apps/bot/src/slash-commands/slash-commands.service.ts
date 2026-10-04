@@ -4,6 +4,7 @@ import {
   ChatInputCommandInteraction,
   Client,
   Events,
+  MessageFlags,
   REST,
   Routes,
 } from 'discord.js';
@@ -134,9 +135,13 @@ class SlashCommandsService {
     interaction: ChatInputCommandInteraction,
   ): Promise<void> {
     const errorEmbed = this.errorService.handleCommandError(err, interaction);
+    // clear any buttons or menus the command was still showing
+    const payload = { embeds: [errorEmbed], components: [] };
 
     try {
-      await safeReply(interaction, { embeds: [errorEmbed] });
+      await (interaction.deferred || interaction.replied
+        ? safeReply(interaction, payload)
+        : interaction.reply({ ...payload, flags: MessageFlags.Ephemeral }));
     } catch (replyError) {
       this.logger.error(
         {
