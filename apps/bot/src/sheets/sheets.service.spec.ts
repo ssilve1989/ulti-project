@@ -1,7 +1,7 @@
 import { sheets, sheets_v4 } from '@googleapis/sheets';
 import { Test } from '@nestjs/testing';
 import { Encounter, PartyStatus } from '@ulti-project/shared';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EncountersService } from '../encounters/encounters.service.js';
 import { ErrorService } from '../error/error.service.js';
 import { mockOf, withInternals } from '../test-utils/mock-factory.js';
@@ -55,6 +55,12 @@ describe('Sheets Service', () => {
 
     service = fixture.get(SheetsService);
     client = fixture.get(SHEETS_CLIENT);
+  });
+
+  // tests stub `sheetsUtils` exports with vi.spyOn; without restoring them, a
+  // stub (e.g. getSheetIdByName) leaks into whichever test runs next
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('should be defined', () => {
