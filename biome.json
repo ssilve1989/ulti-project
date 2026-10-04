@@ -86,6 +86,14 @@
           }
         }
       }
+    },
+    {
+      "includes": ["**/__recordings__/**/*.json"],
+      "json": {
+        "formatter": {
+          "expand": "never"
+        }
+      }
     }
   ]
 }

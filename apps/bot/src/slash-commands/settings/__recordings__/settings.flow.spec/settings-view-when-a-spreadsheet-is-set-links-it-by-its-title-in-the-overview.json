@@ -6,13 +6,9 @@
     "body": "",
     "status": 200,
     "response": {
-      "properties": {
-        "title": "Copy of Ulti Project: Season 5 (FRU)"
-      }
+      "properties": { "title": "Copy of Ulti Project: Season 5 (FRU)" }
     },
-    "rawHeaders": {
-      "content-type": "application/json; charset=UTF-8"
-    },
+    "rawHeaders": { "content-type": "application/json; charset=UTF-8" },
     "responseIsBinary": false
   },
   {
@@ -25,9 +21,7 @@
       "expires_in": 3599,
       "token_type": "Bearer"
     },
-    "rawHeaders": {
-      "content-type": "application/json"
-    },
+    "rawHeaders": { "content-type": "application/json" },
     "responseIsBinary": false
   }
 ]
