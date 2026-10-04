@@ -19,8 +19,8 @@ export interface DryRunRoleResult extends BaseRoleResult {
 }
 
 export interface NormalRoleResult extends BaseRoleResult {
-  failedRemovals?: number;
-  skippedActiveSignups?: number;
+  failedRemovals: number;
+  skippedActiveSignups: number;
 }
 
 interface BaseCleanRolesResult {
@@ -39,7 +39,7 @@ export interface DryRunResult extends BaseCleanRolesResult {
 
 export interface NormalResult extends BaseCleanRolesResult {
   isDryRun: false;
-  totalFailedRemovals?: number;
+  totalFailedRemovals: number;
   processedRoles: NormalRoleResult[];
 }
 

@@ -63,7 +63,7 @@ type FFLogsValidationResult =
   | {
       success: false;
       errorMessage: string;
-      errorType: 'format' | 'age' | 'api';
+      errorType: 'format' | 'age';
     };
 
 @Injectable()
@@ -237,7 +237,7 @@ class SignupCommandHandler implements ISlashCommand {
   }
 
   private createValidationErrorsEmbed(error: ZodError): EmbedBuilder {
-    const fields = error.issues.flatMap((issue, index) => {
+    const fields = error.issues.map((issue, index) => {
       const { message } = issue;
 
       return {
@@ -272,59 +272,37 @@ class SignupCommandHandler implements ISlashCommand {
       return { success: true };
     }
 
-    try {
-      const url = new URL(proofOfProgLink);
-      const reportCode = extractFflogsReportCode(url);
+    const url = new URL(proofOfProgLink);
+    const reportCode = extractFflogsReportCode(url);
 
-      if (isFFLogsUrl(url) && !reportCode) {
-        return {
-          success: false,
-          errorMessage: `Invalid FFLogs URL format. Please provide a valid link to a report. Not a profile or any other fflogs link.
+    if (isFFLogsUrl(url) && !reportCode) {
+      return {
+        success: false,
+        errorMessage: `Invalid FFLogs URL format. Please provide a valid link to a report. Not a profile or any other fflogs link.
 
             Example: https://www.fflogs.com/reports/2XG7tZp1AjQcWTn9?fight=3&type=damage-done
             `,
-          errorType: 'format',
-        };
-      }
-
-      if (reportCode) {
-        try {
-          const fflogsValidation =
-            await this.fflogsService.validateReportAge(reportCode);
-
-          if (!fflogsValidation.isValid) {
-            this.logger.log(fflogsValidation.errorMessage);
-
-            return {
-              success: false,
-              errorMessage:
-                fflogsValidation.errorMessage || 'FFLogs validation failed',
-              errorType: 'age',
-            };
-          }
-        } catch (error: unknown) {
-          // unreachable: FFLogsService.validateReportAge never throws; it
-          // catches API failures itself and returns isValid: false
-          this.logger.warn(error, 'Error validating FFLogs report age');
-          return {
-            success: false,
-            errorMessage:
-              'Unable to validate report age due to API issues. Report will be reviewed manually.',
-            errorType: 'api',
-          };
-        }
-      }
-
-      return { success: true };
-    } catch (_: unknown) {
-      // unreachable: the schema normalises and validates proofOfProgLink
-      // (z.url({ normalize: true })), so new URL() above cannot throw
-      return {
-        success: false,
-        errorMessage: 'Invalid URL format. Please provide a valid URL.',
         errorType: 'format',
       };
     }
+
+    if (reportCode) {
+      const fflogsValidation =
+        await this.fflogsService.validateReportAge(reportCode);
+
+      if (!fflogsValidation.isValid) {
+        this.logger.log(fflogsValidation.errorMessage);
+
+        return {
+          success: false,
+          errorMessage:
+            fflogsValidation.errorMessage || 'FFLogs validation failed',
+          errorType: 'age',
+        };
+      }
+    }
+
+    return { success: true };
   }
 
   private setFFLogsValidationContext(

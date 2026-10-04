@@ -119,8 +119,7 @@ class DiscordService {
     channelId: string,
     messageId: string,
   ): Promise<Message | undefined> {
-    const channel = await this.getTextChannel({ guildId, channelId });
-    const message = await channel?.messages.fetch(messageId);
+    const message = await this.fetchMessage(guildId, channelId, messageId);
     return message?.delete();
   }
 

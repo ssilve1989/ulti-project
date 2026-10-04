@@ -274,17 +274,9 @@ class SearchCommandHandler implements ISlashCommand {
     }
 
     // Get all prog points with order >= selected prog point order
-    const eligibleProgPoints = allProgPoints.reduce<string[]>((acc, p) => {
-      if (p.order >= selectedOrder) {
-        acc.push(p.id);
-      }
-      return acc;
-    }, []);
-
-    // If no eligible prog points, return empty array
-    if (eligibleProgPoints.length === 0) {
-      return [];
-    }
+    const eligibleProgPoints = allProgPoints
+      .filter((p) => p.order >= selectedOrder)
+      .map((p) => p.id);
 
     // Query for signups with any of the eligible prog points
     // Using multiple queries since Firestore has limitations on complex queries
@@ -312,8 +304,7 @@ class SearchCommandHandler implements ISlashCommand {
 
     return Array.from({ length: totalPages }, (_, pageIndex) => {
       const startIdx = pageIndex * PLAYERS_PER_PAGE;
-      const endIdx = Math.min(startIdx + PLAYERS_PER_PAGE, signups.length);
-      return signups.slice(startIdx, endIdx);
+      return signups.slice(startIdx, startIdx + PLAYERS_PER_PAGE);
     });
   }
 

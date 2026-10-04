@@ -1410,14 +1410,20 @@ describe('Signup lifecycle', () => {
   });
 
   describe('when a pending signup is resubmitted after a moderator deleted its review', () => {
-    it('reports the failed delete and posts a new review', async ({ flow }) => {
+    it('warns about the missing review and posts a new review', async ({
+      flow,
+    }) => {
       await submitSignup(flow);
-      await latestReview(flow).toMessage().delete();
+      const deletedReview = latestReview(flow);
+      await deletedReview.toMessage().delete();
 
       await submitSignup(flow);
 
-      flow.expectReported(/^Sentry exception: DiscordAPIError\[10008\]/);
-      flow.expectReported(/^error: \{\n\s+err: DiscordAPIError\[10008\]/);
+      flow.expectReported(
+        new RegExp(
+          `^warning: The message ${deletedReview.id} in channel ${REVIEW_CHANNEL} was not found`,
+        ),
+      );
       expect([
         flow.discord.channel(REVIEW_CHANNEL).map(shown),
         flow.db.read(SIGNUP_PATH),

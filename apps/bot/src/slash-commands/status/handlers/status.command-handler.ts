@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
-import {
-  EncounterFriendlyDescription,
-  type SignupDocument,
-  SignupStatus,
-} from '@ulti-project/shared';
-import type { ChatInputCommandInteraction } from 'discord.js';
+import { type SignupDocument, SignupStatus } from '@ulti-project/shared';
+import type { APIEmbedField, ChatInputCommandInteraction } from 'discord.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
+import {
+  emptyField,
+  encounterField,
+} from '../../../common/components/fields.js';
 import { EncountersService } from '../../../encounters/encounters.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { SIGNUP_REVIEW_REACTIONS } from '../../signup/signup.consts.js';
@@ -61,12 +61,8 @@ class StatusCommandHandler implements ISlashCommand {
 
     const fields = rows.flatMap(
       ({ signup: { encounter, status, partyStatus }, progPointLabel }) => {
-        const subfields = [
-          {
-            name: 'Encounter',
-            value: EncounterFriendlyDescription[encounter],
-            inline: true,
-          },
+        const subfields: APIEmbedField[] = [
+          encounterField(encounter),
           {
             name: 'Status',
             value: `${SIGNUP_REVIEW_REACTIONS[status]} ${SignupStatus[status]}`,
@@ -81,7 +77,7 @@ class StatusCommandHandler implements ISlashCommand {
             inline: true,
           });
         } else {
-          subfields.push({ name: '\u200B', value: '\u200B', inline: true });
+          subfields.push(emptyField());
         }
 
         if (progPointLabel) {

@@ -61,14 +61,10 @@ export class ViewEncounterCommandHandler implements ISlashCommand {
 
     const sortedProgPoints = [...progPoints].sort((a, b) => a.order - b.order);
 
-    const groupedProgPoints = sortedProgPoints.reduce<
-      Partial<Record<PartyStatus, typeof progPoints>>
-    >((acc, progPoint) => {
-      const bucket = acc[progPoint.partyStatus] ?? [];
-      bucket.push(progPoint);
-      acc[progPoint.partyStatus] = bucket;
-      return acc;
-    }, {});
+    const groupedProgPoints = Object.groupBy(
+      sortedProgPoints,
+      (progPoint) => progPoint.partyStatus,
+    );
 
     const progThresholdPoint = progPoints.find(
       (p) => p.id === encounter.progPartyThreshold,

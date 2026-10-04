@@ -1,6 +1,7 @@
 import type { Logger } from '@nestjs/common';
 import { type APIEmbedField, type EmbedBuilder, userMention } from 'discord.js';
 import { titleCase } from 'title-case';
+import { emptyField } from '../../common/components/fields.js';
 import type { DiscordService } from '../../discord/discord.service.js';
 import type { BlacklistDocument } from '../../firebase/models/blacklist.model.js';
 
@@ -78,6 +79,6 @@ export async function createBlacklistEmbedFields(
     { name: 'Reason', value: reason, inline: true },
     lodestoneId
       ? { name: 'Lodestone ID', value: String(lodestoneId), inline: true }
-      : { name: '\u200b', value: '\u200b', inline: true },
+      : emptyField(),
   ];
 }

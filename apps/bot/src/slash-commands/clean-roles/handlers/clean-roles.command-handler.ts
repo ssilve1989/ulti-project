@@ -5,6 +5,7 @@ import { SignupStatus } from '@ulti-project/shared';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import {
   EmbedBuilder,
+  embedLength,
   type Guild,
   MessageFlags,
   userMention,
@@ -32,21 +33,14 @@ const MAX_EMBED_FIELDS = 25;
 const MAX_EMBED_TOTAL_LENGTH = 6000;
 const MAX_EMBED_FIELD_VALUE_LENGTH = 1024;
 
-function getEmbedCharacterCount(embed: EmbedBuilder): number {
-  const data = embed.data;
-  return (
-    (data.title?.length ?? 0) +
-    (data.description?.length ?? 0) +
-    (data.footer?.text.length ?? 0) +
-    (data.author?.name.length ?? 0) +
-    (data.fields ?? []).reduce(
-      (total, field) => total + field.name.length + field.value.length,
-      0,
-    )
-  );
+function additionalRolesField(count: number) {
+  return {
+    name: '⚠️ Additional Roles',
+    value: `… and ${count} more roles with changes`,
+    inline: false,
+  };
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: TODO: Follow up
 function addDryRunRoleFields(
   embed: EmbedBuilder,
   processedRoles: DryRunResult['processedRoles'],
@@ -72,7 +66,7 @@ function addDryRunRoleFields(
 
   let addedRoleCount = 0;
   for (const roleInfo of rolesWithRemovals.slice(0, roleFieldLimit)) {
-    const members = roleInfo.membersToRemove || [];
+    const members = roleInfo.membersToRemove;
     const memberList = members
       .slice(0, 10) // Limit to 10 members per role to avoid embed size limits
       .map((member) => `• ${userMention(member.id)} (${member.displayName})`)
@@ -80,8 +74,7 @@ function addDryRunRoleFields(
 
     const moreCount = members.length - 10;
     const value =
-      memberList + (moreCount > 0 ? `\n... and ${moreCount} more` : '') ||
-      'No members to remove';
+      memberList + (moreCount > 0 ? `\n... and ${moreCount} more` : '');
     const fieldValue =
       value.length <= MAX_EMBED_FIELD_VALUE_LENGTH
         ? value
@@ -92,21 +85,15 @@ function addDryRunRoleFields(
       value: fieldValue,
       inline: false,
     };
-    const remainingRoleCount = rolesWithRemovals.length - addedRoleCount - 1;
-    const omittedRoleCount = remainingRoleCount + 1;
-    const additionalRolesField = {
-      name: '⚠️ Additional Roles',
-      value: `… and ${omittedRoleCount} more roles with changes`,
-      inline: false,
-    };
-    const needsAdditionalRolesField =
-      hasAdditionalRoles || remainingRoleCount > 0;
-    const reservedLength = needsAdditionalRolesField
-      ? additionalRolesField.name.length + additionalRolesField.value.length
-      : 0;
+    const omittedRoleCount = rolesWithRemovals.length - addedRoleCount;
+    const additionalField = additionalRolesField(omittedRoleCount);
+    const reservedLength =
+      hasAdditionalRoles || omittedRoleCount > 1
+        ? additionalField.name.length + additionalField.value.length
+        : 0;
 
     if (
-      getEmbedCharacterCount(embed) +
+      embedLength(embed.data) +
         field.name.length +
         field.value.length +
         reservedLength >
@@ -121,11 +108,7 @@ function addDryRunRoleFields(
 
   const additionalRoleCount = rolesWithRemovals.length - addedRoleCount;
   if (additionalRoleCount > 0) {
-    embed.addFields({
-      name: '⚠️ Additional Roles',
-      value: `… and ${additionalRoleCount} more roles with changes`,
-      inline: false,
-    });
+    embed.addFields(additionalRolesField(additionalRoleCount));
   }
 }
 
@@ -306,7 +289,7 @@ class CleanRolesCommandHandler implements ISlashCommand {
         results.push(roleResult);
 
         this.logger.log(
-          `Completed processing role ${role.name}: ${roleResult.rolesRemoved}/${roleResult.membersProcessed} roles ${roleResult.rolesRemoved > 0 ? 'processed' : 'processed'}`,
+          `Completed processing role ${role.name}: ${roleResult.rolesRemoved}/${roleResult.membersProcessed} roles processed`,
         );
       } catch (error) {
         // flow-untested: this fires only when guild.roles.fetch rejects or
@@ -344,7 +327,7 @@ class CleanRolesCommandHandler implements ISlashCommand {
       `**Total Roles Processed:** ${result.totalRolesProcessed}`,
       `**Total Members Processed:** ${result.totalMembersProcessed}`,
       `**Total Roles Removed:** ${result.totalRolesRemoved}`,
-      `**Failed Removals:** ${result.totalFailedRemovals ?? 0}`,
+      `**Failed Removals:** ${result.totalFailedRemovals}`,
     ];
 
     if (result.processedRoles.length > 0) {
@@ -359,8 +342,8 @@ class CleanRolesCommandHandler implements ISlashCommand {
   }
 
   private formatRoleSummary(roleInfo: NormalRoleResult): string {
-    const failed = roleInfo.failedRemovals ?? 0;
-    const skipped = roleInfo.skippedActiveSignups ?? 0;
+    const failed = roleInfo.failedRemovals;
+    const skipped = roleInfo.skippedActiveSignups;
     if (roleInfo.rolesRemoved > 0 || failed > 0) {
       const details = [
         ...(failed > 0 ? [`${failed} failed`] : []),
@@ -376,7 +359,7 @@ class CleanRolesCommandHandler implements ISlashCommand {
   }
 
   private formatCleanupOutcome(result: NormalResult): string {
-    if ((result.totalFailedRemovals ?? 0) > 0) {
+    if (result.totalFailedRemovals > 0) {
       return '⚠️ Role cleanup completed with failed removals.';
     }
     return result.totalRolesRemoved === 0

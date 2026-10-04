@@ -46,6 +46,7 @@ type RemoveSignupProps = {
   signup: SignupDocument;
   guildId: string;
   spreadsheetId?: string;
+  reviewChannelId?: string;
 };
 
 @Injectable()
@@ -101,7 +102,7 @@ class RemoveSignupCommandHandler implements ISlashCommand {
       }));
     }
 
-    const { spreadsheetId, reviewerRole } = settings;
+    const { spreadsheetId, reviewerRole, reviewChannel } = settings;
 
     try {
       const { canModify, signup } = await this.canModifySignup(
@@ -126,6 +127,7 @@ class RemoveSignupCommandHandler implements ISlashCommand {
         signup,
         guildId: interaction.guildId,
         spreadsheetId,
+        reviewChannelId: reviewChannel,
       });
 
       await interaction.editReply({
@@ -153,6 +155,7 @@ class RemoveSignupCommandHandler implements ISlashCommand {
     dto,
     guildId,
     spreadsheetId,
+    reviewChannelId,
     signup,
   }: RemoveSignupProps): Promise<string> {
     let description = REMOVAL_SUCCESS;
@@ -177,9 +180,6 @@ class RemoveSignupCommandHandler implements ISlashCommand {
     // if it has not been, remove it.
     if (shouldDeleteReviewMessageForSignup(signup)) {
       try {
-        const reviewChannelId =
-          await this.settingsCollection.getReviewChannel(guildId);
-
         if (reviewChannelId && signup.reviewMessageId) {
           await this.discordService.deleteMessage(
             guildId,

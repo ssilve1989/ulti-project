@@ -1,5 +1,4 @@
 import type { Logger } from '@nestjs/common';
-import * as Sentry from '@sentry/nestjs';
 import type { GuildMember, Role } from 'discord.js';
 import type {
   DryRunResult,
@@ -7,6 +6,7 @@ import type {
   ProcessingContext,
   ProcessingStrategy,
 } from './clean-roles.interfaces.js';
+import { summarizeProcessedRoles } from './clean-roles.utils.js';
 
 export class DryRunStrategy implements ProcessingStrategy<DryRunRoleResult> {
   constructor(private readonly logger: Logger) {}
@@ -27,10 +27,6 @@ export class DryRunStrategy implements ProcessingStrategy<DryRunRoleResult> {
       membersToRemove: [],
     };
 
-    if (role.members.size === 0) {
-      return Promise.resolve(roleResult);
-    }
-
     for (const member of role.members.values()) {
       this.processMember(member, role, activeSignupDiscordIds, roleResult);
     }
@@ -42,31 +38,9 @@ export class DryRunStrategy implements ProcessingStrategy<DryRunRoleResult> {
     context: ProcessingContext,
     processedRoles: DryRunRoleResult[],
   ): DryRunResult {
-    const totalRolesProcessed = processedRoles.length;
-    const totalMembersProcessed = processedRoles.reduce(
-      (sum, result) => sum + result.membersProcessed,
-      0,
-    );
-    const totalRolesRemoved = processedRoles.reduce(
-      (sum, result) => sum + result.rolesRemoved,
-      0,
-    );
-
-    const membersWhoWillKeepRoles = new Set<string>();
-    for (const memberId of context.allMembersWithRoles) {
-      if (context.activeSignupDiscordIds.has(memberId)) {
-        membersWhoWillKeepRoles.add(memberId);
-      }
-    }
-
     return {
       isDryRun: true,
-      totalRolesProcessed,
-      totalMembersProcessed,
-      totalRolesRemoved,
-      totalActiveSignups: context.activeSignups.length,
-      uniqueMembersWithRoles: context.allMembersWithRoles.size,
-      uniqueMembersAfterRemoval: membersWhoWillKeepRoles.size,
+      ...summarizeProcessedRoles(context, processedRoles),
       processedRoles,
     };
   }
@@ -80,22 +54,14 @@ export class DryRunStrategy implements ProcessingStrategy<DryRunRoleResult> {
     const hasActiveSignup = activeSignupDiscordIds.has(member.id);
     if (hasActiveSignup) return;
 
-    try {
-      roleResult.membersToRemove.push({
-        id: member.id,
-        displayName: member.displayName,
-        username: member.user.username,
-      });
-      roleResult.rolesRemoved++;
-      this.logger.log(
-        `[DRY-RUN] Would remove role ${role.name} from ${member.displayName} (${member.id}) - no active signups`,
-      );
-    } catch (error) {
-      this.logger.error(
-        error,
-        `Failed to process member ${member.displayName} (${member.id}) for role ${role.name}`,
-      );
-      Sentry.getCurrentScope().captureException(error);
-    }
+    roleResult.membersToRemove.push({
+      id: member.id,
+      displayName: member.displayName,
+      username: member.user.username,
+    });
+    roleResult.rolesRemoved++;
+    this.logger.log(
+      `[DRY-RUN] Would remove role ${role.name} from ${member.displayName} (${member.id}) - no active signups`,
+    );
   }
 }

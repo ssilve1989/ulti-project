@@ -126,18 +126,9 @@ class LookupCommandHandler implements ISlashCommand {
       ];
     }
 
-    const groupedByWorld = signups.reduce<
-      Record<string, SignupWithBlacklistStatus[]>
-    >((acc, signup) => {
-      if (acc[signup.world]) {
-        acc[signup.world].push(signup);
-      } else {
-        acc[signup.world] = [signup];
-      }
-      return acc;
-    }, {});
+    const groupedByWorld = Map.groupBy(signups, (signup) => signup.world);
 
-    const embeds = Object.entries(groupedByWorld).map(([world, signups]) => {
+    const embeds = [...groupedByWorld].map(([world, signups]) => {
       const fields = signups.flatMap(
         ({ progPoint, notes, encounter, blacklistStatus }) => [
           encounterField(encounter),
