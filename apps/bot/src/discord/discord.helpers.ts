@@ -41,7 +41,7 @@ export function CacheTime(value: number, unit: CacheTimeUnit) {
 }
 
 // Type that works safely with reply(), editReply(), and followUp()
-type SafeReplyOptions = Pick<
+type PrivateReplyOptions = Pick<
   InteractionReplyOptions,
   'content' | 'embeds' | 'components' | 'files' | 'allowedMentions'
 >;
@@ -57,9 +57,9 @@ export function getFirstEmbed(message: Message): Embed {
  * edited, so it stays as private as it was deferred (every command defers
  * ephemerally).
  */
-export function safeReply(
+export function replyPrivately(
   interaction: ChatInputCommandInteraction,
-  payload: SafeReplyOptions,
+  payload: PrivateReplyOptions,
 ) {
   if (interaction.deferred) {
     return interaction.editReply(payload);

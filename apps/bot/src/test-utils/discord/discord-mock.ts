@@ -195,7 +195,7 @@ class CommandReply {
 
 /**
  * Gives a fake interaction discord.js's live `deferred` and `replied` flags,
- * which app code reads to decide how to answer (e.g. `safeReply`).
+ * which app code reads to decide how to answer (e.g. `replyPrivately`).
  */
 function withAckFlags<T extends object>(
   interaction: T,

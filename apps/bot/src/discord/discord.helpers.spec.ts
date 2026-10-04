@@ -10,7 +10,7 @@ import {
   CacheTime,
   hydrateReaction,
   hydrateUser,
-  safeReply,
+  replyPrivately,
 } from './discord.helpers.js';
 
 describe('Discord Helper Methods', () => {
@@ -63,7 +63,7 @@ describe('Discord Helper Methods', () => {
   });
 });
 
-describe('safeReply', () => {
+describe('replyPrivately', () => {
   const payload = Object.freeze({ content: 'test payload' });
   const privatePayload = Object.freeze({
     ...payload,
@@ -111,7 +111,7 @@ describe('safeReply', () => {
         reply: expectedMethod === 'reply' ? methodFn : vi.fn(),
       });
 
-      const result = await safeReply(interaction, payload);
+      const result = await replyPrivately(interaction, payload);
       expect(methodFn).toHaveBeenCalledWith(expectedPayload);
       expect(result).toBe(resolvedValue);
     },

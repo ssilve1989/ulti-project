@@ -19,7 +19,7 @@ import {
 } from 'rxjs';
 import { appConfig } from '../config/app.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
-import { safeReply } from '../discord/discord.helpers.js';
+import { replyPrivately } from '../discord/discord.helpers.js';
 import { ErrorService } from '../error/error.service.js';
 import { SlashCommandRegistry } from './slash-command-registry.service.js';
 
@@ -138,7 +138,7 @@ class SlashCommandsService {
     const payload = { embeds: [errorEmbed], components: [] };
 
     try {
-      await safeReply(interaction, payload);
+      await replyPrivately(interaction, payload);
     } catch (replyError) {
       this.logger.error(
         {
