@@ -144,7 +144,7 @@ class SheetsService implements OnApplicationShutdown {
       encounter,
     );
 
-    if (!sheetId) {
+    if (sheetId == null) {
       throw new Error(`Invalid SheetID for encounter ${encounter}`);
     }
 
@@ -499,7 +499,7 @@ class SheetsService implements OnApplicationShutdown {
           encounter,
         );
 
-        if (!sheetId) continue;
+        if (sheetId == null) continue;
 
         const baseFormat = {
           horizontalAlignment: format.horizontalAlignment,

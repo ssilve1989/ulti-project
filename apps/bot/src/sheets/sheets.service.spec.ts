@@ -114,6 +114,44 @@ describe('Sheets Service', () => {
       expect(batchUpdateSpy).not.toHaveBeenCalled();
       expect(getSpy).toHaveBeenCalledTimes(1);
     });
+
+    it('cleans the first tab of the spreadsheet, whose sheet ID is 0', async () => {
+      vi.spyOn(sheetsUtils, 'getSheetIdByName').mockResolvedValue(0);
+      vi.spyOn(client.spreadsheets, 'get').mockResolvedValue(
+        mockOf<Awaited<ReturnType<typeof client.spreadsheets.get>>>({
+          data: {
+            sheets: [
+              {
+                properties: { hidden: false },
+                data: [
+                  {
+                    rowData: [
+                      {
+                        values: [
+                          { userEnteredValue: { stringValue: 'TestChar' } },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      );
+      const batchUpdateSpy = vi
+        .spyOn(sheetsUtils, 'batchUpdate')
+        .mockResolvedValue(
+          mockOf<Awaited<ReturnType<typeof sheetsUtils.batchUpdate>>>({}),
+        );
+
+      await service.cleanSheet({
+        spreadsheetId: 'test-id',
+        encounter: Encounter.TOP,
+      });
+
+      expect(batchUpdateSpy).toHaveBeenCalled();
+    });
   });
 
   describe('#batchRemoveClearedSignups', () => {
@@ -182,6 +220,35 @@ describe('Sheets Service', () => {
       });
 
       // Verify batchUpdate was called with the correct parameters
+      expect(batchUpdateSpy).toHaveBeenCalledWith(client, 'test-sheet-id', [
+        mockRequest,
+      ]);
+    });
+
+    it('removes signups from the first tab of the spreadsheet, whose sheet ID is 0', async () => {
+      vi.spyOn(sheetsUtils, 'getSheetIdByName').mockResolvedValue(0);
+      const batchUpdateSpy = vi
+        .spyOn(sheetsUtils, 'batchUpdate')
+        .mockResolvedValue(
+          mockOf<Awaited<ReturnType<typeof sheetsUtils.batchUpdate>>>({}),
+        );
+      const mockRequest = { updateCells: { range: { sheetId: 0 } } };
+      vi.spyOn(
+        withInternals<{
+          getRemoveRequestsForRange: (...args: unknown[]) => Promise<unknown>;
+        }>(service),
+        'getRemoveRequestsForRange',
+      ).mockResolvedValue([mockRequest]);
+
+      await service.batchRemoveClearedSignups(
+        [{ character: 'TestChar', world: 'TestWorld' }],
+        {
+          encounter: Encounter.DSR,
+          spreadsheetId: 'test-sheet-id',
+          partyTypes: [PartyStatus.ClearParty],
+        },
+      );
+
       expect(batchUpdateSpy).toHaveBeenCalledWith(client, 'test-sheet-id', [
         mockRequest,
       ]);
