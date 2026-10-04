@@ -125,7 +125,7 @@ describe('ClearCheckerJob', () => {
     );
     signupsCollection.findAll.mockResolvedValue([]);
     signupsCollection.removeSignup.mockResolvedValue([]);
-    sheetsService.batchRemoveClearedSignups.mockResolvedValue(undefined);
+    sheetsService.batchRemoveClearedSignups.mockResolvedValue(0);
 
     // createAutoMock returns a Promise for every method, but the job consumes
     // this one via firstValueFrom - it must be an Observable or every test throws.
@@ -425,7 +425,7 @@ describe('ClearCheckerJob', () => {
           (_, { encounter }) =>
             encounter === Encounter.FRU
               ? Promise.reject(sheetError)
-              : Promise.resolve(),
+              : Promise.resolve(0),
         );
         signupsCollection.findAll.mockResolvedValue([
           createSignup({ character: 'Top One', encounter: Encounter.TOP }),

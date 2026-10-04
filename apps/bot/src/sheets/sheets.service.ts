@@ -20,6 +20,7 @@ import {
   batchWrite,
   columnToIndex,
   findCharacterRowIndex,
+  findRowIndex,
   getSheetIdByName,
   getSheetValues,
   getSheetValuesBatch,
@@ -100,26 +101,20 @@ class SheetsService implements OnApplicationShutdown {
     partyTypes?: PartyTypes,
   ) {
     const types = partyTypes || (await this.getDefaultPartyTypes(encounter));
-    const ranges = types.map((range) => SheetRanges[range]);
 
-    const sheetValues = await getSheetValuesBatch(this.client, {
+    return this.batchRemoveClearedSignups([{ character, world }], {
+      encounter,
       spreadsheetId,
-      ranges: ranges.map((range) => this.toA1Range(encounter, range)),
+      partyTypes: types,
     });
-
-    return this.removeFromSheetValues(
-      spreadsheetId,
-      { encounter, character, world },
-      ranges,
-      sheetValues,
-    );
   }
 
-  // TODO: overlaps a bit of functionality with `createRemoveSignup`
   /**
-   * Creates a batch of requests to remove multiple signups found on the spreadsheet
+   * Clears the rows of multiple signups found on the spreadsheet, with one read
+   * for all ranges, one `sheetId` lookup and one `batchUpdate` for all of them.
    * @param signups
    * @param param1
+   * @returns the number of rows cleared
    */
   public async batchRemoveClearedSignups(
     signups: Pick<SignupDocument, 'character' | 'world'>[],
@@ -132,12 +127,29 @@ class SheetsService implements OnApplicationShutdown {
       spreadsheetId: string;
       partyTypes: PartyTypes;
     },
-  ) {
+  ): Promise<number> {
     // This function was created to assist in the the jobs that operate on multiple signups at once and to help prevent running into
     // rate limiting issues on the Sheets API, which at the time of writing is 60/min per user per project. 300/min per project total.
-    // The unbatched version was invoking `removeSignup` for each signup which would result in redundant read calls to fetch things like the sheetValues
-    // and sheetId. This function will make one request for each subtable range, and one for the sheetId.
     const ranges = partyTypes.map((type) => SheetRanges[type]);
+
+    const sheetValues = await getSheetValuesBatch(this.client, {
+      spreadsheetId,
+      ranges: ranges.map((range) => this.toA1Range(encounter, range)),
+    });
+
+    const found = ranges.flatMap((range, index) =>
+      signups.flatMap(({ character, world }) => {
+        const rowIndex = findRowIndex(
+          sheetValues[index],
+          (values) =>
+            values.has(character.toLowerCase()) &&
+            values.has(world.toLowerCase()),
+        );
+        return rowIndex === -1 ? [] : [{ range, rowIndex }];
+      }),
+    );
+
+    if (!found.length) return 0;
 
     const sheetId = await getSheetIdByName(
       this.client,
@@ -149,104 +161,15 @@ class SheetsService implements OnApplicationShutdown {
       throw new Error(`Invalid SheetID for encounter ${encounter}`);
     }
 
-    const requests = await Promise.all(
-      ranges.map((range) =>
-        this.getRemoveRequestsForRange(signups, {
-          spreadsheetId,
-          encounter,
-          range,
-          sheetId,
-        }),
-      ),
-    );
-
-    const flattenedRequests = requests.flat();
-
-    if (flattenedRequests.length > 0) {
-      await batchUpdate(this.client, spreadsheetId, flattenedRequests);
-    }
-  }
-
-  private async getRemoveRequestsForRange(
-    signups: Pick<SignupDocument, 'character' | 'world'>[],
-    {
-      spreadsheetId,
-      encounter,
-      range,
-      sheetId,
-    }: {
-      spreadsheetId: string;
-      encounter: Encounter;
-      range: SheetRangeConfig;
-      sheetId: number;
-    },
-  ): Promise<sheets_v4.Schema$Request[]> {
-    const sheetValues = await getSheetValues(this.client, {
-      spreadsheetId,
-      range: `${encounter}!${range.columnStart}:${range.columnEnd}`,
-    });
-
-    const requests = signups.reduce<sheets_v4.Schema$Request[]>(
-      (acc, signup) => {
-        const rowIndex = this.findCharacterRowIndex(
-          sheetValues,
-          (values) =>
-            values.has(signup.character.toLowerCase()) &&
-            values.has(signup.world.toLowerCase()),
-        );
-
-        if (rowIndex !== -1) {
-          acc.push(this.clearRowRequest(sheetId, range, rowIndex));
-        }
-        return acc;
-      },
-      [],
-    );
-    return requests;
-  }
-
-  /**
-   * Clears the character's row in each range where it is found, with one
-   * `sheetId` lookup and one `batchUpdate` for all of them.
-   * @param sheetValues the already-read values of each range, in the order of `ranges`
-   */
-  private async removeFromSheetValues(
-    spreadsheetId: string,
-    {
-      encounter,
-      character,
-      world,
-    }: Pick<SignupDocument, 'character' | 'world' | 'encounter'>,
-    ranges: SheetRangeConfig[],
-    sheetValues: Array<string[][] | null | undefined>,
-  ) {
-    const found = ranges.flatMap((range, index) => {
-      const rowIndex = this.findCharacterRowIndex(
-        sheetValues[index],
-        (values) =>
-          values.has(character.toLowerCase()) &&
-          values.has(world.toLowerCase()),
-      );
-      return rowIndex === -1 ? [] : [{ range, rowIndex }];
-    });
-
-    if (!found.length) return 0;
-
-    const sheetId = await getSheetIdByName(
-      this.client,
-      spreadsheetId,
-      encounter,
-    );
-
-    if (sheetId == null) return 0;
-
-    return batchUpdate(
+    await batchUpdate(
       this.client,
       spreadsheetId,
       found.map(({ range, rowIndex }) =>
         this.clearRowRequest(sheetId, range, rowIndex),
       ),
     );
+
+    return found.length;
   }
 
   private toA1Range(encounter: Encounter, range: SheetRangeConfig) {
@@ -359,7 +282,7 @@ class SheetsService implements OnApplicationShutdown {
         spreadsheetId,
         ranges: [this.toA1Range(encounter, progRange), range],
       });
-      const progRow = this.findCharacterRowIndex(progValues, isCharacter);
+      const progRow = findRowIndex(progValues, isCharacter);
       if (progRow !== -1) {
         requests.push(this.clearRowRequest(sheetId, progRange, progRow));
       }
@@ -371,7 +294,7 @@ class SheetsService implements OnApplicationShutdown {
       });
     }
 
-    const row = this.findCharacterRowIndex(sheetValues, isCharacter);
+    const row = findRowIndex(sheetValues, isCharacter);
     const nextFreeRow = sheetValues ? sheetValues.length : ranges.rowStart - 1;
 
     requests.push({
@@ -423,28 +346,6 @@ class SheetsService implements OnApplicationShutdown {
         fields: 'userEnteredValue',
       },
     };
-  }
-
-  /**
-   * Find the row in the sheet values for the given character
-   * @param signup
-   * @param predicate a function that determines if a character is found in the given set of values
-   * @param values
-   * @returns the row index or -1 if not found
-   */
-  @SentryTraced()
-  private findCharacterRowIndex(
-    values: string[][] | undefined | null,
-    predicate: (values: Set<string>) => boolean,
-  ): number {
-    if (!values) {
-      return -1;
-    }
-
-    return values.findIndex((row: string[]) => {
-      const set = new Set(row.map((values) => values.toLowerCase()));
-      return predicate(set);
-    });
   }
 
   private getCellValues({
