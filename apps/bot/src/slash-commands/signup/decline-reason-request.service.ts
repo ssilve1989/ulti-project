@@ -304,7 +304,6 @@ class DeclineReasonRequestService {
     signup: DeclinedSignupDocument,
     reviewer: User,
     reviewMessage: Message<true>,
-    declineReason?: string,
   ): Promise<void> {
     try {
       // The signup may have been re-submitted or re-reviewed while the reason
@@ -322,7 +321,6 @@ class DeclineReasonRequestService {
         signup,
         reviewer,
         reviewMessage,
-        declineReason,
       );
       this.eventBus.publish(declineEvent);
     } catch (error) {

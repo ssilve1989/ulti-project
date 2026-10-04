@@ -203,12 +203,16 @@ describe('NormalStrategy', () => {
           roleName: 'Role One',
           membersProcessed: 3,
           rolesRemoved: 2,
+          failedRemovals: 0,
+          skippedActiveSignups: 0,
         },
         {
           roleId: 'role-2',
           roleName: 'Role Two',
           membersProcessed: 2,
           rolesRemoved: 1,
+          failedRemovals: 0,
+          skippedActiveSignups: 0,
         },
       ];
 

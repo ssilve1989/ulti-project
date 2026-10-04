@@ -60,6 +60,7 @@ import {
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import {
   getErrorReplyMessage,
+  hasClearedStatus,
   isBotReaction,
   isValidReactionEmoji,
 } from './signup.utils.js';
@@ -324,7 +325,7 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       );
     }
 
-    const hasCleared = confirmedSignup.partyStatus === PartyStatus.Cleared;
+    const hasCleared = hasClearedStatus(confirmedSignup);
 
     if (hasCleared) {
       await this.repository.removeSignup({

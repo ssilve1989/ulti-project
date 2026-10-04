@@ -6,7 +6,6 @@ import {
   Encounter,
   EncounterEmoji,
   EncounterFriendlyDescription,
-  PartyStatus,
 } from '@ulti-project/shared';
 import { Colors, EmbedBuilder, Message, User, userMention } from 'discord.js';
 import {
@@ -17,6 +16,7 @@ import {
 import { ClearReactions } from '../../../common/emojis/emojis.js';
 import { DiscordService } from '../../../discord/discord.service.js';
 import { SignupApprovedEvent } from '../events/signup.events.js';
+import { hasClearedStatus } from '../signup.utils.js';
 
 @EventsHandler(SignupApprovedEvent)
 class SendApprovedMessageEventHandler
@@ -58,7 +58,7 @@ class SendApprovedMessageEventHandler
       return;
     }
 
-    const hasCleared = signup.partyStatus === PartyStatus.Cleared;
+    const hasCleared = hasClearedStatus(signup);
 
     const content = this.getMessageContent(hasCleared, signup.encounter);
 

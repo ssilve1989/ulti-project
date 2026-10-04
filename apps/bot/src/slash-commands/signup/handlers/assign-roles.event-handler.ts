@@ -96,10 +96,10 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
       if (member) {
         if (action === 'remove') {
           await member.roles.remove(role);
-          this.logger.log(`Removed role ${role} from ${member?.user.username}`);
+          this.logger.log(`Removed role ${role} from ${member.user.username}`);
         } else if (action === 'add') {
           await member.roles.add(role);
-          this.logger.log(`Assigned role ${role} to ${member?.user.username}`);
+          this.logger.log(`Assigned role ${role} to ${member.user.username}`);
         }
       }
     }
