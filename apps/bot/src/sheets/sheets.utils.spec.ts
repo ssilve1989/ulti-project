@@ -1,7 +1,12 @@
 import type { sheets_v4 } from '@googleapis/sheets';
 import { describe, expect, it, vi } from 'vitest';
 import { mockOf } from '../test-utils/mock-factory.js';
-import { batchWrite, getSheetIdByName, updateSheet } from './sheets.utils.js';
+import {
+  batchWrite,
+  findRowIndex,
+  getSheetIdByName,
+  updateSheet,
+} from './sheets.utils.js';
 
 function createClient({
   update,
@@ -212,5 +217,41 @@ describe('getSheetIdByName', () => {
       includeGridData: false,
       fields: 'sheets.properties(sheetId,title)',
     });
+  });
+});
+
+describe('findRowIndex', () => {
+  const isMe = (cells: Set<string>) => cells.has('me') && cells.has('server');
+
+  it('finds the row whose cells match regardless of case', () => {
+    expect(
+      findRowIndex(
+        [
+          ['Other', 'Server'],
+          ['ME', 'sErVeR'],
+        ],
+        isMe,
+      ),
+    ).toBe(1);
+  });
+
+  it('returns the first matching row', () => {
+    expect(
+      findRowIndex(
+        [
+          ['Me', 'Server'],
+          ['Me', 'Server'],
+        ],
+        isMe,
+      ),
+    ).toBe(0);
+  });
+
+  it('returns -1 when no row matches', () => {
+    expect(findRowIndex([['Other', 'Server']], isMe)).toBe(-1);
+  });
+
+  it.each([null, undefined, []])('returns -1 for %j values', (values) => {
+    expect(findRowIndex(values, isMe)).toBe(-1);
   });
 });

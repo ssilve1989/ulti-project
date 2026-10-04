@@ -198,6 +198,25 @@ export function batchWrite(
 }
 
 /**
+ * Finds the first row whose lowercased cells satisfy the predicate
+ * @param values the sheet values to search
+ * @param predicate a function that determines if a character is found in the given set of values
+ * @returns the row index or -1 if not found
+ */
+export function findRowIndex(
+  values: SheetValues,
+  predicate: (values: Set<string>) => boolean,
+): number {
+  if (!values) {
+    return -1;
+  }
+
+  return values.findIndex((row) =>
+    predicate(new Set(row.map((cell) => cell.toLowerCase()))),
+  );
+}
+
+/**
  * Finds the row index of a character in a given sheet
  * @param client
  * @param param1
@@ -208,16 +227,8 @@ export async function findCharacterRowIndex(
   { range, spreadsheetId, predicate }: FindCharacterRowProps,
 ): Promise<{ rowIndex: number; sheetValues: SheetValues }> {
   const sheetValues = await getSheetValues(client, { range, spreadsheetId });
-  if (!sheetValues) {
-    return { rowIndex: -1, sheetValues };
-  }
 
-  const rowIndex = sheetValues.findIndex((row: string[]) => {
-    const set = new Set(row.map((values) => values.toLowerCase()));
-    return predicate(set);
-  });
-
-  return { rowIndex, sheetValues };
+  return { rowIndex: findRowIndex(sheetValues, predicate), sheetValues };
 }
 
 /**
