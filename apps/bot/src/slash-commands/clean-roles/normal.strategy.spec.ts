@@ -1,59 +1,22 @@
 import { Logger } from '@nestjs/common';
 import type { SignupDocument } from '@ulti-project/shared';
-import type {
-  GuildMember,
-  GuildMemberRoleManager,
-  Role,
-  User,
-} from 'discord.js';
+import type { GuildMember } from 'discord.js';
 import { test as base, describe, expect, vi } from 'vitest';
 import { fresh } from '../../test-utils/fixtures.js';
-import {
-  createAutoMock,
-  mockOf,
-  partialMock,
-} from '../../test-utils/mock-factory.js';
+import { createAutoMock, partialMock } from '../../test-utils/mock-factory.js';
 import type {
   NormalRoleResult,
   ProcessingContext,
 } from './clean-roles.interfaces.js';
+import {
+  memberWith,
+  processRoles,
+  roleHeldBy,
+} from './clean-roles.test-helpers.js';
 import { planRoleRemovals } from './clean-roles.utils.js';
 import { NormalStrategy } from './normal.strategy.js';
 
-/** Runs the strategy on the plan the handler would make for `roles`. */
-const processRoles = (
-  strategy: NormalStrategy,
-  roles: Role[],
-  activeSignupDiscordIds: Set<string>,
-) => strategy.processRoles(planRoleRemovals(roles, activeSignupDiscordIds));
-
 const REASON = 'Cleaned by clean-roles command - no active signups';
-
-/** A cached guild member whose role removals resolve, unless Discord rejects them. */
-const memberWith = (id: string, { rejectWith }: { rejectWith?: Error } = {}) =>
-  mockOf<GuildMember>({
-    id,
-    displayName: `Nick ${id}`,
-    user: mockOf<User>({ username: id }),
-    roles: mockOf<GuildMemberRoleManager>({
-      remove: rejectWith
-        ? vi.fn().mockRejectedValue(rejectWith)
-        : vi.fn().mockResolvedValue(undefined),
-    }),
-  });
-
-/** A role held by `members`, which the bot may remove unless `editable` is false. */
-const roleHeldBy = (
-  id: string,
-  members: GuildMember[],
-  { editable = true }: { editable?: boolean } = {},
-) =>
-  mockOf<Role>({
-    id,
-    name: `Role ${id}`,
-    editable,
-    members: new Map(members.map((member) => [member.id, member])),
-  });
 
 const removalsOf = (member: GuildMember) =>
   vi.mocked(member.roles.remove).mock.calls;
@@ -240,17 +203,20 @@ describe('NormalStrategy', () => {
         },
       ];
 
+      // 5 members with roles, of whom user-4 and user-5 have active signups
       const context: ProcessingContext = {
-        plans: [],
+        plans: planRoleRemovals(
+          [
+            roleHeldBy('role-1', [
+              memberWith('user-1'),
+              memberWith('user-2'),
+              memberWith('user-3'),
+            ]),
+            roleHeldBy('role-2', [memberWith('user-4'), memberWith('user-5')]),
+          ],
+          new Set(['user-4', 'user-5']),
+        ),
         activeSignups: partialMock<SignupDocument[]>([{}, {}, {}]), // 3 active signups
-        membersKeepingRoles: new Set(['user-4', 'user-5']), // 2 members keep a role
-        allMembersWithRoles: new Set([
-          'user-1',
-          'user-2',
-          'user-3',
-          'user-4',
-          'user-5',
-        ]), // 5 members with roles
       };
 
       const result = strategy.createResult(context, processedRoles);
@@ -271,12 +237,7 @@ describe('NormalStrategy', () => {
     it('should handle empty processed roles', ({ strategy }) => {
       const processedRoles: NormalRoleResult[] = [];
 
-      const context: ProcessingContext = {
-        plans: [],
-        activeSignups: [],
-        membersKeepingRoles: new Set(),
-        allMembersWithRoles: new Set(),
-      };
+      const context: ProcessingContext = { plans: [], activeSignups: [] };
 
       const result = strategy.createResult(context, processedRoles);
 

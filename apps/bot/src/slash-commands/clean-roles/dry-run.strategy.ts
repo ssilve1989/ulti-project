@@ -23,7 +23,7 @@ export class DryRunStrategy implements ProcessingStrategy<DryRunRoleResult> {
       isDryRun: true,
       ...summarizeProcessedRoles(context, processedRoles),
       totalUnremovable: processedRoles.reduce(
-        (sum, result) => sum + result.unremovable,
+        (sum, result) => sum + (result.removable ? 0 : result.unremovable),
         0,
       ),
       processedRoles,
@@ -32,26 +32,31 @@ export class DryRunStrategy implements ProcessingStrategy<DryRunRoleResult> {
 
   private processRole({
     role,
-    toRemove,
-    unremovable,
+    kept,
+    stale,
+    removable,
   }: RoleRemovalPlan): DryRunRoleResult {
+    const membersProcessed = kept.length + stale.length;
     this.logger.log(
-      `Processing role ${role.name} (${role.id}) with ${role.members.size} members`,
+      `Processing role ${role.name} (${role.id}) with ${membersProcessed} members`,
     );
 
-    for (const member of toRemove) {
+    const base = { roleId: role.id, roleName: role.name, membersProcessed };
+    if (!removable) {
+      return { ...base, rolesRemoved: 0, removable, unremovable: stale.length };
+    }
+
+    for (const member of stale) {
       this.logger.log(
         `[DRY-RUN] Would remove role ${role.name} from ${member.displayName} (${member.id}) - no active signups`,
       );
     }
 
     return {
-      roleId: role.id,
-      roleName: role.name,
-      membersProcessed: role.members.size,
-      rolesRemoved: toRemove.length,
-      unremovable: unremovable.length,
-      membersToRemove: toRemove.map((member) => ({
+      ...base,
+      rolesRemoved: stale.length,
+      removable,
+      membersToRemove: stale.map((member) => ({
         id: member.id,
         displayName: member.displayName,
         username: member.user.username,

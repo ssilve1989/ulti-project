@@ -14,10 +14,20 @@ export interface BaseRoleResult {
   rolesRemoved: number;
 }
 
-export interface DryRunRoleResult extends BaseRoleResult {
-  unremovable: number;
+interface RemovableDryRunRoleResult extends BaseRoleResult {
+  removable: true;
   membersToRemove: MemberToRemove[];
 }
+
+/** A role the bot may not remove: its `unremovable` stale holders keep it. */
+interface UnremovableDryRunRoleResult extends BaseRoleResult {
+  removable: false;
+  unremovable: number;
+}
+
+export type DryRunRoleResult =
+  | RemovableDryRunRoleResult
+  | UnremovableDryRunRoleResult;
 
 export interface NormalRoleResult extends BaseRoleResult {
   failedRemovals: number;
@@ -52,18 +62,15 @@ export interface RoleRemovalPlan {
   role: Role;
   /** holders with an active signup, who keep the role */
   kept: GuildMember[];
-  /** holders without one, whose role the bot removes */
-  toRemove: GuildMember[];
-  /** holders without one, whose role the bot may not remove */
-  unremovable: GuildMember[];
+  /** holders without one, who lose the role if it is removable */
+  stale: GuildMember[];
+  /** whether the bot may remove the role (Role.editable) */
+  removable: boolean;
 }
 
 export interface ProcessingContext {
   plans: RoleRemovalPlan[];
   activeSignups: SignupDocument[];
-  allMembersWithRoles: Set<string>;
-  /** members who still hold a configured role after the clean-up */
-  membersKeepingRoles: Set<string>;
 }
 
 export interface ProcessingStrategy<T extends BaseRoleResult> {

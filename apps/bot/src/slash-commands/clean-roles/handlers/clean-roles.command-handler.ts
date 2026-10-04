@@ -7,7 +7,6 @@ import {
   EmbedBuilder,
   embedLength,
   type Guild,
-  type GuildMember,
   MessageFlags,
   type Role,
   userMention,
@@ -29,7 +28,7 @@ import type {
   ProcessingStrategy,
 } from '../clean-roles.interfaces.js';
 import { CleanRolesSlashCommand } from '../clean-roles.slash-command.js';
-import { planRoleRemovals } from '../clean-roles.utils.js';
+import { planRoleRemovals, UNREMOVABLE_REASON } from '../clean-roles.utils.js';
 import { DryRunStrategy } from '../dry-run.strategy.js';
 import { NormalStrategy } from '../normal.strategy.js';
 
@@ -46,12 +45,10 @@ function additionalRolesField(count: number) {
 }
 
 function dryRunRoleField(roleInfo: DryRunRoleResult) {
-  // a role is either removable from all its holders or from none of them
-  if (roleInfo.unremovable > 0) {
+  if (!roleInfo.removable) {
     return {
       name: `⚠️ ${roleInfo.roleName} (${roleInfo.unremovable} can't be removed)`,
-      value:
-        "The bot can't remove this role: it's managed, above the bot's highest role, or the bot lacks Manage Roles.",
+      value: `The bot can't remove this role: ${UNREMOVABLE_REASON}.`,
       inline: false,
     };
   }
@@ -81,8 +78,8 @@ function addDryRunRoleFields(
   embed: EmbedBuilder,
   processedRoles: DryRunResult['processedRoles'],
 ): void {
-  const rolesWithChanges = processedRoles.filter(
-    (role) => role.rolesRemoved > 0 || role.unremovable > 0,
+  const rolesWithChanges = processedRoles.filter((role) =>
+    role.removable ? role.rolesRemoved > 0 : role.unremovable > 0,
   );
 
   if (rolesWithChanges.length === 0) {
@@ -269,26 +266,12 @@ class CleanRolesCommandHandler implements ISlashCommand {
       `Found ${activeSignups.length} active signups for ${activeSignupDiscordIds.size} unique Discord users`,
     );
 
-    const plans = planRoleRemovals(
-      this.resolveRoles(guild, allRoleIds),
-      activeSignupDiscordIds,
-    );
-    const memberIds = (members: GuildMember[]) =>
-      new Set(members.map(({ id }) => id));
-
     return {
-      plans,
+      plans: planRoleRemovals(
+        this.resolveRoles(guild, allRoleIds),
+        activeSignupDiscordIds,
+      ),
       activeSignups,
-      allMembersWithRoles: memberIds(
-        plans.flatMap(({ kept, toRemove, unremovable }) => [
-          ...kept,
-          ...toRemove,
-          ...unremovable,
-        ]),
-      ),
-      membersKeepingRoles: memberIds(
-        plans.flatMap(({ kept, unremovable }) => [...kept, ...unremovable]),
-      ),
     };
   }
 

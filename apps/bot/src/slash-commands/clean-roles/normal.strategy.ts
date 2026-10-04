@@ -1,6 +1,6 @@
 import type { Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import type { GuildMember, Role } from 'discord.js';
+import type { GuildMember } from 'discord.js';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import type {
   NormalResult,
@@ -9,16 +9,14 @@ import type {
   ProcessingStrategy,
   RoleRemovalPlan,
 } from './clean-roles.interfaces.js';
-import { summarizeProcessedRoles } from './clean-roles.utils.js';
-
-interface PendingRemoval {
-  role: Role;
-  roleResult: NormalRoleResult;
-}
+import {
+  summarizeProcessedRoles,
+  UNREMOVABLE_REASON,
+} from './clean-roles.utils.js';
 
 interface MemberRemovals {
   member: GuildMember;
-  removals: PendingRemoval[];
+  roleResults: NormalRoleResult[];
 }
 
 export class NormalStrategy implements ProcessingStrategy<NormalRoleResult> {
@@ -32,33 +30,37 @@ export class NormalStrategy implements ProcessingStrategy<NormalRoleResult> {
     const roleResults: NormalRoleResult[] = [];
     const removalsByMember = new Map<string, MemberRemovals>();
 
-    for (const { role, kept, toRemove, unremovable } of plans) {
+    for (const { role, kept, stale, removable } of plans) {
+      const membersProcessed = kept.length + stale.length;
       this.logger.log(
-        `Processing role ${role.name} (${role.id}) with ${role.members.size} members`,
+        `Processing role ${role.name} (${role.id}) with ${membersProcessed} members`,
       );
 
       const roleResult: NormalRoleResult = {
         roleId: role.id,
         roleName: role.name,
-        membersProcessed: role.members.size,
+        membersProcessed,
         rolesRemoved: 0,
-        failedRemovals: unremovable.length,
+        failedRemovals: removable ? 0 : stale.length,
         skippedActiveSignups: kept.length,
       };
       roleResults.push(roleResult);
 
-      if (unremovable.length > 0) {
-        this.logger.warn(
-          `Cannot remove role ${role.name} (${role.id}) from ${unremovable.length} member(s): it is managed, above the bot's highest role, or the bot lacks Manage Roles`,
-        );
+      if (!removable) {
+        if (stale.length > 0) {
+          this.logger.warn(
+            `Cannot remove role ${role.name} (${role.id}) from ${stale.length} member(s): ${UNREMOVABLE_REASON}`,
+          );
+        }
+        continue;
       }
 
-      for (const member of toRemove) {
+      for (const member of stale) {
         const memberRemovals = removalsByMember.get(member.id) ?? {
           member,
-          removals: [],
+          roleResults: [],
         };
-        memberRemovals.removals.push({ role, roleResult });
+        memberRemovals.roleResults.push(roleResult);
         removalsByMember.set(member.id, memberRemovals);
       }
     }
@@ -91,21 +93,21 @@ export class NormalStrategy implements ProcessingStrategy<NormalRoleResult> {
 
   private async removeRoles({
     member,
-    removals,
+    roleResults,
   }: MemberRemovals): Promise<void> {
-    const roleNames = removals.map(({ role }) => role.name).join(', ');
+    const roleNames = roleResults.map(({ roleName }) => roleName).join(', ');
 
     try {
       await member.roles.remove(
-        removals.map(({ role }) => role.id),
+        roleResults.map(({ roleId }) => roleId),
         'Cleaned by clean-roles command - no active signups',
       );
-      for (const { roleResult } of removals) roleResult.rolesRemoved++;
+      for (const roleResult of roleResults) roleResult.rolesRemoved++;
       this.logger.log(
         `Removed roles ${roleNames} from ${member.displayName} (${member.id}) - no active signups`,
       );
     } catch (error) {
-      for (const { roleResult } of removals) roleResult.failedRemovals++;
+      for (const roleResult of roleResults) roleResult.failedRemovals++;
       this.logger.error(
         error,
         `Failed to remove roles ${roleNames} from member ${member.displayName} (${member.id})`,
