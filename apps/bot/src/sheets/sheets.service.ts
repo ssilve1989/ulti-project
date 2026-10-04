@@ -17,6 +17,7 @@ import { type SheetRangeConfig, SheetRanges } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
 import {
   batchUpdate,
+  batchWrite,
   columnToIndex,
   findCharacterRowIndex,
   getSheetIdByName,
@@ -195,18 +196,7 @@ class SheetsService implements OnApplicationShutdown {
         );
 
         if (rowIndex !== -1) {
-          acc.push({
-            updateCells: {
-              range: {
-                sheetId,
-                startRowIndex: rowIndex,
-                endRowIndex: rowIndex + 1,
-                startColumnIndex: columnToIndex(range.columnStart),
-                endColumnIndex: columnToIndex(range.columnEnd) + 1,
-              },
-              fields: 'userEnteredValue',
-            },
-          });
+          acc.push(this.clearRowRequest(sheetId, range, rowIndex));
         }
         return acc;
       },
@@ -253,18 +243,9 @@ class SheetsService implements OnApplicationShutdown {
     return batchUpdate(
       this.client,
       spreadsheetId,
-      found.map(({ range, rowIndex }) => ({
-        updateCells: {
-          range: {
-            sheetId,
-            startRowIndex: rowIndex,
-            endRowIndex: rowIndex + 1,
-            startColumnIndex: columnToIndex(range.columnStart),
-            endColumnIndex: columnToIndex(range.columnEnd) + 1,
-          },
-          fields: 'userEnteredValue',
-        },
-      })),
+      found.map(({ range, rowIndex }) =>
+        this.clearRowRequest(sheetId, range, rowIndex),
+      ),
     );
   }
 
@@ -349,9 +330,25 @@ class SheetsService implements OnApplicationShutdown {
   ) {
     const { encounter, character, world } = signup;
     const cellValues = this.getCellValues(signup);
+    const isCharacter = (values: Set<string>) =>
+      values.has(character.toLowerCase()) && values.has(world.toLowerCase());
 
     const ranges = SheetRanges[partyStatus];
     const range = `${encounter}!${ranges.columnStart}:${ranges.columnEnd}`;
+
+    const sheetId = await getSheetIdByName(
+      this.client,
+      spreadsheetId,
+      encounter,
+    );
+
+    if (sheetId == null) {
+      throw new Error(`Invalid SheetID for encounter ${encounter}`);
+    }
+
+    // the clearing of any stale row and the write go in one atomic batch, so
+    // a failure can't leave the character in neither section
+    const requests: sheets_v4.Schema$Request[] = [];
 
     const isProgEncounter = await this.isProgEncounter(encounter);
     let sheetValues: Awaited<ReturnType<typeof getSheetValues>>;
@@ -362,12 +359,10 @@ class SheetsService implements OnApplicationShutdown {
         spreadsheetId,
         ranges: [this.toA1Range(encounter, progRange), range],
       });
-      await this.removeFromSheetValues(
-        spreadsheetId,
-        signup,
-        [progRange],
-        [progValues],
-      );
+      const progRow = this.findCharacterRowIndex(progValues, isCharacter);
+      if (progRow !== -1) {
+        requests.push(this.clearRowRequest(sheetId, progRange, progRow));
+      }
       sheetValues = clearValues;
     } else {
       sheetValues = await getSheetValues(this.client, {
@@ -376,24 +371,58 @@ class SheetsService implements OnApplicationShutdown {
       });
     }
 
-    const row = this.findCharacterRowIndex(
-      sheetValues,
-      (values) =>
-        values.has(character.toLowerCase()) && values.has(world.toLowerCase()),
-    );
+    const row = this.findCharacterRowIndex(sheetValues, isCharacter);
+    const nextFreeRow = sheetValues ? sheetValues.length : ranges.rowStart - 1;
 
-    const rowOffset = sheetValues ? sheetValues.length + 1 : ranges.rowStart;
-    const updateRange =
-      row === -1
-        ? `${encounter}!${ranges.columnStart}${rowOffset}:${ranges.columnEnd}`
-        : `${encounter}!${ranges.columnStart}${row + 1}:${ranges.columnEnd}${row + 1}`;
-
-    return updateSheet(this.client, {
-      spreadsheetId,
-      range: updateRange,
-      values: [cellValues],
-      type: 'update',
+    requests.push({
+      updateCells: {
+        range: this.rowGridRange(
+          sheetId,
+          ranges,
+          row === -1 ? nextFreeRow : row,
+        ),
+        // literal strings, never parsed: a value like `=IMPORTXML(...)` stays text
+        rows: [
+          {
+            values: cellValues.map((value) => ({
+              userEnteredValue: { stringValue: value },
+            })),
+          },
+        ],
+        fields: 'userEnteredValue',
+      },
     });
+
+    return batchWrite(this.client, spreadsheetId, requests, range);
+  }
+
+  /** The grid range of one row of a section, `rowIndex` counting from 0. */
+  private rowGridRange(
+    sheetId: number,
+    range: SheetRangeConfig,
+    rowIndex: number,
+  ): sheets_v4.Schema$GridRange {
+    return {
+      sheetId,
+      startRowIndex: rowIndex,
+      endRowIndex: rowIndex + 1,
+      startColumnIndex: columnToIndex(range.columnStart),
+      endColumnIndex: columnToIndex(range.columnEnd) + 1,
+    };
+  }
+
+  /** A request emptying one row of a section, `rowIndex` counting from 0. */
+  private clearRowRequest(
+    sheetId: number,
+    range: SheetRangeConfig,
+    rowIndex: number,
+  ): sheets_v4.Schema$Request {
+    return {
+      updateCells: {
+        range: this.rowGridRange(sheetId, range, rowIndex),
+        fields: 'userEnteredValue',
+      },
+    };
   }
 
   /**

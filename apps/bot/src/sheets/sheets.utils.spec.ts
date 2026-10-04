@@ -1,21 +1,24 @@
 import type { sheets_v4 } from '@googleapis/sheets';
 import { describe, expect, it, vi } from 'vitest';
 import { mockOf } from '../test-utils/mock-factory.js';
-import { getSheetIdByName, updateSheet } from './sheets.utils.js';
+import { batchWrite, getSheetIdByName, updateSheet } from './sheets.utils.js';
 
 function createClient({
   update,
   append,
+  batchUpdate,
 }: {
   update?: ReturnType<typeof vi.fn>;
   append?: ReturnType<typeof vi.fn>;
+  batchUpdate?: ReturnType<typeof vi.fn>;
 } = {}) {
   return mockOf<sheets_v4.Sheets>({
     spreadsheets: {
       get: vi.fn().mockResolvedValue({
         data: { sheets: [{ properties: { title: 'DMU', sheetId: 42 } }] },
       }),
-      batchUpdate: vi.fn().mockResolvedValue({ data: {}, status: 200 }),
+      batchUpdate:
+        batchUpdate ?? vi.fn().mockResolvedValue({ data: {}, status: 200 }),
       values: {
         update: update ?? vi.fn().mockResolvedValue({ data: {}, status: 200 }),
         append: append ?? vi.fn().mockResolvedValue({ data: {}, status: 200 }),
@@ -116,6 +119,76 @@ describe('updateSheet', () => {
     ).rejects.toThrow('some other API failure');
 
     expect(client.spreadsheets.batchUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe('batchWrite', () => {
+  const REQUESTS = Object.freeze([
+    Object.freeze({ updateCells: { fields: 'userEnteredValue' } }),
+  ]);
+
+  /** What batchWrite sends Google: the requests, with POST opted into the client's retries. */
+  const batchWritten = () => [
+    {
+      spreadsheetId: 'sheet-id',
+      requestBody: { requests: REQUESTS.map((request) => ({ ...request })) },
+    },
+    { timeout: 30_000, retryConfig: { httpMethodsToRetry: ['POST'] } },
+  ];
+
+  it('sends every request in one batch update, retrying rate limits and server errors', async () => {
+    const client = createClient();
+
+    const result = await batchWrite(
+      client,
+      'sheet-id',
+      REQUESTS.map((request) => ({ ...request })),
+      'DMU!I:L',
+    );
+
+    expect(vi.mocked(client.spreadsheets.batchUpdate).mock.calls).toEqual([
+      batchWritten(),
+    ]);
+    expect(result).toEqual({ data: {}, status: 200 });
+  });
+
+  it('grows the sheet by 50 rows and sends the batch again when it exceeds grid limits', async () => {
+    const batchUpdate = vi
+      .fn()
+      .mockRejectedValueOnce(gridLimitError())
+      .mockResolvedValue({ data: { replies: [] }, status: 200 });
+    const client = createClient({ batchUpdate });
+
+    const result = await batchWrite(
+      client,
+      'sheet-id',
+      REQUESTS.map((request) => ({ ...request })),
+      'DMU!I:L',
+    );
+
+    expect(batchUpdate.mock.calls).toEqual([
+      batchWritten(),
+      [grow(), { timeout: 30_000 }],
+      batchWritten(),
+    ]);
+    expect(result).toEqual({ data: { replies: [] }, status: 200 });
+  });
+
+  it('does not swallow unrelated errors', async () => {
+    const batchUpdate = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('some other API failure'));
+    const client = createClient({ batchUpdate });
+
+    await expect(
+      batchWrite(
+        client,
+        'sheet-id',
+        REQUESTS.map((request) => ({ ...request })),
+        'DMU!I:L',
+      ),
+    ).rejects.toThrow('some other API failure');
+    expect(batchUpdate).toHaveBeenCalledTimes(1);
   });
 });
 

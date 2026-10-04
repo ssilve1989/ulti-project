@@ -39,24 +39,42 @@ export function nextFreeRow(flow: FlowApp, section: Section): number {
   return values.length + 1;
 }
 
-/** The request clearing `row` of `section` (Sheets indexes are zero-based, end-exclusive). */
-export const rowCleared = (flow: FlowApp, section: Section, row: number) => ({
+/** `row` of `section` as a grid range (Sheets indexes are zero-based, end-exclusive). */
+const gridRow = (section: Section, row: number) => ({
+  sheetId: DMU_TAB_ID,
+  startRowIndex: row - 1,
+  endRowIndex: row,
+  startColumnIndex: section.from,
+  endColumnIndex: section.to,
+});
+
+/** One `batchUpdate`, which Sheets applies atomically, made of `requests`. */
+export const batchUpdated = (flow: FlowApp, ...requests: object[]) => ({
   method: 'POST',
   path: `/v4/spreadsheets/${flow.sheets.spreadsheetId}:batchUpdate`,
-  body: {
-    requests: [
+  body: { requests },
+});
+
+/** A batch request emptying `row` of `section`. */
+export const clearRow = (section: Section, row: number) => ({
+  updateCells: { range: gridRow(section, row), fields: 'userEnteredValue' },
+});
+
+/** A batch request writing `values` into `row` of `section`, as literal text. */
+export const writeRow = (section: Section, row: number, values: string[]) => ({
+  updateCells: {
+    range: gridRow(section, row),
+    rows: [
       {
-        updateCells: {
-          range: {
-            sheetId: DMU_TAB_ID,
-            startRowIndex: row - 1,
-            endRowIndex: row,
-            startColumnIndex: section.from,
-            endColumnIndex: section.to,
-          },
-          fields: 'userEnteredValue',
-        },
+        values: values.map((value) => ({
+          userEnteredValue: { stringValue: value },
+        })),
       },
     ],
+    fields: 'userEnteredValue',
   },
 });
+
+/** The request clearing `row` of `section`, on its own. */
+export const rowCleared = (flow: FlowApp, section: Section, row: number) =>
+  batchUpdated(flow, clearRow(section, row));
