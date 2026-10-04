@@ -17,6 +17,7 @@ import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import {
   commandErrorReply,
   expectCommandErrorReported,
+  expectSagaCommandErrorReported,
   privateReply,
 } from '../../test-utils/replies.js';
 import {
@@ -502,12 +503,7 @@ describe('Remove signup', () => {
 
       await removeSignup(flow, PLAYER.id);
 
-      flow.expectReported(
-        /^error: Command handler which execution was triggered by Saga has thrown an unhandled exception\. DiscordAPIError\[50013\]: Missing Permissions/,
-      );
-      flow.expectReported(
-        /^Sentry exception: DiscordAPIError\[50013\]: Missing Permissions/,
-      );
+      expectSagaCommandErrorReported(flow, 'Missing Permissions');
       expect([
         flow.db.read(signupPath()),
         flow.discord.rolesOf(PLAYER.id),

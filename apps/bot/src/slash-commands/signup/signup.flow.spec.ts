@@ -33,6 +33,7 @@ import {
   commandErrorReply,
   expectCommandErrorReported,
   expectEventHandlerErrorReported,
+  expectSagaCommandErrorReported,
   replyTo,
   textReply,
 } from '../../test-utils/replies.js';
@@ -1127,10 +1128,7 @@ describe('Signup lifecycle', () => {
       flow.discord.click(reply(), 'confirm', PLAYER.id);
       await flow.settle();
 
-      flow.expectReported(
-        /^error: Command handler which execution was triggered by Saga has thrown an unhandled exception\. DiscordAPIError\[10003\]: Unknown Channel/,
-      );
-      flow.expectReported(/^Sentry exception: DiscordAPIError\[10003\]/);
+      expectSagaCommandErrorReported(flow, 'Unknown Channel');
       expect(flow.db.read(SIGNUP_PATH)).toEqual(storedSignup(flow, {}));
       expect(flow.discord.channel(GHOST_CHANNEL)).toEqual([]);
       expect(flow.discord.repliesTo(PLAYER.id).map(shown)).toEqual([
