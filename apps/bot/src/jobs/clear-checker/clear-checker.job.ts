@@ -201,28 +201,32 @@ class ClearCheckerJob implements OnApplicationBootstrap, OnApplicationShutdown {
   ): Promise<SignupDocument | undefined> {
     if (!encounterIds.has(signup.encounter)) return;
 
-    Sentry.getCurrentScope().setExtras({ signup, index });
-    this.logger.debug(`[${index}] checking signup for ${signup.character}`);
+    // signups are checked concurrently, so each gets its own scope: on the
+    // shared one, a report would carry whichever signup set its extras last
+    return await Sentry.withScope(async (scope) => {
+      scope.setExtras({ signup, index });
+      this.logger.debug(`[${index}] checking signup for ${signup.character}`);
 
-    const { encounter, character, world } = signup;
+      const { encounter, character, world } = signup;
 
-    try {
-      const hasCleared = await firstValueFrom(
-        this.fflogsService.hasClearedEncounter(encounter, {
-          name: character,
-          server: world,
-          region: 'NA',
-        }),
-      );
+      try {
+        const hasCleared = await firstValueFrom(
+          this.fflogsService.hasClearedEncounter(encounter, {
+            name: character,
+            server: world,
+            region: 'NA',
+          }),
+        );
 
-      return hasCleared ? signup : undefined;
-    } catch (e) {
-      this.errorService.captureError(e, {
-        message: `error checking signup for ${signup.character}`,
-      });
-    }
+        return hasCleared ? signup : undefined;
+      } catch (e) {
+        this.errorService.captureError(e, {
+          message: `error checking signup for ${signup.character}`,
+        });
+      }
 
-    return undefined;
+      return undefined;
+    });
   }
 
   /**

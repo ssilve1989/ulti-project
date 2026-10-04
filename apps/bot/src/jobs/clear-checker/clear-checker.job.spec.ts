@@ -1,6 +1,7 @@
 import type { LoggerService } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
+import * as Sentry from '@sentry/nestjs';
 import {
   type ApprovedSignupDocument,
   Encounter,
@@ -10,7 +11,7 @@ import {
 } from '@ulti-project/shared';
 import { CronJob } from 'cron';
 import type { APIEmbedField, EmbedBuilder } from 'discord.js';
-import { of, throwError } from 'rxjs';
+import { mergeMap, of, throwError, timer } from 'rxjs';
 import {
   afterEach,
   beforeEach,
@@ -228,6 +229,26 @@ describe('ClearCheckerJob', () => {
       expect(signupsCollection.removeSignup).toHaveBeenCalledWith(
         expect.objectContaining({ character: 'Cleared Char' }),
       );
+    });
+
+    it('reports a failed FFLogs lookup with its own signup while others are checked alongside it', async () => {
+      const broken = createSignup({ character: 'Broken Char' });
+      const cleared = createSignup({ character: 'Cleared Char' });
+      signupsCollection.findAll.mockResolvedValue([broken, cleared]);
+      // the broken lookup fails only after the next signup's check has started
+      fflogsService.hasClearedEncounter.mockImplementation((_, { name }) =>
+        name === 'Broken Char'
+          ? timer(20).pipe(mergeMap(() => throwError(() => new Error('down'))))
+          : of(true),
+      );
+      const reportedExtras: unknown[] = [];
+      errorService.captureError.mockImplementation(() => {
+        reportedExtras.push(Sentry.getCurrentScope().getScopeData().extra);
+      });
+
+      await job.checkClears();
+
+      expect(reportedExtras).toEqual([{ signup: broken, index: 0 }]);
     });
   });
 

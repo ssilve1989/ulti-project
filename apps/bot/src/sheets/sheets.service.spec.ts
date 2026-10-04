@@ -79,6 +79,14 @@ describe('Sheets Service', () => {
       });
     });
 
+    it('rethrows any other failure without reporting it, so its caller reports it once', async () => {
+      const failure = { code: 503 };
+      vi.spyOn(client.spreadsheets, 'get').mockRejectedValueOnce(failure);
+
+      await expect(service.getSheetMetadata('test-id')).rejects.toBe(failure);
+      expect(mockErrorService.captureError).not.toHaveBeenCalled();
+    });
+
     it('returns sheet title and URL when sheet exists', async () => {
       const spy = vi.spyOn(client.spreadsheets, 'get');
       // Cast the mock response to any to avoid type errors

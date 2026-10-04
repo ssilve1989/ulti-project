@@ -160,6 +160,12 @@ against saved real responses, never the live API
   fails on purpose, FFLogs being down), declare it with
   `flow.expectReported(/pattern/)`, matching its kind (`error:`, `warning:`,
   `Sentry exception:`, `Sentry warning:`).
+- Sentry runs for real in the bot's tests (`test/setup-bot.ts`): a client with
+  no integrations whose transport drops everything. So scopes follow async
+  work and event processors run as in production, and a report counts only
+  if it gets past them. To check what a report carries, read events with
+  `watchSentryEvents` (`test-utils/sentry.ts`), and `await Sentry.flush()`
+  first: Sentry processes events asynchronously. `flow.settle()` does this.
 - The fakes behave exactly like the real system or refuse loudly. A fake that
   quietly differs from the real thing is a bug in the fake. They implement only
   what the app uses. Calling something they don't model fails

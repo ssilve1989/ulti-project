@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
-import { vi } from 'vitest';
 import { DISCORD_CLIENT } from '../discord/discord.decorators.js';
 import { getFflogsSdkToken } from '../fflogs/fflogs.consts.js';
 import { FIRESTORE } from '../firebase/firebase.consts.js';
@@ -18,6 +17,7 @@ import { DiscordMock } from './discord/discord-mock.js';
 import { FFLogsMock } from './fflogs/fflogs-mock.js';
 import { InMemoryFirestore } from './firestore/in-memory-firestore.js';
 import { createActivityTracker, waitUntilIdle } from './idle.js';
+import { watchSentryEvents } from './sentry.js';
 import {
   captureSheetsRequests,
   type SheetsWrite,
@@ -116,26 +116,19 @@ class ProblemRecorder implements LoggerService {
     );
   }
 
-  /** Records what the app sends Sentry, through every scope, while it runs. */
+  /**
+   * Records what the app sends Sentry while it runs: only what gets past the
+   * scope's event processors, as in production.
+   */
   watchSentry(): () => void {
-    const { captureException, captureMessage } = Sentry.Scope.prototype;
-    const recorder = this;
-    const exceptions = vi
-      .spyOn(Sentry.Scope.prototype, 'captureException')
-      .mockImplementation(function (this: Sentry.Scope, ...args) {
-        recorder.record('Sentry exception', args[0]);
-        return Reflect.apply(captureException, this, args);
-      });
-    const messages = vi
-      .spyOn(Sentry.Scope.prototype, 'captureMessage')
-      .mockImplementation(function (this: Sentry.Scope, ...args) {
-        recorder.record(`Sentry ${args[1] ?? 'message'}`, args[0]);
-        return Reflect.apply(captureMessage, this, args);
-      });
-    return () => {
-      exceptions.mockRestore();
-      messages.mockRestore();
-    };
+    return watchSentryEvents((event, hint) => {
+      // a captured message also carries a synthetic exception, for its stack
+      if (event.message === undefined) {
+        this.record('Sentry exception', hint?.originalException);
+      } else {
+        this.record(`Sentry ${event.level ?? 'info'}`, event.message);
+      }
+    });
   }
 }
 
@@ -205,7 +198,11 @@ export async function createFlowApp(): Promise<FlowApp> {
       sheets,
       fflogs,
       get: (token) => moduleRef.get(token),
-      settle: () => waitUntilIdle(activity),
+      settle: async () => {
+        await waitUntilIdle(activity);
+        // Sentry processes events asynchronously; wait until it has sent them
+        await Sentry.flush();
+      },
       expectReported: (pattern) => {
         const index = logger.problems.findIndex((entry) => pattern.test(entry));
         if (index === -1) {
@@ -225,6 +222,7 @@ export async function createFlowApp(): Promise<FlowApp> {
           discord.expireAll();
           await waitUntilIdle(activity);
           await moduleRef.close();
+          await Sentry.flush();
         } finally {
           restoreDefaultLogger();
           stopWatchingSentry();

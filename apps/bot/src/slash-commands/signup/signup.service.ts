@@ -35,6 +35,7 @@ import {
   Subscription,
 } from 'rxjs';
 import { match } from 'ts-pattern';
+import { withUnitOfWork } from '../../common/sentry.js';
 import { getMessageLink } from '../../discord/discord.consts.js';
 import {
   getFirstEmbed,
@@ -103,11 +104,13 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         mergeMap((group$) =>
           group$.pipe(
             concatMap((event) =>
-              Sentry.startNewTrace(() =>
+              withUnitOfWork(() =>
                 Sentry.withScope((scope) => {
-                  // Prevent Sentry from capturing the event if we've determined we aren't going to handle it anyway
+                  // Prevent Sentry from capturing the event if we've determined we aren't going to handle it anyway.
+                  // Only an explicit `false` drops it: errors thrown before that check (settings, hydration, a
+                  // missing reviewer role) must still be reported.
                   scope.addEventProcessor((event) =>
-                    event.extra?.shouldHandleReaction ? event : null,
+                    event.extra?.shouldHandleReaction === false ? null : event,
                   );
 
                   return Sentry.startSpan(
@@ -216,12 +219,6 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       return false;
     }
 
-    if (!settings.reviewerRole) {
-      throw new Error(
-        `No reviewer role configured for guild: ${message.guildId}`,
-      );
-    }
-
     // Check if reaction is from the bot itself
     if (isBotReaction(message.author?.id ?? '', user.id)) {
       return false;
@@ -230,6 +227,14 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     // Check if emoji is a valid review reaction
     if (!isValidReactionEmoji(emoji.name)) {
       return false;
+    }
+
+    // only a review reaction needs the role, so the bot's own reactions (and
+    // stray emoji) don't fail when it's missing
+    if (!settings.reviewerRole) {
+      throw new Error(
+        `No reviewer role configured for guild: ${message.guildId}`,
+      );
     }
 
     // Check if user has reviewer role

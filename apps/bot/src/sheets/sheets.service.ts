@@ -229,14 +229,16 @@ class SheetsService implements OnApplicationShutdown {
 
       return { title, url };
     } catch (e) {
-      Sentry.getCurrentScope().setExtra('spreadsheetId', spreadsheetId);
-      this.errorService.captureError(e);
-
+      // only the failure handled here is reported here; the caller reports
+      // what it rethrows
       return match(e)
-        .with({ code: 404 }, () => ({
-          title: 'Deleted Spreadsheet',
-          url,
-        }))
+        .with({ code: 404 }, () => {
+          Sentry.withScope((scope) => {
+            scope.setExtra('spreadsheetId', spreadsheetId);
+            this.errorService.captureError(e);
+          });
+          return { title: 'Deleted Spreadsheet', url };
+        })
         .otherwise(() => {
           throw e;
         });
