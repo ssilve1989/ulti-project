@@ -643,17 +643,18 @@ describe('DiscordMock', () => {
           `/channels/${channelId}/messages/${sent.id}`,
         );
 
+      const fetchFrom = async (channelId: string) =>
+        (
+          await service.getTextChannel({ guildId: 'g1', channelId })
+        )?.messages.fetch(sent.id);
+
       discord.addChannel('g1', 'c2');
-      await expect(service.deleteMessage('g1', 'c2', sent.id)).rejects.toEqual(
-        unknownMessage('c2'),
-      );
+      await expect(fetchFrom('c2')).rejects.toEqual(unknownMessage('c2'));
       expect(posted?.deleted).toBe(false);
 
       await service.deleteMessage('g1', 'c1', sent.id);
       expect(posted?.deleted).toBe(true);
-      await expect(service.deleteMessage('g1', 'c1', sent.id)).rejects.toEqual(
-        unknownMessage('c1'),
-      );
+      await expect(fetchFrom('c1')).rejects.toEqual(unknownMessage('c1'));
     });
 
     it('refuses message options it does not model instead of dropping them', async ({

@@ -473,13 +473,13 @@ describe('Remove signup', () => {
   });
 
   describe('when its review was already deleted', () => {
-    it('reports it and still removes the signup', async ({ flow }) => {
+    it('warns about it and still removes the signup', async ({ flow }) => {
       givenASignup(flow, 'deleted-review');
 
       const replies = await removeSignup(flow, PLAYER.id);
 
       flow.expectReported(
-        /^Sentry exception: DiscordAPIError\[10008\]: Unknown Message/,
+        /^warning: The message deleted-review in channel \S+ was not found/,
       );
       expect([flow.db.read(signupPath()), replies]).toEqual([
         undefined,

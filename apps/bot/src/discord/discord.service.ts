@@ -119,9 +119,36 @@ class DiscordService {
     channelId: string,
     messageId: string,
   ): Promise<Message | undefined> {
-    const channel = await this.getTextChannel({ guildId, channelId });
-    const message = await channel?.messages.fetch(messageId);
+    const message = await this.fetchMessage(guildId, channelId, messageId);
     return message?.delete();
+  }
+
+  public async fetchMessage(
+    guildId: string,
+    channelId: string,
+    messageId: string,
+  ): Promise<Message | undefined> {
+    const channel = await this.getTextChannel({ guildId, channelId });
+
+    if (!channel) {
+      return undefined;
+    }
+
+    try {
+      return await channel.messages.fetch(messageId);
+    } catch (error) {
+      // Unknown Message / Unknown Channel — the referenced message is gone
+      if (
+        error instanceof DiscordAPIError &&
+        (error.code === 10008 || error.code === 10003)
+      ) {
+        this.logger.warn(
+          `The message ${messageId} in channel ${channelId} was not found`,
+        );
+        return undefined;
+      }
+      throw error;
+    }
   }
 
   /**
