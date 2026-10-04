@@ -7,7 +7,10 @@ import type {
 } from 'discord.js';
 import { ActionRowBuilder, MessageFlags, roleMention } from 'discord.js';
 import { isSameUserFilter } from '../../../../common/collection-filters.js';
-import { isCollectorTimeout } from '../../../../discord/discord.helpers.js';
+import {
+  isCollectorTimeout,
+  recordExpiredPrompt,
+} from '../../../../discord/discord.helpers.js';
 import { EncountersComponentsService } from '../../../../encounters/encounters-components.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SlashCommand } from '../../../slash-command.decorator.js';
@@ -71,6 +74,7 @@ class EditProgPointRolesCommandHandler implements ISlashCommand {
       });
 
     if (!selection) {
+      recordExpiredPrompt(interaction);
       await interaction.editReply({
         content:
           'This menu has expired. Run /settings prog-point-roles again if needed.',

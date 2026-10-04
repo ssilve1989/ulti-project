@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nestjs';
 import {
   type ChatInputCommandInteraction,
   DiscordjsErrorCodes,
@@ -77,3 +78,22 @@ export const isCollectorTimeout = (error: unknown) =>
   error instanceof Error &&
   'code' in error &&
   error.code === DiscordjsErrorCodes.InteractionCollectorError;
+
+/**
+ * Records that the user let `interaction`'s prompt expire: a
+ * `discord.prompt.expired` count, and a Sentry log line, which carries the user
+ * from the command's scope. It isn't an error, so it raises no Sentry issue.
+ */
+export function recordExpiredPrompt(
+  interaction: ChatInputCommandInteraction,
+): void {
+  const subcommand = interaction.options.getSubcommand(false);
+  // Sentry logs keep an `undefined` attribute, as an empty string
+  const attributes = {
+    command: interaction.commandName,
+    ...(subcommand && { subcommand }),
+  };
+
+  Sentry.metrics.count('discord.prompt.expired', 1, { attributes });
+  Sentry.logger.info('Prompt expired before the user answered', attributes);
+}

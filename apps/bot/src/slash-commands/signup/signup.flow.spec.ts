@@ -1054,10 +1054,6 @@ describe('Signup lifecycle', () => {
     }) => {
       await submitSignup(flow, 'timeout');
 
-      flow.expectReported(/^Sentry exception: .*InteractionCollectorError/);
-      flow.expectReported(
-        /^error: \{\n\s+err: DiscordjsError \[InteractionCollectorError\]/,
-      );
       expect(flow.discord.repliesTo(PLAYER.id).map(shown)).toEqual([
         textReply(PLAYER.id, SIGNUP_MESSAGES.CONFIRMATION_TIMEOUT, {
           ephemeral: true,

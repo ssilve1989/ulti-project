@@ -89,5 +89,6 @@ setup rules both follow.
   gets its own scope, so that data never reaches the dispatcher's error report,
   and no test catches it.
 - A prompt the user lets expire (`isCollectorTimeout` in
-  `apps/bot/src/discord/discord.helpers.ts`) isn't an error. Tell them and remove
-  the components; don't report it.
+  `apps/bot/src/discord/discord.helpers.ts`) isn't an error. Tell them, remove
+  the components and call `recordExpiredPrompt`, which counts it and logs it to
+  Sentry without raising an issue.
