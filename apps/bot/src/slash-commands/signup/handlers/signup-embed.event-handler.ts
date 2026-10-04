@@ -1,5 +1,4 @@
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/nestjs';
 import { Colors, EmbedBuilder, userMention } from 'discord.js';
 import { match, P } from 'ts-pattern';
 import { getFirstEmbed } from '../../../discord/discord.helpers.js';
@@ -16,16 +15,10 @@ class SignupEmbedEventHandler
   constructor(private readonly discordService: DiscordService) {}
 
   async handle(event: SignupApprovedEvent | SignupDeclinedEvent) {
-    try {
-      await match(event)
-        .with(P.instanceOf(SignupApprovedEvent), this.handleApproved.bind(this))
-        .with(P.instanceOf(SignupDeclinedEvent), this.handleDeclined.bind(this))
-        .run();
-    } catch (error) {
-      const scope = Sentry.getCurrentScope();
-      scope.setExtra('signup', event.signup);
-      scope.captureException(error);
-    }
+    await match(event)
+      .with(P.instanceOf(SignupApprovedEvent), this.handleApproved.bind(this))
+      .with(P.instanceOf(SignupDeclinedEvent), this.handleDeclined.bind(this))
+      .run();
   }
 
   private async handleApproved({ message, reviewedBy }: SignupApprovedEvent) {

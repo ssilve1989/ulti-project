@@ -53,11 +53,35 @@ export const commandErrorReply = (flow: FlowApp, userId: string) =>
  * the error logged, and the command it failed in.
  */
 export function expectCommandErrorReported(flow: FlowApp, message: string) {
-  // how an error prints: its class, any code, and its message
-  const error = `\\w*Error(?: \\[\\w+\\])?: ${RegExp.escape(message)}`;
+  const error = printedError(message);
   flow.expectReported(new RegExp(`^Sentry exception: ${error}`));
   flow.expectReported(new RegExp(`^error: \\{\\n\\s+err: ${error}`));
   flow.expectReported(
     new RegExp(`^error: .*Command error: ${RegExp.escape(message)}`, 's'),
   );
+}
+
+/**
+ * Declares what an event handler reports when it fails with an error whose
+ * message starts with `message` (e.g. `Unknown Channel`): CQRS logs it, and
+ * AppService sends it to Sentry and logs it.
+ */
+export function expectEventHandlerErrorReported(
+  flow: FlowApp,
+  message: string,
+) {
+  const error = printedError(message);
+  flow.expectReported(
+    new RegExp(`^error: ".*" has thrown an unhandled exception\\. ${error}`),
+  );
+  flow.expectReported(new RegExp(`^Sentry exception: ${error}`));
+  flow.expectReported(new RegExp(`^error: \\{\\n\\s+err: ${error}`));
+}
+
+/**
+ * How an error prints: its class, any code (`Error [CODE]`, or discord.js's
+ * `DiscordAPIError[10003]`), and its message.
+ */
+function printedError(message: string): string {
+  return `\\w*Error(?: ?\\[\\w+\\])?: ${RegExp.escape(message)}`;
 }

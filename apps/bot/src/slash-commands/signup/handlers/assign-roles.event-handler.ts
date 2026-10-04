@@ -1,6 +1,5 @@
 import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/nestjs';
 import { PartyStatus } from '@ulti-project/shared';
 import { match, P } from 'ts-pattern';
 import { DiscordService } from '../../../discord/discord.service.js';
@@ -33,51 +32,45 @@ class AssignRolesEventHandler implements IEventHandler<SignupApprovedEvent> {
     const progRole = progRoles?.[encounter];
     const clearRole = clearRoles?.[encounter];
 
-    try {
-      await match(partyStatus)
-        .with(PartyStatus.ClearParty, async () => {
-          await this.updateRole({
-            discordId,
-            guildId,
-            action: 'remove',
-            role: progRole,
-          });
-          await this.updateRole({
-            discordId,
-            guildId,
-            role: clearRole,
-            action: 'add',
-          });
-        })
-        .with(PartyStatus.ProgParty, PartyStatus.EarlyProgParty, () =>
-          this.updateRole({
-            discordId,
-            guildId,
-            action: 'add',
-            role: progRole,
-          }),
-        )
-        // this case is actually handled by the RemoveRolesCommandHandler
-        // which is a little confusing, we should centralize how roles are managed
-        .with(PartyStatus.Cleared, P.nullish, () => undefined)
-        .exhaustive();
-
-      if (
-        partyStatus === PartyStatus.ProgParty ||
-        partyStatus === PartyStatus.EarlyProgParty ||
-        partyStatus === PartyStatus.ClearParty
-      ) {
-        await this.updateProgPointRoles({
+    await match(partyStatus)
+      .with(PartyStatus.ClearParty, async () => {
+        await this.updateRole({
           discordId,
           guildId,
-          progPoint,
-          mapping: progPointRoles?.[encounter],
+          action: 'remove',
+          role: progRole,
         });
-      }
-    } catch (error) {
-      const scope = Sentry.getCurrentScope();
-      scope.setExtra('event', event);
-      scope.captureException(error);
+        await this.updateRole({
+          discordId,
+          guildId,
+          role: clearRole,
+          action: 'add',
+        });
+      })
+      .with(PartyStatus.ProgParty, PartyStatus.EarlyProgParty, () =>
+        this.updateRole({
+          discordId,
+          guildId,
+          action: 'add',
+          role: progRole,
+        }),
+      )
+      // this case is actually handled by the RemoveRolesCommandHandler
+      // which is a little confusing, we should centralize how roles are managed
+      .with(PartyStatus.Cleared, P.nullish, () => undefined)
+      .exhaustive();
+
+    if (
+      partyStatus === PartyStatus.ProgParty ||
+      partyStatus === PartyStatus.EarlyProgParty ||
+      partyStatus === PartyStatus.ClearParty
+    ) {
+      await this.updateProgPointRoles({
+        discordId,
+        guildId,
+        progPoint,
+        mapping: progPointRoles?.[encounter],
+      });
     }
   }
 

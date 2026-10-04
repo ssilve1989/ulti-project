@@ -154,8 +154,9 @@ against saved real responses, never the live API
 - Close the app in the `flow` fixture's teardown (`flow.close()`). It times out
   any prompt still awaiting a click, and **fails the test if the app reported a
   problem the test didn't expect**: a logged error or warning, or anything sent
-  to Sentry. Event handlers, sagas and reaction handling catch their own errors
-  and only log them or report them to Sentry, so without this check a failure
+  to Sentry. Errors in event handlers, sagas and reaction handling never reach
+  the test: CQRS (reported by `AppService`) or the code itself catches them, and
+  they're only logged or reported to Sentry, so without this check a failure
   there would go unnoticed. When a report is part of the scenario (a DM that
   fails on purpose, FFLogs being down), declare it with
   `flow.expectReported(/pattern/)`, matching its kind (`error:`, `warning:`,
