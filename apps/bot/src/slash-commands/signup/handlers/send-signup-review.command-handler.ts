@@ -68,19 +68,20 @@ class SendSignupReviewCommandHandler
     channelId: string,
     guildId: string,
   ) {
-    const channel = await this.discordService.getTextChannel({
-      guildId,
-      channelId,
-    });
+    const [channel, member] = await Promise.all([
+      this.discordService.getTextChannel({
+        guildId,
+        channelId,
+      }),
+      this.discordService.getGuildMember({
+        guildId,
+        memberId: signup.discordId,
+      }),
+    ]);
 
     if (!channel) {
       throw new MissingChannelException(channelId, guildId);
     }
-
-    const member = await this.discordService.getGuildMember({
-      guildId,
-      memberId: signup.discordId,
-    });
 
     const embed = this.createSignupApprovalEmbed(signup, member);
 

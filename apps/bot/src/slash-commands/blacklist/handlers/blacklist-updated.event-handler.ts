@@ -30,11 +30,17 @@ class BlacklistUpdatedEventHandler
     }
 
     const toFrom = type === 'added' ? 'to' : 'from';
-    const displayName = await getDisplayName(this.discordService, {
-      guildId,
-      characterName: entry.characterName,
-      discordId: entry.discordId,
-    });
+    const [displayName, triggeredByDisplayName] = await Promise.all([
+      getDisplayName(this.discordService, {
+        guildId,
+        characterName: entry.characterName,
+        discordId: entry.discordId,
+      }),
+      this.discordService.getDisplayName({
+        guildId,
+        userId: triggeredBy.id,
+      }),
+    ]);
 
     const fields = createFields([
       {
@@ -52,11 +58,6 @@ class BlacklistUpdatedEventHandler
     if (type === 'added') {
       fields.push({ name: 'Reason', value: entry.reason, inline: true });
     }
-
-    const triggeredByDisplayName = await this.discordService.getDisplayName({
-      guildId,
-      userId: triggeredBy.id,
-    });
 
     const embed = new EmbedBuilder()
       .setTitle('Blacklist Updated')

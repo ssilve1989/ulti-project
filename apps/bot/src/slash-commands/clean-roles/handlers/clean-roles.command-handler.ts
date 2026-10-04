@@ -240,12 +240,15 @@ class CleanRolesCommandHandler implements ISlashCommand {
       throw new Error('No clear/prog roles found in settings to clean.');
     }
 
-    const guild = await this.discordService.client.guilds.fetch(guildId);
-    await guild.members.fetch();
-
-    const activeSignups = await this.signupCollection.findByStatusIn([
-      SignupStatus.APPROVED,
-      SignupStatus.UPDATE_PENDING,
+    const [guild, activeSignups] = await Promise.all([
+      this.discordService.client.guilds.fetch(guildId).then(async (guild) => {
+        await guild.members.fetch();
+        return guild;
+      }),
+      this.signupCollection.findByStatusIn([
+        SignupStatus.APPROVED,
+        SignupStatus.UPDATE_PENDING,
+      ]),
     ]);
 
     const activeSignupDiscordIds = new Set(
