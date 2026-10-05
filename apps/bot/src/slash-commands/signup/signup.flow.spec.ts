@@ -32,6 +32,7 @@ import { isoDateSince, signupExpiryFor } from '../../test-utils/matchers.js';
 import {
   commandErrorReply,
   expectCommandErrorReported,
+  expectEventHandlerErrorReported,
   replyTo,
   textReply,
 } from '../../test-utils/replies.js';
@@ -1129,6 +1130,7 @@ describe('Signup lifecycle', () => {
       flow.expectReported(
         /^error: Command handler which execution was triggered by Saga has thrown an unhandled exception\. DiscordAPIError\[10003\]: Unknown Channel/,
       );
+      flow.expectReported(/^Sentry exception: DiscordAPIError\[10003\]/);
       expect(flow.db.read(SIGNUP_PATH)).toEqual(storedSignup(flow, {}));
       expect(flow.discord.channel(GHOST_CHANNEL)).toEqual([]);
       expect(flow.discord.repliesTo(PLAYER.id).map(shown)).toEqual([
@@ -1380,7 +1382,7 @@ describe('Signup lifecycle', () => {
 
       await approve(flow, { progPoint: 'P6' });
 
-      flow.expectReported(/^Sentry exception: DiscordAPIError\[10003\]/);
+      expectEventHandlerErrorReported(flow, 'Unknown Channel');
       expect(flow.db.read(SIGNUP_PATH)).toEqual(
         storedSignup(flow, {
           status: SignupStatus.APPROVED,
@@ -1754,9 +1756,9 @@ describe('Signup lifecycle', () => {
 
         await approve(flow, { progPoint: 'P6', comment: 'Great clear' });
 
-        flow.expectReported(/^error: .*Cannot send messages to this user/);
-        flow.expectReported(
-          /^Sentry exception: .*Cannot send messages to this user/,
+        expectEventHandlerErrorReported(
+          flow,
+          'Cannot send messages to this user',
         );
         // everything an approval does still happens
         expect(flow.db.read(SIGNUP_PATH)).toEqual(
@@ -1975,11 +1977,9 @@ describe('Signup lifecycle', () => {
 
         await decline(flow, DECLINE_REASON);
 
-        flow.expectReported(
-          /^Sentry exception: .*Cannot send messages to this user/,
-        );
-        flow.expectReported(
-          /^error: .*Cannot send messages to this user.*Failed to send decline message/s,
+        expectEventHandlerErrorReported(
+          flow,
+          'Cannot send messages to this user',
         );
         expect(flow.db.read(SIGNUP_PATH)).toEqual(
           storedSignup(flow, {

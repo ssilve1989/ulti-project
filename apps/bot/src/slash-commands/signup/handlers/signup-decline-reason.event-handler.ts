@@ -1,6 +1,5 @@
 import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
-import * as Sentry from '@sentry/nestjs';
 import { EmbedBuilder } from 'discord.js';
 import { getFirstEmbed } from '../../../discord/discord.helpers.js';
 import { DiscordService } from '../../../discord/discord.service.js';
@@ -20,17 +19,7 @@ export class SignupDeclineReasonEventHandler
   constructor(private readonly discordService: DiscordService) {}
 
   async handle(event: SignupDeclineReasonCollectedEvent) {
-    try {
-      await this.sendDeclineMessage(event);
-    } catch (error) {
-      const scope = Sentry.getCurrentScope();
-      scope.setExtra('signup', event.signup);
-      scope.captureException(error);
-      this.logger.error(
-        error,
-        `Failed to send decline message for signup ${event.signup.discordId}-${event.signup.encounter}`,
-      );
-    }
+    await this.sendDeclineMessage(event);
   }
 
   private async sendDeclineMessage({

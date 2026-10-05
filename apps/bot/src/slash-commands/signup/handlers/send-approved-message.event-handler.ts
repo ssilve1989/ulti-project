@@ -27,13 +27,7 @@ class SendApprovedMessageEventHandler
   constructor(private readonly discordService: DiscordService) {}
 
   async handle(event: SignupApprovedEvent) {
-    try {
-      await this.sendApprovedMessage(event);
-    } catch (error) {
-      const scope = Sentry.getCurrentScope();
-      scope.setExtra('event', event);
-      scope.captureException(error);
-    }
+    await this.sendApprovedMessage(event);
   }
 
   private async sendApprovedMessage({

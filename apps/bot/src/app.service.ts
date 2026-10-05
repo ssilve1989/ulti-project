@@ -1,5 +1,6 @@
 import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
 import { UnhandledExceptionBus } from '@nestjs/cqrs';
+import * as Sentry from '@sentry/nestjs';
 import { Subscription } from 'rxjs';
 import { ErrorService } from './error/error.service.js';
 
@@ -13,8 +14,15 @@ class AppService implements OnApplicationShutdown {
   ) {
     this.subscription = this.unhandledExceptionBus.subscribe({
       // TODO: The logger doesn't log unhandledExceptionInfo correctly if given the entire object
-      next: ({ exception }) => {
-        this.errorService.captureError(exception);
+      next: ({ cause, exception }) => {
+        // withScope forks the current scope, which is still the one of the
+        // command or reaction that published the event, so the report keeps
+        // its trace, tags and user without the cause leaking back into it
+        Sentry.withScope((scope) => {
+          scope.setExtra('cause', cause);
+          // CQRS has already logged it
+          this.errorService.captureError(exception, { log: false });
+        });
       },
     });
   }

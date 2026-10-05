@@ -5,9 +5,12 @@ import {
   type LoggerService,
   type Type,
 } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
+import { AppService } from '../app.service.js';
 import { DISCORD_CLIENT } from '../discord/discord.decorators.js';
+import { ErrorModule } from '../error/error.module.js';
 import { getFflogsSdkToken } from '../fflogs/fflogs.consts.js';
 import { FIRESTORE } from '../firebase/firebase.consts.js';
 import { SheetsService } from '../sheets/sheets.service.js';
@@ -26,9 +29,15 @@ import {
 
 /**
  * Flow specs boot every slash command feature, as the bot does: commands reach
- * their handlers through the real listener and registry.
+ * their handlers through the real listener and registry. AppService reports
+ * what event handlers and sagas throw, as it does in the bot.
  */
-const FLOW_MODULES = Object.freeze([SlashCommandsModule]);
+const FLOW_MODULES = Object.freeze([
+  SlashCommandsModule,
+  CqrsModule,
+  ErrorModule,
+]);
+const FLOW_PROVIDERS = Object.freeze([AppService]);
 
 /**
  * The shared Google test spreadsheet flow specs record against (also used for
@@ -90,10 +99,10 @@ function describeLogged(value: unknown): string {
 
 /**
  * Everything the app reports as a problem: Nest errors and warnings, and
- * reports to Sentry. Event handlers, sagas and reaction handling catch their
- * own exceptions and only log or report them, so without this a fake throwing
- * "does not support …" on a background path would leave no trace and negative
- * assertions would pass vacuously.
+ * reports to Sentry. Exceptions in event handlers, sagas and reaction handling
+ * are caught (by CQRS or by the code itself) and only logged or reported, so
+ * without this a fake throwing "does not support …" on a background path would
+ * leave no trace and negative assertions would pass vacuously.
  */
 class ProblemRecorder implements LoggerService {
   readonly problems: string[] = [];
@@ -162,6 +171,7 @@ export async function createFlowApp(): Promise<FlowApp> {
   try {
     const moduleRef = await Test.createTestingModule({
       imports: [...FLOW_MODULES],
+      providers: [...FLOW_PROVIDERS],
     })
       .overrideProvider(FIRESTORE)
       .useValue(db)
