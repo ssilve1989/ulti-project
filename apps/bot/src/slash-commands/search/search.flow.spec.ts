@@ -335,9 +335,8 @@ describe('Search', () => {
       await choose(flow, reply, 'P6');
 
       flow.expectReported(/^Sentry exception: Error: 14 UNAVAILABLE/);
-      flow.expectReported(/^error: \{\n\s+err: Error: 14 UNAVAILABLE/);
       flow.expectReported(
-        /^error: Error: 14 UNAVAILABLE.*Failed to handle search component interaction/s,
+        /^error: \{\n\s+err: Error: 14 UNAVAILABLE.*Error: Failed to handle search component interaction/s,
       );
       expect(shownToAdmin(flow)).toEqual(beforeFailure);
     });

@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { channelMention, MessageFlags } from 'discord.js';
-import { isSameUserFilter } from '../../../../common/collection-filters.js';
+import { runComponentSession } from '../../../../discord/discord.helpers.js';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { getBlacklistChannelIds } from '../../../../firebase/models/settings.model.js';
@@ -23,10 +23,6 @@ const INSTRUCTIONS =
   subcommand: 'blacklist-channels',
 })
 class EditBlacklistChannelsCommandHandler implements ISlashCommand {
-  private readonly logger = new Logger(
-    EditBlacklistChannelsCommandHandler.name,
-  );
-
   constructor(
     private readonly settingsCollection: SettingsCollection,
     private readonly errorService: ErrorService,
@@ -49,15 +45,12 @@ class EditBlacklistChannelsCommandHandler implements ISlashCommand {
       ],
     });
 
-    const collector = replyMessage.createMessageComponentCollector({
-      filter: isSameUserFilter(interaction.user),
-      time: 300000, // 5 minutes timeout
-    });
-
-    // a rejection escaping this listener would hit the process-level
-    // unhandledRejection handler in main.ts and take the bot down
-    collector.on('collect', async (i) => {
-      try {
+    runComponentSession(interaction, replyMessage, {
+      errorService: this.errorService,
+      errorMessage: 'Failed to update blacklist channels',
+      expiredContent:
+        'This menu has expired. Run /settings blacklist-channels again if needed.',
+      onCollect: async (i) => {
         if (
           i.customId !== BLACKLIST_CHANNELS_SELECT_ID ||
           !i.isChannelSelectMenu()
@@ -84,25 +77,7 @@ class EditBlacklistChannelsCommandHandler implements ISlashCommand {
           content: `${INSTRUCTIONS}\n\n${confirmation}`,
           components: [createBlacklistChannelsSelectRow(blacklistChannelIds)],
         });
-      } catch (error) {
-        this.logger.error(error, 'Failed to update blacklist channels');
-        this.errorService.captureError(error);
-      }
-    });
-
-    collector.on('end', async () => {
-      try {
-        await interaction.editReply({
-          content:
-            'This menu has expired. Run /settings blacklist-channels again if needed.',
-          components: [],
-        });
-      } catch (error) {
-        this.logger.error(
-          error,
-          'Failed to update expired blacklist channels menu',
-        );
-      }
+      },
     });
   }
 }

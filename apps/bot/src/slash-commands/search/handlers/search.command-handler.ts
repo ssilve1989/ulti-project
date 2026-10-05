@@ -15,9 +15,9 @@ import {
   MessageFlags,
   StringSelectMenuBuilder,
 } from 'discord.js';
-import { isSameUserFilter } from '../../../common/collection-filters.js';
 import { characterField } from '../../../common/components/fields.js';
 import { type ApplicationModeConfig, appConfig } from '../../../config/app.js';
+import { runComponentSession } from '../../../discord/discord.helpers.js';
 import { EncountersService } from '../../../encounters/encounters.service.js';
 import { ErrorService } from '../../../error/error.service.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
@@ -80,12 +80,6 @@ class SearchCommandHandler implements ISlashCommand {
       components: [initialRow],
     });
 
-    // Create a collector for the interactions
-    const collector = replyMessage.createMessageComponentCollector({
-      filter: isSameUserFilter(interaction.user),
-      time: 300000, // 5 minutes timeout
-    });
-
     // Keep track of the current state
     const state: SearchSessionState = {
       selectedEncounter: null,
@@ -95,10 +89,12 @@ class SearchCommandHandler implements ISlashCommand {
       currentPage: 0,
     };
 
-    // a rejection escaping this listener would hit the process-level
-    // unhandledRejection handler in main.ts and take the bot down
-    collector.on('collect', async (i) => {
-      try {
+    runComponentSession(interaction, replyMessage, {
+      errorService: this.errorService,
+      errorMessage: 'Failed to handle search component interaction',
+      expiredContent:
+        'Search session has expired. Please run the command again if needed.',
+      onCollect: async (i) => {
         await i.deferUpdate();
         await this.handleSearchComponentInteraction(
           i,
@@ -106,26 +102,7 @@ class SearchCommandHandler implements ISlashCommand {
           initialEmbed,
           initialRow,
         );
-      } catch (error) {
-        this.logger.error(
-          error,
-          'Failed to handle search component interaction',
-        );
-        this.errorService.captureError(error);
-      }
-    });
-
-    collector.on('end', async () => {
-      // When the collector ends (timeout), disable all components
-      try {
-        await interaction.editReply({
-          content:
-            'Search session has expired. Please run the command again if needed.',
-          components: [],
-        });
-      } catch (error) {
-        this.logger.error(error, 'Failed to update expired search message');
-      }
+      },
     });
   }
 
