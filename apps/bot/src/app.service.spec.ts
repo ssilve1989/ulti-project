@@ -34,8 +34,8 @@ function watchSentryReports() {
 
 /**
  * Runs `callback` with an empty scope as the current one, so a test sees only
- * what it put there: specs share Sentry's default scope (no `Sentry.init`,
- * `isolate: false`), and some leave extras on it.
+ * what it put there: specs share Sentry's default scope (`isolate: false`), and
+ * some leave extras on it.
  */
 function withCleanScope<T>(callback: (scope: Sentry.Scope) => T): T {
   return Sentry.withScope(new Sentry.Scope(), callback);
@@ -57,9 +57,8 @@ const it = base.extend<{
 });
 
 // CQRS publishes to the UnhandledExceptionBus from the async context of the
-// code that published the failing event. Sentry isn't initialised in tests, so
-// scopes don't follow async work here; publishing directly keeps the
-// publisher's scope current, as AsyncLocalStorage does in the bot.
+// code that published the failing event, so publishing directly from inside a
+// scope stands in for it.
 describe('when an event handler throws', () => {
   it('reports it on the scope that published the event, with the event attached', ({
     app,
