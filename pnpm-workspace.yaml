@@ -24,7 +24,7 @@ minimumReleaseAgeExclude:
   - vitest
   - "@vitest/*"
 catalog:
-  "@biomejs/biome": 2.5.14
+  "@biomejs/biome": 2.5.15
   "@clack/prompts": ^1.8.1
   "@commitlint/cli": ^21.2.3
   "@commitlint/config-conventional": ^21.2.3
