@@ -70,10 +70,31 @@ export function expectEventHandlerErrorReported(
   flow: FlowApp,
   message: string,
 ) {
-  const error = printedError(message);
   flow.expectReported(
-    new RegExp(`^error: ".*" has thrown an unhandled exception\\. ${error}`),
+    new RegExp(
+      `^error: ".*" has thrown an unhandled exception\\. ${printedError(message)}`,
+    ),
   );
+  expectAppServiceErrorReported(flow, message);
+}
+
+/**
+ * Declares what a command dispatched by a saga reports when it fails with an
+ * error whose message starts with `message` (e.g. `Unknown Channel`): CQRS logs
+ * it, and AppService sends it to Sentry.
+ */
+export function expectSagaCommandErrorReported(flow: FlowApp, message: string) {
+  flow.expectReported(
+    new RegExp(
+      `^error: Command handler which execution was triggered by Saga has thrown an unhandled exception\\. ${printedError(message)}`,
+    ),
+  );
+  expectAppServiceErrorReported(flow, message);
+}
+
+/** What AppService does with an exception from the unhandled exception bus. */
+function expectAppServiceErrorReported(flow: FlowApp, message: string) {
+  const error = printedError(message);
   flow.expectReported(new RegExp(`^Sentry exception: ${error}`));
 }
 
