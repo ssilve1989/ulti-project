@@ -39,6 +39,19 @@ export class ComponentSessionService {
       time: COMPONENT_SESSION_TIMEOUT_MS,
     });
 
+    // Clicks reach the collector through the client's InteractionCreate emit,
+    // outside the command's Sentry scopes, so its listeners re-enter them:
+    // their reports carry the command's user, tags and trace. These are the
+    // command's own scopes, not copies, so a listener adds to a report only in
+    // a nested Sentry.withScope, as `report` does, or every later report from
+    // this session would carry it.
+    const isolationScope = Sentry.getIsolationScope();
+    const commandScope = Sentry.getCurrentScope();
+    const inCommandScope = <T>(callback: () => T): T =>
+      Sentry.withIsolationScope(isolationScope, () =>
+        Sentry.withScope(commandScope, callback),
+      );
+
     const report = (error: unknown, failure: string) => {
       Sentry.withScope((scope) => {
         scope.setTag('component_session', name);
@@ -50,27 +63,31 @@ export class ComponentSessionService {
 
     // a rejection escaping these listeners would hit the process-level
     // unhandledRejection handler in main.ts and take the bot down
-    collector.on('collect', async (i) => {
-      try {
-        await onCollect(i);
-      } catch (error) {
-        report(error, 'failed to handle a click');
-      }
-    });
+    collector.on('collect', (i) =>
+      inCommandScope(async () => {
+        try {
+          await onCollect(i);
+        } catch (error) {
+          report(error, 'failed to handle a click');
+        }
+      }),
+    );
 
-    collector.on('end', async (_collected, reason) => {
-      // it also ends when its message, channel or guild is deleted, and then
-      // there's nothing left to edit
-      if (reason !== 'time') return;
+    collector.on('end', (_collected, reason) =>
+      inCommandScope(async () => {
+        // it also ends when its message, channel or guild is deleted, and
+        // then there's nothing left to edit
+        if (reason !== 'time') return;
 
-      try {
-        await interaction.editReply({
-          content: expiredContent,
-          components: [],
-        });
-      } catch (error) {
-        report(error, 'failed to mark it expired');
-      }
-    });
+        try {
+          await interaction.editReply({
+            content: expiredContent,
+            components: [],
+          });
+        } catch (error) {
+          report(error, 'failed to mark it expired');
+        }
+      }),
+    );
   }
 }
