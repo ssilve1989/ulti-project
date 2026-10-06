@@ -108,7 +108,7 @@ class ViewSettingsCommandHandler implements ISlashCommand {
     let selectedEncounter: Encounter | null = null;
 
     this.componentSessions.run(interaction, replyMessage, {
-      errorMessage: 'Failed to update settings view section',
+      name: 'settings view',
       expiredContent:
         'Settings view has expired. Run /settings view again if needed.',
       onCollect: async (i) => {

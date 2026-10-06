@@ -45,7 +45,7 @@ class EditBlacklistChannelsCommandHandler implements ISlashCommand {
     });
 
     this.componentSessions.run(interaction, replyMessage, {
-      errorMessage: 'Failed to update blacklist channels',
+      name: 'settings blacklist-channels',
       expiredContent:
         'This menu has expired. Run /settings blacklist-channels again if needed.',
       onCollect: async (i) => {

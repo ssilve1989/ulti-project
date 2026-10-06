@@ -10,6 +10,7 @@ import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import { privateReply } from '../../test-utils/replies.js';
+import { watchSentryEvents } from '../../test-utils/sentry.js';
 import { seedSignup } from '../../test-utils/signups.js';
 import {
   SEARCH_ENCOUNTER_SELECTOR_ID,
@@ -41,7 +42,20 @@ function seedProgPoints(flow: FlowApp): void {
   progPoint('P8', 3, false);
 }
 
-const it = base.extend<{ flow: FlowApp }>({
+/** The `component_session` tag of every report sent to Sentry, until `stop()` */
+function watchSessionTags() {
+  const tags: unknown[] = [];
+  const stop = watchSentryEvents((event) => {
+    tags.push(event.tags?.component_session);
+  });
+  return { tags, stop };
+}
+
+const it = base.extend<{
+  flow: FlowApp;
+  sessionTags: ReturnType<typeof watchSessionTags>;
+}>({
+  sessionTags: fresh(watchSessionTags, ({ stop }) => stop()),
   flow: fresh(
     async () => {
       const flow = await createFlowApp();
@@ -336,9 +350,25 @@ describe('Search', () => {
 
       flow.expectReported(/^Sentry exception: Error: 14 UNAVAILABLE/);
       flow.expectReported(
-        /^error: \{\n\s+err: Error: 14 UNAVAILABLE.*Error: Failed to handle search component interaction/s,
+        /^error: \{\n\s+err: Error: 14 UNAVAILABLE.*Error: search menu: failed to handle a click/s,
       );
       expect(shownToAdmin(flow)).toEqual(beforeFailure);
+    });
+
+    it('tags the report with the search menu', async ({
+      flow,
+      sessionTags,
+    }) => {
+      const reply = await search(flow);
+      await choose(flow, reply, Encounter.DMU);
+      flow.db.goOffline();
+
+      await choose(flow, reply, 'P6');
+      await flow.settle();
+
+      flow.expectReported(/^Sentry exception: Error: 14 UNAVAILABLE/);
+      flow.expectReported(/^error: .*search menu: failed to handle a click/s);
+      expect(sessionTags.tags).toEqual(['search']);
     });
   });
 
@@ -356,6 +386,27 @@ describe('Search', () => {
           embeds: [START_EMBED],
         }),
       ]);
+    });
+
+    describe('and Discord fails to mark it expired', () => {
+      it('reports the failure, tagged with the search menu', async ({
+        flow,
+        sessionTags,
+      }) => {
+        await search(flow);
+        flow.discord.failCommandReplyEdits();
+
+        flow.discord.expireAll();
+        await flow.settle();
+
+        flow.expectReported(
+          /^Sentry exception: HTTPError: Internal Server Error/,
+        );
+        flow.expectReported(
+          /^error: .*HTTPError: Internal Server Error.*search menu: failed to mark it expired/s,
+        );
+        expect(sessionTags.tags).toEqual(['search']);
+      });
     });
   });
 });

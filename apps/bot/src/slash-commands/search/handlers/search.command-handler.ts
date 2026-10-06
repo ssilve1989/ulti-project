@@ -89,7 +89,7 @@ class SearchCommandHandler implements ISlashCommand {
     };
 
     this.componentSessions.run(interaction, replyMessage, {
-      errorMessage: 'Failed to handle search component interaction',
+      name: 'search',
       expiredContent:
         'Search session has expired. Please run the command again if needed.',
       onCollect: async (i) => {

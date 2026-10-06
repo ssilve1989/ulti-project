@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import type {
   ChatInputCommandInteraction,
   Message,
@@ -10,17 +11,18 @@ import { ErrorService } from '../error/error.service.js';
 const COMPONENT_SESSION_TIMEOUT_MS = 5 * 60_000;
 
 interface ComponentSessionOptions {
-  /** Log context for a click that `onCollect` failed to handle */
-  errorMessage: string;
-  /** Shown, with the components removed, once the session ends */
+  /**
+   * Which menu this is (e.g. `search`), tagged on its Sentry reports as
+   * `component_session` and prefixed to its log lines
+   */
+  name: string;
+  /** Shown, with the components removed, once the session times out */
   expiredContent: string;
   onCollect: (i: MessageComponentInteraction<'cached'>) => Promise<void>;
 }
 
 @Injectable()
 export class ComponentSessionService {
-  private readonly logger = new Logger(ComponentSessionService.name);
-
   constructor(private readonly errorService: ErrorService) {}
 
   /**
@@ -30,34 +32,44 @@ export class ComponentSessionService {
   run(
     interaction: ChatInputCommandInteraction<'cached'>,
     message: Message<true>,
-    { errorMessage, expiredContent, onCollect }: ComponentSessionOptions,
+    { name, expiredContent, onCollect }: ComponentSessionOptions,
   ): void {
     const collector = message.createMessageComponentCollector({
       filter: isSameUserFilter(interaction.user),
       time: COMPONENT_SESSION_TIMEOUT_MS,
     });
 
-    // a rejection escaping this listener would hit the process-level
+    const report = (error: unknown, failure: string) => {
+      Sentry.withScope((scope) => {
+        scope.setTag('component_session', name);
+        this.errorService.captureError(error, {
+          message: `${name} menu: ${failure}`,
+        });
+      });
+    };
+
+    // a rejection escaping these listeners would hit the process-level
     // unhandledRejection handler in main.ts and take the bot down
     collector.on('collect', async (i) => {
       try {
         await onCollect(i);
       } catch (error) {
-        this.errorService.captureError(error, { message: errorMessage });
+        report(error, 'failed to handle a click');
       }
     });
 
-    collector.on('end', async () => {
+    collector.on('end', async (_collected, reason) => {
+      // it also ends when its message, channel or guild is deleted, and then
+      // there's nothing left to edit
+      if (reason !== 'time') return;
+
       try {
         await interaction.editReply({
           content: expiredContent,
           components: [],
         });
       } catch (error) {
-        this.logger.error(
-          error,
-          `Failed to update expired message: ${expiredContent}`,
-        );
+        report(error, 'failed to mark it expired');
       }
     });
   }

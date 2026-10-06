@@ -45,6 +45,7 @@ import {
   type ComponentRef,
   collectorTimeoutError,
   discordjsError,
+  discordUnavailable,
   FakeMessage,
   type MessageLocation,
   type OutgoingPayload,
@@ -305,6 +306,7 @@ export class DiscordMock {
   private readonly messages: FakeMessage[] = [];
   private readonly failingDms = new Set<string>();
   private guildFetchesFail = false;
+  private commandReplyEditsFail = false;
   private readonly pressed: Array<{ customId: string; ack: Acknowledgement }> =
     [];
   /** userId → the modal shown to them, and what is awaiting its submit */
@@ -422,6 +424,11 @@ export class DiscordMock {
   /** From now on Discord fails every guild fetch with a server error, as in an outage; interactions still work. */
   failGuildFetches(): void {
     this.guildFetchesFail = true;
+  }
+
+  /** From now on Discord fails every edit of a command's reply with a server error, as in an outage; clicks still arrive. */
+  failCommandReplyEdits(): void {
+    this.commandReplyEditsFail = true;
   }
 
   // --- queries
@@ -549,8 +556,18 @@ export class DiscordMock {
         },
         reply: (payload: ReplyPayload) =>
           answered(ack) ? alreadyReplied() : show(payload),
-        editReply: (payload: ReplyPayload) =>
-          answered(ack) ? show(payload) : notReplied(),
+        editReply: (payload: ReplyPayload) => {
+          if (!answered(ack)) return notReplied();
+          if (this.commandReplyEditsFail) {
+            return Promise.reject(
+              discordUnavailable(
+                'PATCH',
+                '/webhooks/{application.id}/{interaction.token}/messages/@original',
+              ),
+            );
+          }
+          return show(payload);
+        },
         followUp: (payload: ReplyPayload) =>
           // like discord.js, a follow-up posts a new message through the
           // interaction webhook; a deferred reply's loading message stays, and
