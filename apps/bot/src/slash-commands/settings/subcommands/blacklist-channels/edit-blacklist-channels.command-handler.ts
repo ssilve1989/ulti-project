@@ -2,8 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { channelMention, MessageFlags } from 'discord.js';
-import { runComponentSession } from '../../../../discord/discord.helpers.js';
-import { ErrorService } from '../../../../error/error.service.js';
+import { ComponentSessionService } from '../../../../discord/component-session.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { getBlacklistChannelIds } from '../../../../firebase/models/settings.model.js';
 import { SlashCommand } from '../../../slash-command.decorator.js';
@@ -25,7 +24,7 @@ const INSTRUCTIONS =
 class EditBlacklistChannelsCommandHandler implements ISlashCommand {
   constructor(
     private readonly settingsCollection: SettingsCollection,
-    private readonly errorService: ErrorService,
+    private readonly componentSessions: ComponentSessionService,
   ) {}
 
   @SentryTraced()
@@ -45,8 +44,7 @@ class EditBlacklistChannelsCommandHandler implements ISlashCommand {
       ],
     });
 
-    runComponentSession(interaction, replyMessage, {
-      errorService: this.errorService,
+    this.componentSessions.run(interaction, replyMessage, {
       errorMessage: 'Failed to update blacklist channels',
       expiredContent:
         'This menu has expired. Run /settings blacklist-channels again if needed.',

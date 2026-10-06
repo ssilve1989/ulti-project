@@ -1,4 +1,3 @@
-import { Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import {
   type ChatInputCommandInteraction,
@@ -6,7 +5,6 @@ import {
   type Embed,
   type InteractionReplyOptions,
   type Message,
-  type MessageComponentInteraction,
   MessageFlags,
   MessageReaction,
   type PartialMessageReaction,
@@ -14,8 +12,6 @@ import {
   User,
 } from 'discord.js';
 import { match } from 'ts-pattern';
-import { isSameUserFilter } from '../common/collection-filters.js';
-import type { ErrorService } from '../error/error.service.js';
 import { CACHE_TIME_VALUES } from './discord.consts.js';
 
 export function hydrateReaction(
@@ -100,58 +96,4 @@ export function recordExpiredPrompt(
 
   Sentry.metrics.count('discord.prompt.expired', 1, { attributes });
   Sentry.logger.info('Prompt expired before the user answered', attributes);
-}
-
-const COMPONENT_SESSION_TIMEOUT_MS = 5 * 60_000;
-
-const componentSessionLogger = new Logger('ComponentSession');
-
-interface ComponentSessionOptions {
-  errorService: ErrorService;
-  /** Log context for a click that `onCollect` failed to handle */
-  errorMessage: string;
-  /** Shown, with the components removed, once the session ends */
-  expiredContent: string;
-  onCollect: (i: MessageComponentInteraction<'cached'>) => Promise<void>;
-}
-
-/**
- * Handles the invoking user's clicks on `message`'s components for five
- * minutes, then replaces the reply with `expiredContent`.
- */
-export function runComponentSession(
-  interaction: ChatInputCommandInteraction<'cached'>,
-  message: Message<true>,
-  {
-    errorService,
-    errorMessage,
-    expiredContent,
-    onCollect,
-  }: ComponentSessionOptions,
-): void {
-  const collector = message.createMessageComponentCollector({
-    filter: isSameUserFilter(interaction.user),
-    time: COMPONENT_SESSION_TIMEOUT_MS,
-  });
-
-  // a rejection escaping this listener would hit the process-level
-  // unhandledRejection handler in main.ts and take the bot down
-  collector.on('collect', async (i) => {
-    try {
-      await onCollect(i);
-    } catch (error) {
-      errorService.captureError(error, { message: errorMessage });
-    }
-  });
-
-  collector.on('end', async () => {
-    try {
-      await interaction.editReply({ content: expiredContent, components: [] });
-    } catch (error) {
-      componentSessionLogger.error(
-        error,
-        `Failed to update expired message: ${expiredContent}`,
-      );
-    }
-  });
 }

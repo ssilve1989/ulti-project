@@ -1,12 +1,17 @@
 import { Module } from '@nestjs/common';
+import { ComponentSessionModule } from '../../discord/component-session.module.js';
 import { DiscordModule } from '../../discord/discord.module.js';
 import { EncountersModule } from '../../encounters/encounters.module.js';
-import { ErrorModule } from '../../error/error.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { SearchCommandHandler } from './handlers/search.command-handler.js';
 
 @Module({
-  imports: [DiscordModule, EncountersModule, ErrorModule, FirebaseModule],
+  imports: [
+    ComponentSessionModule,
+    DiscordModule,
+    EncountersModule,
+    FirebaseModule,
+  ],
   providers: [SearchCommandHandler],
 })
 class SearchModule {}

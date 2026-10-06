@@ -17,9 +17,8 @@ import {
 } from 'discord.js';
 import { characterField } from '../../../common/components/fields.js';
 import { type ApplicationModeConfig, appConfig } from '../../../config/app.js';
-import { runComponentSession } from '../../../discord/discord.helpers.js';
+import { ComponentSessionService } from '../../../discord/component-session.service.js';
 import { EncountersService } from '../../../encounters/encounters.service.js';
-import { ErrorService } from '../../../error/error.service.js';
 import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
 import { SlashCommand } from '../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../slash-command.interface.js';
@@ -53,7 +52,7 @@ class SearchCommandHandler implements ISlashCommand {
   constructor(
     private readonly signupsCollection: SignupCollection,
     private readonly encountersService: EncountersService,
-    private readonly errorService: ErrorService,
+    private readonly componentSessions: ComponentSessionService,
   ) {
     this.applicationMode = appConfig.APPLICATION_MODE;
   }
@@ -89,8 +88,7 @@ class SearchCommandHandler implements ISlashCommand {
       currentPage: 0,
     };
 
-    runComponentSession(interaction, replyMessage, {
-      errorService: this.errorService,
+    this.componentSessions.run(interaction, replyMessage, {
       errorMessage: 'Failed to handle search component interaction',
       expiredContent:
         'Search session has expired. Please run the command again if needed.',

@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/nestjs';
 import { type Encounter, isEncounter } from '@ulti-project/shared';
 import type { APIEmbedField, ChatInputCommandInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
-import { runComponentSession } from '../../../../discord/discord.helpers.js';
+import { ComponentSessionService } from '../../../../discord/component-session.service.js';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
@@ -30,6 +30,7 @@ class ViewSettingsCommandHandler implements ISlashCommand {
     private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
     private readonly errorService: ErrorService,
+    private readonly componentSessions: ComponentSessionService,
   ) {}
 
   private async buildSpreadsheetField(name: string, spreadsheetId: string) {
@@ -106,8 +107,7 @@ class ViewSettingsCommandHandler implements ISlashCommand {
 
     let selectedEncounter: Encounter | null = null;
 
-    runComponentSession(interaction, replyMessage, {
-      errorService: this.errorService,
+    this.componentSessions.run(interaction, replyMessage, {
       errorMessage: 'Failed to update settings view section',
       expiredContent:
         'Settings view has expired. Run /settings view again if needed.',
