@@ -261,7 +261,7 @@ catalogs:
       specifier: ^2.1.15
       version: 2.1.15
     nestjs-pino:
-      specifier: ^5.2.0
+      specifier: ^5.2.1
       version: 5.2.1
     nock:
       specifier: ^14.0.17
