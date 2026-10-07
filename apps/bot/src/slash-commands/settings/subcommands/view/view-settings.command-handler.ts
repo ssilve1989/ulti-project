@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { type Encounter, isEncounter } from '@ulti-project/shared';
 import type { APIEmbedField, ChatInputCommandInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
-import { isSameUserFilter } from '../../../../common/collection-filters.js';
+import { ComponentSessionService } from '../../../../discord/component-session.service.js';
 import { ErrorService } from '../../../../error/error.service.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SheetsService } from '../../../../sheets/sheets.service.js';
@@ -26,12 +26,11 @@ import {
 @Injectable()
 @SlashCommand({ builder: SettingsSlashCommand, subcommand: 'view' })
 class ViewSettingsCommandHandler implements ISlashCommand {
-  private readonly logger = new Logger(ViewSettingsCommandHandler.name);
-
   constructor(
     private readonly settingsCollection: SettingsCollection,
     private readonly sheetsService: SheetsService,
     private readonly errorService: ErrorService,
+    private readonly componentSessions: ComponentSessionService,
   ) {}
 
   private async buildSpreadsheetField(name: string, spreadsheetId: string) {
@@ -106,17 +105,13 @@ class ViewSettingsCommandHandler implements ISlashCommand {
       components: [createNavRow('overview')],
     });
 
-    const collector = replyMessage.createMessageComponentCollector({
-      filter: isSameUserFilter(interaction.user),
-      time: 300000, // 5 minutes timeout
-    });
-
     let selectedEncounter: Encounter | null = null;
 
-    // a rejection escaping this listener would hit the process-level
-    // unhandledRejection handler in main.ts and take the bot down
-    collector.on('collect', async (i) => {
-      try {
+    this.componentSessions.run(interaction, replyMessage, {
+      name: 'settings view',
+      expiredContent:
+        'Settings view has expired. Run /settings view again if needed.',
+      onCollect: async (i) => {
         await i.deferUpdate();
 
         if (i.customId === SETTINGS_VIEW_OVERVIEW_BUTTON_ID) {
@@ -157,22 +152,7 @@ class ViewSettingsCommandHandler implements ISlashCommand {
             ),
           });
         }
-      } catch (error) {
-        this.logger.error(error, 'Failed to update settings view section');
-        this.errorService.captureError(error);
-      }
-    });
-
-    collector.on('end', async () => {
-      try {
-        await interaction.editReply({
-          content:
-            'Settings view has expired. Run /settings view again if needed.',
-          components: [],
-        });
-      } catch (error) {
-        this.logger.error(error, 'Failed to update expired settings view');
-      }
+      },
     });
   }
 }

@@ -10,6 +10,7 @@ import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import { privateReply } from '../../test-utils/replies.js';
+import { watchSentryEvents } from '../../test-utils/sentry.js';
 import { seedSignup } from '../../test-utils/signups.js';
 import {
   SEARCH_ENCOUNTER_SELECTOR_ID,
@@ -41,7 +42,45 @@ function seedProgPoints(flow: FlowApp): void {
   progPoint('P8', 3, false);
 }
 
-const it = base.extend<{ flow: FlowApp }>({
+interface Report {
+  userId: unknown;
+  command: unknown;
+  guildId: unknown;
+  componentSession: unknown;
+  traceId: unknown;
+}
+
+/** Who and what each report sent to Sentry is about, until `stop()` */
+function watchReports() {
+  const reports: Report[] = [];
+  const stop = watchSentryEvents((event) => {
+    reports.push({
+      userId: event.user?.id,
+      command: event.tags?.command,
+      guildId: event.tags?.guild_id,
+      componentSession: event.tags?.component_session,
+      traceId: event.contexts?.trace?.trace_id,
+    });
+  });
+  return { reports, stop };
+}
+
+/** A report from the admin's /search menu, in the trace `traceId` */
+const searchReport = (traceId: unknown) => ({
+  userId: ADMIN.id,
+  command: 'search',
+  guildId: GUILD,
+  componentSession: 'search',
+  traceId,
+});
+
+const TRACE_ID = /^[0-9a-f]{32}$/;
+
+const it = base.extend<{
+  flow: FlowApp;
+  sentry: ReturnType<typeof watchReports>;
+}>({
+  sentry: fresh(watchReports, ({ stop }) => stop()),
   flow: fresh(
     async () => {
       const flow = await createFlowApp();
@@ -335,11 +374,39 @@ describe('Search', () => {
       await choose(flow, reply, 'P6');
 
       flow.expectReported(/^Sentry exception: Error: 14 UNAVAILABLE/);
-      flow.expectReported(/^error: \{\n\s+err: Error: 14 UNAVAILABLE/);
       flow.expectReported(
-        /^error: Error: 14 UNAVAILABLE.*Failed to handle search component interaction/s,
+        /^error: \{\n\s+err: Error: 14 UNAVAILABLE.*Error: search menu: failed to handle a click/s,
       );
       expect(shownToAdmin(flow)).toEqual(beforeFailure);
+    });
+
+    it("reports it as the admin's, in the trace of their search", async ({
+      flow,
+      sentry,
+    }) => {
+      const reply = await search(flow);
+      await choose(flow, reply, Encounter.DMU);
+      flow.db.goOffline();
+      await choose(flow, reply, 'P6');
+      // the expiry is reported from the search's own trace (discord.js
+      // schedules it while the command runs), so the click's report is in it
+      // if it shares the expiry's trace id
+      flow.discord.failCommandReplyEdits();
+
+      flow.discord.expireAll();
+      await flow.settle();
+
+      flow.expectReported(/^Sentry exception: Error: 14 UNAVAILABLE/);
+      flow.expectReported(/^error: .*search menu: failed to handle a click/s);
+      flow.expectReported(/^Sentry exception: HTTPError/);
+      flow.expectReported(/^error: .*search menu: failed to mark it expired/s);
+      const traceId = expect.stringMatching(TRACE_ID);
+      expect(sentry.reports).toEqual([
+        searchReport(traceId),
+        searchReport(traceId),
+      ]);
+      const [click, expiry] = sentry.reports.map(({ traceId }) => traceId);
+      expect(click).toBe(expiry);
     });
   });
 
@@ -357,6 +424,29 @@ describe('Search', () => {
           embeds: [START_EMBED],
         }),
       ]);
+    });
+
+    describe('and Discord fails to mark it expired', () => {
+      it("reports the failure as the admin's search", async ({
+        flow,
+        sentry,
+      }) => {
+        await search(flow);
+        flow.discord.failCommandReplyEdits();
+
+        flow.discord.expireAll();
+        await flow.settle();
+
+        flow.expectReported(
+          /^Sentry exception: HTTPError: Internal Server Error/,
+        );
+        flow.expectReported(
+          /^error: .*HTTPError: Internal Server Error.*search menu: failed to mark it expired/s,
+        );
+        expect(sentry.reports).toEqual([
+          searchReport(expect.stringMatching(TRACE_ID)),
+        ]);
+      });
     });
   });
 });

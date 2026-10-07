@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ComponentSessionModule } from '../../discord/component-session.module.js';
 import { EncountersModule } from '../../encounters/encounters.module.js';
 import { ErrorModule } from '../../error/error.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
@@ -12,7 +13,13 @@ import { EditSpreadsheetCommandHandler } from './subcommands/spreadsheet/edit-sp
 import { ViewSettingsCommandHandler } from './subcommands/view/view-settings.command-handler.js';
 
 @Module({
-  imports: [ErrorModule, FirebaseModule, SheetsModule, EncountersModule],
+  imports: [
+    ComponentSessionModule,
+    ErrorModule,
+    FirebaseModule,
+    SheetsModule,
+    EncountersModule,
+  ],
   providers: [
     EditBlacklistChannelsCommandHandler,
     EditChannelsCommandHandler,

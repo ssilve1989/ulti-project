@@ -517,9 +517,8 @@ describe('Settings', () => {
         await pick(flow, reply, [BLACKLIST_CHANNEL]);
 
         flow.expectReported(/^Sentry exception: Error: 14 UNAVAILABLE/);
-        flow.expectReported(/^error: \{\n\s+err: Error: 14 UNAVAILABLE/);
         flow.expectReported(
-          /^error: Error: 14 UNAVAILABLE.*Failed to update blacklist channels/s,
+          /^error: \{\n\s+err: Error: 14 UNAVAILABLE.*Error: settings blacklist-channels menu: failed to handle a click/s,
         );
         expect(repliesToAdmin(flow)).toEqual([
           privateReply(ADMIN.id, {

@@ -877,6 +877,21 @@ describe('DiscordMock', () => {
       );
     });
 
+    it("fails edits to a command's reply with a server error once Discord is down, as in an outage", async ({
+      discord,
+    }) => {
+      const { interaction } = aCommand(discord);
+      await interaction.deferReply();
+      discord.failCommandReplyEdits();
+
+      await expect(interaction.editReply('hi')).rejects.toEqual(
+        discordUnavailable(
+          'PATCH',
+          '/webhooks/{application.id}/{interaction.token}/messages/@original',
+        ),
+      );
+    });
+
     it('edits the message a component is on through editReply, once the interaction is answered', async ({
       discord,
       service,
