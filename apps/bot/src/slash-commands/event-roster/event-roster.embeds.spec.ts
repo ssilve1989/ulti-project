@@ -339,7 +339,26 @@ describe('rosterMessages', () => {
       ]);
     });
 
-    it('escapes markdown and masked links in character names, so they show as typed', () => {
+    it.each([
+      [PartyStatus.EarlyProgParty, '🌱', Colors.Green],
+      [PartyStatus.ProgParty, '🔥', Colors.Orange],
+      [PartyStatus.ClearParty, '⚔️', Colors.Red],
+      [PartyStatus.Cleared, '✅', Colors.Gold],
+    ])(
+      'marks a %s prog point with %s in its colour',
+      (partyStatus, emoji, color) => {
+        const [message] = render(
+          [{ label: 'P1', partyStatus, rows: rows(1) }],
+          'list',
+        );
+
+        expect(
+          message?.embeds.map(({ title, color }) => ({ title, color })),
+        ).toEqual([{ title: `${emoji} P1 (1)`, color }]);
+      },
+    );
+
+    it('escapes markdown and masked links in character names, so they cannot change the formatting', () => {
       const [message] = render(
         [
           {
@@ -351,10 +370,35 @@ describe('rosterMessages', () => {
         'list',
       );
 
-      expect(message?.embeds[0]?.fields?.[0]).toEqual({
-        name: '🛡️ Tanks',
-        value: `\`WAR\` <@1>\n${EM_SPACE}\\[x](https://e.com) @ W\\_`,
-        inline: true,
+      expect(message?.embeds).toEqual([
+        {
+          title: '⚔️ P1 (1)',
+          color: Colors.Red,
+          fields: [
+            {
+              name: '🛡️ Tanks',
+              value: `\`WAR\` <@1>\n${EM_SPACE}\\[x](https://e.com) @ W\\_`,
+              inline: true,
+            },
+            { name: '💚 Healers', value: NO_ONE, inline: true },
+            { name: '⚔️ DPS', value: NO_ONE, inline: true },
+          ],
+        },
+      ]);
+    });
+
+    it('escapes markdown and masked links in the event title, so they cannot change the summary', () => {
+      const [message] = rosterMessages({
+        title: '[Roster](https://e.com) _now_',
+        description: 'Desc',
+        groups: [],
+        format: 'list',
+      });
+
+      expect(message).toEqual({
+        content:
+          '**\\[Roster](https://e.com) \\_now\\_** — Desc · 0 signed up · 0 approved',
+        embeds: [],
       });
     });
 

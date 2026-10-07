@@ -199,7 +199,7 @@ function titleCase(text: string): string {
   );
 }
 
-/** `Character @ World`, shown as typed */
+/** `Character @ World`, title-cased and escaped so it can't change the formatting */
 function characterText({ name, world }: { name: string; world: string }) {
   return escapeMarkdown(`${titleCase(name)} @ ${titleCase(world)}`, {
     maskedLink: true,
@@ -282,7 +282,7 @@ function listMessages(
   const rows = groups.flatMap((group) => group.rows);
   const approved = rows.filter(({ character }) => character).length;
   let current: RosterMessage = {
-    content: `**${escapeMarkdown(truncate(title, TITLE_LIMIT))}** — ${description} · ${rows.length} signed up · ${approved} approved`,
+    content: `**${escapeMarkdown(truncate(title, TITLE_LIMIT), { maskedLink: true })}** — ${description} · ${rows.length} signed up · ${approved} approved`,
     embeds: [],
   };
   let currentSize = 0;
