@@ -43,7 +43,7 @@ class EventRosterCommandHandler implements ISlashCommand {
     switch (roster.kind) {
       case 'not-found':
         await interaction.editReply(
-          `Couldn't find a raid-helper event with ID ${eventId}.`,
+          `Couldn't find a raid-helper event with ID \`${eventId}\`.`,
         );
         return;
       case 'empty':

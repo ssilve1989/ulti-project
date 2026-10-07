@@ -317,7 +317,7 @@ describe('Event roster', () => {
     it('says it could not find it', async ({ flow }) => {
       await expect(roster(flow)).resolves.toEqual([
         privateReply(ADMIN.id, {
-          content: `Couldn't find a raid-helper event with ID ${EVENT_ID}.`,
+          content: `Couldn't find a raid-helper event with ID \`${EVENT_ID}\`.`,
         }),
       ]);
     });

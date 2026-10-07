@@ -97,6 +97,25 @@ describe('rosterEmbeds', () => {
     ]);
   });
 
+  it('swaps backticks in cells for a lookalike, so names cannot close the code block', () => {
+    const [embed] = render([
+      {
+        label: 'P1',
+        rows: [{ name: 'a```**b**', world: 'w`', job: 'j' }],
+      },
+    ]);
+
+    expect(embed.fields).toEqual([
+      {
+        name: 'P1 (1)',
+        value: block(
+          `${'Name'.padEnd(11)}${'World'.padEnd(7)}Class`,
+          `${'aˋˋˋ**b**'.padEnd(11)}${'wˋ'.padEnd(7)}j`,
+        ),
+      },
+    ]);
+  });
+
   it('continues a group too long for one field in another, repeating the header', () => {
     // header (27) + 29 rows of 32, with newlines and fences, is 992 characters; a 30th row passes 1024
     const [embed] = render([{ label: 'Group', rows: rows(30) }]);

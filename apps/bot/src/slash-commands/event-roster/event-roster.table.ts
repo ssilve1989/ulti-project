@@ -29,12 +29,17 @@ function truncate(text: string, width: number): string {
   return text.length <= width ? text : `${text.slice(0, width - 1)}…`;
 }
 
+/** A cell as it prints: names come from members, and a backtick could close the code block */
+function cell(text: string, width: number): string {
+  return truncate(text.replaceAll('`', 'ˋ'), width);
+}
+
 /** The header line, then a line per row, with columns padded to their widest cell */
 function tableLines(rows: RosterRow[]): [string, ...string[]] {
   const cells = [HEADER, ...rows].map(({ name, world, job }) => ({
-    name: truncate(name, MAX_WIDTH.name),
-    world: truncate(world, MAX_WIDTH.world),
-    job: truncate(job, MAX_WIDTH.job),
+    name: cell(name, MAX_WIDTH.name),
+    world: cell(world, MAX_WIDTH.world),
+    job: cell(job, MAX_WIDTH.job),
   }));
   const nameWidth = Math.max(...cells.map(({ name }) => name.length));
   const worldWidth = Math.max(...cells.map(({ world }) => world.length));
