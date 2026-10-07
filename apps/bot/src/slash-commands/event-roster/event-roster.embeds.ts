@@ -79,7 +79,7 @@ function tableLines(rows: RosterRow[]): [string, ...string[]] {
 /** A member's list line: their mention, then their character, world and job, or just their job without a signup */
 function listLine({ discordId, job, character }: RosterRow): string {
   const details = character ? [character.name, character.world, job] : [job];
-  return `${userMention(discordId)} — ${details.map((text) => escapeMarkdown(text)).join(' · ')}`;
+  return `${userMention(discordId)} — ${details.map((text) => escapeMarkdown(text, { maskedLink: true })).join(' · ')}`;
 }
 
 /**

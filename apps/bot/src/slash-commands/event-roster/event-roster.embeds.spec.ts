@@ -265,6 +265,17 @@ describe('rosterEmbeds', () => {
       ]);
     });
 
+    it('escapes masked links in names, so they cannot show as a disguised link', () => {
+      const [embed] = render(
+        [{ label: 'P1', rows: [member('1', '[x](https://e.com)', 'w', 'j')] }],
+        'list',
+      );
+
+      expect(embed.fields).toEqual([
+        { name: 'P1 (1)', value: '<@1> — \\[x](https://e.com) · w · j' },
+      ]);
+    });
+
     it('continues a group too long for one field in further fields', () => {
       // lines are 58 characters: 17 fit in 1024 (1002), an 18th passes it (1061)
       const group = rows(40);
