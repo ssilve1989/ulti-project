@@ -63,6 +63,7 @@ const ADMINISTRATOR_COMMANDS = Object.freeze({
     '**/blacklist** - Manage the blacklist\n└ Subcommands: `add`, `remove`, `display`',
     '**/clean-roles** - Remove clear/prog roles from members without active signups',
     '**/encounters** - View encounter configuration\n└ Subcommands: `view`',
+    "**/event-roster** - List a raid-helper event's sign-ups by prog point",
     '**/lookup** - lookup a players signup information, including encounters, prog points, etc.',
     '**/remove-role** - Warning! This command will remove the selected role from all guild members',
     '**/retire** - Retire all members of the current helper role',
@@ -127,7 +128,7 @@ describe('Help', () => {
           flow,
           ADMIN.id,
           [PUBLIC_COMMANDS, MANAGEMENT_COMMANDS, ADMINISTRATOR_COMMANDS],
-          'Showing 12 available commands • You have Administrator permissions',
+          'Showing 13 available commands • You have Administrator permissions',
         ),
       );
     });

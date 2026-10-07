@@ -7,6 +7,7 @@ import { RoleManagerModule } from '../role-manager/role-manager.module.js';
 import { BlacklistModule } from './blacklist/blacklist.module.js';
 import { CleanRolesModule } from './clean-roles/clean-roles.module.js';
 import { EncountersSlashCommandModule } from './encounters/encounters.module.js';
+import { EventRosterModule } from './event-roster/event-roster.module.js';
 import { HelpModule } from './help/help.module.js';
 import { LookupModule } from './lookup/lookup.module.js';
 import { RemoveRoleModule } from './remove-role/remove-role.module.js';
@@ -29,6 +30,7 @@ import { SyncProgRolesModule } from './sync-prog-roles/sync-prog-roles.module.js
     BlacklistModule,
     CleanRolesModule,
     EncountersSlashCommandModule,
+    EventRosterModule,
     HelpModule,
     LookupModule,
     RemoveRoleModule,

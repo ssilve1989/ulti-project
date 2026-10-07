@@ -13,6 +13,7 @@ import { DISCORD_CLIENT } from '../discord/discord.decorators.js';
 import { ErrorModule } from '../error/error.module.js';
 import { getFflogsSdkToken } from '../fflogs/fflogs.consts.js';
 import { FIRESTORE } from '../firebase/firebase.consts.js';
+import { getRaidHelperApiToken } from '../raid-helper/raid-helper.consts.js';
 import { SheetsService } from '../sheets/sheets.service.js';
 import { SlashCommandRegistry } from '../slash-commands/slash-command-registry.service.js';
 import { SlashCommandsModule } from '../slash-commands/slash-commands.module.js';
@@ -20,6 +21,7 @@ import { DiscordMock } from './discord/discord-mock.js';
 import { FFLogsMock } from './fflogs/fflogs-mock.js';
 import { InMemoryFirestore } from './firestore/in-memory-firestore.js';
 import { createActivityTracker, waitUntilIdle } from './idle.js';
+import { RaidHelperMock } from './raid-helper/raid-helper-mock.js';
 import { watchSentryEvents } from './sentry.js';
 import {
   captureSheetsRequests,
@@ -70,6 +72,7 @@ export interface FlowApp {
   /** The Google test spreadsheet (recorded, then replayed), read through the app's own client. */
   readonly sheets: TestSheet;
   readonly fflogs: FFLogsMock;
+  readonly raidHelper: RaidHelperMock;
   /** Resolves a real provider, for setup a test does through the app (e.g. `DiscordService`). */
   get<T>(token: Type<T>): T;
   /**
@@ -152,15 +155,17 @@ function restoreDefaultLogger(): void {
 }
 
 /**
- * Boots the real feature modules with Firestore, Discord and the FFLogs API
- * replaced by fakes. Google Sheets traffic is replayed from recordings of the
- * real test spreadsheet (see recorded-sheets.ts). Call once per test.
+ * Boots the real feature modules with Firestore, Discord, the FFLogs API and
+ * the raid-helper API replaced by fakes. Google Sheets traffic is replayed
+ * from recordings of the real test spreadsheet (see recorded-sheets.ts). Call
+ * once per test.
  */
 export async function createFlowApp(): Promise<FlowApp> {
   const startedAt = Date.now();
   const db = new InMemoryFirestore();
   const discord = new DiscordMock();
   const fflogs = new FFLogsMock();
+  const raidHelper = new RaidHelperMock();
   const logger = new ProblemRecorder();
   // the tracker starts after recording: a failed start has nothing to dispose
   const recording = await startSheetsRecording();
@@ -179,6 +184,8 @@ export async function createFlowApp(): Promise<FlowApp> {
       .useValue(discord.client)
       .overrideProvider(getFflogsSdkToken())
       .useValue(fflogs)
+      .overrideProvider(getRaidHelperApiToken())
+      .useValue(raidHelper)
       .setLogger(logger)
       .compile();
 
@@ -207,6 +214,7 @@ export async function createFlowApp(): Promise<FlowApp> {
       discord,
       sheets,
       fflogs,
+      raidHelper,
       get: (token) => moduleRef.get(token),
       settle: async () => {
         await waitUntilIdle(activity);
