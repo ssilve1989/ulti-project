@@ -7,7 +7,7 @@ import { type ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { appConfig } from '../../../config/app.js';
 import { SlashCommand } from '../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../slash-command.interface.js';
-import { rosterEmbeds } from '../event-roster.embeds.js';
+import { rosterMessages } from '../event-roster.embeds.js';
 import { EventRosterService } from '../event-roster.service.js';
 import { createEventRosterSlashCommand } from '../event-roster.slash-command.js';
 
@@ -52,16 +52,16 @@ class EventRosterCommandHandler implements ISlashCommand {
         await interaction.editReply('This event has no sign-ups.');
         return;
       case 'roster': {
-        const [first, ...rest] = rosterEmbeds({
+        const [first, ...rest] = rosterMessages({
           title: roster.title,
           description: EncounterFriendlyDescription[encounter],
           groups: roster.groups,
           format,
         });
-        await interaction.editReply({ embeds: [first] });
-        for (const embed of rest) {
+        await interaction.editReply(first);
+        for (const message of rest) {
           await interaction.followUp({
-            embeds: [embed],
+            ...message,
             flags: MessageFlags.Ephemeral,
           });
         }

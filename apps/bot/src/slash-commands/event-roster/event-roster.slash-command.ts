@@ -25,7 +25,7 @@ export function createEventRosterSlashCommand(mode: ApplicationModeConfig) {
       option
         .setName('format')
         .setDescription(
-          'A table per prog point (default), or a list with mentions',
+          'A table per prog point (default), or role columns with mentions',
         )
         .addChoices(
           { name: 'Table', value: 'table' },

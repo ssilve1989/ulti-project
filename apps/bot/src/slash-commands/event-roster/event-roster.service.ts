@@ -58,7 +58,8 @@ class EventRosterService {
       const member = {
         discordId: userId,
         raidHelperName: name,
-        job: specName ?? className,
+        className,
+        specName,
       };
       const signup = counted.get(userId);
       if (!signup) {
@@ -76,10 +77,14 @@ class EventRosterService {
       (rows ?? noProgPoint).push(row);
     }
 
-    const groups = [
+    const groups: RosterGroup[] = [
       ...progPoints
         .toSorted((a, b) => b.order - a.order)
-        .map(({ id, label }) => ({ label, rows: atProgPoint.get(id) ?? [] })),
+        .map(({ id, label, partyStatus }) => ({
+          label,
+          partyStatus,
+          rows: atProgPoint.get(id) ?? [],
+        })),
       { label: 'Approved, no prog point', rows: noProgPoint },
       { label: 'No signup / not approved', rows: noSignup },
     ].filter(({ rows }) => rows.length > 0);

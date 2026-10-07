@@ -20,7 +20,7 @@ import {
   type RosterFormat,
   type RosterGroup,
   type RosterRow,
-  rosterEmbeds,
+  rosterMessages,
 } from './event-roster.embeds.js';
 
 const GUILD = 'guild-1';
@@ -95,14 +95,14 @@ async function roster(
   return flow.discord.repliesTo(ADMIN.id).map(shown);
 }
 
-/** The private replies listing `groups`, one per embed. */
+/** The private replies listing `groups`, as the roster's messages. */
 const rosterReplies = (groups: RosterGroup[], format: RosterFormat = 'table') =>
-  rosterEmbeds({
+  rosterMessages({
     title: TITLE,
     description: EncounterFriendlyDescription[Encounter.DMU],
     groups,
     format,
-  }).map((embed) => privateReply(ADMIN.id, { embeds: [embed] }));
+  }).map(({ content, embeds }) => privateReply(ADMIN.id, { content, embeds }));
 
 const signUp = (
   userId: string,
@@ -110,19 +110,23 @@ const signUp = (
   className = 'Tank',
 ): FakeSignUp => ({ userId, name: `${userId} rh`, className, specName });
 
-/** The roster row of a member whose counted signup is the one `signup()` seeds */
-const counted = (discordId: string, job: string): RosterRow => ({
-  discordId,
-  raidHelperName: `${discordId} rh`,
-  job,
-  character: { name: `${discordId} character`, world: 'jenova' },
+/** The roster row of a member without a counted signup, from their raid-helper sign-up */
+const uncounted = ({
+  userId,
+  name,
+  className,
+  specName,
+}: FakeSignUp): RosterRow => ({
+  discordId: userId,
+  raidHelperName: name,
+  className,
+  specName,
 });
 
-/** The roster row of a member without a counted signup */
-const uncounted = (discordId: string, job: string): RosterRow => ({
-  discordId,
-  raidHelperName: `${discordId} rh`,
-  job,
+/** The roster row of a member whose counted signup is the one `signup()` seeds */
+const counted = (signUp: FakeSignUp): RosterRow => ({
+  ...uncounted(signUp),
+  character: { name: `${signUp.userId} character`, world: 'jenova' },
 });
 
 describe('Event roster', () => {
@@ -133,32 +137,31 @@ describe('Event roster', () => {
       approvedAt(flow, 'mid-2', 'P2 Mid');
       approvedAt(flow, 'enrage', 'P3 Enrage');
       approvedAt(flow, 'mid-1', 'P2 Mid');
+      const mid2 = { ...signUp('mid-2', 'Darkknight'), position: 3 };
+      const enrage = {
+        ...signUp('enrage', 'Whitemage', 'Healer'),
+        position: 1,
+      };
+      const mid1 = {
+        userId: 'mid-1',
+        name: 'mid-1 rh',
+        className: 'Allrounder',
+        position: 2,
+      };
       flow.raidHelper.addEvent(EVENT_ID, {
         title: TITLE,
-        signUps: [
-          { ...signUp('mid-2', 'Darkknight'), position: 3 },
-          { ...signUp('enrage', 'Whitemage', 'Healer'), position: 1 },
-          {
-            userId: 'mid-1',
-            name: 'mid-1 rh',
-            className: 'Allrounder',
-            position: 2,
-          },
-        ],
+        signUps: [mid2, enrage, mid1],
       });
 
       await expect(roster(flow)).resolves.toEqual(
         rosterReplies([
           {
             label: 'Phase 3: Enrage',
-            rows: [counted('enrage', 'Whitemage')],
+            rows: [counted(enrage)],
           },
           {
             label: 'Phase 2: Mid',
-            rows: [
-              counted('mid-1', 'Allrounder'),
-              counted('mid-2', 'Darkknight'),
-            ],
+            rows: [counted(mid1), counted(mid2)],
           },
         ]),
       );
@@ -183,7 +186,7 @@ describe('Event roster', () => {
         rosterReplies([
           {
             label: 'Phase 1: Opener',
-            rows: [counted('updating', 'Gunbreaker')],
+            rows: [counted(signUp('updating', 'Gunbreaker'))],
           },
         ]),
       );
@@ -216,15 +219,15 @@ describe('Event roster', () => {
         rosterReplies([
           {
             label: 'Phase 1: Opener',
-            rows: [counted('approved', 'Warrior')],
+            rows: [counted(signUp('approved', 'Warrior'))],
           },
           {
             label: 'No signup / not approved',
             rows: [
-              uncounted('pending', 'Paladin'),
-              uncounted('declined', 'Bard'),
-              uncounted('other-encounter', 'Monk'),
-              uncounted('no-signup', 'Sage'),
+              uncounted(signUp('pending', 'Paladin')),
+              uncounted(signUp('declined', 'Bard', 'Ranged')),
+              uncounted(signUp('other-encounter', 'Monk', 'Melee')),
+              uncounted(signUp('no-signup', 'Sage', 'Healer')),
             ],
           },
         ]),
@@ -248,7 +251,10 @@ describe('Event roster', () => {
         rosterReplies([
           {
             label: 'Approved, no prog point',
-            rows: [counted('none', 'Scholar'), counted('deleted', 'Ninja')],
+            rows: [
+              counted(signUp('none', 'Scholar', 'Healer')),
+              counted(signUp('deleted', 'Ninja', 'Melee')),
+            ],
           },
         ]),
       );
@@ -271,7 +277,7 @@ describe('Event roster', () => {
         rosterReplies([
           {
             label: 'Phase 1: Opener',
-            rows: [counted('present', 'Reaper')],
+            rows: [counted(signUp('present', 'Reaper', 'Melee'))],
           },
         ]),
       );
@@ -314,9 +320,7 @@ describe('Event roster', () => {
         {
           label: 'Phase 1: Opener',
           rows: ids.map((id) => ({
-            discordId: id,
-            raidHelperName: `${id} rh`,
-            job: 'Darkknight',
+            ...uncounted(signUp(id, 'Darkknight')),
             character: { name: `${id} with a long name`, world: 'Gilgamesh' },
           })),
         },
@@ -345,11 +349,12 @@ describe('Event roster', () => {
           [
             {
               label: 'Phase 3: Enrage',
-              rows: [counted('enrage', 'Whitemage')],
+              partyStatus: PartyStatus.ProgParty,
+              rows: [counted(signUp('enrage', 'Whitemage', 'Healer'))],
             },
             {
               label: 'No signup / not approved',
-              rows: [uncounted('no-signup', 'Sage')],
+              rows: [uncounted(signUp('no-signup', 'Sage', 'Healer'))],
             },
           ],
           'list',
