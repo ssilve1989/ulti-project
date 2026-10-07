@@ -4,6 +4,7 @@ import {
   type ApprovedSignupDocument,
   type AwaitingReviewSignupDocument,
   type CreateSignupDocumentProps,
+  type Encounter,
   type PendingSignupDocument,
   type SignupCompositeKeyProps as SignupCompositeKey,
   type SignupDocument,
@@ -21,6 +22,9 @@ import {
 } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
 import { DocumentNotFoundException } from '../firebase.exceptions.js';
+
+/** Firestore's cap on the values of one 'in' filter */
+const IN_FILTER_LIMIT = 30;
 
 @Injectable()
 class SignupCollection {
@@ -137,6 +141,33 @@ class SignupCollection {
       .where('status', 'in', statuses)
       .get();
     return snapshot.docs.map((doc) => doc.data());
+  }
+
+  /**
+   * The `encounter` signups of every user in `discordIds`. An 'in' filter takes
+   * at most 30 values, so longer lists are queried in chunks.
+   */
+  @SentryTraced()
+  public async findByDiscordIdsIn(
+    encounter: Encounter,
+    discordIds: readonly string[],
+  ): Promise<SignupDocument[]> {
+    const chunks = Array.from(
+      { length: Math.ceil(discordIds.length / IN_FILTER_LIMIT) },
+      (_, i) =>
+        discordIds.slice(i * IN_FILTER_LIMIT, (i + 1) * IN_FILTER_LIMIT),
+    );
+    const snapshots = await Promise.all(
+      chunks.map((ids) =>
+        this.collection
+          .where('encounter', '==', encounter)
+          .where('discordId', 'in', ids)
+          .get(),
+      ),
+    );
+    return snapshots.flatMap((snapshot) =>
+      snapshot.docs.map((doc) => doc.data()),
+    );
   }
 
   @SentryTraced()

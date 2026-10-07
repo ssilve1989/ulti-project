@@ -270,6 +270,53 @@ describe('SignupCollection', () => {
     expect(found).toEqual([aSignup()]);
   });
 
+  describe('findByDiscordIdsIn', () => {
+    const seedFor = (db: InMemoryFirestore, signup: PendingSignupDocument) =>
+      db.seed(`signups/${SignupCollection.getKeyForSignup(signup)}`, signup);
+
+    it("finds the listed users' signups for the encounter only", async ({
+      db,
+      collection,
+    }) => {
+      const listed = aSignup({ discordId: 'listed' });
+      seedFor(db, listed);
+      seedFor(db, aSignup({ discordId: 'listed', encounter: Encounter.TOP }));
+      seedFor(db, aSignup({ discordId: 'unlisted' }));
+
+      const found = await collection.findByDiscordIdsIn(Encounter.DSR, [
+        'listed',
+        'nobody',
+      ]);
+
+      expect(found).toEqual([listed]);
+    });
+
+    it('finds more users than one Firestore in-filter allows', async ({
+      db,
+      collection,
+    }) => {
+      const signups = Array.from({ length: 31 }, (_, i) =>
+        aSignup({ discordId: `user-${i}` }),
+      );
+      for (const signup of signups) seedFor(db, signup);
+
+      const found = await collection.findByDiscordIdsIn(
+        Encounter.DSR,
+        signups.map(({ discordId }) => discordId),
+      );
+
+      const byId = (a: SignupDocument, b: SignupDocument) =>
+        a.discordId.localeCompare(b.discordId);
+      expect(found.toSorted(byId)).toEqual(signups.toSorted(byId));
+    });
+
+    it('finds nothing for no users', async ({ collection }) => {
+      await expect(
+        collection.findByDiscordIdsIn(Encounter.DSR, []),
+      ).resolves.toEqual([]);
+    });
+  });
+
   it('removes only the signup matching character, world and encounter', async ({
     db,
     collection,
