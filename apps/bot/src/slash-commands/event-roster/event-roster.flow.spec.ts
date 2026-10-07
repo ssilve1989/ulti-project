@@ -16,7 +16,12 @@ import {
   privateReply,
 } from '../../test-utils/replies.js';
 import { type SeedOverrides, seedSignup } from '../../test-utils/signups.js';
-import { type RosterGroup, rosterEmbeds } from './event-roster.table.js';
+import {
+  type RosterFormat,
+  type RosterGroup,
+  type RosterRow,
+  rosterEmbeds,
+} from './event-roster.embeds.js';
 
 const GUILD = 'guild-1';
 const EVENT_ID = '1555738372373356595';
@@ -72,23 +77,31 @@ const approvedAt = (flow: FlowApp, discordId: string, progPoint?: string) =>
   });
 
 /** Runs /event-roster as the admin and returns every reply they got. */
-async function roster(flow: FlowApp, event = EVENT_ID) {
+async function roster(
+  flow: FlowApp,
+  { event = EVENT_ID, format }: { event?: string; format?: RosterFormat } = {},
+) {
   flow.discord.command({
     userId: ADMIN.id,
     guildId: GUILD,
     commandName: 'event-roster',
-    options: { event, encounter: Encounter.DMU },
+    options: {
+      event,
+      encounter: Encounter.DMU,
+      ...(format === undefined ? {} : { format }),
+    },
   });
   await flow.settle();
   return flow.discord.repliesTo(ADMIN.id).map(shown);
 }
 
 /** The private replies listing `groups`, one per embed. */
-const rosterReplies = (groups: RosterGroup[]) =>
+const rosterReplies = (groups: RosterGroup[], format: RosterFormat = 'table') =>
   rosterEmbeds({
     title: TITLE,
     description: EncounterFriendlyDescription[Encounter.DMU],
     groups,
+    format,
   }).map((embed) => privateReply(ADMIN.id, { embeds: [embed] }));
 
 const signUp = (
@@ -96,6 +109,21 @@ const signUp = (
   specName: string,
   className = 'Tank',
 ): FakeSignUp => ({ userId, name: `${userId} rh`, className, specName });
+
+/** The roster row of a member whose counted signup is the one `signup()` seeds */
+const counted = (discordId: string, job: string): RosterRow => ({
+  discordId,
+  raidHelperName: `${discordId} rh`,
+  job,
+  character: { name: `${discordId} character`, world: 'jenova' },
+});
+
+/** The roster row of a member without a counted signup */
+const uncounted = (discordId: string, job: string): RosterRow => ({
+  discordId,
+  raidHelperName: `${discordId} rh`,
+  job,
+});
 
 describe('Event roster', () => {
   describe('when signed-up players have signups at different prog points', () => {
@@ -123,15 +151,13 @@ describe('Event roster', () => {
         rosterReplies([
           {
             label: 'Phase 3: Enrage',
-            rows: [
-              { name: 'enrage character', world: 'jenova', job: 'Whitemage' },
-            ],
+            rows: [counted('enrage', 'Whitemage')],
           },
           {
             label: 'Phase 2: Mid',
             rows: [
-              { name: 'mid-1 character', world: 'jenova', job: 'Allrounder' },
-              { name: 'mid-2 character', world: 'jenova', job: 'Darkknight' },
+              counted('mid-1', 'Allrounder'),
+              counted('mid-2', 'Darkknight'),
             ],
           },
         ]),
@@ -157,13 +183,7 @@ describe('Event roster', () => {
         rosterReplies([
           {
             label: 'Phase 1: Opener',
-            rows: [
-              {
-                name: 'updating character',
-                world: 'jenova',
-                job: 'Gunbreaker',
-              },
-            ],
+            rows: [counted('updating', 'Gunbreaker')],
           },
         ]),
       );
@@ -196,17 +216,15 @@ describe('Event roster', () => {
         rosterReplies([
           {
             label: 'Phase 1: Opener',
-            rows: [
-              { name: 'approved character', world: 'jenova', job: 'Warrior' },
-            ],
+            rows: [counted('approved', 'Warrior')],
           },
           {
             label: 'No signup / not approved',
             rows: [
-              { name: 'pending rh', world: '-', job: 'Paladin' },
-              { name: 'declined rh', world: '-', job: 'Bard' },
-              { name: 'other-encounter rh', world: '-', job: 'Monk' },
-              { name: 'no-signup rh', world: '-', job: 'Sage' },
+              uncounted('pending', 'Paladin'),
+              uncounted('declined', 'Bard'),
+              uncounted('other-encounter', 'Monk'),
+              uncounted('no-signup', 'Sage'),
             ],
           },
         ]),
@@ -230,10 +248,7 @@ describe('Event roster', () => {
         rosterReplies([
           {
             label: 'Approved, no prog point',
-            rows: [
-              { name: 'none character', world: 'jenova', job: 'Scholar' },
-              { name: 'deleted character', world: 'jenova', job: 'Ninja' },
-            ],
+            rows: [counted('none', 'Scholar'), counted('deleted', 'Ninja')],
           },
         ]),
       );
@@ -256,9 +271,7 @@ describe('Event roster', () => {
         rosterReplies([
           {
             label: 'Phase 1: Opener',
-            rows: [
-              { name: 'present character', world: 'jenova', job: 'Reaper' },
-            ],
+            rows: [counted('present', 'Reaper')],
           },
         ]),
       );
@@ -301,15 +314,47 @@ describe('Event roster', () => {
         {
           label: 'Phase 1: Opener',
           rows: ids.map((id) => ({
-            name: `${id} with a long name`,
-            world: 'Gilgamesh',
+            discordId: id,
+            raidHelperName: `${id} rh`,
             job: 'Darkknight',
+            character: { name: `${id} with a long name`, world: 'Gilgamesh' },
           })),
         },
       ]);
 
       expect(expected).toHaveLength(2);
       await expect(roster(flow)).resolves.toEqual(expected);
+    });
+  });
+
+  describe('when the admin asks for a list', () => {
+    it('lists each player by mention, with or without a counted signup', async ({
+      flow,
+    }) => {
+      approvedAt(flow, 'enrage', 'P3 Enrage');
+      flow.raidHelper.addEvent(EVENT_ID, {
+        title: TITLE,
+        signUps: [
+          signUp('enrage', 'Whitemage', 'Healer'),
+          signUp('no-signup', 'Sage', 'Healer'),
+        ],
+      });
+
+      await expect(roster(flow, { format: 'list' })).resolves.toEqual(
+        rosterReplies(
+          [
+            {
+              label: 'Phase 3: Enrage',
+              rows: [counted('enrage', 'Whitemage')],
+            },
+            {
+              label: 'No signup / not approved',
+              rows: [uncounted('no-signup', 'Sage')],
+            },
+          ],
+          'list',
+        ),
+      );
     });
   });
 
@@ -325,7 +370,7 @@ describe('Event roster', () => {
 
   describe('when the ID is not a raid-helper event ID', () => {
     it('says what an event ID looks like', async ({ flow }) => {
-      await expect(roster(flow, 'not-an-id')).resolves.toEqual([
+      await expect(roster(flow, { event: 'not-an-id' })).resolves.toEqual([
         privateReply(ADMIN.id, {
           content:
             "That isn't a raid-helper event ID. Use the event's ID or its Discord message ID, which is all digits.",

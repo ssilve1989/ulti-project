@@ -20,5 +20,16 @@ export function createEventRosterSlashCommand(mode: ApplicationModeConfig) {
         .setDescription('The encounter whose signups to match')
         .setRequired(true)
         .addChoices(...getEncounterChoicesForMode(mode)),
+    )
+    .addStringOption((option) =>
+      option
+        .setName('format')
+        .setDescription(
+          'A table per prog point (default), or a list with mentions',
+        )
+        .addChoices(
+          { name: 'Table', value: 'table' },
+          { name: 'List', value: 'list' },
+        ),
     );
 }

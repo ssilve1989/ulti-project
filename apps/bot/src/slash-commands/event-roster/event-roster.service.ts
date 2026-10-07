@@ -3,7 +3,7 @@ import { type Encounter, SignupStatus } from '@ulti-project/shared';
 import { EncountersService } from '../../encounters/encounters.service.js';
 import { SignupCollection } from '../../firebase/collections/signup.collection.js';
 import { RaidHelperService } from '../../raid-helper/raid-helper.service.js';
-import type { RosterGroup, RosterRow } from './event-roster.table.js';
+import type { RosterGroup, RosterRow } from './event-roster.embeds.js';
 
 type EventRoster =
   | { kind: 'not-found' }
@@ -55,13 +55,20 @@ class EventRosterService {
     const noSignup: RosterRow[] = [];
 
     for (const { userId, name, className, specName } of signUps) {
-      const job = specName ?? className;
+      const member = {
+        discordId: userId,
+        raidHelperName: name,
+        job: specName ?? className,
+      };
       const signup = counted.get(userId);
       if (!signup) {
-        noSignup.push({ name, world: '-', job });
+        noSignup.push(member);
         continue;
       }
-      const row = { name: signup.character, world: signup.world, job };
+      const row = {
+        ...member,
+        character: { name: signup.character, world: signup.world },
+      };
       const rows =
         signup.progPoint === undefined
           ? undefined

@@ -1,14 +1,32 @@
-import { type APIEmbed, type APIEmbedField, codeBlock } from 'discord.js';
+import {
+  type APIEmbed,
+  type APIEmbedField,
+  codeBlock,
+  escapeMarkdown,
+  userMention,
+} from 'discord.js';
 
 export interface RosterRow {
-  name: string;
-  world: string;
+  discordId: string;
   job: string;
+  /** their name on raid-helper, shown when they have no counted signup */
+  raidHelperName: string;
+  /** from their counted signup, if they have one */
+  character?: { name: string; world: string };
 }
 
 export interface RosterGroup {
   label: string;
   rows: RosterRow[];
+}
+
+/** A monospace table per group, or a line per member with their mention */
+export type RosterFormat = 'table' | 'list';
+
+interface TableRow {
+  name: string;
+  world: string;
+  job: string;
 }
 
 // Discord's limits
@@ -19,7 +37,7 @@ const TITLE_LIMIT = 256;
 
 /** Widest a cell prints, so rows stay narrow enough not to wrap */
 const MAX_WIDTH = Object.freeze({ name: 20, world: 12, job: 12 });
-const HEADER: RosterRow = Object.freeze({
+const HEADER: TableRow = Object.freeze({
   name: 'Name',
   world: 'World',
   job: 'Class',
@@ -36,7 +54,14 @@ function cell(text: string, width: number): string {
 
 /** The header line, then a line per row, with columns padded to their widest cell */
 function tableLines(rows: RosterRow[]): [string, ...string[]] {
-  const cells = [HEADER, ...rows].map(({ name, world, job }) => ({
+  const tableRows = rows.map(
+    ({ raidHelperName, job, character }): TableRow => ({
+      name: character?.name ?? raidHelperName,
+      world: character?.world ?? '-',
+      job,
+    }),
+  );
+  const cells = [HEADER, ...tableRows].map(({ name, world, job }) => ({
     name: cell(name, MAX_WIDTH.name),
     world: cell(world, MAX_WIDTH.world),
     job: cell(job, MAX_WIDTH.job),
@@ -51,15 +76,25 @@ function tableLines(rows: RosterRow[]): [string, ...string[]] {
   return [header ?? '', ...lines];
 }
 
-/** A group's table, continued in further fields when it's too long for one */
-function groupFields({ label, rows }: RosterGroup): APIEmbedField[] {
-  const [header, ...lines] = tableLines(rows);
-  const table = (chunk: string[]) => codeBlock([header, ...chunk].join('\n'));
+/** A member's list line: their mention, then their character, world and job, or just their job without a signup */
+function listLine({ discordId, job, character }: RosterRow): string {
+  const details = character ? [character.name, character.world, job] : [job];
+  return `${userMention(discordId)} — ${details.map((text) => escapeMarkdown(text)).join(' · ')}`;
+}
 
+/**
+ * A group's lines as fields: as many lines as fit in each, the first named
+ * with the group's count and the rest continuing it
+ */
+function groupFields(
+  { label, rows }: RosterGroup,
+  lines: string[],
+  value: (chunk: string[]) => string,
+): APIEmbedField[] {
   const chunks: string[][] = [];
   for (const line of lines) {
     const current = chunks.at(-1);
-    if (current && table([...current, line]).length <= FIELD_VALUE_LIMIT) {
+    if (current && value([...current, line]).length <= FIELD_VALUE_LIMIT) {
       current.push(line);
     } else {
       chunks.push([line]);
@@ -68,9 +103,27 @@ function groupFields({ label, rows }: RosterGroup): APIEmbedField[] {
 
   return chunks.map((chunk, i) => ({
     name: i === 0 ? `${label} (${rows.length})` : `${label} (cont.)`,
-    value: table(chunk),
+    value: value(chunk),
   }));
 }
+
+/** A group's table, repeating its header in each field */
+function tableFields(group: RosterGroup): APIEmbedField[] {
+  const [header, ...lines] = tableLines(group.rows);
+  return groupFields(group, lines, (chunk) =>
+    codeBlock([header, ...chunk].join('\n')),
+  );
+}
+
+function listFields(group: RosterGroup): APIEmbedField[] {
+  return groupFields(group, group.rows.map(listLine), (chunk) =>
+    chunk.join('\n'),
+  );
+}
+
+const FIELDS_FOR: Readonly<
+  Record<RosterFormat, (group: RosterGroup) => APIEmbedField[]>
+> = Object.freeze({ table: tableFields, list: listFields });
 
 const fieldSize = ({ name, value }: APIEmbedField) =>
   name.length + value.length;
@@ -89,10 +142,12 @@ export function rosterEmbeds({
   title,
   description,
   groups,
+  format,
 }: {
   title: string;
   description: string;
   groups: RosterGroup[];
+  format: RosterFormat;
 }): [APIEmbed, ...APIEmbed[]] {
   let current: EmbedInProgress = {
     title: truncate(title, TITLE_LIMIT),
@@ -102,7 +157,7 @@ export function rosterEmbeds({
   let currentSize = current.title.length + description.length;
   const embeds: [APIEmbed, ...APIEmbed[]] = [current];
 
-  for (const field of groups.flatMap(groupFields)) {
+  for (const field of groups.flatMap(FIELDS_FOR[format])) {
     if (
       current.fields.length === FIELDS_PER_EMBED ||
       currentSize + fieldSize(field) > MESSAGE_CHARACTER_LIMIT

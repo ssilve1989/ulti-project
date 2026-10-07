@@ -7,9 +7,9 @@ import { type ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { appConfig } from '../../../config/app.js';
 import { SlashCommand } from '../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../slash-command.interface.js';
+import { rosterEmbeds } from '../event-roster.embeds.js';
 import { EventRosterService } from '../event-roster.service.js';
 import { createEventRosterSlashCommand } from '../event-roster.slash-command.js';
-import { rosterEmbeds } from '../event-roster.table.js';
 
 /** Raid-helper event IDs are the Discord message IDs of the events */
 const EVENT_ID = /^\d+$/;
@@ -26,6 +26,8 @@ class EventRosterCommandHandler implements ISlashCommand {
 
     const eventId = interaction.options.getString('event', true).trim();
     const encounter = interaction.options.getString('encounter', true);
+    const format =
+      interaction.options.getString('format') === 'list' ? 'list' : 'table';
     // the option only offers encounters, so this narrows the type
     if (!isEncounter(encounter)) {
       throw new Error(`Unknown encounter: ${encounter}`);
@@ -54,6 +56,7 @@ class EventRosterCommandHandler implements ISlashCommand {
           title: roster.title,
           description: EncounterFriendlyDescription[encounter],
           groups: roster.groups,
+          format,
         });
         await interaction.editReply({ embeds: [first] });
         for (const embed of rest) {
