@@ -269,47 +269,56 @@ describe('when one phase has more sign-ups than a field holds', () => {
     ).toEqual([
       ['__[DSR] Dragonsong Reprise__', 12, 1],
       ['P6 (40)', 1021, 14],
-      ['P6 (40) (cont.)', 1021, 14],
-      ['P6 (40) (cont.)', 875, 12],
+      ['P6 (cont.)', 1021, 14],
+      ['P6 (cont.)', 875, 12],
     ]);
   });
 });
 
-describe('when sign-ups outgrow one embed’s 6000 characters', () => {
-  it('continues them in an untitled second embed', () => {
+/** Discord caps a message's embeds at 6000 characters between them. */
+function messageSize(embeds: readonly APIEmbed[]): number {
+  return embeds.reduce((total, embed) => total + embedLength(embed), 0);
+}
+
+describe('when sign-ups outgrow the message’s 6000 characters', () => {
+  const render100 = () =>
+    render({
+      event: anEvent({ encounters: [Encounter.DSR] }),
+      participants: manyParticipants(100, () => P6),
+      jobEmojis: { [Job.WAR]: WAR_EMOJI },
+    });
+
+  it('stops within the limit and says how many it left out', () => {
+    const embeds = render100();
+
+    expect(messageSize(embeds)).toBeLessThanOrEqual(6000);
     expect(
-      render({
-        event: anEvent({ encounters: [Encounter.DSR] }),
-        participants: manyParticipants(100, () => P6),
-        jobEmojis: { [Job.WAR]: WAR_EMOJI },
-      }).map((embed) => ({
+      embeds.map((embed) => ({
         title: embed.title,
-        fields: embed.fields?.map(({ name }) => name),
+        fields: embed.fields?.map(({ name, value }) => [name, value.length]),
         size: embedLength(embed),
       })),
     ).toEqual([
       {
         title: 'DSR prog night',
         fields: [
-          '__[DSR] Dragonsong Reprise__',
-          'P6 (100)',
-          'P6 (100) (cont.)',
-          'P6 (100) (cont.)',
-          'P6 (100) (cont.)',
-          'P6 (100) (cont.)',
+          ['__[DSR] Dragonsong Reprise__', 13],
+          ['P6 (100)', 1021],
+          ['P6 (cont.)', 1021],
+          ['P6 (cont.)', 1021],
+          ['P6 (cont.)', 1021],
+          ['\u200b', 28],
         ],
-        size: 5327,
-      },
-      {
-        title: undefined,
-        fields: ['P6 (100) (cont.)', 'P6 (100) (cont.)', 'P6 (100) (cont.)'],
-        size: 2235,
+        size: 4301,
       },
     ]);
+    expect(embeds[0]?.fields?.at(-1)?.value).toEqual(
+      '…and 44 more. See the board.',
+    );
   });
 });
 
-describe('when an event has more sign-ups than ten embeds hold', () => {
+describe('when sign-ups need more than 25 fields', () => {
   // one phase each, so every sign-up takes a field of its own
   const render300 = () =>
     render({
@@ -323,21 +332,20 @@ describe('when an event has more sign-ups than ten embeds hold', () => {
       jobEmojis: { [Job.WAR]: WAR_EMOJI },
     });
 
-  it('fills ten embeds within Discord’s field and size limits', () => {
+  it('spreads them over embeds of 25 fields within the message’s 6000 characters', () => {
+    const embeds = render300();
+
+    expect(messageSize(embeds)).toBeLessThanOrEqual(6000);
     expect(
-      render300().map((embed) => ({
+      embeds.map((embed) => ({
         fields: embed.fields?.length,
         size: embedLength(embed),
         titled: embed.title !== undefined,
       })),
     ).toEqual([
       { fields: 25, size: 2190, titled: true },
-      ...Array.from({ length: 8 }, () => ({
-        fields: 25,
-        size: 2125,
-        titled: false,
-      })),
-      { fields: 25, size: 2069, titled: false },
+      { fields: 25, size: 2125, titled: false },
+      { fields: 19, size: 1560, titled: false },
     ]);
   });
 
@@ -346,10 +354,10 @@ describe('when an event has more sign-ups than ten embeds hold', () => {
 
     expect(fields.slice(-2)).toEqual([
       {
-        name: 'Phase 247 (1)',
-        value: `<:WAR:${WAR_EMOJI}> <@111111111111111247> Character 247@Cuchulainn`,
+        name: 'Phase 066 (1)',
+        value: `<:WAR:${WAR_EMOJI}> <@111111111111111066> Character 066@Cuchulainn`,
       },
-      { name: '\u200b', value: '…and 52 more. See the board.' },
+      { name: '\u200b', value: '…and 233 more. See the board.' },
     ]);
   });
 });
