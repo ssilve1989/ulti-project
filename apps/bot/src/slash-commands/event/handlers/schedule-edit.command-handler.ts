@@ -10,7 +10,11 @@ import {
   isOrganizer,
   notOrganizerMessage,
 } from '../../../events/organizers.js';
-import { scheduleChoices } from '../../../events/schedules/schedule-choices.js';
+import {
+  autocompleteSchedules,
+  pickedSchedule,
+  SCHEDULE_MISSING,
+} from '../../../events/schedules/picked-schedule.js';
 import { readScheduleChanges } from '../../../events/schedules/schedule-options.js';
 import { savedScheduleSummary } from '../../../events/schedules/schedule-panel.renderer.js';
 import { SchedulePanelSession } from '../../../events/schedules/schedule-panel.session.js';
@@ -20,8 +24,6 @@ import type { ScheduleSettings } from '../../../firebase/models/event-schedule.m
 import { SlashCommand } from '../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../slash-command.interface.js';
 import { EventSlashCommand } from '../event.slash-command.js';
-
-const MISSING = "That schedule doesn't exist.";
 
 const SETTINGS_KEYS = [
   'title',
@@ -73,13 +75,12 @@ class ScheduleEditCommandHandler implements ISlashCommand {
       return;
     }
 
-    const id = interaction.options.getString('schedule', true);
-    const schedules = await this.schedulesCollection.listForGuild(
-      interaction.guildId,
+    const schedule = await pickedSchedule(
+      this.schedulesCollection,
+      interaction,
     );
-    const schedule = schedules.find((candidate) => candidate.id === id);
     if (!schedule) {
-      await interaction.editReply(MISSING);
+      await interaction.editReply(SCHEDULE_MISSING);
       return;
     }
 
@@ -107,27 +108,20 @@ class ScheduleEditCommandHandler implements ISlashCommand {
     if (!draft) return;
 
     const saved = await this.schedulesCollection.update(
-      id,
+      schedule.id,
       changedSettings(current, draft),
       interaction.user.id,
       new Date(),
     );
     await interaction.editReply({
-      content: saved ? savedScheduleSummary(saved) : MISSING,
+      content: saved ? savedScheduleSummary(saved) : SCHEDULE_MISSING,
       embeds: [],
       components: [],
     });
   }
 
-  async autocomplete(
-    interaction: AutocompleteInteraction<'cached'>,
-  ): Promise<void> {
-    const schedules = await this.schedulesCollection.listForGuild(
-      interaction.guildId,
-    );
-    await interaction.respond(
-      scheduleChoices(schedules, interaction.options.getFocused()),
-    );
+  autocomplete(interaction: AutocompleteInteraction<'cached'>): Promise<void> {
+    return autocompleteSchedules(this.schedulesCollection, interaction);
   }
 }
 

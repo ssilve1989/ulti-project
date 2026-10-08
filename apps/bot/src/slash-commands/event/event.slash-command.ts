@@ -115,16 +115,17 @@ const CreateScheduleSubcommand = new SlashCommandSubcommandBuilder()
   .addStringOption(encounterOption('encounter-3', false))
   .addStringOption(encounterOption('encounter-4', false));
 
+const scheduleOption = (option: SlashCommandStringOption) =>
+  option
+    .setName('schedule')
+    .setDescription('The schedule')
+    .setRequired(true)
+    .setAutocomplete(true);
+
 const EditScheduleSubcommand = new SlashCommandSubcommandBuilder()
   .setName('schedule-edit')
   .setDescription('Change a weekly schedule; pick the days in the panel')
-  .addStringOption((option) =>
-    option
-      .setName('schedule')
-      .setDescription('The schedule')
-      .setRequired(true)
-      .setAutocomplete(true),
-  )
+  .addStringOption(scheduleOption)
   .addStringOption(titleOption(false))
   .addStringOption(replacementEncounterOption('encounter-1', true))
   .addStringOption(timeOption(false))
@@ -135,10 +136,33 @@ const EditScheduleSubcommand = new SlashCommandSubcommandBuilder()
   .addStringOption(replacementEncounterOption('encounter-3', false))
   .addStringOption(replacementEncounterOption('encounter-4', false));
 
+const ListSchedulesSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('schedule-list')
+  .setDescription("List this server's weekly schedules");
+
+const PauseScheduleSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('schedule-pause')
+  .setDescription('Stop posting events for a weekly schedule')
+  .addStringOption(scheduleOption);
+
+const ResumeScheduleSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('schedule-resume')
+  .setDescription('Start posting events for a paused schedule again')
+  .addStringOption(scheduleOption);
+
+const DeleteScheduleSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('schedule-delete')
+  .setDescription('Delete a weekly schedule; events it posted stay')
+  .addStringOption(scheduleOption);
+
 export const EventSlashCommand = new SlashCommandBuilder()
   .setName('event')
   .setDescription('Create and manage events')
   .addSubcommand(CreateEventSubcommand)
   .addSubcommand(CloseEventSubcommand)
   .addSubcommand(CreateScheduleSubcommand)
-  .addSubcommand(EditScheduleSubcommand);
+  .addSubcommand(EditScheduleSubcommand)
+  .addSubcommand(ListSchedulesSubcommand)
+  .addSubcommand(PauseScheduleSubcommand)
+  .addSubcommand(ResumeScheduleSubcommand)
+  .addSubcommand(DeleteScheduleSubcommand);

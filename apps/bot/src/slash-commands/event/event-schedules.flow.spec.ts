@@ -601,3 +601,332 @@ describe('/event schedule-edit', () => {
     });
   });
 });
+
+const MISSING = "That schedule doesn't exist.";
+const RECLEAR_PATH = 'event-schedules/schedule-2';
+const ELSEWHERE_PATH = 'event-schedules/elsewhere';
+
+const { nextPostAt: _removedWhilePaused, ...UNPOSTED_SCHEDULE } =
+  STORED_SCHEDULE;
+
+/** `STORED_SCHEDULE` paused: it keeps `nextStartAt` and loses `nextPostAt`. */
+const PAUSED_SCHEDULE: EventScheduleDocument = Object.freeze({
+  ...UNPOSTED_SCHEDULE,
+  paused: true,
+});
+
+/** A paused Sunday 9:30 AM Eastern FRU and TOP schedule in another channel. */
+const RECLEAR_SCHEDULE: EventScheduleDocument = Object.freeze({
+  ...PAUSED_SCHEDULE,
+  title: 'Reclear',
+  encounters: [Encounter.FRU, Encounter.TOP],
+  channelId: 'reclear-channel',
+  weekdays: ['sun'] satisfies Weekday[],
+  startTime: '09:30',
+  timeZone: USTimeZones.EASTERN,
+});
+
+/** Thursday 2026-10-08 at 8 PM Pacific, and a day before it. */
+const RESUMED_START_S = seconds('2026-10-09T03:00:00Z');
+const RESUMED_POST_S = seconds('2026-10-08T03:00:00Z');
+
+/** `STORED_SCHEDULE`'s times, from last week. */
+const LAST_WEEK_START_S = seconds('2026-10-02T03:00:00Z');
+const LAST_WEEK_POST_S = seconds('2026-10-01T03:00:00Z');
+
+/** The list's field for `STORED_SCHEDULE`. */
+const STORED_FIELD = Object.freeze({
+  name: TITLE,
+  value: [
+    `DMU · <#${EVENTS_CHANNEL}>`,
+    'Tue, Thu at 8:00 PM Pacific',
+    `Next: <t:${LAST_WEEK_START_S}:F>, posted <t:${LAST_WEEK_POST_S}:R>`,
+  ].join('\n'),
+});
+
+describe('/event schedule-list', () => {
+  describe('when an organizer lists two schedules, one of them paused', () => {
+    it.beforeEach(async ({ flow }) => {
+      // An id that sorts before `schedule-1`, so only sorting by title puts it last
+      flow.db.seed('event-schedules/reclear', RECLEAR_SCHEDULE);
+      flow.db.seed(SCHEDULE_PATH, STORED_SCHEDULE);
+      flow.db.seed(ELSEWHERE_PATH, {
+        ...STORED_SCHEDULE,
+        guildId: OTHER_GUILD,
+      });
+      await event(flow, 'schedule-list', {});
+    });
+
+    it("shows this guild's schedules by title, privately", ({ flow }) => {
+      expect(repliesTo(flow, ORGANIZER.id)).toEqual([
+        privateReply(ORGANIZER.id, {
+          embeds: [
+            {
+              title: 'Event schedules',
+              fields: [
+                STORED_FIELD,
+                {
+                  name: 'Reclear',
+                  value: [
+                    'FRU, TOP · <#reclear-channel>',
+                    'Sun at 9:30 AM Eastern',
+                    'Paused',
+                  ].join('\n'),
+                },
+              ],
+            },
+          ],
+        }),
+      ]);
+    });
+  });
+
+  describe('when an organizer lists more than 25 schedules', () => {
+    it.beforeEach(async ({ flow }) => {
+      for (let n = 0; n < 27; n++) {
+        flow.db.seed(`event-schedules/s${n}`, STORED_SCHEDULE);
+      }
+      await event(flow, 'schedule-list', {});
+    });
+
+    it('shows the first 25 and says how many more there are', ({ flow }) => {
+      expect(repliesTo(flow, ORGANIZER.id)).toEqual([
+        privateReply(ORGANIZER.id, {
+          embeds: [
+            {
+              title: 'Event schedules',
+              description: '…and 2 more.',
+              fields: Array.from({ length: 25 }, () => STORED_FIELD),
+            },
+          ],
+        }),
+      ]);
+    });
+  });
+
+  describe('when an organizer lists schedules and there are none', () => {
+    it.beforeEach(async ({ flow }) => {
+      flow.db.seed(ELSEWHERE_PATH, {
+        ...STORED_SCHEDULE,
+        guildId: OTHER_GUILD,
+      });
+      await event(flow, 'schedule-list', {});
+    });
+
+    it('says how to create one', ({ flow }) => {
+      expect(repliesTo(flow, ORGANIZER.id)).toEqual([
+        privately(
+          ORGANIZER.id,
+          'No schedules yet. Create one with /event schedule-create.',
+        ),
+      ]);
+    });
+  });
+
+  describe('when a member who is not an organizer tries', () => {
+    it.beforeEach(async ({ flow }) => {
+      flow.db.seed(SCHEDULE_PATH, STORED_SCHEDULE);
+      await event(flow, 'schedule-list', {}, MEMBER.id);
+    });
+
+    it('refuses, privately', ({ flow }) => {
+      expect(repliesTo(flow, MEMBER.id)).toEqual([
+        privately(MEMBER.id, 'Only event organizers can do that.'),
+      ]);
+    });
+  });
+});
+
+describe.each(['schedule-pause', 'schedule-resume', 'schedule-delete'])(
+  '/event %s',
+  (subcommand) => {
+    describe('when an organizer looks for a schedule', () => {
+      it("offers this guild's matching schedules with their days and time", async ({
+        flow,
+      }) => {
+        flow.db.seed(SCHEDULE_PATH, STORED_SCHEDULE);
+        flow.db.seed(RECLEAR_PATH, RECLEAR_SCHEDULE);
+        flow.db.seed(ELSEWHERE_PATH, {
+          ...RECLEAR_SCHEDULE,
+          guildId: OTHER_GUILD,
+        });
+
+        const choices = await flow.discord.autocomplete({
+          userId: ORGANIZER.id,
+          guildId: GUILD,
+          commandName: 'event',
+          subcommand,
+          focused: 'schedule',
+          value: 'rec',
+        });
+
+        expect(choices).toEqual([
+          { name: 'Reclear · Sun 09:30', value: 'schedule-2' },
+        ]);
+      });
+    });
+
+    describe("when an organizer picks a schedule that doesn't exist", () => {
+      it.beforeEach(({ flow }) =>
+        event(flow, subcommand, { schedule: 'missing' }),
+      );
+
+      it('says so, privately', ({ flow }) => {
+        expect(repliesTo(flow, ORGANIZER.id)).toEqual([
+          privately(ORGANIZER.id, MISSING),
+        ]);
+      });
+    });
+
+    describe("when an organizer picks another guild's schedule", () => {
+      const elsewhere = Object.freeze({
+        ...PAUSED_SCHEDULE,
+        guildId: OTHER_GUILD,
+      });
+
+      it.beforeEach(async ({ flow }) => {
+        flow.db.seed(ELSEWHERE_PATH, elsewhere);
+        await event(flow, subcommand, { schedule: 'elsewhere' });
+      });
+
+      it("says it doesn't exist and leaves it as it was", ({ flow }) => {
+        expect({
+          replies: repliesTo(flow, ORGANIZER.id),
+          schedule: flow.db.read(ELSEWHERE_PATH),
+        }).toEqual({
+          replies: [privately(ORGANIZER.id, MISSING)],
+          schedule: elsewhere,
+        });
+      });
+    });
+
+    describe('when a member who is not an organizer tries', () => {
+      it.beforeEach(async ({ flow }) => {
+        flow.db.seed(SCHEDULE_PATH, PAUSED_SCHEDULE);
+        await event(flow, subcommand, { schedule: SCHEDULE_ID }, MEMBER.id);
+      });
+
+      it('refuses, privately, and keeps the schedule as it was', ({ flow }) => {
+        expect({
+          replies: repliesTo(flow, MEMBER.id),
+          schedule: flow.db.read(SCHEDULE_PATH),
+        }).toEqual({
+          replies: [privately(MEMBER.id, 'Only event organizers can do that.')],
+          schedule: PAUSED_SCHEDULE,
+        });
+      });
+    });
+  },
+);
+
+describe('/event schedule-pause', () => {
+  describe('when an organizer pauses a schedule', () => {
+    it.beforeEach(async ({ flow }) => {
+      flow.db.seed(SCHEDULE_PATH, STORED_SCHEDULE);
+      await event(flow, 'schedule-pause', { schedule: SCHEDULE_ID });
+    });
+
+    it('stores it paused with no post time, and says so', ({ flow }) => {
+      expect({
+        replies: repliesTo(flow, ORGANIZER.id),
+        schedule: flow.db.read(SCHEDULE_PATH),
+      }).toEqual({
+        replies: [privately(ORGANIZER.id, `Paused **${TITLE}**.`)],
+        schedule: PAUSED_SCHEDULE,
+      });
+    });
+
+    describe('and resumes it', () => {
+      it.beforeEach(({ flow }) =>
+        event(flow, 'schedule-resume', { schedule: SCHEDULE_ID }),
+      );
+
+      it('stores the next times from now, and says when the next event is', ({
+        flow,
+      }) => {
+        expect({
+          replies: repliesTo(flow, ORGANIZER.id),
+          schedule: flow.db.read(SCHEDULE_PATH),
+        }).toEqual({
+          replies: [
+            privately(ORGANIZER.id, `Paused **${TITLE}**.`),
+            privately(
+              ORGANIZER.id,
+              `Resumed **${TITLE}**. Next event <t:${RESUMED_START_S}:F>.`,
+            ),
+          ],
+          schedule: {
+            ...STORED_SCHEDULE,
+            nextStartAt: Timestamp.fromMillis(RESUMED_START_S * 1000),
+            nextPostAt: Timestamp.fromMillis(RESUMED_POST_S * 1000),
+          },
+        });
+      });
+    });
+  });
+
+  describe('when an organizer pauses a schedule that is already paused', () => {
+    it.beforeEach(async ({ flow }) => {
+      flow.db.seed(SCHEDULE_PATH, PAUSED_SCHEDULE);
+      await event(flow, 'schedule-pause', { schedule: SCHEDULE_ID });
+    });
+
+    it('says so and leaves it as it was', ({ flow }) => {
+      expect({
+        replies: repliesTo(flow, ORGANIZER.id),
+        schedule: flow.db.read(SCHEDULE_PATH),
+      }).toEqual({
+        replies: [privately(ORGANIZER.id, `**${TITLE}** is already paused.`)],
+        schedule: PAUSED_SCHEDULE,
+      });
+    });
+  });
+});
+
+describe('/event schedule-resume', () => {
+  describe("when an organizer resumes a schedule that isn't paused", () => {
+    it.beforeEach(async ({ flow }) => {
+      flow.db.seed(SCHEDULE_PATH, STORED_SCHEDULE);
+      await event(flow, 'schedule-resume', { schedule: SCHEDULE_ID });
+    });
+
+    it('says so and keeps its due occurrence', ({ flow }) => {
+      expect({
+        replies: repliesTo(flow, ORGANIZER.id),
+        schedule: flow.db.read(SCHEDULE_PATH),
+      }).toEqual({
+        replies: [privately(ORGANIZER.id, `**${TITLE}** isn't paused.`)],
+        schedule: STORED_SCHEDULE,
+      });
+    });
+  });
+});
+
+describe('/event schedule-delete', () => {
+  describe('when an organizer deletes a schedule', () => {
+    it.beforeEach(async ({ flow }) => {
+      flow.db.seed(SCHEDULE_PATH, STORED_SCHEDULE);
+      flow.db.seed(RECLEAR_PATH, RECLEAR_SCHEDULE);
+      await event(flow, 'schedule-delete', { schedule: SCHEDULE_ID });
+    });
+
+    it('removes only that schedule, and says posted events stay', ({
+      flow,
+    }) => {
+      expect({
+        replies: repliesTo(flow, ORGANIZER.id),
+        schedules: schedules(flow),
+      }).toEqual({
+        replies: [
+          privately(
+            ORGANIZER.id,
+            `Deleted **${TITLE}**. Events it already posted stay.`,
+          ),
+        ],
+        schedules: [
+          { id: 'schedule-2', path: RECLEAR_PATH, data: RECLEAR_SCHEDULE },
+        ],
+      });
+    });
+  });
+});
