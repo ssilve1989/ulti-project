@@ -185,6 +185,7 @@ export function buildOverviewEmbed(
   const {
     autoModChannelId,
     clearRoles,
+    eventOrganizerRoles,
     jobEmojis,
     progPointRoles,
     progRoles,
@@ -253,6 +254,13 @@ export function buildOverviewEmbed(
     {
       name: 'Job emojis',
       value: formatJobEmojis(jobEmojis),
+      inline: true,
+    },
+    {
+      name: 'Event organizers',
+      value: eventOrganizerRoles?.length
+        ? eventOrganizerRoles.map(roleMention).join(', ')
+        : 'Not set',
       inline: true,
     },
   ];

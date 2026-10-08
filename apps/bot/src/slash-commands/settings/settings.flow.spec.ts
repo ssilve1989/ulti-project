@@ -16,6 +16,7 @@ import {
   textReply,
 } from '../../test-utils/replies.js';
 import { BLACKLIST_CHANNELS_SELECT_ID } from './subcommands/blacklist-channels/blacklist-channels.components.js';
+import { EVENT_ORGANIZERS_SELECT_ID } from './subcommands/event-organizers/event-organizers.components.js';
 import { PROG_POINT_ROLES_SELECT_ID } from './subcommands/prog-point-roles/edit-prog-point-roles.command-handler.js';
 import {
   SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID,
@@ -47,6 +48,8 @@ const CLEAR_ROLE = 'dmu-clear-role';
 const P6_ROLE = 'dmu-p6-role';
 const TOP_PROG_ROLE = 'top-prog-role';
 const TOP_CLEAR_ROLE = 'top-clear-role';
+const ORGANIZER_ROLE = 'organizer-role';
+const RAID_LEAD_ROLE = 'raid-lead-role';
 
 /** Settings a guild has once an admin has configured everything but spreadsheets. */
 const CONFIGURED = Object.freeze({
@@ -77,6 +80,8 @@ function givenAGuild(flow: FlowApp): void {
     P6_ROLE,
     TOP_PROG_ROLE,
     TOP_CLEAR_ROLE,
+    ORGANIZER_ROLE,
+    RAID_LEAD_ROLE,
   ]) {
     flow.discord.addRole(GUILD, { id, name: id });
   }
@@ -546,6 +551,115 @@ describe('Settings', () => {
     });
   });
 
+  describe('event-organizers', () => {
+    const INSTRUCTIONS =
+      'Select the roles that can create and manage events. Your selection replaces the current list; submit an empty selection to remove every organizer role.';
+
+    /** The role menu, with `selected` as its current roles. */
+    const roleMenu = (selected: string[]) => ({
+      type: ComponentType.ActionRow,
+      components: [
+        {
+          type: ComponentType.RoleSelect,
+          custom_id: EVENT_ORGANIZERS_SELECT_ID,
+          placeholder: 'Select event organizer roles',
+          min_values: 0,
+          max_values: 25,
+          default_values: selected.map((id) => ({ id, type: 'role' })),
+        },
+      ],
+    });
+
+    const pick = async (
+      flow: FlowApp,
+      reply: Awaited<ReturnType<typeof settings>>,
+      roleIds: string[],
+    ) => {
+      flow.discord.chooseRoles(reply(), roleIds, ADMIN.id);
+      await flow.settle();
+    };
+
+    describe('when an admin opens the menu', () => {
+      it('shows them, privately, the current organizer roles', async ({
+        flow,
+      }) => {
+        flow.db.seed(SETTINGS_PATH, { eventOrganizerRoles: [ORGANIZER_ROLE] });
+
+        await settings(flow, 'event-organizers');
+
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            content: INSTRUCTIONS,
+            components: [roleMenu([ORGANIZER_ROLE])],
+          }),
+        ]);
+      });
+    });
+
+    describe('when the admin picks two roles', () => {
+      it.beforeEach(async ({ flow }) => {
+        const reply = await settings(flow, 'event-organizers');
+        await pick(flow, reply, [ORGANIZER_ROLE, RAID_LEAD_ROLE]);
+      });
+
+      it('stores them as the organizer roles', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          eventOrganizerRoles: [ORGANIZER_ROLE, RAID_LEAD_ROLE],
+        });
+      });
+
+      it('confirms them under the menu, which keeps them selected', ({
+        flow,
+      }) => {
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            content: `${INSTRUCTIONS}\n\nSaved! Event organizers: <@&${ORGANIZER_ROLE}>, <@&${RAID_LEAD_ROLE}>`,
+            components: [roleMenu([ORGANIZER_ROLE, RAID_LEAD_ROLE])],
+          }),
+        ]);
+      });
+    });
+
+    describe('when the admin picks no roles', () => {
+      it.beforeEach(async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, { eventOrganizerRoles: [ORGANIZER_ROLE] });
+        const reply = await settings(flow, 'event-organizers');
+        await pick(flow, reply, []);
+      });
+
+      it('stores that no role organizes events', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          eventOrganizerRoles: [],
+        });
+      });
+
+      it('confirms nobody can create events', ({ flow }) => {
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            content: `${INSTRUCTIONS}\n\nSaved! Nobody can create events until organizer roles are set.`,
+            components: [roleMenu([])],
+          }),
+        ]);
+      });
+    });
+
+    describe('when the menu expires', () => {
+      it('says so and removes the menu', async ({ flow }) => {
+        await settings(flow, 'event-organizers');
+
+        flow.discord.expireAll();
+        await flow.settle();
+
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            content:
+              'This menu has expired. Run /settings event-organizers again if needed.',
+          }),
+        ]);
+      });
+    });
+  });
+
   describe('job-emojis', () => {
     const SGE_EMOJI = '123456789012345678';
     const WHM_EMOJI = '223456789012345678';
@@ -684,6 +798,7 @@ describe('Settings', () => {
     const overview = (
       spreadsheetFields: unknown[] = [],
       jobEmojis = 'Not set',
+      eventOrganizers = 'Not set',
     ) => ({
       title: 'Settings',
       description:
@@ -699,6 +814,7 @@ describe('Settings', () => {
         field('Clear Roles', '1 encounter configured'),
         field('Prog Point Roles', '1 encounter configured (2 prog points)'),
         field('Job emojis', jobEmojis),
+        field('Event organizers', eventOrganizers),
       ],
     });
 
@@ -771,6 +887,28 @@ describe('Settings', () => {
               overview(
                 [],
                 '<:PLD:123456789012345678> PLD <:WHM:223456789012345678> WHM',
+              ),
+            ],
+            components: [navRow('overview')],
+          }),
+        ]);
+      });
+
+      it('lists the event organizer roles', async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, {
+          ...CONFIGURED,
+          eventOrganizerRoles: [ORGANIZER_ROLE, RAID_LEAD_ROLE],
+        });
+
+        await view(flow);
+
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            embeds: [
+              overview(
+                [],
+                'Not set',
+                `<@&${ORGANIZER_ROLE}>, <@&${RAID_LEAD_ROLE}>`,
               ),
             ],
             components: [navRow('overview')],

@@ -23,6 +23,7 @@ import {
   type ModalSubmitInteraction,
   type PermissionResolvable,
   ReactionType,
+  type RoleSelectMenuInteraction,
   type StringSelectMenuInteraction,
 } from 'discord.js';
 import { mockOf } from '../mock-factory.js';
@@ -760,6 +761,36 @@ export class DiscordMock {
     );
   }
 
+  /** Picks `roleIds` in the message's only role select menu. */
+  chooseRoles(
+    message: FakeMessage,
+    roleIds: readonly string[],
+    userId: string,
+  ): void {
+    this.assertKnownUser(userId);
+    const menu = pickableMenu(
+      message,
+      ComponentType.RoleSelect,
+      roleIds,
+      userId,
+    );
+    const unknown = roleIds.filter((id) => !this.hasRole(id));
+    if (unknown.length > 0) {
+      throw new Error(
+        `Role select menu "${menu.customId}" can't offer ${unknown.join(', ')}`,
+      );
+    }
+    message.dispatch(
+      this.componentInteraction<RoleSelectMenuInteraction>(
+        message,
+        userId,
+        menu.customId,
+        ComponentType.RoleSelect,
+        { values: [...roleIds] },
+      ),
+    );
+  }
+
   /**
    * Submits the modal open for `userId` with `fields` (input custom id →
    * value), refusing what the Discord client wouldn't let them submit.
@@ -1028,7 +1059,8 @@ export class DiscordMock {
     T extends
       | ButtonInteraction
       | StringSelectMenuInteraction
-      | ChannelSelectMenuInteraction,
+      | ChannelSelectMenuInteraction
+      | RoleSelectMenuInteraction,
   >(
     message: FakeMessage,
     userId: string,
@@ -1047,6 +1079,7 @@ export class DiscordMock {
         isStringSelectMenu: () => componentType === ComponentType.StringSelect,
         isChannelSelectMenu: () =>
           componentType === ComponentType.ChannelSelect,
+        isRoleSelectMenu: () => componentType === ComponentType.RoleSelect,
         customId,
         user: this.views.user(userId),
         message: message.toMessage(),

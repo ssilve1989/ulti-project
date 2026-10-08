@@ -128,6 +128,10 @@ const EditJobEmojisSubcommand = new SlashCommandSubcommandBuilder()
       .setRequired(false),
   );
 
+const EditEventOrganizersSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('event-organizers')
+  .setDescription('Choose the roles that can create and manage events');
+
 const EditSpreadsheetSubcommand = new SlashCommandSubcommandBuilder()
   .setName('spreadsheet')
   .setDescription('Edit spreadsheet settings')
@@ -154,5 +158,6 @@ export const SettingsSlashCommand = new SlashCommandBuilder()
   .addSubcommand(EditEncounterRolesSubcommand)
   .addSubcommand(EditProgPointRolesSubcommand)
   .addSubcommand(EditJobEmojisSubcommand)
+  .addSubcommand(EditEventOrganizersSubcommand)
   .addSubcommand(EditSpreadsheetSubcommand)
   .addSubcommand(ViewSettingsSubcommand);

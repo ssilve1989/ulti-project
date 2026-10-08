@@ -23,6 +23,8 @@ export interface SettingsDocument extends DocumentData {
   };
 
   jobEmojis?: Partial<Record<Job, string>>;
+
+  eventOrganizerRoles?: string[];
 }
 
 /**

@@ -13,6 +13,7 @@ import {
   ModalBuilder,
   PermissionFlagsBits,
   RESTJSONErrorCodes,
+  RoleSelectMenuBuilder,
   SlashCommandBuilder,
   StringSelectMenuBuilder,
   TextInputBuilder,
@@ -176,6 +177,7 @@ describe('DiscordMock', () => {
       | ActionRowBuilder<ButtonBuilder>
       | ActionRowBuilder<StringSelectMenuBuilder>
       | ActionRowBuilder<ChannelSelectMenuBuilder>
+      | ActionRowBuilder<RoleSelectMenuBuilder>
     >,
   ) => {
     const message = await service.sendDirectMessage('u1', {
@@ -770,6 +772,40 @@ describe('DiscordMock', () => {
           'u1',
         ),
       ).toThrow('takes 0-2 values, not 3');
+    });
+
+    const roleSelect = () =>
+      new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(
+        new RoleSelectMenuBuilder()
+          .setCustomId('roles')
+          .setMinValues(0)
+          .setMaxValues(2),
+      );
+
+    it('delivers the roles chosen in a role select menu', async ({
+      discord,
+      service,
+    }) => {
+      const message = await service.sendDirectMessage('u1', {
+        components: [roleSelect()],
+      });
+      const pending = message.awaitMessageComponent();
+
+      discord.chooseRoles(discord.latestDmTo('u1'), ['r1', 'r2'], 'u1');
+
+      const chosen = await pending;
+      expect(chosen.isRoleSelectMenu() && chosen.values).toEqual(['r1', 'r2']);
+    });
+
+    it('refuses to choose a role the guild does not have', async ({
+      discord,
+      service,
+    }) => {
+      await dmAwaitingClick({ discord, service }, [roleSelect()]);
+
+      expect(() =>
+        discord.chooseRoles(discord.latestDmTo('u1'), ['missing'], 'u1'),
+      ).toThrow(`can't offer missing`);
     });
 
     it('refuses to choose several values in a menu that takes one', async ({

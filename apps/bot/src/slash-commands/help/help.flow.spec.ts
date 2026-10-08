@@ -53,7 +53,7 @@ const PUBLIC_COMMANDS = Object.freeze({
 const MANAGEMENT_COMMANDS = Object.freeze({
   name: '⚙️ Management Commands',
   value:
-    '**/settings** - Configure/Review the bots roles and channel settings\n└ Subcommands: `blacklist-channels`, `channels`, `reviewer`, `encounter-roles`, `prog-point-roles`, `job-emojis`, `spreadsheet`, `view`',
+    '**/settings** - Configure/Review the bots roles and channel settings\n└ Subcommands: `blacklist-channels`, `channels`, `reviewer`, `encounter-roles`, `prog-point-roles`, `job-emojis`, `event-organizers`, `spreadsheet`, `view`',
   inline: false,
 });
 
