@@ -9,7 +9,7 @@ export const EventStatus = {
 
 export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus];
 
-interface EventPhase {
+export interface EventPhase {
   roleId: string;
   label: string;
   order: number;
