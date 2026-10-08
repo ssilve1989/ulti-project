@@ -1,6 +1,6 @@
 import { Encounter } from '@ulti-project/shared';
 import { z } from 'zod';
-import { NorthAmericanWorlds } from '../../worlds/consts.js';
+import { NorthAmericanWorlds } from '#src/worlds/consts.js';
 
 export const removeSignupSchema = z.object({
   character: z

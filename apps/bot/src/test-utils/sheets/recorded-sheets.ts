@@ -7,7 +7,7 @@ import { gunzipSync } from 'node:zlib';
 import { isEncounter } from '@ulti-project/shared';
 import nock, { type BackMode, type Definition } from 'nock';
 import { expect } from 'vitest';
-import { createdRequest, HTTP_REQUEST_CREATED } from '../idle.js';
+import { createdRequest, HTTP_REQUEST_CREATED } from '#src/test-utils/idle.js';
 
 /**
  * Google Sheets traffic in flow specs is recorded from the real shared test

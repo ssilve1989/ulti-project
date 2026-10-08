@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/nestjs';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import nock from 'nock';
 import { test as base, describe, expect, vi } from 'vitest';
-import { DiscordService } from '../discord/discord.service.js';
+import { DiscordService } from '#src/discord/discord.service.js';
 import { fresh } from './fixtures.js';
 import { createFlowApp, type FlowApp } from './flow-app.js';
 import { HTTP_REQUEST_CREATED } from './idle.js';

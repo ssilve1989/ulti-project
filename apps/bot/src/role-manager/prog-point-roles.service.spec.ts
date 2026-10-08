@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import type { GuildMember } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAutoMock, mockOf } from '../test-utils/mock-factory.js';
+import { createAutoMock, mockOf } from '#src/test-utils/mock-factory.js';
 import { ProgPointRolesService } from './prog-point-roles.service.js';
 
 describe('ProgPointRolesService', () => {

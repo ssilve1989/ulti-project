@@ -15,10 +15,10 @@ import {
   type StringSelectMenuBuilder,
   type User,
 } from 'discord.js';
-import { isSameUserFilter } from '../../common/collection-filters.js';
-import { DiscordService } from '../../discord/discord.service.js';
-import { PROG_POINT_SELECT_ID } from '../../encounters/encounters.components.js';
-import { EncountersComponentsService } from '../../encounters/encounters-components.service.js';
+import { isSameUserFilter } from '#src/common/collection-filters.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { PROG_POINT_SELECT_ID } from '#src/encounters/encounters.components.js';
+import { EncountersComponentsService } from '#src/encounters/encounters-components.service.js';
 import {
   APPROVAL_CANCEL_BUTTON_ID,
   APPROVAL_COMMENT_INPUT_ID,

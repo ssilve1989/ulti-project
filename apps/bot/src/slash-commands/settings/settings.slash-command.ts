@@ -5,7 +5,7 @@ import {
   SlashCommandBuilder,
   SlashCommandSubcommandBuilder,
 } from 'discord.js';
-import { appConfig } from '../../config/app.js';
+import { appConfig } from '#src/config/app.js';
 
 const EditChannelsSubcommand = new SlashCommandSubcommandBuilder()
   .setName('channels')

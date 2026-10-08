@@ -6,7 +6,7 @@ import {
   typedCollection,
 } from '@ulti-project/shared';
 import { CollectionReference, Firestore } from 'firebase-admin/firestore';
-import { InjectFirestore } from '../firebase.decorators.js';
+import { InjectFirestore } from '#src/firebase/firebase.decorators.js';
 
 type CachedEncounter = EncounterDocument & { id: string };
 

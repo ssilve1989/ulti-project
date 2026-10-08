@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ComponentSessionModule } from '../../discord/component-session.module.js';
-import { EncountersModule } from '../../encounters/encounters.module.js';
-import { ErrorModule } from '../../error/error.module.js';
-import { FirebaseModule } from '../../firebase/firebase.module.js';
-import { SheetsModule } from '../../sheets/sheets.module.js';
+import { ComponentSessionModule } from '#src/discord/component-session.module.js';
+import { EncountersModule } from '#src/encounters/encounters.module.js';
+import { ErrorModule } from '#src/error/error.module.js';
+import { FirebaseModule } from '#src/firebase/firebase.module.js';
+import { SheetsModule } from '#src/sheets/sheets.module.js';
 import { EditBlacklistChannelsCommandHandler } from './subcommands/blacklist-channels/edit-blacklist-channels.command-handler.js';
 import { EditChannelsCommandHandler } from './subcommands/channels/edit-channels.command-handler.js';
 import { EditProgPointRolesCommandHandler } from './subcommands/prog-point-roles/edit-prog-point-roles.command-handler.js';

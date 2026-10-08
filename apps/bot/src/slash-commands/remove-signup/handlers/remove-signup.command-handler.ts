@@ -16,29 +16,29 @@ import {
   characterField,
   encounterField,
   worldField,
-} from '../../../common/components/fields.js';
-import { appConfig } from '../../../config/app.js';
-import { DiscordService } from '../../../discord/discord.service.js';
-import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
-import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import { DocumentNotFoundException } from '../../../firebase/firebase.exceptions.js';
-import { SheetsService } from '../../../sheets/sheets.service.js';
-import { SIGNUP_MESSAGES } from '../../signup/signup.consts.js';
-import { shouldDeleteReviewMessageForSignup } from '../../signup/signup.utils.js';
-import { SlashCommand } from '../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../slash-command.interface.js';
+} from '#src/common/components/fields.js';
+import { appConfig } from '#src/config/app.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
+import { DocumentNotFoundException } from '#src/firebase/firebase.exceptions.js';
+import { SheetsService } from '#src/sheets/sheets.service.js';
 import {
   REMOVAL_MISSING_PERMISSIONS,
   REMOVAL_NO_DB_ENTRY,
   REMOVAL_NO_SHEET_ENTRY,
   REMOVAL_SUCCESS,
-} from '../remove-signup.consts.js';
-import { RemoveSignupEvent } from '../remove-signup.events.js';
+} from '#src/slash-commands/remove-signup/remove-signup.consts.js';
+import { RemoveSignupEvent } from '#src/slash-commands/remove-signup/remove-signup.events.js';
 import {
   type RemoveSignupSchema,
   removeSignupSchema,
-} from '../remove-signup.schema.js';
-import { createRemoveSignupSlashCommand } from '../remove-signup.slash-command.js';
+} from '#src/slash-commands/remove-signup/remove-signup.schema.js';
+import { createRemoveSignupSlashCommand } from '#src/slash-commands/remove-signup/remove-signup.slash-command.js';
+import { SIGNUP_MESSAGES } from '#src/slash-commands/signup/signup.consts.js';
+import { shouldDeleteReviewMessageForSignup } from '#src/slash-commands/signup/signup.utils.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
 
 type RemoveSignupProps = {
   dto: RemoveSignupSchema;

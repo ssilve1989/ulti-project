@@ -17,11 +17,11 @@ import {
   retry,
   timer,
 } from 'rxjs';
-import { withUnitOfWork } from '../common/sentry.js';
-import { appConfig } from '../config/app.js';
-import { InjectDiscordClient } from '../discord/discord.decorators.js';
-import { replyPrivately } from '../discord/discord.helpers.js';
-import { ErrorService } from '../error/error.service.js';
+import { withUnitOfWork } from '#src/common/sentry.js';
+import { appConfig } from '#src/config/app.js';
+import { InjectDiscordClient } from '#src/discord/discord.decorators.js';
+import { replyPrivately } from '#src/discord/discord.helpers.js';
+import { ErrorService } from '#src/error/error.service.js';
 import { SlashCommandRegistry } from './slash-command-registry.service.js';
 
 @Injectable()

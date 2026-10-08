@@ -18,8 +18,8 @@ import {
   TextInputStyle,
 } from 'discord.js';
 import { test as base, describe, expect } from 'vitest';
-import { DiscordService } from '../../discord/discord.service.js';
-import { fresh } from '../fixtures.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { fresh } from '#src/test-utils/fixtures.js';
 import { BOT_USER_ID, DiscordMock } from './discord-mock.js';
 import {
   cannotMessageUser,

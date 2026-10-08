@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nestjs';
 import { test as base, describe, expect } from 'vitest';
-import { fresh } from '../test-utils/fixtures.js';
-import { watchSentryEvents } from '../test-utils/sentry.js';
+import { fresh } from '#src/test-utils/fixtures.js';
+import { watchSentryEvents } from '#src/test-utils/sentry.js';
 import { withUnitOfWork } from './sentry.js';
 
 interface Report {

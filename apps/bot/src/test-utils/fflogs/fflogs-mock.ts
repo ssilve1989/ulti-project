@@ -1,7 +1,7 @@
 import { GraphQLError } from 'graphql';
 import { ClientError } from 'graphql-request';
-import type { FFLogsSDKClient } from '../../fflogs/fflogs.interfaces.js';
-import type { ReportDataQuery } from '../../fflogs/graphql/sdk.js';
+import type { FFLogsSDKClient } from '#src/fflogs/fflogs.interfaces.js';
+import type { ReportDataQuery } from '#src/fflogs/graphql/sdk.js';
 
 /**
  * Stands in for the FFLogs GraphQL API behind the SDK token, so the real

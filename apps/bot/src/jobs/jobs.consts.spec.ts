@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/nestjs';
 import { test as base, describe, expect } from 'vitest';
-import { CronTime } from '../common/cron.js';
-import { fresh } from '../test-utils/fixtures.js';
-import { watchSentryEvents } from '../test-utils/sentry.js';
+import { CronTime } from '#src/common/cron.js';
+import { fresh } from '#src/test-utils/fixtures.js';
+import { watchSentryEvents } from '#src/test-utils/sentry.js';
 import { createJob } from './jobs.consts.js';
 
 function watchTraceIds() {

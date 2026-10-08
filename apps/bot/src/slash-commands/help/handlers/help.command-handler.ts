@@ -8,15 +8,15 @@ import {
   MessageFlags,
   PermissionsBitField,
 } from 'discord.js';
-import { SlashCommand } from '../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../slash-command.interface.js';
-import { SlashCommandRegistry } from '../../slash-command-registry.service.js';
-import { HelpSlashCommand } from '../help.slash-command.js';
+import { HelpSlashCommand } from '#src/slash-commands/help/help.slash-command.js';
 import {
   type CommandInfo,
   filterCommandsByPermissions,
   getAvailableCommands,
-} from '../help.utils.js';
+} from '#src/slash-commands/help/help.utils.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
+import { SlashCommandRegistry } from '#src/slash-commands/slash-command-registry.service.js';
 
 @Injectable()
 @SlashCommand({ builder: HelpSlashCommand })

@@ -1,5 +1,5 @@
 import type { User } from 'discord.js';
-import type { BlacklistDocument } from '../../../firebase/models/blacklist.model.js';
+import type { BlacklistDocument } from '#src/firebase/models/blacklist.model.js';
 
 type BlacklistUpdateEventData = {
   guildId: string;

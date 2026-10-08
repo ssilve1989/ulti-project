@@ -35,20 +35,20 @@ import {
   Subscription,
 } from 'rxjs';
 import { match } from 'ts-pattern';
-import { withUnitOfWork } from '../../common/sentry.js';
-import { getMessageLink } from '../../discord/discord.consts.js';
+import { withUnitOfWork } from '#src/common/sentry.js';
+import { getMessageLink } from '#src/discord/discord.consts.js';
 import {
   getFirstEmbed,
   hydrateReaction,
   hydrateUser,
-} from '../../discord/discord.helpers.js';
-import { DiscordService } from '../../discord/discord.service.js';
-import { EncountersService } from '../../encounters/encounters.service.js';
-import { ErrorService } from '../../error/error.service.js';
-import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import type { SettingsDocument } from '../../firebase/models/settings.model.js';
-import { SheetsService } from '../../sheets/sheets.service.js';
+} from '#src/discord/discord.helpers.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { EncountersService } from '#src/encounters/encounters.service.js';
+import { ErrorService } from '#src/error/error.service.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
+import type { SettingsDocument } from '#src/firebase/models/settings.model.js';
+import { SheetsService } from '#src/sheets/sheets.service.js';
 import {
   type ApprovalDecision,
   ApprovalDecisionRequestService,

@@ -10,9 +10,9 @@ import {
 } from '@ulti-project/shared';
 import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
-import { AsyncQueue } from '../common/async-queue/async-queue.js';
-import { EncountersService } from '../encounters/encounters.service.js';
-import { ErrorService } from '../error/error.service.js';
+import { AsyncQueue } from '#src/common/async-queue/async-queue.js';
+import { EncountersService } from '#src/encounters/encounters.service.js';
+import { ErrorService } from '#src/error/error.service.js';
 import { type SheetRangeConfig, SheetRanges } from './sheets.consts.js';
 import { InjectSheetsClient } from './sheets.decorators.js';
 import {

@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nestjs';
 import { CronJob, type CronJobParams } from 'cron';
-import { withUnitOfWork } from '../common/sentry.js';
-import { USTimeZones } from '../common/time-zones.js';
+import { withUnitOfWork } from '#src/common/sentry.js';
+import { USTimeZones } from '#src/common/time-zones.js';
 
 // The jobs in this repo are all scheduled by time zone, never by UTC offset.
 // `CronJobParams` is a union of a `timeZone` arm and a mutually exclusive

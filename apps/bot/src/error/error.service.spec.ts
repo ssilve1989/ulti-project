@@ -10,7 +10,7 @@ import {
   test,
   vi,
 } from 'vitest';
-import { mockOf } from '../test-utils/mock-factory.js';
+import { mockOf } from '#src/test-utils/mock-factory.js';
 
 // The suite runs with `test.isolate: false`, so the module registry is shared
 // across spec files. A hoisted `vi.mock('@sentry/nestjs')` cannot rebind

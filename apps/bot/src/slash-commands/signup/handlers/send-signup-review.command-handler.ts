@@ -7,17 +7,14 @@ import {
   EncounterFriendlyDescription,
 } from '@ulti-project/shared';
 import { EmbedBuilder, GuildMember, userMention } from 'discord.js';
-import {
-  characterField,
-  worldField,
-} from '../../../common/components/fields.js';
-import { createFields } from '../../../common/embed-helpers.js';
-import { MissingChannelException } from '../../../discord/discord.exceptions.js';
-import { DiscordService } from '../../../discord/discord.service.js';
-import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
-import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import { SignupApprovalSentEvent } from '../events/signup.events.js';
-import { SIGNUP_REVIEW_REACTIONS } from '../signup.consts.js';
+import { characterField, worldField } from '#src/common/components/fields.js';
+import { createFields } from '#src/common/embed-helpers.js';
+import { MissingChannelException } from '#src/discord/discord.exceptions.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
+import { SignupApprovalSentEvent } from '#src/slash-commands/signup/events/signup.events.js';
+import { SIGNUP_REVIEW_REACTIONS } from '#src/slash-commands/signup/signup.consts.js';
 import { SendSignupReviewCommand } from './send-signup-review.command.js';
 
 @CommandHandler(SendSignupReviewCommand)

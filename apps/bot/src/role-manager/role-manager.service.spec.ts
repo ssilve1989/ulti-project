@@ -1,6 +1,6 @@
 import type { ChatInputCommandInteraction, User } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mockOf } from '../test-utils/mock-factory.js';
+import { mockOf } from '#src/test-utils/mock-factory.js';
 import { RoleManagerService } from './role-manager.service.js';
 
 describe('RoleManagerService', () => {

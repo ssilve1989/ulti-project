@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import { type SignupDocument, typedCollection } from '@ulti-project/shared';
 import { Firestore } from 'firebase-admin/firestore';
-import { InjectFirestore } from '../../firebase/firebase.decorators.js';
+import { InjectFirestore } from '#src/firebase/firebase.decorators.js';
 
 @Injectable()
 class StatusService {

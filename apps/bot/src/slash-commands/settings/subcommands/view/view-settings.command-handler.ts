@@ -3,13 +3,13 @@ import * as Sentry from '@sentry/nestjs';
 import { type Encounter, isEncounter } from '@ulti-project/shared';
 import type { APIEmbedField, ChatInputCommandInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
-import { ComponentSessionService } from '../../../../discord/component-session.service.js';
-import { ErrorService } from '../../../../error/error.service.js';
-import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { SheetsService } from '../../../../sheets/sheets.service.js';
-import { SlashCommand } from '../../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../../slash-command.interface.js';
-import { SettingsSlashCommand } from '../../settings.slash-command.js';
+import { ComponentSessionService } from '#src/discord/component-session.service.js';
+import { ErrorService } from '#src/error/error.service.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { SheetsService } from '#src/sheets/sheets.service.js';
+import { SettingsSlashCommand } from '#src/slash-commands/settings/settings.slash-command.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
 import {
   buildEncounterRolesEmbed,
   buildOverviewEmbed,

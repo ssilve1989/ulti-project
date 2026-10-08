@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { typedCollection } from '@ulti-project/shared';
 import type { Firestore } from 'firebase-admin/firestore';
-import type { JobType } from '../../../jobs/jobs.consts.js';
-import { InjectFirestore } from '../../firebase.decorators.js';
+import { InjectFirestore } from '#src/firebase/firebase.decorators.js';
+import type { JobType } from '#src/jobs/jobs.consts.js';
 import type { JobDocument } from './job.model.js';
 
 @Injectable()

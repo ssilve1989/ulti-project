@@ -2,10 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { Colors, EmbedBuilder, MessageFlags } from 'discord.js';
-import { DiscordService } from '../../../discord/discord.service.js';
-import { SlashCommand } from '../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../slash-command.interface.js';
-import { RetireSlashCommand } from '../retire.slash-command.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { RetireSlashCommand } from '#src/slash-commands/retire/retire.slash-command.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
 
 @Injectable()
 @SlashCommand({ builder: RetireSlashCommand })

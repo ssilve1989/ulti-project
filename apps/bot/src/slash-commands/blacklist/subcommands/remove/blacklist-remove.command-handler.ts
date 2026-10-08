@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
-import { BlacklistCollection } from '../../../../firebase/collections/blacklist-collection.js';
-import { SlashCommand } from '../../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../../slash-command.interface.js';
-import { BlacklistSlashCommand } from '../../blacklist.slash-command.js';
-import { BlacklistUpdatedEvent } from '../../events/blacklist.events.js';
+import { BlacklistCollection } from '#src/firebase/collections/blacklist-collection.js';
+import { BlacklistSlashCommand } from '#src/slash-commands/blacklist/blacklist.slash-command.js';
+import { BlacklistUpdatedEvent } from '#src/slash-commands/blacklist/events/blacklist.events.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
 
 @Injectable()
 @SlashCommand({ builder: BlacklistSlashCommand, subcommand: 'remove' })
