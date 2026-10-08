@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { USTimeZones } from '../../common/time-zones.js';
 import {
   nextOccurrence,
-  occurrencesAfter,
+  occurrenceOnDayOf,
   type Recurrence,
   signupsCloseAt,
   timeZoneLabel,
@@ -115,24 +115,20 @@ describe('nextOccurrence', () => {
   });
 });
 
-describe('occurrencesAfter', () => {
-  describe('when three occurrences of a Tue/Thu schedule are asked on Monday', () => {
-    it('returns Tuesday, Thursday and the next Tuesday', () => {
+describe('occurrenceOnDayOf', () => {
+  describe('when a Tue/Thu 20:00 Eastern schedule is asked for Thursday 22:00 Eastern, already Friday in UTC', () => {
+    it('returns that Thursday at 20:00 Eastern', () => {
       expect(
-        occurrencesAfter(TUE_THU_8PM, new Date('2026-07-13T16:00:00Z'), 3),
-      ).toEqual([
-        new Date('2026-07-15T00:00:00Z'),
-        new Date('2026-07-17T00:00:00Z'),
-        new Date('2026-07-22T00:00:00Z'),
-      ]);
+        occurrenceOnDayOf(TUE_THU_8PM, new Date('2026-07-17T02:00:00Z')),
+      ).toEqual(new Date('2026-07-17T00:00:00Z'));
     });
   });
 
-  describe('when none are asked', () => {
-    it('returns none', () => {
+  describe('when it is asked for a Wednesday', () => {
+    it('returns undefined', () => {
       expect(
-        occurrencesAfter(TUE_THU_8PM, new Date('2026-07-13T16:00:00Z'), 0),
-      ).toEqual([]);
+        occurrenceOnDayOf(TUE_THU_8PM, new Date('2026-07-15T16:00:00Z')),
+      ).toBeUndefined();
     });
   });
 });

@@ -41,43 +41,47 @@ const MILLISECONDS_PER_HOUR = 3_600_000;
  * time skipped by spring-forward moves later and an ambiguous one takes the
  * earlier offset (Temporal's `compatible`).
  */
-export function nextOccurrence(
-  { weekdays, startTime, timeZone }: Recurrence,
-  after: Date,
-): Date {
-  const [hour, minute] = startTime.split(':').map(Number);
+export function nextOccurrence(recurrence: Recurrence, after: Date): Date {
   const start = Temporal.Instant.fromEpochMilliseconds(
     after.getTime(),
-  ).toZonedDateTimeISO(timeZone);
+  ).toZonedDateTimeISO(recurrence.timeZone);
   for (let offset = 0; offset <= 7; offset++) {
-    const day = start.toPlainDate().add({ days: offset });
-    if (!weekdays.includes(Weekdays[day.dayOfWeek - 1])) continue;
-    const candidate = day.toZonedDateTime({
-      timeZone,
-      plainTime: { hour, minute },
-    });
-    if (
-      Temporal.Instant.compare(candidate.toInstant(), start.toInstant()) > 0
-    ) {
-      return new Date(candidate.epochMilliseconds);
-    }
+    const candidate = occurrenceOn(
+      recurrence,
+      start.toPlainDate().add({ days: offset }),
+    );
+    if (candidate && candidate.getTime() > after.getTime()) return candidate;
   }
   throw new Error('a recurrence must have at least one weekday');
 }
 
-/** The first `count` occurrences strictly after `after`, in order. */
-export function occurrencesAfter(
+/**
+ * The occurrence on `start`'s date in the recurrence's zone, at its
+ * `startTime`; undefined if that date's weekday isn't one of its weekdays.
+ */
+export function occurrenceOnDayOf(
   recurrence: Recurrence,
-  after: Date,
-  count: number,
-): Date[] {
-  const starts: Date[] = [];
-  let previous = after;
-  while (starts.length < count) {
-    previous = nextOccurrence(recurrence, previous);
-    starts.push(previous);
-  }
-  return starts;
+  start: Date,
+): Date | undefined {
+  return occurrenceOn(
+    recurrence,
+    Temporal.Instant.fromEpochMilliseconds(start.getTime())
+      .toZonedDateTimeISO(recurrence.timeZone)
+      .toPlainDate(),
+  );
+}
+
+/** `startTime` on `day` in `timeZone`; undefined if `day` isn't one of the weekdays. */
+function occurrenceOn(
+  { weekdays, startTime, timeZone }: Recurrence,
+  day: Temporal.PlainDate,
+): Date | undefined {
+  if (!weekdays.includes(Weekdays[day.dayOfWeek - 1])) return undefined;
+  const [hour, minute] = startTime.split(':').map(Number);
+  return new Date(
+    day.toZonedDateTime({ timeZone, plainTime: { hour, minute } })
+      .epochMilliseconds,
+  );
 }
 
 /** When sign-ups close for an occurrence starting at `start`. */

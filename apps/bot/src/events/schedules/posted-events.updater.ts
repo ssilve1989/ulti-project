@@ -20,7 +20,12 @@ import type {
 } from '../../firebase/models/event-schedule.model.js';
 import { EventMessageService } from '../event-message.service.js';
 import { ParticipantWithdrawnEvent } from '../signup/events.events.js';
-import { occurrencesAfter, signupsCloseAt } from './next-occurrence.js';
+import {
+  nextOccurrence,
+  occurrenceOnDayOf,
+  type Recurrence,
+  signupsCloseAt,
+} from './next-occurrence.js';
 
 export interface PostedEventsUpdate {
   schedule: StoredSchedule;
@@ -58,6 +63,31 @@ function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
+/**
+ * Each event's new start, in `posted`'s order. An event whose weekday is still
+ * scheduled stays on its date at the new time; one whose weekday was removed,
+ * or whose new time that day has passed, takes the earliest occurrence after
+ * `now` that no other event holds, in start order.
+ */
+function newStarts(
+  posted: readonly StoredEvent[],
+  recurrence: Recurrence,
+  now: Date,
+): Date[] {
+  const kept = posted.map((event) => {
+    const start = occurrenceOnDayOf(recurrence, event.startsAt.toDate());
+    return start && start > now ? start : undefined;
+  });
+  const taken = new Set(kept.flatMap((start) => start?.getTime() ?? []));
+  return kept.map((start) => {
+    if (start) return start;
+    let next = nextOccurrence(recurrence, now);
+    while (taken.has(next.getTime())) next = nextOccurrence(recurrence, next);
+    taken.add(next.getTime());
+    return next;
+  });
+}
+
 /** Applies a schedule's edits to the events it already posted. */
 @Injectable()
 export class PostedEventsUpdater {
@@ -74,9 +104,9 @@ export class PostedEventsUpdater {
 
   /**
    * Saves `changes` to the schedule, then updates the events it posted that
-   * haven't started and aren't closed: they take its next occurrences in
-   * order, and its own next times move past them, so the scheduler doesn't
-   * post those again. Undefined, touching no event, if the schedule is missing.
+   * haven't started and aren't closed, each keeping its own day when it can
+   * (`newStarts`). The scheduler skips an occurrence one of them holds.
+   * Undefined, touching no event, if the schedule is missing.
    */
   async apply(
     scheduleId: string,
@@ -85,13 +115,7 @@ export class PostedEventsUpdater {
     now: Date,
   ): Promise<PostedEventsUpdate | undefined> {
     const posted = await this.events.findUpcomingForSchedule(scheduleId, now);
-    const schedule = await this.schedules.update(
-      scheduleId,
-      changes,
-      by,
-      now,
-      posted.length,
-    );
+    const schedule = await this.schedules.update(scheduleId, changes, by, now);
     if (!schedule) return undefined;
 
     const update: PostedEventsUpdate = {
@@ -100,7 +124,7 @@ export class PostedEventsUpdater {
       removed: {},
       notMoved: 0,
     };
-    const starts = occurrencesAfter(schedule, now, posted.length);
+    const starts = newStarts(posted, schedule, now);
     for (const [index, event] of posted.entries()) {
       const outcome = await this.updateEvent(
         event,
