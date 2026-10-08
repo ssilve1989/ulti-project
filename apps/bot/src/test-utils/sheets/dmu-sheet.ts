@@ -1,4 +1,4 @@
-import type { FlowApp } from '../flow-app.js';
+import type { FlowApp } from '#src/test-utils/flow-app.js';
 
 /** The DMU tab of the test spreadsheet. */
 const DMU_TAB_ID = 695983618;

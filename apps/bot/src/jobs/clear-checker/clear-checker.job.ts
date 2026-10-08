@@ -27,18 +27,18 @@ import {
   tap,
   toArray,
 } from 'rxjs';
-import { CronTime } from '../../common/cron.js';
-import { clearCheckerConfig } from '../../config/clear-checker.js';
-import { DiscordService } from '../../discord/discord.service.js';
-import { ErrorService } from '../../error/error.service.js';
-import { FFLogsService } from '../../fflogs/fflogs.service.js';
-import { EncountersCollection } from '../../firebase/collections/encounters-collection.js';
-import { JobCollection } from '../../firebase/collections/job/job.collection.js';
-import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import { SheetsService } from '../../sheets/sheets.service.js';
-import { RemoveSignupEvent } from '../../slash-commands/remove-signup/remove-signup.events.js';
-import { createJob, jobDateFormatter } from '../jobs.consts.js';
+import { CronTime } from '#src/common/cron.js';
+import { clearCheckerConfig } from '#src/config/clear-checker.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { ErrorService } from '#src/error/error.service.js';
+import { FFLogsService } from '#src/fflogs/fflogs.service.js';
+import { EncountersCollection } from '#src/firebase/collections/encounters-collection.js';
+import { JobCollection } from '#src/firebase/collections/job/job.collection.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
+import { createJob, jobDateFormatter } from '#src/jobs/jobs.consts.js';
+import { SheetsService } from '#src/sheets/sheets.service.js';
+import { RemoveSignupEvent } from '#src/slash-commands/remove-signup/remove-signup.events.js';
 
 // Discord caps an embed field value at 1024 characters. Overflowing it rejects
 // the whole message, which would swallow the entire summary rather than just

@@ -1,16 +1,16 @@
 import { PermissionFlagsBits } from 'discord.js';
 import { test as base, describe, expect } from 'vitest';
-import { avatarUrl } from '../../test-utils/discord/discord-mock.js';
-import { shown } from '../../test-utils/discord/fake-message.js';
-import { fresh } from '../../test-utils/fixtures.js';
-import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
-import { isoDateSince } from '../../test-utils/matchers.js';
+import { avatarUrl } from '#src/test-utils/discord/discord-mock.js';
+import { shown } from '#src/test-utils/discord/fake-message.js';
+import { fresh } from '#src/test-utils/fixtures.js';
+import { createFlowApp, type FlowApp } from '#src/test-utils/flow-app.js';
+import { isoDateSince } from '#src/test-utils/matchers.js';
 import {
   commandErrorReply,
   expectCommandErrorReported,
   privateReply,
   textReply,
-} from '../../test-utils/replies.js';
+} from '#src/test-utils/replies.js';
 
 const GUILD = 'guild-1';
 const BLACKLIST_CHANNEL = 'blacklist-channel';

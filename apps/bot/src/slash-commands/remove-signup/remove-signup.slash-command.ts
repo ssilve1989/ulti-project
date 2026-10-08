@@ -1,6 +1,6 @@
 import { getEncounterChoicesForMode } from '@ulti-project/shared';
 import { SlashCommandBuilder } from 'discord.js';
-import type { ApplicationModeConfig } from '../../config/app.js';
+import type { ApplicationModeConfig } from '#src/config/app.js';
 
 const REMOVE_SIGNUP_SLASH_COMMAND_NAME = 'remove-signup';
 

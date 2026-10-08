@@ -10,18 +10,18 @@ import {
 } from 'discord.js';
 import { titleCase } from 'title-case';
 import { z } from 'zod';
+import { emptyField, encounterField } from '#src/common/components/fields.js';
+import { createFields } from '#src/common/embed-helpers.js';
+import { ErrorService } from '#src/error/error.service.js';
+import { BlacklistCollection } from '#src/firebase/collections/blacklist-collection.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
 import {
-  emptyField,
-  encounterField,
-} from '../../../common/components/fields.js';
-import { createFields } from '../../../common/embed-helpers.js';
-import { ErrorService } from '../../../error/error.service.js';
-import { BlacklistCollection } from '../../../firebase/collections/blacklist-collection.js';
-import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import { SlashCommand } from '../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../slash-command.interface.js';
-import { type LookupSchema, lookupSchema } from '../lookup.schema.js';
-import { LookupSlashCommand } from '../lookup.slash-command.js';
+  type LookupSchema,
+  lookupSchema,
+} from '#src/slash-commands/lookup/lookup.schema.js';
+import { LookupSlashCommand } from '#src/slash-commands/lookup/lookup.slash-command.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
 
 type BlacklistStatus = 'No' | 'Yes' | 'Unknown';
 type SignupWithBlacklistStatus = SignupDocument & {

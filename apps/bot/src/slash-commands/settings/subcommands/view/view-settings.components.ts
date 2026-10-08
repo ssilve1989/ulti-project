@@ -16,7 +16,7 @@ import {
 import {
   getBlacklistChannelIds,
   type SettingsDocument,
-} from '../../../../firebase/models/settings.model.js';
+} from '#src/firebase/models/settings.model.js';
 
 export const SETTINGS_VIEW_OVERVIEW_BUTTON_ID = 'settingsViewOverview';
 export const SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID =

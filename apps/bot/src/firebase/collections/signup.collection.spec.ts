@@ -12,11 +12,11 @@ import {
 } from '@ulti-project/shared';
 import { Timestamp } from 'firebase-admin/firestore';
 import { test as base, describe, expect } from 'vitest';
-import { InMemoryFirestore } from '../../test-utils/firestore/in-memory-firestore.js';
-import { fresh } from '../../test-utils/fixtures.js';
-import { signupExpiryFor } from '../../test-utils/matchers.js';
-import { FIRESTORE } from '../firebase.consts.js';
-import { DocumentNotFoundException } from '../firebase.exceptions.js';
+import { FIRESTORE } from '#src/firebase/firebase.consts.js';
+import { DocumentNotFoundException } from '#src/firebase/firebase.exceptions.js';
+import { InMemoryFirestore } from '#src/test-utils/firestore/in-memory-firestore.js';
+import { fresh } from '#src/test-utils/fixtures.js';
+import { signupExpiryFor } from '#src/test-utils/matchers.js';
 import { SignupCollection } from './signup.collection.js';
 
 const KEY = Object.freeze({ discordId: 'Player-1', encounter: Encounter.DSR });

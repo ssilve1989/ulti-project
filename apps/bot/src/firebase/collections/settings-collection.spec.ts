@@ -1,9 +1,9 @@
 import { Test } from '@nestjs/testing';
 import { Encounter } from '@ulti-project/shared';
 import { test as base, describe, expect } from 'vitest';
-import { InMemoryFirestore } from '../../test-utils/firestore/in-memory-firestore.js';
-import { fresh } from '../../test-utils/fixtures.js';
-import { FIRESTORE } from '../firebase.consts.js';
+import { FIRESTORE } from '#src/firebase/firebase.consts.js';
+import { InMemoryFirestore } from '#src/test-utils/firestore/in-memory-firestore.js';
+import { fresh } from '#src/test-utils/fixtures.js';
 import { SettingsCollection } from './settings-collection.js';
 
 const GUILD = 'guild-1';

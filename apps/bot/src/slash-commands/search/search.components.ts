@@ -9,7 +9,7 @@ import {
   type SelectMenuComponentOptionData,
   StringSelectMenuBuilder,
 } from 'discord.js';
-import type { ApplicationModeConfig } from '../../config/app.js';
+import type { ApplicationModeConfig } from '#src/config/app.js';
 
 export const SEARCH_ENCOUNTER_SELECTOR_ID = 'searchEncounterSelect';
 export const SEARCH_PROG_POINT_SELECT_ID = 'searchProgPointSelect';

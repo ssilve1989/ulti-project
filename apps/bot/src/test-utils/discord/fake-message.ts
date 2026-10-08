@@ -13,7 +13,7 @@ import {
   type Message,
   RESTJSONErrorCodes,
 } from 'discord.js';
-import { mockOf } from '../mock-factory.js';
+import { mockOf } from '#src/test-utils/mock-factory.js';
 
 export type MessageLocation =
   | { kind: 'channel'; guildId: string; channelId: string }

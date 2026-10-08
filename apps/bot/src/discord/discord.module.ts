@@ -7,7 +7,7 @@ import {
 import * as Sentry from '@sentry/nestjs';
 import { ActivityType, Client, Events, Options } from 'discord.js';
 import { first, firstValueFrom, fromEvent } from 'rxjs';
-import { appConfig } from '../config/app.js';
+import { appConfig } from '#src/config/app.js';
 import { INTENTS, PARTIALS } from './discord.consts.js';
 import { DISCORD_CLIENT, InjectDiscordClient } from './discord.decorators.js';
 import { CacheTime } from './discord.helpers.js';

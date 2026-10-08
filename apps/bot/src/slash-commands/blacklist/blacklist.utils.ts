@@ -1,9 +1,9 @@
 import type { Logger } from '@nestjs/common';
 import { type APIEmbedField, type EmbedBuilder, userMention } from 'discord.js';
 import { titleCase } from 'title-case';
-import { emptyField } from '../../common/components/fields.js';
-import type { DiscordService } from '../../discord/discord.service.js';
-import type { BlacklistDocument } from '../../firebase/models/blacklist.model.js';
+import { emptyField } from '#src/common/components/fields.js';
+import type { DiscordService } from '#src/discord/discord.service.js';
+import type { BlacklistDocument } from '#src/firebase/models/blacklist.model.js';
 
 /**
  * Sends the embed to every configured blacklist notification channel.

@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { Encounter, PartyStatus } from '@ulti-project/shared';
 import { beforeEach, describe, expect, it, type Mocked } from 'vitest';
-import { createAutoMock } from '../test-utils/mock-factory.js';
+import { createAutoMock } from '#src/test-utils/mock-factory.js';
 import { PROG_POINT_SELECT_ID } from './encounters.components.js';
 import { EncountersService } from './encounters.service.js';
 import { EncountersComponentsService } from './encounters-components.service.js';

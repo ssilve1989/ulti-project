@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
-import { DiscordModule } from '../../discord/discord.module.js';
-import { FirebaseModule } from '../../firebase/firebase.module.js';
+import { DiscordModule } from '#src/discord/discord.module.js';
+import { FirebaseModule } from '#src/firebase/firebase.module.js';
 import { BlacklistSearchCommandHandler } from './handlers/blacklist-search.command-handler.js';
 import { BlacklistUpdatedEventHandler } from './handlers/blacklist-updated.event-handler.js';
 import { BlacklistAddCommandHandler } from './subcommands/add/blacklist-add.command-handler.js';

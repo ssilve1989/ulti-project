@@ -5,7 +5,7 @@ import type {
   ProgPointOption,
 } from '@ulti-project/shared';
 import { PartyStatus } from '@ulti-project/shared';
-import { EncountersCollection } from '../firebase/collections/encounters-collection.js';
+import { EncountersCollection } from '#src/firebase/collections/encounters-collection.js';
 
 @Injectable()
 export class EncountersService {

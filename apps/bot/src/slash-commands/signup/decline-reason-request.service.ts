@@ -17,9 +17,9 @@ import {
   type StringSelectMenuInteraction,
   type User,
 } from 'discord.js';
-import { isSameUserFilter } from '../../common/collection-filters.js';
-import { DiscordService } from '../../discord/discord.service.js';
-import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import { isSameUserFilter } from '#src/common/collection-filters.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
 import {
   CUSTOM_DECLINE_REASON_INPUT_ID,
   CUSTOM_DECLINE_REASON_MODAL_ID,

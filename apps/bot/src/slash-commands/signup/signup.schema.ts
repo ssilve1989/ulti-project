@@ -1,7 +1,7 @@
 import type { SignupDocument } from '@ulti-project/shared';
 import { Encounter } from '@ulti-project/shared';
 import { z } from 'zod';
-import { NorthAmericanWorlds } from '../../worlds/consts.js';
+import { NorthAmericanWorlds } from '#src/worlds/consts.js';
 import {
   PROG_PROOF_HOSTS_WHITELIST,
   WHITELIST_VALIDATION_ERROR,

@@ -6,8 +6,8 @@ import {
   FieldPath,
   Firestore,
 } from 'firebase-admin/firestore';
-import { InjectFirestore } from '../firebase.decorators.js';
-import type { SettingsDocument } from '../models/settings.model.js';
+import { InjectFirestore } from '#src/firebase/firebase.decorators.js';
+import type { SettingsDocument } from '#src/firebase/models/settings.model.js';
 
 @Injectable()
 class SettingsCollection {

@@ -11,7 +11,7 @@ import {
   type TextChannel,
   type User,
 } from 'discord.js';
-import { mockOf } from '../mock-factory.js';
+import { mockOf } from '#src/test-utils/mock-factory.js';
 
 /** A command as registered with Discord (what a slash command builder's toJSON() gives). */
 export type RegisteredCommand = Pick<

@@ -1,7 +1,7 @@
 import type { SignupDocument } from '@ulti-project/shared';
 import { PartyStatus, SignupStatus } from '@ulti-project/shared';
 import { describe, expect, test } from 'vitest';
-import { partialMock } from '../../test-utils/mock-factory.js';
+import { partialMock } from '#src/test-utils/mock-factory.js';
 import {
   extractFflogsReportCode,
   hasClearedStatus,

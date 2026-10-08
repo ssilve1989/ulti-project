@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { type ICommand, type IEvent, ofType, Saga } from '@nestjs/cqrs';
 import { filter, map, mergeMap, Observable } from 'rxjs';
-import { BlacklistSearchCommand } from '../blacklist/blacklist.commands.js';
-import { RemoveSignupEvent } from '../remove-signup/remove-signup.events.js';
+import { BlacklistSearchCommand } from '#src/slash-commands/blacklist/blacklist.commands.js';
+import { RemoveSignupEvent } from '#src/slash-commands/remove-signup/remove-signup.events.js';
 import { RemoveRolesCommand } from './commands/signup.commands.js';
 import {
   SignupApprovalSentEvent,

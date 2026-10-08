@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
-import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { SlashCommand } from '../../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../../slash-command.interface.js';
-import { SettingsSlashCommand } from '../../settings.slash-command.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { SettingsSlashCommand } from '#src/slash-commands/settings/settings.slash-command.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
 
 @Injectable()
 @SlashCommand({ builder: SettingsSlashCommand, subcommand: 'spreadsheet' })

@@ -11,11 +11,11 @@ import {
   type MockInstance,
   vi,
 } from 'vitest';
-import { DiscordService } from '../../discord/discord.service.js';
-import { JobCollection } from '../../firebase/collections/job/job.collection.js';
-import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { runTick, settledState } from '../../test-utils/cron-tick.js';
-import { mockOf, withInternals } from '../../test-utils/mock-factory.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { JobCollection } from '#src/firebase/collections/job/job.collection.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { runTick, settledState } from '#src/test-utils/cron-tick.js';
+import { mockOf, withInternals } from '#src/test-utils/mock-factory.js';
 import { InviteCleanerJob } from './invite-cleaner.job.js';
 
 describe('InviteCleanerJob', () => {

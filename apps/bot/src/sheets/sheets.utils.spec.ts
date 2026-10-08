@@ -1,6 +1,6 @@
 import type { sheets_v4 } from '@googleapis/sheets';
 import { describe, expect, it, vi } from 'vitest';
-import { mockOf } from '../test-utils/mock-factory.js';
+import { mockOf } from '#src/test-utils/mock-factory.js';
 import {
   batchWrite,
   findRowIndex,

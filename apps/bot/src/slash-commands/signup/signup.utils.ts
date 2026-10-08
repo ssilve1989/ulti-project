@@ -6,7 +6,7 @@ import {
 } from '@ulti-project/shared';
 import { DiscordjsErrorCodes } from 'discord.js';
 import { match, P } from 'ts-pattern';
-import { DocumentNotFoundException } from '../../firebase/firebase.exceptions.js';
+import { DocumentNotFoundException } from '#src/firebase/firebase.exceptions.js';
 import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 
 export function shouldDeleteReviewMessageForSignup({ status }: SignupDocument) {

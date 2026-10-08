@@ -23,7 +23,7 @@ import {
   ReactionType,
   type StringSelectMenuInteraction,
 } from 'discord.js';
-import { mockOf } from '../mock-factory.js';
+import { mockOf } from '#src/test-utils/mock-factory.js';
 import {
   assertPermitted,
   commandOptions,

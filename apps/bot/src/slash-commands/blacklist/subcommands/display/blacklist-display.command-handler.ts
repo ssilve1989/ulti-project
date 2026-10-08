@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
-import { DiscordService } from '../../../../discord/discord.service.js';
-import { BlacklistCollection } from '../../../../firebase/collections/blacklist-collection.js';
-import { SlashCommand } from '../../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../../slash-command.interface.js';
-import { BlacklistSlashCommand } from '../../blacklist.slash-command.js';
-import { createBlacklistEmbedFields } from '../../blacklist.utils.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { BlacklistCollection } from '#src/firebase/collections/blacklist-collection.js';
+import { BlacklistSlashCommand } from '#src/slash-commands/blacklist/blacklist.slash-command.js';
+import { createBlacklistEmbedFields } from '#src/slash-commands/blacklist/blacklist.utils.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
 
 @Injectable()
 @SlashCommand({ builder: BlacklistSlashCommand, subcommand: 'display' })

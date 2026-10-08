@@ -1,9 +1,9 @@
 import { Module, type OnApplicationBootstrap } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
-import { appConfig } from '../config/app.js';
-import { DiscordModule } from '../discord/discord.module.js';
-import { ErrorModule } from '../error/error.module.js';
-import { RoleManagerModule } from '../role-manager/role-manager.module.js';
+import { appConfig } from '#src/config/app.js';
+import { DiscordModule } from '#src/discord/discord.module.js';
+import { ErrorModule } from '#src/error/error.module.js';
+import { RoleManagerModule } from '#src/role-manager/role-manager.module.js';
 import { BlacklistModule } from './blacklist/blacklist.module.js';
 import { CleanRolesModule } from './clean-roles/clean-roles.module.js';
 import { EncountersSlashCommandModule } from './encounters/encounters.module.js';

@@ -1,7 +1,7 @@
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import { EncounterFriendlyDescription } from '@ulti-project/shared';
-import { DiscordService } from '../../../discord/discord.service.js';
-import { SignupApprovedEvent } from '../events/signup.events.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { SignupApprovedEvent } from '#src/slash-commands/signup/events/signup.events.js';
 
 @EventsHandler(SignupApprovedEvent)
 class SendApprovalCommentDmEventHandler

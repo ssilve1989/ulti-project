@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { FirebaseModule } from '../firebase/firebase.module.js';
+import { FirebaseModule } from '#src/firebase/firebase.module.js';
 import { EncountersService } from './encounters.service.js';
 import { EncountersComponentsService } from './encounters-components.service.js';
 

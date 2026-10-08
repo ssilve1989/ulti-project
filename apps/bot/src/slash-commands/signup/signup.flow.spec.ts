@@ -14,21 +14,21 @@ import {
 } from 'discord.js';
 import { titleCase } from 'title-case';
 import { test as base, describe, expect } from 'vitest';
-import { ClearReactions } from '../../common/emojis/emojis.js';
-import { PROG_POINT_SELECT_ID } from '../../encounters/encounters.components.js';
-import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import { SheetsService } from '../../sheets/sheets.service.js';
+import { ClearReactions } from '#src/common/emojis/emojis.js';
+import { PROG_POINT_SELECT_ID } from '#src/encounters/encounters.components.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
+import { SheetsService } from '#src/sheets/sheets.service.js';
 import {
   avatarUrl,
   BOT_USER_ID,
-} from '../../test-utils/discord/discord-mock.js';
+} from '#src/test-utils/discord/discord-mock.js';
 import {
   type FakeMessage,
   shown,
-} from '../../test-utils/discord/fake-message.js';
-import { fresh } from '../../test-utils/fixtures.js';
-import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
-import { isoDateSince, signupExpiryFor } from '../../test-utils/matchers.js';
+} from '#src/test-utils/discord/fake-message.js';
+import { fresh } from '#src/test-utils/fixtures.js';
+import { createFlowApp, type FlowApp } from '#src/test-utils/flow-app.js';
+import { isoDateSince, signupExpiryFor } from '#src/test-utils/matchers.js';
 import {
   commandErrorReply,
   expectCommandErrorReported,
@@ -36,7 +36,7 @@ import {
   expectSagaCommandErrorReported,
   replyTo,
   textReply,
-} from '../../test-utils/replies.js';
+} from '#src/test-utils/replies.js';
 import {
   batchUpdated,
   CLEAR_PARTY,
@@ -46,8 +46,8 @@ import {
   rowCleared,
   type Section,
   writeRow,
-} from '../../test-utils/sheets/dmu-sheet.js';
-import { stableTestKey } from '../../test-utils/sheets/recorded-sheets.js';
+} from '#src/test-utils/sheets/dmu-sheet.js';
+import { stableTestKey } from '#src/test-utils/sheets/recorded-sheets.js';
 import {
   APPROVAL_CANCEL_BUTTON_ID,
   APPROVAL_COMMENT_INPUT_ID,

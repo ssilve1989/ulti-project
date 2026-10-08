@@ -1,15 +1,15 @@
 import { Encounter, PartyStatus, SignupStatus } from '@ulti-project/shared';
 import { Colors, PermissionFlagsBits } from 'discord.js';
 import { test as base, describe, expect } from 'vitest';
-import { shown } from '../../test-utils/discord/fake-message.js';
-import { fresh } from '../../test-utils/fixtures.js';
-import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
+import { shown } from '#src/test-utils/discord/fake-message.js';
+import { fresh } from '#src/test-utils/fixtures.js';
+import { createFlowApp, type FlowApp } from '#src/test-utils/flow-app.js';
 import {
   commandErrorReply,
   expectCommandErrorReported,
   privateReply,
-} from '../../test-utils/replies.js';
-import { seedSignup } from '../../test-utils/signups.js';
+} from '#src/test-utils/replies.js';
+import { seedSignup } from '#src/test-utils/signups.js';
 
 const GUILD = 'guild-1';
 const ADMIN = Object.freeze({
