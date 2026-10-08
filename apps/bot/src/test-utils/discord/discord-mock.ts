@@ -1171,6 +1171,8 @@ export class DiscordMock {
       mockOf<T>({
         ...specific,
         ...this.responses(message, userId, guildId, ack),
+        // like Discord's snowflake: unique per interaction
+        id: `interaction-${this.nextId++}`,
         guildId,
         member,
         // every guild the bot is in is cached; a DM's interaction has no guild

@@ -22,6 +22,7 @@ import {
 // which EventComponentsListener handles
 export const EVENT_SIGNUP_ENCOUNTER_ID = 'eventSignupEncounter';
 export const EVENT_SIGNUP_JOB_ID = 'eventSignupJob';
+/** Prefix of the character modal's id, which is unique per job pick. */
 export const EVENT_SIGNUP_MODAL_ID = 'eventSignupCharacterModal';
 export const EVENT_WITHDRAW_ENCOUNTER_ID = 'eventWithdrawEncounter';
 
@@ -90,8 +91,8 @@ function jobSelectRow(
   );
 }
 
-/** Asks for the character and world to sign up with. */
-export function characterModal(): ModalBuilder {
+/** Asks for the character and world to sign up with; `customId` is unique per job pick. */
+export function characterModal(customId: string): ModalBuilder {
   const input = (customId: string, label: string, maxLength: number) =>
     new ActionRowBuilder<TextInputBuilder>().addComponents(
       new TextInputBuilder()
@@ -102,7 +103,7 @@ export function characterModal(): ModalBuilder {
         .setRequired(true),
     );
   return new ModalBuilder()
-    .setCustomId(EVENT_SIGNUP_MODAL_ID)
+    .setCustomId(customId)
     .setTitle('Your character')
     .addComponents(
       input('character', 'Character', 64),

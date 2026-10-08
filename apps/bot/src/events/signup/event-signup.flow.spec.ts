@@ -382,7 +382,8 @@ const ENCOUNTER_PROMPT = Object.freeze({
 });
 
 const CHARACTER_MODAL = Object.freeze({
-  custom_id: 'eventSignupCharacterModal',
+  // one per job pick, so a dismissed form's waiter can't take a later submit
+  custom_id: expect.stringMatching(/^eventSignupCharacterModal-.+$/),
   title: 'Your character',
   components: [
     {
@@ -431,13 +432,16 @@ async function metricsDuring(act: () => Promise<void>) {
   return metrics;
 }
 
-/** The count of a sign-up prompt `user` let expire; it carries the clicker, from the listener's scope. */
-const expiredSignupMetric = (user: { id: string; username: string }) => ({
+/** The count of an `action` prompt `user` let expire; it carries the clicker, from the listener's scope. */
+const expiredMetric = (
+  action: 'signup' | 'withdraw',
+  user: { id: string; username: string },
+) => ({
   name: 'discord.prompt.expired',
   type: 'counter',
   value: 1,
   attributes: {
-    component: 'event:signup',
+    component: `event:${action}`,
     'user.id': user.id,
     'user.name': user.username,
   },
@@ -630,27 +634,56 @@ describe('Sign up', () => {
           submit(flow, BOB.id, { character: 'Bob Bobson', world: 'Atlantis' }),
         );
 
-        it('tells them why, privately, and stores nothing', ({ flow }) => {
+        it('tells them why above a fresh job prompt, and stores nothing', ({
+          flow,
+        }) => {
           expect({
             replies: replies(flow, BOB.id),
             participants: participants(flow),
           }).toEqual({
             replies: [
-              privateReply(BOB.id, JOB_PROMPT(TOP)),
-              privately(BOB.id, INVALID_WORLD),
+              privateReply(BOB.id, {
+                content: `${INVALID_WORLD}\n\n${JOB_PROMPT(TOP).content}`,
+                components: JOB_PROMPT(TOP).components,
+              }),
             ],
             participants: {},
           });
         });
 
-        it('lets them pick a job and try again', async ({ flow }) => {
+        it('lets them pick the same job and try again', async ({ flow }) => {
           await choose(flow, BOB.id, 'WAR');
           await submit(flow, BOB.id, {
             character: 'Bob Bobson',
             world: 'Jenova',
           });
 
-          expect(participants(flow)).toEqual({ 'bob-TOP': BOB_TOP });
+          expect({
+            replies: replies(flow, BOB.id),
+            participants: participants(flow),
+          }).toEqual({
+            replies: [
+              privately(
+                BOB.id,
+                `You're signed up for **${TOP}** as \`WAR\` Warrior.`,
+              ),
+            ],
+            participants: { 'bob-TOP': BOB_TOP },
+          });
+        });
+      });
+
+      describe('and closes the form, then picks another job and submits', () => {
+        it('stores only the second job', async ({ flow }) => {
+          await choose(flow, BOB.id, 'WHM');
+          await submit(flow, BOB.id, {
+            character: 'Bob Bobson',
+            world: 'Jenova',
+          });
+
+          expect(participants(flow)).toEqual({
+            'bob-TOP': { ...BOB_TOP, job: 'WHM' },
+          });
         });
       });
 
@@ -668,7 +701,7 @@ describe('Sign up', () => {
           }).toEqual({
             replies: [privately(BOB.id, SIGNUP_EXPIRED)],
             participants: {},
-            metrics: [expiredSignupMetric(BOB)],
+            metrics: [expiredMetric('signup', BOB)],
           });
         });
       });
@@ -683,7 +716,7 @@ describe('Sign up', () => {
 
         expect({ replies: replies(flow, BOB.id), metrics }).toEqual({
           replies: [privately(BOB.id, SIGNUP_EXPIRED)],
-          metrics: [expiredSignupMetric(BOB)],
+          metrics: [expiredMetric('signup', BOB)],
         });
       });
     });
@@ -700,7 +733,7 @@ describe('Sign up', () => {
 
       expect({ replies: replies(flow, ALICE.id), metrics }).toEqual({
         replies: [privately(ALICE.id, SIGNUP_EXPIRED)],
-        metrics: [expiredSignupMetric(ALICE)],
+        metrics: [expiredMetric('signup', ALICE)],
       });
     });
   });
@@ -729,6 +762,56 @@ describe('Sign up', () => {
       vi.setSystemTime(AFTER_CLOSE);
 
       await click(flow, 'signup', ALICE.id);
+
+      expect({
+        replies: replies(flow, ALICE.id),
+        participants: participants(flow),
+      }).toEqual({
+        replies: [
+          privately(
+            ALICE.id,
+            `Sign-ups for this event closed <t:${CLOSE_S}:R>.`,
+          ),
+        ],
+        participants: {},
+      });
+    });
+  });
+
+  describe('when the deadline passes while a member is picking a job', () => {
+    it('refuses at the pick, and stores nothing', async ({ flow }) => {
+      await click(flow, 'signup', ALICE.id);
+      vi.setSystemTime(AFTER_CLOSE);
+      await choose(flow, ALICE.id, 'SGE');
+
+      expect({
+        replies: replies(flow, ALICE.id),
+        participants: participants(flow),
+      }).toEqual({
+        replies: [
+          privately(
+            ALICE.id,
+            `Sign-ups for this event closed <t:${CLOSE_S}:R>.`,
+          ),
+        ],
+        participants: {},
+      });
+    });
+  });
+
+  describe('when an organizer closes the event while a member is picking a job', () => {
+    it('refuses at the pick, and stores nothing', async ({ flow }) => {
+      await click(flow, 'signup', ALICE.id);
+      flow.discord.command({
+        userId: ORGANIZER.id,
+        guildId: GUILD,
+        channelId: EVENTS_CHANNEL,
+        commandName: 'event',
+        subcommand: 'close',
+        options: { event: onlyEventId(flow) },
+      });
+      await flow.settle();
+      await choose(flow, ALICE.id, 'SGE');
 
       expect({
         replies: replies(flow, ALICE.id),
@@ -845,6 +928,30 @@ describe('Withdraw', () => {
           ],
         }),
       ]);
+    });
+
+    describe('and lets the prompt expire', () => {
+      it('says so, removes the menu and records it', async ({ flow }) => {
+        const metrics = await metricsDuring(async () => {
+          flow.discord.expireAll();
+          await flow.settle();
+        });
+
+        expect({
+          replies: replies(flow, BOB.id),
+          participants: participants(flow),
+          metrics,
+        }).toEqual({
+          replies: [
+            privately(
+              BOB.id,
+              'This withdrawal expired. Click Withdraw again if you still want to leave.',
+            ),
+          ],
+          participants: { 'bob-FRU': BOB_FRU, 'bob-TOP': BOB_TOP },
+          metrics: [expiredMetric('withdraw', BOB)],
+        });
+      });
     });
 
     describe('and picks one', () => {
