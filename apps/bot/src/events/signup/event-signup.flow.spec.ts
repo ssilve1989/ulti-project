@@ -7,23 +7,25 @@ import {
   PartyStatus,
   SignupStatus,
 } from '@ulti-project/shared';
-import { CronJob } from 'cron';
 import { ComponentType, TextInputStyle } from 'discord.js';
 import { Timestamp } from 'firebase-admin/firestore';
-import { test as base, describe, expect, type MockInstance, vi } from 'vitest';
+import { test as base, describe, expect, vi } from 'vitest';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
 import type {
   EventPhase,
   ParticipantDocument,
 } from '../../firebase/models/event.model.js';
 import { EventSchedulerModule } from '../../jobs/event-scheduler/event-scheduler.module.js';
-import { runTick } from '../../test-utils/cron-tick.js';
+import {
+  runTick,
+  type SpiedCron,
+  spiedCron,
+} from '../../test-utils/cron-tick.js';
 import { shown } from '../../test-utils/discord/fake-message.js';
 import {
   type EventButtonsEnabled,
   eventButtonRow,
 } from '../../test-utils/events.js';
-import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import {
   commandErrorReply,
@@ -142,24 +144,10 @@ async function stopFlow(flow: FlowApp): Promise<void> {
  * event-scheduler's tick; `start` does nothing, so no real tick fires mid-test.
  */
 const it = base.extend<{
-  cron: {
-    from: MockInstance<typeof CronJob.from>;
-    start: MockInstance<CronJob['start']>;
-  };
+  cron: SpiedCron;
   flow: FlowApp;
 }>({
-  cron: fresh(
-    () => ({
-      start: vi
-        .spyOn(CronJob.prototype, 'start')
-        .mockImplementation(() => undefined),
-      from: vi.spyOn(CronJob, 'from'),
-    }),
-    ({ start, from }) => {
-      start.mockRestore();
-      from.mockRestore();
-    },
-  ),
+  cron: spiedCron(),
   flow: async ({ cron: _spiedBeforeBoot }, use) => {
     const flow = await startFlow();
     try {

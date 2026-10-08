@@ -1,10 +1,13 @@
 import { Encounter } from '@ulti-project/shared';
-import { CronJob } from 'cron';
 import { Timestamp } from 'firebase-admin/firestore';
-import { test as base, describe, expect, type MockInstance, vi } from 'vitest';
+import { test as base, describe, expect, vi } from 'vitest';
 import type { EventDocument } from '../../firebase/models/event.model.js';
 import { EventSchedulerModule } from '../../jobs/event-scheduler/event-scheduler.module.js';
-import { runTick } from '../../test-utils/cron-tick.js';
+import {
+  runTick,
+  type SpiedCron,
+  spiedCron,
+} from '../../test-utils/cron-tick.js';
 import { shown } from '../../test-utils/discord/fake-message.js';
 import {
   type EventButtonsEnabled,
@@ -83,24 +86,10 @@ const it = base.extend<{ flow: FlowApp }>({
  * mid-test.
  */
 const itWithScheduler = base.extend<{
-  cron: {
-    from: MockInstance<typeof CronJob.from>;
-    start: MockInstance<CronJob['start']>;
-  };
+  cron: SpiedCron;
   flow: FlowApp;
 }>({
-  cron: fresh(
-    () => ({
-      start: vi
-        .spyOn(CronJob.prototype, 'start')
-        .mockImplementation(() => undefined),
-      from: vi.spyOn(CronJob, 'from'),
-    }),
-    ({ start, from }) => {
-      start.mockRestore();
-      from.mockRestore();
-    },
-  ),
+  cron: spiedCron(),
   flow: async ({ cron: _spiedBeforeBoot }, use) => {
     const flow = await startFlow({ modules: [EventSchedulerModule] });
     try {

@@ -4,10 +4,22 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { test as base, describe, expect, vi } from 'vitest';
 import { USTimeZones } from '../../common/time-zones.js';
 import type { Weekday } from '../../events/schedules/next-occurrence.js';
+import type { EventDocument } from '../../firebase/models/event.model.js';
 import type { EventScheduleDocument } from '../../firebase/models/event-schedule.model.js';
+import { EventSchedulerModule } from '../../jobs/event-scheduler/event-scheduler.module.js';
+import {
+  runTick,
+  type SpiedCron,
+  spiedCron,
+} from '../../test-utils/cron-tick.js';
 import { shown } from '../../test-utils/discord/fake-message.js';
+import { eventButtonRow } from '../../test-utils/events.js';
 import { fresh } from '../../test-utils/fixtures.js';
-import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
+import {
+  createFlowApp,
+  type FlowApp,
+  type FlowAppOptions,
+} from '../../test-utils/flow-app.js';
 import { privateReply, textReply } from '../../test-utils/replies.js';
 import {
   buttonRow,
@@ -38,34 +50,52 @@ const BAD_HOURS =
   'Sign-ups must close less than post-ahead hours before the start.';
 const EXPIRED = 'This schedule panel expired. Nothing was saved.';
 
+/** Boots the app at NOW, with the events channel, an organizer and a member. */
+async function startFlow(options?: FlowAppOptions): Promise<FlowApp> {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(NOW);
+  try {
+    const flow = await createFlowApp(options);
+    flow.discord.addChannel(GUILD, EVENTS_CHANNEL);
+    flow.discord.addRole(GUILD, { id: ORGANIZER_ROLE, name: 'Organizer' });
+    flow.discord.addMember(ORGANIZER);
+    flow.discord.addMember(MEMBER);
+    flow.db.seed(`settings/${GUILD}`, {
+      eventOrganizerRoles: [ORGANIZER_ROLE],
+    });
+    return flow;
+  } catch (error) {
+    vi.useRealTimers();
+    throw error;
+  }
+}
+
+async function stopFlow(flow: FlowApp): Promise<void> {
+  try {
+    await flow.close();
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 const it = base.extend<{ flow: FlowApp }>({
-  flow: fresh(
-    async () => {
-      vi.useFakeTimers({ toFake: ['Date'] });
-      vi.setSystemTime(NOW);
-      try {
-        const flow = await createFlowApp();
-        flow.discord.addChannel(GUILD, EVENTS_CHANNEL);
-        flow.discord.addRole(GUILD, { id: ORGANIZER_ROLE, name: 'Organizer' });
-        flow.discord.addMember(ORGANIZER);
-        flow.discord.addMember(MEMBER);
-        flow.db.seed(`settings/${GUILD}`, {
-          eventOrganizerRoles: [ORGANIZER_ROLE],
-        });
-        return flow;
-      } catch (error) {
-        vi.useRealTimers();
-        throw error;
-      }
-    },
-    async (flow) => {
-      try {
-        await flow.close();
-      } finally {
-        vi.useRealTimers();
-      }
-    },
-  ),
+  flow: fresh(() => startFlow(), stopFlow),
+});
+
+/**
+ * The app with the event-scheduler job: `runTick(cron.from)` runs its tick,
+ * and no real tick fires mid-test.
+ */
+const itWithScheduler = base.extend<{ cron: SpiedCron; flow: FlowApp }>({
+  cron: spiedCron(),
+  flow: async ({ cron: _spiedBeforeBoot }, use) => {
+    const flow = await startFlow({ modules: [EventSchedulerModule] });
+    try {
+      await use(flow);
+    } finally {
+      await stopFlow(flow);
+    }
+  },
 });
 
 /** `userId` runs `/event <subcommand>` in the events channel, and the bot finishes with it. */
@@ -927,6 +957,269 @@ describe('/event schedule-delete', () => {
           { id: 'schedule-2', path: RECLEAR_PATH, data: RECLEAR_SCHEDULE },
         ],
       });
+    });
+  });
+});
+
+describe('the event-scheduler job', () => {
+  /** Thursday 2026-10-08 at 8 PM Pacific, a day before it, and 2 hours before it. */
+  const START = new Date('2026-10-09T03:00:00Z');
+  const POST = new Date('2026-10-08T03:00:00Z');
+  const CLOSE = new Date('2026-10-09T01:00:00Z');
+  const START_S = START.getTime() / 1000;
+  const EVENT_ID = `${SCHEDULE_ID}-${START_S}`;
+  const EVENT_PATH = `events/${EVENT_ID}`;
+
+  /** `STORED_SCHEDULE` with Thursday's occurrence next, due at POST. */
+  const DUE_SCHEDULE: EventScheduleDocument = Object.freeze({
+    ...STORED_SCHEDULE,
+    nextStartAt: Timestamp.fromDate(START),
+    nextPostAt: Timestamp.fromDate(POST),
+  });
+
+  /** `DUE_SCHEDULE` moved on to Tuesday 2026-10-13 at 8 PM Pacific. */
+  const ADVANCED_SCHEDULE: EventScheduleDocument = Object.freeze({
+    ...DUE_SCHEDULE,
+    nextStartAt: Timestamp.fromDate(new Date('2026-10-14T03:00:00Z')),
+    nextPostAt: Timestamp.fromDate(new Date('2026-10-13T03:00:00Z')),
+  });
+
+  /** Thursday's event as `DUE_SCHEDULE` creates it in `channelId`, before its message is stored. */
+  const scheduledEvent = (channelId = EVENTS_CHANNEL): EventDocument => ({
+    guildId: GUILD,
+    title: TITLE,
+    startsAt: Timestamp.fromDate(START),
+    signupsCloseAt: Timestamp.fromDate(CLOSE),
+    signupsCloseDueAt: Timestamp.fromDate(CLOSE),
+    encounters: [Encounter.DMU],
+    channelId,
+    createdBy: FORMER_ORGANIZER,
+    scheduleId: SCHEDULE_ID,
+    status: 'open',
+  });
+
+  /** Thursday's event message as members see it. */
+  const SCHEDULED_MESSAGE = Object.freeze({
+    location: { kind: 'channel', guildId: GUILD, channelId: EVENTS_CHANNEL },
+    content: undefined,
+    embeds: [
+      {
+        title: TITLE,
+        description: [
+          `<t:${START_S}:F> (<t:${START_S}:R>)`,
+          `Sign-ups close <t:${CLOSE.getTime() / 1000}:R>`,
+          `Organized by <@${FORMER_ORGANIZER}>`,
+        ].join('\n'),
+        fields: [
+          { name: '__Dancing Mad (Ultimate)__', value: 'No sign-ups yet' },
+        ],
+      },
+    ],
+    components: [eventButtonRow(EVENT_ID, { signup: true, withdraw: true })],
+    reactions: {},
+    deleted: false,
+  });
+
+  function postedMessageId(flow: FlowApp): string {
+    const [message, ...others] = flow.discord.channel(EVENTS_CHANNEL);
+    if (!message || others.length > 0) {
+      throw new Error(`expected one message in ${EVENTS_CHANNEL}`);
+    }
+    return message.id;
+  }
+
+  /** Runs the job's tick at `at`, and the bot finishes with it. */
+  async function tickAt(flow: FlowApp, cron: SpiedCron, at: Date) {
+    vi.setSystemTime(at);
+    await runTick(cron.from);
+    await flow.settle();
+  }
+
+  describe("when a schedule's post time comes", () => {
+    itWithScheduler.beforeEach(async ({ flow, cron }) => {
+      flow.db.seed(SCHEDULE_PATH, DUE_SCHEDULE);
+      await tickAt(flow, cron, POST);
+    });
+
+    itWithScheduler('posts the occurrence', ({ flow }) => {
+      expect(flow.discord.channel(EVENTS_CHANNEL).map(shown)).toEqual([
+        SCHEDULED_MESSAGE,
+      ]);
+    });
+
+    itWithScheduler(
+      'stores the event under the schedule and its start, with its message',
+      ({ flow }) => {
+        expect(flow.db.documentsIn('events')).toEqual([
+          {
+            id: EVENT_ID,
+            path: EVENT_PATH,
+            data: { ...scheduledEvent(), messageId: postedMessageId(flow) },
+          },
+        ]);
+      },
+    );
+
+    itWithScheduler('moves the schedule to its next occurrence', ({ flow }) => {
+      expect(flow.db.read(SCHEDULE_PATH)).toEqual(ADVANCED_SCHEDULE);
+    });
+
+    describe('and the job ticks again at the same time', () => {
+      itWithScheduler('posts nothing more', async ({ flow, cron }) => {
+        await tickAt(flow, cron, POST);
+
+        expect({
+          shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          schedule: flow.db.read(SCHEDULE_PATH),
+        }).toEqual({ shown: [SCHEDULED_MESSAGE], schedule: ADVANCED_SCHEDULE });
+      });
+    });
+
+    describe('and the bot stopped after posting, before moving the schedule on', () => {
+      itWithScheduler(
+        'posts nothing more, and moves the schedule on',
+        async ({ flow, cron }) => {
+          const messageId = postedMessageId(flow);
+          flow.db.seed(SCHEDULE_PATH, DUE_SCHEDULE);
+
+          await tickAt(flow, cron, POST);
+
+          expect({
+            shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+            event: flow.db.read(EVENT_PATH),
+            schedule: flow.db.read(SCHEDULE_PATH),
+          }).toEqual({
+            shown: [SCHEDULED_MESSAGE],
+            event: { ...scheduledEvent(), messageId },
+            schedule: ADVANCED_SCHEDULE,
+          });
+        },
+      );
+    });
+  });
+
+  describe("when a schedule's start passed while the bot was down", () => {
+    itWithScheduler(
+      'posts nothing, warns, and moves to the following occurrence',
+      async ({ flow, cron }) => {
+        flow.db.seed(SCHEDULE_PATH, STORED_SCHEDULE);
+
+        await tickAt(flow, cron, NOW);
+
+        flow.expectReported(
+          /^warning: .*schedule-1 missed the occurrence at 2026-10-02T03:00:00\.000Z/s,
+        );
+        expect({
+          shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          events: flow.db.documentsIn('events'),
+          schedule: flow.db.read(SCHEDULE_PATH),
+        }).toEqual({
+          shown: [],
+          events: [],
+          // Tuesday 2026-10-06 at 8 PM Pacific, whose start has passed too
+          schedule: {
+            ...STORED_SCHEDULE,
+            nextStartAt: Timestamp.fromDate(new Date('2026-10-07T03:00:00Z')),
+            nextPostAt: Timestamp.fromDate(new Date('2026-10-06T03:00:00Z')),
+          },
+        });
+      },
+    );
+  });
+
+  describe("when an earlier due schedule's channel was deleted", () => {
+    const GONE_ID = 'gone';
+    const GONE_CHANNEL = 'deleted-channel';
+
+    itWithScheduler.beforeEach(async ({ flow, cron }) => {
+      flow.db.seed(`event-schedules/${GONE_ID}`, {
+        ...DUE_SCHEDULE,
+        channelId: GONE_CHANNEL,
+      });
+      flow.db.seed(SCHEDULE_PATH, DUE_SCHEDULE);
+      await tickAt(flow, cron, POST);
+      flow.expectReported(/^Sentry exception: .*Unknown Channel/s);
+      flow.expectReported(/^error: .*schedule gone could not post/s);
+    });
+
+    itWithScheduler(
+      'stores its event unposted and moves it to its next occurrence',
+      ({ flow }) => {
+        expect({
+          event: flow.db.read(`events/${GONE_ID}-${START_S}`),
+          schedule: flow.db.read(`event-schedules/${GONE_ID}`),
+        }).toEqual({
+          event: { ...scheduledEvent(GONE_CHANNEL), scheduleId: GONE_ID },
+          schedule: { ...ADVANCED_SCHEDULE, channelId: GONE_CHANNEL },
+        });
+      },
+    );
+
+    itWithScheduler('still posts the other', ({ flow }) => {
+      expect({
+        shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+        schedule: flow.db.read(SCHEDULE_PATH),
+      }).toEqual({ shown: [SCHEDULED_MESSAGE], schedule: ADVANCED_SCHEDULE });
+    });
+  });
+
+  describe('when a paused schedule reaches its old post time', () => {
+    itWithScheduler(
+      'posts nothing and leaves it paused',
+      async ({ flow, cron }) => {
+        const { nextPostAt: _removedWhilePaused, ...unposted } = DUE_SCHEDULE;
+        const paused = { ...unposted, paused: true };
+        flow.db.seed(SCHEDULE_PATH, paused);
+
+        await tickAt(flow, cron, POST);
+
+        expect({
+          shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          events: flow.db.documentsIn('events'),
+          schedule: flow.db.read(SCHEDULE_PATH),
+        }).toEqual({ shown: [], events: [], schedule: paused });
+      },
+    );
+  });
+
+  describe('when an organizer saves a schedule and its post time comes', () => {
+    /** Thursday 2026-10-08 at 8 PM Eastern, and a day before it. */
+    const EASTERN_START_S = seconds('2026-10-09T00:00:00Z');
+    const EASTERN_POST = new Date('2026-10-08T00:00:00Z');
+
+    itWithScheduler('posts the event', async ({ flow, cron }) => {
+      await createSchedule(flow, { 'post-ahead': 24 });
+      await chooseDays(flow, ['tue', 'thu']);
+      await click(flow, 'scheduleSave');
+
+      await tickAt(flow, cron, EASTERN_POST);
+
+      expect(flow.discord.channel(EVENTS_CHANNEL).map(shown)).toEqual([
+        {
+          ...SCHEDULED_MESSAGE,
+          embeds: [
+            {
+              title: TITLE,
+              description: [
+                `<t:${EASTERN_START_S}:F> (<t:${EASTERN_START_S}:R>)`,
+                `Organized by <@${ORGANIZER.id}>`,
+              ].join('\n'),
+              fields: [
+                {
+                  name: '__Dancing Mad (Ultimate)__',
+                  value: 'No sign-ups yet',
+                },
+              ],
+            },
+          ],
+          components: [
+            eventButtonRow(`${onlyScheduleId(flow)}-${EASTERN_START_S}`, {
+              signup: true,
+              withdraw: true,
+            }),
+          ],
+        },
+      ]);
     });
   });
 });

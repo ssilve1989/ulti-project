@@ -5,12 +5,19 @@ import {
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import type { CronJob } from 'cron';
+import { Timestamp } from 'firebase-admin/firestore';
 import { ErrorService } from '../../error/error.service.js';
 import { EventMessageService } from '../../events/event-message.service.js';
+import { EventSchedulesCollection } from '../../firebase/collections/event-schedules.collection.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
 import { createJob } from '../jobs.consts.js';
 
-/** Runs every minute: closes sign-ups that are due and re-renders those events. */
+const MILLISECONDS_PER_HOUR = 3_600_000;
+
+/**
+ * Runs every minute: closes sign-ups that are due and re-renders those events,
+ * then posts the occurrences that schedules are due to post.
+ */
 @Injectable()
 export class EventSchedulerJob
   implements OnApplicationBootstrap, OnApplicationShutdown
@@ -21,6 +28,7 @@ export class EventSchedulerJob
   constructor(
     private readonly events: EventsCollection,
     private readonly messages: EventMessageService,
+    private readonly schedules: EventSchedulesCollection,
     private readonly errors: ErrorService,
   ) {
     this.job = createJob('event-scheduler', {
@@ -46,9 +54,9 @@ export class EventSchedulerJob
   }
 
   /**
-   * Closes every event's sign-ups that are due by `now` and re-renders it.
-   * One event failing is reported and doesn't stop the rest; only a failed
-   * query fails the tick.
+   * Closes every event's sign-ups that are due by `now` and re-renders it,
+   * then posts every schedule's due occurrence. One event or schedule failing
+   * is reported and doesn't stop the rest; only a failed query fails the tick.
    */
   async tick(now: Date): Promise<void> {
     for (const due of await this.events.findDueToCloseSignups(now)) {
@@ -60,6 +68,43 @@ export class EventSchedulerJob
           message: `Failed to close sign-ups for event ${due.id}`,
         });
       }
+    }
+
+    for (const schedule of await this.schedules.findDue(now)) {
+      const startsAt = schedule.nextStartAt.toDate();
+      if (startsAt <= now) {
+        this.logger.warn(
+          `schedule ${schedule.id} missed the occurrence at ${startsAt.toISOString()}; skipping`,
+        );
+        await this.schedules.advance(schedule.id, startsAt);
+        continue;
+      }
+      // Keyed by schedule and start, and posted only once it has no message,
+      // so a tick that re-runs after a crash can't post the occurrence twice
+      const id = `${schedule.id}-${Math.floor(startsAt.getTime() / 1000)}`;
+      const event = await this.events.createIfAbsent(id, {
+        guildId: schedule.guildId,
+        title: schedule.title,
+        encounters: schedule.encounters,
+        channelId: schedule.channelId,
+        createdBy: schedule.createdBy,
+        scheduleId: schedule.id,
+        startsAt: Timestamp.fromDate(startsAt),
+        signupsCloseAt: Timestamp.fromMillis(
+          startsAt.getTime() -
+            schedule.signupsCloseBeforeHours * MILLISECONDS_PER_HOUR,
+        ),
+      });
+      try {
+        if (!event.messageId) await this.messages.post(event);
+      } catch (error) {
+        this.errors.captureError(error, {
+          message: `schedule ${schedule.id} could not post ${id}`,
+        });
+      }
+      // Advance even after a failed post, so a deleted channel or a missing
+      // permission doesn't fail every minute
+      await this.schedules.advance(schedule.id, startsAt);
     }
   }
 }
