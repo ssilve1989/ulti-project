@@ -214,6 +214,9 @@ function withValueAt(
 
 function compare(a: unknown, b: unknown): number {
   if (typeof a === 'number' && typeof b === 'number') return a - b;
+  if (a instanceof Timestamp && b instanceof Timestamp) {
+    return compare(a.valueOf(), b.valueOf());
+  }
   if (typeof a === 'string' && typeof b === 'string') {
     if (a < b) return -1;
     if (a > b) return 1;
@@ -399,15 +402,14 @@ class Query {
    * exist and refuses them rather than pretending they work.
    */
   private assertServableWithoutCompositeIndex(): void {
-    const conditions = this.state.conditions.flatMap(conditionsIn);
     // a range or an ordering is served from one field's index, so a filter on
     // any other field needs a composite one
-    const indexedField =
-      this.state.orderings.at(0)?.field ??
-      conditions.find(({ operator }) => operator === '<=')?.field;
+    const [indexed] = this.orderings();
     const filterOnOtherField =
-      indexedField !== undefined &&
-      conditions.some(({ field }) => field !== indexedField);
+      indexed !== undefined &&
+      this.state.conditions
+        .flatMap(conditionsIn)
+        .some(({ field }) => field !== indexed.field);
     if (filterOnOtherField) {
       throw new Error(
         `This query on "${this.collectionPath}" needs a composite index; real Firestore rejects it unless one is deployed, and this repo has no index config.`,
@@ -415,9 +417,21 @@ class Query {
     }
   }
 
+  /**
+   * The order results come in. Without an orderBy(), a range filter is served
+   * from its field's index, so Firestore returns results ordered by that field.
+   */
+  private orderings(): readonly Ordering[] {
+    if (this.state.orderings.length > 0) return this.state.orderings;
+    const range = this.state.conditions
+      .flatMap(conditionsIn)
+      .find(({ operator }) => operator === '<=');
+    return range === undefined ? [] : [{ field: range.field }];
+  }
+
   private run(): DocumentSnapshot[] {
     this.assertServableWithoutCompositeIndex();
-    const { orderings } = this.state;
+    const orderings = this.orderings();
     const docs = this.db
       .documentsIn(this.collectionPath)
       .filter(({ data }) =>

@@ -317,7 +317,7 @@ describe('InMemoryFirestore', () => {
         .where('dueAt', '<=', at('2026-10-02T00:00:00Z'))
         .get();
 
-      expect(snapshot.docs.map((doc) => doc.id)).toEqual(['now', 'past']);
+      expect(snapshot.docs.map((doc) => doc.id)).toEqual(['past', 'now']);
     });
 
     it('refuses <= against anything but a Timestamp, which it does not implement', ({
