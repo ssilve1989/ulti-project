@@ -130,6 +130,8 @@ export class FakeViews {
     return Object.assign(
       emitter,
       mockOf<Client>({
+        // the app only starts once the bot has logged in (DiscordModule waits for ClientReady)
+        isReady: () => true,
         guilds: {
           get cache() {
             return views.guildCollection();

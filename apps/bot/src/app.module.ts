@@ -6,6 +6,7 @@ import { appConfig } from './config/app.js';
 import { DiscordModule } from './discord/discord.module.js';
 import { ErrorModule } from './error/error.module.js';
 import { FirebaseModule } from './firebase/firebase.module.js';
+import { HttpModule } from './http/http.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
 import { SheetsModule } from './sheets/sheets.module.js';
 import { SlashCommandsModule } from './slash-commands/slash-commands.module.js';
@@ -16,6 +17,7 @@ import { SlashCommandsModule } from './slash-commands/slash-commands.module.js';
     DiscordModule,
     ErrorModule,
     FirebaseModule,
+    HttpModule,
     SheetsModule,
     SlashCommandsModule,
     JobsModule,

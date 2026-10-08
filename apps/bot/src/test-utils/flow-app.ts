@@ -6,13 +6,17 @@ import {
   type Type,
 } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
-import { Test } from '@nestjs/testing';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { Test, type TestingModule } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
+import supertest, { type Agent } from 'supertest';
 import { AppService } from '../app.service.js';
 import { DISCORD_CLIENT } from '../discord/discord.decorators.js';
 import { ErrorModule } from '../error/error.module.js';
 import { getFflogsSdkToken } from '../fflogs/fflogs.consts.js';
 import { FIRESTORE } from '../firebase/firebase.consts.js';
+import { configureHttpApp } from '../http/configure-http-app.js';
+import { HttpModule } from '../http/http.module.js';
 import { SheetsService } from '../sheets/sheets.service.js';
 import { SlashCommandRegistry } from '../slash-commands/slash-command-registry.service.js';
 import { SlashCommandsModule } from '../slash-commands/slash-commands.module.js';
@@ -92,6 +96,14 @@ export interface FlowApp {
   close(): Promise<void>;
 }
 
+/** A flow app that also serves the board's HTTP API, as the bot does. */
+export interface HttpFlowApp extends FlowApp {
+  /** Sends requests to the app; it keeps the cookies the app sets, like a browser. */
+  readonly http: Agent;
+  /** Another client of the app, with its own cookies: a second browser. */
+  agent(): Agent;
+}
+
 function describeLogged(value: unknown): string {
   if (value instanceof Error) return value.stack ?? value.message;
   return typeof value === 'string' ? value : inspect(value);
@@ -157,6 +169,29 @@ export interface FlowAppOptions {
    * runs on a schedule. None by default, so a spec only runs the jobs it tests.
    */
   readonly modules?: readonly Type[];
+  /** Serve the HTTP API too (`HttpFlowApp`). Off by default. */
+  readonly http?: boolean;
+}
+
+/**
+ * Starts the app: as an HTTP app configured as in main.ts, or, without
+ * `http`, as an application context (no server), as flows have always run.
+ * Either way this runs onApplicationBootstrap.
+ */
+async function startApp(
+  moduleRef: TestingModule,
+  http: boolean,
+): Promise<NestExpressApplication | undefined> {
+  if (!http) {
+    await moduleRef.init();
+    return undefined;
+  }
+  const app = moduleRef.createNestApplication<NestExpressApplication>({
+    bodyParser: false,
+  });
+  configureHttpApp(app);
+  await app.init();
+  return app;
 }
 
 /**
@@ -164,9 +199,14 @@ export interface FlowAppOptions {
  * replaced by fakes. Google Sheets traffic is replayed from recordings of the
  * real test spreadsheet (see recorded-sheets.ts). Call once per test.
  */
+export async function createFlowApp(
+  options: FlowAppOptions & { readonly http: true },
+): Promise<HttpFlowApp>;
+export async function createFlowApp(options?: FlowAppOptions): Promise<FlowApp>;
 export async function createFlowApp({
   modules = [],
-}: FlowAppOptions = {}): Promise<FlowApp> {
+  http = false,
+}: FlowAppOptions = {}): Promise<FlowApp | HttpFlowApp> {
   const startedAt = Date.now();
   const db = new InMemoryFirestore();
   const discord = new DiscordMock();
@@ -180,7 +220,7 @@ export async function createFlowApp({
 
   try {
     const moduleRef = await Test.createTestingModule({
-      imports: [...FLOW_MODULES, ...modules],
+      imports: [...FLOW_MODULES, ...(http ? [HttpModule] : []), ...modules],
       providers: [...FLOW_PROVIDERS],
     })
       .overrideProvider(FIRESTORE)
@@ -194,7 +234,7 @@ export async function createFlowApp({
 
     // runs onApplicationBootstrap: CQRS handler registration, SignupService's
     // reaction listener, and SlashCommandsService's listener for commands
-    await moduleRef.init();
+    const app = await startApp(moduleRef, http);
     // what the bot registers with Discord, so the fake only sends commands
     // and options that exist
     discord.registerCommands(
@@ -211,7 +251,7 @@ export async function createFlowApp({
         recording.valuesRead(range, sheetsRequests.readPaths(range)),
     };
 
-    return {
+    const flow: FlowApp = {
       startedAt,
       db,
       discord,
@@ -241,7 +281,7 @@ export async function createFlowApp({
           // time out anything still waiting on a click so it can't leak into the next test
           discord.expireAll();
           await waitUntilIdle(activity);
-          await moduleRef.close();
+          await (app ?? moduleRef).close();
           await Sentry.flush();
         } finally {
           restoreDefaultLogger();
@@ -271,6 +311,9 @@ export async function createFlowApp({
         }
       },
     };
+    if (app === undefined) return flow;
+    const agent = () => supertest.agent(app.getHttpServer());
+    return { ...flow, http: agent(), agent };
   } catch (error) {
     // don't leave nock intercepting or listeners subscribed for later spec files
     restoreDefaultLogger();

@@ -24,11 +24,13 @@
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
     "@nestjs/cqrs": "catalog:",
+    "@nestjs/platform-express": "catalog:",
     "@sentry/nestjs": "catalog:",
     "@sentry/profiling-node": "catalog:",
     "@ulti-project/shared": "workspace:*",
     "cron": "catalog:",
     "discord.js": "catalog:",
+    "express": "catalog:",
     "firebase-admin": "catalog:",
     "google-auth-library": "catalog:",
     "graphql": "catalog:",
@@ -51,8 +53,11 @@
     "@graphql-codegen/typescript-operations": "catalog:",
     "@nestjs/testing": "catalog:",
     "@sentry/cli": "catalog:",
+    "@types/express": "catalog:",
     "@types/node": "catalog:",
+    "@types/supertest": "catalog:",
     "nock": "catalog:",
+    "supertest": "catalog:",
     "vitest": "catalog:"
   }
 }
