@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import * as Sentry from '@sentry/nestjs';
 import type { SignupDocument } from '@ulti-project/shared';
 import type { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
@@ -108,7 +109,9 @@ describe('SignupService', () => {
       const message = buildMessageWithReactions(approvedRemove, declinedRemove);
       const error = new Error('boom');
 
-      await service['handleError'](error, user, message);
+      await Sentry.withScope(() =>
+        service['handleError'](error, user, message),
+      );
 
       expect(approvedRemove).toHaveBeenCalledWith(user.id);
       expect(declinedRemove).toHaveBeenCalledWith(user.id);
@@ -128,7 +131,7 @@ describe('SignupService', () => {
       discordService.sendDirectMessage.mockRejectedValueOnce(dmError);
 
       await expect(
-        service['handleError'](error, user, message),
+        Sentry.withScope(() => service['handleError'](error, user, message)),
       ).resolves.toBeUndefined();
 
       expect(errorService.captureError).toHaveBeenCalledWith(error);
@@ -184,8 +187,12 @@ describe('SignupService', () => {
         }),
       });
 
+      // in a scope of its own, as the reaction pipeline runs it: it puts the
+      // reviewer and extras on the current scope, which specs share
       await expect(
-        service.processEvent({ reaction, user: reviewer }),
+        Sentry.withScope(() =>
+          service.processEvent({ reaction, user: reviewer }),
+        ),
       ).resolves.toBeUndefined();
 
       await vi.waitFor(() => {
