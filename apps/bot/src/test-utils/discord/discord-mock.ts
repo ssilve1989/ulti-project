@@ -322,6 +322,8 @@ export class DiscordMock {
   private readonly failingDms = new Set<string>();
   private readonly unpostableChannels = new Set<string>();
   private guildFetchesFail = false;
+  // the app only starts once the bot has logged in (DiscordModule waits for ClientReady)
+  private gatewayDown = false;
   private commandReplyEditsFail = false;
   private readonly pressed: Array<{ customId: string; ack: Acknowledgement }> =
     [];
@@ -453,6 +455,11 @@ export class DiscordMock {
   /** From now on Discord fails every guild fetch with a server error, as in an outage; interactions still work. */
   failGuildFetches(): void {
     this.guildFetchesFail = true;
+  }
+
+  /** From now on the bot's gateway connection is down, so the client isn't ready, as when discord.js loses its websocket. */
+  disconnectGateway(): void {
+    this.gatewayDown = true;
   }
 
   /** From now on Discord fails every edit of a command's reply with a server error, as in an outage; clicks still arrive. */
@@ -1040,6 +1047,7 @@ export class DiscordMock {
       canBeMessaged: (userId) => !this.failingDms.has(userId),
       canPostIn: (channelId) => !this.unpostableChannels.has(channelId),
       guildsUnavailable: () => this.guildFetchesFail,
+      gatewayConnected: () => !this.gatewayDown,
       post: ({ guildId, id }, payload) =>
         this.createMessage(
           { kind: 'channel', guildId, channelId: id },

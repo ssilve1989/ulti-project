@@ -85,6 +85,8 @@ export interface FakeWorld {
   readonly canPostIn: (channelId: string) => boolean;
   /** whether Discord is failing guild fetches (an outage) */
   readonly guildsUnavailable: () => boolean;
+  /** whether the bot's gateway connection is up */
+  readonly gatewayConnected: () => boolean;
   readonly post: (
     channel: FakeChannel,
     payload: OutgoingPayload,
@@ -130,8 +132,7 @@ export class FakeViews {
     return Object.assign(
       emitter,
       mockOf<Client>({
-        // the app only starts once the bot has logged in (DiscordModule waits for ClientReady)
-        isReady: () => true,
+        isReady: () => this.world.gatewayConnected(),
         guilds: {
           get cache() {
             return views.guildCollection();

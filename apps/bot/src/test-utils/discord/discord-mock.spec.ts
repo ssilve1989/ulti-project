@@ -150,6 +150,20 @@ const pressed = (interaction: {
 });
 
 describe('DiscordMock', () => {
+  it('has a ready client, as the app only starts once the bot has logged in', ({
+    discord,
+  }) => {
+    expect(discord.client.isReady()).toBe(true);
+  });
+
+  it('has a client that is not ready once the gateway disconnects', ({
+    discord,
+  }) => {
+    discord.disconnectGateway();
+
+    expect(discord.client.isReady()).toBe(false);
+  });
+
   /** DMs `userId` a go button, clicks it, and returns the click the bot received. */
   const clickGo = async ({ discord, service }: Bot, userId = 'u1') => {
     const message = await service.sendDirectMessage(userId, {
