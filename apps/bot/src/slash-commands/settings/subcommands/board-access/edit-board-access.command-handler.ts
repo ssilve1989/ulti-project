@@ -8,14 +8,15 @@ import { SlashCommand } from '../../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../../slash-command.interface.js';
 import { SettingsSlashCommand } from '../../settings.slash-command.js';
 import { runRoleSelectSetting } from '../role-select-setting.js';
-import { EVENT_ORGANIZERS_SELECT_ID } from './event-organizers.components.js';
+
+export const BOARD_ACCESS_SELECT_ID = 'boardAccessSelect';
 
 @Injectable()
 @SlashCommand({
   builder: SettingsSlashCommand,
-  subcommand: 'event-organizers',
+  subcommand: 'board-access',
 })
-class EditEventOrganizersCommandHandler implements ISlashCommand {
+class EditBoardAccessCommandHandler implements ISlashCommand {
   constructor(
     private readonly settingsCollection: SettingsCollection,
     private readonly componentSessions: ComponentSessionService,
@@ -30,23 +31,22 @@ class EditEventOrganizersCommandHandler implements ISlashCommand {
       interaction,
       { settingsCollection, componentSessions },
       {
-        field: 'eventOrganizerRoles',
+        field: 'boardViewerRoles',
         instructions:
-          'Select the roles that can create and manage events. Your selection replaces the current list; submit an empty selection to remove every organizer role.',
+          'Select the roles that can view the coordinator board. Squad roles can always view it.',
         select: {
-          customId: EVENT_ORGANIZERS_SELECT_ID,
-          placeholder: 'Select event organizer roles',
+          customId: BOARD_ACCESS_SELECT_ID,
+          placeholder: 'Select board viewer roles',
         },
         saved: (roleIds) =>
-          `Saved! Event organizers: ${roleIds.map(roleMention).join(', ')}`,
-        emptySaved:
-          'Saved! Nobody can create events until organizer roles are set.',
+          `Saved! Board viewers: ${roleIds.map(roleMention).join(', ')}`,
+        emptySaved: 'Saved! Only squad roles can view the board.',
         expiredContent:
-          'This menu has expired. Run /settings event-organizers again if needed.',
-        sessionName: 'settings event-organizers',
+          'This menu has expired. Run /settings board-access again if needed.',
+        sessionName: 'settings board-access',
       },
     );
   }
 }
 
-export { EditEventOrganizersCommandHandler };
+export { EditBoardAccessCommandHandler };

@@ -5,6 +5,7 @@ import { ErrorModule } from '../../error/error.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
 import { EditBlacklistChannelsCommandHandler } from './subcommands/blacklist-channels/edit-blacklist-channels.command-handler.js';
+import { EditBoardAccessCommandHandler } from './subcommands/board-access/edit-board-access.command-handler.js';
 import { EditChannelsCommandHandler } from './subcommands/channels/edit-channels.command-handler.js';
 import { EditEventOrganizersCommandHandler } from './subcommands/event-organizers/edit-event-organizers.command-handler.js';
 import { EditJobEmojisCommandHandler } from './subcommands/job-emojis/edit-job-emojis.command-handler.js';
@@ -24,6 +25,7 @@ import { ViewSettingsCommandHandler } from './subcommands/view/view-settings.com
   ],
   providers: [
     EditBlacklistChannelsCommandHandler,
+    EditBoardAccessCommandHandler,
     EditChannelsCommandHandler,
     EditEncounterRolesCommandHandler,
     EditEventOrganizersCommandHandler,

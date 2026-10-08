@@ -16,6 +16,7 @@ import {
   textReply,
 } from '../../test-utils/replies.js';
 import { BLACKLIST_CHANNELS_SELECT_ID } from './subcommands/blacklist-channels/blacklist-channels.components.js';
+import { BOARD_ACCESS_SELECT_ID } from './subcommands/board-access/edit-board-access.command-handler.js';
 import { EVENT_ORGANIZERS_SELECT_ID } from './subcommands/event-organizers/event-organizers.components.js';
 import { PROG_POINT_ROLES_SELECT_ID } from './subcommands/prog-point-roles/edit-prog-point-roles.command-handler.js';
 import {
@@ -50,6 +51,8 @@ const TOP_PROG_ROLE = 'top-prog-role';
 const TOP_CLEAR_ROLE = 'top-clear-role';
 const ORGANIZER_ROLE = 'organizer-role';
 const RAID_LEAD_ROLE = 'raid-lead-role';
+const VIEWER_ROLE = 'viewer-role';
+const OFFICER_ROLE = 'officer-role';
 
 /** Settings a guild has once an admin has configured everything but spreadsheets. */
 const CONFIGURED = Object.freeze({
@@ -82,6 +85,8 @@ function givenAGuild(flow: FlowApp): void {
     TOP_CLEAR_ROLE,
     ORGANIZER_ROLE,
     RAID_LEAD_ROLE,
+    VIEWER_ROLE,
+    OFFICER_ROLE,
   ]) {
     flow.discord.addRole(GUILD, { id, name: id });
   }
@@ -660,6 +665,115 @@ describe('Settings', () => {
     });
   });
 
+  describe('board-access', () => {
+    const INSTRUCTIONS =
+      'Select the roles that can view the coordinator board. Squad roles can always view it.';
+
+    /** The role menu, with `selected` as its current roles. */
+    const roleMenu = (selected: string[]) => ({
+      type: ComponentType.ActionRow,
+      components: [
+        {
+          type: ComponentType.RoleSelect,
+          custom_id: BOARD_ACCESS_SELECT_ID,
+          placeholder: 'Select board viewer roles',
+          min_values: 0,
+          max_values: 25,
+          default_values: selected.map((id) => ({ id, type: 'role' })),
+        },
+      ],
+    });
+
+    const pick = async (
+      flow: FlowApp,
+      reply: Awaited<ReturnType<typeof settings>>,
+      roleIds: string[],
+    ) => {
+      flow.discord.chooseRoles(reply(), roleIds, ADMIN.id);
+      await flow.settle();
+    };
+
+    describe('when an admin opens the menu', () => {
+      it('shows them, privately, the current board viewer roles', async ({
+        flow,
+      }) => {
+        flow.db.seed(SETTINGS_PATH, { boardViewerRoles: [VIEWER_ROLE] });
+
+        await settings(flow, 'board-access');
+
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            content: INSTRUCTIONS,
+            components: [roleMenu([VIEWER_ROLE])],
+          }),
+        ]);
+      });
+    });
+
+    describe('when the admin picks two roles', () => {
+      it.beforeEach(async ({ flow }) => {
+        const reply = await settings(flow, 'board-access');
+        await pick(flow, reply, [VIEWER_ROLE, OFFICER_ROLE]);
+      });
+
+      it('stores them as the board viewer roles', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          boardViewerRoles: [VIEWER_ROLE, OFFICER_ROLE],
+        });
+      });
+
+      it('confirms them under the menu, which keeps them selected', ({
+        flow,
+      }) => {
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            content: `${INSTRUCTIONS}\n\nSaved! Board viewers: <@&${VIEWER_ROLE}>, <@&${OFFICER_ROLE}>`,
+            components: [roleMenu([VIEWER_ROLE, OFFICER_ROLE])],
+          }),
+        ]);
+      });
+    });
+
+    describe('when the admin picks no roles', () => {
+      it.beforeEach(async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, { boardViewerRoles: [VIEWER_ROLE] });
+        const reply = await settings(flow, 'board-access');
+        await pick(flow, reply, []);
+      });
+
+      it('stores that no extra role views the board', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          boardViewerRoles: [],
+        });
+      });
+
+      it('confirms only squad roles can view the board', ({ flow }) => {
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            content: `${INSTRUCTIONS}\n\nSaved! Only squad roles can view the board.`,
+            components: [roleMenu([])],
+          }),
+        ]);
+      });
+    });
+
+    describe('when the menu expires', () => {
+      it('says so and removes the menu', async ({ flow }) => {
+        await settings(flow, 'board-access');
+
+        flow.discord.expireAll();
+        await flow.settle();
+
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            content:
+              'This menu has expired. Run /settings board-access again if needed.',
+          }),
+        ]);
+      });
+    });
+  });
+
   describe('job-emojis', () => {
     const SGE_EMOJI = '123456789012345678';
     const WHM_EMOJI = '223456789012345678';
@@ -825,6 +939,7 @@ describe('Settings', () => {
       spreadsheetFields: unknown[] = [],
       jobEmojis = 'Not set',
       eventOrganizers = 'Not set',
+      boardViewers = 'Not set',
     ) => ({
       title: 'Settings',
       description:
@@ -841,6 +956,7 @@ describe('Settings', () => {
         field('Prog Point Roles', '1 encounter configured (2 prog points)'),
         field('Job emojis', jobEmojis),
         field('Event organizers', eventOrganizers),
+        field('Board viewers', boardViewers),
       ],
     });
 
@@ -935,6 +1051,29 @@ describe('Settings', () => {
                 [],
                 'Not set',
                 `<@&${ORGANIZER_ROLE}>, <@&${RAID_LEAD_ROLE}>`,
+              ),
+            ],
+            components: [navRow('overview')],
+          }),
+        ]);
+      });
+
+      it('lists the board viewer roles', async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, {
+          ...CONFIGURED,
+          boardViewerRoles: [VIEWER_ROLE, OFFICER_ROLE],
+        });
+
+        await view(flow);
+
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            embeds: [
+              overview(
+                [],
+                'Not set',
+                'Not set',
+                `<@&${VIEWER_ROLE}>, <@&${OFFICER_ROLE}>`,
               ),
             ],
             components: [navRow('overview')],

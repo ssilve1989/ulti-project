@@ -184,6 +184,7 @@ export function buildOverviewEmbed(
 ): EmbedBuilder {
   const {
     autoModChannelId,
+    boardViewerRoles,
     clearRoles,
     eventOrganizerRoles,
     jobEmojis,
@@ -260,6 +261,13 @@ export function buildOverviewEmbed(
       name: 'Event organizers',
       value: eventOrganizerRoles?.length
         ? eventOrganizerRoles.map(roleMention).join(', ')
+        : 'Not set',
+      inline: true,
+    },
+    {
+      name: 'Board viewers',
+      value: boardViewerRoles?.length
+        ? boardViewerRoles.map(roleMention).join(', ')
         : 'Not set',
       inline: true,
     },

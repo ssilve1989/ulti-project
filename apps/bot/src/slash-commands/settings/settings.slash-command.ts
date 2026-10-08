@@ -132,6 +132,10 @@ const EditEventOrganizersSubcommand = new SlashCommandSubcommandBuilder()
   .setName('event-organizers')
   .setDescription('Choose the roles that can create and manage events');
 
+const EditBoardAccessSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('board-access')
+  .setDescription('Choose the roles that can view the coordinator board');
+
 const EditSpreadsheetSubcommand = new SlashCommandSubcommandBuilder()
   .setName('spreadsheet')
   .setDescription('Edit spreadsheet settings')
@@ -159,5 +163,6 @@ export const SettingsSlashCommand = new SlashCommandBuilder()
   .addSubcommand(EditProgPointRolesSubcommand)
   .addSubcommand(EditJobEmojisSubcommand)
   .addSubcommand(EditEventOrganizersSubcommand)
+  .addSubcommand(EditBoardAccessSubcommand)
   .addSubcommand(EditSpreadsheetSubcommand)
   .addSubcommand(ViewSettingsSubcommand);
