@@ -160,7 +160,42 @@ describe('renderSchedulePanel', () => {
             description: [
               'Tue, Thu at 8:00 PM Eastern.',
               'The next event starts <t:1784073600:F> and is posted <t:1783987200:R>.',
-              'Sign-ups close <t:1784066400:R> before it.',
+              'Sign-ups close 2 hours before it starts (<t:1784066400:R>).',
+            ].join('\n'),
+            fields: [
+              {
+                name: 'Encounters',
+                value: '[DSR] Dragonsong Reprise\n[TOP] The Omega Protocol',
+              },
+              { name: 'Channel', value: '<#channel-1>' },
+              { name: 'Post ahead', value: '24 hours' },
+            ],
+          },
+        ],
+        components: [
+          daysRow(['tue', 'thu']),
+          zoneRow(SUMMER_LABELS, USTimeZones.EASTERN),
+          buttonRow(false),
+        ],
+      });
+    });
+  });
+
+  describe('when sign-ups close one hour before the start', () => {
+    it('says 1 hour', () => {
+      const draft = aDraft({
+        weekdays: ['tue', 'thu'],
+        postLeadHours: 24,
+        signupsCloseBeforeHours: 1,
+      });
+      expect(render(draft, JULY_NOW, 'create')).toEqual({
+        embeds: [
+          {
+            title: 'New schedule: DSR prog night',
+            description: [
+              'Tue, Thu at 8:00 PM Eastern.',
+              'The next event starts <t:1784073600:F> and is posted <t:1783987200:R>.',
+              'Sign-ups close 1 hour before it starts (<t:1784070000:R>).',
             ].join('\n'),
             fields: [
               {

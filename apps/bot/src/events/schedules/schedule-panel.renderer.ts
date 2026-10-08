@@ -64,7 +64,7 @@ export function renderSchedulePanel(
       { name: 'Channel', value: channelMention(draft.channelId) },
       {
         name: 'Post ahead',
-        value: `${draft.postLeadHours} ${draft.postLeadHours === 1 ? 'hour' : 'hours'}`,
+        value: hours(draft.postLeadHours),
       },
     );
   return {
@@ -101,12 +101,17 @@ function preview(draft: ScheduleDraft, now: Date): string {
   const signupsClose =
     draft.signupsCloseBeforeHours === 0
       ? 'Sign-ups close when it starts.'
-      : `Sign-ups close ${time(hoursBefore(start, draft.signupsCloseBeforeHours), TimestampStyles.RelativeTime)} before it.`;
+      : `Sign-ups close ${hours(draft.signupsCloseBeforeHours)} before it starts (${time(hoursBefore(start, draft.signupsCloseBeforeHours), TimestampStyles.RelativeTime)}).`;
   return [
     `${describeRecurrence(draft)}.`,
     `The next event starts ${time(start, TimestampStyles.FullDateShortTime)} and is posted ${time(posted, TimestampStyles.RelativeTime)}.`,
     signupsClose,
   ].join('\n');
+}
+
+/** `1 hour`, `72 hours` */
+function hours(count: number): string {
+  return `${count} ${count === 1 ? 'hour' : 'hours'}`;
 }
 
 function hoursBefore(date: Date, hours: number): Date {
