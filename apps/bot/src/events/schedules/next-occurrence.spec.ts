@@ -4,6 +4,7 @@ import {
   nextOccurrence,
   occurrencesAfter,
   type Recurrence,
+  signupsCloseAt,
   timeZoneLabel,
 } from './next-occurrence.js';
 
@@ -132,6 +133,19 @@ describe('occurrencesAfter', () => {
       expect(
         occurrencesAfter(TUE_THU_8PM, new Date('2026-07-13T16:00:00Z'), 0),
       ).toEqual([]);
+    });
+  });
+});
+
+describe('signupsCloseAt', () => {
+  describe('when sign-ups close 2 hours before a start', () => {
+    it('returns 2 hours before it', () => {
+      expect(
+        signupsCloseAt(
+          { signupsCloseBeforeHours: 2 },
+          new Date('2026-07-15T00:00:00Z'),
+        ),
+      ).toEqual(new Date('2026-07-14T22:00:00Z'));
     });
   });
 });

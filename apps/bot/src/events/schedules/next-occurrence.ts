@@ -34,6 +34,7 @@ export const ZONE_NAMES: Record<ScheduleTimeZone, string> = {
 };
 
 const NANOSECONDS_PER_HOUR = 3_600_000_000_000;
+const MILLISECONDS_PER_HOUR = 3_600_000;
 
 /**
  * The first `weekday + startTime` in `timeZone` strictly after `after`. A local
@@ -77,6 +78,16 @@ export function occurrencesAfter(
     starts.push(previous);
   }
   return starts;
+}
+
+/** When sign-ups close for an occurrence starting at `start`. */
+export function signupsCloseAt(
+  { signupsCloseBeforeHours }: { signupsCloseBeforeHours: number },
+  start: Date,
+): Date {
+  return new Date(
+    start.getTime() - signupsCloseBeforeHours * MILLISECONDS_PER_HOUR,
+  );
 }
 
 /** `Eastern (UTC−4)`, with the zone's offset at `at`. */

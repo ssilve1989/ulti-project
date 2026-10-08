@@ -20,9 +20,7 @@ import type {
 } from '../../firebase/models/event-schedule.model.js';
 import { EventMessageService } from '../event-message.service.js';
 import { ParticipantWithdrawnEvent } from '../signup/events.events.js';
-import { occurrencesAfter } from './next-occurrence.js';
-
-const MILLISECONDS_PER_HOUR = 3_600_000;
+import { occurrencesAfter, signupsCloseAt } from './next-occurrence.js';
 
 export interface PostedEventsUpdate {
   schedule: StoredSchedule;
@@ -133,10 +131,7 @@ export class PostedEventsUpdater {
         title: schedule.title,
         encounters: schedule.encounters,
         startsAt: Timestamp.fromDate(startsAt),
-        signupsCloseAt: Timestamp.fromMillis(
-          startsAt.getTime() -
-            schedule.signupsCloseBeforeHours * MILLISECONDS_PER_HOUR,
-        ),
+        signupsCloseAt: Timestamp.fromDate(signupsCloseAt(schedule, startsAt)),
       },
       now,
     );

@@ -8,12 +8,11 @@ import type { CronJob } from 'cron';
 import { Timestamp } from 'firebase-admin/firestore';
 import { ErrorService } from '../../error/error.service.js';
 import { EventMessageService } from '../../events/event-message.service.js';
+import { signupsCloseAt } from '../../events/schedules/next-occurrence.js';
 import { EventSchedulesCollection } from '../../firebase/collections/event-schedules.collection.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
 import type { StoredSchedule } from '../../firebase/models/event-schedule.model.js';
 import { createJob } from '../jobs.consts.js';
-
-const MILLISECONDS_PER_HOUR = 3_600_000;
 
 /**
  * Runs every minute: closes sign-ups that are due and re-renders those events,
@@ -102,6 +101,16 @@ export class EventSchedulerJob
     // Keyed by schedule and start, and posted only once it has no message,
     // so a tick that re-runs after a crash can't post the occurrence twice
     const id = `${schedule.id}-${Math.floor(startsAt.getTime() / 1000)}`;
+    // A schedule edit moves a posted event to a new start under its old id,
+    // so an event at this start under another id means it's already posted
+    const atStart = await this.events.idsForScheduleAt(
+      schedule.id,
+      Timestamp.fromDate(startsAt),
+    );
+    if (atStart.some((other) => other !== id)) {
+      await this.schedules.advance(schedule.id, startsAt);
+      return;
+    }
     const event = await this.events.createIfAbsent(id, {
       guildId: schedule.guildId,
       title: schedule.title,
@@ -110,10 +119,7 @@ export class EventSchedulerJob
       createdBy: schedule.createdBy,
       scheduleId: schedule.id,
       startsAt: Timestamp.fromDate(startsAt),
-      signupsCloseAt: Timestamp.fromMillis(
-        startsAt.getTime() -
-          schedule.signupsCloseBeforeHours * MILLISECONDS_PER_HOUR,
-      ),
+      signupsCloseAt: Timestamp.fromDate(signupsCloseAt(schedule, startsAt)),
     });
     try {
       if (!event.messageId) await this.messages.post(event);

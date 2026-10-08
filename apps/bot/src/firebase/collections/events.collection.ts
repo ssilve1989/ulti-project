@@ -94,6 +94,20 @@ class EventsCollection {
       .sort((a, b) => a.startsAt.toMillis() - b.startsAt.toMillis());
   }
 
+  /** The ids of the schedule's events, of any status, starting at `startsAt`. */
+  @SentryTraced()
+  public async idsForScheduleAt(
+    scheduleId: string,
+    startsAt: Timestamp,
+  ): Promise<string[]> {
+    // equality filters only, so no composite index
+    const snapshot = await this.events
+      .where('scheduleId', '==', scheduleId)
+      .where('startsAt', '==', startsAt)
+      .get();
+    return snapshot.docs.map((doc) => doc.id);
+  }
+
   /**
    * Applies `changes` to an event that isn't closed, rewriting the whole
    * document: it's `open` (due at its cutoff) if the new cutoff is after `now`,

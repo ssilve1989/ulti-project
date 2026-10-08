@@ -1103,6 +1103,34 @@ describe('the event-scheduler job', () => {
     });
   });
 
+  describe('when the occurrence is already posted under another id', () => {
+    itWithScheduler(
+      'posts nothing and moves the schedule on',
+      async ({ flow, cron }) => {
+        const moved: EventDocument = {
+          ...scheduledEvent(),
+          messageId: 'message-0',
+        };
+        flow.db.seed('events/moved-event', moved);
+        flow.db.seed(SCHEDULE_PATH, DUE_SCHEDULE);
+
+        await tickAt(flow, cron, POST);
+
+        expect({
+          shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          events: flow.db.documentsIn('events'),
+          schedule: flow.db.read(SCHEDULE_PATH),
+        }).toEqual({
+          shown: [],
+          events: [
+            { id: 'moved-event', path: 'events/moved-event', data: moved },
+          ],
+          schedule: ADVANCED_SCHEDULE,
+        });
+      },
+    );
+  });
+
   describe("when a schedule's start passed while the bot was down", () => {
     itWithScheduler(
       'posts nothing, warns, and moves to the following occurrence',
@@ -1983,6 +2011,43 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
               'Updated 1 posted event.',
             ),
           ],
+        });
+      },
+    );
+  });
+
+  describe('when the schedule is paused, the event moved to 9 PM, and the schedule resumed', () => {
+    /** Thursday at 9 PM Pacific, and 2 hours before it. */
+    const NINE_PM = new Date('2026-10-09T04:00:00Z');
+    const NINE_PM_CLOSE = new Date('2026-10-09T02:00:00Z');
+    const { nextPostAt: _removedWhilePaused, ...unposted } = ADVANCED_SCHEDULE;
+
+    itWithScheduler(
+      "doesn't post the moved occurrence again when the job ticks",
+      async ({ flow, cron }) => {
+        flow.db.seed(SCHEDULE_PATH, { ...unposted, paused: true });
+        await edit(flow, { time: '9pm' });
+        await event(flow, 'schedule-resume', { schedule: SCHEDULE_ID });
+
+        await tickAt(flow, cron, new Date(EDITED_AT.getTime() + 60_000));
+
+        expect({
+          posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          events: flow.db.documentsIn('events').map(({ id }) => id),
+          schedule: flow.db.read(SCHEDULE_PATH),
+        }).toEqual({
+          posts: [
+            eventPost({ start: NINE_PM, signups: closesAt(NINE_PM_CLOSE) }),
+          ],
+          events: [EVENT_ID],
+          // Tuesday 2026-10-13 at 9 PM Pacific, and a day before it
+          schedule: {
+            ...unposted,
+            startTime: '21:00',
+            nextStartAt: at('2026-10-14T04:00:00Z'),
+            nextPostAt: at('2026-10-13T04:00:00Z'),
+            updatedBy: ORGANIZER.id,
+          },
         });
       },
     );

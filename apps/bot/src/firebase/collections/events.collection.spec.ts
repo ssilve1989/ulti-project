@@ -317,6 +317,33 @@ describe('EventsCollection', () => {
     });
   });
 
+  describe("when looking for a schedule's event at a start", () => {
+    it('returns the ids of those at that start, whatever their status', async ({
+      db,
+      collection,
+    }) => {
+      const other = Timestamp.fromDate(new Date('2026-10-12T20:00:00Z'));
+      db.seed(
+        'events/closed',
+        withStatus(
+          anOpenEvent({ scheduleId: 'schedule-1' }),
+          EventStatus.Closed,
+        ),
+      );
+      db.seed('events/elsewhere', anOpenEvent({ scheduleId: 'schedule-2' }));
+      db.seed(
+        'events/later',
+        anOpenEvent({ scheduleId: 'schedule-3', startsAt: other }),
+      );
+
+      expect({
+        found: await collection.idsForScheduleAt('schedule-1', STARTS_AT),
+        otherStart: await collection.idsForScheduleAt('schedule-3', STARTS_AT),
+        none: await collection.idsForScheduleAt('schedule-4', STARTS_AT),
+      }).toEqual({ found: ['closed'], otherStart: [], none: [] });
+    });
+  });
+
   describe('when an event is rescheduled', () => {
     const LATER_START = Timestamp.fromDate(new Date('2026-10-11T20:00:00Z'));
     const LATER_CUTOFF = Timestamp.fromDate(new Date('2026-10-11T18:00:00Z'));

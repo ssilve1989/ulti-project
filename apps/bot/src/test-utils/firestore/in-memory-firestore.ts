@@ -257,7 +257,12 @@ function condition(
   if (operator === 'in' && Array.isArray(value) && value.length > 30) {
     throw new Error("'in' filters support at most 30 values");
   }
-  if (operator === '==' && typeof value === 'object' && value !== null) {
+  if (
+    operator === '==' &&
+    typeof value === 'object' &&
+    value !== null &&
+    !(value instanceof Timestamp)
+  ) {
     return unsupported('== against maps, arrays or class instances');
   }
   if (operator === '<=' && !(value instanceof Timestamp)) {
@@ -306,7 +311,9 @@ function matches(data: Data, { field, operator, value }: Condition): boolean {
   const actual = data[field];
   switch (operator) {
     case '==':
-      return actual === value;
+      return value instanceof Timestamp
+        ? actual instanceof Timestamp && actual.isEqual(value)
+        : actual === value;
     case 'in':
       return Array.isArray(value) && value.includes(actual);
     case '<=':
