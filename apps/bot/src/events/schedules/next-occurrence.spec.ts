@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { USTimeZones } from '../../common/time-zones.js';
 import {
+  firstFreeOccurrence,
   nextOccurrence,
   occurrenceOnDayOf,
   type Recurrence,
@@ -119,7 +120,23 @@ describe('occurrenceOnDayOf', () => {
   describe('when a Tue/Thu 20:00 Eastern schedule is asked for Thursday 22:00 Eastern, already Friday in UTC', () => {
     it('returns that Thursday at 20:00 Eastern', () => {
       expect(
-        occurrenceOnDayOf(TUE_THU_8PM, new Date('2026-07-17T02:00:00Z')),
+        occurrenceOnDayOf(
+          TUE_THU_8PM,
+          new Date('2026-07-17T02:00:00Z'),
+          USTimeZones.EASTERN,
+        ),
+      ).toEqual(new Date('2026-07-17T00:00:00Z'));
+    });
+  });
+
+  describe('when it is asked for Thursday 22:00 Pacific, already Friday in Eastern', () => {
+    it('returns that Thursday at 20:00 Eastern, reading the day in Pacific', () => {
+      expect(
+        occurrenceOnDayOf(
+          TUE_THU_8PM,
+          new Date('2026-07-17T05:00:00Z'),
+          USTimeZones.PACIFIC,
+        ),
       ).toEqual(new Date('2026-07-17T00:00:00Z'));
     });
   });
@@ -127,8 +144,30 @@ describe('occurrenceOnDayOf', () => {
   describe('when it is asked for a Wednesday', () => {
     it('returns undefined', () => {
       expect(
-        occurrenceOnDayOf(TUE_THU_8PM, new Date('2026-07-15T16:00:00Z')),
+        occurrenceOnDayOf(
+          TUE_THU_8PM,
+          new Date('2026-07-15T16:00:00Z'),
+          USTimeZones.EASTERN,
+        ),
       ).toBeUndefined();
+    });
+  });
+});
+
+describe('firstFreeOccurrence', () => {
+  describe("when a Tue/Thu schedule's next two occurrences are held", () => {
+    it('returns the one after them', () => {
+      const held = new Set([
+        Date.parse('2026-07-15T00:00:00Z'),
+        Date.parse('2026-07-17T00:00:00Z'),
+      ]);
+      expect(
+        firstFreeOccurrence(
+          TUE_THU_8PM,
+          new Date('2026-07-13T16:00:00Z'),
+          held,
+        ),
+      ).toEqual(new Date('2026-07-22T00:00:00Z'));
     });
   });
 });

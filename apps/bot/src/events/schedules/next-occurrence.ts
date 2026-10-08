@@ -55,18 +55,31 @@ export function nextOccurrence(recurrence: Recurrence, after: Date): Date {
   throw new Error('a recurrence must have at least one weekday');
 }
 
+/** The first occurrence strictly after `after` whose start (epoch ms) isn't in `held`. */
+export function firstFreeOccurrence(
+  recurrence: Recurrence,
+  after: Date,
+  held: ReadonlySet<number>,
+): Date {
+  let next = nextOccurrence(recurrence, after);
+  while (held.has(next.getTime())) next = nextOccurrence(recurrence, next);
+  return next;
+}
+
 /**
- * The occurrence on `start`'s date in the recurrence's zone, at its
- * `startTime`; undefined if that date's weekday isn't one of its weekdays.
+ * The occurrence on `start`'s date in `dayZone`, at the recurrence's
+ * `startTime` in its own zone; undefined if that date's weekday isn't one of
+ * its weekdays.
  */
 export function occurrenceOnDayOf(
   recurrence: Recurrence,
   start: Date,
+  dayZone: ScheduleTimeZone,
 ): Date | undefined {
   return occurrenceOn(
     recurrence,
     Temporal.Instant.fromEpochMilliseconds(start.getTime())
-      .toZonedDateTimeISO(recurrence.timeZone)
+      .toZonedDateTimeISO(dayZone)
       .toPlainDate(),
   );
 }

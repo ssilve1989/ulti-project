@@ -127,6 +127,45 @@ describe('EventSchedulesCollection', () => {
     });
   });
 
+  describe('when a schedule is updated and its events hold its next occurrence', () => {
+    it('moves its times past it, asking with the schedule before and after the changes', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(SCHEDULE_PATH, aSchedule());
+      const asked: unknown[] = [];
+
+      const updated = await collection.update(
+        SCHEDULE_ID,
+        { startTime: '21:00' },
+        'organizer-2',
+        NOW,
+        (before, after) => {
+          asked.push([before.startTime, after.startTime]);
+          // Tuesday 13 October, 21:00 in New York
+          return new Set([Date.parse('2026-10-14T01:00:00Z')]);
+        },
+      );
+
+      // Tuesday 20 October, 21:00 in New York, and 72 hours before it
+      const stored = aSchedule({
+        startTime: '21:00',
+        nextStartAt: at('2026-10-21T01:00:00Z'),
+        nextPostAt: at('2026-10-18T01:00:00Z'),
+        updatedBy: 'organizer-2',
+      });
+      expect({
+        stored: db.read(SCHEDULE_PATH),
+        updated,
+        asked,
+      }).toEqual({
+        stored,
+        updated: { ...stored, id: SCHEDULE_ID },
+        asked: [['20:00', '21:00']],
+      });
+    });
+  });
+
   describe('when a paused schedule is updated', () => {
     it('keeps it not due to post', async ({ db, collection }) => {
       db.seed(SCHEDULE_PATH, paused(aSchedule()));

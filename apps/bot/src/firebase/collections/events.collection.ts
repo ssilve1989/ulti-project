@@ -78,34 +78,33 @@ class EventsCollection {
     );
   }
 
-  /** The schedule's events that haven't started and aren't closed, soonest first. */
+  /** The schedule's events, of any status, that haven't started, soonest first. */
   @SentryTraced()
-  public async findUpcomingForSchedule(
+  public async findFutureForSchedule(
     scheduleId: string,
     now: Date,
   ): Promise<StoredEvent[]> {
-    // equality filters only, so no composite index; the start is checked here
+    // an equality filter only, so no composite index; the start is checked here
     const snapshot = await this.events
       .where('scheduleId', '==', scheduleId)
-      .where('status', 'in', [EventStatus.Open, EventStatus.SignupsClosed])
       .get();
     return EventsCollection.stored(snapshot)
       .filter((event) => event.startsAt.toMillis() > now.getTime())
       .sort((a, b) => a.startsAt.toMillis() - b.startsAt.toMillis());
   }
 
-  /** The ids of the schedule's events, of any status, starting at `startsAt`. */
+  /** The schedule's events, of any status, starting at `startsAt`. */
   @SentryTraced()
-  public async idsForScheduleAt(
+  public async findForScheduleAt(
     scheduleId: string,
     startsAt: Timestamp,
-  ): Promise<string[]> {
+  ): Promise<StoredEvent[]> {
     // equality filters only, so no composite index
     const snapshot = await this.events
       .where('scheduleId', '==', scheduleId)
       .where('startsAt', '==', startsAt)
       .get();
-    return snapshot.docs.map((doc) => doc.id);
+    return EventsCollection.stored(snapshot);
   }
 
   /**

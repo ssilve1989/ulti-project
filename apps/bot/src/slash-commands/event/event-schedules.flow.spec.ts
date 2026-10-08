@@ -141,11 +141,10 @@ const createSchedule = (
     userId,
   );
 
+/** The organizer's latest reply: the panel of the command they ran last. */
 function panel(flow: FlowApp) {
-  const [reply, ...others] = flow.discord.repliesTo(ORGANIZER.id);
-  if (!reply || others.length > 0) {
-    throw new Error('expected the organizer to have one reply');
-  }
+  const reply = flow.discord.repliesTo(ORGANIZER.id).at(-1);
+  if (!reply) throw new Error('expected the organizer to have a reply');
   return reply;
 }
 
@@ -1556,7 +1555,7 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
   const participants = (flow: FlowApp) =>
     flow.db.documentsIn(`${EVENT_PATH}/participants`).map(({ data }) => data);
 
-  /** The summary's first line for the schedule still on Tue/Thu 8 PM Pacific, next on the posted Thursday. */
+  /** The summary's first line for the schedule still on Tue/Thu 8 PM Pacific, next posting on Tuesday. */
   const savedEightPm = ({
     title = TITLE,
     channelId = EVENTS_CHANNEL,
@@ -1564,7 +1563,7 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
     title?: string;
     channelId?: string;
   } = {}) =>
-    `Saved **${title}**: Tue, Thu at 8:00 PM Pacific in <#${channelId}>. Next event <t:${START.getTime() / 1000}:F>, posted <t:${POST.getTime() / 1000}:R>.`;
+    `Saved **${title}**: Tue, Thu at 8:00 PM Pacific in <#${channelId}>. Next event <t:${ADVANCED_START.seconds}:F>, posted <t:${ADVANCED_POST.seconds}:R>.`;
 
   /** The organizer edits the schedule with `options`, picks `days` if given, and saves. */
   async function edit(
@@ -1609,6 +1608,18 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
     const WEDNESDAY_CLOSE = new Date('2026-10-15T02:00:00Z');
     /** A day before Wednesday's event. */
     const WEDNESDAY_POST = new Date('2026-10-14T04:00:00Z');
+    /** The Wednesday after it, and a day before that. */
+    const NEXT_WEDNESDAY = at('2026-10-22T04:00:00Z');
+    const NEXT_WEDNESDAY_POST = at('2026-10-21T04:00:00Z');
+    /** The schedule on Wednesdays at 9 PM, past the moved event's Wednesday. */
+    const WEDNESDAY_SCHEDULE = Object.freeze({
+      ...DMU_TOP_SCHEDULE,
+      weekdays: ['wed'],
+      startTime: '21:00',
+      nextStartAt: NEXT_WEDNESDAY,
+      nextPostAt: NEXT_WEDNESDAY_POST,
+      updatedBy: ORGANIZER.id,
+    });
 
     const moveToWednesday = (flow: FlowApp) =>
       edit(flow, { time: '9pm' }, ['wed']);
@@ -1643,7 +1654,7 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
     );
 
     itWithScheduler(
-      "recomputes the schedule from now, onto the moved event's Wednesday, and says one posted event was updated",
+      'moves the schedule on to the Wednesday after, past the moved event, and says one posted event was updated',
       async ({ flow }) => {
         await moveToWednesday(flow);
 
@@ -1651,17 +1662,10 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
           schedule: flow.db.read(SCHEDULE_PATH),
           replies: repliesTo(flow, ORGANIZER.id),
         }).toEqual({
-          schedule: {
-            ...DMU_TOP_SCHEDULE,
-            weekdays: ['wed'],
-            startTime: '21:00',
-            nextStartAt: Timestamp.fromDate(WEDNESDAY),
-            nextPostAt: Timestamp.fromDate(WEDNESDAY_POST),
-            updatedBy: ORGANIZER.id,
-          },
+          schedule: WEDNESDAY_SCHEDULE,
           replies: [
             summary(
-              `Saved **${TITLE}**: Wed at 9:00 PM Pacific in <#${EVENTS_CHANNEL}>. Next event <t:${WEDNESDAY.getTime() / 1000}:F>, posted <t:${WEDNESDAY_POST.getTime() / 1000}:R>.`,
+              `Saved **${TITLE}**: Wed at 9:00 PM Pacific in <#${EVENTS_CHANNEL}>. Next event <t:${NEXT_WEDNESDAY.seconds}:F>, posted <t:${NEXT_WEDNESDAY_POST.seconds}:R>.`,
               'Updated 1 posted event.',
             ),
           ],
@@ -1672,20 +1676,87 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
     describe("and the job ticks when Wednesday's event would be posted", () => {
       itWithScheduler('posts nothing more', async ({ flow, cron }) => {
         await moveToWednesday(flow);
+        const post = thePost(flow);
 
         await tickAt(flow, cron, WEDNESDAY_POST);
 
         expect({
           posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
-          events: flow.db.documentsIn('events').map(({ id }) => id),
+          events: flow.db.documentsIn('events'),
+          schedule: flow.db.read(SCHEDULE_PATH),
         }).toEqual({
           posts: [
             eventPost({ start: WEDNESDAY, signups: closesAt(WEDNESDAY_CLOSE) }),
           ],
-          events: [EVENT_ID],
+          events: [
+            {
+              id: EVENT_ID,
+              path: EVENT_PATH,
+              data: {
+                ...POSTED_EVENT,
+                startsAt: Timestamp.fromDate(WEDNESDAY),
+                signupsCloseAt: Timestamp.fromDate(WEDNESDAY_CLOSE),
+                signupsCloseDueAt: Timestamp.fromDate(WEDNESDAY_CLOSE),
+                messageId: post.id,
+              },
+            },
+          ],
+          schedule: WEDNESDAY_SCHEDULE,
         });
       });
     });
+  });
+
+  describe('when an organizer moves it from Thursday to Wednesday, then adds Thursday back', () => {
+    /** Wednesday 2026-10-14 at 8 PM Pacific, 2 hours before it, and a day before it. */
+    const WEDNESDAY = new Date('2026-10-15T03:00:00Z');
+    const WEDNESDAY_CLOSE = new Date('2026-10-15T01:00:00Z');
+    const WEDNESDAY_POST = new Date('2026-10-14T03:00:00Z');
+
+    itWithScheduler(
+      "posts Thursday's occurrence as a new event when the job ticks, and keeps the moved one on Wednesday",
+      async ({ flow, cron }) => {
+        await edit(flow, {}, ['wed']);
+        await edit(flow, {}, ['wed', 'thu']);
+
+        // Thursday's post time has passed, so the next tick posts it
+        await tickAt(flow, cron, new Date(EDITED_AT.getTime() + 60_000));
+
+        const events = flow.db.documentsIn('events');
+        // the new event's id is generated
+        const newId = events.find(({ id }) => id !== EVENT_ID)?.id ?? 'none';
+        const [wednesdayPost, thursdayPost] =
+          flow.discord.channel(EVENTS_CHANNEL);
+        expect({
+          posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          events: Object.fromEntries(events.map(({ id, data }) => [id, data])),
+          schedule: flow.db.read(SCHEDULE_PATH),
+        }).toEqual({
+          posts: [
+            eventPost({ start: WEDNESDAY, signups: closesAt(WEDNESDAY_CLOSE) }),
+            eventPost({ eventId: newId }),
+          ],
+          events: {
+            [EVENT_ID]: {
+              ...POSTED_EVENT,
+              startsAt: Timestamp.fromDate(WEDNESDAY),
+              signupsCloseAt: Timestamp.fromDate(WEDNESDAY_CLOSE),
+              signupsCloseDueAt: Timestamp.fromDate(WEDNESDAY_CLOSE),
+              messageId: wednesdayPost?.id,
+            },
+            [newId]: { ...POSTED_EVENT, messageId: thursdayPost?.id },
+          },
+          // on to the moved event's Wednesday, which the next tick skips
+          schedule: {
+            ...DMU_TOP_SCHEDULE,
+            weekdays: ['wed', 'thu'],
+            nextStartAt: Timestamp.fromDate(WEDNESDAY),
+            nextPostAt: Timestamp.fromDate(WEDNESDAY_POST),
+            updatedBy: ORGANIZER.id,
+          },
+        });
+      },
+    );
   });
 
   describe('when an organizer renames it', () => {
@@ -1708,10 +1779,10 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
     });
 
     itWithScheduler(
-      "recomputes the schedule from now, onto the posted Thursday's occurrence",
+      'keeps the schedule on Tuesday, past the posted Thursday',
       ({ flow }) => {
         expect(flow.db.read(SCHEDULE_PATH)).toEqual({
-          ...DMU_TOP_SCHEDULE,
+          ...ADVANCED_SCHEDULE,
           title: 'DMU reclear',
           updatedBy: ORGANIZER.id,
         });
@@ -1757,13 +1828,15 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
   });
 
   describe('when an organizer moves it from 8 PM to 9 PM', () => {
-    /** Thursday 2026-10-08 at 9 PM Pacific, 2 hours before it, and a day before it. */
+    /** Thursday 2026-10-08 at 9 PM Pacific, and 2 hours before it. */
     const NINE_PM = new Date('2026-10-09T04:00:00Z');
     const NINE_PM_CLOSE = new Date('2026-10-09T02:00:00Z');
-    const NINE_PM_POST = new Date('2026-10-08T04:00:00Z');
+    /** Tuesday 2026-10-13 at 9 PM Pacific, and a day before it. */
+    const TUESDAY_NINE = new Date('2026-10-14T04:00:00Z');
+    const TUESDAY_NINE_POST = new Date('2026-10-13T04:00:00Z');
 
     itWithScheduler(
-      'keeps the event on Thursday at 9 PM, with sign-ups closing 2 hours before it',
+      'keeps the event on Thursday at 9 PM, with sign-ups closing 2 hours before it, and moves the schedule on to Tuesday',
       async ({ flow }) => {
         await edit(flow, { time: '9pm' });
 
@@ -1786,16 +1859,55 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
           schedule: {
             ...DMU_TOP_SCHEDULE,
             startTime: '21:00',
-            nextStartAt: Timestamp.fromDate(NINE_PM),
-            nextPostAt: Timestamp.fromDate(NINE_PM_POST),
+            nextStartAt: Timestamp.fromDate(TUESDAY_NINE),
+            nextPostAt: Timestamp.fromDate(TUESDAY_NINE_POST),
             updatedBy: ORGANIZER.id,
           },
           replies: [
             summary(
-              `Saved **${TITLE}**: Tue, Thu at 9:00 PM Pacific in <#${EVENTS_CHANNEL}>. Next event <t:${NINE_PM.getTime() / 1000}:F>, posted <t:${NINE_PM_POST.getTime() / 1000}:R>.`,
+              `Saved **${TITLE}**: Tue, Thu at 9:00 PM Pacific in <#${EVENTS_CHANNEL}>. Next event <t:${TUESDAY_NINE.getTime() / 1000}:F>, posted <t:${TUESDAY_NINE_POST.getTime() / 1000}:R>.`,
               'Updated 1 posted event.',
             ),
           ],
+        });
+      },
+    );
+  });
+
+  describe('when an organizer moves it to 10 PM, then to Eastern and adds Friday', () => {
+    /**
+     * Thursday 2026-10-08 at 10 PM Eastern, and 2 hours before it. At 10 PM
+     * Pacific the event was already Friday in Eastern.
+     */
+    const TEN_PM_EASTERN = new Date('2026-10-09T02:00:00Z');
+    const TEN_PM_EASTERN_CLOSE = new Date('2026-10-09T00:00:00Z');
+
+    itWithScheduler(
+      'keeps the event on the Thursday members signed up for, at 10 PM Eastern',
+      async ({ flow }) => {
+        await edit(flow, { time: '10pm' });
+        await event(flow, 'schedule-edit', { schedule: SCHEDULE_ID });
+        await chooseZone(flow, USTimeZones.EASTERN);
+        await chooseDays(flow, ['tue', 'thu', 'fri']);
+        await click(flow, 'scheduleSave');
+
+        expect({
+          posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          event: flow.db.read(EVENT_PATH),
+        }).toEqual({
+          posts: [
+            eventPost({
+              start: TEN_PM_EASTERN,
+              signups: closesAt(TEN_PM_EASTERN_CLOSE),
+            }),
+          ],
+          event: {
+            ...POSTED_EVENT,
+            startsAt: Timestamp.fromDate(TEN_PM_EASTERN),
+            signupsCloseAt: Timestamp.fromDate(TEN_PM_EASTERN_CLOSE),
+            signupsCloseDueAt: Timestamp.fromDate(TEN_PM_EASTERN_CLOSE),
+            messageId: thePost(flow).id,
+          },
         });
       },
     );
@@ -1865,18 +1977,18 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
       const TUESDAY_NINE = new Date('2026-10-14T04:00:00Z');
 
       itWithScheduler(
-        'keeps each on its own day at 9 PM, and recomputes the schedule from now',
+        'keeps each on its own day at 9 PM, and moves the schedule on past both',
         async ({ flow }) => {
           await edit(flow, { time: '9pm' });
 
           expect(actual(flow)).toEqual({
             ...bothEvents(flow, THURSDAY_NINE, TUESDAY_NINE),
-            // Thursday at 9 PM Pacific, and a week before it
+            // Thursday 2026-10-15 at 9 PM Pacific, and a week before it
             schedule: {
               ...WEEK_AHEAD_SCHEDULE,
               startTime: '21:00',
-              nextStartAt: Timestamp.fromDate(THURSDAY_NINE),
-              nextPostAt: at('2026-10-02T04:00:00Z'),
+              nextStartAt: at('2026-10-16T04:00:00Z'),
+              nextPostAt: at('2026-10-09T04:00:00Z'),
               updatedBy: ORGANIZER.id,
             },
           });
@@ -1896,18 +2008,72 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
 
           expect(actual(flow)).toEqual({
             ...bothEvents(flow, NEXT_THURSDAY_EIGHT, TUESDAY_EIGHT),
-            // Tuesday at 8 AM Pacific, and a week before it
+            // Tuesday 2026-10-20 at 8 AM Pacific, past both, and a week before it
             schedule: {
               ...WEEK_AHEAD_SCHEDULE,
               startTime: '08:00',
-              nextStartAt: Timestamp.fromDate(TUESDAY_EIGHT),
-              nextPostAt: at('2026-10-06T15:00:00Z'),
+              nextStartAt: at('2026-10-20T15:00:00Z'),
+              nextPostAt: at('2026-10-13T15:00:00Z'),
               updatedBy: ORGANIZER.id,
             },
           });
         },
       );
     });
+  });
+
+  describe('when the schedule also has an event on Wednesday that was closed early, and an organizer moves it from Thursday to Wednesday', () => {
+    /** Wednesday 2026-10-14 at 8 PM Pacific, and 2 hours before it. */
+    const { signupsCloseDueAt: _closedIsNotDue, ...notDue } = POSTED_EVENT;
+    const CLOSED_WEDNESDAY: EventDocument = Object.freeze({
+      ...notDue,
+      startsAt: at('2026-10-15T03:00:00Z'),
+      signupsCloseAt: at('2026-10-15T01:00:00Z'),
+      status: 'closed',
+      messageId: 'closed-message',
+    });
+    /** The Wednesday after it at 8 PM Pacific, and 2 hours before it. */
+    const NEXT_WEDNESDAY = new Date('2026-10-22T03:00:00Z');
+    const NEXT_WEDNESDAY_CLOSE = new Date('2026-10-22T01:00:00Z');
+
+    itWithScheduler(
+      'moves the event past the closed one, and the schedule past both',
+      async ({ flow }) => {
+        flow.db.seed('events/closed-wednesday', CLOSED_WEDNESDAY);
+
+        await edit(flow, {}, ['wed']);
+
+        expect({
+          posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          closed: flow.db.read('events/closed-wednesday'),
+          moved: flow.db.read(EVENT_PATH),
+          schedule: flow.db.read(SCHEDULE_PATH),
+        }).toEqual({
+          posts: [
+            eventPost({
+              start: NEXT_WEDNESDAY,
+              signups: closesAt(NEXT_WEDNESDAY_CLOSE),
+            }),
+          ],
+          closed: CLOSED_WEDNESDAY,
+          moved: {
+            ...POSTED_EVENT,
+            startsAt: Timestamp.fromDate(NEXT_WEDNESDAY),
+            signupsCloseAt: Timestamp.fromDate(NEXT_WEDNESDAY_CLOSE),
+            signupsCloseDueAt: Timestamp.fromDate(NEXT_WEDNESDAY_CLOSE),
+            messageId: thePost(flow).id,
+          },
+          // Wednesday 2026-10-28 at 8 PM Pacific, and a day before it
+          schedule: {
+            ...DMU_TOP_SCHEDULE,
+            weekdays: ['wed'],
+            nextStartAt: at('2026-10-29T03:00:00Z'),
+            nextPostAt: at('2026-10-28T03:00:00Z'),
+            updatedBy: ORGANIZER.id,
+          },
+        });
+      },
+    );
   });
 
   describe('when an organizer removes TOP from it', () => {
@@ -2202,7 +2368,7 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
     const { nextPostAt: _removedWhilePaused, ...unposted } = ADVANCED_SCHEDULE;
 
     itWithScheduler(
-      'moves the event, and keeps the schedule paused, recomputed from now',
+      'moves the event, and keeps the schedule paused past it',
       async ({ flow }) => {
         flow.db.seed(SCHEDULE_PATH, { ...unposted, paused: true });
 
@@ -2220,11 +2386,12 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
             signupsCloseDueAt: Timestamp.fromDate(NINE_PM_CLOSE),
             messageId: thePost(flow).id,
           },
+          // Tuesday 2026-10-13 at 9 PM Pacific
           schedule: {
             ...unposted,
             paused: true,
             startTime: '21:00',
-            nextStartAt: Timestamp.fromDate(NINE_PM),
+            nextStartAt: at('2026-10-14T04:00:00Z'),
             updatedBy: ORGANIZER.id,
           },
           replies: [
@@ -2475,14 +2642,18 @@ describe('/event schedule-edit, adding a day before a posted event', () => {
           await tickAfterEdit(flow, cron, 1);
           await tickAfterEdit(flow, cron, 2);
 
+          const [thursdayPost, tuesdayPost] = messageIds(flow);
           expect({
             posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
-            events: flow.db.documentsIn('events').map(({ id }) => id),
-            // Tuesday 2026-10-20 at 8 PM Pacific, and 72 hours before it
+            events: flow.db.documentsIn('events'),
             schedule: flow.db.read(SCHEDULE_PATH),
           }).toEqual({
             posts: [THURSDAY_POSTED, TUESDAY_POSTED],
-            events: [THURSDAY_ID, TUESDAY_ID],
+            events: [
+              storedEvent(THURSDAY_ID, THURSDAY, THURSDAY_CLOSE, thursdayPost),
+              storedEvent(TUESDAY_ID, TUESDAY, TUESDAY_CLOSE, tuesdayPost),
+            ],
+            // Tuesday 2026-10-20 at 8 PM Pacific, and 72 hours before it
             schedule: tueThuSchedule(
               new Date('2026-10-21T03:00:00Z'),
               new Date('2026-10-18T03:00:00Z'),

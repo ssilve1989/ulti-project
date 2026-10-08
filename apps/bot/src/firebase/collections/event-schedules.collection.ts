@@ -8,7 +8,7 @@ import {
   Timestamp,
 } from 'firebase-admin/firestore';
 import {
-  nextOccurrence,
+  firstFreeOccurrence,
   type Recurrence,
 } from '../../events/schedules/next-occurrence.js';
 import { InjectFirestore } from '../firebase.decorators.js';
@@ -25,12 +25,13 @@ type UntimedSchedule = Omit<
   'nextStartAt' | 'nextPostAt'
 >;
 
-/** The first occurrence strictly after `after`, and when to post it. */
+/** The first occurrence strictly after `after` not in `held`, and when to post it. */
 function scheduleTimes(
   settings: Recurrence & Pick<ScheduleSettings, 'postLeadHours'>,
   after: Date,
+  held: ReadonlySet<number>,
 ) {
-  const start = nextOccurrence(settings, after);
+  const start = firstFreeOccurrence(settings, after, held);
   return {
     nextStartAt: Timestamp.fromDate(start),
     nextPostAt: Timestamp.fromMillis(
@@ -39,9 +40,16 @@ function scheduleTimes(
   };
 }
 
-/** `schedule` with its times from `after`; a paused one gets no `nextPostAt`. */
-function timed(schedule: UntimedSchedule, after: Date): EventScheduleDocument {
-  const { nextStartAt, nextPostAt } = scheduleTimes(schedule, after);
+/**
+ * `schedule` with its times from `after`, past the occurrences in `held`; a
+ * paused one gets no `nextPostAt`.
+ */
+function timed(
+  schedule: UntimedSchedule,
+  after: Date,
+  held: ReadonlySet<number> = new Set(),
+): EventScheduleDocument {
+  const { nextStartAt, nextPostAt } = scheduleTimes(schedule, after, held);
   return schedule.paused
     ? { ...schedule, nextStartAt }
     : { ...schedule, nextStartAt, nextPostAt };
@@ -74,17 +82,24 @@ class EventSchedulesCollection {
     return { ...document, id: ref.id };
   }
 
-  /** Applies `changes` and recomputes the times from `now`; undefined if missing. */
+  /**
+   * Applies `changes` and recomputes the times from `now`, past the starts
+   * (epoch ms) that `held(before, after)` says the schedule's events hold;
+   * undefined if missing.
+   */
   @SentryTraced()
   public update(
     id: string,
     changes: Partial<ScheduleSettings>,
     by: string,
     now: Date,
+    held: (before: Recurrence, after: Recurrence) => ReadonlySet<number> = () =>
+      new Set(),
   ): Promise<StoredSchedule | undefined> {
-    return this.rewrite(id, (schedule) =>
-      timed({ ...schedule, ...changes, updatedBy: by }, now),
-    );
+    return this.rewrite(id, (schedule) => {
+      const changed = { ...schedule, ...changes, updatedBy: by };
+      return timed(changed, now, held(schedule, changed));
+    });
   }
 
   /**

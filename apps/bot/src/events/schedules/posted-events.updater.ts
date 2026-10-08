@@ -10,9 +10,10 @@ import { DiscordService } from '../../discord/discord.service.js';
 import { ErrorService } from '../../error/error.service.js';
 import { EventSchedulesCollection } from '../../firebase/collections/event-schedules.collection.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
-import type {
-  ParticipantDocument,
-  StoredEvent,
+import {
+  EventStatus,
+  type ParticipantDocument,
+  type StoredEvent,
 } from '../../firebase/models/event.model.js';
 import type {
   ScheduleSettings,
@@ -21,7 +22,7 @@ import type {
 import { EventMessageService } from '../event-message.service.js';
 import { ParticipantWithdrawnEvent } from '../signup/events.events.js';
 import {
-  nextOccurrence,
+  firstFreeOccurrence,
   occurrenceOnDayOf,
   type Recurrence,
   signupsCloseAt,
@@ -64,25 +65,34 @@ function plural(count: number, noun: string): string {
 }
 
 /**
- * Each event's new start, in `posted`'s order. An event whose weekday is still
- * scheduled stays on its date at the new time; one whose weekday was removed,
- * or whose new time that day has passed, takes the earliest occurrence after
- * `now` that no other event holds, in start order.
+ * Each posted event's new start, in `posted`'s (start) order. An event whose
+ * weekday, read in the schedule's zone `before` the edit, is still scheduled
+ * stays on that date at the new time; one whose weekday was removed, or whose
+ * new time that day has passed, takes the earliest occurrence after `now`
+ * that no other event of the schedule holds (`held`: those not being moved).
  */
 function newStarts(
   posted: readonly StoredEvent[],
-  recurrence: Recurrence,
+  before: Recurrence,
+  after: Recurrence,
+  held: readonly number[],
   now: Date,
 ): Date[] {
   const kept = posted.map((event) => {
-    const start = occurrenceOnDayOf(recurrence, event.startsAt.toDate());
+    const start = occurrenceOnDayOf(
+      after,
+      event.startsAt.toDate(),
+      before.timeZone,
+    );
     return start && start > now ? start : undefined;
   });
-  const taken = new Set(kept.flatMap((start) => start?.getTime() ?? []));
+  const taken = new Set([
+    ...held,
+    ...kept.flatMap((start) => start?.getTime() ?? []),
+  ]);
   return kept.map((start) => {
     if (start) return start;
-    let next = nextOccurrence(recurrence, now);
-    while (taken.has(next.getTime())) next = nextOccurrence(recurrence, next);
+    const next = firstFreeOccurrence(after, now, taken);
     taken.add(next.getTime());
     return next;
   });
@@ -105,8 +115,8 @@ export class PostedEventsUpdater {
   /**
    * Saves `changes` to the schedule, then updates the events it posted that
    * haven't started and aren't closed, each keeping its own day when it can
-   * (`newStarts`). The scheduler skips an occurrence one of them holds.
-   * Undefined, touching no event, if the schedule is missing.
+   * (`newStarts`). The schedule's next times skip every start its future
+   * events hold. Undefined, touching no event, if the schedule is missing.
    */
   async apply(
     scheduleId: string,
@@ -114,8 +124,24 @@ export class PostedEventsUpdater {
     by: string,
     now: Date,
   ): Promise<PostedEventsUpdate | undefined> {
-    const posted = await this.events.findUpcomingForSchedule(scheduleId, now);
-    const schedule = await this.schedules.update(scheduleId, changes, by, now);
+    const future = await this.events.findFutureForSchedule(scheduleId, now);
+    const posted = future.filter(({ status }) => status !== EventStatus.Closed);
+    // a closed event still holds its start
+    const closed = future
+      .filter(({ status }) => status === EventStatus.Closed)
+      .map(({ startsAt }) => startsAt.toMillis());
+    let starts: Date[] = [];
+    const schedule = await this.schedules.update(
+      scheduleId,
+      changes,
+      by,
+      now,
+      (before, after) => {
+        // recomputed if the transaction retries, so the last run's starts win
+        starts = newStarts(posted, before, after, closed, now);
+        return new Set([...closed, ...starts.map((start) => start.getTime())]);
+      },
+    );
     if (!schedule) return undefined;
 
     const update: PostedEventsUpdate = {
@@ -124,7 +150,6 @@ export class PostedEventsUpdater {
       removed: {},
       notMoved: 0,
     };
-    const starts = newStarts(posted, schedule, now);
     for (const [index, event] of posted.entries()) {
       const outcome = await this.updateEvent(
         event,

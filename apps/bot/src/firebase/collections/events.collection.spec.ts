@@ -282,8 +282,8 @@ describe('EventsCollection', () => {
     });
   });
 
-  describe("when looking for a schedule's upcoming events", () => {
-    it('returns those not started or closed, soonest first', async ({
+  describe("when looking for a schedule's future events", () => {
+    it('returns those not started, whatever their status, soonest first', async ({
       db,
       collection,
     }) => {
@@ -304,32 +304,38 @@ describe('EventsCollection', () => {
           startsAt: Timestamp.fromDate(NOW),
         }),
       );
-      db.seed('events/closed', withStatus(later, EventStatus.Closed));
+      const closed = withStatus(
+        anOpenEvent({
+          scheduleId: 'schedule-1',
+          startsAt: Timestamp.fromDate(new Date('2026-10-13T20:00:00Z')),
+        }),
+        EventStatus.Closed,
+      );
+      db.seed('events/closed', closed);
       db.seed('events/other', { ...later, scheduleId: 'schedule-2' });
       db.seed('events/unscheduled', anOpenEvent());
 
-      expect(
-        await collection.findUpcomingForSchedule('schedule-1', NOW),
-      ).toEqual([
-        { ...sooner, id: 'sooner' },
-        { ...later, id: 'later' },
-      ]);
+      expect(await collection.findFutureForSchedule('schedule-1', NOW)).toEqual(
+        [
+          { ...sooner, id: 'sooner' },
+          { ...later, id: 'later' },
+          { ...closed, id: 'closed' },
+        ],
+      );
     });
   });
 
   describe("when looking for a schedule's event at a start", () => {
-    it('returns the ids of those at that start, whatever their status', async ({
+    it('returns those at that start, whatever their status', async ({
       db,
       collection,
     }) => {
       const other = Timestamp.fromDate(new Date('2026-10-12T20:00:00Z'));
-      db.seed(
-        'events/closed',
-        withStatus(
-          anOpenEvent({ scheduleId: 'schedule-1' }),
-          EventStatus.Closed,
-        ),
+      const closed = withStatus(
+        anOpenEvent({ scheduleId: 'schedule-1' }),
+        EventStatus.Closed,
       );
+      db.seed('events/closed', closed);
       db.seed('events/elsewhere', anOpenEvent({ scheduleId: 'schedule-2' }));
       db.seed(
         'events/later',
@@ -337,10 +343,14 @@ describe('EventsCollection', () => {
       );
 
       expect({
-        found: await collection.idsForScheduleAt('schedule-1', STARTS_AT),
-        otherStart: await collection.idsForScheduleAt('schedule-3', STARTS_AT),
-        none: await collection.idsForScheduleAt('schedule-4', STARTS_AT),
-      }).toEqual({ found: ['closed'], otherStart: [], none: [] });
+        found: await collection.findForScheduleAt('schedule-1', STARTS_AT),
+        otherStart: await collection.findForScheduleAt('schedule-3', STARTS_AT),
+        none: await collection.findForScheduleAt('schedule-4', STARTS_AT),
+      }).toEqual({
+        found: [{ ...closed, id: 'closed' }],
+        otherStart: [],
+        none: [],
+      });
     });
   });
 

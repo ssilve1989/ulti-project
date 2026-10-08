@@ -11,6 +11,10 @@ import { EventMessageService } from '../../events/event-message.service.js';
 import { signupsCloseAt } from '../../events/schedules/next-occurrence.js';
 import { EventSchedulesCollection } from '../../firebase/collections/event-schedules.collection.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
+import type {
+  NewEvent,
+  StoredEvent,
+} from '../../firebase/models/event.model.js';
 import type { StoredSchedule } from '../../firebase/models/event-schedule.model.js';
 import { createJob } from '../jobs.consts.js';
 
@@ -98,20 +102,40 @@ export class EventSchedulerJob
       await this.schedules.advance(schedule.id, startsAt);
       return;
     }
-    // Keyed by schedule and start, and posted only once it has no message,
-    // so a tick that re-runs after a crash can't post the occurrence twice
-    const id = `${schedule.id}-${Math.floor(startsAt.getTime() / 1000)}`;
-    // A schedule edit moves a posted event to a new start under its old id,
-    // so an event at this start under another id means it's already posted
-    const atStart = await this.events.idsForScheduleAt(
+    // An event of the schedule at this start, whatever its id (a schedule
+    // edit moves events under their old ids), is this occurrence: one with a
+    // message is posted, and one without is posted now, so a tick that
+    // re-runs after a crash can't post the occurrence twice
+    const atStart = await this.events.findForScheduleAt(
       schedule.id,
       Timestamp.fromDate(startsAt),
     );
-    if (atStart.some((other) => other !== id)) {
-      await this.schedules.advance(schedule.id, startsAt);
-      return;
+    if (!atStart.some(({ messageId }) => messageId)) {
+      const event = atStart[0] ?? (await this.create(schedule, startsAt));
+      try {
+        if (!event.messageId) await this.messages.post(event);
+      } catch (error) {
+        this.errors.captureError(error, {
+          message: `schedule ${schedule.id} could not post ${event.id}`,
+        });
+        await this.discard(event.id);
+      }
     }
-    const event = await this.events.createIfAbsent(id, {
+    // Advance even after a failed post, so a deleted channel or a missing
+    // permission doesn't fail every minute
+    await this.schedules.advance(schedule.id, startsAt);
+  }
+
+  /**
+   * Creates the occurrence's event, keyed by schedule and start. If an edit
+   * moved the event under that id to another start, it gets a fresh id.
+   */
+  private async create(
+    schedule: StoredSchedule,
+    startsAt: Date,
+  ): Promise<StoredEvent> {
+    const id = `${schedule.id}-${Math.floor(startsAt.getTime() / 1000)}`;
+    const occurrence: NewEvent = {
       guildId: schedule.guildId,
       title: schedule.title,
       encounters: schedule.encounters,
@@ -120,18 +144,11 @@ export class EventSchedulerJob
       scheduleId: schedule.id,
       startsAt: Timestamp.fromDate(startsAt),
       signupsCloseAt: Timestamp.fromDate(signupsCloseAt(schedule, startsAt)),
-    });
-    try {
-      if (!event.messageId) await this.messages.post(event);
-    } catch (error) {
-      this.errors.captureError(error, {
-        message: `schedule ${schedule.id} could not post ${id}`,
-      });
-      await this.discard(id);
-    }
-    // Advance even after a failed post, so a deleted channel or a missing
-    // permission doesn't fail every minute
-    await this.schedules.advance(schedule.id, startsAt);
+    };
+    const event = await this.events.createIfAbsent(id, occurrence);
+    return event.startsAt.toMillis() === startsAt.getTime()
+      ? event
+      : this.events.create(occurrence);
   }
 
   /** Deletes an event that couldn't be posted, so no unposted event stays open. */
