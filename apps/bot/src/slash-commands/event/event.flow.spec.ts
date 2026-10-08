@@ -5,7 +5,11 @@ import type { EventDocument } from '../../firebase/models/event.model.js';
 import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
-import { textReply } from '../../test-utils/replies.js';
+import {
+  commandErrorReply,
+  expectCommandErrorReported,
+  textReply,
+} from '../../test-utils/replies.js';
 
 const GUILD = 'guild-1';
 const OTHER_GUILD = 'guild-2';
@@ -159,6 +163,13 @@ const repliesTo = (flow: FlowApp, userId: string) =>
 const privately = (userId: string, content: string) =>
   textReply(userId, content, { ephemeral: true });
 
+/** The organizer's private confirmation that the event was posted. */
+const postedReply = (flow: FlowApp) =>
+  privately(
+    ORGANIZER.id,
+    `Posted **${TITLE}** in <#${EVENTS_CHANNEL}>: https://discord.com/channels/${GUILD}/${EVENTS_CHANNEL}/${postedMessage(flow).id}`,
+  );
+
 describe('/event create', () => {
   describe('when an organizer creates an event', () => {
     it.beforeEach(({ flow }) => createEvent(flow));
@@ -176,12 +187,7 @@ describe('/event create', () => {
     });
 
     it('tells the organizer, privately, where it was posted', ({ flow }) => {
-      expect(repliesTo(flow, ORGANIZER.id)).toEqual([
-        privately(
-          ORGANIZER.id,
-          `Posted **${TITLE}** in <#${EVENTS_CHANNEL}>: https://discord.com/channels/${GUILD}/${EVENTS_CHANNEL}/${postedMessage(flow).id}`,
-        ),
-      ]);
+      expect(repliesTo(flow, ORGANIZER.id)).toEqual([postedReply(flow)]);
     });
   });
 
@@ -215,6 +221,12 @@ describe('/event create', () => {
     {
       when: 'sets sign-ups to close in the past',
       close: String(seconds(NOW) - 60),
+      refusal:
+        "I couldn't read that sign-up close time. Use a Discord timestamp like <t:1760000000:F> or unix seconds, in the future.",
+    },
+    {
+      when: 'gives a sign-up close of "tomorrow"',
+      close: 'tomorrow',
       refusal:
         "I couldn't read that sign-up close time. Use a Discord timestamp like <t:1760000000:F> or unix seconds, in the future.",
     },
@@ -288,6 +300,28 @@ describe('/event create', () => {
             'No event organizer roles are set. An admin can set them with /settings event-organizers.',
           ),
         ],
+        posted: [],
+        events: [],
+      });
+    });
+  });
+
+  describe('when the bot may not send messages in the channel', () => {
+    it.beforeEach(async ({ flow }) => {
+      flow.discord.denySendingIn(EVENTS_CHANNEL);
+      await createEvent(flow);
+      expectCommandErrorReported(flow, 'Missing Permissions');
+    });
+
+    it('shows the organizer the command error, and keeps no event', ({
+      flow,
+    }) => {
+      expect({
+        replies: repliesTo(flow, ORGANIZER.id),
+        posted: flow.discord.channel(EVENTS_CHANNEL),
+        events: eventIds(flow),
+      }).toEqual({
+        replies: [commandErrorReply(flow, ORGANIZER.id)],
         posted: [],
         events: [],
       });
@@ -380,20 +414,23 @@ describe('/event close', () => {
     });
 
     it('tells the organizer, privately', ({ flow }) => {
-      expect(repliesTo(flow, ORGANIZER.id).at(-1)).toEqual(
+      expect(repliesTo(flow, ORGANIZER.id)).toEqual([
+        postedReply(flow),
         privately(ORGANIZER.id, `Closed **${TITLE}**.`),
-      );
+      ]);
     });
 
     it('refuses to close it again', async ({ flow }) => {
       await event(flow, 'close', { event: onlyEventId(flow) });
 
-      expect(repliesTo(flow, ORGANIZER.id).at(-1)).toEqual(
+      expect(repliesTo(flow, ORGANIZER.id)).toEqual([
+        postedReply(flow),
+        privately(ORGANIZER.id, `Closed **${TITLE}**.`),
         privately(
           ORGANIZER.id,
           "That event is already closed or doesn't exist.",
         ),
-      );
+      ]);
     });
   });
 

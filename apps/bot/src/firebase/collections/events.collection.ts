@@ -55,6 +55,12 @@ class EventsCollection {
     return data && { ...data, id };
   }
 
+  /** Deletes the event document; only for an event that has no participants yet. */
+  @SentryTraced()
+  public async delete(id: string): Promise<void> {
+    await this.events.doc(id).delete();
+  }
+
   @SentryTraced()
   public async setMessageId(id: string, messageId: string): Promise<void> {
     await this.events.doc(id).update({ messageId });

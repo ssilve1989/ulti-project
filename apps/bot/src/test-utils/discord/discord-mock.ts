@@ -310,6 +310,7 @@ export class DiscordMock {
   private readonly channels = new Map<string, FakeChannel>();
   private readonly messages: FakeMessage[] = [];
   private readonly failingDms = new Set<string>();
+  private readonly unpostableChannels = new Set<string>();
   private guildFetchesFail = false;
   private commandReplyEditsFail = false;
   private readonly pressed: Array<{ customId: string; ack: Acknowledgement }> =
@@ -424,6 +425,11 @@ export class DiscordMock {
 
   failDirectMessagesTo(userId: string): void {
     this.failingDms.add(userId);
+  }
+
+  /** The bot loses Send Messages in the channel: its sends there fail with the API's Missing Permissions. */
+  denySendingIn(channelId: string): void {
+    this.unpostableChannels.add(channelId);
   }
 
   /** From now on Discord fails every guild fetch with a server error, as in an outage; interactions still work. */
@@ -952,6 +958,7 @@ export class DiscordMock {
       user: (userId) => this.members.get(userId) ?? this.users.get(userId),
       emojis: () => this.emojis,
       canBeMessaged: (userId) => !this.failingDms.has(userId),
+      canPostIn: (channelId) => !this.unpostableChannels.has(channelId),
       guildsUnavailable: () => this.guildFetchesFail,
       post: ({ guildId, id }, payload) =>
         this.createMessage(

@@ -107,7 +107,13 @@ class CreateEventCommandHandler implements ISlashCommand {
       channelId: interaction.channelId,
       createdBy: interaction.user.id,
     });
-    const message = await this.eventMessages.post(event);
+    // an event nobody can see would linger as active, so remove it and let the error report
+    const message = await this.eventMessages
+      .post(event)
+      .catch(async (error: unknown) => {
+        await this.eventsCollection.delete(event.id);
+        throw error;
+      });
 
     await interaction.editReply(
       `Posted **${title}** in ${channelMention(interaction.channelId)}: ${message.url}`,

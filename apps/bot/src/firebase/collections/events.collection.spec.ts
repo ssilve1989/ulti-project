@@ -158,6 +158,16 @@ describe('EventsCollection', () => {
     });
   });
 
+  describe('when an event is deleted', () => {
+    it('removes it', async ({ db, collection }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+
+      await collection.delete(EVENT_ID);
+
+      expect(db.read(EVENT_PATH)).toBeUndefined();
+    });
+  });
+
   describe('when sign-ups close', () => {
     it('stores an open event as signups-closed, no longer due', async ({
       db,

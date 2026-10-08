@@ -74,6 +74,8 @@ export interface FakeWorld {
   readonly user: (userId: string) => FakeUser | undefined;
   readonly emojis: () => ReadonlyMap<string, string>;
   readonly canBeMessaged: (userId: string) => boolean;
+  /** whether the bot may send messages in the channel */
+  readonly canPostIn: (channelId: string) => boolean;
   /** whether Discord is failing guild fetches (an outage) */
   readonly guildsUnavailable: () => boolean;
   readonly post: (
@@ -245,7 +247,13 @@ export class FakeViews {
       isTextBased: () => true,
       isDMBased: () => false,
       send: (payload: OutgoingPayload) =>
-        Promise.try(() => this.world.post(channel, payload).toMessage<true>()),
+        this.world.canPostIn(channel.id)
+          ? Promise.try(() =>
+              this.world.post(channel, payload).toMessage<true>(),
+            )
+          : Promise.reject(
+              missingPermissions('POST', `/channels/${channel.id}/messages`),
+            ),
       messages: {
         fetch: (messageId: string) => {
           const message = this.world.message(channel.id, messageId);

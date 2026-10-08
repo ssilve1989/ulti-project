@@ -758,6 +758,18 @@ describe('DiscordMock', () => {
       ).toThrow('c2 is not a channel of guild g1');
     });
 
+    it("rejects sending in a channel the bot may not send in, with the API's Missing Permissions", async ({
+      discord,
+      service,
+    }) => {
+      discord.denySendingIn('c1');
+
+      await expect(postInC1({ discord, service }, 'hello')).rejects.toEqual(
+        missingPermissions('POST', '/channels/c1/messages'),
+      );
+      expect(discord.channel('c1')).toEqual([]);
+    });
+
     it('refuses message options it does not model instead of dropping them', async ({
       discord,
       service,
