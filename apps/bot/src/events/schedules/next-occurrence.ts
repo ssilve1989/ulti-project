@@ -26,7 +26,7 @@ export interface Recurrence {
   timeZone: ScheduleTimeZone;
 }
 
-const ZONE_NAMES: Record<ScheduleTimeZone, string> = {
+export const ZONE_NAMES: Record<ScheduleTimeZone, string> = {
   [USTimeZones.EASTERN]: 'Eastern',
   [USTimeZones.CENTRAL]: 'Central',
   [USTimeZones.MOUNTAIN]: 'Mountain',
