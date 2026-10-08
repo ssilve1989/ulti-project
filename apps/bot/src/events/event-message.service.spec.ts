@@ -141,6 +141,93 @@ describe('EventMessageService', () => {
     });
   });
 
+  describe('when an event is moved to another channel', () => {
+    test('posts it there, stores it, and deletes the old message', async ({
+      subject: { service, discord, events, message },
+    }) => {
+      const send = vi.fn().mockResolvedValue(message);
+      discord.getTextChannel.mockResolvedValue(aChannel(send));
+
+      await service.move(EVENT, 'channel-2');
+
+      expect({
+        channels: discord.getTextChannel.mock.calls,
+        sent: send.mock.calls,
+        stored: events.setMessage.mock.calls,
+        deleted: discord.deleteMessage.mock.calls,
+      }).toEqual({
+        channels: [[{ guildId: 'guild-1', channelId: 'channel-2' }]],
+        sent: [[expectedMessage()]],
+        stored: [['event-1', 'channel-2', 'message-1']],
+        deleted: [['guild-1', 'channel-1', 'message-1']],
+      });
+    });
+  });
+
+  describe("when an event is moved and its old message can't be deleted", () => {
+    test('warns and still resolves, with the event stored in its new channel', async ({
+      subject: { service, discord, events, message, warn },
+    }) => {
+      discord.getTextChannel.mockResolvedValue(
+        aChannel(vi.fn().mockResolvedValue(message)),
+      );
+      discord.deleteMessage.mockRejectedValue(new Error('Discord is down'));
+
+      await service.move(EVENT, 'channel-2');
+
+      expect({
+        stored: events.setMessage.mock.calls,
+        warnings: warn.mock.calls,
+      }).toEqual({
+        stored: [['event-1', 'channel-2', 'message-1']],
+        warnings: [
+          [
+            'The old message message-1 for event event-1 could not be deleted: Error: Discord is down',
+          ],
+        ],
+      });
+    });
+  });
+
+  describe('when an event is moved while a refresh of it is in progress', () => {
+    test('moves it only after that refresh, and runs a later refresh after the move', async ({
+      subject: { service, discord, edit, message },
+    }) => {
+      const log: string[] = [];
+      const firstEdit = deferred();
+      edit.mockImplementation(async () => {
+        log.push('edit started');
+        await firstEdit.promise;
+        log.push('edit finished');
+        return mockOf<Message<true>>({});
+      });
+      const send = vi.fn().mockImplementation(() => {
+        log.push('move sent');
+        return Promise.resolve(message);
+      });
+      discord.getTextChannel.mockResolvedValue(aChannel(send));
+
+      const refreshed = service.refresh('event-1');
+      const moved = service.move(EVENT, 'channel-2');
+      const refreshedAgain = service.refresh('event-1');
+      await flush();
+      const whileRefreshing = [...log];
+      firstEdit.resolve();
+      await Promise.all([refreshed, moved, refreshedAgain]);
+
+      expect({ whileRefreshing, log }).toEqual({
+        whileRefreshing: ['edit started'],
+        log: [
+          'edit started',
+          'edit finished',
+          'move sent',
+          'edit started',
+          'edit finished',
+        ],
+      });
+    });
+  });
+
   describe('when an event is refreshed', () => {
     test('edits its message with the re-rendered event', async ({
       subject: { service, edit },

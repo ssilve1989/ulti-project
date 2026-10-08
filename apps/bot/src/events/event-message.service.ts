@@ -13,7 +13,7 @@ import {
 @Injectable()
 export class EventMessageService {
   private readonly logger = new Logger(EventMessageService.name);
-  /** The last queued refresh per event; it never rejects, so one failure can't stall the rest. */
+  /** The last queued refresh or move per event; it never rejects, so one failure can't stall the rest. */
   private readonly queues = new Map<string, Promise<void>>();
 
   constructor(
@@ -32,9 +32,31 @@ export class EventMessageService {
   /**
    * Posts the event in `channelId`, stores it there, then deletes its old
    * message; one that can't be deleted is only logged. Rejects, leaving the
-   * event where it was, if it can't be posted there.
+   * event where it was, if it can't be posted there. Queued with the event's
+   * refreshes, so none edits the old message or renders it in between.
    */
-  public async move(event: StoredEvent, channelId: string): Promise<void> {
+  public move(event: StoredEvent, channelId: string): Promise<void> {
+    return this.enqueue(event.id, () => this.moveNow(event, channelId));
+  }
+
+  /** Re-renders the event's message after any refresh already queued for it; resolves once this one's edit is done. */
+  public refresh(eventId: string): Promise<void> {
+    return this.enqueue(eventId, () => this.rerender(eventId));
+  }
+
+  /** Runs `task` after every task already queued for the event; settles with it. */
+  private enqueue(eventId: string, task: () => Promise<void>): Promise<void> {
+    const previous = this.queues.get(eventId) ?? Promise.resolve();
+    const next = previous.then(task);
+    const tail = next.catch(() => undefined);
+    this.queues.set(eventId, tail);
+    void tail.finally(() => {
+      if (this.queues.get(eventId) === tail) this.queues.delete(eventId);
+    });
+    return next;
+  }
+
+  private async moveNow(event: StoredEvent, channelId: string): Promise<void> {
     const message = await this.send(event, channelId);
     await this.events.setMessage(event.id, channelId, message.id);
     if (!event.messageId) return;
@@ -49,18 +71,6 @@ export class EventMessageService {
         `The old message ${event.messageId} for event ${event.id} could not be deleted: ${String(error)}`,
       );
     }
-  }
-
-  /** Re-renders the event's message after any refresh already queued for it; resolves once this one's edit is done. */
-  public refresh(eventId: string): Promise<void> {
-    const previous = this.queues.get(eventId) ?? Promise.resolve();
-    const next = previous.then(() => this.rerender(eventId));
-    const tail = next.catch(() => undefined);
-    this.queues.set(eventId, tail);
-    void tail.finally(() => {
-      if (this.queues.get(eventId) === tail) this.queues.delete(eventId);
-    });
-    return next;
   }
 
   private async rerender(eventId: string): Promise<void> {

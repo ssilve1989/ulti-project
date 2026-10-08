@@ -1499,6 +1499,7 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
     fields = NO_SIGNUPS,
     signup = true,
     channelId = EVENTS_CHANNEL,
+    eventId = EVENT_ID,
   }: {
     title?: string;
     start?: Date;
@@ -1506,6 +1507,7 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
     fields?: readonly object[];
     signup?: boolean;
     channelId?: string;
+    eventId?: string;
   } = {}) => ({
     location: { kind: 'channel', guildId: GUILD, channelId },
     content: undefined,
@@ -1520,7 +1522,7 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
         fields,
       },
     ],
-    components: [eventButtonRow(EVENT_ID, { signup, withdraw: true })],
+    components: [eventButtonRow(eventId, { signup, withdraw: true })],
     reactions: {},
     deleted: false,
   });
@@ -1554,11 +1556,15 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
   const participants = (flow: FlowApp) =>
     flow.db.documentsIn(`${EVENT_PATH}/participants`).map(({ data }) => data);
 
-  /** The last line of the organizer's summary: the one about posted events. */
-  const postedEventsLine = (flow: FlowApp) =>
-    repliesTo(flow, ORGANIZER.id).map(({ content }) =>
-      content?.split('\n').at(-1),
-    );
+  /** The summary's first line for the schedule still on Tue/Thu 8 PM Pacific, next posting on Tuesday. */
+  const savedEightPm = ({
+    title = TITLE,
+    channelId = EVENTS_CHANNEL,
+  }: {
+    title?: string;
+    channelId?: string;
+  } = {}) =>
+    `Saved **${title}**: Tue, Thu at 8:00 PM Pacific in <#${channelId}>. Next event <t:${ADVANCED_START.seconds}:F>, posted <t:${ADVANCED_POST.seconds}:R>.`;
 
   /** The organizer edits the schedule with `options`, picks `days` if given, and saves. */
   async function edit(
@@ -1714,6 +1720,122 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
     );
   });
 
+  describe("when an organizer renames it and its post can't be updated", () => {
+    itWithScheduler(
+      'still renames the event, reports the failed update, and says it was updated',
+      async ({ flow }) => {
+        flow.discord.failGuildFetches();
+
+        await edit(flow, { title: 'DMU reclear' });
+
+        flow.expectReported(/^Sentry exception: .*Internal Server Error/s);
+        flow.expectReported(
+          new RegExp(
+            `^error: .*Failed to refresh event ${EVENT_ID} after its schedule was edited`,
+            's',
+          ),
+        );
+        expect({
+          posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          event: flow.db.read(EVENT_PATH),
+          replies: repliesTo(flow, ORGANIZER.id),
+        }).toEqual({
+          posts: [eventPost()],
+          event: {
+            ...POSTED_EVENT,
+            title: 'DMU reclear',
+            messageId: thePost(flow).id,
+          },
+          replies: [
+            summary(
+              savedEightPm({ title: 'DMU reclear' }),
+              'Updated 1 posted event.',
+            ),
+          ],
+        });
+      },
+    );
+  });
+
+  describe('when the schedule has posted two upcoming events and an organizer moves it to 9 PM', () => {
+    /** Tuesday 2026-10-13 at 8 PM Pacific, and its event. */
+    const TUESDAY = new Date('2026-10-14T03:00:00Z');
+    const TUESDAY_ID = `${SCHEDULE_ID}-${TUESDAY.getTime() / 1000}`;
+    /** Thursday and Tuesday at 9 PM Pacific, and 2 hours before each. */
+    const THURSDAY_NINE = new Date('2026-10-09T04:00:00Z');
+    const THURSDAY_NINE_CLOSE = new Date('2026-10-09T02:00:00Z');
+    const TUESDAY_NINE = new Date('2026-10-14T04:00:00Z');
+    const TUESDAY_NINE_CLOSE = new Date('2026-10-14T02:00:00Z');
+    /** Posting a week ahead, so Tuesday's event is posted by now too. */
+    const WEEK_AHEAD_SCHEDULE: EventScheduleDocument = Object.freeze({
+      ...ADVANCED_SCHEDULE,
+      postLeadHours: 168,
+      nextPostAt: at('2026-10-07T03:00:00Z'),
+    });
+
+    itWithScheduler(
+      'gives them the next two occurrences in order, and moves the schedule past the second',
+      async ({ flow, cron }) => {
+        flow.db.seed(SCHEDULE_PATH, WEEK_AHEAD_SCHEDULE);
+        await tickAt(flow, cron, EDITED_AT);
+
+        await edit(flow, { time: '9pm' });
+
+        const [thursdayPost, tuesdayPost] =
+          flow.discord.channel(EVENTS_CHANNEL);
+        expect({
+          posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          events: flow.db.documentsIn('events'),
+          schedule: flow.db.read(SCHEDULE_PATH),
+        }).toEqual({
+          posts: [
+            eventPost({
+              start: THURSDAY_NINE,
+              signups: closesAt(THURSDAY_NINE_CLOSE),
+            }),
+            eventPost({
+              start: TUESDAY_NINE,
+              signups: closesAt(TUESDAY_NINE_CLOSE),
+              eventId: TUESDAY_ID,
+            }),
+          ],
+          events: [
+            {
+              id: EVENT_ID,
+              path: EVENT_PATH,
+              data: {
+                ...POSTED_EVENT,
+                startsAt: Timestamp.fromDate(THURSDAY_NINE),
+                signupsCloseAt: Timestamp.fromDate(THURSDAY_NINE_CLOSE),
+                signupsCloseDueAt: Timestamp.fromDate(THURSDAY_NINE_CLOSE),
+                messageId: thursdayPost?.id,
+              },
+            },
+            {
+              id: TUESDAY_ID,
+              path: `events/${TUESDAY_ID}`,
+              data: {
+                ...POSTED_EVENT,
+                startsAt: Timestamp.fromDate(TUESDAY_NINE),
+                signupsCloseAt: Timestamp.fromDate(TUESDAY_NINE_CLOSE),
+                signupsCloseDueAt: Timestamp.fromDate(TUESDAY_NINE_CLOSE),
+                messageId: tuesdayPost?.id,
+              },
+            },
+          ],
+          // Thursday 2026-10-15 at 9 PM Pacific, and a week before it
+          schedule: {
+            ...WEEK_AHEAD_SCHEDULE,
+            startTime: '21:00',
+            nextStartAt: at('2026-10-16T04:00:00Z'),
+            nextPostAt: at('2026-10-09T04:00:00Z'),
+            updatedBy: ORGANIZER.id,
+          },
+        });
+      },
+    );
+  });
+
   describe('when an organizer removes TOP from it', () => {
     const removeTop = (flow: FlowApp) =>
       edit(flow, { 'encounter-1': Encounter.DMU });
@@ -1779,7 +1901,7 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
           },
           replies: [
             summary(
-              `Saved **${TITLE}**: Tue, Thu at 8:00 PM Pacific in <#${EVENTS_CHANNEL}>. Next event <t:${ADVANCED_START.seconds}:F>, posted <t:${ADVANCED_POST.seconds}:R>.`,
+              savedEightPm(),
               'Updated 1 posted event (2 sign-ups removed from TOP).',
             ),
           ],
@@ -1799,13 +1921,23 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
           expect({
             participants: participants(flow),
             bob: flow.discord.dmsTo(BOB.id),
-            carol: flow.discord.dmsTo(CAROL.id).length,
-            reply: postedEventsLine(flow),
+            carol: flow.discord.dmsTo(CAROL.id).map(shown),
+            replies: repliesTo(flow, ORGANIZER.id),
           }).toEqual({
             participants: [ALICE_DMU],
             bob: [],
-            carol: 1,
-            reply: ['Updated 1 posted event (2 sign-ups removed from TOP).'],
+            carol: [
+              dm(
+                CAROL.id,
+                `**${TOP_NAME}** was removed from **${TITLE}**, so your sign-up for it was cancelled.`,
+              ),
+            ],
+            replies: [
+              summary(
+                savedEightPm(),
+                'Updated 1 posted event (2 sign-ups removed from TOP).',
+              ),
+            ],
           });
         },
       );
@@ -1828,7 +1960,7 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
           newPosts: newPosts.map(shown),
           event: flow.db.read(EVENT_PATH),
           participants: participants(flow),
-          reply: postedEventsLine(flow),
+          replies: repliesTo(flow, ORGANIZER.id),
         }).toEqual({
           oldPost: { ...eventPost(), deleted: true },
           newPosts: [
@@ -1843,7 +1975,12 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
             messageId: newPosts[0]?.id,
           },
           participants: [ALICE_DMU, BOB_TOP, CAROL_TOP],
-          reply: ['Updated 1 posted event.'],
+          replies: [
+            summary(
+              savedEightPm({ channelId: RAID_CHANNEL }),
+              'Updated 1 posted event.',
+            ),
+          ],
         });
       },
     );
@@ -1865,13 +2002,16 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
             posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
             raidPosts: flow.discord.channel(RAID_CHANNEL),
             event: flow.db.read(EVENT_PATH),
-            reply: postedEventsLine(flow),
+            replies: repliesTo(flow, ORGANIZER.id),
           }).toEqual({
             posts: [eventPost({ fields: [...ALICE_FIELDS, ...TOP_FIELDS] })],
             raidPosts: [],
             event: { ...POSTED_EVENT, messageId },
-            reply: [
-              `Updated 1 posted event; 1 couldn't be moved to <#${RAID_CHANNEL}>.`,
+            replies: [
+              summary(
+                savedEightPm({ channelId: RAID_CHANNEL }),
+                `Updated 1 posted event; 1 couldn't be moved to <#${RAID_CHANNEL}>.`,
+              ),
             ],
           });
         },
@@ -1960,13 +2100,22 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
         expect({
           started: flow.db.read('events/started'),
           closed: flow.db.read('events/closed'),
-          posted: flow.db.read(EVENT_PATH)?.title,
-          reply: postedEventsLine(flow),
+          posted: flow.db.read(EVENT_PATH),
+          replies: repliesTo(flow, ORGANIZER.id),
         }).toEqual({
           started: STARTED,
           closed: CLOSED,
-          posted: 'DMU reclear',
-          reply: ['Updated 1 posted event.'],
+          posted: {
+            ...POSTED_EVENT,
+            title: 'DMU reclear',
+            messageId: thePost(flow).id,
+          },
+          replies: [
+            summary(
+              savedEightPm({ title: 'DMU reclear' }),
+              'Updated 1 posted event.',
+            ),
+          ],
         });
       },
     );
