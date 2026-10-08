@@ -53,6 +53,8 @@ const ORGANIZER_ROLE = 'organizer-role';
 const RAID_LEAD_ROLE = 'raid-lead-role';
 const VIEWER_ROLE = 'viewer-role';
 const OFFICER_ROLE = 'officer-role';
+const FROG_ROLE = 'frog-role';
+const TOAD_ROLE = 'toad-role';
 
 /** Settings a guild has once an admin has configured everything but spreadsheets. */
 const CONFIGURED = Object.freeze({
@@ -87,6 +89,8 @@ function givenAGuild(flow: FlowApp): void {
     RAID_LEAD_ROLE,
     VIEWER_ROLE,
     OFFICER_ROLE,
+    FROG_ROLE,
+    TOAD_ROLE,
   ]) {
     flow.discord.addRole(GUILD, { id, name: id });
   }
@@ -774,6 +778,176 @@ describe('Settings', () => {
     });
   });
 
+  describe('squads', () => {
+    const FROGS = Object.freeze({
+      name: 'Frogs',
+      tag: 'FRG',
+      color: '#16a34a',
+      roleId: FROG_ROLE,
+    });
+    const TOADS = Object.freeze({
+      name: 'Toads',
+      tag: 'TOD',
+      color: '#a16207',
+      roleId: TOAD_ROLE,
+    });
+
+    const addSquad = (
+      flow: FlowApp,
+      squad: { name: string; tag: string; color: string; role: string },
+    ) => settings(flow, 'squad-add', squad);
+
+    const privately = (content: string) =>
+      textReply(ADMIN.id, content, { ephemeral: true });
+
+    describe('when an admin adds a squad', () => {
+      it.beforeEach(async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, { squads: { frg: FROGS } });
+        await addSquad(flow, {
+          name: 'Toads',
+          tag: ' tod ',
+          color: '#A16207',
+          role: TOAD_ROLE,
+        });
+      });
+
+      it('stores it under its tag, beside the others', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          squads: { frg: FROGS, tod: TOADS },
+        });
+      });
+
+      it('confirms privately', ({ flow }) => {
+        expect(repliesToAdmin(flow)).toEqual([
+          privately(`Added **Toads** (TOD) for <@&${TOAD_ROLE}>.`),
+        ]);
+      });
+    });
+
+    describe.each([
+      [
+        'the tag is not 2–4 letters or digits',
+        { tag: 'FROGS' },
+        'Squad tags are 2–4 letters or digits, like FRG.',
+      ],
+      [
+        'the colour is not a hex colour',
+        { color: 'green' },
+        'Colours look like #16a34a.',
+      ],
+      ['another squad has the tag', { tag: 'frg' }, 'FRG is already a squad.'],
+      [
+        'another squad has the role',
+        { role: FROG_ROLE },
+        `<@&${FROG_ROLE}> already belongs to Frogs.`,
+      ],
+    ])('when %s', (_scenario, change, refusal) => {
+      it('refuses the squad and stores nothing', async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, { squads: { frg: FROGS } });
+
+        await addSquad(flow, {
+          name: 'Toads',
+          tag: 'TOD',
+          color: '#a16207',
+          role: TOAD_ROLE,
+          ...change,
+        });
+
+        expect({
+          stored: flow.db.read(SETTINGS_PATH),
+          replies: repliesToAdmin(flow),
+        }).toEqual({
+          stored: { squads: { frg: FROGS } },
+          replies: [privately(refusal)],
+        });
+      });
+    });
+
+    describe('when the name is longer than 50 characters', () => {
+      it("can't be sent", ({ flow }) => {
+        expect(() =>
+          flow.discord.command({
+            userId: ADMIN.id,
+            guildId: GUILD,
+            commandName: 'settings',
+            subcommand: 'squad-add',
+            options: {
+              name: 'F'.repeat(51),
+              tag: 'TOD',
+              color: '#a16207',
+              role: TOAD_ROLE,
+            },
+          }),
+        ).toThrow('name');
+      });
+    });
+
+    describe('when an admin removes a squad', () => {
+      it.beforeEach(async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, { squads: { frg: FROGS, tod: TOADS } });
+        await settings(flow, 'squad-remove', { squad: 'frg' });
+      });
+
+      it('keeps only the others', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          squads: { tod: TOADS },
+        });
+      });
+
+      it('confirms privately', ({ flow }) => {
+        expect(repliesToAdmin(flow)).toEqual([privately('Removed **Frogs**.')]);
+      });
+    });
+
+    describe("when an admin removes a squad that doesn't exist", () => {
+      it('says so and stores nothing', async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, { squads: { frg: FROGS } });
+
+        await settings(flow, 'squad-remove', { squad: 'missing' });
+
+        expect({
+          stored: flow.db.read(SETTINGS_PATH),
+          replies: repliesToAdmin(flow),
+        }).toEqual({
+          stored: { squads: { frg: FROGS } },
+          replies: [privately("That squad doesn't exist.")],
+        });
+      });
+    });
+
+    describe('when an admin types into the squad to remove', () => {
+      const typed = (flow: FlowApp, value: string) =>
+        flow.discord.autocomplete({
+          userId: ADMIN.id,
+          guildId: GUILD,
+          commandName: 'settings',
+          subcommand: 'squad-remove',
+          focused: 'squad',
+          value,
+        });
+
+      it.beforeEach(({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, { squads: { tod: TOADS, frg: FROGS } });
+        flow.db.seed('settings/other-guild', {
+          squads: { oth: { ...FROGS, name: 'Others', tag: 'OTH' } },
+        });
+      });
+
+      it("offers this server's squads by name and tag", async ({ flow }) => {
+        expect(await typed(flow, '')).toEqual([
+          { name: 'Frogs (FRG)', value: 'frg' },
+          { name: 'Toads (TOD)', value: 'tod' },
+        ]);
+      });
+
+      it('offers only the squads matching what was typed', async ({ flow }) => {
+        expect(await typed(flow, 'tod')).toEqual([
+          { name: 'Toads (TOD)', value: 'tod' },
+        ]);
+      });
+    });
+  });
+
   describe('job-emojis', () => {
     const SGE_EMOJI = '123456789012345678';
     const WHM_EMOJI = '223456789012345678';
@@ -940,6 +1114,7 @@ describe('Settings', () => {
       jobEmojis = 'Not set',
       eventOrganizers = 'Not set',
       boardViewers = 'Not set',
+      squads = 'Not set',
     ) => ({
       title: 'Settings',
       description:
@@ -957,6 +1132,7 @@ describe('Settings', () => {
         field('Job emojis', jobEmojis),
         field('Event organizers', eventOrganizers),
         field('Board viewers', boardViewers),
+        field('Squads', squads),
       ],
     });
 
@@ -1074,6 +1250,43 @@ describe('Settings', () => {
                 'Not set',
                 'Not set',
                 `<@&${VIEWER_ROLE}>, <@&${OFFICER_ROLE}>`,
+              ),
+            ],
+            components: [navRow('overview')],
+          }),
+        ]);
+      });
+
+      it('lists the squads by tag', async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, {
+          ...CONFIGURED,
+          squads: {
+            tod: {
+              name: 'Toads',
+              tag: 'TOD',
+              color: '#a16207',
+              roleId: TOAD_ROLE,
+            },
+            frg: {
+              name: 'Frogs',
+              tag: 'FRG',
+              color: '#16a34a',
+              roleId: FROG_ROLE,
+            },
+          },
+        });
+
+        await view(flow);
+
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            embeds: [
+              overview(
+                [],
+                'Not set',
+                'Not set',
+                'Not set',
+                `FRG · Frogs · <@&${FROG_ROLE}>\nTOD · Toads · <@&${TOAD_ROLE}>`,
               ),
             ],
             components: [navRow('overview')],
@@ -1280,6 +1493,11 @@ describe('Settings', () => {
     ['spreadsheet', { 'spreadsheet-id': 'sheet-1' }],
     ['prog-point-roles', { encounter: Encounter.DMU, role: P6_ROLE }],
     ['blacklist-channels', {}],
+    [
+      'squad-add',
+      { name: 'Frogs', tag: 'FRG', color: '#16a34a', role: FROG_ROLE },
+    ],
+    ['squad-remove', { squad: 'frg' }],
     ['view', {}],
   ])('%s, when Firestore cannot be reached', (subcommand, options) => {
     it('replies with a command error, privately', async ({ flow }) => {

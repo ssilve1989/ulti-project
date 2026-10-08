@@ -14,6 +14,7 @@ import {
   roleMention,
   StringSelectMenuBuilder,
 } from 'discord.js';
+import { squadsOf } from '../../../../board/squads.js';
 import {
   getBlacklistChannelIds,
   type SettingsDocument,
@@ -163,6 +164,15 @@ function formatJobEmojis(jobEmojis: SettingsDocument['jobEmojis']): string {
   return entries.length ? entries.join(' ') : 'Not set';
 }
 
+function formatSquads(settings: SettingsDocument): string {
+  const lines = squadsOf(settings).map(
+    ({ tag, name, roleId }) => `${tag} · ${name} · ${roleMention(roleId)}`,
+  );
+  return lines.length
+    ? buildTruncatedList(lines, EMBED_FIELD_VALUE_LIMIT)
+    : 'Not set';
+}
+
 function countConfiguredRoles(
   roleSettings: Record<string, string | undefined> | undefined,
 ): number {
@@ -269,6 +279,11 @@ export function buildOverviewEmbed(
       value: boardViewerRoles?.length
         ? boardViewerRoles.map(roleMention).join(', ')
         : 'Not set',
+      inline: true,
+    },
+    {
+      name: 'Squads',
+      value: formatSquads(settings),
       inline: true,
     },
   ];

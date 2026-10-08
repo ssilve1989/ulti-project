@@ -13,6 +13,8 @@ import { EditProgPointRolesCommandHandler } from './subcommands/prog-point-roles
 import { EditReviewerCommandHandler } from './subcommands/reviewer/edit-reviewer.command-handler.js';
 import { EditEncounterRolesCommandHandler } from './subcommands/roles/edit-encounter-roles.command-handler.js';
 import { EditSpreadsheetCommandHandler } from './subcommands/spreadsheet/edit-spreadsheet.command-handler.js';
+import { AddSquadCommandHandler } from './subcommands/squads/add-squad.command-handler.js';
+import { RemoveSquadCommandHandler } from './subcommands/squads/remove-squad.command-handler.js';
 import { ViewSettingsCommandHandler } from './subcommands/view/view-settings.command-handler.js';
 
 @Module({
@@ -24,6 +26,7 @@ import { ViewSettingsCommandHandler } from './subcommands/view/view-settings.com
     EncountersModule,
   ],
   providers: [
+    AddSquadCommandHandler,
     EditBlacklistChannelsCommandHandler,
     EditBoardAccessCommandHandler,
     EditChannelsCommandHandler,
@@ -32,6 +35,7 @@ import { ViewSettingsCommandHandler } from './subcommands/view/view-settings.com
     EditJobEmojisCommandHandler,
     EditProgPointRolesCommandHandler,
     EditReviewerCommandHandler,
+    RemoveSquadCommandHandler,
     EditSpreadsheetCommandHandler,
     ViewSettingsCommandHandler,
   ],

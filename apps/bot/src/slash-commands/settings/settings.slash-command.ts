@@ -136,6 +136,47 @@ const EditBoardAccessSubcommand = new SlashCommandSubcommandBuilder()
   .setName('board-access')
   .setDescription('Choose the roles that can view the coordinator board');
 
+const AddSquadSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('squad-add')
+  .setDescription('Add a squad to the coordinator board')
+  .addStringOption((option) =>
+    option
+      .setName('name')
+      .setDescription('The squad’s name')
+      .setRequired(true)
+      .setMinLength(1)
+      .setMaxLength(50),
+  )
+  .addStringOption((option) =>
+    option
+      .setName('tag')
+      .setDescription('2–4 letters or digits, like FRG')
+      .setRequired(true),
+  )
+  .addStringOption((option) =>
+    option
+      .setName('color')
+      .setDescription('A hex colour, like #16a34a')
+      .setRequired(true),
+  )
+  .addRoleOption((option) =>
+    option
+      .setName('role')
+      .setDescription('The role the squad’s members hold')
+      .setRequired(true),
+  );
+
+const RemoveSquadSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('squad-remove')
+  .setDescription('Remove a squad from the coordinator board')
+  .addStringOption((option) =>
+    option
+      .setName('squad')
+      .setDescription('The squad to remove')
+      .setRequired(true)
+      .setAutocomplete(true),
+  );
+
 const EditSpreadsheetSubcommand = new SlashCommandSubcommandBuilder()
   .setName('spreadsheet')
   .setDescription('Edit spreadsheet settings')
@@ -164,5 +205,7 @@ export const SettingsSlashCommand = new SlashCommandBuilder()
   .addSubcommand(EditJobEmojisSubcommand)
   .addSubcommand(EditEventOrganizersSubcommand)
   .addSubcommand(EditBoardAccessSubcommand)
+  .addSubcommand(AddSquadSubcommand)
+  .addSubcommand(RemoveSquadSubcommand)
   .addSubcommand(EditSpreadsheetSubcommand)
   .addSubcommand(ViewSettingsSubcommand);

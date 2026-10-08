@@ -10,6 +10,7 @@ import {
   FieldPath,
   Firestore,
 } from 'firebase-admin/firestore';
+import type { SquadConfig } from '../../board/squads.js';
 import { InjectFirestore } from '../firebase.decorators.js';
 import type { SettingsDocument } from '../models/settings.model.js';
 
@@ -40,6 +41,15 @@ class SettingsCollection {
     await this.collection
       .doc(guildId)
       .set({ jobEmojis }, { mergeFields: ['jobEmojis'] });
+    await this.updateCache(guildId);
+  }
+
+  @SentryTraced()
+  public async setSquads(guildId: string, squads: Record<string, SquadConfig>) {
+    // mergeFields replaces the whole map, so a removed squad's key disappears
+    await this.collection
+      .doc(guildId)
+      .set({ squads }, { mergeFields: ['squads'] });
     await this.updateCache(guildId);
   }
 

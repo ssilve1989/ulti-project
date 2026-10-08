@@ -1,6 +1,7 @@
 import type { Job } from '@ulti-project/shared';
 import { Encounter } from '@ulti-project/shared';
 import type { DocumentData } from 'firebase-admin/firestore';
+import type { SquadConfig } from '../../board/squads.js';
 
 export interface SettingsDocument extends DocumentData {
   reviewChannel?: string;
@@ -27,6 +28,9 @@ export interface SettingsDocument extends DocumentData {
   eventOrganizerRoles?: string[];
 
   boardViewerRoles?: string[];
+
+  /** keyed by squad id, the lower-cased tag */
+  squads?: Record<string, SquadConfig>;
 }
 
 /**
