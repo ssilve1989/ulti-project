@@ -193,6 +193,9 @@ export class FakeViews {
       user,
       permissions: member.permissions,
       displayAvatarURL: user.displayAvatarURL,
+      get guild() {
+        return views.guild(guildId);
+      },
       roles: {
         /** Like GuildMemberRoleManager.cache: the member's roles, and @everyone. */
         get cache() {

@@ -411,6 +411,11 @@ export class FakeMessage {
     );
   }
 
+  /** Whether anything is awaiting or collecting this message's components. */
+  isCollected(): boolean {
+    return this.waiters.size > 0 || this.collectors.size > 0;
+  }
+
   /** Ends every await/collector on this message as a timeout. */
   expire(): void {
     for (const waiter of [...this.waiters]) {

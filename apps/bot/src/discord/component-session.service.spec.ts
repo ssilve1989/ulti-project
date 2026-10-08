@@ -10,6 +10,7 @@ interface Session {
   fake: FakeMessage;
   message: Message<true>;
   onExpired: () => void;
+  end: () => void;
 }
 
 /** A session on a message, started from a button. */
@@ -29,7 +30,7 @@ function startSession(): Session {
   });
 
   vi.spyOn(message, 'createMessageComponentCollector');
-  new ComponentSessionService(createAutoMock<ErrorService>()).run(
+  const end = new ComponentSessionService(createAutoMock<ErrorService>()).run(
     interaction,
     message,
     {
@@ -40,7 +41,7 @@ function startSession(): Session {
     },
   );
 
-  return { fake, message, onExpired };
+  return { fake, message, onExpired, end };
 }
 
 const it = base.extend<{ session: Session }>({
@@ -65,5 +66,17 @@ describe('when a component session ends because its message was deleted', () => 
     collector.value.stop('messageDelete');
 
     expect(session.onExpired).not.toHaveBeenCalled();
+  });
+});
+
+describe('when a component session is ended before it times out', () => {
+  it('stops collecting and never expires', ({ session }) => {
+    session.end();
+    session.fake.expire();
+
+    expect({
+      collecting: session.fake.isCollected(),
+      expired: vi.mocked(session.onExpired).mock.calls.length,
+    }).toEqual({ collecting: false, expired: 0 });
   });
 });

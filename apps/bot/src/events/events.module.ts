@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
+import { ComponentSessionModule } from '../discord/component-session.module.js';
 import { DiscordModule } from '../discord/discord.module.js';
 import { ErrorModule } from '../error/error.module.js';
 import { FirebaseModule } from '../firebase/firebase.module.js';
@@ -9,7 +11,13 @@ import { EventSignupFlow } from './signup/event-signup.flow.js';
 import { EventWithdrawFlow } from './signup/event-withdraw.flow.js';
 
 @Module({
-  imports: [DiscordModule, FirebaseModule, ErrorModule],
+  imports: [
+    CqrsModule,
+    ComponentSessionModule,
+    DiscordModule,
+    FirebaseModule,
+    ErrorModule,
+  ],
   providers: [
     EventMessageService,
     EventEligibilityService,

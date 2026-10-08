@@ -30,7 +30,8 @@ export class ComponentSessionService {
 
   /**
    * Handles the invoking user's clicks on `message`'s components for five
-   * minutes, then replaces the reply with `expiredContent`.
+   * minutes, then replaces the reply with `expiredContent`. Returns a function
+   * that ends the session early, once it's done, so it never expires.
    */
   run(
     interaction:
@@ -38,7 +39,7 @@ export class ComponentSessionService {
       | ButtonInteraction<'cached'>,
     message: Message<true>,
     { name, expiredContent, onExpired, onCollect }: ComponentSessionOptions,
-  ): void {
+  ): () => void {
     const collector = message.createMessageComponentCollector({
       filter: isSameUserFilter(interaction.user),
       time: COMPONENT_SESSION_TIMEOUT_MS,
@@ -95,5 +96,7 @@ export class ComponentSessionService {
         }
       }),
     );
+
+    return () => collector.stop('done');
   }
 }

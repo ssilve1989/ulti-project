@@ -546,6 +546,25 @@ describe('DiscordMock', () => {
     expect(endReasons).toEqual(['time']);
   });
 
+  it('tells whether anything awaits or collects a message, until it ends', async ({
+    discord,
+    service,
+  }) => {
+    const message = await service.sendDirectMessage('u1', {
+      components: [goButton()],
+    });
+    const before = discord.latestDmTo('u1').isCollected();
+    const collector = message.createMessageComponentCollector();
+    const during = discord.latestDmTo('u1').isCollected();
+    collector.stop();
+
+    expect([before, during, discord.latestDmTo('u1').isCollected()]).toEqual([
+      false,
+      true,
+      false,
+    ]);
+  });
+
   it('emits MessageReactionAdd on the client when a user reacts', async ({
     discord,
     service,
