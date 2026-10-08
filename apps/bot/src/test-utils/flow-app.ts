@@ -151,12 +151,22 @@ function restoreDefaultLogger(): void {
   Logger.overrideLogger(new ConsoleLogger({ logLevels: ['error'] }));
 }
 
+export interface FlowAppOptions {
+  /**
+   * Modules to boot alongside the slash command features, e.g. a job the bot
+   * runs on a schedule. None by default, so a spec only runs the jobs it tests.
+   */
+  readonly modules?: readonly Type[];
+}
+
 /**
  * Boots the real feature modules with Firestore, Discord and the FFLogs API
  * replaced by fakes. Google Sheets traffic is replayed from recordings of the
  * real test spreadsheet (see recorded-sheets.ts). Call once per test.
  */
-export async function createFlowApp(): Promise<FlowApp> {
+export async function createFlowApp({
+  modules = [],
+}: FlowAppOptions = {}): Promise<FlowApp> {
   const startedAt = Date.now();
   const db = new InMemoryFirestore();
   const discord = new DiscordMock();
@@ -170,7 +180,7 @@ export async function createFlowApp(): Promise<FlowApp> {
 
   try {
     const moduleRef = await Test.createTestingModule({
-      imports: [...FLOW_MODULES],
+      imports: [...FLOW_MODULES, ...modules],
       providers: [...FLOW_PROVIDERS],
     })
       .overrideProvider(FIRESTORE)

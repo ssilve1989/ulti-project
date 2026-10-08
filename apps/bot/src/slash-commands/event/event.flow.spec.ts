@@ -1,10 +1,17 @@
 import { Encounter } from '@ulti-project/shared';
+import { CronJob } from 'cron';
 import { Timestamp } from 'firebase-admin/firestore';
-import { test as base, describe, expect, vi } from 'vitest';
+import { test as base, describe, expect, type MockInstance, vi } from 'vitest';
 import type { EventDocument } from '../../firebase/models/event.model.js';
+import { EventSchedulerModule } from '../../jobs/event-scheduler/event-scheduler.module.js';
+import { runTick } from '../../test-utils/cron-tick.js';
 import { shown } from '../../test-utils/discord/fake-message.js';
 import { fresh } from '../../test-utils/fixtures.js';
-import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
+import {
+  createFlowApp,
+  type FlowApp,
+  type FlowAppOptions,
+} from '../../test-utils/flow-app.js';
 import {
   commandErrorReply,
   expectCommandErrorReported,
@@ -35,32 +42,69 @@ const CLOSE_S = seconds(CLOSE);
 const BAD_START =
   "I couldn't read that start time. Use a Discord timestamp like <t:1760000000:F> or unix seconds, in the future.";
 
+/** Boots the app at NOW, with the events channel, an organizer and a member. */
+async function startFlow(options?: FlowAppOptions): Promise<FlowApp> {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(NOW);
+  try {
+    const flow = await createFlowApp(options);
+    flow.discord.addChannel(GUILD, EVENTS_CHANNEL);
+    flow.discord.addRole(GUILD, { id: ORGANIZER_ROLE, name: 'Organizer' });
+    flow.discord.addMember(ORGANIZER);
+    flow.discord.addMember(MEMBER);
+    flow.db.seed(SETTINGS_PATH, { eventOrganizerRoles: [ORGANIZER_ROLE] });
+    return flow;
+  } catch (error) {
+    vi.useRealTimers();
+    throw error;
+  }
+}
+
+async function stopFlow(flow: FlowApp): Promise<void> {
+  try {
+    await flow.close();
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 const it = base.extend<{ flow: FlowApp }>({
-  flow: fresh(
-    async () => {
-      vi.useFakeTimers({ toFake: ['Date'] });
-      vi.setSystemTime(NOW);
-      try {
-        const flow = await createFlowApp();
-        flow.discord.addChannel(GUILD, EVENTS_CHANNEL);
-        flow.discord.addRole(GUILD, { id: ORGANIZER_ROLE, name: 'Organizer' });
-        flow.discord.addMember(ORGANIZER);
-        flow.discord.addMember(MEMBER);
-        flow.db.seed(SETTINGS_PATH, { eventOrganizerRoles: [ORGANIZER_ROLE] });
-        return flow;
-      } catch (error) {
-        vi.useRealTimers();
-        throw error;
-      }
-    },
-    async (flow) => {
-      try {
-        await flow.close();
-      } finally {
-        vi.useRealTimers();
-      }
+  flow: fresh(() => startFlow(), stopFlow),
+});
+
+/**
+ * The app with the event-scheduler job. `cron.from` is spied before the app
+ * boots, so it sees the job built and `runTick(cron.from)` runs its tick;
+ * `start` does nothing, so cron never schedules a real tick that could fire
+ * mid-test.
+ */
+const itWithScheduler = base.extend<{
+  cron: {
+    from: MockInstance<typeof CronJob.from>;
+    start: MockInstance<CronJob['start']>;
+  };
+  flow: FlowApp;
+}>({
+  cron: fresh(
+    () => ({
+      start: vi
+        .spyOn(CronJob.prototype, 'start')
+        .mockImplementation(() => undefined),
+      from: vi.spyOn(CronJob, 'from'),
+    }),
+    ({ start, from }) => {
+      start.mockRestore();
+      from.mockRestore();
     },
   ),
+  flow: async ({ cron: _spiedBeforeBoot }, use) => {
+    const flow = await startFlow({ modules: [EventSchedulerModule] });
+    try {
+      await use(flow);
+    } finally {
+      await stopFlow(flow);
+    }
+  },
 });
 
 /** `userId` runs `/event <subcommand>` in the events channel, and the bot finishes with it. */
@@ -462,5 +506,130 @@ describe('/event close', () => {
         stored: storedEvent(flow),
       });
     });
+  });
+});
+
+describe('the event-scheduler job', () => {
+  /** A moment after sign-ups close at CLOSE. */
+  const AFTER_CLOSE = new Date(CLOSE.getTime() + 30_000);
+
+  describe('when an event passes its sign-up close time', () => {
+    itWithScheduler.beforeEach(async ({ flow, cron }) => {
+      await createEvent(flow, { 'signups-close': String(CLOSE_S) });
+      vi.setSystemTime(AFTER_CLOSE);
+      await runTick(cron.from);
+    });
+
+    itWithScheduler('shows that sign-ups are closed', ({ flow }) => {
+      expect(flow.discord.channel(EVENTS_CHANNEL).map(shown)).toEqual([
+        eventMessage(['Sign-ups closed']),
+      ]);
+    });
+
+    itWithScheduler(
+      'stores sign-ups closed, no longer due to close',
+      ({ flow }) => {
+        const { signupsCloseDueAt: _due, ...closed } = storedEvent(flow, {
+          signupsCloseAt: Timestamp.fromDate(CLOSE),
+          status: 'signups-closed',
+        });
+        expect(flow.db.read(`events/${onlyEventId(flow)}`)).toEqual(closed);
+      },
+    );
+  });
+
+  describe('when an event has not reached its sign-up close time', () => {
+    itWithScheduler('leaves it open', async ({ flow, cron }) => {
+      await createEvent(flow, { 'signups-close': String(CLOSE_S) });
+      vi.setSystemTime(new Date(CLOSE.getTime() - 1000));
+
+      await runTick(cron.from);
+
+      expect({
+        shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+        stored: flow.db.read(`events/${onlyEventId(flow)}`),
+      }).toEqual({
+        shown: [eventMessage([`Sign-ups close <t:${CLOSE_S}:R>`])],
+        stored: storedEvent(flow, {
+          signupsCloseAt: Timestamp.fromDate(CLOSE),
+          signupsCloseDueAt: Timestamp.fromDate(CLOSE),
+        }),
+      });
+    });
+  });
+
+  describe('when a closed event passes its sign-up close time', () => {
+    itWithScheduler('leaves it closed', async ({ flow, cron }) => {
+      await createEvent(flow, { 'signups-close': String(CLOSE_S) });
+      await event(flow, 'close', { event: onlyEventId(flow) });
+      vi.setSystemTime(AFTER_CLOSE);
+
+      await runTick(cron.from);
+
+      const { signupsCloseDueAt: _due, ...closed } = storedEvent(flow, {
+        signupsCloseAt: Timestamp.fromDate(CLOSE),
+        status: 'closed',
+      });
+      expect({
+        shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+        stored: flow.db.read(`events/${onlyEventId(flow)}`),
+      }).toEqual({
+        shown: [eventMessage(['Closed'])],
+        stored: closed,
+      });
+    });
+  });
+
+  describe('when an earlier due event cannot be re-rendered', () => {
+    /** An event in a server the bot has since left, due before the other. */
+    const GONE_PATH = 'events/gone';
+    const goneEvent = Object.freeze({
+      guildId: 'left-guild',
+      title: 'Old server night',
+      startsAt: Timestamp.fromDate(START),
+      signupsCloseAt: Timestamp.fromDate(NOW),
+      signupsCloseDueAt: Timestamp.fromDate(NOW),
+      encounters: [Encounter.DMU],
+      channelId: 'left-channel',
+      messageId: 'left-message',
+      createdBy: ORGANIZER.id,
+      status: 'open',
+    });
+
+    itWithScheduler.beforeEach(async ({ flow, cron }) => {
+      await createEvent(flow, { 'signups-close': String(CLOSE_S) });
+      flow.db.seed(GONE_PATH, goneEvent);
+      vi.setSystemTime(AFTER_CLOSE);
+      await runTick(cron.from);
+      await flow.settle();
+      flow.expectReported(/^Sentry exception: .*Unknown Guild/s);
+      flow.expectReported(/^error: .*Failed to close sign-ups for event gone/s);
+    });
+
+    itWithScheduler('still closes sign-ups for the other', ({ flow }) => {
+      const ownId = eventIds(flow).find((id) => id !== 'gone');
+      const { signupsCloseDueAt: _due, ...closed } = storedEvent(flow, {
+        signupsCloseAt: Timestamp.fromDate(CLOSE),
+        status: 'signups-closed',
+      });
+      expect({
+        shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+        stored: flow.db.read(`events/${ownId}`),
+      }).toEqual({
+        shown: [eventMessage(['Sign-ups closed'])],
+        stored: closed,
+      });
+    });
+
+    itWithScheduler(
+      'closes sign-ups for the one it cannot show',
+      ({ flow }) => {
+        const { signupsCloseDueAt: _due, ...gone } = goneEvent;
+        expect(flow.db.read(GONE_PATH)).toEqual({
+          ...gone,
+          status: 'signups-closed',
+        });
+      },
+    );
   });
 });
