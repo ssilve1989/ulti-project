@@ -75,6 +75,14 @@ export default defineConfig({
           include: ['src/**/*.spec.ts'],
         },
       },
+      {
+        extends: true,
+        test: {
+          name: 'shared',
+          root: './packages/shared',
+          include: ['src/**/*.spec.ts'],
+        },
+      },
     ],
   },
 });

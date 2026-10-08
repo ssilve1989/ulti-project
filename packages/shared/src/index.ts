@@ -4,3 +4,4 @@ export * from './firebase/create-firestore.ts';
 export * from './firebase/models/encounter.model.ts';
 export * from './firebase/models/signup.model.ts';
 export * from './firebase/typed-collection.ts';
+export * from './jobs/jobs.consts.ts';
