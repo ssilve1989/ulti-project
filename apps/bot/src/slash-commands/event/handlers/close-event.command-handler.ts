@@ -47,8 +47,13 @@ class CloseEventCommandHandler implements ISlashCommand {
       return;
     }
 
+    // Discord doesn't hold the option to the autocomplete choices, so only
+    // close an id that is one of this guild's active events
     const id = interaction.options.getString('event', true);
-    const event = await this.eventsCollection.close(id);
+    const active = await this.eventsCollection.findActive(interaction.guildId);
+    const event = active.some((candidate) => candidate.id === id)
+      ? await this.eventsCollection.close(id)
+      : undefined;
     if (!event) {
       await interaction.editReply(
         "That event is already closed or doesn't exist.",

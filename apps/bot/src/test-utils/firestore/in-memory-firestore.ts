@@ -463,8 +463,15 @@ class Query {
 }
 
 class CollectionReference extends Query {
+  /** Like Firestore, an id with slashes is a relative path, which must lead to a document. */
   doc(id: string = randomUUID()): DocumentReference {
-    return new DocumentReference(this.db, `${this.collectionPath}/${id}`);
+    const path = `${this.collectionPath}/${id}`;
+    if (path.split('/').length % 2 !== 0) {
+      throw new Error(
+        `Value for argument "documentPath" must point to a document, but was "${id}". Your path does not contain an even number of components.`,
+      );
+    }
+    return new DocumentReference(this.db, path);
   }
 }
 

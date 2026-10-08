@@ -33,6 +33,14 @@ describe('InMemoryFirestore', () => {
       expect(snapshot.data()).toEqual({ name: 'A' });
     });
 
+    it('refuses an id whose slashes lead to a collection, as Firestore does', ({
+      db,
+    }) => {
+      expect(() => db.collection('events').doc('a/b')).toThrow(
+        'must point to a document',
+      );
+    });
+
     it('reports a missing document as not existing', async ({ db }) => {
       const snapshot = await db.collection('signups').doc('missing').get();
 

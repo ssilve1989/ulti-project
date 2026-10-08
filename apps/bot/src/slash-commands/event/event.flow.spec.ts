@@ -492,6 +492,55 @@ describe('/event close', () => {
     });
   });
 
+  describe("when an organizer closes another guild's event", () => {
+    const ELSEWHERE_PATH = 'events/elsewhere';
+    const elsewhere = Object.freeze({
+      guildId: OTHER_GUILD,
+      title: TITLE,
+      startsAt: Timestamp.fromDate(START),
+      signupsCloseAt: Timestamp.fromDate(START),
+      signupsCloseDueAt: Timestamp.fromDate(START),
+      encounters: [Encounter.DMU],
+      channelId: 'elsewhere-channel',
+      messageId: 'elsewhere-message',
+      createdBy: 'someone-else',
+      status: 'open',
+    });
+
+    it.beforeEach(async ({ flow }) => {
+      flow.db.seed(ELSEWHERE_PATH, elsewhere);
+      await event(flow, 'close', { event: 'elsewhere' });
+    });
+
+    it("says it doesn't exist and leaves it open", ({ flow }) => {
+      expect({
+        replies: repliesTo(flow, ORGANIZER.id),
+        stored: flow.db.read(ELSEWHERE_PATH),
+      }).toEqual({
+        replies: [
+          privately(
+            ORGANIZER.id,
+            "That event is already closed or doesn't exist.",
+          ),
+        ],
+        stored: elsewhere,
+      });
+    });
+  });
+
+  describe('when an organizer gives an event id with a slash', () => {
+    it('says it does not exist, privately', async ({ flow }) => {
+      await event(flow, 'close', { event: 'a/b' });
+
+      expect(repliesTo(flow, ORGANIZER.id)).toEqual([
+        privately(
+          ORGANIZER.id,
+          "That event is already closed or doesn't exist.",
+        ),
+      ]);
+    });
+  });
+
   describe('when a member who is not an organizer tries to close an event', () => {
     it.beforeEach(async ({ flow }) => {
       await createEvent(flow);
