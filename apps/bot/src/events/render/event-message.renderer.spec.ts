@@ -11,6 +11,7 @@ import {
   type ParticipantDocument,
   type StoredEvent,
 } from '../../firebase/models/event.model.js';
+import { eventButtonRow } from '../../test-utils/events.js';
 import {
   type EventMessageInput,
   jobBadge,
@@ -82,7 +83,7 @@ function aParticipant(
 }
 
 function render(overrides: Partial<EventMessageInput> = {}): APIEmbed[] {
-  const { embeds, components } = renderEventMessage({
+  const { embeds } = renderEventMessage({
     event: anEvent(),
     participants: [],
     jobEmojis: {},
@@ -90,8 +91,19 @@ function render(overrides: Partial<EventMessageInput> = {}): APIEmbed[] {
     now: NOW,
     ...overrides,
   });
-  expect(components).toEqual([]);
   return embeds.map((embed) => embed.toJSON());
+}
+
+/** The message's components for `event` at `now`, as Discord receives them. */
+function renderComponents(event: StoredEvent, now: Date) {
+  const { components } = renderEventMessage({
+    event,
+    participants: [],
+    jobEmojis: {},
+    encounterNames: EncounterFriendlyDescription,
+    now,
+  });
+  return components.map((row) => row.toJSON());
 }
 
 /** 18-digit ids, as real Discord users have. */
@@ -358,6 +370,46 @@ describe('when sign-ups need more than 25 fields', () => {
         value: `<:WAR:${WAR_EMOJI}> <@111111111111111066> Character 066@Cuchulainn`,
       },
       { name: '\u200b', value: '…and 233 more. See the board.' },
+    ]);
+  });
+});
+
+describe('the buttons on an event message', () => {
+  const BEFORE_CUTOFF = new Date(CUTOFF.toMillis() - 1);
+  const AT_CUTOFF = CUTOFF.toDate();
+
+  it.each([
+    {
+      scenario: 'an open event before sign-ups close',
+      result: 'enables both',
+      event: anEvent(),
+      now: BEFORE_CUTOFF,
+      enabled: { signup: true, withdraw: true },
+    },
+    {
+      scenario: 'an open event whose sign-up time has passed',
+      result: 'enables only Withdraw',
+      event: anEvent(),
+      now: AT_CUTOFF,
+      enabled: { signup: false, withdraw: true },
+    },
+    {
+      scenario: 'an event with sign-ups closed',
+      result: 'enables only Withdraw',
+      event: anEvent({ status: EventStatus.SignupsClosed }),
+      now: BEFORE_CUTOFF,
+      enabled: { signup: false, withdraw: true },
+    },
+    {
+      scenario: 'a closed event',
+      result: 'disables both',
+      event: anEvent({ status: EventStatus.Closed }),
+      now: BEFORE_CUTOFF,
+      enabled: { signup: false, withdraw: false },
+    },
+  ])('for $scenario, $result', ({ event, now, enabled }) => {
+    expect(renderComponents(event, now)).toEqual([
+      eventButtonRow(event.id, enabled),
     ]);
   });
 });

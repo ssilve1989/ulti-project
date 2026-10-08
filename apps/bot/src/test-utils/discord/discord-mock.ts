@@ -593,6 +593,7 @@ export class DiscordMock {
         inCachedGuild: () => true,
         isAutocomplete: () => false,
         isChatInputCommand: () => true,
+        isButton: () => false,
       }),
       ack,
     );
@@ -662,6 +663,7 @@ export class DiscordMock {
       inCachedGuild: () => true,
       isAutocomplete: () => true,
       isChatInputCommand: () => false,
+      isButton: () => false,
     });
 
     this.client.emit(Events.InteractionCreate, interaction);

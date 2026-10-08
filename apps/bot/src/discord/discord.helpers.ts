@@ -60,7 +60,7 @@ export function getFirstEmbed(message: Message): Embed {
  * ephemerally).
  */
 export function replyPrivately(
-  interaction: ChatInputCommandInteraction,
+  interaction: ChatInputCommandInteraction | MessageComponentInteraction,
   payload: PrivateReplyOptions,
 ) {
   if (interaction.deferred) {

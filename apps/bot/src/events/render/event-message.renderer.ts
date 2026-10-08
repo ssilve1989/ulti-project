@@ -5,8 +5,9 @@ import {
   type Job,
 } from '@ulti-project/shared';
 import {
-  type ActionRowBuilder,
-  type ButtonBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   EmbedBuilder,
   TimestampStyles,
   time,
@@ -18,6 +19,7 @@ import {
   type ParticipantDocument,
   type StoredEvent,
 } from '../../firebase/models/event.model.js';
+import { eventComponentId } from '../components/event-component-id.js';
 
 // Discord's embed limits
 const MAX_FIELD_VALUE = 1024;
@@ -57,6 +59,7 @@ export function renderEventMessage({
   participants,
   jobEmojis,
   encounterNames,
+  now,
 }: EventMessageInput): EventMessage {
   const fields = event.encounters.flatMap((encounter) =>
     encounterFields(
@@ -66,7 +69,31 @@ export function renderEventMessage({
     ),
   );
   const header = { title: event.title, description: describe(event) };
-  return { embeds: packEmbeds(header, fields), components: [] };
+  return {
+    embeds: packEmbeds(header, fields),
+    components: [buttonRow(event, now)],
+  };
+}
+
+/** Sign up takes sign-ups only while they're open; Withdraw works until the event is closed. */
+function buttonRow(
+  event: StoredEvent,
+  now: Date,
+): ActionRowBuilder<ButtonBuilder> {
+  const signupsOpen =
+    event.status === EventStatus.Open && now < event.signupsCloseAt.toDate();
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(eventComponentId('signup', event.id))
+      .setLabel('Sign up')
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(!signupsOpen),
+    new ButtonBuilder()
+      .setCustomId(eventComponentId('withdraw', event.id))
+      .setLabel('Withdraw')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(event.status === EventStatus.Closed),
+  );
 }
 
 export function jobBadge(

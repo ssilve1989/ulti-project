@@ -6,6 +6,10 @@ import type { EventDocument } from '../../firebase/models/event.model.js';
 import { EventSchedulerModule } from '../../jobs/event-scheduler/event-scheduler.module.js';
 import { runTick } from '../../test-utils/cron-tick.js';
 import { shown } from '../../test-utils/discord/fake-message.js';
+import {
+  type EventButtonsEnabled,
+  eventButtonRow,
+} from '../../test-utils/events.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import {
   createFlowApp,
@@ -161,8 +165,16 @@ function postedMessage(flow: FlowApp) {
   return message;
 }
 
-/** The event message as members see it, with `lines` between the start and the organizer. */
-const eventMessage = (lines: string[] = []) => ({
+const OPEN_BUTTONS = Object.freeze({ signup: true, withdraw: true });
+const SIGNUPS_CLOSED_BUTTONS = Object.freeze({ signup: false, withdraw: true });
+const CLOSED_BUTTONS = Object.freeze({ signup: false, withdraw: false });
+
+/** Event `eventId`'s message as members see it, with `lines` between the start and the organizer, and `buttons` enabled. */
+const eventMessage = (
+  eventId: string,
+  lines: string[] = [],
+  buttons: EventButtonsEnabled = OPEN_BUTTONS,
+) => ({
   location: { kind: 'channel', guildId: GUILD, channelId: EVENTS_CHANNEL },
   content: undefined,
   embeds: [
@@ -178,7 +190,7 @@ const eventMessage = (lines: string[] = []) => ({
       ],
     },
   ],
-  components: [],
+  components: [eventButtonRow(eventId, buttons)],
   reactions: {},
   deleted: false,
 });
@@ -220,7 +232,7 @@ describe('/event create', () => {
 
     it('posts the event in the channel, with nobody signed up', ({ flow }) => {
       expect(flow.discord.channel(EVENTS_CHANNEL).map(shown)).toEqual([
-        eventMessage(),
+        eventMessage(onlyEventId(flow)),
       ]);
     });
 
@@ -242,7 +254,7 @@ describe('/event create', () => {
 
     it('shows when sign-ups close', ({ flow }) => {
       expect(flow.discord.channel(EVENTS_CHANNEL).map(shown)).toEqual([
-        eventMessage([`Sign-ups close <t:${CLOSE_S}:R>`]),
+        eventMessage(onlyEventId(flow), [`Sign-ups close <t:${CLOSE_S}:R>`]),
       ]);
     });
 
@@ -379,7 +391,7 @@ describe('/event create', () => {
 
     it('shows it once', ({ flow }) => {
       expect(flow.discord.channel(EVENTS_CHANNEL).map(shown)).toEqual([
-        eventMessage(),
+        eventMessage(onlyEventId(flow)),
       ]);
     });
 
@@ -446,7 +458,7 @@ describe('/event close', () => {
 
     it('shows the event as closed', ({ flow }) => {
       expect(flow.discord.channel(EVENTS_CHANNEL).map(shown)).toEqual([
-        eventMessage(['Closed']),
+        eventMessage(onlyEventId(flow), ['Closed'], CLOSED_BUTTONS),
       ]);
     });
 
@@ -522,7 +534,11 @@ describe('the event-scheduler job', () => {
 
     itWithScheduler('shows that sign-ups are closed', ({ flow }) => {
       expect(flow.discord.channel(EVENTS_CHANNEL).map(shown)).toEqual([
-        eventMessage(['Sign-ups closed']),
+        eventMessage(
+          onlyEventId(flow),
+          ['Sign-ups closed'],
+          SIGNUPS_CLOSED_BUTTONS,
+        ),
       ]);
     });
 
@@ -549,7 +565,9 @@ describe('the event-scheduler job', () => {
         shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
         stored: flow.db.read(`events/${onlyEventId(flow)}`),
       }).toEqual({
-        shown: [eventMessage([`Sign-ups close <t:${CLOSE_S}:R>`])],
+        shown: [
+          eventMessage(onlyEventId(flow), [`Sign-ups close <t:${CLOSE_S}:R>`]),
+        ],
         stored: storedEvent(flow, {
           signupsCloseAt: Timestamp.fromDate(CLOSE),
           signupsCloseDueAt: Timestamp.fromDate(CLOSE),
@@ -574,7 +592,7 @@ describe('the event-scheduler job', () => {
         shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
         stored: flow.db.read(`events/${onlyEventId(flow)}`),
       }).toEqual({
-        shown: [eventMessage(['Closed'])],
+        shown: [eventMessage(onlyEventId(flow), ['Closed'], CLOSED_BUTTONS)],
         stored: closed,
       });
     });
@@ -608,6 +626,7 @@ describe('the event-scheduler job', () => {
 
     itWithScheduler('still closes sign-ups for the other', ({ flow }) => {
       const ownId = eventIds(flow).find((id) => id !== 'gone');
+      if (ownId === undefined) throw new Error("the organizer's event is gone");
       const { signupsCloseDueAt: _due, ...closed } = storedEvent(flow, {
         signupsCloseAt: Timestamp.fromDate(CLOSE),
         status: 'signups-closed',
@@ -616,7 +635,9 @@ describe('the event-scheduler job', () => {
         shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
         stored: flow.db.read(`events/${ownId}`),
       }).toEqual({
-        shown: [eventMessage(['Sign-ups closed'])],
+        shown: [
+          eventMessage(ownId, ['Sign-ups closed'], SIGNUPS_CLOSED_BUTTONS),
+        ],
         stored: closed,
       });
     });
