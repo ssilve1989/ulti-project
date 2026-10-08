@@ -1,6 +1,9 @@
 import { getEncounterChoicesForMode } from '@ulti-project/shared';
 import {
+  ChannelType,
   SlashCommandBuilder,
+  type SlashCommandChannelOption,
+  type SlashCommandIntegerOption,
   type SlashCommandStringOption,
   SlashCommandSubcommandBuilder,
 } from 'discord.js';
@@ -14,17 +17,18 @@ const encounterOption =
       .setRequired(required)
       .addChoices(...getEncounterChoicesForMode(appConfig.APPLICATION_MODE));
 
+const titleOption = (required: boolean) => (option: SlashCommandStringOption) =>
+  option
+    .setName('title')
+    .setDescription('Event title')
+    .setRequired(required)
+    .setMaxLength(100);
+
 // Discord requires the required options before the optional ones
 const CreateEventSubcommand = new SlashCommandSubcommandBuilder()
   .setName('create')
   .setDescription('Post an event people can sign up to')
-  .addStringOption((option) =>
-    option
-      .setName('title')
-      .setDescription('Event title')
-      .setRequired(true)
-      .setMaxLength(100),
-  )
+  .addStringOption(titleOption(true))
   .addStringOption((option) =>
     option
       .setName('start')
@@ -56,8 +60,72 @@ const CloseEventSubcommand = new SlashCommandSubcommandBuilder()
       .setAutocomplete(true),
   );
 
+const timeOption = (required: boolean) => (option: SlashCommandStringOption) =>
+  option
+    .setName('time')
+    .setDescription('Start time, like 20:00, 8pm or 8:30 pm')
+    .setRequired(required);
+
+const postAheadOption = (option: SlashCommandIntegerOption) =>
+  option
+    .setName('post-ahead')
+    .setDescription('Hours before the start to post each event (default 72)')
+    .setMinValue(1)
+    .setMaxValue(336);
+
+const signupsCloseBeforeOption = (option: SlashCommandIntegerOption) =>
+  option
+    .setName('signups-close-before')
+    .setDescription(
+      'Hours before the start that sign-ups close (default 0, at the start)',
+    )
+    .setMinValue(0)
+    .setMaxValue(335);
+
+const channelOption = (option: SlashCommandChannelOption) =>
+  option
+    .setName('channel')
+    .setDescription('Where to post the events (default this channel)')
+    .addChannelTypes(ChannelType.GuildText);
+
+// Discord requires the required options before the optional ones
+const CreateScheduleSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('schedule-create')
+  .setDescription('Post an event every week; pick the days in the panel')
+  .addStringOption(titleOption(true))
+  .addStringOption(encounterOption('encounter-1', true))
+  .addStringOption(timeOption(true))
+  .addIntegerOption(postAheadOption)
+  .addIntegerOption(signupsCloseBeforeOption)
+  .addChannelOption(channelOption)
+  .addStringOption(encounterOption('encounter-2', false))
+  .addStringOption(encounterOption('encounter-3', false))
+  .addStringOption(encounterOption('encounter-4', false));
+
+const EditScheduleSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('schedule-edit')
+  .setDescription('Change a weekly schedule; pick the days in the panel')
+  .addStringOption((option) =>
+    option
+      .setName('schedule')
+      .setDescription('The schedule')
+      .setRequired(true)
+      .setAutocomplete(true),
+  )
+  .addStringOption(titleOption(false))
+  .addStringOption(encounterOption('encounter-1', false))
+  .addStringOption(timeOption(false))
+  .addIntegerOption(postAheadOption)
+  .addIntegerOption(signupsCloseBeforeOption)
+  .addChannelOption(channelOption)
+  .addStringOption(encounterOption('encounter-2', false))
+  .addStringOption(encounterOption('encounter-3', false))
+  .addStringOption(encounterOption('encounter-4', false));
+
 export const EventSlashCommand = new SlashCommandBuilder()
   .setName('event')
   .setDescription('Create and manage events')
   .addSubcommand(CreateEventSubcommand)
-  .addSubcommand(CloseEventSubcommand);
+  .addSubcommand(CloseEventSubcommand)
+  .addSubcommand(CreateScheduleSubcommand)
+  .addSubcommand(EditScheduleSubcommand);

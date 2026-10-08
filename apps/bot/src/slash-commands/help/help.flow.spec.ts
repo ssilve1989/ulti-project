@@ -43,7 +43,7 @@ async function help(flow: FlowApp, userId: string) {
 const PUBLIC_COMMANDS = Object.freeze({
   name: '🔓 Public Commands',
   value: [
-    '**/event** - Create and manage events\n└ Subcommands: `create`, `close`',
+    '**/event** - Create and manage events\n└ Subcommands: `create`, `close`, `schedule-create`, `schedule-edit`',
     '**/remove-signup** - Remove a signup',
     '**/signup** - Signup for an ultimate prog/clear party!',
     '**/status** - Retrieve the status of your current signups',

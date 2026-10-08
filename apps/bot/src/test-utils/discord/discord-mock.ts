@@ -264,17 +264,20 @@ function assertInteractive(message: FakeMessage, userId: string): void {
 }
 
 /**
- * The message's only select menu of `type`, if `userId` could pick `values`
- * in it: it's enabled and takes that many values.
+ * The message's only select menu of `type` (or the one with `customId`), if
+ * `userId` could pick `values` in it: it's enabled and takes that many values.
  */
 function pickableMenu(
   message: FakeMessage,
   type: ComponentType,
   values: readonly string[],
   userId: string,
+  customId?: string,
 ): ComponentRef {
   assertInteractive(message, userId);
-  const [menu, ...others] = message.componentsOfType(type);
+  const [menu, ...others] = message
+    .componentsOfType(type)
+    .filter((menu) => customId === undefined || menu.customId === customId);
   if (menu === undefined || others.length > 0) {
     throw new Error(
       `Message ${message.id} must have exactly one ${ComponentType[type]} menu to choose from`,
@@ -720,11 +723,15 @@ export class DiscordMock {
     );
   }
 
-  /** Picks `values` (one, or several if it allows) in the message's only select menu. */
+  /**
+   * Picks `values` (one, or several if it allows) in the message's only select
+   * menu, or in the one with `menuId` when it has several.
+   */
   choose(
     message: FakeMessage,
     values: string | readonly string[],
     userId: string,
+    menuId?: string,
   ): void {
     this.assertKnownUser(userId);
     const picked = [values].flat();
@@ -733,6 +740,7 @@ export class DiscordMock {
       ComponentType.StringSelect,
       picked,
       userId,
+      menuId,
     );
     const unoffered = picked.filter((value) => !menu.values.includes(value));
     if (unoffered.length > 0) {

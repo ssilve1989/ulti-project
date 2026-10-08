@@ -10,7 +10,10 @@ import {
   TimestampStyles,
   time,
 } from 'discord.js';
-import type { ScheduleSettings } from '../../firebase/models/event-schedule.model.js';
+import type {
+  EventScheduleDocument,
+  ScheduleSettings,
+} from '../../firebase/models/event-schedule.model.js';
 import {
   nextOccurrence,
   type Recurrence,
@@ -79,10 +82,23 @@ export function describeRecurrence({
   startTime,
   timeZone,
 }: Recurrence): string {
-  const days = Weekdays.filter((day) => weekdays.includes(day))
+  return `${shortDays(weekdays)} at ${twelveHour(startTime)} ${ZONE_NAMES[timeZone]}`;
+}
+
+/** `Tue, Thu`, Monday to Sunday. */
+export function shortDays(weekdays: readonly Weekday[]): string {
+  return Weekdays.filter((day) => weekdays.includes(day))
     .map((day) => DAY_NAMES[day].slice(0, 3))
     .join(', ');
-  return `${days} at ${twelveHour(startTime)} ${ZONE_NAMES[timeZone]}`;
+}
+
+/** What the organizer is told once `schedule` is saved. */
+export function savedScheduleSummary(schedule: EventScheduleDocument): string {
+  const saved = `Saved **${schedule.title}**: ${describeRecurrence(schedule)} in ${channelMention(schedule.channelId)}.`;
+  if (!schedule.nextPostAt) {
+    return `${saved} It's paused, so nothing is posted until it's resumed.`;
+  }
+  return `${saved} Next event ${time(schedule.nextStartAt.toDate(), TimestampStyles.FullDateShortTime)}, posted ${time(schedule.nextPostAt.toDate(), TimestampStyles.RelativeTime)}.`;
 }
 
 /** `20:05` → `8:05 PM` */

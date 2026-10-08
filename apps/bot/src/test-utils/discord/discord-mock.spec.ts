@@ -319,6 +319,37 @@ describe('DiscordMock', () => {
     expect(collected).toEqual(['P6']);
   });
 
+  it('delivers a choice in the named menu when the message has several', async ({
+    discord,
+    service,
+  }) => {
+    const message = await service.sendDirectMessage('u1', {
+      components: [
+        pointSelect(),
+        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('zone')
+            .addOptions({ label: 'Eastern', value: 'east' }),
+        ),
+      ],
+    });
+    const collected: string[] = [];
+    message
+      .createMessageComponentCollector()
+      .on('collect', (i) =>
+        collected.push(
+          ...(i.isStringSelectMenu() ? [i.customId, ...i.values] : []),
+        ),
+      );
+
+    expect(() =>
+      discord.choose(discord.latestDmTo('u1'), 'east', 'u1'),
+    ).toThrow('must have exactly one');
+    discord.choose(discord.latestDmTo('u1'), 'east', 'u1', 'zone');
+
+    expect(collected).toEqual(['zone', 'east']);
+  });
+
   it('refuses to click a component the message does not have', async ({
     discord,
     service,
