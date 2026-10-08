@@ -14,6 +14,8 @@ import {
   DiscordjsErrorCodes,
   DiscordjsTypeError,
   Events,
+  type GuildMember,
+  type Interaction,
   type Message,
   MessageFlags,
   MessageFlagsBitField,
@@ -120,6 +122,8 @@ const isEphemeral = (flags: MessageFlagsResolvable | undefined) =>
   flags !== undefined &&
   new MessageFlagsBitField(flags).has(MessageFlags.Ephemeral);
 
+type ReplyLocation = Extract<MessageLocation, { kind: 'reply' }>;
+
 /** What the bot sends in answer to an interaction, which may be ephemeral. */
 type ReplyPayload =
   | string
@@ -155,7 +159,7 @@ function splitReply(payload: ReplyPayload): {
 class CommandReply {
   private readonly userId: string;
   private readonly create: (
-    location: MessageLocation,
+    location: ReplyLocation,
     payload: OutgoingPayload,
   ) => FakeMessage;
   private message: FakeMessage | undefined;
@@ -163,10 +167,7 @@ class CommandReply {
 
   constructor(
     userId: string,
-    create: (
-      location: MessageLocation,
-      payload: OutgoingPayload,
-    ) => FakeMessage,
+    create: (location: ReplyLocation, payload: OutgoingPayload) => FakeMessage,
   ) {
     this.userId = userId;
     this.create = create;
@@ -309,6 +310,8 @@ export class DiscordMock {
   private readonly guilds = new Map<string, Map<string, FakeRole>>();
   private readonly channels = new Map<string, FakeChannel>();
   private readonly messages: FakeMessage[] = [];
+  /** reply message id → the guild its interaction came from (null in a DM) */
+  private readonly replyGuilds = new Map<string, string | null>();
   private readonly failingDms = new Set<string>();
   private readonly unpostableChannels = new Set<string>();
   private guildFetchesFail = false;
@@ -533,7 +536,7 @@ export class DiscordMock {
 
     const ack: Acknowledgement = { deferred: false, replied: false };
     const reply = new CommandReply(userId, (location, payload) =>
-      this.createMessage(location, payload),
+      this.createReply(location, payload, guildId),
     );
     const show = (payload: ReplyPayload) =>
       Promise.try(() => {
@@ -580,9 +583,10 @@ export class DiscordMock {
             ? Promise.try(() => {
                 const { ephemeral, message } = splitReply(payload);
                 ack.replied = true;
-                return this.createMessage(
+                return this.createReply(
                   { kind: 'reply', userId, ephemeral },
                   message,
+                  guildId,
                 ).toMessage<true>();
               })
             : notReplied(),
@@ -703,7 +707,8 @@ export class DiscordMock {
         `Button "${customId}" on message ${message.id} is disabled`,
       );
     }
-    message.dispatch(
+    this.deliver(
+      message,
       this.componentInteraction<ButtonInteraction>(
         message,
         userId,
@@ -733,7 +738,8 @@ export class DiscordMock {
         `Select menu "${menu.customId}" does not offer "${unoffered.join('", "')}" (offers: ${menu.values.join(', ')})`,
       );
     }
-    message.dispatch(
+    this.deliver(
+      message,
       this.componentInteraction<StringSelectMenuInteraction>(
         message,
         userId,
@@ -765,7 +771,8 @@ export class DiscordMock {
         `Channel select menu "${menu.customId}" can't offer ${[...unknown, ...(offered(menu) ? [] : ['text channels'])].join(', ')}`,
       );
     }
-    message.dispatch(
+    this.deliver(
+      message,
       this.componentInteraction<ChannelSelectMenuInteraction>(
         message,
         userId,
@@ -795,7 +802,8 @@ export class DiscordMock {
         `Role select menu "${menu.customId}" can't offer ${unknown.join(', ')}`,
       );
     }
-    message.dispatch(
+    this.deliver(
+      message,
       this.componentInteraction<RoleSelectMenuInteraction>(
         message,
         userId,
@@ -842,7 +850,7 @@ export class DiscordMock {
     this.pressed.push({ customId: modal.custom_id, ack });
     const submit = withAckFlags(
       mockOf<ModalSubmitInteraction>({
-        ...this.responses(message, userId, ack),
+        ...this.responses(message, userId, this.guildOf(message), ack),
         customId: modal.custom_id,
         user: this.views.user(userId),
         message: message.toMessage(),
@@ -947,6 +955,55 @@ export class DiscordMock {
     return message;
   }
 
+  /** An interaction's reply, remembering the guild (null: a DM) the interaction came from. */
+  private createReply(
+    location: ReplyLocation,
+    payload: OutgoingPayload,
+    guildId: string | null,
+  ): FakeMessage {
+    const message = this.createMessage(location, payload);
+    this.replyGuilds.set(message.id, guildId);
+    return message;
+  }
+
+  /**
+   * The guild a component on `message` is used in: its channel's, none for a
+   * DM, and for a reply, the guild of the interaction it answered.
+   */
+  private guildOf(message: FakeMessage): string | null {
+    const { location } = message;
+    if (location.kind === 'channel') return location.guildId;
+    if (location.kind === 'dm') return null;
+    const guildId = this.replyGuilds.get(message.id);
+    if (guildId === undefined) {
+      throw new Error(`DiscordMock does not know where reply ${message.id} is`);
+    }
+    return guildId;
+  }
+
+  /**
+   * Delivers a component interaction as Discord does: to the client's
+   * InteractionCreate listeners (the app's, registered at startup, first),
+   * then to whatever discord.js collector is awaiting it on the message.
+   */
+  private deliver(message: FakeMessage, interaction: Interaction): void {
+    this.client.emit(Events.InteractionCreate, interaction);
+    message.dispatch(interaction);
+  }
+
+  /** The member using a component in `guildId`: only a guild's members can see its messages. */
+  private clicker(guildId: string, userId: string): GuildMember {
+    const member = this.members.get(userId);
+    if (!member) {
+      throw new Error(
+        `${userId} is not a member of guild ${guildId}, so they can't use its components`,
+      );
+    }
+    // discord.js caches the member an interaction comes from
+    this.views.cacheMember(guildId, userId);
+    return this.views.member(guildId, member);
+  }
+
   /** What the discord.js views read from, and do to, this fake's state. */
   private world(): FakeWorld {
     return {
@@ -1025,33 +1082,43 @@ export class DiscordMock {
   }
 
   /**
-   * deferUpdate/update/reply/followUp for an interaction on `message`,
-   * enforcing discord.js's rule that an interaction is answered exactly once
-   * before any follow-up.
+   * deferUpdate/update/deferReply/reply/followUp for an interaction on
+   * `message`, enforcing discord.js's rule that an interaction is answered
+   * exactly once before any follow-up.
    */
   private responses(
     message: FakeMessage,
     userId: string,
+    guildId: string | null,
     ack: Acknowledgement,
   ) {
     const post = (payload: ReplyPayload) => {
       const { ephemeral, message: reply } = splitReply(payload);
-      this.createMessage({ kind: 'reply', userId, ephemeral }, reply);
+      this.createReply({ kind: 'reply', userId, ephemeral }, reply, guildId);
     };
 
     // deferUpdate and update leave the component's message as the
-    // interaction's reply, which editReply then edits
-    const answeredOnMessage = { value: false };
-    const onMessage = () => {
-      answeredOnMessage.value = true;
-    };
+    // interaction's reply, and deferReply opens a new one; editReply edits
+    // whichever it is
+    const deferredReply = new CommandReply(userId, (location, payload) =>
+      this.createReply(location, payload, guildId),
+    );
+    let editing: 'message' | 'deferred reply' | undefined;
 
     return {
-      deferUpdate: () => answer(ack, 'deferred', onMessage),
+      deferUpdate: () =>
+        answer(ack, 'deferred', () => {
+          editing = 'message';
+        }),
       update: (payload: OutgoingPayload) =>
         answer(ack, 'replied', () => {
           message.apply(payload);
-          onMessage();
+          editing = 'message';
+        }),
+      deferReply: (options: { flags?: MessageFlagsResolvable } = {}) =>
+        answer(ack, 'deferred', () => {
+          deferredReply.defer(options.flags);
+          editing = 'deferred reply';
         }),
       reply: (payload: ReplyPayload) =>
         answer(ack, 'replied', () => post(payload)),
@@ -1064,16 +1131,17 @@ export class DiscordMock {
           : notReplied(),
       editReply: (payload: OutgoingPayload) => {
         if (!answered(ack)) return notReplied();
-        if (!answeredOnMessage.value) {
+        if (editing === undefined) {
           return Promise.reject(
             new Error(
-              'DiscordMock only models editReply after deferUpdate or update',
+              'DiscordMock only models editReply after deferUpdate, update or deferReply',
             ),
           );
         }
         return Promise.try(() => {
-          message.apply(payload);
           ack.replied = true;
+          if (editing === 'deferred reply') return deferredReply.show(payload);
+          message.apply(payload);
           return message.toMessage();
         });
       },
@@ -1093,12 +1161,21 @@ export class DiscordMock {
     componentType: ComponentType,
     specific: Partial<Record<keyof T, unknown>> = {},
   ): T {
+    const guildId = this.guildOf(message);
+    const member = guildId === null ? null : this.clicker(guildId, userId);
     const ack: Acknowledgement = { deferred: false, replied: false };
     this.pressed.push({ customId, ack });
     return withAckFlags(
       mockOf<T>({
         ...specific,
-        ...this.responses(message, userId, ack),
+        ...this.responses(message, userId, guildId, ack),
+        guildId,
+        member,
+        // every guild the bot is in is cached; a DM's interaction has no guild
+        inCachedGuild: () => guildId !== null,
+        isMessageComponent: () => true,
+        isChatInputCommand: () => false,
+        isAutocomplete: () => false,
         componentType,
         isButton: () => componentType === ComponentType.Button,
         isStringSelectMenu: () => componentType === ComponentType.StringSelect,

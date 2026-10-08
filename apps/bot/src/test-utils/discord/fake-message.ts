@@ -360,7 +360,11 @@ export class FakeMessage {
     this.reactions.get(emoji)?.delete(userId);
   }
 
-  /** Hands an interaction to whatever is awaiting or collecting on this message. */
+  /**
+   * Hands an interaction to whatever is awaiting or collecting on this
+   * message, if anything. Nothing may be: Discord also delivers it to the
+   * client's listeners, and an unanswered one shows in `unacknowledged()`.
+   */
   dispatch(interaction: Interaction): void {
     const waiters = [...this.waiters].filter((waiter) =>
       accepts(waiter.options, interaction),
@@ -368,11 +372,6 @@ export class FakeMessage {
     const collectors = [...this.collectors].filter((collector) =>
       accepts(collector.options, interaction),
     );
-    if (waiters.length === 0 && collectors.length === 0) {
-      throw new Error(
-        `Nothing on message ${this.id} is waiting for this interaction`,
-      );
-    }
     for (const waiter of waiters) {
       this.waiters.delete(waiter);
       waiter.resolve(interaction);

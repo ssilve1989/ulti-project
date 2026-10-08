@@ -2,6 +2,7 @@ import {
   ActionRowBuilder,
   ApplicationCommandOptionType,
   ButtonBuilder,
+  type ButtonInteraction,
   ButtonStyle,
   ChannelSelectMenuBuilder,
   ChannelType,
@@ -329,15 +330,184 @@ describe('DiscordMock', () => {
     );
   });
 
-  it('refuses an interaction nothing is waiting for', async ({
-    discord,
-    service,
-  }) => {
-    await service.sendDirectMessage('u1', { components: [goButton()] });
+  describe('when a user clicks a component nothing is collecting', () => {
+    /** Posts a go button in channel c1 of g1, with no collector on it. */
+    const postGoInC1 = async ({ discord, service }: Bot) => {
+      const channel = await service.getTextChannel({
+        guildId: 'g1',
+        channelId: 'c1',
+      });
+      await channel?.send({ components: [goButton()] });
+      const [message] = discord.channel('c1');
+      if (!message) throw new Error('expected the go button in c1');
+      return message;
+    };
 
-    expect(() => discord.click(discord.latestDmTo('u1'), 'go', 'u1')).toThrow(
-      'Nothing on message',
-    );
+    /** Every button click the client emits, as the app's listeners see it. */
+    const clicksOn = (discord: DiscordMock) => {
+      const clicks: ButtonInteraction[] = [];
+      discord.client.on(Events.InteractionCreate, (interaction) => {
+        if (interaction.isButton()) clicks.push(interaction);
+      });
+      return clicks;
+    };
+
+    /** What a listener reads off a click to route it and tell who and where it came from. */
+    const routing = (interaction: ButtonInteraction) => ({
+      customId: interaction.customId,
+      userId: interaction.user.id,
+      guildId: interaction.guildId,
+      memberId: interaction.member?.user.id ?? null,
+      inCachedGuild: interaction.inCachedGuild(),
+      isMessageComponent: interaction.isMessageComponent(),
+      isChatInputCommand: interaction.isChatInputCommand(),
+      isAutocomplete: interaction.isAutocomplete(),
+    });
+
+    it("delivers a channel message's click to the client's InteractionCreate listeners", async ({
+      discord,
+      service,
+    }) => {
+      const bot = { discord, service };
+      const message = await postGoInC1(bot);
+      const clicks = clicksOn(bot.discord);
+
+      bot.discord.click(message, 'go', 'u2');
+
+      expect(clicks.map(routing)).toEqual([
+        {
+          customId: 'go',
+          userId: 'u2',
+          guildId: 'g1',
+          memberId: 'u2',
+          inCachedGuild: true,
+          isMessageComponent: true,
+          isChatInputCommand: false,
+          isAutocomplete: false,
+        },
+      ]);
+    });
+
+    it('delivers a DM click with no guild or member, like discord.js', async ({
+      discord,
+      service,
+    }) => {
+      await service.sendDirectMessage('u1', { components: [goButton()] });
+      const clicks = clicksOn(discord);
+
+      discord.click(discord.latestDmTo('u1'), 'go', 'u1');
+
+      expect(clicks.map(routing)).toEqual([
+        {
+          customId: 'go',
+          userId: 'u1',
+          guildId: null,
+          memberId: null,
+          inCachedGuild: false,
+          isMessageComponent: true,
+          isChatInputCommand: false,
+          isAutocomplete: false,
+        },
+      ]);
+    });
+
+    it('delivers a click on an ephemeral reply in the guild the command was run in', async ({
+      discord,
+    }) => {
+      const { interaction, reply } = discord.command({
+        userId: 'u1',
+        guildId: 'g1',
+        commandName: 'test',
+      });
+      await interaction.reply({
+        components: [goButton()],
+        flags: MessageFlags.Ephemeral,
+      });
+      const clicks = clicksOn(discord);
+
+      discord.click(reply(), 'go', 'u1');
+
+      expect(clicks.map(routing)).toEqual([
+        {
+          customId: 'go',
+          userId: 'u1',
+          guildId: 'g1',
+          memberId: 'u1',
+          inCachedGuild: true,
+          isMessageComponent: true,
+          isChatInputCommand: false,
+          isAutocomplete: false,
+        },
+      ]);
+    });
+
+    it('reports the click as unacknowledged when nothing answers it', async ({
+      discord,
+      service,
+    }) => {
+      const bot = { discord, service };
+      const message = await postGoInC1(bot);
+
+      bot.discord.click(message, 'go', 'u2');
+
+      expect(bot.discord.unacknowledged()).toEqual(['go']);
+    });
+
+    it('opens an ephemeral reply to the clicker on deferReply, which editReply edits, leaving the clicked message as it was', async ({
+      discord,
+      service,
+    }) => {
+      const bot = { discord, service };
+      const message = await postGoInC1(bot);
+      const clicks = clicksOn(bot.discord);
+      bot.discord.click(message, 'go', 'u2');
+      const [click] = clicks;
+      if (!click) throw new Error('expected the click');
+
+      await click.deferReply({ flags: MessageFlags.Ephemeral });
+      await click.editReply('Signed up');
+
+      expect({
+        replies: bot.discord.repliesTo('u2').map(shown),
+        clicked: shown(message),
+      }).toEqual({
+        replies: [
+          {
+            location: { kind: 'reply', userId: 'u2', ephemeral: true },
+            content: 'Signed up',
+            embeds: [],
+            components: [],
+            reactions: {},
+            deleted: false,
+          },
+        ],
+        clicked: {
+          location: { kind: 'channel', guildId: 'g1', channelId: 'c1' },
+          content: undefined,
+          embeds: [],
+          components: [goButton().toJSON()],
+          reactions: {},
+          deleted: false,
+        },
+      });
+    });
+
+    it('rejects a second deferReply, as discord.js does', async ({
+      discord,
+      service,
+    }) => {
+      const bot = { discord, service };
+      const message = await postGoInC1(bot);
+      const clicks = clicksOn(bot.discord);
+      bot.discord.click(message, 'go', 'u2');
+      const [click] = clicks;
+      if (!click) throw new Error('expected the click');
+      await click.deferReply({ flags: MessageFlags.Ephemeral });
+
+      await expect(click.deferReply()).rejects.toEqual(
+        discordjsError(DiscordjsErrorCodes.InteractionAlreadyReplied),
+      );
+    });
   });
 
   it('lists pressed components the bot never acknowledged', async ({
@@ -1039,7 +1209,7 @@ describe('DiscordMock', () => {
       await click.reply('hi');
 
       await expect(click.editReply('again')).rejects.toThrow(
-        'only models editReply after deferUpdate or update',
+        'only models editReply after deferUpdate, update or deferReply',
       );
     });
 
@@ -1232,12 +1402,16 @@ describe('DiscordMock', () => {
       const message = await service.sendDirectMessage('u1', {
         components: [goButton()],
       });
-      void message
-        .awaitMessageComponent({ componentType: ComponentType.StringSelect })
-        .catch(() => undefined);
+      const pending = message.awaitMessageComponent({
+        componentType: ComponentType.StringSelect,
+      });
 
-      expect(() => discord.click(discord.latestDmTo('u1'), 'go', 'u1')).toThrow(
-        'Nothing on message',
+      discord.click(discord.latestDmTo('u1'), 'go', 'u1');
+      discord.expireAll();
+
+      // still waiting when it timed out: the button click never reached it
+      await expect(pending).rejects.toEqual(
+        discordjsError(DiscordjsErrorCodes.InteractionCollectorError, ['time']),
       );
     });
 
