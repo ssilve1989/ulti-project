@@ -25,6 +25,7 @@ import {
   ReactionType,
   type RoleSelectMenuInteraction,
   type StringSelectMenuInteraction,
+  type TextChannel,
 } from 'discord.js';
 import { mockOf } from '../mock-factory.js';
 import {
@@ -492,6 +493,7 @@ export class DiscordMock {
     guildId,
     commandName,
     subcommand,
+    channelId,
     options = {},
     attachments = {},
   }: {
@@ -499,6 +501,8 @@ export class DiscordMock {
     guildId: string;
     commandName: string;
     subcommand?: string;
+    /** the guild text channel the command is run in */
+    channelId?: string;
     /** option values; users, roles and channels are given by id */
     options?: Record<string, OptionValue | null>;
     attachments?: Record<string, { url: string }>;
@@ -516,6 +520,10 @@ export class DiscordMock {
       { subcommand, options, attachments },
       this.optionTargets(guildId),
     );
+    const channel =
+      channelId === undefined
+        ? undefined
+        : this.commandChannel(guildId, channelId);
 
     const ack: Acknowledgement = { deferred: false, replied: false };
     const reply = new CommandReply(userId, (location, payload) =>
@@ -532,6 +540,7 @@ export class DiscordMock {
       mockOf<ChatInputCommandInteraction<'cached'>>({
         commandName,
         guildId,
+        ...(channel && { channelId: channel.id, channel }),
         user: this.views.user(userId),
         member: this.views.member(guildId, member),
         memberPermissions: member.permissions,
@@ -906,6 +915,15 @@ export class DiscordMock {
     assertPermitted(registered, userId, member.permissions);
     this.views.cacheMember(guildId, userId);
     return { member, registered };
+  }
+
+  /** The guild's text channel a command is run in; Discord only offers a guild's commands in its own channels. */
+  private commandChannel(guildId: string, channelId: string): TextChannel {
+    const channel = this.channels.get(channelId);
+    if (channel?.guildId !== guildId) {
+      throw new Error(`${channelId} is not a channel of guild ${guildId}`);
+    }
+    return this.views.channel(channel);
   }
 
   private createMessage(

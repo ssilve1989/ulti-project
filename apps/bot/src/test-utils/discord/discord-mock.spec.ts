@@ -709,6 +709,55 @@ describe('DiscordMock', () => {
       await expect(fetchFrom('c1')).rejects.toEqual(unknownMessage('c1'));
     });
 
+    it('links a channel message the way discord.js does', async ({
+      discord,
+      service,
+    }) => {
+      const sent = await postInC1({ discord, service }, 'hello');
+
+      expect(sent?.url).toBe(
+        `https://discord.com/channels/g1/c1/${discord.channel('c1')[0]?.id}`,
+      );
+    });
+
+    it('runs a command in the guild text channel it is given', async ({
+      discord,
+    }) => {
+      const { interaction } = discord.command({
+        userId: 'u1',
+        guildId: 'g1',
+        commandName: 'test',
+        channelId: 'c1',
+      });
+
+      await interaction.channel?.send('from the command');
+
+      expect({
+        channelId: interaction.channelId,
+        dmBased: interaction.channel?.isDMBased(),
+        posted: discord.channel('c1').map(({ content }) => content),
+      }).toEqual({
+        channelId: 'c1',
+        dmBased: false,
+        posted: ['from the command'],
+      });
+    });
+
+    it('refuses a command run in a channel the guild does not have', ({
+      discord,
+    }) => {
+      discord.addChannel('g2', 'c2');
+
+      expect(() =>
+        discord.command({
+          userId: 'u1',
+          guildId: 'g1',
+          commandName: 'test',
+          channelId: 'c2',
+        }),
+      ).toThrow('c2 is not a channel of guild g1');
+    });
+
     it('refuses message options it does not model instead of dropping them', async ({
       discord,
       service,

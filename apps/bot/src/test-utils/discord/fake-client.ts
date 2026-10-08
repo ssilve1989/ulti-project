@@ -243,6 +243,7 @@ export class FakeViews {
       name: channel.name,
       type: ChannelType.GuildText,
       isTextBased: () => true,
+      isDMBased: () => false,
       send: (payload: OutgoingPayload) =>
         Promise.try(() => this.world.post(channel, payload).toMessage<true>()),
       messages: {

@@ -43,6 +43,7 @@ async function help(flow: FlowApp, userId: string) {
 const PUBLIC_COMMANDS = Object.freeze({
   name: '🔓 Public Commands',
   value: [
+    '**/event** - Create and manage events\n└ Subcommands: `create`, `close`',
     '**/remove-signup** - Remove a signup',
     '**/signup** - Signup for an ultimate prog/clear party!',
     '**/status** - Retrieve the status of your current signups',
@@ -101,7 +102,7 @@ describe('Help', () => {
           flow,
           PLAYER.id,
           [PUBLIC_COMMANDS],
-          'Showing 3 available commands',
+          'Showing 4 available commands',
         ),
       );
     });
@@ -114,7 +115,7 @@ describe('Help', () => {
           flow,
           MANAGER.id,
           [PUBLIC_COMMANDS, MANAGEMENT_COMMANDS],
-          'Showing 4 available commands • You have Manage Guild permissions',
+          'Showing 5 available commands • You have Manage Guild permissions',
         ),
       );
     });
@@ -127,7 +128,7 @@ describe('Help', () => {
           flow,
           ADMIN.id,
           [PUBLIC_COMMANDS, MANAGEMENT_COMMANDS, ADMINISTRATOR_COMMANDS],
-          'Showing 12 available commands • You have Administrator permissions',
+          'Showing 13 available commands • You have Administrator permissions',
         ),
       );
     });

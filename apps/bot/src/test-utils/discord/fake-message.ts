@@ -444,6 +444,12 @@ export class FakeMessage {
         const located = fake.located();
         return located.kind === 'channel' ? located.guildId : null;
       },
+      /** Like Message.url: a DM's channel is linked under `@me`. */
+      get url() {
+        const located = fake.located();
+        const guild = located.kind === 'channel' ? located.guildId : '@me';
+        return `https://discord.com/channels/${guild}/${fake.channelId}/${fake.id}`;
+      },
       author: { id: this.authorId },
       get content() {
         return fake.content ?? '';
