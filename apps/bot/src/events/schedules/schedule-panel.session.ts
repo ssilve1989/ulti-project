@@ -64,6 +64,8 @@ export class SchedulePanelSession {
     const end = this.sessions.run(interaction, reply, {
       name: `schedule ${mode}`,
       expiredContent: EXPIRED,
+      // the preview describes a schedule that was never saved
+      clearEmbedsOnExpiry: true,
       onExpired: () => {
         recordExpiredPrompt(interaction);
         resolve(undefined);
@@ -83,9 +85,12 @@ export class SchedulePanelSession {
         }
         if (i.customId === SCHEDULE_SAVE_ID) {
           end();
-          resolve(current);
-          // the caller replaces the panel once it has saved
-          await i.deferUpdate();
+          // no more clicks while it saves; the caller then replaces the panel
+          try {
+            await i.update({ content: 'Saving…', components: [] });
+          } finally {
+            resolve(current);
+          }
         } else if (i.customId === SCHEDULE_CANCEL_ID) {
           end();
           resolve(undefined);

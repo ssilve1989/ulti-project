@@ -11,10 +11,16 @@ interface Session {
   message: Message<true>;
   onExpired: () => void;
   end: () => void;
+  /** What the session sends Discord to edit the reply. */
+  editReply: ReturnType<typeof vi.fn>;
 }
 
 /** A session on a message, started from a button. */
-function startSession(): Session {
+function startSession({
+  clearEmbedsOnExpiry,
+}: {
+  clearEmbedsOnExpiry?: boolean;
+} = {}): Session {
   const fake = new FakeMessage(
     'message-1',
     { kind: 'channel', guildId: 'guild-1', channelId: 'channel-1' },
@@ -24,9 +30,10 @@ function startSession(): Session {
   );
   const message = fake.toMessage<true>();
   const onExpired = vi.fn();
+  const editReply = vi.fn().mockResolvedValue(undefined);
   const interaction = mockOf<ButtonInteraction<'cached'>>({
     user: { id: 'user-1' },
-    editReply: vi.fn().mockResolvedValue(undefined),
+    editReply,
   });
 
   vi.spyOn(message, 'createMessageComponentCollector');
@@ -38,14 +45,16 @@ function startSession(): Session {
       expiredContent: 'Expired',
       onCollect: () => Promise.resolve(),
       onExpired,
+      ...(clearEmbedsOnExpiry !== undefined && { clearEmbedsOnExpiry }),
     },
   );
 
-  return { fake, message, onExpired, end };
+  return { fake, message, onExpired, end, editReply };
 }
 
-const it = base.extend<{ session: Session }>({
-  session: fresh(startSession),
+const it = base.extend<{ session: Session; clearingSession: Session }>({
+  session: fresh(() => startSession()),
+  clearingSession: fresh(() => startSession({ clearEmbedsOnExpiry: true })),
 });
 
 describe('when a component session times out', () => {
@@ -53,6 +62,30 @@ describe('when a component session times out', () => {
     session.fake.expire();
 
     expect(session.onExpired).toHaveBeenCalledTimes(1);
+  });
+
+  it('replaces the content and removes the components, keeping the embeds', async ({
+    session,
+  }) => {
+    session.fake.expire();
+
+    await vi.waitFor(() => expect(session.editReply).toHaveBeenCalled());
+    expect(session.editReply.mock.calls).toEqual([
+      [{ content: 'Expired', components: [] }],
+    ]);
+  });
+});
+
+describe('when a session that clears its embeds on expiry times out', () => {
+  it('removes the embeds too', async ({ clearingSession }) => {
+    clearingSession.fake.expire();
+
+    await vi.waitFor(() =>
+      expect(clearingSession.editReply).toHaveBeenCalled(),
+    );
+    expect(clearingSession.editReply.mock.calls).toEqual([
+      [{ content: 'Expired', embeds: [], components: [] }],
+    ]);
   });
 });
 

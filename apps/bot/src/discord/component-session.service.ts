@@ -19,6 +19,8 @@ interface ComponentSessionOptions {
   name: string;
   /** Shown, with the components removed, once the session times out */
   expiredContent: string;
+  /** Also remove the embeds on timeout, for menus whose embed is only a draft */
+  clearEmbedsOnExpiry?: boolean;
   /** Called once the session times out, before `expiredContent` is shown */
   onExpired?: () => void;
   onCollect: (i: MessageComponentInteraction<'cached'>) => Promise<void>;
@@ -38,7 +40,13 @@ export class ComponentSessionService {
       | ChatInputCommandInteraction<'cached'>
       | ButtonInteraction<'cached'>,
     message: Message<true>,
-    { name, expiredContent, onExpired, onCollect }: ComponentSessionOptions,
+    {
+      name,
+      expiredContent,
+      clearEmbedsOnExpiry = false,
+      onExpired,
+      onCollect,
+    }: ComponentSessionOptions,
   ): () => void {
     const collector = message.createMessageComponentCollector({
       filter: isSameUserFilter(interaction.user),
@@ -89,6 +97,7 @@ export class ComponentSessionService {
           onExpired?.();
           await interaction.editReply({
             content: expiredContent,
+            ...(clearEmbedsOnExpiry && { embeds: [] }),
             components: [],
           });
         } catch (error) {

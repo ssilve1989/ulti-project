@@ -10,12 +10,25 @@ import {
 import { appConfig } from '../../config/app.js';
 
 const encounterOption =
-  (name: string, required: boolean) => (option: SlashCommandStringOption) =>
+  (
+    name: string,
+    required: boolean,
+    description = required ? 'Encounter' : 'Another encounter (optional)',
+  ) =>
+  (option: SlashCommandStringOption) =>
     option
       .setName(name)
-      .setDescription(required ? 'Encounter' : 'Another encounter (optional)')
+      .setDescription(description)
       .setRequired(required)
       .addChoices(...getEncounterChoicesForMode(appConfig.APPLICATION_MODE));
+
+/** On edit, any encounter given replaces all of the schedule's encounters. */
+const replacementEncounterOption = (name: string, first: boolean) =>
+  encounterOption(
+    name,
+    false,
+    first ? 'Replace the encounters (first)' : 'Another replacement encounter',
+  );
 
 const titleOption = (required: boolean) => (option: SlashCommandStringOption) =>
   option
@@ -113,14 +126,14 @@ const EditScheduleSubcommand = new SlashCommandSubcommandBuilder()
       .setAutocomplete(true),
   )
   .addStringOption(titleOption(false))
-  .addStringOption(encounterOption('encounter-1', false))
+  .addStringOption(replacementEncounterOption('encounter-1', true))
   .addStringOption(timeOption(false))
   .addIntegerOption(postAheadOption)
   .addIntegerOption(signupsCloseBeforeOption)
   .addChannelOption(channelOption)
-  .addStringOption(encounterOption('encounter-2', false))
-  .addStringOption(encounterOption('encounter-3', false))
-  .addStringOption(encounterOption('encounter-4', false));
+  .addStringOption(replacementEncounterOption('encounter-2', false))
+  .addStringOption(replacementEncounterOption('encounter-3', false))
+  .addStringOption(replacementEncounterOption('encounter-4', false));
 
 export const EventSlashCommand = new SlashCommandBuilder()
   .setName('event')

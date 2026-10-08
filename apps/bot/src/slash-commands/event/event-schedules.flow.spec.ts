@@ -311,22 +311,7 @@ describe('/event schedule-create', () => {
             schedules: schedules(flow),
             metrics,
           }).toEqual({
-            replies: [
-              privateReply(ORGANIZER.id, {
-                content: EXPIRED,
-                embeds: [
-                  {
-                    title: `New schedule: ${TITLE}`,
-                    description: [
-                      'Tue, Thu at 8:00 PM Eastern.',
-                      `The next event starts <t:${EASTERN_START_S}:F> and is posted <t:${EASTERN_POST_S}:R>.`,
-                      'Sign-ups close when it starts.',
-                    ].join('\n'),
-                    fields: panelFields('72 hours'),
-                  },
-                ],
-              }),
-            ],
+            replies: [privately(ORGANIZER.id, EXPIRED)],
             schedules: [],
             metrics: [
               {
@@ -548,6 +533,29 @@ describe('/event schedule-edit', () => {
       expect(repliesTo(flow, ORGANIZER.id)).toEqual([
         privately(ORGANIZER.id, "That schedule doesn't exist."),
       ]);
+    });
+  });
+
+  describe("when an organizer picks another guild's schedule", () => {
+    const ELSEWHERE_PATH = 'event-schedules/elsewhere';
+    const elsewhere = { ...STORED_SCHEDULE, guildId: OTHER_GUILD };
+
+    it.beforeEach(async ({ flow }) => {
+      flow.db.seed(ELSEWHERE_PATH, elsewhere);
+      await event(flow, 'schedule-edit', {
+        schedule: 'elsewhere',
+        time: '9pm',
+      });
+    });
+
+    it("says it doesn't exist and leaves it as it was", ({ flow }) => {
+      expect({
+        replies: repliesTo(flow, ORGANIZER.id),
+        schedule: flow.db.read(ELSEWHERE_PATH),
+      }).toEqual({
+        replies: [privately(ORGANIZER.id, "That schedule doesn't exist.")],
+        schedule: elsewhere,
+      });
     });
   });
 
