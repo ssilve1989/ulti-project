@@ -546,6 +546,69 @@ describe('Settings', () => {
     });
   });
 
+  describe('job-emojis', () => {
+    const SGE_EMOJI = '123456789012345678';
+    const WHM_EMOJI = '223456789012345678';
+
+    describe('when an admin sets a job emoji', () => {
+      it.beforeEach(async ({ flow }) => {
+        await settings(flow, 'job-emojis', {
+          job: 'SGE',
+          emoji: `<:sge:${SGE_EMOJI}>`,
+        });
+      });
+
+      it('stores the emoji id for that job', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          jobEmojis: { SGE: SGE_EMOJI },
+        });
+      });
+
+      it('confirms privately', ({ flow }) => {
+        expect(repliesToAdmin(flow)).toEqual([
+          textReply(ADMIN.id, `Sage (SGE) now shows as <:SGE:${SGE_EMOJI}>`, {
+            ephemeral: true,
+          }),
+        ]);
+      });
+    });
+
+    describe('when an admin clears a job emoji', () => {
+      it.beforeEach(async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, {
+          jobEmojis: { SGE: SGE_EMOJI, WHM: WHM_EMOJI },
+        });
+        await settings(flow, 'job-emojis', { job: 'SGE' });
+      });
+
+      it('removes only that job', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          jobEmojis: { WHM: WHM_EMOJI },
+        });
+      });
+    });
+
+    describe('when the emoji is not a custom emoji', () => {
+      it('refuses it and stores nothing', async ({ flow }) => {
+        await settings(flow, 'job-emojis', { job: 'SGE', emoji: '🙂' });
+
+        expect({
+          stored: flow.db.read(SETTINGS_PATH),
+          replies: repliesToAdmin(flow),
+        }).toEqual({
+          stored: undefined,
+          replies: [
+            textReply(
+              ADMIN.id,
+              'That isn’t a custom emoji. Paste the emoji itself, or its id.',
+              { ephemeral: true },
+            ),
+          ],
+        });
+      });
+    });
+  });
+
   describe('view', () => {
     /** The section buttons, with `active` disabled as the one shown. */
     const navRow = (
@@ -587,7 +650,10 @@ describe('Settings', () => {
     });
 
     /** The overview of the CONFIGURED settings, with `spreadsheetFields` among them. */
-    const overview = (spreadsheetFields: unknown[] = []) => ({
+    const overview = (
+      spreadsheetFields: unknown[] = [],
+      jobEmojis = 'Not set',
+    ) => ({
       title: 'Settings',
       description:
         'Ulti-Project Bot Settings — use the buttons below to view role mappings',
@@ -601,6 +667,7 @@ describe('Settings', () => {
         field('Prog Roles', '1 encounter configured'),
         field('Clear Roles', '1 encounter configured'),
         field('Prog Point Roles', '1 encounter configured (2 prog points)'),
+        field('Job emojis', jobEmojis),
       ],
     });
 
@@ -654,6 +721,27 @@ describe('Settings', () => {
         expect(repliesToAdmin(flow)).toEqual([
           privateReply(ADMIN.id, {
             embeds: [overview()],
+            components: [navRow('overview')],
+          }),
+        ]);
+      });
+
+      it('lists the jobs with an emoji, in job order', async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, {
+          ...CONFIGURED,
+          jobEmojis: { WHM: '223456789012345678', PLD: '123456789012345678' },
+        });
+
+        await view(flow);
+
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            embeds: [
+              overview(
+                [],
+                '<:PLD:123456789012345678> PLD <:WHM:223456789012345678> WHM',
+              ),
+            ],
             components: [navRow('overview')],
           }),
         ]);

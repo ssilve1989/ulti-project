@@ -2,6 +2,7 @@ import {
   type Encounter,
   EncounterFriendlyDescription,
   isEncounter,
+  JOBS,
 } from '@ulti-project/shared';
 import type { APIEmbedField } from 'discord.js';
 import {
@@ -154,6 +155,14 @@ export function createProgPointSectionComponents(
   return components;
 }
 
+function formatJobEmojis(jobEmojis: SettingsDocument['jobEmojis']): string {
+  const entries = JOBS.flatMap((job) => {
+    const emojiId = jobEmojis?.[job];
+    return emojiId ? [`<:${job}:${emojiId}> ${job}`] : [];
+  });
+  return entries.length ? entries.join(' ') : 'Not set';
+}
+
 function countConfiguredRoles(
   roleSettings: Record<string, string | undefined> | undefined,
 ): number {
@@ -176,6 +185,7 @@ export function buildOverviewEmbed(
   const {
     autoModChannelId,
     clearRoles,
+    jobEmojis,
     progPointRoles,
     progRoles,
     reviewChannel,
@@ -238,6 +248,11 @@ export function buildOverviewEmbed(
       value: progPointEncounters.length
         ? `${summarizeEncounterCount(progPointEncounters.length)} (${progPointCount} prog points)`
         : 'None configured',
+      inline: true,
+    },
+    {
+      name: 'Job emojis',
+      value: formatJobEmojis(jobEmojis),
       inline: true,
     },
   ];

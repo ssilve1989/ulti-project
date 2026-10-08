@@ -6,6 +6,7 @@ import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
 import { EditBlacklistChannelsCommandHandler } from './subcommands/blacklist-channels/edit-blacklist-channels.command-handler.js';
 import { EditChannelsCommandHandler } from './subcommands/channels/edit-channels.command-handler.js';
+import { EditJobEmojisCommandHandler } from './subcommands/job-emojis/edit-job-emojis.command-handler.js';
 import { EditProgPointRolesCommandHandler } from './subcommands/prog-point-roles/edit-prog-point-roles.command-handler.js';
 import { EditReviewerCommandHandler } from './subcommands/reviewer/edit-reviewer.command-handler.js';
 import { EditEncounterRolesCommandHandler } from './subcommands/roles/edit-encounter-roles.command-handler.js';
@@ -24,6 +25,7 @@ import { ViewSettingsCommandHandler } from './subcommands/view/view-settings.com
     EditBlacklistChannelsCommandHandler,
     EditChannelsCommandHandler,
     EditEncounterRolesCommandHandler,
+    EditJobEmojisCommandHandler,
     EditProgPointRolesCommandHandler,
     EditReviewerCommandHandler,
     EditSpreadsheetCommandHandler,

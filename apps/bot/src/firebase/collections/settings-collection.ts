@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
-import { type Encounter, typedCollection } from '@ulti-project/shared';
+import {
+  type Encounter,
+  type Job,
+  typedCollection,
+} from '@ulti-project/shared';
 import {
   CollectionReference,
   FieldPath,
@@ -23,6 +27,19 @@ class SettingsCollection {
   public async upsert(guildId: string, settings: Partial<SettingsDocument>) {
     await this.collection.doc(guildId).set(settings, { merge: true });
 
+    await this.updateCache(guildId);
+  }
+
+  @SentryTraced()
+  public async setJobEmojis(
+    guildId: string,
+    jobEmojis: Partial<Record<Job, string>>,
+  ) {
+    // mergeFields replaces the whole map, so a cleared job's key disappears;
+    // { merge: true } would keep it
+    await this.collection
+      .doc(guildId)
+      .set({ jobEmojis }, { mergeFields: ['jobEmojis'] });
     await this.updateCache(guildId);
   }
 

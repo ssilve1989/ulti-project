@@ -1,4 +1,9 @@
-import { Encounter, getEncounterChoicesForMode } from '@ulti-project/shared';
+import {
+  Encounter,
+  getEncounterChoicesForMode,
+  JOB_NAME,
+  JOBS,
+} from '@ulti-project/shared';
 import {
   ChannelType,
   PermissionFlagsBits,
@@ -101,6 +106,28 @@ const EditProgPointRolesSubcommand = new SlashCommandSubcommandBuilder()
       .setRequired(false),
   );
 
+const EditJobEmojisSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('job-emojis')
+  .setDescription('Set the emoji shown for a job on event sign-ups')
+  .addStringOption((option) =>
+    option
+      .setName('job')
+      .setDescription('The job')
+      .setRequired(true)
+      .addChoices(
+        ...JOBS.map((job) => ({
+          name: `${JOB_NAME[job]} (${job})`,
+          value: job,
+        })),
+      ),
+  )
+  .addStringOption((option) =>
+    option
+      .setName('emoji')
+      .setDescription('A custom emoji (paste it, or its id). Omit to clear')
+      .setRequired(false),
+  );
+
 const EditSpreadsheetSubcommand = new SlashCommandSubcommandBuilder()
   .setName('spreadsheet')
   .setDescription('Edit spreadsheet settings')
@@ -126,5 +153,6 @@ export const SettingsSlashCommand = new SlashCommandBuilder()
   .addSubcommand(EditReviewerRoleSubcommand)
   .addSubcommand(EditEncounterRolesSubcommand)
   .addSubcommand(EditProgPointRolesSubcommand)
+  .addSubcommand(EditJobEmojisSubcommand)
   .addSubcommand(EditSpreadsheetSubcommand)
   .addSubcommand(ViewSettingsSubcommand);

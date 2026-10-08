@@ -1,3 +1,4 @@
+import type { Job } from '@ulti-project/shared';
 import { Encounter } from '@ulti-project/shared';
 import type { DocumentData } from 'firebase-admin/firestore';
 
@@ -20,6 +21,8 @@ export interface SettingsDocument extends DocumentData {
   progPointRoles?: {
     [key in keyof typeof Encounter]?: Record<string, string>;
   };
+
+  jobEmojis?: Partial<Record<Job, string>>;
 }
 
 /**
