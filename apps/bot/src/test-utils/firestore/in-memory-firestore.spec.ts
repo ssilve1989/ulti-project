@@ -298,6 +298,37 @@ describe('InMemoryFirestore', () => {
     });
   });
 
+  describe('range filters', () => {
+    const at = (iso: string) => Timestamp.fromDate(new Date(iso));
+
+    it.beforeEach(({ db }) => {
+      db.seed('events/past', { dueAt: at('2026-10-01T00:00:00Z') });
+      db.seed('events/now', { dueAt: at('2026-10-02T00:00:00Z') });
+      db.seed('events/future', { dueAt: at('2026-10-03T00:00:00Z') });
+      db.seed('events/undated', { title: 'no dueAt field' });
+      db.seed('events/string', { dueAt: '2026-09-01' });
+    });
+
+    it('matches Timestamps at or before the value, leaving out documents missing the field or holding another type', async ({
+      db,
+    }) => {
+      const snapshot = await db
+        .collection('events')
+        .where('dueAt', '<=', at('2026-10-02T00:00:00Z'))
+        .get();
+
+      expect(snapshot.docs.map((doc) => doc.id)).toEqual(['now', 'past']);
+    });
+
+    it('refuses <= against anything but a Timestamp, which it does not implement', ({
+      db,
+    }) => {
+      expect(() =>
+        db.collection('events').where('dueAt', '<=', '2026-10-02'),
+      ).toThrow('does not support <= against a string');
+    });
+  });
+
   describe('result order, as Firestore returns it', () => {
     it.beforeEach(({ db }) => {
       db.seed('orders/a', { order: 5 });
@@ -335,6 +366,18 @@ describe('InMemoryFirestore', () => {
         status: 'DECLINED',
         declineReason: 'late',
       });
+    });
+
+    it('deletes a document in a transaction', async ({ db }) => {
+      db.seed('signups/a', { status: 'DECLINED' });
+      const ref = db.collection('signups').doc('a');
+
+      await db.runTransaction(async (tx) => {
+        await tx.get(ref);
+        tx.delete(ref);
+      });
+
+      expect(db.read('signups/a')).toBeUndefined();
     });
 
     it('applies nothing when the transaction callback throws', async ({
@@ -377,6 +420,18 @@ describe('InMemoryFirestore', () => {
           .collection('signups')
           .where('status', '==', 'PENDING')
           .orderBy('order')
+          .get(),
+      ).rejects.toThrow('composite index');
+    });
+
+    it('rejects running a range filter alongside a filter on another field, which needs a composite index', async ({
+      db,
+    }) => {
+      await expect(
+        db
+          .collection('events')
+          .where('guildId', '==', 'guild-1')
+          .where('dueAt', '<=', Timestamp.now())
           .get(),
       ).rejects.toThrow('composite index');
     });

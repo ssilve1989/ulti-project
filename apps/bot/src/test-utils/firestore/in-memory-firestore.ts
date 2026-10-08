@@ -7,7 +7,7 @@ import {
 } from 'firebase-admin/firestore';
 
 type Data = Record<string, unknown>;
-type Operator = '==' | 'in';
+type Operator = '==' | 'in' | '<=';
 
 interface Condition {
   field: string;
@@ -31,7 +31,7 @@ interface SetOptions {
   mergeFields?: ReadonlyArray<string | FieldPath>;
 }
 
-const OPERATORS: ReadonlySet<string> = new Set<Operator>(['==', 'in']);
+const OPERATORS: ReadonlySet<string> = new Set<Operator>(['==', 'in', '<=']);
 
 function isOperator(value: string): value is Operator {
   return OPERATORS.has(value);
@@ -257,6 +257,9 @@ function condition(
   if (operator === '==' && typeof value === 'object' && value !== null) {
     return unsupported('== against maps, arrays or class instances');
   }
+  if (operator === '<=' && !(value instanceof Timestamp)) {
+    return unsupported(`<= against a ${typeof value}`);
+  }
   return { field, operator, value };
 }
 
@@ -303,6 +306,14 @@ function matches(data: Data, { field, operator, value }: Condition): boolean {
       return actual === value;
     case 'in':
       return Array.isArray(value) && value.includes(actual);
+    case '<=':
+      // Firestore compares only values of the same type, so a document whose
+      // field is missing or of another type never matches a range
+      return (
+        actual instanceof Timestamp &&
+        value instanceof Timestamp &&
+        actual.valueOf() <= value.valueOf()
+      );
   }
 }
 
@@ -388,12 +399,15 @@ class Query {
    * exist and refuses them rather than pretending they work.
    */
   private assertServableWithoutCompositeIndex(): void {
-    const [firstOrdering] = this.state.orderings;
+    const conditions = this.state.conditions.flatMap(conditionsIn);
+    // a range or an ordering is served from one field's index, so a filter on
+    // any other field needs a composite one
+    const indexedField =
+      this.state.orderings.at(0)?.field ??
+      conditions.find(({ operator }) => operator === '<=')?.field;
     const filterOnOtherField =
-      firstOrdering !== undefined &&
-      this.state.conditions
-        .flatMap(conditionsIn)
-        .some(({ field }) => field !== firstOrdering.field);
+      indexedField !== undefined &&
+      conditions.some(({ field }) => field !== indexedField);
     if (filterOnOtherField) {
       throw new Error(
         `This query on "${this.collectionPath}" needs a composite index; real Firestore rejects it unless one is deployed, and this repo has no index config.`,
@@ -518,6 +532,11 @@ class Transaction {
 
   update(ref: DocumentReference, data: object): this {
     this.writes.push(() => this.db.update(ref.path, data));
+    return this;
+  }
+
+  delete(ref: DocumentReference): this {
+    this.writes.push(() => this.db.delete(ref.path));
     return this;
   }
 }
