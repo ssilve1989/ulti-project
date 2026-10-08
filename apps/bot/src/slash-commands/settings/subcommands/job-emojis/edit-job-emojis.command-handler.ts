@@ -7,7 +7,7 @@ import { SettingsCollection } from '../../../../firebase/collections/settings-co
 import { SlashCommand } from '../../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../../slash-command.interface.js';
 import { SettingsSlashCommand } from '../../settings.slash-command.js';
-import { parseEmojiId } from './parse-emoji-id.js';
+import { isAnimatedEmoji, parseEmojiId } from './parse-emoji-id.js';
 
 @Injectable()
 @SlashCommand({ builder: SettingsSlashCommand, subcommand: 'job-emojis' })
@@ -27,6 +27,13 @@ class EditJobEmojisCommandHandler implements ISlashCommand {
     }
 
     const input = interaction.options.getString('emoji');
+    if (input !== null && isAnimatedEmoji(input)) {
+      await interaction.editReply(
+        "Animated emojis aren't supported. Use a static custom emoji.",
+      );
+      return;
+    }
+
     const emojiId = input === null ? undefined : parseEmojiId(input);
     if (input !== null && emojiId === undefined) {
       await interaction.editReply(

@@ -586,6 +586,14 @@ describe('Settings', () => {
           jobEmojis: { WHM: WHM_EMOJI },
         });
       });
+
+      it('confirms privately that it shows as the job code', ({ flow }) => {
+        expect(repliesToAdmin(flow)).toEqual([
+          textReply(ADMIN.id, 'Sage (SGE) now shows as `SGE`', {
+            ephemeral: true,
+          }),
+        ]);
+      });
     });
 
     describe('when the emoji is not a custom emoji', () => {
@@ -601,6 +609,29 @@ describe('Settings', () => {
             textReply(
               ADMIN.id,
               'That isn’t a custom emoji. Paste the emoji itself, or its id.',
+              { ephemeral: true },
+            ),
+          ],
+        });
+      });
+    });
+
+    describe('when the emoji is animated', () => {
+      it('refuses it and stores nothing', async ({ flow }) => {
+        await settings(flow, 'job-emojis', {
+          job: 'SGE',
+          emoji: `<a:spin:${SGE_EMOJI}>`,
+        });
+
+        expect({
+          stored: flow.db.read(SETTINGS_PATH),
+          replies: repliesToAdmin(flow),
+        }).toEqual({
+          stored: undefined,
+          replies: [
+            textReply(
+              ADMIN.id,
+              "Animated emojis aren't supported. Use a static custom emoji.",
               { ephemeral: true },
             ),
           ],
