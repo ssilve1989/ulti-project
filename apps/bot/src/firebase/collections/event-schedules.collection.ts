@@ -9,6 +9,7 @@ import {
 } from 'firebase-admin/firestore';
 import {
   nextOccurrence,
+  occurrencesAfter,
   type Recurrence,
 } from '../../events/schedules/next-occurrence.js';
 import { InjectFirestore } from '../firebase.decorators.js';
@@ -74,17 +75,24 @@ class EventSchedulesCollection {
     return { ...document, id: ref.id };
   }
 
-  /** Applies `changes` and recomputes the times from `now`; undefined if missing. */
+  /**
+   * Applies `changes` and recomputes the times from `now`, past the first
+   * `reassigned` occurrences, which already-posted events have taken, so the
+   * scheduler doesn't post them again; undefined if missing.
+   */
   @SentryTraced()
   public update(
     id: string,
     changes: Partial<ScheduleSettings>,
     by: string,
     now: Date,
+    reassigned = 0,
   ): Promise<StoredSchedule | undefined> {
-    return this.rewrite(id, (schedule) =>
-      timed({ ...schedule, ...changes, updatedBy: by }, now),
-    );
+    return this.rewrite(id, (schedule) => {
+      const changed = { ...schedule, ...changes, updatedBy: by };
+      const taken = occurrencesAfter(changed, now, reassigned);
+      return timed(changed, taken.at(-1) ?? now);
+    });
   }
 
   /**

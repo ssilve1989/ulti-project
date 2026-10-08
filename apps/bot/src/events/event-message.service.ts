@@ -24,18 +24,31 @@ export class EventMessageService {
 
   /** Sends the event's message to its channel and stores the message id. */
   public async post(event: StoredEvent): Promise<Message<true>> {
-    const channel = await this.discord.getTextChannel({
-      guildId: event.guildId,
-      channelId: event.channelId,
-    });
-    if (!channel || channel.isDMBased()) {
-      throw new Error(
-        `The channel ${event.channelId} for event ${event.id} was not found`,
-      );
-    }
-    const message = await channel.send(await this.render(event));
+    const message = await this.send(event, event.channelId);
     await this.events.setMessageId(event.id, message.id);
     return message;
+  }
+
+  /**
+   * Posts the event in `channelId`, stores it there, then deletes its old
+   * message; one that can't be deleted is only logged. Rejects, leaving the
+   * event where it was, if it can't be posted there.
+   */
+  public async move(event: StoredEvent, channelId: string): Promise<void> {
+    const message = await this.send(event, channelId);
+    await this.events.setMessage(event.id, channelId, message.id);
+    if (!event.messageId) return;
+    try {
+      await this.discord.deleteMessage(
+        event.guildId,
+        event.channelId,
+        event.messageId,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `The old message ${event.messageId} for event ${event.id} could not be deleted: ${String(error)}`,
+      );
+    }
   }
 
   /** Re-renders the event's message after any refresh already queued for it; resolves once this one's edit is done. */
@@ -68,6 +81,22 @@ export class EventMessageService {
       return;
     }
     await message.edit(await this.render(event));
+  }
+
+  private async send(
+    event: StoredEvent,
+    channelId: string,
+  ): Promise<Message<true>> {
+    const channel = await this.discord.getTextChannel({
+      guildId: event.guildId,
+      channelId,
+    });
+    if (!channel || channel.isDMBased()) {
+      throw new Error(
+        `The channel ${channelId} for event ${event.id} was not found`,
+      );
+    }
+    return channel.send(await this.render(event));
   }
 
   private async render(event: StoredEvent): Promise<EventMessage> {

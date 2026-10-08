@@ -282,6 +282,118 @@ describe('EventsCollection', () => {
     });
   });
 
+  describe("when looking for a schedule's upcoming events", () => {
+    it('returns those not started or closed, soonest first', async ({
+      db,
+      collection,
+    }) => {
+      const later = anOpenEvent({
+        scheduleId: 'schedule-1',
+        startsAt: Timestamp.fromDate(new Date('2026-10-12T20:00:00Z')),
+      });
+      const sooner = withStatus(
+        anOpenEvent({ scheduleId: 'schedule-1' }),
+        EventStatus.SignupsClosed,
+      );
+      db.seed('events/later', later);
+      db.seed('events/sooner', sooner);
+      db.seed(
+        'events/started',
+        anOpenEvent({
+          scheduleId: 'schedule-1',
+          startsAt: Timestamp.fromDate(NOW),
+        }),
+      );
+      db.seed('events/closed', withStatus(later, EventStatus.Closed));
+      db.seed('events/other', { ...later, scheduleId: 'schedule-2' });
+      db.seed('events/unscheduled', anOpenEvent());
+
+      expect(
+        await collection.findUpcomingForSchedule('schedule-1', NOW),
+      ).toEqual([
+        { ...sooner, id: 'sooner' },
+        { ...later, id: 'later' },
+      ]);
+    });
+  });
+
+  describe('when an event is rescheduled', () => {
+    const LATER_START = Timestamp.fromDate(new Date('2026-10-11T20:00:00Z'));
+    const LATER_CUTOFF = Timestamp.fromDate(new Date('2026-10-11T18:00:00Z'));
+    const CHANGES = Object.freeze({
+      title: 'TOP prog night',
+      encounters: [Encounter.TOP],
+      startsAt: LATER_START,
+      signupsCloseAt: LATER_CUTOFF,
+    });
+
+    it('reopens a signups-closed event whose new cutoff is ahead', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, withStatus(anOpenEvent(), EventStatus.SignupsClosed));
+
+      const rescheduled = await collection.reschedule(EVENT_ID, CHANGES, NOW);
+
+      const stored = anOpenEvent({
+        ...CHANGES,
+        signupsCloseDueAt: LATER_CUTOFF,
+      });
+      expect(db.read(EVENT_PATH)).toEqual(stored);
+      expect(rescheduled).toEqual({ ...stored, id: EVENT_ID });
+    });
+
+    it('closes sign-ups on an open event whose new cutoff has passed', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+      const changes = { ...CHANGES, signupsCloseAt: CUTOFF };
+
+      const rescheduled = await collection.reschedule(EVENT_ID, changes, NOW);
+
+      const stored = withStatus(
+        anOpenEvent(changes),
+        EventStatus.SignupsClosed,
+      );
+      expect(db.read(EVENT_PATH)).toEqual(stored);
+      expect(rescheduled).toEqual({ ...stored, id: EVENT_ID });
+    });
+
+    it('changes nothing on a closed or missing event and returns undefined', async ({
+      db,
+      collection,
+    }) => {
+      const closed = withStatus(anOpenEvent(), EventStatus.Closed);
+      db.seed(EVENT_PATH, closed);
+
+      expect({
+        closed: await collection.reschedule(EVENT_ID, CHANGES, NOW),
+        missing: await collection.reschedule('missing', CHANGES, NOW),
+        stored: db.documentsIn('events'),
+      }).toEqual({
+        closed: undefined,
+        missing: undefined,
+        stored: [{ id: EVENT_ID, path: EVENT_PATH, data: closed }],
+      });
+    });
+  });
+
+  describe('when the event message is moved to another channel', () => {
+    it('stores the channel and the new message id', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+
+      await collection.setMessage(EVENT_ID, 'channel-2', 'message-2');
+
+      expect(db.read(EVENT_PATH)).toEqual(
+        anOpenEvent({ channelId: 'channel-2', messageId: 'message-2' }),
+      );
+    });
+  });
+
   describe('when a player signs up again with another job', () => {
     it('replaces the job and keeps the claim', async ({ db, collection }) => {
       db.seed(PARTICIPANT_PATH, { ...aParticipant(), claim: CLAIM });

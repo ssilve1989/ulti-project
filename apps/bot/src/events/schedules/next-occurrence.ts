@@ -64,6 +64,21 @@ export function nextOccurrence(
   throw new Error('a recurrence must have at least one weekday');
 }
 
+/** The first `count` occurrences strictly after `after`, in order. */
+export function occurrencesAfter(
+  recurrence: Recurrence,
+  after: Date,
+  count: number,
+): Date[] {
+  const starts: Date[] = [];
+  let previous = after;
+  while (starts.length < count) {
+    previous = nextOccurrence(recurrence, previous);
+    starts.push(previous);
+  }
+  return starts;
+}
+
 /** `Eastern (UTC−4)`, with the zone's offset at `at`. */
 export function timeZoneLabel(zone: ScheduleTimeZone, at: Date): string {
   const hours =

@@ -15,6 +15,10 @@ import {
   pickedSchedule,
   SCHEDULE_MISSING,
 } from '../../../events/schedules/picked-schedule.js';
+import {
+  PostedEventsUpdater,
+  postedEventsSummary,
+} from '../../../events/schedules/posted-events.updater.js';
 import { readScheduleChanges } from '../../../events/schedules/schedule-options.js';
 import { savedScheduleSummary } from '../../../events/schedules/schedule-panel.renderer.js';
 import { SchedulePanelSession } from '../../../events/schedules/schedule-panel.session.js';
@@ -59,6 +63,7 @@ class ScheduleEditCommandHandler implements ISlashCommand {
     private readonly settingsCollection: SettingsCollection,
     private readonly schedulesCollection: EventSchedulesCollection,
     private readonly panel: SchedulePanelSession,
+    private readonly postedEvents: PostedEventsUpdater,
   ) {}
 
   @SentryTraced()
@@ -107,17 +112,18 @@ class ScheduleEditCommandHandler implements ISlashCommand {
     );
     if (!draft) return;
 
-    const saved = await this.schedulesCollection.update(
+    const saved = await this.postedEvents.apply(
       schedule.id,
       changedSettings(current, draft),
       interaction.user.id,
       new Date(),
     );
-    await interaction.editReply({
-      content: saved ? savedScheduleSummary(saved) : SCHEDULE_MISSING,
-      embeds: [],
-      components: [],
-    });
+    const content = saved
+      ? [savedScheduleSummary(saved.schedule), postedEventsSummary(saved)]
+          .filter((line) => line !== undefined)
+          .join('\n')
+      : SCHEDULE_MISSING;
+    await interaction.editReply({ content, embeds: [], components: [] });
   }
 
   autocomplete(interaction: AutocompleteInteraction<'cached'>): Promise<void> {

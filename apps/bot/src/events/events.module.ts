@@ -7,6 +7,7 @@ import { FirebaseModule } from '../firebase/firebase.module.js';
 import { EventComponentsListener } from './components/event-components.listener.js';
 import { EventEligibilityService } from './eligibility/event-eligibility.service.js';
 import { EventMessageService } from './event-message.service.js';
+import { PostedEventsUpdater } from './schedules/posted-events.updater.js';
 import { SchedulePanelSession } from './schedules/schedule-panel.session.js';
 import { EventSignupFlow } from './signup/event-signup.flow.js';
 import { EventWithdrawFlow } from './signup/event-withdraw.flow.js';
@@ -26,7 +27,13 @@ import { EventWithdrawFlow } from './signup/event-withdraw.flow.js';
     EventWithdrawFlow,
     EventComponentsListener,
     SchedulePanelSession,
+    PostedEventsUpdater,
   ],
-  exports: [EventMessageService, EventEligibilityService, SchedulePanelSession],
+  exports: [
+    EventMessageService,
+    EventEligibilityService,
+    SchedulePanelSession,
+    PostedEventsUpdater,
+  ],
 })
 export class EventsModule {}

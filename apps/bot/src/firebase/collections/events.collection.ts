@@ -78,6 +78,65 @@ class EventsCollection {
     );
   }
 
+  /** The schedule's events that haven't started and aren't closed, soonest first. */
+  @SentryTraced()
+  public async findUpcomingForSchedule(
+    scheduleId: string,
+    now: Date,
+  ): Promise<StoredEvent[]> {
+    // equality filters only, so no composite index; the start is checked here
+    const snapshot = await this.events
+      .where('scheduleId', '==', scheduleId)
+      .where('status', 'in', [EventStatus.Open, EventStatus.SignupsClosed])
+      .get();
+    return EventsCollection.stored(snapshot)
+      .filter((event) => event.startsAt.toMillis() > now.getTime())
+      .sort((a, b) => a.startsAt.toMillis() - b.startsAt.toMillis());
+  }
+
+  /**
+   * Applies `changes` to an event that isn't closed, rewriting the whole
+   * document: it's `open` (due at its cutoff) if the new cutoff is after `now`,
+   * else `signups-closed`. Undefined if it's missing or closed.
+   */
+  @SentryTraced()
+  public reschedule(
+    id: string,
+    changes: Pick<
+      EventDocument,
+      'title' | 'encounters' | 'startsAt' | 'signupsCloseAt'
+    >,
+    now: Date,
+  ): Promise<StoredEvent | undefined> {
+    return this.firestore.runTransaction(async (tx) => {
+      const ref = this.events.doc(id);
+      const current = (await tx.get(ref)).data();
+      if (!current || current.status === EventStatus.Closed) return undefined;
+      const { signupsCloseDueAt: _due, ...rest } = current;
+      const changed = { ...rest, ...changes };
+      const next: EventDocument =
+        changes.signupsCloseAt.toMillis() > now.getTime()
+          ? {
+              ...changed,
+              status: EventStatus.Open,
+              signupsCloseDueAt: changes.signupsCloseAt,
+            }
+          : { ...changed, status: EventStatus.SignupsClosed };
+      tx.set(ref, next);
+      return { ...next, id };
+    });
+  }
+
+  /** Stores the event's message after it moved to another channel. */
+  @SentryTraced()
+  public async setMessage(
+    id: string,
+    channelId: string,
+    messageId: string,
+  ): Promise<void> {
+    await this.events.doc(id).update({ channelId, messageId });
+  }
+
   /** Open events at or past their sign-up cutoff. */
   @SentryTraced()
   public async findDueToCloseSignups(now: Date): Promise<StoredEvent[]> {

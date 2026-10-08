@@ -1,10 +1,15 @@
+import { EventBus } from '@nestjs/cqrs';
 import type * as Sentry from '@sentry/nestjs';
 import { Encounter } from '@ulti-project/shared';
 import { Timestamp } from 'firebase-admin/firestore';
 import { test as base, describe, expect, vi } from 'vitest';
 import { USTimeZones } from '../../common/time-zones.js';
 import type { Weekday } from '../../events/schedules/next-occurrence.js';
-import type { EventDocument } from '../../firebase/models/event.model.js';
+import { ParticipantWithdrawnEvent } from '../../events/signup/events.events.js';
+import type {
+  EventDocument,
+  ParticipantDocument,
+} from '../../firebase/models/event.model.js';
 import type { EventScheduleDocument } from '../../firebase/models/event-schedule.model.js';
 import { EventSchedulerModule } from '../../jobs/event-scheduler/event-scheduler.module.js';
 import {
@@ -97,6 +102,13 @@ const itWithScheduler = base.extend<{ cron: SpiedCron; flow: FlowApp }>({
     }
   },
 });
+
+/** Runs the event-scheduler job's tick at `at`, and the bot finishes with it. */
+async function tickAt(flow: FlowApp, cron: SpiedCron, at: Date) {
+  vi.setSystemTime(at);
+  await runTick(cron.from);
+  await flow.settle();
+}
 
 /** `userId` runs `/event <subcommand>` in the events channel, and the bot finishes with it. */
 async function event(
@@ -1028,13 +1040,6 @@ describe('the event-scheduler job', () => {
     return message.id;
   }
 
-  /** Runs the job's tick at `at`, and the bot finishes with it. */
-  async function tickAt(flow: FlowApp, cron: SpiedCron, at: Date) {
-    vi.setSystemTime(at);
-    await runTick(cron.from);
-    await flow.settle();
-  }
-
   describe("when a schedule's post time comes", () => {
     itWithScheduler.beforeEach(async ({ flow, cron }) => {
       flow.db.seed(SCHEDULE_PATH, DUE_SCHEDULE);
@@ -1343,5 +1348,657 @@ describe('the event-scheduler job', () => {
         );
       },
     );
+  });
+});
+
+describe('/event schedule-edit, after the schedule posted an event', () => {
+  const ALICE = Object.freeze({ id: 'alice', username: 'alice' });
+  const BOB = Object.freeze({ id: 'bob', username: 'bob' });
+  const CAROL = Object.freeze({ id: 'carol', username: 'carol' });
+  const RAID_CHANNEL = 'raid-channel';
+
+  /** Thursday 2026-10-08 at 8 PM Pacific, a day before it, and 2 hours before it. */
+  const START = new Date('2026-10-09T03:00:00Z');
+  const POST = new Date('2026-10-08T03:00:00Z');
+  const CLOSE = new Date('2026-10-09T01:00:00Z');
+  /** Thursday 2026-10-08 at 9 AM Pacific. */
+  const EDITED_AT = new Date('2026-10-08T16:00:00Z');
+  const EVENT_ID = `${SCHEDULE_ID}-${START.getTime() / 1000}`;
+  const EVENT_PATH = `events/${EVENT_ID}`;
+  const at = (iso: string) => Timestamp.fromDate(new Date(iso));
+
+  /** A Tue/Thu 8 PM Pacific DMU and TOP schedule, due to post Thursday's event. */
+  const DMU_TOP_SCHEDULE: EventScheduleDocument = Object.freeze({
+    ...STORED_SCHEDULE,
+    encounters: [Encounter.DMU, Encounter.TOP],
+    nextStartAt: Timestamp.fromDate(START),
+    nextPostAt: Timestamp.fromDate(POST),
+  });
+
+  /** `DMU_TOP_SCHEDULE` once it posted Thursday's event: on to Tuesday 8 PM Pacific. */
+  const ADVANCED_START = at('2026-10-14T03:00:00Z');
+  const ADVANCED_POST = at('2026-10-13T03:00:00Z');
+  const ADVANCED_SCHEDULE: EventScheduleDocument = Object.freeze({
+    ...DMU_TOP_SCHEDULE,
+    nextStartAt: ADVANCED_START,
+    nextPostAt: ADVANCED_POST,
+  });
+
+  /** Thursday's event as the schedule posted it, without its message id. */
+  const POSTED_EVENT: EventDocument = Object.freeze({
+    guildId: GUILD,
+    title: TITLE,
+    startsAt: Timestamp.fromDate(START),
+    signupsCloseAt: Timestamp.fromDate(CLOSE),
+    signupsCloseDueAt: Timestamp.fromDate(CLOSE),
+    encounters: [Encounter.DMU, Encounter.TOP],
+    channelId: EVENTS_CHANNEL,
+    createdBy: FORMER_ORGANIZER,
+    scheduleId: SCHEDULE_ID,
+    status: 'open',
+  });
+
+  const CLAIM = Object.freeze({
+    squadId: 'squad-1',
+    claimedBy: ORGANIZER.id,
+    claimedAt: Timestamp.fromDate(POST),
+  });
+
+  const ALICE_DMU = Object.freeze<ParticipantDocument>({
+    discordId: ALICE.id,
+    encounter: Encounter.DMU,
+    job: 'SGE',
+    character: 'alice',
+    world: 'gilgamesh',
+    phase: { roleId: 'dmu-p4', label: 'DMU P4', order: 3, bucket: 'prog' },
+    signedUpAt: Timestamp.fromDate(POST),
+    claim: CLAIM,
+  });
+
+  const BOB_TOP = Object.freeze<ParticipantDocument>({
+    discordId: BOB.id,
+    encounter: Encounter.TOP,
+    job: 'WAR',
+    character: 'bob bobson',
+    world: 'jenova',
+    phase: { roleId: 'top-p2', label: 'TOP P2', order: 1, bucket: 'prog' },
+    signedUpAt: Timestamp.fromDate(POST),
+  });
+
+  const CAROL_TOP = Object.freeze<ParticipantDocument>({
+    ...BOB_TOP,
+    discordId: CAROL.id,
+    job: 'WHM',
+    character: 'carol',
+  });
+
+  const DMU_NAME = 'Dancing Mad (Ultimate)';
+  const TOP_NAME = '[TOP] The Omega Protocol';
+
+  /** An encounter's header field, with how many signed up. */
+  const encounterField = (name: string, count: number) => ({
+    name: `__${name}__`,
+    value: count ? `${count} signed up` : 'No sign-ups yet',
+  });
+
+  const NO_SIGNUPS = Object.freeze([
+    encounterField(DMU_NAME, 0),
+    encounterField(TOP_NAME, 0),
+  ]);
+  const ALICE_FIELDS = Object.freeze([
+    encounterField(DMU_NAME, 1),
+    { name: 'DMU P4 (1)', value: `\`SGE\` <@${ALICE.id}> Alice@Gilgamesh` },
+  ]);
+  const TOP_FIELDS = Object.freeze([
+    encounterField(TOP_NAME, 2),
+    {
+      name: 'TOP P2 (2)',
+      value: [
+        `\`WAR\` <@${BOB.id}> Bob Bobson@Jenova`,
+        `\`WHM\` <@${CAROL.id}> Carol@Jenova`,
+      ].join('\n'),
+    },
+  ]);
+
+  const closesAt = (date: Date) =>
+    `Sign-ups close <t:${date.getTime() / 1000}:R>`;
+
+  /** The event's post as members see it. */
+  const eventPost = ({
+    title = TITLE,
+    start = START,
+    signups = closesAt(CLOSE),
+    fields = NO_SIGNUPS,
+    signup = true,
+    channelId = EVENTS_CHANNEL,
+  }: {
+    title?: string;
+    start?: Date;
+    signups?: string;
+    fields?: readonly object[];
+    signup?: boolean;
+    channelId?: string;
+  } = {}) => ({
+    location: { kind: 'channel', guildId: GUILD, channelId },
+    content: undefined,
+    embeds: [
+      {
+        title,
+        description: [
+          `<t:${start.getTime() / 1000}:F> (<t:${start.getTime() / 1000}:R>)`,
+          signups,
+          `Organized by <@${FORMER_ORGANIZER}>`,
+        ].join('\n'),
+        fields,
+      },
+    ],
+    components: [eventButtonRow(EVENT_ID, { signup, withdraw: true })],
+    reactions: {},
+    deleted: false,
+  });
+
+  const dm = (userId: string, content: string) => ({
+    location: { kind: 'dm', userId },
+    content,
+    embeds: [],
+    components: [],
+    reactions: {},
+    deleted: false,
+  });
+
+  function thePost(flow: FlowApp) {
+    const [message, ...others] = flow.discord.channel(EVENTS_CHANNEL);
+    if (!message || others.length > 0) {
+      throw new Error(`expected one message in ${EVENTS_CHANNEL}`);
+    }
+    return message;
+  }
+
+  function seedSignups(flow: FlowApp) {
+    for (const participant of [ALICE_DMU, BOB_TOP, CAROL_TOP]) {
+      flow.db.seed(
+        `${EVENT_PATH}/participants/${participant.discordId}-${participant.encounter}`,
+        participant,
+      );
+    }
+  }
+
+  const participants = (flow: FlowApp) =>
+    flow.db.documentsIn(`${EVENT_PATH}/participants`).map(({ data }) => data);
+
+  /** The last line of the organizer's summary: the one about posted events. */
+  const postedEventsLine = (flow: FlowApp) =>
+    repliesTo(flow, ORGANIZER.id).map(({ content }) =>
+      content?.split('\n').at(-1),
+    );
+
+  /** The organizer edits the schedule with `options`, picks `days` if given, and saves. */
+  async function edit(
+    flow: FlowApp,
+    options: Record<string, string | number>,
+    days?: readonly Weekday[],
+  ) {
+    await event(flow, 'schedule-edit', { schedule: SCHEDULE_ID, ...options });
+    if (days) await chooseDays(flow, days);
+    await click(flow, 'scheduleSave');
+  }
+
+  /** What the organizer is told: the saved schedule, then the posted events line. */
+  const summary = (saved: string, posted: string) =>
+    privately(ORGANIZER.id, `${saved}\n${posted}`);
+
+  /** Every event the app publishes while `act` runs. */
+  async function publishedDuring(flow: FlowApp, act: () => Promise<void>) {
+    const published: unknown[] = [];
+    const subscription = flow
+      .get(EventBus)
+      .subscribe((event) => published.push(event));
+    try {
+      await act();
+    } finally {
+      subscription.unsubscribe();
+    }
+    return published;
+  }
+
+  itWithScheduler.beforeEach(async ({ flow, cron }) => {
+    flow.discord.addChannel(GUILD, RAID_CHANNEL);
+    for (const member of [ALICE, BOB, CAROL]) flow.discord.addMember(member);
+    flow.db.seed(SCHEDULE_PATH, DMU_TOP_SCHEDULE);
+    await tickAt(flow, cron, POST);
+    vi.setSystemTime(EDITED_AT);
+  });
+
+  describe('when an organizer moves it from Thursday 8 PM to Wednesday 9 PM', () => {
+    /** Wednesday 2026-10-14 at 9 PM Pacific, and 2 hours before it. */
+    const WEDNESDAY = new Date('2026-10-15T04:00:00Z');
+    const WEDNESDAY_CLOSE = new Date('2026-10-15T02:00:00Z');
+    /** The Wednesday after it, and a day before that. */
+    const NEXT_WEDNESDAY = at('2026-10-22T04:00:00Z');
+    const NEXT_WEDNESDAY_POST = at('2026-10-21T04:00:00Z');
+
+    const moveToWednesday = (flow: FlowApp) =>
+      edit(flow, { time: '9pm' }, ['wed']);
+
+    itWithScheduler(
+      'moves the event to Wednesday 9 PM and updates its post in place',
+      async ({ flow }) => {
+        const post = thePost(flow);
+
+        await moveToWednesday(flow);
+
+        const moved = eventPost({
+          start: WEDNESDAY,
+          signups: closesAt(WEDNESDAY_CLOSE),
+        });
+        expect({
+          post: shown(post),
+          posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          event: flow.db.read(EVENT_PATH),
+        }).toEqual({
+          post: moved,
+          posts: [moved],
+          event: {
+            ...POSTED_EVENT,
+            startsAt: Timestamp.fromDate(WEDNESDAY),
+            signupsCloseAt: Timestamp.fromDate(WEDNESDAY_CLOSE),
+            signupsCloseDueAt: Timestamp.fromDate(WEDNESDAY_CLOSE),
+            messageId: post.id,
+          },
+        });
+      },
+    );
+
+    itWithScheduler(
+      'moves the schedule on to the Wednesday after, and says one posted event was updated',
+      async ({ flow }) => {
+        await moveToWednesday(flow);
+
+        expect({
+          schedule: flow.db.read(SCHEDULE_PATH),
+          replies: repliesTo(flow, ORGANIZER.id),
+        }).toEqual({
+          schedule: {
+            ...DMU_TOP_SCHEDULE,
+            weekdays: ['wed'],
+            startTime: '21:00',
+            nextStartAt: NEXT_WEDNESDAY,
+            nextPostAt: NEXT_WEDNESDAY_POST,
+            updatedBy: ORGANIZER.id,
+          },
+          replies: [
+            summary(
+              `Saved **${TITLE}**: Wed at 9:00 PM Pacific in <#${EVENTS_CHANNEL}>. Next event <t:${NEXT_WEDNESDAY.seconds}:F>, posted <t:${NEXT_WEDNESDAY_POST.seconds}:R>.`,
+              'Updated 1 posted event.',
+            ),
+          ],
+        });
+      },
+    );
+
+    describe("and the job ticks when Wednesday's event would be posted", () => {
+      itWithScheduler('posts nothing more', async ({ flow, cron }) => {
+        await moveToWednesday(flow);
+
+        await tickAt(flow, cron, new Date('2026-10-14T04:00:00Z'));
+
+        expect({
+          posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          events: flow.db.documentsIn('events').map(({ id }) => id),
+        }).toEqual({
+          posts: [
+            eventPost({ start: WEDNESDAY, signups: closesAt(WEDNESDAY_CLOSE) }),
+          ],
+          events: [EVENT_ID],
+        });
+      });
+    });
+  });
+
+  describe('when an organizer renames it', () => {
+    itWithScheduler.beforeEach(({ flow }) =>
+      edit(flow, { title: 'DMU reclear' }),
+    );
+
+    itWithScheduler('renames the event and its post', ({ flow }) => {
+      expect({
+        posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+        event: flow.db.read(EVENT_PATH),
+      }).toEqual({
+        posts: [eventPost({ title: 'DMU reclear' })],
+        event: {
+          ...POSTED_EVENT,
+          title: 'DMU reclear',
+          messageId: thePost(flow).id,
+        },
+      });
+    });
+
+    itWithScheduler(
+      'keeps the schedule on Tuesday, past the posted Thursday',
+      ({ flow }) => {
+        expect(flow.db.read(SCHEDULE_PATH)).toEqual({
+          ...ADVANCED_SCHEDULE,
+          title: 'DMU reclear',
+          updatedBy: ORGANIZER.id,
+        });
+      },
+    );
+  });
+
+  describe('when an organizer removes TOP from it', () => {
+    const removeTop = (flow: FlowApp) =>
+      edit(flow, { 'encounter-1': Encounter.DMU });
+
+    itWithScheduler.beforeEach(({ flow }) => seedSignups(flow));
+
+    itWithScheduler(
+      'deletes the TOP sign-ups, keeps the DMU one with its claim, and tells the board',
+      async ({ flow }) => {
+        const published = await publishedDuring(flow, () => removeTop(flow));
+
+        expect({ participants: participants(flow), published }).toEqual({
+          participants: [ALICE_DMU],
+          published: [
+            new ParticipantWithdrawnEvent(
+              EVENT_ID,
+              { ...BOB_TOP, id: `${BOB.id}-TOP` },
+              'encounter-removed',
+            ),
+            new ParticipantWithdrawnEvent(
+              EVENT_ID,
+              { ...CAROL_TOP, id: `${CAROL.id}-TOP` },
+              'encounter-removed',
+            ),
+          ],
+        });
+      },
+    );
+
+    itWithScheduler(
+      'tells each member whose sign-up was removed',
+      async ({ flow }) => {
+        await removeTop(flow);
+
+        const removed = `**${TOP_NAME}** was removed from **${TITLE}**, so your sign-up for it was cancelled.`;
+        expect({
+          alice: flow.discord.dmsTo(ALICE.id).map(shown),
+          bob: flow.discord.dmsTo(BOB.id).map(shown),
+          carol: flow.discord.dmsTo(CAROL.id).map(shown),
+        }).toEqual({
+          alice: [],
+          bob: [dm(BOB.id, removed)],
+          carol: [dm(CAROL.id, removed)],
+        });
+      },
+    );
+
+    itWithScheduler(
+      'shows the post without TOP, and counts the removed sign-ups',
+      async ({ flow }) => {
+        await removeTop(flow);
+
+        expect({
+          posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          event: flow.db.read(EVENT_PATH),
+          replies: repliesTo(flow, ORGANIZER.id),
+        }).toEqual({
+          posts: [eventPost({ fields: ALICE_FIELDS })],
+          event: {
+            ...POSTED_EVENT,
+            encounters: [Encounter.DMU],
+            messageId: thePost(flow).id,
+          },
+          replies: [
+            summary(
+              `Saved **${TITLE}**: Tue, Thu at 8:00 PM Pacific in <#${EVENTS_CHANNEL}>. Next event <t:${ADVANCED_START.seconds}:F>, posted <t:${ADVANCED_POST.seconds}:R>.`,
+              'Updated 1 posted event (2 sign-ups removed from TOP).',
+            ),
+          ],
+        });
+      },
+    );
+
+    describe('and a member whose sign-up is removed has closed DMs', () => {
+      itWithScheduler(
+        'removes it anyway, tells the others, and logs the failed DM',
+        async ({ flow }) => {
+          flow.discord.failDirectMessagesTo(BOB.id);
+
+          await removeTop(flow);
+
+          flow.expectReported(/^warning: .*bob.*TOP.*Cannot send messages/s);
+          expect({
+            participants: participants(flow),
+            bob: flow.discord.dmsTo(BOB.id),
+            carol: flow.discord.dmsTo(CAROL.id).length,
+            reply: postedEventsLine(flow),
+          }).toEqual({
+            participants: [ALICE_DMU],
+            bob: [],
+            carol: 1,
+            reply: ['Updated 1 posted event (2 sign-ups removed from TOP).'],
+          });
+        },
+      );
+    });
+  });
+
+  describe('when an organizer moves it to another channel', () => {
+    itWithScheduler.beforeEach(({ flow }) => seedSignups(flow));
+
+    itWithScheduler(
+      'posts it there with its sign-ups, and deletes the old post',
+      async ({ flow }) => {
+        const oldPost = thePost(flow);
+
+        await edit(flow, { channel: RAID_CHANNEL });
+
+        const newPosts = flow.discord.channel(RAID_CHANNEL);
+        expect({
+          oldPost: shown(oldPost),
+          newPosts: newPosts.map(shown),
+          event: flow.db.read(EVENT_PATH),
+          participants: participants(flow),
+          reply: postedEventsLine(flow),
+        }).toEqual({
+          oldPost: { ...eventPost(), deleted: true },
+          newPosts: [
+            eventPost({
+              channelId: RAID_CHANNEL,
+              fields: [...ALICE_FIELDS, ...TOP_FIELDS],
+            }),
+          ],
+          event: {
+            ...POSTED_EVENT,
+            channelId: RAID_CHANNEL,
+            messageId: newPosts[0]?.id,
+          },
+          participants: [ALICE_DMU, BOB_TOP, CAROL_TOP],
+          reply: ['Updated 1 posted event.'],
+        });
+      },
+    );
+
+    describe('and the bot may not send messages there', () => {
+      itWithScheduler(
+        'keeps the event in its old channel, reports it, and says it could not be moved',
+        async ({ flow }) => {
+          flow.discord.denySendingIn(RAID_CHANNEL);
+          const messageId = thePost(flow).id;
+
+          await edit(flow, { channel: RAID_CHANNEL });
+
+          flow.expectReported(/^Sentry exception: .*Missing Permissions/s);
+          flow.expectReported(
+            new RegExp(`^error: .*event ${EVENT_ID} could not be moved`, 's'),
+          );
+          expect({
+            posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+            raidPosts: flow.discord.channel(RAID_CHANNEL),
+            event: flow.db.read(EVENT_PATH),
+            reply: postedEventsLine(flow),
+          }).toEqual({
+            posts: [eventPost({ fields: [...ALICE_FIELDS, ...TOP_FIELDS] })],
+            raidPosts: [],
+            event: { ...POSTED_EVENT, messageId },
+            reply: [
+              `Updated 1 posted event; 1 couldn't be moved to <#${RAID_CHANNEL}>.`,
+            ],
+          });
+        },
+      );
+    });
+  });
+
+  describe('when sign-ups have closed and an organizer moves it later', () => {
+    /** Thursday 2026-10-08 at 6:30 PM Pacific, after sign-ups closed at 6 PM. */
+    const AFTER_CLOSE = new Date('2026-10-09T01:30:00Z');
+    /** Thursday at 9 PM Pacific, and 2 hours before it. */
+    const NINE_PM = new Date('2026-10-09T04:00:00Z');
+    const NINE_PM_CLOSE = new Date('2026-10-09T02:00:00Z');
+
+    itWithScheduler(
+      'reopens sign-ups until the new cutoff, with Sign up enabled',
+      async ({ flow, cron }) => {
+        await tickAt(flow, cron, CLOSE);
+        vi.setSystemTime(AFTER_CLOSE);
+
+        await edit(flow, { time: '9pm' });
+
+        expect({
+          posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          event: flow.db.read(EVENT_PATH),
+        }).toEqual({
+          posts: [
+            eventPost({ start: NINE_PM, signups: closesAt(NINE_PM_CLOSE) }),
+          ],
+          event: {
+            ...POSTED_EVENT,
+            startsAt: Timestamp.fromDate(NINE_PM),
+            signupsCloseAt: Timestamp.fromDate(NINE_PM_CLOSE),
+            signupsCloseDueAt: Timestamp.fromDate(NINE_PM_CLOSE),
+            messageId: thePost(flow).id,
+          },
+        });
+      },
+    );
+  });
+
+  describe('when an organizer moves its cutoff to a time that has passed', () => {
+    /** Thursday 2026-10-08 at 5:30 PM Pacific, before sign-ups close at 6 PM. */
+    const BEFORE_CLOSE = new Date('2026-10-09T00:30:00Z');
+
+    itWithScheduler('closes sign-ups', async ({ flow }) => {
+      vi.setSystemTime(BEFORE_CLOSE);
+
+      await edit(flow, { 'signups-close-before': 3 });
+
+      const { signupsCloseDueAt: _noLongerDue, ...closed } = POSTED_EVENT;
+      expect({
+        posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+        event: flow.db.read(EVENT_PATH),
+      }).toEqual({
+        posts: [eventPost({ signups: 'Sign-ups closed', signup: false })],
+        event: {
+          ...closed,
+          status: 'signups-closed',
+          signupsCloseAt: at('2026-10-09T00:00:00Z'),
+          messageId: thePost(flow).id,
+        },
+      });
+    });
+  });
+
+  describe('when the schedule also has an event that started and one that is closed', () => {
+    const STARTED: EventDocument = Object.freeze({
+      ...POSTED_EVENT,
+      startsAt: Timestamp.fromDate(new Date(EDITED_AT.getTime() - 60_000)),
+    });
+    const { signupsCloseDueAt: _closedIsNotDue, ...notDue } = POSTED_EVENT;
+    const CLOSED: EventDocument = Object.freeze({
+      ...notDue,
+      status: 'closed',
+    });
+
+    itWithScheduler(
+      'updates only the posted one, and leaves those alone',
+      async ({ flow }) => {
+        flow.db.seed('events/started', STARTED);
+        flow.db.seed('events/closed', CLOSED);
+
+        await edit(flow, { title: 'DMU reclear' });
+
+        expect({
+          started: flow.db.read('events/started'),
+          closed: flow.db.read('events/closed'),
+          posted: flow.db.read(EVENT_PATH)?.title,
+          reply: postedEventsLine(flow),
+        }).toEqual({
+          started: STARTED,
+          closed: CLOSED,
+          posted: 'DMU reclear',
+          reply: ['Updated 1 posted event.'],
+        });
+      },
+    );
+  });
+
+  describe('when the schedule is paused and an organizer moves it to 9 PM', () => {
+    /** Thursday at 9 PM Pacific, and 2 hours before it. */
+    const NINE_PM = new Date('2026-10-09T04:00:00Z');
+    const NINE_PM_CLOSE = new Date('2026-10-09T02:00:00Z');
+    const { nextPostAt: _removedWhilePaused, ...unposted } = ADVANCED_SCHEDULE;
+
+    itWithScheduler(
+      'moves the event, and keeps the schedule paused past it',
+      async ({ flow }) => {
+        flow.db.seed(SCHEDULE_PATH, { ...unposted, paused: true });
+
+        await edit(flow, { time: '9pm' });
+
+        expect({
+          event: flow.db.read(EVENT_PATH),
+          schedule: flow.db.read(SCHEDULE_PATH),
+          replies: repliesTo(flow, ORGANIZER.id),
+        }).toEqual({
+          event: {
+            ...POSTED_EVENT,
+            startsAt: Timestamp.fromDate(NINE_PM),
+            signupsCloseAt: Timestamp.fromDate(NINE_PM_CLOSE),
+            signupsCloseDueAt: Timestamp.fromDate(NINE_PM_CLOSE),
+            messageId: thePost(flow).id,
+          },
+          // Tuesday 2026-10-13 at 9 PM Pacific
+          schedule: {
+            ...unposted,
+            paused: true,
+            startTime: '21:00',
+            nextStartAt: at('2026-10-14T04:00:00Z'),
+            updatedBy: ORGANIZER.id,
+          },
+          replies: [
+            summary(
+              `Saved **${TITLE}**: Tue, Thu at 9:00 PM Pacific in <#${EVENTS_CHANNEL}>. It's paused, so nothing is posted until it's resumed.`,
+              'Updated 1 posted event.',
+            ),
+          ],
+        });
+      },
+    );
+  });
+
+  describe('when an organizer pauses the schedule', () => {
+    itWithScheduler('leaves the posted event alone', async ({ flow }) => {
+      await event(flow, 'schedule-pause', { schedule: SCHEDULE_ID });
+
+      expect({
+        posts: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+        event: flow.db.read(EVENT_PATH),
+      }).toEqual({
+        posts: [eventPost()],
+        event: { ...POSTED_EVENT, messageId: thePost(flow).id },
+      });
+    });
   });
 });

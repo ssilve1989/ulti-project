@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { USTimeZones } from '../../common/time-zones.js';
 import {
   nextOccurrence,
+  occurrencesAfter,
   type Recurrence,
   timeZoneLabel,
 } from './next-occurrence.js';
@@ -109,6 +110,28 @@ describe('nextOccurrence', () => {
           new Date('2026-07-13T16:00:00Z'),
         ),
       ).toThrow('at least one weekday');
+    });
+  });
+});
+
+describe('occurrencesAfter', () => {
+  describe('when three occurrences of a Tue/Thu schedule are asked on Monday', () => {
+    it('returns Tuesday, Thursday and the next Tuesday', () => {
+      expect(
+        occurrencesAfter(TUE_THU_8PM, new Date('2026-07-13T16:00:00Z'), 3),
+      ).toEqual([
+        new Date('2026-07-15T00:00:00Z'),
+        new Date('2026-07-17T00:00:00Z'),
+        new Date('2026-07-22T00:00:00Z'),
+      ]);
+    });
+  });
+
+  describe('when none are asked', () => {
+    it('returns none', () => {
+      expect(
+        occurrencesAfter(TUE_THU_8PM, new Date('2026-07-13T16:00:00Z'), 0),
+      ).toEqual([]);
     });
   });
 });

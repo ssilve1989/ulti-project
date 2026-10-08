@@ -93,7 +93,7 @@ export class EventWithdrawFlow {
     const removed = await this.events.removeParticipant(eventId, id);
     if (removed) {
       this.eventBus.publish(
-        new ParticipantWithdrawnEvent(eventId, { ...removed, id }),
+        new ParticipantWithdrawnEvent(eventId, { ...removed, id }, 'withdrew'),
       );
     }
     await interaction.editReply({

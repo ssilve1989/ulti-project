@@ -859,7 +859,9 @@ describe('Withdraw', () => {
       flow.db.seed(path, { ...flow.db.read(path), claim: CLAIM });
     });
 
-    it('removes them and tells the board, claim included', async ({ flow }) => {
+    it('removes them and tells the board they withdrew, claim included', async ({
+      flow,
+    }) => {
       const published: unknown[] = [];
       const subscription = flow
         .get(EventBus)
@@ -873,11 +875,11 @@ describe('Withdraw', () => {
       expect({ participants: participants(flow), published }).toEqual({
         participants: {},
         published: [
-          new ParticipantWithdrawnEvent(onlyEventId(flow), {
-            ...ALICE_FRU,
-            claim: CLAIM,
-            id: 'alice-FRU',
-          }),
+          new ParticipantWithdrawnEvent(
+            onlyEventId(flow),
+            { ...ALICE_FRU, claim: CLAIM, id: 'alice-FRU' },
+            'withdrew',
+          ),
         ],
       });
     });
