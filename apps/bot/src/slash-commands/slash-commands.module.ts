@@ -3,6 +3,7 @@ import { DiscoveryModule } from '@nestjs/core';
 import { appConfig } from '../config/app.js';
 import { DiscordModule } from '../discord/discord.module.js';
 import { ErrorModule } from '../error/error.module.js';
+import { EventsModule } from '../events/events.module.js';
 import { RoleManagerModule } from '../role-manager/role-manager.module.js';
 import { BlacklistModule } from './blacklist/blacklist.module.js';
 import { CleanRolesModule } from './clean-roles/clean-roles.module.js';
@@ -25,6 +26,7 @@ import { SyncProgRolesModule } from './sync-prog-roles/sync-prog-roles.module.js
     DiscordModule,
     DiscoveryModule,
     ErrorModule,
+    EventsModule,
     RoleManagerModule,
     BlacklistModule,
     CleanRolesModule,
