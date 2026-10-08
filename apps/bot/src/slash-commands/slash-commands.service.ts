@@ -36,6 +36,17 @@ class SlashCommandsService {
 
   listenToCommands() {
     this.client.on(Events.InteractionCreate, (interaction) => {
+      if (interaction.isAutocomplete() && interaction.inCachedGuild()) {
+        void this.registry
+          .dispatchAutocomplete(interaction)
+          .catch((error: unknown) =>
+            this.errorService.captureError(error, {
+              message: `autocomplete for /${interaction.commandName} failed`,
+            }),
+          );
+        return;
+      }
+
       if (!(interaction.isChatInputCommand() && interaction.inCachedGuild())) {
         return;
       }

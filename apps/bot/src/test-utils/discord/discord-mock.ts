@@ -1,6 +1,8 @@
 import { EventEmitter } from 'node:events';
 import {
   type APIModalInteractionResponseCallbackData,
+  type ApplicationCommandOptionChoiceData,
+  type AutocompleteInteraction,
   type ButtonInteraction,
   type ChannelSelectMenuInteraction,
   ChannelType,
@@ -26,6 +28,7 @@ import {
 import { mockOf } from '../mock-factory.js';
 import {
   assertPermitted,
+  autocompleteOptions,
   commandOptions,
   type OptionTargets,
   type OptionValue,
@@ -502,26 +505,11 @@ export class DiscordMock {
     interaction: ChatInputCommandInteraction<'cached'>;
     reply: () => FakeMessage;
   } {
-    // a slash command reaches the bot only from a guild it's in, from a member
-    if (!this.guilds.has(guildId)) {
-      throw new Error(
-        `The bot is not in guild ${guildId}, so Discord can't deliver its commands`,
-      );
-    }
-    const member = this.members.get(userId);
-    if (!member) {
-      throw new Error(
-        `${userId} is not a member of guild ${guildId}, so they can't run /${commandName}`,
-      );
-    }
-    const registered = this.commands.get(commandName);
-    if (!registered) {
-      throw new Error(
-        `No /${commandName} command is registered (registered: ${[...this.commands.keys()].join(', ') || 'none'})`,
-      );
-    }
-    assertPermitted(registered, userId, member.permissions);
-    this.views.cacheMember(guildId, userId);
+    const { member, registered } = this.usableCommand(
+      userId,
+      guildId,
+      commandName,
+    );
     const resolverOptions = commandOptions(
       registered,
       { subcommand, options, attachments },
@@ -583,6 +571,7 @@ export class DiscordMock {
               })
             : notReplied(),
         inCachedGuild: () => true,
+        isAutocomplete: () => false,
         isChatInputCommand: () => true,
       }),
       ack,
@@ -598,6 +587,65 @@ export class DiscordMock {
         return sent;
       },
     };
+  }
+
+  /**
+   * `userId` types `value` into the `focused` autocomplete option of a
+   * command, with `options` already filled in. Resolves with the choices the
+   * bot responds with.
+   */
+  autocomplete({
+    userId,
+    guildId,
+    commandName,
+    subcommand,
+    focused,
+    value,
+    options = {},
+  }: {
+    userId: string;
+    guildId: string;
+    commandName: string;
+    subcommand?: string;
+    focused: string;
+    value: string;
+    /** values of the options already filled in; users, roles and channels by id */
+    options?: Record<string, OptionValue>;
+  }): Promise<ApplicationCommandOptionChoiceData[]> {
+    const { member, registered } = this.usableCommand(
+      userId,
+      guildId,
+      commandName,
+    );
+    const resolverOptions = autocompleteOptions(
+      registered,
+      { subcommand, focused, value, options },
+      this.optionTargets(guildId),
+    );
+
+    const { promise, resolve } =
+      Promise.withResolvers<ApplicationCommandOptionChoiceData[]>();
+    let responded = false;
+    const interaction = mockOf<AutocompleteInteraction<'cached'>>({
+      commandName,
+      guildId,
+      user: this.views.user(userId),
+      member: this.views.member(guildId, member),
+      // discord.js's own resolver, so getFocused() behaves as in production
+      options: optionResolver(this.client, resolverOptions),
+      respond: (choices: ApplicationCommandOptionChoiceData[]) => {
+        if (responded) return alreadyReplied();
+        responded = true;
+        resolve(choices);
+        return Promise.resolve();
+      },
+      inCachedGuild: () => true,
+      isAutocomplete: () => true,
+      isChatInputCommand: () => false,
+    });
+
+    this.client.emit(Events.InteractionCreate, interaction);
+    return promise;
   }
 
   /** `userId` reacts to `message` with `emoji` (a unicode emoji, a custom emoji or its mention). */
@@ -796,6 +844,38 @@ export class DiscordMock {
   }
 
   // --- internals
+
+  /**
+   * The command `userId` can use in `guildId`: a slash command reaches the bot
+   * only from a guild it's in, from a member, for a command the bot registered
+   * and the member has the permissions for.
+   */
+  private usableCommand(
+    userId: string,
+    guildId: string,
+    commandName: string,
+  ): { member: FakeMember; registered: RegisteredCommand } {
+    if (!this.guilds.has(guildId)) {
+      throw new Error(
+        `The bot is not in guild ${guildId}, so Discord can't deliver its commands`,
+      );
+    }
+    const member = this.members.get(userId);
+    if (!member) {
+      throw new Error(
+        `${userId} is not a member of guild ${guildId}, so they can't run /${commandName}`,
+      );
+    }
+    const registered = this.commands.get(commandName);
+    if (!registered) {
+      throw new Error(
+        `No /${commandName} command is registered (registered: ${[...this.commands.keys()].join(', ') || 'none'})`,
+      );
+    }
+    assertPermitted(registered, userId, member.permissions);
+    this.views.cacheMember(guildId, userId);
+    return { member, registered };
+  }
 
   private createMessage(
     location: MessageLocation,

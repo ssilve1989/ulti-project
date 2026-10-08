@@ -1,5 +1,6 @@
 import {
   ActionRowBuilder,
+  ApplicationCommandOptionType,
   ButtonBuilder,
   ButtonStyle,
   ChannelSelectMenuBuilder,
@@ -107,7 +108,26 @@ const it = base.extend<Bot>({
                 .setName('log')
                 .setDescription('Log channel')
                 .addChannelTypes(ChannelType.GuildText),
+            )
+            .addStringOption((option) =>
+              option
+                .setName('reason')
+                .setDescription('Reason')
+                .setAutocomplete(true),
             ),
+        ),
+      new SlashCommandBuilder()
+        .setName('pick')
+        .setDescription('A command with an autocomplete option')
+        .addStringOption((option) =>
+          option
+            .setName('event')
+            .setDescription('Event')
+            .setRequired(true)
+            .setAutocomplete(true),
+        )
+        .addStringOption((option) =>
+          option.setName('notes').setDescription('Notes').setRequired(true),
         ),
     ]);
     return discord;
@@ -1560,6 +1580,125 @@ describe('DiscordMock', () => {
       expect(() => run(discord, 'strict', { name: 'ok', proof: 'x' })).toThrow(
         '"proof" option is an Attachment',
       );
+    });
+  });
+
+  describe('autocomplete', () => {
+    it('resolves with the choices the bot responds with', async ({
+      discord,
+    }) => {
+      discord.client.on(Events.InteractionCreate, (interaction) => {
+        if (interaction.isAutocomplete()) {
+          void interaction.respond([{ name: 'A', value: 'a' }]);
+        }
+      });
+
+      const choices = await discord.autocomplete({
+        userId: 'u1',
+        guildId: 'g1',
+        commandName: 'pick',
+        focused: 'event',
+        value: 'sp',
+      });
+
+      expect(choices).toEqual([{ name: 'A', value: 'a' }]);
+    });
+
+    it('tells the bot which option is focused and what has been typed so far', async ({
+      discord,
+    }) => {
+      const seen: unknown[] = [];
+      discord.client.on(Events.InteractionCreate, (interaction) => {
+        if (interaction.isAutocomplete() && interaction.inCachedGuild()) {
+          seen.push({
+            commandName: interaction.commandName,
+            guildId: interaction.guildId,
+            userId: interaction.user.id,
+            subcommand: interaction.options.getSubcommand(false),
+            value: interaction.options.getFocused(),
+            focused: interaction.options.getFocused(true),
+            notes: interaction.options.getString('notes'),
+          });
+          void interaction.respond([]);
+        }
+      });
+
+      await discord.autocomplete({
+        userId: 'u1',
+        guildId: 'g1',
+        commandName: 'pick',
+        focused: 'event',
+        value: '',
+        options: { notes: 'hi' },
+      });
+
+      expect(seen).toEqual([
+        {
+          commandName: 'pick',
+          guildId: 'g1',
+          userId: 'u1',
+          subcommand: null,
+          value: '',
+          focused: {
+            name: 'event',
+            type: ApplicationCommandOptionType.String,
+            value: '',
+            focused: true,
+          },
+          notes: 'hi',
+        },
+      ]);
+    });
+
+    it('rejects a second response to the same autocomplete', async ({
+      discord,
+    }) => {
+      const second: Promise<void>[] = [];
+      discord.client.on(Events.InteractionCreate, (interaction) => {
+        if (interaction.isAutocomplete()) {
+          void interaction.respond([]);
+          second.push(interaction.respond([]));
+        }
+      });
+
+      await discord.autocomplete({
+        userId: 'u1',
+        guildId: 'g1',
+        commandName: 'pick',
+        focused: 'event',
+        value: '',
+      });
+
+      await expect(second[0]).rejects.toThrow('already');
+    });
+
+    it('only autocompletes an option registered with autocomplete', ({
+      discord,
+    }) => {
+      expect(() =>
+        discord.autocomplete({
+          userId: 'u1',
+          guildId: 'g1',
+          commandName: 'pick',
+          focused: 'notes',
+          value: '',
+        }),
+      ).toThrow('is not an autocomplete option');
+    });
+
+    it('only autocompletes a command for members with its permissions', ({
+      discord,
+    }) => {
+      expect(() =>
+        discord.autocomplete({
+          userId: 'u1',
+          guildId: 'g1',
+          commandName: 'grant',
+          subcommand: 'role',
+          focused: 'reason',
+          value: '',
+        }),
+      ).toThrow('u1 lacks the permissions /grant requires');
     });
   });
 
