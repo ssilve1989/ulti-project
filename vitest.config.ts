@@ -8,6 +8,7 @@ const setupFile = fileURLToPath(new URL('./test/setup.ts', import.meta.url));
 const botSetupFile = fileURLToPath(
   new URL('./test/setup-bot.ts', import.meta.url),
 );
+const botSrc = fileURLToPath(new URL('./apps/bot/src', import.meta.url));
 
 // Recording flow specs' Google Sheets traffic (pnpm test:record) talks to the
 // real spreadsheet and paces itself under Google's per-minute quota, which can
@@ -16,9 +17,10 @@ const recordingSheets = process.env.NOCK_BACK_MODE === 'update';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@ulti-project/shared': sharedIndex,
-    },
+    alias: [
+      { find: '@ulti-project/shared', replacement: sharedIndex },
+      { find: /^#src\/(.*)$/, replacement: `${botSrc}/$1` },
+    ],
   },
   test: {
     chaiConfig: {
