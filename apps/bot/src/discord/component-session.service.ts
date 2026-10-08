@@ -23,6 +23,12 @@ interface ComponentSessionOptions {
   clearEmbedsOnExpiry?: boolean;
   /** Called once the session times out, before `expiredContent` is shown */
   onExpired?: () => void;
+  /**
+   * Called once the session ends any way but through the function `run`
+   * returns: it timed out (before `onExpired`), or its message, channel or
+   * guild was deleted
+   */
+  onAbandoned?: () => void;
   onCollect: (i: MessageComponentInteraction<'cached'>) => Promise<void>;
 }
 
@@ -45,6 +51,7 @@ export class ComponentSessionService {
       expiredContent,
       clearEmbedsOnExpiry = false,
       onExpired,
+      onAbandoned,
       onCollect,
     }: ComponentSessionOptions,
   ): () => void {
@@ -89,6 +96,7 @@ export class ComponentSessionService {
 
     collector.on('end', (_collected, reason) =>
       inCommandScope(async () => {
+        if (reason !== 'done') onAbandoned?.();
         // it also ends when its message, channel or guild is deleted, and
         // then there's nothing left to edit
         if (reason !== 'time') return;

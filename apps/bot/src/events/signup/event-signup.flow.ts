@@ -58,6 +58,7 @@ interface Choice {
  */
 function signupRefusal(event: StoredEvent | undefined): string | undefined {
   if (!event) return 'This event no longer exists.';
+  if (event.status === EventStatus.Closed) return 'This event is closed.';
   if (
     event.status === EventStatus.Open &&
     Date.now() < event.signupsCloseAt.toMillis()

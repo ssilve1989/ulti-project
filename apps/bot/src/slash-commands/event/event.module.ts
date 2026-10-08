@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ErrorModule } from '../../error/error.module.js';
 import { EventsModule } from '../../events/events.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { CloseEventCommandHandler } from './handlers/close-event.command-handler.js';
@@ -11,7 +12,7 @@ import { SchedulePauseCommandHandler } from './handlers/schedule-pause.command-h
 import { ScheduleResumeCommandHandler } from './handlers/schedule-resume.command-handler.js';
 
 @Module({
-  imports: [EventsModule, FirebaseModule],
+  imports: [ErrorModule, EventsModule, FirebaseModule],
   providers: [
     CreateEventCommandHandler,
     CloseEventCommandHandler,

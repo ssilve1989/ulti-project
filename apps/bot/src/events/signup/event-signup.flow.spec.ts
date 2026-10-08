@@ -538,11 +538,14 @@ describe('Sign up', () => {
         await aliceSignsUp(flow);
         const path = `${participantsPath(flow)}/alice-FRU`;
         flow.db.seed(path, { ...flow.db.read(path), claim: CLAIM });
+        vi.setSystemTime(new Date(NOW.getTime() + 60_000));
         await click(flow, 'signup', ALICE.id);
         await choose(flow, ALICE.id, 'WHM');
       });
 
-      it('changes their job and keeps the claim', ({ flow }) => {
+      it('changes their job, keeping the claim and when they first signed up', ({
+        flow,
+      }) => {
         expect(participants(flow)).toEqual({
           'alice-FRU': { ...ALICE_FRU, job: 'WHM', claim: CLAIM },
         });
@@ -805,12 +808,7 @@ describe('Sign up', () => {
         replies: replies(flow, ALICE.id),
         participants: participants(flow),
       }).toEqual({
-        replies: [
-          privately(
-            ALICE.id,
-            `Sign-ups for this event closed <t:${CLOSE_S}:R>.`,
-          ),
-        ],
+        replies: [privately(ALICE.id, 'This event is closed.')],
         participants: {},
       });
     });
@@ -894,6 +892,27 @@ describe('Withdraw', () => {
         replies: privately(ALICE.id, `You've withdrawn from **${FRU}**.`),
         post: eventMessage(flow, NOBODY),
       });
+    });
+  });
+
+  describe("when a member withdraws and the post can't be updated", () => {
+    it('removes them and still confirms it', async ({ flow }) => {
+      await aliceSignsUp(flow);
+      flow.discord.failGuildFetches();
+
+      await click(flow, 'withdraw', ALICE.id);
+
+      expect({
+        reply: replies(flow, ALICE.id).at(-1),
+        participants: participants(flow),
+      }).toEqual({
+        reply: privately(ALICE.id, `You've withdrawn from **${FRU}**.`),
+        participants: {},
+      });
+      flow.expectReported(/^Sentry exception: .*Internal Server Error/s);
+      flow.expectReported(
+        /^error: .*Failed to refresh event .* after a withdrawal/s,
+      );
     });
   });
 

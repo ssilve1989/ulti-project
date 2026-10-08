@@ -492,6 +492,32 @@ describe('/event close', () => {
     });
   });
 
+  describe("when an organizer closes an event whose message can't be updated", () => {
+    it.beforeEach(async ({ flow }) => {
+      await createEvent(flow);
+      flow.discord.failGuildFetches();
+      await event(flow, 'close', { event: onlyEventId(flow) });
+    });
+
+    it('stores it closed and still tells the organizer', ({ flow }) => {
+      const { signupsCloseDueAt: _due, ...closed } = storedEvent(flow, {
+        status: 'closed',
+      });
+      expect({
+        replies: repliesTo(flow, ORGANIZER.id),
+        stored: flow.db.read(`events/${onlyEventId(flow)}`),
+      }).toEqual({
+        replies: [
+          postedReply(flow),
+          privately(ORGANIZER.id, `Closed **${TITLE}**.`),
+        ],
+        stored: closed,
+      });
+      flow.expectReported(/^Sentry exception: .*Internal Server Error/s);
+      flow.expectReported(/^error: .*Failed to refresh closed event/s);
+    });
+  });
+
   describe("when an organizer closes another guild's event", () => {
     const ELSEWHERE_PATH = 'events/elsewhere';
     const elsewhere = Object.freeze({

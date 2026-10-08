@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
+import { EncounterFriendlyDescription } from '@ulti-project/shared';
 import {
   type ChatInputCommandInteraction,
   channelMention,
@@ -33,7 +34,7 @@ function scheduleField(schedule: StoredSchedule) {
   return {
     name: schedule.title,
     value: [
-      `${schedule.encounters.join(', ')} · ${channelMention(schedule.channelId)}`,
+      `${schedule.encounters.map((encounter) => EncounterFriendlyDescription[encounter]).join(', ')} · ${channelMention(schedule.channelId)}`,
       describeRecurrence(schedule),
       next,
     ].join('\n'),

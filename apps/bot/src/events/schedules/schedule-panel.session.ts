@@ -38,7 +38,8 @@ export class SchedulePanelSession {
   /**
    * Shows the panel for `draft` in `interaction`'s deferred reply. Resolves
    * with the draft as picked on Save, leaving the caller to replace the panel,
-   * or with undefined once the organizer cancels or lets it expire.
+   * or with undefined once the organizer cancels or lets it expire, or the
+   * panel is deleted.
    */
   async open(
     interaction: ChatInputCommandInteraction<'cached'>,
@@ -66,10 +67,9 @@ export class SchedulePanelSession {
       expiredContent: EXPIRED,
       // the preview describes a schedule that was never saved
       clearEmbedsOnExpiry: true,
-      onExpired: () => {
-        recordExpiredPrompt(interaction);
-        resolve(undefined);
-      },
+      onExpired: () => recordExpiredPrompt(interaction),
+      // it times out, or its message is deleted, so nothing will be picked
+      onAbandoned: () => resolve(undefined),
       onCollect: async (i) => {
         if (i.isStringSelectMenu()) {
           const [zone] = i.values;

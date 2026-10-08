@@ -668,7 +668,7 @@ const LAST_WEEK_POST_S = seconds('2026-10-01T03:00:00Z');
 const STORED_FIELD = Object.freeze({
   name: TITLE,
   value: [
-    `DMU · <#${EVENTS_CHANNEL}>`,
+    `Dancing Mad (Ultimate) · <#${EVENTS_CHANNEL}>`,
     'Tue, Thu at 8:00 PM Pacific',
     `Next: <t:${LAST_WEEK_START_S}:F>, posted <t:${LAST_WEEK_POST_S}:R>`,
   ].join('\n'),
@@ -698,7 +698,7 @@ describe('/event schedule-list', () => {
                 {
                   name: 'Reclear',
                   value: [
-                    'FRU, TOP · <#reclear-channel>',
+                    '[FRU] Futures Rewritten, [TOP] The Omega Protocol · <#reclear-channel>',
                     'Sun at 9:30 AM Eastern',
                     'Paused',
                   ].join('\n'),

@@ -7,6 +7,7 @@ import {
 import { type ButtonInteraction, MessageFlags } from 'discord.js';
 import { ComponentSessionService } from '../../discord/component-session.service.js';
 import { recordExpiredPrompt } from '../../discord/discord.helpers.js';
+import { ErrorService } from '../../error/error.service.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
 import { EventStatus } from '../../firebase/models/event.model.js';
 import { EventMessageService } from '../event-message.service.js';
@@ -27,6 +28,7 @@ export class EventWithdrawFlow {
     private readonly sessions: ComponentSessionService,
     private readonly eventMessages: EventMessageService,
     private readonly eventBus: EventBus,
+    private readonly errorService: ErrorService,
   ) {}
 
   async start(
@@ -98,6 +100,11 @@ export class EventWithdrawFlow {
       content: `You've withdrawn from **${EncounterFriendlyDescription[encounter]}**.`,
       components: [],
     });
-    await this.eventMessages.refresh(eventId);
+    // they've withdrawn either way, so a post that can't be updated is only reported
+    await this.eventMessages.refresh(eventId).catch((error: unknown) =>
+      this.errorService.captureError(error, {
+        message: `Failed to refresh event ${eventId} after a withdrawal`,
+      }),
+    );
   }
 }

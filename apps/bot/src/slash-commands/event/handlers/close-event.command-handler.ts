@@ -6,6 +6,7 @@ import {
   MessageFlags,
 } from 'discord.js';
 import { USTimeZones } from '../../../common/time-zones.js';
+import { ErrorService } from '../../../error/error.service.js';
 import { EventMessageService } from '../../../events/event-message.service.js';
 import {
   isOrganizer,
@@ -31,6 +32,7 @@ class CloseEventCommandHandler implements ISlashCommand {
     private readonly settingsCollection: SettingsCollection,
     private readonly eventsCollection: EventsCollection,
     private readonly eventMessages: EventMessageService,
+    private readonly errorService: ErrorService,
   ) {}
 
   @SentryTraced()
@@ -61,7 +63,12 @@ class CloseEventCommandHandler implements ISlashCommand {
       return;
     }
 
-    await this.eventMessages.refresh(id);
+    // it's closed either way, so a message that can't be updated is only reported
+    await this.eventMessages.refresh(id).catch((error: unknown) =>
+      this.errorService.captureError(error, {
+        message: `Failed to refresh closed event ${id}`,
+      }),
+    );
     await interaction.editReply(`Closed **${event.title}**.`);
   }
 

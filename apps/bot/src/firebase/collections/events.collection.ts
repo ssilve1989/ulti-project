@@ -103,20 +103,31 @@ class EventsCollection {
     );
   }
 
-  /** Merges, so a claim on an existing participant is kept. */
+  /**
+   * Stores the participant. Signing up again replaces only their job,
+   * character and phase: their claim and `signedUpAt` are kept, so they keep
+   * their place.
+   */
   @SentryTraced()
-  public async upsertParticipant(
+  public upsertParticipant(
     eventId: string,
     participant: Omit<ParticipantDocument, 'claim'>,
   ): Promise<void> {
-    await this.participants(eventId)
-      .doc(
+    return this.firestore.runTransaction(async (tx) => {
+      const ref = this.participants(eventId).doc(
         EventsCollection.participantId(
           participant.discordId,
           participant.encounter,
         ),
-      )
-      .set(participant, { merge: true });
+      );
+      const existing = (await tx.get(ref)).data();
+      tx.set(
+        ref,
+        existing
+          ? { ...existing, ...participant, signedUpAt: existing.signedUpAt }
+          : participant,
+      );
+    });
   }
 
   /** Deletes the participant, returning what was deleted. */
