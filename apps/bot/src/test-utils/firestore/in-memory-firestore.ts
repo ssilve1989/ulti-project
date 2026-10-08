@@ -524,6 +524,7 @@ class Transaction {
       );
     }
     this.reads.set(ref.path, this.db.version(ref.path));
+    this.db.writeElsewhereIfContended(ref.path);
     return ref.get();
   }
 
@@ -567,6 +568,8 @@ export class InMemoryFirestore {
   private readonly versions = new Map<string, number>();
   private readonly writeListeners = new Set<(path: string) => void>();
   private unreachable = false;
+  /** paths another client keeps writing; see `contend` */
+  private readonly contended = new Set<string>();
 
   /**
    * Makes every later read and write fail the way the Firestore client does
@@ -575,6 +578,17 @@ export class InMemoryFirestore {
    */
   goOffline(): void {
     this.unreachable = true;
+  }
+
+  /**
+   * Makes `path` a hot document: from now on another client writes it while
+   * every transaction that reads it runs, so each attempt conflicts and the
+   * transaction fails with ABORTED once Firestore's retries run out. Other
+   * documents, writes outside transactions, and seeding and reading as a
+   * test still work.
+   */
+  contend(path: string): void {
+    this.contended.add(path);
   }
 
   collection(path: string): CollectionReference {
@@ -625,6 +639,13 @@ export class InMemoryFirestore {
 
   version(path: string): number {
     return this.versions.get(path) ?? 0;
+  }
+
+  /** Another client's write to a contended `path`, which leaves its data as it was. */
+  writeElsewhereIfContended(path: string): void {
+    if (this.contended.has(path)) {
+      this.versions.set(path, this.version(path) + 1);
+    }
   }
 
   snapshot(ref: DocumentReference): DocumentSnapshot {

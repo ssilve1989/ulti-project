@@ -593,6 +593,35 @@ describe('InMemoryFirestore', () => {
       expect(transaction).toHaveBeenCalledTimes(2);
       expect(db.read('counters/a')).toEqual({ count: 11 });
     });
+
+    it('aborts a transaction on a contended document after five attempts, writing nothing', async ({
+      db,
+    }) => {
+      db.seed('counters/hot', { count: 0 });
+      db.seed('counters/calm', { count: 0 });
+      db.contend('counters/hot');
+      const hot = db.collection('counters').doc('hot');
+      const calm = db.collection('counters').doc('calm');
+      const transaction = vi.fn<
+        Parameters<InMemoryFirestore['runTransaction']>[0]
+      >(async (tx) => {
+        await tx.get(hot);
+        tx.update(hot, { count: 1 });
+      });
+
+      await expect(db.runTransaction(transaction)).rejects.toThrow('ABORTED');
+      await db.runTransaction(async (tx) => {
+        await tx.get(calm);
+        tx.update(calm, { count: 1 });
+      });
+      await hot.update({ count: 2 });
+
+      expect({
+        attempts: transaction.mock.calls.length,
+        hot: db.read('counters/hot'),
+        calm: db.read('counters/calm'),
+      }).toEqual({ attempts: 5, hot: { count: 2 }, calm: { count: 1 } });
+    });
   });
 
   describe('observing writes', () => {

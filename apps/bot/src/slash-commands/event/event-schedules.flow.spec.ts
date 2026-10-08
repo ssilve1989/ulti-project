@@ -1182,18 +1182,116 @@ describe('the event-scheduler job', () => {
     );
   });
 
-  describe('when an organizer saves a schedule and its post time comes', () => {
-    /** Thursday 2026-10-08 at 8 PM Eastern, and a day before it. */
-    const EASTERN_START_S = seconds('2026-10-09T00:00:00Z');
-    const EASTERN_POST = new Date('2026-10-08T00:00:00Z');
+  /** Runs the job's tick at `at`: `completed`, or the error it failed with. */
+  const tickOutcome = (flow: FlowApp, cron: SpiedCron, at: Date) =>
+    tickAt(flow, cron, at).then(
+      () => 'completed',
+      (error: unknown) => error,
+    );
 
-    itWithScheduler('posts the event', async ({ flow, cron }) => {
+  describe("when an earlier due schedule's event can't be created", () => {
+    const GONE_ID = 'gone';
+
+    itWithScheduler(
+      'reports it, leaves it on the occurrence to retry, and still posts the other',
+      async ({ flow, cron }) => {
+        flow.db.seed(`event-schedules/${GONE_ID}`, DUE_SCHEDULE);
+        flow.db.seed(SCHEDULE_PATH, DUE_SCHEDULE);
+        flow.db.contend(`events/${GONE_ID}-${START_S}`);
+
+        const tick = await tickOutcome(flow, cron, POST);
+
+        expect({
+          tick,
+          shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          goneEvent: flow.db.read(`events/${GONE_ID}-${START_S}`),
+          goneSchedule: flow.db.read(`event-schedules/${GONE_ID}`),
+          schedule: flow.db.read(SCHEDULE_PATH),
+        }).toEqual({
+          tick: 'completed',
+          shown: [SCHEDULED_MESSAGE],
+          goneEvent: undefined,
+          goneSchedule: DUE_SCHEDULE,
+          schedule: ADVANCED_SCHEDULE,
+        });
+        flow.expectReported(/^Sentry exception: .*ABORTED/s);
+        flow.expectReported(/^error: .*schedule gone could not be handled/s);
+      },
+    );
+  });
+
+  describe("when an earlier due schedule can't be moved on", () => {
+    const GONE_ID = 'gone';
+    const GONE_PATH = `event-schedules/${GONE_ID}`;
+    const GONE_EVENT_ID = `${GONE_ID}-${START_S}`;
+    const OTHER_CHANNEL = 'other-channel';
+
+    itWithScheduler(
+      'posts its occurrence, reports it, leaves it on the occurrence, and still posts the other',
+      async ({ flow, cron }) => {
+        flow.discord.addChannel(GUILD, OTHER_CHANNEL);
+        flow.db.seed(GONE_PATH, { ...DUE_SCHEDULE, channelId: OTHER_CHANNEL });
+        flow.db.seed(SCHEDULE_PATH, DUE_SCHEDULE);
+        flow.db.contend(GONE_PATH);
+
+        const tick = await tickOutcome(flow, cron, POST);
+
+        const [gonePost] = flow.discord.channel(OTHER_CHANNEL);
+        expect({
+          tick,
+          goneShown: flow.discord.channel(OTHER_CHANNEL).map(shown),
+          goneEvent: flow.db.read(`events/${GONE_EVENT_ID}`),
+          goneSchedule: flow.db.read(GONE_PATH),
+          shown: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          schedule: flow.db.read(SCHEDULE_PATH),
+        }).toEqual({
+          tick: 'completed',
+          goneShown: [
+            {
+              ...SCHEDULED_MESSAGE,
+              location: {
+                kind: 'channel',
+                guildId: GUILD,
+                channelId: OTHER_CHANNEL,
+              },
+              components: [
+                eventButtonRow(GONE_EVENT_ID, { signup: true, withdraw: true }),
+              ],
+            },
+          ],
+          goneEvent: {
+            ...scheduledEvent(OTHER_CHANNEL),
+            scheduleId: GONE_ID,
+            messageId: gonePost?.id,
+          },
+          goneSchedule: { ...DUE_SCHEDULE, channelId: OTHER_CHANNEL },
+          shown: [SCHEDULED_MESSAGE],
+          schedule: ADVANCED_SCHEDULE,
+        });
+        flow.expectReported(/^Sentry exception: .*ABORTED/s);
+        flow.expectReported(/^error: .*schedule gone could not be handled/s);
+      },
+    );
+  });
+
+  describe('when an organizer saves a schedule and its post time comes', () => {
+    /** Thursday 2026-10-08 at 8 PM Eastern. */
+    const EASTERN_START_S = seconds('2026-10-09T00:00:00Z');
+
+    itWithScheduler.beforeEach(async ({ flow, cron }) => {
       await createSchedule(flow, { 'post-ahead': 24 });
       await chooseDays(flow, ['tue', 'thu']);
       await click(flow, 'scheduleSave');
+      const nextPostAt = flow.db.read(
+        `event-schedules/${onlyScheduleId(flow)}`,
+      )?.nextPostAt;
+      if (!(nextPostAt instanceof Timestamp)) {
+        throw new Error('the saved schedule has no post time');
+      }
+      await tickAt(flow, cron, nextPostAt.toDate());
+    });
 
-      await tickAt(flow, cron, EASTERN_POST);
-
+    itWithScheduler('posts the event', ({ flow }) => {
       expect(flow.discord.channel(EVENTS_CHANNEL).map(shown)).toEqual([
         {
           ...SCHEDULED_MESSAGE,
@@ -1221,5 +1319,29 @@ describe('the event-scheduler job', () => {
         },
       ]);
     });
+
+    itWithScheduler(
+      'moves the schedule to Tuesday 8 PM Eastern, posted a day ahead',
+      ({ flow }) => {
+        expect(flow.db.read(`event-schedules/${onlyScheduleId(flow)}`)).toEqual(
+          {
+            guildId: GUILD,
+            title: TITLE,
+            encounters: [Encounter.DMU],
+            channelId: EVENTS_CHANNEL,
+            weekdays: ['tue', 'thu'],
+            startTime: '20:00',
+            timeZone: USTimeZones.EASTERN,
+            postLeadHours: 24,
+            signupsCloseBeforeHours: 0,
+            paused: false,
+            nextStartAt: Timestamp.fromDate(new Date('2026-10-14T00:00:00Z')),
+            nextPostAt: Timestamp.fromDate(new Date('2026-10-13T00:00:00Z')),
+            createdBy: ORGANIZER.id,
+            updatedBy: ORGANIZER.id,
+          } satisfies EventScheduleDocument,
+        );
+      },
+    );
   });
 });

@@ -10,6 +10,7 @@ import { ErrorService } from '../../error/error.service.js';
 import { EventMessageService } from '../../events/event-message.service.js';
 import { EventSchedulesCollection } from '../../firebase/collections/event-schedules.collection.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
+import type { StoredSchedule } from '../../firebase/models/event-schedule.model.js';
 import { createJob } from '../jobs.consts.js';
 
 const MILLISECONDS_PER_HOUR = 3_600_000;
@@ -71,40 +72,58 @@ export class EventSchedulerJob
     }
 
     for (const schedule of await this.schedules.findDue(now)) {
-      const startsAt = schedule.nextStartAt.toDate();
-      if (startsAt <= now) {
-        this.logger.warn(
-          `schedule ${schedule.id} missed the occurrence at ${startsAt.toISOString()}; skipping`,
-        );
-        await this.schedules.advance(schedule.id, startsAt);
-        continue;
-      }
-      // Keyed by schedule and start, and posted only once it has no message,
-      // so a tick that re-runs after a crash can't post the occurrence twice
-      const id = `${schedule.id}-${Math.floor(startsAt.getTime() / 1000)}`;
-      const event = await this.events.createIfAbsent(id, {
-        guildId: schedule.guildId,
-        title: schedule.title,
-        encounters: schedule.encounters,
-        channelId: schedule.channelId,
-        createdBy: schedule.createdBy,
-        scheduleId: schedule.id,
-        startsAt: Timestamp.fromDate(startsAt),
-        signupsCloseAt: Timestamp.fromMillis(
-          startsAt.getTime() -
-            schedule.signupsCloseBeforeHours * MILLISECONDS_PER_HOUR,
-        ),
-      });
       try {
-        if (!event.messageId) await this.messages.post(event);
+        await this.postOccurrence(schedule, now);
       } catch (error) {
         this.errors.captureError(error, {
-          message: `schedule ${schedule.id} could not post ${id}`,
+          message: `schedule ${schedule.id} could not be handled`,
         });
       }
-      // Advance even after a failed post, so a deleted channel or a missing
-      // permission doesn't fail every minute
-      await this.schedules.advance(schedule.id, startsAt);
     }
+  }
+
+  /**
+   * Posts the schedule's next occurrence and moves it on; a missed one is only
+   * moved on. If the event can't be created the schedule stays put, so the
+   * next tick retries it while its start is still ahead.
+   */
+  private async postOccurrence(
+    schedule: StoredSchedule,
+    now: Date,
+  ): Promise<void> {
+    const startsAt = schedule.nextStartAt.toDate();
+    if (startsAt <= now) {
+      this.logger.warn(
+        `schedule ${schedule.id} missed the occurrence at ${startsAt.toISOString()}; skipping`,
+      );
+      await this.schedules.advance(schedule.id, startsAt);
+      return;
+    }
+    // Keyed by schedule and start, and posted only once it has no message,
+    // so a tick that re-runs after a crash can't post the occurrence twice
+    const id = `${schedule.id}-${Math.floor(startsAt.getTime() / 1000)}`;
+    const event = await this.events.createIfAbsent(id, {
+      guildId: schedule.guildId,
+      title: schedule.title,
+      encounters: schedule.encounters,
+      channelId: schedule.channelId,
+      createdBy: schedule.createdBy,
+      scheduleId: schedule.id,
+      startsAt: Timestamp.fromDate(startsAt),
+      signupsCloseAt: Timestamp.fromMillis(
+        startsAt.getTime() -
+          schedule.signupsCloseBeforeHours * MILLISECONDS_PER_HOUR,
+      ),
+    });
+    try {
+      if (!event.messageId) await this.messages.post(event);
+    } catch (error) {
+      this.errors.captureError(error, {
+        message: `schedule ${schedule.id} could not post ${id}`,
+      });
+    }
+    // Advance even after a failed post, so a deleted channel or a missing
+    // permission doesn't fail every minute
+    await this.schedules.advance(schedule.id, startsAt);
   }
 }
