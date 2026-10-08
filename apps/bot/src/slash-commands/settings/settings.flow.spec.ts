@@ -664,8 +664,9 @@ describe('Settings', () => {
     const SGE_EMOJI = '123456789012345678';
     const WHM_EMOJI = '223456789012345678';
 
-    describe('when an admin sets a job emoji', () => {
+    describe("when an admin sets a job emoji from the server's emojis", () => {
       it.beforeEach(async ({ flow }) => {
+        flow.discord.addEmoji({ id: SGE_EMOJI, name: 'sge', guildId: GUILD });
         await settings(flow, 'job-emojis', {
           job: 'SGE',
           emoji: `<:sge:${SGE_EMOJI}>`,
@@ -707,6 +708,31 @@ describe('Settings', () => {
             ephemeral: true,
           }),
         ]);
+      });
+    });
+
+    describe("when the emoji is not one of the server's", () => {
+      it('refuses it and stores nothing', async ({ flow }) => {
+        flow.discord.addEmoji({ id: SGE_EMOJI, name: 'sge' });
+
+        await settings(flow, 'job-emojis', {
+          job: 'SGE',
+          emoji: `<:sge:${SGE_EMOJI}>`,
+        });
+
+        expect({
+          stored: flow.db.read(SETTINGS_PATH),
+          replies: repliesToAdmin(flow),
+        }).toEqual({
+          stored: undefined,
+          replies: [
+            textReply(
+              ADMIN.id,
+              "I can't use that emoji. Pick one from this server.",
+              { ephemeral: true },
+            ),
+          ],
+        });
       });
     });
 

@@ -57,6 +57,12 @@ export interface FakeRole {
 }
 
 /** A guild text channel, the only kind the app uses. */
+/** A custom emoji, which belongs to a guild. */
+export interface FakeEmoji {
+  readonly name: string;
+  readonly guildId: string;
+}
+
 export interface FakeChannel {
   readonly id: string;
   readonly guildId: string;
@@ -72,7 +78,8 @@ export interface FakeWorld {
   readonly member: (userId: string) => FakeMember | undefined;
   /** a guild member, or a user who isn't in the guild */
   readonly user: (userId: string) => FakeUser | undefined;
-  readonly emojis: () => ReadonlyMap<string, string>;
+  /** every emoji of the bot's guilds, by id */
+  readonly emojis: () => ReadonlyMap<string, FakeEmoji>;
   readonly canBeMessaged: (userId: string) => boolean;
   /** whether the bot may send messages in the channel */
   readonly canPostIn: (channelId: string) => boolean;
@@ -165,7 +172,25 @@ export class FakeViews {
     const channels = {
       fetch: (channelId: string) => this.fetchChannel(guildId, channelId),
     };
-    return mockOf<Guild>({ id: guildId, members, roles, channels });
+    const emojis = {
+      /** Like GuildEmojiManager.cache: the guild's own emojis. */
+      get cache() {
+        return views.emojiCollection(guildId);
+      },
+      /** Like GuildEmojiManager.fetch: an emoji of another guild, or none, is the API's 10014. */
+      fetch: (emojiId: string) => {
+        const emoji = views.emojiCollection(guildId).get(emojiId);
+        return emoji
+          ? Promise.resolve(emoji)
+          : Promise.reject(
+              unknownResource(
+                RESTJSONErrorCodes.UnknownEmoji,
+                `/guilds/${guildId}/emojis/${emojiId}`,
+              ),
+            );
+      },
+    };
+    return mockOf<Guild>({ id: guildId, members, roles, channels, emojis });
   }
 
   user(userId: string): User {
@@ -304,12 +329,17 @@ export class FakeViews {
     return collectionOf(this.world.guildIds().map((id) => this.guild(id)));
   }
 
-  private emojiCollection(): Collection<string, GuildEmoji> {
+  /** The emojis of `guildId`, or of every guild. */
+  private emojiCollection(guildId?: string): Collection<string, GuildEmoji> {
     return new Collection(
-      [...this.world.emojis()].map(([id, name]) => [
-        id,
-        mockOf<GuildEmoji>({ id, name, toString: () => `<:${name}:${id}>` }),
-      ]),
+      [...this.world.emojis()]
+        .filter(
+          ([, emoji]) => guildId === undefined || emoji.guildId === guildId,
+        )
+        .map(([id, { name }]) => [
+          id,
+          mockOf<GuildEmoji>({ id, name, toString: () => `<:${name}:${id}>` }),
+        ]),
     );
   }
 

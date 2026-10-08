@@ -41,6 +41,7 @@ import {
 import {
   BOT_USER_ID,
   type FakeChannel,
+  type FakeEmoji,
   type FakeMember,
   type FakeRole,
   type FakeUser,
@@ -102,6 +103,9 @@ interface ModalWaiter {
   resolve: (interaction: ModalSubmitInteraction) => void;
   reject: (error: Error) => void;
 }
+
+/** The server an emoji added without a guild belongs to. */
+const EMOJI_GUILD_ID = 'emoji-guild';
 
 /** discord.js's per-interaction response state. */
 interface Acknowledgement {
@@ -307,8 +311,8 @@ export class DiscordMock {
   /** Discord users who aren't in any of the bot's guilds */
   private readonly users = new Map<string, FakeUser>();
   private readonly commands = new Map<string, RegisteredCommand>();
-  /** The bot's emoji cache: id → name */
-  private readonly emojis = new Map<string, string>();
+  /** The emojis of the bot's guilds, by id */
+  private readonly emojis = new Map<string, FakeEmoji>();
   /** guildId → its roles (besides @everyone), by id */
   private readonly guilds = new Map<string, Map<string, FakeRole>>();
   private readonly channels = new Map<string, FakeChannel>();
@@ -414,9 +418,17 @@ export class DiscordMock {
     for (const member of this.members.values()) member.roles.delete(roleId);
   }
 
-  /** Adds a custom emoji the bot can use. */
-  addEmoji({ id, name }: { id: string; name: string }): void {
-    this.emojis.set(id, name);
+  /** Adds a custom emoji the bot can use, belonging to `guildId` (by default a server tests don't otherwise use). */
+  addEmoji({
+    id,
+    name,
+    guildId = EMOJI_GUILD_ID,
+  }: {
+    id: string;
+    name: string;
+    guildId?: string;
+  }): void {
+    this.emojis.set(id, { name, guildId });
   }
 
   /** Registers the bot's slash commands, as the bot does with Discord at startup. */
@@ -552,6 +564,7 @@ export class DiscordMock {
       mockOf<ChatInputCommandInteraction<'cached'>>({
         commandName,
         guildId,
+        guild: this.views.guild(guildId),
         ...(channel && { channelId: channel.id, channel }),
         user: this.views.user(userId),
         member: this.views.member(guildId, member),

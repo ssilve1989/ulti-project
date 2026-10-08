@@ -1,13 +1,37 @@
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import { isJob, JOB_NAME } from '@ulti-project/shared';
-import type { ChatInputCommandInteraction } from 'discord.js';
-import { MessageFlags } from 'discord.js';
+import {
+  type ChatInputCommandInteraction,
+  DiscordAPIError,
+  type Guild,
+  MessageFlags,
+  RESTJSONErrorCodes,
+} from 'discord.js';
 import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
 import { SlashCommand } from '../../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../../slash-command.interface.js';
 import { SettingsSlashCommand } from '../../settings.slash-command.js';
 import { isAnimatedEmoji, parseEmojiId } from './parse-emoji-id.js';
+
+/**
+ * Whether `emojiId` is one of the guild's emojis. The job menu shows the
+ * emoji on its options, and Discord rejects a menu with one the bot can't use.
+ */
+async function isGuildEmoji(guild: Guild, emojiId: string): Promise<boolean> {
+  try {
+    await guild.emojis.fetch(emojiId);
+    return true;
+  } catch (error) {
+    if (
+      error instanceof DiscordAPIError &&
+      error.code === RESTJSONErrorCodes.UnknownEmoji
+    ) {
+      return false;
+    }
+    throw error;
+  }
+}
 
 @Injectable()
 @SlashCommand({ builder: SettingsSlashCommand, subcommand: 'job-emojis' })
@@ -38,6 +62,16 @@ class EditJobEmojisCommandHandler implements ISlashCommand {
     if (input !== null && emojiId === undefined) {
       await interaction.editReply(
         'That isn’t a custom emoji. Paste the emoji itself, or its id.',
+      );
+      return;
+    }
+
+    if (
+      emojiId !== undefined &&
+      !(await isGuildEmoji(interaction.guild, emojiId))
+    ) {
+      await interaction.editReply(
+        "I can't use that emoji. Pick one from this server.",
       );
       return;
     }

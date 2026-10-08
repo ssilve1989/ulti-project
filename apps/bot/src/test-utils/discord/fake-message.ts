@@ -118,6 +118,7 @@ export function discordjsError(
 export function unknownResource(
   code:
     | RESTJSONErrorCodes.UnknownChannel
+    | RESTJSONErrorCodes.UnknownEmoji
     | RESTJSONErrorCodes.UnknownGuild
     | RESTJSONErrorCodes.UnknownMember
     | RESTJSONErrorCodes.UnknownMessage
@@ -128,6 +129,7 @@ export function unknownResource(
 ): DiscordAPIError {
   const message = {
     [RESTJSONErrorCodes.UnknownChannel]: 'Unknown Channel',
+    [RESTJSONErrorCodes.UnknownEmoji]: 'Unknown Emoji',
     [RESTJSONErrorCodes.UnknownGuild]: 'Unknown Guild',
     [RESTJSONErrorCodes.UnknownMember]: 'Unknown Member',
     [RESTJSONErrorCodes.UnknownMessage]: 'Unknown Message',

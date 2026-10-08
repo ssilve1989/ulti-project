@@ -7,6 +7,7 @@ import {
   ChannelSelectMenuBuilder,
   ChannelType,
   ComponentType,
+  DiscordAPIError,
   DiscordjsErrorCodes,
   DiscordjsTypeError,
   Events,
@@ -2055,6 +2056,27 @@ describe('DiscordMock', () => {
       expect([...(posted?.reactions.keys() ?? [])]).toEqual([
         '123456789012345678',
       ]);
+    });
+
+    it("fetches a guild's own emoji, and rejects another guild's with the API's 10014", async ({
+      discord,
+    }) => {
+      discord.addEmoji({ id: 'e1', name: 'cheer', guildId: 'g1' });
+      discord.addEmoji({ id: 'e2', name: 'hype', guildId: 'g2' });
+      const guild = await discord.client.guilds.fetch('g1');
+
+      const own = await guild.emojis.fetch('e1');
+      const other = await guild.emojis.fetch('e2').catch((error) => error);
+
+      expect({
+        own: String(own),
+        cached: [...guild.emojis.cache.keys()],
+        other: other instanceof DiscordAPIError && other.code,
+      }).toEqual({
+        own: '<:cheer:e1>',
+        cached: ['e1'],
+        other: RESTJSONErrorCodes.UnknownEmoji,
+      });
     });
 
     it('finds emojis by name in the order asked, skipping missing ones', ({
