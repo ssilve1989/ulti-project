@@ -121,9 +121,21 @@ export class EventSchedulerJob
       this.errors.captureError(error, {
         message: `schedule ${schedule.id} could not post ${id}`,
       });
+      await this.discard(id);
     }
     // Advance even after a failed post, so a deleted channel or a missing
     // permission doesn't fail every minute
     await this.schedules.advance(schedule.id, startsAt);
+  }
+
+  /** Deletes an event that couldn't be posted, so no unposted event stays open. */
+  private async discard(id: string): Promise<void> {
+    try {
+      await this.events.delete(id);
+    } catch (error) {
+      this.errors.captureError(error, {
+        message: `could not delete unposted event ${id}`,
+      });
+    }
   }
 }

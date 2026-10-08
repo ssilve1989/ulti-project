@@ -1143,13 +1143,13 @@ describe('the event-scheduler job', () => {
     });
 
     itWithScheduler(
-      'stores its event unposted and moves it to its next occurrence',
+      'keeps no event for it and moves it to its next occurrence',
       ({ flow }) => {
         expect({
-          event: flow.db.read(`events/${GONE_ID}-${START_S}`),
+          events: flow.db.documentsIn('events').map(({ id }) => id),
           schedule: flow.db.read(`event-schedules/${GONE_ID}`),
         }).toEqual({
-          event: { ...scheduledEvent(GONE_CHANNEL), scheduleId: GONE_ID },
+          events: [EVENT_ID],
           schedule: { ...ADVANCED_SCHEDULE, channelId: GONE_CHANNEL },
         });
       },
