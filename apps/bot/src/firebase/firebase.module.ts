@@ -4,6 +4,7 @@ import { appConfig } from '../config/app.js';
 import { firebaseConfig } from '../config/firebase.js';
 import { BlacklistCollection } from './collections/blacklist-collection.js';
 import { EncountersCollection } from './collections/encounters-collection.js';
+import { EventSchedulesCollection } from './collections/event-schedules.collection.js';
 import { EventsCollection } from './collections/events.collection.js';
 import { JobCollection } from './collections/job/job.collection.js';
 import { SettingsCollection } from './collections/settings-collection.js';
@@ -28,6 +29,7 @@ import { FIRESTORE } from './firebase.consts.js';
     JobCollection,
     EncountersCollection,
     EventsCollection,
+    EventSchedulesCollection,
   ],
   exports: [
     FIRESTORE,
@@ -37,6 +39,7 @@ import { FIRESTORE } from './firebase.consts.js';
     JobCollection,
     EncountersCollection,
     EventsCollection,
+    EventSchedulesCollection,
   ],
 })
 export class FirebaseModule {}
