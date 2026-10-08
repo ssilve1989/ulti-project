@@ -5,6 +5,7 @@ import {
   type Embed,
   type InteractionReplyOptions,
   type Message,
+  type MessageComponentInteraction,
   MessageFlags,
   MessageReaction,
   type PartialMessageReaction,
@@ -85,15 +86,31 @@ export const isCollectorTimeout = (error: unknown) =>
  * from the command's scope. It isn't an error, so it raises no Sentry issue.
  */
 export function recordExpiredPrompt(
-  interaction: ChatInputCommandInteraction,
+  interaction: ChatInputCommandInteraction | MessageComponentInteraction,
 ): void {
-  const subcommand = interaction.options.getSubcommand(false);
-  // Sentry logs keep an `undefined` attribute, as an empty string
-  const attributes = {
-    command: interaction.commandName,
-    ...(subcommand && { subcommand }),
-  };
+  const attributes = expiredPromptAttributes(interaction);
 
   Sentry.metrics.count('discord.prompt.expired', 1, { attributes });
   Sentry.logger.info('Prompt expired before the user answered', attributes);
+}
+
+/**
+ * A command's name and subcommand, or a component's customId up to its second
+ * `:` (`event:signup:abc` → `event:signup`), leaving out per-message ids.
+ */
+function expiredPromptAttributes(
+  interaction: ChatInputCommandInteraction | MessageComponentInteraction,
+): Record<string, string> {
+  if (!interaction.isChatInputCommand()) {
+    return {
+      component: interaction.customId.split(':').slice(0, 2).join(':'),
+    };
+  }
+
+  const subcommand = interaction.options.getSubcommand(false);
+  // Sentry logs keep an `undefined` attribute, as an empty string
+  return {
+    command: interaction.commandName,
+    ...(subcommand && { subcommand }),
+  };
 }

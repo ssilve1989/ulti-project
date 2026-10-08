@@ -1,4 +1,6 @@
+import type * as Sentry from '@sentry/nestjs';
 import {
+  type ButtonInteraction,
   type ChatInputCommandInteraction,
   MessageFlags,
   type PartialMessageReaction,
@@ -6,10 +8,12 @@ import {
 } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import { mockOf } from '../test-utils/mock-factory.js';
+import { watchSentryMetrics } from '../test-utils/sentry.js';
 import {
   CacheTime,
   hydrateReaction,
   hydrateUser,
+  recordExpiredPrompt,
   replyPrivately,
 } from './discord.helpers.js';
 
@@ -114,6 +118,38 @@ describe('replyPrivately', () => {
       const result = await replyPrivately(interaction, payload);
       expect(methodFn).toHaveBeenCalledWith(expectedPayload);
       expect(result).toBe(resolvedValue);
+    },
+  );
+});
+
+describe('when a prompt started from a button expires', () => {
+  it.each([
+    { customId: 'event:signup:abc', component: 'event:signup' },
+    { customId: 'event:signup', component: 'event:signup' },
+  ])(
+    'counts it under the component $component for $customId',
+    ({ customId, component }) => {
+      const metrics: Sentry.Metric[] = [];
+      const stop = watchSentryMetrics((metric) => metrics.push(metric));
+      const interaction = mockOf<ButtonInteraction>({
+        customId,
+        isChatInputCommand: () => false,
+      });
+
+      try {
+        recordExpiredPrompt(interaction);
+      } finally {
+        stop();
+      }
+
+      expect(metrics).toEqual([
+        {
+          name: 'discord.prompt.expired',
+          type: 'counter',
+          value: 1,
+          attributes: { component },
+        },
+      ]);
     },
   );
 });
