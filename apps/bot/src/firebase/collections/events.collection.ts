@@ -234,8 +234,9 @@ class EventsCollection {
 
   /**
    * Claims the participant for `squadId` unless the event is closed or another
-   * squad holds them. A participant who is missing (they withdrew) is never
-   * written, so a claim can't bring them back.
+   * of the guild's `squadIds` holds them; a claim by a squad that has since
+   * been removed counts as none. A participant who is missing (they withdrew)
+   * is never written, so a claim can't bring them back.
    */
   @SentryTraced()
   public claim(
@@ -244,6 +245,7 @@ class EventsCollection {
     squadId: string,
     by: string,
     now: Date,
+    squadIds: readonly string[],
   ): Promise<ClaimOutcome> {
     return this.firestore.runTransaction(async (tx) => {
       const ref = this.participants(eventId).doc(participantId);
@@ -254,7 +256,7 @@ class EventsCollection {
       if (!event) return { kind: 'event-missing' };
       if (event.status === EventStatus.Closed) return { kind: 'event-closed' };
       if (!participant) return { kind: 'participant-missing' };
-      if (participant.claim) {
+      if (participant.claim && squadIds.includes(participant.claim.squadId)) {
         return participant.claim.squadId === squadId
           ? {
               kind: 'already-yours',
@@ -275,14 +277,17 @@ class EventsCollection {
   }
 
   /**
-   * Removes `squadId`'s claim on the participant; another squad's stays. A
-   * participant who is missing (they withdrew) is never written.
+   * Removes `squadId`'s claim on the participant; another of the guild's
+   * `squadIds` keeps theirs. A claim by a squad that has since been removed
+   * counts as none, and is left as it is. A participant who is missing (they
+   * withdrew) is never written.
    */
   @SentryTraced()
   public release(
     eventId: string,
     participantId: string,
     squadId: string,
+    squadIds: readonly string[],
   ): Promise<ReleaseOutcome> {
     return this.firestore.runTransaction(async (tx) => {
       const ref = this.participants(eventId).doc(participantId);
@@ -293,7 +298,7 @@ class EventsCollection {
       if (!event) return { kind: 'event-missing' };
       if (!participant) return { kind: 'participant-missing' };
       const { claim, ...unclaimed } = participant;
-      if (!claim) {
+      if (!claim || !squadIds.includes(claim.squadId)) {
         return {
           kind: 'not-claimed',
           participant: { ...participant, id: participantId },

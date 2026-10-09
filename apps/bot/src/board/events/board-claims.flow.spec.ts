@@ -1,4 +1,5 @@
 import { type BoardParticipant, Encounter, Job } from '@ulti-project/shared';
+import { PermissionFlagsBits } from 'discord.js';
 import { Timestamp } from 'firebase-admin/firestore';
 import type { Agent } from 'supertest';
 import { test as base, describe, expect, vi } from 'vitest';
@@ -40,6 +41,12 @@ const BOB = Object.freeze({
   id: '222222222222222222',
   username: 'bob',
   nickname: 'Bob (main tank)',
+});
+/** Manages the server's settings. */
+const ADMIN = Object.freeze({
+  id: '666666666666666666',
+  username: 'admin',
+  permissions: PermissionFlagsBits.ManageGuild,
 });
 /** Signed up for nothing: their sign-up was withdrawn. */
 const CAROL_ID = '333333333333333333';
@@ -465,6 +472,62 @@ describe('when the Owls have claimed the player', () => {
     expect(flow.db.read(bobPath(EVENT_ID))).toEqual({
       ...BOB_FRU,
       claim: OWLS_CLAIM,
+    });
+  });
+});
+
+describe('when the Owls have claimed the player and an admin then removes the Owls', () => {
+  it.beforeEach(async ({ flow }) => {
+    flow.db.seed(bobPath(EVENT_ID), { ...BOB_FRU, claim: OWLS_CLAIM });
+    flow.discord.addMember(ADMIN);
+    flow.discord.command({
+      userId: ADMIN.id,
+      guildId: GUILD,
+      commandName: 'settings',
+      subcommand: 'squad-remove',
+      options: { squad: OWLS.id },
+    });
+    await flow.settle();
+    await signIn(flow, ALICE, [FROGS_ROLE]);
+  });
+
+  it('shows the player unclaimed on the board', async ({ flow }) => {
+    const { status, body } = await flow.http.get(`/api/events/${EVENT_ID}`);
+
+    expect({ status, body }).toEqual({
+      status: 200,
+      body: {
+        id: EVENT_ID,
+        title: 'FRU prog night',
+        startsAt: '2026-10-12T20:00:00.000Z',
+        signupsCloseAt: '2026-10-12T18:00:00.000Z',
+        status: 'open',
+        encounters: [{ id: Encounter.FRU, name: '[FRU] Futures Rewritten' }],
+        participants: [boardBob(null)],
+        squads: [{ id: FROGS.id, name: 'Frogs', tag: 'FRG', color: '#16a34a' }],
+      },
+    });
+  });
+
+  it('lets the Frogs claim them', async ({ flow }) => {
+    await expect(claim(flow)).resolves.toEqual({
+      status: 200,
+      body: boardBob({
+        squadId: FROGS.id,
+        claimedBy: ALICE.id,
+        claimedAt: NOW.toISOString(),
+      }),
+    });
+    expect(flow.db.read(bobPath(EVENT_ID))).toEqual({
+      ...BOB_FRU,
+      claim: FROGS_CLAIM,
+    });
+  });
+
+  it('answers a Frogs release with the unclaimed player', async ({ flow }) => {
+    await expect(release(flow)).resolves.toEqual({
+      status: 200,
+      body: boardBob(null),
     });
   });
 });

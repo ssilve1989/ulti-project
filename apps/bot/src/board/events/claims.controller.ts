@@ -15,10 +15,12 @@ import { ErrorService } from '../../error/error.service.js';
 import { EventChangesBus } from '../../events/event-changes.bus.js';
 import { EventMessageService } from '../../events/event-message.service.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
+import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { BoardHttpError } from '../../http/http-exception.filter.js';
 import { boardContextOf } from '../access/board-context.js';
 import { BoardSessionGuard } from '../access/board-session.guard.js';
 import { CanClaim } from '../access/can-claim.decorator.js';
+import { squadsOf } from '../squads.js';
 import { BoardEventReader } from './board-event.reader.js';
 import { isParticipantId } from './board-ids.js';
 
@@ -34,6 +36,7 @@ export class ClaimsController {
     private readonly messages: EventMessageService,
     private readonly errors: ErrorService,
     private readonly changes: EventChangesBus,
+    private readonly settings: SettingsCollection,
   ) {}
 
   @Post()
@@ -52,6 +55,7 @@ export class ClaimsController {
       squadId,
       discordId,
       new Date(),
+      await this.squadIds(),
     );
     switch (outcome.kind) {
       case 'event-missing':
@@ -87,7 +91,12 @@ export class ClaimsController {
   ): Promise<BoardParticipant> {
     const { squadId } = this.claimant(request);
     await this.assertOwnParticipant(id, pid);
-    const outcome = await this.events.release(id, pid, squadId);
+    const outcome = await this.events.release(
+      id,
+      pid,
+      squadId,
+      await this.squadIds(),
+    );
     switch (outcome.kind) {
       case 'event-missing':
       case 'participant-missing':
@@ -110,6 +119,14 @@ export class ClaimsController {
       throw new Error('A claim route is missing @CanClaim');
     }
     return { discordId, squadId: access.squad.id };
+  }
+
+  /** The board guild's squads: a claim by any other squad (one removed since) counts as none. */
+  private async squadIds(): Promise<string[]> {
+    const settings = await this.settings.getSettings(
+      boardConfig.BOARD_GUILD_ID,
+    );
+    return squadsOf(settings).map(({ id }) => id);
   }
 
   /** 404s unless the ids are a participant's of an event in the board's guild. */

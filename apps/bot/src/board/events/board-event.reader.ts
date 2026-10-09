@@ -113,16 +113,20 @@ export class BoardEventReader {
     return event?.guildId === guildId ? event : undefined;
   }
 
-  /** The participants as the board shows them, named by one fetch of their guild members. */
+  /**
+   * The participants as the board shows them, named by one fetch of their
+   * guild members. A claim by a squad the guild no longer has is shown as none.
+   */
   private async participants(
     guildId: string,
     documents: readonly ParticipantDocument[],
   ): Promise<BoardParticipant[]> {
     const memberIds = [...new Set(documents.map(({ discordId }) => discordId))];
-    const members = await this.discordService.getGuildMembers({
-      guildId,
-      memberIds,
-    });
+    const [members, settings] = await Promise.all([
+      this.discordService.getGuildMembers({ guildId, memberIds }),
+      this.settingsCollection.getSettings(guildId),
+    ]);
+    const squadIds = new Set(squadsOf(settings).map(({ id }) => id));
     return documents.map((document) => ({
       id: EventsCollection.participantId(
         document.discordId,
@@ -143,13 +147,14 @@ export class BoardEventReader {
         order: document.phase.order,
         bucket: document.phase.bucket,
       },
-      claim: document.claim
-        ? {
-            squadId: document.claim.squadId,
-            claimedBy: document.claim.claimedBy,
-            claimedAt: document.claim.claimedAt.toDate().toISOString(),
-          }
-        : null,
+      claim:
+        document.claim && squadIds.has(document.claim.squadId)
+          ? {
+              squadId: document.claim.squadId,
+              claimedBy: document.claim.claimedBy,
+              claimedAt: document.claim.claimedAt.toDate().toISOString(),
+            }
+          : null,
     }));
   }
 }

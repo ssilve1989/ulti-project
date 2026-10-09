@@ -69,6 +69,9 @@ const CLAIM = Object.freeze({
   claimedAt: Timestamp.fromDate(new Date('2026-10-09T12:00:00Z')),
 });
 
+/** The squads configured in the guild's settings. */
+const SQUADS = Object.freeze(['squad-1', 'squad-2']);
+
 const EVENT_ID = 'event-1';
 const EVENT_PATH = `events/${EVENT_ID}`;
 const PARTICIPANT_ID = EventsCollection.participantId(
@@ -504,8 +507,19 @@ describe('EventsCollection', () => {
       claimedAt: Timestamp.fromDate(NOW),
     });
 
-    function claim(collection: EventsCollection, squadId = 'squad-1') {
-      return collection.claim(EVENT_ID, PARTICIPANT_ID, squadId, 'lead-1', NOW);
+    function claim(
+      collection: EventsCollection,
+      squadId = 'squad-1',
+      squads: readonly string[] = SQUADS,
+    ) {
+      return collection.claim(
+        EVENT_ID,
+        PARTICIPANT_ID,
+        squadId,
+        'lead-1',
+        NOW,
+        squads,
+      );
     }
 
     it('stores the claim and returns the claimed participant', async ({
@@ -572,6 +586,24 @@ describe('EventsCollection', () => {
       });
     });
 
+    it('takes over a claim by a squad that has since been removed', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+      db.seed(PARTICIPANT_PATH, { ...aParticipant(), claim: CLAIM });
+
+      const claimed = {
+        ...aParticipant(),
+        claim: { ...NOW_CLAIM, squadId: 'squad-2' },
+      };
+      expect(await claim(collection, 'squad-2', ['squad-2'])).toEqual({
+        kind: 'claimed',
+        participant: { ...claimed, id: PARTICIPANT_ID },
+      });
+      expect(db.read(PARTICIPANT_PATH)).toEqual(claimed);
+    });
+
     it('refuses a closed event and leaves the participant', async ({
       db,
       collection,
@@ -625,8 +657,12 @@ describe('EventsCollection', () => {
   });
 
   describe("when a squad releases a participant's claim", () => {
-    function release(collection: EventsCollection, squadId = 'squad-1') {
-      return collection.release(EVENT_ID, PARTICIPANT_ID, squadId);
+    function release(
+      collection: EventsCollection,
+      squadId = 'squad-1',
+      squads: readonly string[] = SQUADS,
+    ) {
+      return collection.release(EVENT_ID, PARTICIPANT_ID, squadId, squads);
     }
 
     it('removes its claim and returns the participant', async ({
@@ -655,6 +691,23 @@ describe('EventsCollection', () => {
         participant: { ...aParticipant(), id: PARTICIPANT_ID },
       });
       expect(db.read(PARTICIPANT_PATH)).toEqual(aParticipant());
+    });
+
+    it("treats a removed squad's claim as unclaimed and leaves it", async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+      db.seed(PARTICIPANT_PATH, { ...aParticipant(), claim: CLAIM });
+
+      expect(await release(collection, 'squad-2', ['squad-2'])).toEqual({
+        kind: 'not-claimed',
+        participant: { ...aParticipant(), claim: CLAIM, id: PARTICIPANT_ID },
+      });
+      expect(db.read(PARTICIPANT_PATH)).toEqual({
+        ...aParticipant(),
+        claim: CLAIM,
+      });
     });
 
     it("refuses another squad's claim and leaves it", async ({
