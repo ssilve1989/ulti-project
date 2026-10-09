@@ -47,7 +47,7 @@ export function EventList() {
                             )}
                           </For>
                         </span>
-                        <span class="count">
+                        <span class="event-count">
                           {event.participantCount} signed up
                         </span>
                       </A>

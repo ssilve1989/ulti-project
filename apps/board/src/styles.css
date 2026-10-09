@@ -442,7 +442,7 @@ button.primary {
 }
 
 .event-list time,
-.event-list .count {
+.event-count {
   color: var(--dim);
   font-size: 0.875rem;
 }
@@ -462,7 +462,7 @@ button.primary {
   background: var(--panel-2);
 }
 
-.event-list .count {
+.event-count {
   margin-left: auto;
 }
 
