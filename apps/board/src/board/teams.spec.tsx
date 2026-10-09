@@ -418,6 +418,18 @@ describe("your squad's teams", () => {
     expect(select.value).toBe(`progger:${aeryn.id}`);
   });
 
+  it('opens the list instead of saving when arrowing through a closed picker', async () => {
+    const { sent } = await openFrogeBoard(withTeams({ id: 't1', slots: {} }));
+    const select = picker('Regen healer for Team 1');
+
+    // fireEvent returns false when the default was prevented.
+    expect([
+      fireEvent.keyDown(select, { key: 'ArrowDown' }),
+      fireEvent.keyDown(select, { key: 'Tab' }),
+    ]).toEqual([false, true]);
+    expect(sent).toEqual([GET_ME, GET_HELPERS]);
+  });
+
   it('keeps focus on the picker once its change is saved', async () => {
     await openFrogeBoard(withTeams({ id: 't1', slots: {} }), {
       [`PUT ${ROSTERS}/teams/t1/slots/regen-healer`]: json(

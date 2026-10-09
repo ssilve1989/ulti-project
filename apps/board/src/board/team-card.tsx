@@ -208,6 +208,34 @@ export function TeamCard(props: {
   );
 }
 
+const NAVIGATION_KEYS: ReadonlySet<string> = new Set([
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'Home',
+  'End',
+  'PageUp',
+  'PageDown',
+]);
+
+/** Chromium on Windows/Linux picks (and so saves) as you arrow or type through a closed select; open its list instead. */
+function openInsteadOfPicking(
+  event: KeyboardEvent & { currentTarget: HTMLSelectElement },
+) {
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  const typing = event.key.length === 1 && event.key !== ' ';
+  if (!typing && !NAVIGATION_KEYS.has(event.key)) return;
+  event.preventDefault();
+  const select = event.currentTarget;
+  if (!('showPicker' in select)) return;
+  try {
+    select.showPicker();
+  } catch {
+    // Unsupported here, or not a user activation: the key just does nothing.
+  }
+}
+
 /** A slot's native picker, laid transparently over its row. */
 function SlotPicker(props: {
   readonly edit: Editing;
@@ -249,6 +277,7 @@ function SlotPicker(props: {
         value={selected()}
         // aria-disabled, not disabled: disabling the focused picker would drop focus to the page.
         aria-disabled={props.busy}
+        onKeyDown={openInsteadOfPicking}
         onChange={(event) => {
           const select = event.currentTarget;
           if (props.busy) {
