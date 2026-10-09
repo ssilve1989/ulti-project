@@ -113,15 +113,19 @@
   overflow-x: auto;
 }
 .tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-family: var(--font-ui);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.03em;
   color: var(--dim);
-  padding: 10px 13px 12px;
+  padding: 10px 14px 11px;
   background: none;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-bottom: 3px solid transparent;
+  border-radius: 6px 6px 0 0;
   white-space: nowrap;
   cursor: pointer;
   transition:
@@ -131,11 +135,41 @@
 .tab.is-active {
   color: var(--text);
   border-bottom-color: var(--acc-line);
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--acc-line) 12%, transparent),
+    transparent
+  );
 }
 .tab:focus-visible {
   outline: 2px solid var(--acc);
   outline-offset: -2px;
-  border-radius: 3px;
+}
+/* The crystal: outlined when idle, filled on the selected encounter. */
+.tab-crystal {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--faint);
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+.tab.is-active .tab-crystal {
+  background: var(--acc);
+  border-color: var(--acc);
+}
+.tab-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--faint);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 6px;
+}
+.tab.is-active .tab-count {
+  color: var(--dim);
 }
 
 .enc-panel {

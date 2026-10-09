@@ -211,7 +211,7 @@ describe('the encounter tabs', () => {
       within(screen.getByRole('tabpanel')).getByText('1 signed up'),
     ).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'FRU' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'FRU, 5 signed up' }));
 
     await waitFor(() => expect(panelHeading()).toBe('Futures Rewritten'));
     expect(new URLSearchParams(location.search).get('enc')).toBe('FRU');
@@ -220,12 +220,12 @@ describe('the encounter tabs', () => {
   it('move with the arrow keys, wrapping from the last tab to the first', async () => {
     await openLiveBoard('/events/event-1?enc=TOP');
 
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'TOP' }), {
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'TOP, 1 signed up' }), {
       key: 'ArrowRight',
     });
 
     await waitFor(() => expect(panelHeading()).toBe('Futures Rewritten'));
-    const first = screen.getByRole('tab', { name: 'FRU' });
+    const first = screen.getByRole('tab', { name: 'FRU, 5 signed up' });
     expect(first.getAttribute('aria-selected')).toBe('true');
     expect(document.activeElement).toBe(first);
   });
@@ -234,7 +234,9 @@ describe('the encounter tabs', () => {
     await openLiveBoard('/events/event-1?enc=UWU');
 
     expect(
-      screen.getByRole('tab', { name: 'FRU' }).getAttribute('aria-selected'),
+      screen
+        .getByRole('tab', { name: 'FRU, 5 signed up' })
+        .getAttribute('aria-selected'),
     ).toBe('true');
     expect(panelHeading()).toBe('Futures Rewritten');
   });
@@ -248,9 +250,23 @@ describe('the encounter tabs', () => {
     });
 
     await waitFor(() => expect(panelHeading()).toBe('Futures Rewritten'));
-    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
-      'FRU',
+    expect(screen.getAllByRole('tab')).toEqual([
+      screen.getByRole('tab', { name: 'FRU, 5 signed up' }),
     ]);
+  });
+
+  it("count each encounter's sign-ups, and a new FRU sign-up raises FRU's count only", async () => {
+    const source = await openLiveBoard();
+    expect(screen.getByRole('tab', { name: 'FRU, 5 signed up' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'TOP, 1 signed up' })).toBeTruthy();
+
+    source.send({
+      type: 'participant-upserted',
+      participant: participant({ discordId: 'p7', character: 'Gale Thorn' }),
+    });
+
+    await screen.findByRole('tab', { name: 'FRU, 6 signed up' });
+    expect(screen.getByRole('tab', { name: 'TOP, 1 signed up' })).toBeTruthy();
   });
 });
 

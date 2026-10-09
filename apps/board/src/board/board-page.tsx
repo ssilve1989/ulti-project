@@ -49,6 +49,9 @@ function Board(props: {
   const selected = () =>
     props.event.encounters.find((e) => e.id === searchParams.enc) ??
     props.event.encounters[0];
+  const signedUp = (encounter: Encounter) =>
+    props.event.participants.filter((row) => row.encounter === encounter)
+      .length;
   const select = (encounter: Encounter) =>
     setSearchParams({ enc: encounter }, { replace: true });
   // Read live: a refused claim re-asks /api/me, which may take the squad away.
@@ -100,6 +103,7 @@ function Board(props: {
             <EncounterTabs
               encounters={props.event.encounters}
               selected={encounter().id}
+              signedUp={signedUp}
               onSelect={select}
             />
             <section
@@ -110,14 +114,7 @@ function Board(props: {
             >
               <div class="enc-head">
                 <h2>{encounter().name}</h2>
-                <span class="signed">
-                  {
-                    props.event.participants.filter(
-                      (row) => row.encounter === encounter().id,
-                    ).length
-                  }{' '}
-                  signed up
-                </span>
+                <span class="signed">{signedUp(encounter().id)} signed up</span>
               </div>
               <div class="sub-grid">
                 <PartyTable
