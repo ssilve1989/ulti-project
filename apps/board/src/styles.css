@@ -278,11 +278,11 @@ button.primary {
   color: var(--dim);
 }
 
-/* One slow loop: rows slide in in turn, tokens snap on. Reduced motion keeps the full still frame. */
+/* Two slow plays, then it rests on the full frame (WCAG 2.2.2): 1.8 stops the second play inside the 6–86% hold, before the fade-out. Reduced motion keeps the full still frame. */
 @media (prefers-reduced-motion: no-preference) {
   .preview-row,
   .preview-row .squad-token {
-    animation: preview-row 12s ease-out calc(var(--i) * 0.6s) infinite both;
+    animation: preview-row 12s ease-out calc(var(--i) * 0.6s) 1.8 both;
   }
 
   .preview-row .squad-token {
