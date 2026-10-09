@@ -1,0 +1,188 @@
+:root {
+  --bg2: #f7f6f3;
+  --panel: #ffffff;
+  --panel-2: #f1efe9;
+  --line: #dbd9d1;
+  --line-soft: #e8e6de;
+  --text: #1c1c22;
+  --dim: #54545e;
+  --faint: #63626b;
+  --acc: #bf1270;
+  --acc-line: #d81a7e;
+  --on-acc: #ffffff;
+  --tank: #2f6fd0;
+  --heal: #1f8f5a;
+  --dps: #c33a4f;
+  --chrome-bg: #eeece5;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg2: #17171b;
+    --panel: #1f1f25;
+    --panel-2: #26262d;
+    --line: #3b3b45;
+    --line-soft: #2f2f38;
+    --text: #f4f3f0;
+    --dim: #bdbdc6;
+    --faint: #90909a;
+    --acc: #ff66b3;
+    --acc-line: #ff33a1;
+    --on-acc: #1b0912;
+    --tank: #6ba5f2;
+    --heal: #63c88c;
+    --dps: #f2818f;
+    --chrome-bg: #121216;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg2: #17171b;
+  --panel: #1f1f25;
+  --panel-2: #26262d;
+  --line: #3b3b45;
+  --line-soft: #2f2f38;
+  --text: #f4f3f0;
+  --dim: #bdbdc6;
+  --faint: #90909a;
+  --acc: #ff66b3;
+  --acc-line: #ff33a1;
+  --on-acc: #1b0912;
+  --tank: #6ba5f2;
+  --heal: #63c88c;
+  --dps: #f2818f;
+  --chrome-bg: #121216;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg2: #f7f6f3;
+  --panel: #ffffff;
+  --panel-2: #f1efe9;
+  --line: #dbd9d1;
+  --line-soft: #e8e6de;
+  --text: #1c1c22;
+  --dim: #54545e;
+  --faint: #63626b;
+  --acc: #bf1270;
+  --acc-line: #d81a7e;
+  --on-acc: #ffffff;
+  --tank: #2f6fd0;
+  --heal: #1f8f5a;
+  --dps: #c33a4f;
+  --chrome-bg: #eeece5;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: var(--bg2);
+  color: var(--text);
+  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--acc);
+  border-color: var(--acc-line);
+  color: var(--on-acc);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.screen {
+  max-width: 32rem;
+  margin: 15vh auto 0;
+  padding: 0 1rem;
+}
+
+.top-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--chrome-bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.wordmark {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.wordmark span {
+  color: var(--acc);
+}
+
+.live-status {
+  color: var(--dim);
+  font-size: 0.875rem;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+}
+
+.badge {
+  color: var(--dim);
+  font-size: 0.875rem;
+}
+
+.squad-token {
+  --sq-ink: color-mix(in oklab, var(--sq) 55%, var(--text));
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--sq-ink);
+  border: 1.5px solid var(--sq);
+  border-radius: 4px;
+  padding: 0.05rem 0.4rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion has to win over every component's own transition */
+    transition: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: as above, for animations */
+    animation: none !important;
+  }
+}

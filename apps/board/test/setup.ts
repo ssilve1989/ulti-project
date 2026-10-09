@@ -7,4 +7,5 @@ afterEach(() => {
   vi.useRealTimers();
   // node-environment specs have no localStorage
   globalThis.localStorage?.clear();
+  globalThis.document?.documentElement.removeAttribute('data-theme');
 });

@@ -15,9 +15,11 @@
   },
   "dependencies": {
     "@solidjs/router": "catalog:",
+    "better-auth": "catalog:",
     "solid-js": "catalog:"
   },
   "devDependencies": {
+    "@ulti-project/shared": "workspace:*",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-solid": "catalog:",
