@@ -3,7 +3,7 @@ import { boardSchema } from './board.js';
 
 const REQUIRED = Object.freeze({
   BOARD_BASE_URL: 'https://board.example.test',
-  BOARD_GUILD_ID: 'guild-id',
+  GUILD_ID: 'guild-id',
   BETTER_AUTH_SECRET: 'a-test-secret-of-at-least-32-chars',
   DISCORD_OAUTH_CLIENT_SECRET: 'oauth-secret',
 });
