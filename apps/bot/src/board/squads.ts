@@ -1,12 +1,7 @@
+import type { SettingsDocument, SquadConfig } from '@ulti-project/shared';
 import { roleMention } from 'discord.js';
-import type { SettingsDocument } from '../firebase/models/settings.model.js';
 
-export interface SquadConfig {
-  name: string;
-  tag: string;
-  color: string;
-  roleId: string;
-}
+export type { SquadConfig } from '@ulti-project/shared';
 
 export type SquadValidation =
   | { ok: true; squad: SquadConfig }

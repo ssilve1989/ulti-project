@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
-import { type Encounter, typedCollection } from '@ulti-project/shared';
+import {
+  type Encounter,
+  participantDocId,
+  typedCollection,
+} from '@ulti-project/shared';
 import {
   type CollectionReference,
   Firestore,
@@ -49,7 +53,7 @@ class EventsCollection {
   }
 
   public static participantId(discordId: string, encounter: Encounter) {
-    return `${discordId}-${encounter}`;
+    return participantDocId(discordId, encounter);
   }
 
   @SentryTraced()
