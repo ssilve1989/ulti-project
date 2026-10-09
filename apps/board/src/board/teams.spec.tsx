@@ -391,6 +391,29 @@ describe("your squad's teams", () => {
         'Empty',
       ]),
     );
+    expect(select.value).toBe(`progger:${aeryn.id}`);
+
+    // Aeryn re-signs as a healer, so her option moves to another group.
+    source.send({
+      type: 'participant-upserted',
+      participant: participant({
+        discordId: 'p1',
+        character: 'Aeryn Vail',
+        job: 'WHM',
+        claim: claimBy(FROGE.id),
+      }),
+    });
+    await waitFor(() =>
+      expect(options(select)).toEqual([
+        ['Suggested', ['Gale Orrin']],
+        [
+          'Other claimed proggers',
+          ['Aeryn Vail (Team 1 · Tank)', 'Cass Ember', 'Dax Rook'],
+        ],
+        ['Helpers', ['Hana']],
+        'Empty',
+      ]),
+    );
 
     expect(select.value).toBe(`progger:${aeryn.id}`);
   });

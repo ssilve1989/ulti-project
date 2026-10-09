@@ -229,6 +229,11 @@ function SlotPicker(props: {
   const options = createMemo(() =>
     slotOptions(props.slot, props.edit.claimed, helpers(), props.edit.roster),
   );
+  // Tracks the options too: an option moving group is recreated, and the select loses its value.
+  const selected = () => {
+    options();
+    return pickerValue(props.fill);
+  };
   const labelOf = (value: string) =>
     GROUPS.flatMap(({ key }) => options()[key]).find(
       (option) => option.value === value,
@@ -241,7 +246,7 @@ function SlotPicker(props: {
       <select
         class="slot-pick"
         aria-label={`${props.label} for Team ${props.number}`}
-        value={pickerValue(props.fill)}
+        value={selected()}
         // aria-disabled, not disabled: disabling the focused picker would drop focus to the page.
         aria-disabled={props.busy}
         onChange={(event) => {
