@@ -11,6 +11,8 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
 import supertest, { type Agent } from 'supertest';
 import { AppService } from '../app.service.js';
+import { BOARD_AUTH, createBoardAuth } from '../board-auth/auth.js';
+import { boardConfig } from '../config/board.js';
 import { DISCORD_CLIENT } from '../discord/discord.decorators.js';
 import { ErrorModule } from '../error/error.module.js';
 import { getFflogsSdkToken } from '../fflogs/fflogs.consts.js';
@@ -49,6 +51,14 @@ const FLOW_PROVIDERS = Object.freeze([AppService]);
  * per-test character name, and remove them afterwards.
  */
 const TEST_SPREADSHEET_ID = '1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY';
+
+/**
+ * Where an HTTP flow app's board is served from, as better-auth's base URL:
+ * plain HTTP on the address supertest calls, so its cookies (not `Secure`, as
+ * they are on the real HTTPS board) come back on later requests. Cookies ignore
+ * ports, so supertest's ephemeral one doesn't matter.
+ */
+const FLOW_BOARD_URL = 'http://127.0.0.1';
 
 interface TestSheet {
   readonly spreadsheetId: string;
@@ -98,6 +108,8 @@ export interface FlowApp {
 
 /** A flow app that also serves the board's HTTP API, as the bot does. */
 export interface HttpFlowApp extends FlowApp {
+  /** The board's origin, which its browser sends as `Origin` (better-auth checks it on POSTs). */
+  readonly boardUrl: string;
   /** Sends requests to the app; it keeps the cookies the app sets, like a browser. */
   readonly http: Agent;
   /** Another client of the app, with its own cookies: a second browser. */
@@ -219,10 +231,18 @@ export async function createFlowApp({
   const stopWatchingSentry = logger.watchSentry();
 
   try {
-    const moduleRef = await Test.createTestingModule({
+    const builder = Test.createTestingModule({
       imports: [...FLOW_MODULES, ...(http ? [HttpModule] : []), ...modules],
       providers: [...FLOW_PROVIDERS],
-    })
+    });
+    if (http) {
+      builder
+        .overrideProvider(BOARD_AUTH)
+        .useValue(
+          createBoardAuth({ ...boardConfig, BOARD_BASE_URL: FLOW_BOARD_URL }),
+        );
+    }
+    const moduleRef = await builder
       .overrideProvider(FIRESTORE)
       .useValue(db)
       .overrideProvider(DISCORD_CLIENT)
@@ -313,7 +333,7 @@ export async function createFlowApp({
     };
     if (app === undefined) return flow;
     const agent = () => supertest.agent(app.getHttpServer());
-    return { ...flow, http: agent(), agent };
+    return { ...flow, boardUrl: FLOW_BOARD_URL, http: agent(), agent };
   } catch (error) {
     // don't leave nock intercepting or listeners subscribed for later spec files
     restoreDefaultLogger();

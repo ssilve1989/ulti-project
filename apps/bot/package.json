@@ -28,6 +28,7 @@
     "@sentry/nestjs": "catalog:",
     "@sentry/profiling-node": "catalog:",
     "@ulti-project/shared": "workspace:*",
+    "better-auth": "catalog:",
     "cron": "catalog:",
     "discord.js": "catalog:",
     "express": "catalog:",
