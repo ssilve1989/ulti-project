@@ -514,9 +514,14 @@ describe('when an organizer posts an event', () => {
       options: {
         title: 'DMU prog night',
         start: `<t:${START_S}:F>`,
-        'encounter-1': Encounter.DMU,
       },
     });
+    await flow.settle();
+    const [panel] = flow.discord.repliesTo(ORGANIZER.id);
+    if (!panel) throw new Error('expected the create panel');
+    flow.discord.choose(panel, Encounter.DMU, ORGANIZER.id);
+    await flow.settle();
+    flow.discord.click(panel, 'eventPost', ORGANIZER.id);
     await flow.settle();
 
     expect(flow.discord.channel(EVENTS_CHANNEL).map(shown)).toEqual([

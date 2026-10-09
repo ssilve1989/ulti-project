@@ -50,17 +50,13 @@ const CreateEventSubcommand = new SlashCommandSubcommandBuilder()
       )
       .setRequired(true),
   )
-  .addStringOption(encounterOption('encounter-1', true))
   .addStringOption((option) =>
     option
       .setName('signups-close')
       .setDescription(
         'When sign-ups close (same format). Defaults to the start time',
       ),
-  )
-  .addStringOption(encounterOption('encounter-2', false))
-  .addStringOption(encounterOption('encounter-3', false))
-  .addStringOption(encounterOption('encounter-4', false));
+  );
 
 const CloseEventSubcommand = new SlashCommandSubcommandBuilder()
   .setName('close')

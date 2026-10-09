@@ -1,6 +1,9 @@
+import type * as Sentry from '@sentry/nestjs';
 import { Encounter } from '@ulti-project/shared';
+import { ButtonStyle, ComponentType } from 'discord.js';
 import { Timestamp } from 'firebase-admin/firestore';
 import { test as base, describe, expect, vi } from 'vitest';
+import { appConfig } from '../../config/app.js';
 import type { EventDocument } from '../../firebase/models/event.model.js';
 import { EventSchedulerModule } from '../../jobs/event-scheduler/event-scheduler.module.js';
 import {
@@ -11,6 +14,7 @@ import {
 import { shown } from '../../test-utils/discord/fake-message.js';
 import {
   type EventButtonsEnabled,
+  encounterRow,
   eventButtonRow,
   recordChanges,
 } from '../../test-utils/events.js';
@@ -23,8 +27,10 @@ import {
 import {
   commandErrorReply,
   expectCommandErrorReported,
+  privateReply,
   textReply,
 } from '../../test-utils/replies.js';
+import { watchSentryMetrics } from '../../test-utils/sentry.js';
 
 const GUILD = 'guild-1';
 const OTHER_GUILD = 'guild-2';
@@ -119,8 +125,8 @@ async function event(
   await flow.settle();
 }
 
-/** The organizer creates the DMU event starting at START, with `options` on top. */
-const createEvent = (
+/** `userId` runs `/event create` for the event starting at START, with `options` on top. */
+const openCreate = (
   flow: FlowApp,
   options: Record<string, string> = {},
   userId: string = ORGANIZER.id,
@@ -128,14 +134,36 @@ const createEvent = (
   event(
     flow,
     'create',
-    {
-      title: TITLE,
-      start: `<t:${START_S}:F>`,
-      'encounter-1': Encounter.DMU,
-      ...options,
-    },
+    { title: TITLE, start: `<t:${START_S}:F>`, ...options },
     userId,
   );
+
+/** The organizer's latest reply: the panel of the command they ran last. */
+function panel(flow: FlowApp) {
+  const reply = flow.discord.repliesTo(ORGANIZER.id).at(-1);
+  if (!reply) throw new Error('expected the organizer to have a reply');
+  return reply;
+}
+
+async function chooseEncounters(flow: FlowApp, encounters: Encounter[]) {
+  flow.discord.choose(panel(flow), encounters, ORGANIZER.id);
+  await flow.settle();
+}
+
+async function click(flow: FlowApp, customId: 'eventPost' | 'eventCancel') {
+  flow.discord.click(panel(flow), customId, ORGANIZER.id);
+  await flow.settle();
+}
+
+/** The organizer creates the DMU event starting at START, with `options` on top. */
+async function createEvent(
+  flow: FlowApp,
+  options: Record<string, string> = {},
+) {
+  await openCreate(flow, options);
+  await chooseEncounters(flow, [Encounter.DMU]);
+  await click(flow, 'eventPost');
+}
 
 /** The ids of the stored events. */
 const eventIds = (flow: FlowApp) =>
@@ -159,11 +187,17 @@ const OPEN_BUTTONS = Object.freeze({ signup: true, withdraw: true });
 const SIGNUPS_CLOSED_BUTTONS = Object.freeze({ signup: false, withdraw: true });
 const CLOSED_BUTTONS = Object.freeze({ signup: false, withdraw: false });
 
-/** Event `eventId`'s message as members see it, with `lines` between the start and the organizer, and `buttons` enabled. */
+const NO_SIGNUPS = (encounter: string) => ({
+  name: `__${encounter}__`,
+  value: 'No sign-ups yet',
+});
+
+/** Event `eventId`'s message as members see it, with `lines` between the start and the organizer, `buttons` enabled, and `encounters` (their names) without sign-ups. */
 const eventMessage = (
   eventId: string,
   lines: string[] = [],
   buttons: EventButtonsEnabled = OPEN_BUTTONS,
+  encounters: string[] = ['Dancing Mad (Ultimate)'],
 ) => ({
   location: { kind: 'channel', guildId: GUILD, channelId: EVENTS_CHANNEL },
   content: undefined,
@@ -175,9 +209,7 @@ const eventMessage = (
         ...lines,
         `Organized by <@${ORGANIZER.id}>`,
       ].join('\n'),
-      fields: [
-        { name: '__Dancing Mad (Ultimate)__', value: 'No sign-ups yet' },
-      ],
+      fields: encounters.map(NO_SIGNUPS),
     },
   ],
   components: [eventButtonRow(eventId, buttons)],
@@ -205,6 +237,40 @@ const storedEvent = (
 
 const repliesTo = (flow: FlowApp, userId: string) =>
   flow.discord.repliesTo(userId).map(shown);
+
+/** The create panel's line about the event starting at START. */
+const SUMMARY = `**${TITLE}** · starts <t:${START_S}:F> · sign-ups close <t:${START_S}:R>`;
+
+const ULTIMATE_CHOICES: [string, string][] = [
+  ['DMU', 'Dancing Mad (Ultimate)'],
+];
+
+/** The create panel, privately, with `selected` picked and Post `postDisabled`. */
+const createPanel = (selected: Encounter[], postDisabled: boolean) =>
+  privateReply(ORGANIZER.id, {
+    content: SUMMARY,
+    components: [
+      encounterRow(ULTIMATE_CHOICES, selected),
+      {
+        type: ComponentType.ActionRow,
+        components: [
+          {
+            type: ComponentType.Button,
+            custom_id: 'eventPost',
+            label: 'Post',
+            style: ButtonStyle.Primary,
+            disabled: postDisabled,
+          },
+          {
+            type: ComponentType.Button,
+            custom_id: 'eventCancel',
+            label: 'Cancel',
+            style: ButtonStyle.Secondary,
+          },
+        ],
+      },
+    ],
+  });
 
 const privately = (userId: string, content: string) =>
   textReply(userId, content, { ephemeral: true });
@@ -277,7 +343,7 @@ describe('/event create', () => {
         "I couldn't read that sign-up close time. Use a Discord timestamp like <t:1760000000:F> or unix seconds, in the future.",
     },
   ])('when an organizer $when', ({ close, refusal }) => {
-    it.beforeEach(({ flow }) => createEvent(flow, { 'signups-close': close }));
+    it.beforeEach(({ flow }) => openCreate(flow, { 'signups-close': close }));
 
     it('refuses, privately, and posts nothing', ({ flow }) => {
       expect({
@@ -297,7 +363,7 @@ describe('/event create', () => {
     { when: 'a start of "tomorrow"', start: 'tomorrow' },
     { when: 'a start in milliseconds', start: String(START.getTime()) },
   ])('when an organizer gives $when', ({ start }) => {
-    it.beforeEach(({ flow }) => createEvent(flow, { start }));
+    it.beforeEach(({ flow }) => openCreate(flow, { start }));
 
     it('refuses, privately, and posts nothing', ({ flow }) => {
       expect({
@@ -313,7 +379,7 @@ describe('/event create', () => {
   });
 
   describe('when a member who is not an organizer tries', () => {
-    it.beforeEach(({ flow }) => createEvent(flow, {}, MEMBER.id));
+    it.beforeEach(({ flow }) => openCreate(flow, {}, MEMBER.id));
 
     it('refuses, privately, and posts nothing', ({ flow }) => {
       expect({
@@ -331,7 +397,7 @@ describe('/event create', () => {
   describe('when no organizer roles are set', () => {
     it.beforeEach(async ({ flow }) => {
       flow.db.seed(SETTINGS_PATH, {});
-      await createEvent(flow);
+      await openCreate(flow);
     });
 
     it('tells them an admin has to set them, and posts nothing', ({ flow }) => {
@@ -367,28 +433,150 @@ describe('/event create', () => {
         posted: flow.discord.channel(EVENTS_CHANNEL),
         events: eventIds(flow),
       }).toEqual({
-        replies: [commandErrorReply(flow, ORGANIZER.id)],
+        replies: [
+          { ...commandErrorReply(flow, ORGANIZER.id), content: SUMMARY },
+        ],
         posted: [],
         events: [],
       });
     });
   });
 
-  describe('when an organizer picks the same encounter twice', () => {
-    it.beforeEach(({ flow }) =>
-      createEvent(flow, { 'encounter-2': Encounter.DMU }),
-    );
+  describe('when an organizer opens the panel', () => {
+    it.beforeEach(({ flow }) => openCreate(flow));
 
-    it('shows it once', ({ flow }) => {
-      expect(flow.discord.channel(EVENTS_CHANNEL).map(shown)).toEqual([
-        eventMessage(onlyEventId(flow)),
-      ]);
+    it('shows the event and the encounters, privately, with Post disabled', ({
+      flow,
+    }) => {
+      expect(repliesTo(flow, ORGANIZER.id)).toEqual([createPanel([], true)]);
     });
 
-    it('stores it once', ({ flow }) => {
-      expect(flow.db.read(`events/${onlyEventId(flow)}`)).toEqual(
-        storedEvent(flow),
-      );
+    describe('and picks an encounter', () => {
+      it.beforeEach(({ flow }) => chooseEncounters(flow, [Encounter.DMU]));
+
+      it('shows it picked and enables Post', ({ flow }) => {
+        expect(repliesTo(flow, ORGANIZER.id)).toEqual([
+          createPanel([Encounter.DMU], false),
+        ]);
+      });
+    });
+
+    describe('and cancels', () => {
+      it.beforeEach(({ flow }) => click(flow, 'eventCancel'));
+
+      it('says so, and posts and stores nothing', ({ flow }) => {
+        expect({
+          replies: repliesTo(flow, ORGANIZER.id),
+          posted: flow.discord.channel(EVENTS_CHANNEL),
+          events: eventIds(flow),
+        }).toEqual({
+          replies: [privately(ORGANIZER.id, 'Cancelled.')],
+          posted: [],
+          events: [],
+        });
+      });
+    });
+
+    describe('and lets the panel expire', () => {
+      it('says so, stores nothing, and counts the expired prompt', async ({
+        flow,
+      }) => {
+        const metrics: Sentry.Metric[] = [];
+        const stop = watchSentryMetrics((metric) => metrics.push(metric));
+        try {
+          flow.discord.expireAll();
+          await flow.settle();
+        } finally {
+          stop();
+        }
+
+        expect({
+          replies: repliesTo(flow, ORGANIZER.id),
+          posted: flow.discord.channel(EVENTS_CHANNEL),
+          events: eventIds(flow),
+          metrics,
+        }).toEqual({
+          replies: [privately(ORGANIZER.id, 'This prompt expired.')],
+          posted: [],
+          events: [],
+          metrics: [
+            {
+              name: 'discord.prompt.expired',
+              type: 'counter',
+              value: 1,
+              attributes: {
+                command: 'event',
+                subcommand: 'create',
+                'user.id': ORGANIZER.id,
+                'user.name': ORGANIZER.username,
+              },
+            },
+          ],
+        });
+      });
+    });
+
+    describe('and clicks Post', () => {
+      it('takes the buttons away at once, then posts and stores one event', async ({
+        flow,
+      }) => {
+        await chooseEncounters(flow, [Encounter.DMU]);
+        flow.discord.click(panel(flow), 'eventPost', ORGANIZER.id);
+        // nothing is left to click a second time while it posts
+        const whilePosting = shown(panel(flow));
+        await flow.settle();
+
+        expect({
+          whilePosting,
+          posted: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          event: flow.db.read(`events/${onlyEventId(flow)}`),
+          replies: repliesTo(flow, ORGANIZER.id),
+        }).toEqual({
+          whilePosting: privateReply(ORGANIZER.id, { content: SUMMARY }),
+          posted: [eventMessage(onlyEventId(flow))],
+          event: storedEvent(flow),
+          replies: [postedReply(flow)],
+        });
+      });
+    });
+  });
+
+  describe('when the bot runs legacy encounters too', () => {
+    it.beforeEach(() => {
+      const modes = appConfig.APPLICATION_MODE;
+      appConfig.APPLICATION_MODE = ['legacy', 'ultimate'];
+      return () => {
+        appConfig.APPLICATION_MODE = modes;
+      };
+    });
+
+    describe('and an organizer picks FRU, then TOP, and posts', () => {
+      it.beforeEach(async ({ flow }) => {
+        await openCreate(flow);
+        await chooseEncounters(flow, [Encounter.FRU, Encounter.TOP]);
+        await click(flow, 'eventPost');
+      });
+
+      it('posts and stores them in the encounter order, and says where', ({
+        flow,
+      }) => {
+        expect({
+          posted: flow.discord.channel(EVENTS_CHANNEL).map(shown),
+          event: flow.db.read(`events/${onlyEventId(flow)}`),
+          replies: repliesTo(flow, ORGANIZER.id),
+        }).toEqual({
+          posted: [
+            eventMessage(onlyEventId(flow), [], OPEN_BUTTONS, [
+              '[TOP] The Omega Protocol',
+              '[FRU] Futures Rewritten',
+            ]),
+          ],
+          event: storedEvent(flow, {
+            encounters: [Encounter.TOP, Encounter.FRU],
+          }),
+          replies: [postedReply(flow)],
+        });
+      });
     });
   });
 });

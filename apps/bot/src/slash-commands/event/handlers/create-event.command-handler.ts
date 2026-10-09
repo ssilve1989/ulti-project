@@ -1,13 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
-import { type Encounter, isEncounter } from '@ulti-project/shared';
+import type { Encounter } from '@ulti-project/shared';
 import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   type ChatInputCommandInteraction,
   channelMention,
+  type MessageActionRowComponentBuilder,
   MessageFlags,
+  TimestampStyles,
+  time,
 } from 'discord.js';
 import { Timestamp } from 'firebase-admin/firestore';
 import { parseDiscordTime } from '../../../common/discord-time.js';
+import { ComponentSessionService } from '../../../discord/component-session.service.js';
+import { recordExpiredPrompt } from '../../../discord/discord.helpers.js';
+import {
+  EVENT_ENCOUNTERS_SELECT_ID,
+  encounterSelect,
+  readEncounterSelection,
+} from '../../../events/components/encounter-select.js';
 import { EventMessageService } from '../../../events/event-message.service.js';
 import {
   isOrganizer,
@@ -19,12 +32,8 @@ import { SlashCommand } from '../../slash-command.decorator.js';
 import type { ISlashCommand } from '../../slash-command.interface.js';
 import { EventSlashCommand } from '../event.slash-command.js';
 
-const ENCOUNTER_OPTIONS = [
-  'encounter-1',
-  'encounter-2',
-  'encounter-3',
-  'encounter-4',
-];
+const POST_ID = 'eventPost';
+const CANCEL_ID = 'eventCancel';
 
 const BAD_START =
   "I couldn't read that start time. Use a Discord timestamp like <t:1760000000:F> or unix seconds, in the future.";
@@ -57,6 +66,26 @@ function readTimes(
   return { valid: true, startsAt, signupsCloseAt };
 }
 
+/** The panel's components with `encounters` picked; Post needs at least one. */
+function panelComponents(
+  encounters: readonly Encounter[],
+): ActionRowBuilder<MessageActionRowComponentBuilder>[] {
+  return [
+    encounterSelect(EVENT_ENCOUNTERS_SELECT_ID, encounters),
+    new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(POST_ID)
+        .setLabel('Post')
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(encounters.length === 0),
+      new ButtonBuilder()
+        .setCustomId(CANCEL_ID)
+        .setLabel('Cancel')
+        .setStyle(ButtonStyle.Secondary),
+    ),
+  ];
+}
+
 @Injectable()
 @SlashCommand({ builder: EventSlashCommand, subcommand: 'create' })
 class CreateEventCommandHandler implements ISlashCommand {
@@ -64,6 +93,7 @@ class CreateEventCommandHandler implements ISlashCommand {
     private readonly settingsCollection: SettingsCollection,
     private readonly eventsCollection: EventsCollection,
     private readonly eventMessages: EventMessageService,
+    private readonly sessions: ComponentSessionService,
   ) {}
 
   @SentryTraced()
@@ -91,19 +121,19 @@ class CreateEventCommandHandler implements ISlashCommand {
       return;
     }
 
-    const encounters = new Set(
-      ENCOUNTER_OPTIONS.map((name) => options.getString(name)).filter(
-        (value): value is Encounter => value !== null && isEncounter(value),
-      ),
-    );
-
     const title = options.getString('title', true);
+    const encounters = await this.pickEncounters(
+      interaction,
+      `**${title}** · starts ${time(times.startsAt, TimestampStyles.FullDateShortTime)} · sign-ups close ${time(times.signupsCloseAt, TimestampStyles.RelativeTime)}`,
+    );
+    if (!encounters) return;
+
     const event = await this.eventsCollection.create({
       guildId: interaction.guildId,
       title,
       startsAt: Timestamp.fromDate(times.startsAt),
       signupsCloseAt: Timestamp.fromDate(times.signupsCloseAt),
-      encounters: [...encounters],
+      encounters,
       channelId: interaction.channelId,
       createdBy: interaction.user.id,
     });
@@ -118,6 +148,52 @@ class CreateEventCommandHandler implements ISlashCommand {
     await interaction.editReply(
       `Posted **${title}** in ${channelMention(interaction.channelId)}: ${message.url}`,
     );
+  }
+
+  /**
+   * Shows the panel under `summary` in `interaction`'s deferred reply. Resolves
+   * with the picked encounters on Post, leaving the caller to replace the
+   * panel, or with undefined once the organizer cancels or lets it expire, or
+   * the panel is deleted.
+   */
+  private async pickEncounters(
+    interaction: ChatInputCommandInteraction<'cached'>,
+    summary: string,
+  ): Promise<Encounter[] | undefined> {
+    const reply = await interaction.editReply({
+      content: summary,
+      components: panelComponents([]),
+    });
+    const { promise, resolve } = Promise.withResolvers<
+      Encounter[] | undefined
+    >();
+    let encounters: Encounter[] = [];
+
+    const end = this.sessions.run(interaction, reply, {
+      name: 'event create',
+      expiredContent: 'This prompt expired.',
+      onExpired: () => recordExpiredPrompt(interaction),
+      onAbandoned: () => resolve(undefined),
+      onCollect: async (i) => {
+        if (i.isStringSelectMenu()) {
+          encounters = readEncounterSelection(i.values);
+          await i.update({ components: panelComponents(encounters) });
+        } else if (i.customId === POST_ID) {
+          // stopping first ignores a second click while this one posts
+          end();
+          try {
+            await i.update({ components: [] });
+          } finally {
+            resolve(encounters);
+          }
+        } else if (i.customId === CANCEL_ID) {
+          end();
+          resolve(undefined);
+          await i.update({ content: 'Cancelled.', components: [] });
+        }
+      },
+    });
+    return promise;
   }
 }
 
