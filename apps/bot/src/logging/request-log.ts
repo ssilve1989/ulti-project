@@ -8,6 +8,8 @@ export const requestLogOptions: Options = {
       ? undefined
       : { target: 'pino-pretty', options: { singleLine: true } },
   level: appConfig.LOG_LEVEL,
+  // Fly checks this every few seconds; logging each one buries real requests.
+  autoLogging: { ignore: (request) => request.url === '/api/health' },
   // pino-http logs every request and response header; never the credentials
   redact: [
     'req.headers.cookie',
