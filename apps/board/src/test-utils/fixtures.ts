@@ -1,5 +1,6 @@
 import {
   type BoardAccess,
+  type BoardEvent,
   type BoardParticipant,
   JOB_ROLE,
   type MeResponse,
@@ -44,6 +45,27 @@ export function participant(
     jobRole: JOB_ROLE[job],
     phase: { label: 'P4: Enrage', order: 40, bucket: 'prog' },
     claim: null,
+    ...overrides,
+  };
+}
+
+export function boardEvent(overrides?: Partial<BoardEvent>): BoardEvent {
+  return {
+    id: 'event-1',
+    title: 'Saturday FRU',
+    startsAt: '2026-10-10T00:00:00.000Z',
+    signupsCloseAt: '2026-10-09T22:00:00.000Z',
+    status: 'open',
+    encounters: [
+      {
+        id: 'FRU',
+        name: 'Futures Rewritten',
+        progPartyThreshold: 'P3: Apocalypse',
+        clearPartyThreshold: 'P5: Fulgent Blade 1',
+      },
+    ],
+    participants: [],
+    squads: [FROGE, SPACE],
     ...overrides,
   };
 }
