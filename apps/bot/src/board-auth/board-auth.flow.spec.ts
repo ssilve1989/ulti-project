@@ -3,6 +3,7 @@ import {
   type DiscordAccount,
   discordEmail,
   signInAs,
+  signInWithDiscord,
 } from '../test-utils/discord-oauth.js';
 import { fresh } from '../test-utils/fixtures.js';
 import { createFlowApp, type HttpFlowApp } from '../test-utils/flow-app.js';
@@ -70,6 +71,30 @@ describe('when a coordinator signs in with Discord', () => {
     });
   });
 
+  describe('and another Discord account signs in with the same email', () => {
+    it('does not sign them in as the first coordinator', async ({ flow }) => {
+      const bob = flow.agent();
+
+      const callback = await signInWithDiscord(
+        flow,
+        { ...BOB, email: discordEmail(ALICE) },
+        bob,
+      );
+      const session = await bob.get('/api/auth/get-session');
+
+      expect({
+        callback,
+        session: { status: session.status, body: session.body },
+      }).toEqual({
+        callback: {
+          status: 302,
+          location: `${flow.boardUrl}/api/auth/error?error=account_not_linked`,
+        },
+        session: { status: 200, body: null },
+      });
+    });
+  });
+
   describe('and they sign out', () => {
     it('ends their session', async ({ flow }) => {
       const signOut = await flow.http
@@ -94,6 +119,32 @@ describe('when someone calls an auth route the board does not use', () => {
       .post('/api/auth/sign-up/email')
       .set('Origin', flow.boardUrl)
       .send({ email: 'mallory@example.test', password: 'hunter2hunter2' });
+
+    expect({ status, body }).toEqual({
+      status: 404,
+      body: { reason: 'not-found' },
+    });
+  });
+
+  it('answers 404 to updating the user with a trailing slash', async ({
+    flow,
+  }) => {
+    const { status, body } = await flow.http
+      .post('/api/auth/update-user/')
+      .set('Origin', flow.boardUrl)
+      .send({ discordId: BOB.id });
+
+    expect({ status, body }).toEqual({
+      status: 404,
+      body: { reason: 'not-found' },
+    });
+  });
+
+  it('answers 404 to updating the user in upper case', async ({ flow }) => {
+    const { status, body } = await flow.http
+      .post('/api/AUTH/UPDATE-USER')
+      .set('Origin', flow.boardUrl)
+      .send({ discordId: BOB.id });
 
     expect({ status, body }).toEqual({
       status: 404,

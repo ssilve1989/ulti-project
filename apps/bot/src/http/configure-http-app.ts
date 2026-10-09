@@ -36,6 +36,11 @@ function answerInvalidJson(
  * The better-auth routes the board uses. Everything else better-auth serves
  * stays unmounted: `/update-user` would let a signed-in user set their own
  * `discordId` and act as anyone.
+ *
+ * They're mounted on the raw Express instance, ahead of Nest's middleware and
+ * routes, so better-auth's own error responses bypass `HttpExceptionFilter`
+ * and pino-http's request log. That's by design: OAuth failures are
+ * redirects, not API errors.
  */
 const BOARD_AUTH_ROUTES = Object.freeze([
   { method: 'post', path: '/api/auth/sign-in/social' },

@@ -11,6 +11,8 @@ export interface DiscordAccount {
   readonly globalName?: string;
   /** The avatar hash, if they've set one. */
   readonly avatar?: string;
+  /** The verified email Discord reports; one derived from the username if not given. */
+  readonly email?: string;
 }
 
 /** The authorization code Discord hands the board's callback in these tests. */
@@ -18,7 +20,7 @@ const CODE = 'test';
 
 /** The address Discord's sign-in emails go to, for an account. */
 export function discordEmail(account: DiscordAccount): string {
-  return `${account.username}@users.example.test`;
+  return account.email ?? `${account.username}@users.example.test`;
 }
 
 /** What Discord's `GET /users/@me` returns for the account. */
@@ -34,20 +36,25 @@ function discordProfile(account: DiscordAccount) {
   };
 }
 
+/** Where the board's Discord callback sent the browser. */
+export interface CallbackOutcome {
+  readonly status: number;
+  readonly location: string | undefined;
+}
+
 /**
- * Signs `account` in through the board's real Discord sign-in, as a browser
+ * Goes through the board's real Discord sign-in as `account`, as a browser
  * would: start sign-in, then come back to the callback with Discord's code.
  * Discord's token and user endpoints are intercepted with nock, which the flow
  * app keeps active (blocking any real network) from its start until it closes;
- * closing removes these interceptors with the rest. The agent (`flow.http`
- * unless given; pass `flow.agent()` for a second user) then holds the session
- * cookie.
+ * closing removes these interceptors with the rest. Resolves to where the
+ * callback sent the browser, whether or not it signed them in.
  */
-export async function signInAs(
+export async function signInWithDiscord(
   flow: HttpFlowApp,
   account: DiscordAccount,
   agent: Agent = flow.http,
-): Promise<void> {
+): Promise<CallbackOutcome> {
   const accessToken = `access-token-for-${account.id}`;
   const discord = nock('https://discord.com')
     .post('/api/oauth2/token', {
@@ -87,12 +94,28 @@ export async function signInAs(
   const callback = await agent
     .get('/api/auth/callback/discord')
     .query({ code: CODE, state });
-  if (callback.status !== 302 || callback.headers.location !== '/') {
-    throw new Error(
-      `Discord's callback failed: ${callback.status} to ${callback.headers.location}`,
-    );
-  }
   if (!discord.isDone()) {
     throw new Error(`Sign-in skipped Discord: ${discord.pendingMocks()}`);
+  }
+  const location: unknown = callback.headers.location;
+  return {
+    status: callback.status,
+    location: typeof location === 'string' ? location : undefined,
+  };
+}
+
+/**
+ * Signs `account` in (see {@link signInWithDiscord}); fails unless the callback
+ * signs them in. The agent (`flow.http` unless given; pass `flow.agent()` for a
+ * second user) then holds the session cookie.
+ */
+export async function signInAs(
+  flow: HttpFlowApp,
+  account: DiscordAccount,
+  agent: Agent = flow.http,
+): Promise<void> {
+  const { status, location } = await signInWithDiscord(flow, account, agent);
+  if (status !== 302 || location !== '/') {
+    throw new Error(`Discord's callback failed: ${status} to ${location}`);
   }
 }

@@ -19,9 +19,20 @@ export type BoardAuthConfig = Pick<
  * routes the board needs are mounted (see `configureHttpApp`).
  */
 export function createBoardAuth(config: BoardAuthConfig) {
+  // Stateless still keeps better-auth's in-memory adapter: about one session
+  // row per sign-in, never pruned but reset on restart; negligible for a
+  // handful of coordinators.
   return betterAuth({
     baseURL: config.BOARD_BASE_URL,
     secret: config.BETTER_AUTH_SECRET,
+    account: {
+      // Otherwise a sign-in whose Discord account isn't known yet is linked
+      // to an existing user with the same verified email, and gets that
+      // user's session and `discordId`.
+      accountLinking: { enabled: false },
+      // The board never reads it, and it carries Discord's access and refresh tokens.
+      storeAccountCookie: false,
+    },
     user: {
       additionalFields: {
         discordId: { type: 'string', required: true, input: true },
