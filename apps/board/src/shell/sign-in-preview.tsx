@@ -26,7 +26,7 @@ const ROWS: readonly PreviewRow[] = [
   {
     name: 'Mira Solenne',
     role: 'heal',
-    phase: 'P2: Light Rampant',
+    phase: 'P2: Rampant',
     squad: { tag: 'FRG', color: '#16a34a' },
   },
 ];

@@ -199,6 +199,15 @@ button.primary {
   gap: 0.5rem;
   padding: 0.6rem 1.1rem;
   font-weight: 700;
+  /* Discord's own blurple, as in the chosen mockup; white on it is 4.6:1. */
+  background: #5865f2;
+  border-color: #5865f2;
+  color: #ffffff;
+}
+
+.sign-in button.primary:hover {
+  background: #4752c4;
+  border-color: #4752c4;
 }
 
 .sign-in button.primary svg {
@@ -213,9 +222,9 @@ button.primary {
 @media (min-width: 800px) {
   .sign-in {
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: center;
-    gap: 2.5rem;
+    gap: 2rem;
     max-width: 60rem;
     margin: 15vh auto 0;
     padding: 0 2rem;
