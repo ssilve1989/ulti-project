@@ -396,6 +396,28 @@ describe('when a viewer opens an event stream', () => {
     await expect(get(flow, streamPath('%2E%2E'))).resolves.toEqual(NOT_FOUND);
   });
 
+  describe('and the bot shuts down while the stream is open', () => {
+    it('closes without waiting for the stream to end', async ({
+      flow,
+      streams,
+    }) => {
+      const stream = await openRosterNight(flow, streams);
+
+      // the real setTimeout bounds the wait, so a close that hangs fails here
+      const closing = await Promise.race([
+        flow.close().then(() => 'closed'),
+        sleep(1_000, 'still open'),
+      ]);
+
+      const ended = await Promise.race([stream.next(), sleep(1_000, 'open')]);
+
+      expect({ closing, stream: ended }).toEqual({
+        closing: 'closed',
+        stream: ENDED,
+      });
+    });
+  });
+
   describe('and a player signs up in Discord', () => {
     it('sends the new participant', async ({ flow, streams }) => {
       const stream = await openRosterNight(flow, streams);

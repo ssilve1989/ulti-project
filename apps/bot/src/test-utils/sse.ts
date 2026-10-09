@@ -53,8 +53,8 @@ function parseFrame(block: string): SseFrame | undefined {
 /**
  * Opens `path` as an event stream on `agent`, with its cookies, as a
  * browser's `EventSource` does. Rejects unless the server answers 200 with
- * `text/event-stream`. Close it before the app: the app can't close while
- * a stream is open.
+ * `text/event-stream`. Closing the app ends it, as a browser sees when the
+ * server drops the connection.
  */
 function openSse(agent: Agent, path: string): Promise<SseStream> {
   const frames: SseFrame[] = [];
@@ -102,17 +102,25 @@ function openSse(agent: Agent, path: string): Promise<SseStream> {
         deliver();
         callback(null, undefined);
       });
-      response.once('close', () => {
+      const close = () => {
         ended = true;
         deliver();
         markClosed();
-      });
+      };
+      response.once('close', close);
+      // the server dropping the connection (it shut down) ends the stream
+      // too; the interceptor's socket reports that as an `aborted` error,
+      // without a `close`
+      response.on('error', close);
     });
   // sends it; the response arrives as 'response'
   request.end(() => {});
 
   return new Promise((resolve, reject) => {
     request.once('response', (response) => {
+      // superagent re-emits the raw response's errors here; the parser's
+      // listener already ends the stream on one
+      response.on('error', () => {});
       const type = response.headers['content-type'];
       if (
         response.status !== 200 ||
@@ -149,8 +157,8 @@ export interface OpenStreams {
 }
 
 /**
- * Tracks a test's streams so its teardown can close them all, before the
- * flow app: its server can't close while a stream is open.
+ * Tracks a test's streams so its teardown can close them all, as browsers
+ * leaving do. Closing the app first also ends them.
  */
 export function openStreams(): OpenStreams {
   const streams: Promise<SseStream>[] = [];

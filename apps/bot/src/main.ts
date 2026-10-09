@@ -9,6 +9,8 @@ import { configureHttpApp } from './http/configure-http-app.js';
 const app = await NestFactory.create<NestExpressApplication>(AppModule, {
   bufferLogs: true,
   bodyParser: false,
+  // an open board stream would otherwise keep shutdown waiting forever
+  forceCloseConnections: true,
 });
 
 const logger = app.get(Logger);

@@ -201,6 +201,7 @@ async function startApp(
   }
   const app = moduleRef.createNestApplication<NestExpressApplication>({
     bodyParser: false,
+    forceCloseConnections: true,
   });
   configureHttpApp(app);
   // listening for the whole test, as the bot does: otherwise supertest starts
