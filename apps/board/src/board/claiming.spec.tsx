@@ -55,6 +55,13 @@ const GET_ME = Object.freeze({
   body: undefined,
   contentType: null,
 });
+// A squad member's board asks for the squad's helpers once, for its Teams section.
+const GET_HELPERS = Object.freeze({
+  method: 'GET',
+  path: '/api/squads/mine/helpers',
+  body: undefined,
+  contentType: null,
+});
 const SENT_CLAIM = Object.freeze({
   method: 'POST',
   path: CLAIM_PATH,
@@ -96,7 +103,11 @@ async function openBoard(
   sent: ReturnType<typeof stubApi>['sent'];
 }> {
   const me = json(200, meResponse(options.access ?? AS_FROGE));
-  const { sent } = stubApi({ 'GET /api/me': me, ...routes });
+  const { sent } = stubApi({
+    'GET /api/me': me,
+    'GET /api/squads/mine/helpers': json(200, []),
+    ...routes,
+  });
   const sources = installFakeEventSource();
   history.replaceState(null, '', '/events/event-1?enc=FRU');
   render(() => <App />);
@@ -205,7 +216,9 @@ describe('claiming a player', () => {
     expect(progRows()).toEqual([AERYN_FRG, BRICKTOP_ROW]);
     const release = screen.getByRole('button', { name: RELEASE_AERYN });
     expect(release.hasAttribute('disabled')).toBe(true);
-    await waitFor(() => expect(sent).toEqual([GET_ME, SENT_CLAIM]));
+    await waitFor(() =>
+      expect(sent).toEqual([GET_ME, GET_HELPERS, SENT_CLAIM]),
+    );
 
     answer.answer(json(200, aerynClaimedBy(FROGE.id)));
 
@@ -227,7 +240,7 @@ describe('claiming a player', () => {
       expect(strip()).toEqual(['Released Aeryn Vail', 'Dismiss']),
     );
     expect(progRows()).toEqual([AERYN_FREE, BRICKTOP_ROW]);
-    expect(sent).toEqual([GET_ME, SENT_CLAIM, SENT_RELEASE]);
+    expect(sent).toEqual([GET_ME, GET_HELPERS, SENT_CLAIM, SENT_RELEASE]);
   });
 
   it('shows the real owner when another squad got there first', async () => {
@@ -358,7 +371,7 @@ describe("releasing one of your squad's players", () => {
       expect(strip()).toEqual(['Claimed Aeryn Vail for Froge Army', 'Dismiss']),
     );
     expect(progRows()).toEqual([AERYN_FRG, BRICKTOP_ROW]);
-    expect(sent).toEqual([GET_ME, SENT_RELEASE, SENT_CLAIM]);
+    expect(sent).toEqual([GET_ME, GET_HELPERS, SENT_RELEASE, SENT_CLAIM]);
   });
 
   it('is rolled back when the network fails', async () => {

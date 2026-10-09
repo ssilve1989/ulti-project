@@ -1,5 +1,5 @@
 import { A, useParams, useSearchParams } from '@solidjs/router';
-import type { BoardEvent, Encounter } from '@ulti-project/shared';
+import type { BoardEvent, Encounter, SquadHelper } from '@ulti-project/shared';
 import {
   createEffect,
   createSignal,
@@ -8,6 +8,7 @@ import {
   Show,
   Switch,
 } from 'solid-js';
+import { api } from '../api/client';
 import { formatStart } from '../format';
 import { useShell } from '../shell/shell-context';
 import { readChoice, storeChoice } from '../stored-choice';
@@ -17,11 +18,15 @@ import { EncounterTabs } from './encounter-tabs';
 import { createEventStream } from './event-stream';
 import { PartyTable } from './party-table';
 import type { SquadFilter } from './roster';
+import { createRosterActions, type RosterActions } from './rosters';
+import { TeamsSection } from './teams-section';
 import { type ClaimStyle, type Grouping, Toolbar } from './toolbar';
 
 function Board(props: {
   readonly event: BoardEvent;
   readonly claims: Claims | undefined;
+  readonly rosters: RosterActions | undefined;
+  readonly helpers: readonly SquadHelper[];
 }) {
   const shell = useShell();
   const [searchParams, setSearchParams] = useSearchParams<{ enc: string }>();
@@ -53,6 +58,13 @@ function Board(props: {
       access.kind === 'squad' &&
       props.event.status !== 'closed'
       ? { claims: props.claims, squad: access.squad }
+      : undefined;
+  };
+  // Same rule as claiming: a squad member on an event that isn't closed.
+  const editingTeams = () => {
+    const editing = claiming();
+    return editing && props.rosters
+      ? { squad: editing.squad, actions: props.rosters }
       : undefined;
   };
 
@@ -130,6 +142,17 @@ function Board(props: {
                   claims={props.claims}
                 />
               </div>
+              <Show when={editingTeams()}>
+                {(editing) => (
+                  <TeamsSection
+                    event={props.event}
+                    encounter={encounter().id}
+                    squad={editing().squad}
+                    helpers={props.helpers}
+                    actions={editing().actions}
+                  />
+                )}
+              </Show>
             </section>
           </>
         )}
@@ -163,6 +186,17 @@ export function BoardPage() {
         )
       : undefined;
 
+  const rosters =
+    me.access.kind === 'squad'
+      ? createRosterActions(params.id, stream)
+      : undefined;
+  // Fetched once per board; a failure leaves the Helpers group out.
+  const [helpers, setHelpers] = createSignal<readonly SquadHelper[]>([]);
+  if (me.access.kind === 'squad')
+    void api<SquadHelper[]>('/api/squads/mine/helpers').then((result) => {
+      if (result.ok) setHelpers(result.body);
+    });
+
   createEffect(() => {
     const { kind } = stream.state();
     setLiveStatus(
@@ -176,7 +210,14 @@ export function BoardPage() {
   return (
     <Switch>
       <Match when={event()}>
-        {(live) => <Board event={live()} claims={claims} />}
+        {(live) => (
+          <Board
+            event={live()}
+            claims={claims}
+            rosters={rosters}
+            helpers={helpers()}
+          />
+        )}
       </Match>
       <Match when={stream.state().kind === 'connecting'}>
         <main class="screen">

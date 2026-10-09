@@ -1,4 +1,5 @@
-import { ROSTER_SLOTS, type RosterTeam } from '@ulti-project/shared';
+import type { RosterTeam } from '@ulti-project/shared';
+import { ROSTER_SLOTS } from '@ulti-project/shared/rosters';
 
 /** The Discord message a lead pastes for a team: start time, data center, then each slot's shortcode and mention. */
 export function formatTeamMessage(startsAt: string, team: RosterTeam): string {

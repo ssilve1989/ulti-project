@@ -5,6 +5,9 @@ import { defineConfig } from 'vitest/config';
 const sharedIndex = fileURLToPath(
   new URL('./packages/shared/src/index.ts', import.meta.url),
 );
+const sharedRosters = fileURLToPath(
+  new URL('./packages/shared/src/board-api/rosters.ts', import.meta.url),
+);
 const setupFile = fileURLToPath(new URL('./test/setup.ts', import.meta.url));
 const botSetupFile = fileURLToPath(
   new URL('./test/setup-bot.ts', import.meta.url),
@@ -21,6 +24,8 @@ const recordingSheets = process.env.NOCK_BACK_MODE === 'update';
 export default defineConfig({
   resolve: {
     alias: {
+      // The subpath first: a bare-name alias also matches '<name>/…'.
+      '@ulti-project/shared/rosters': sharedRosters,
       '@ulti-project/shared': sharedIndex,
     },
   },

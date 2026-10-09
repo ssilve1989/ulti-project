@@ -1,19 +1,19 @@
-import {
-  type BoardErrorBody,
-  type BoardParticipant,
-  type BoardRoster,
-  type Encounter,
-  ROSTER_SLOTS,
-  type RosterSlot,
-  type SquadHelper,
+import type {
+  BoardErrorBody,
+  BoardParticipant,
+  BoardRoster,
+  Encounter,
+  RosterSlot,
+  SquadHelper,
 } from '@ulti-project/shared';
+import { ROSTER_SLOTS } from '@ulti-project/shared/rosters';
 import { createSignal } from 'solid-js';
 import { api } from '../api/client';
 import { isAccessRefusal, useShell } from '../shell/shell-context';
 import type { EventStream } from './event-stream';
 
 /** Who a lead picks for a slot; the name is only for the card's error message. */
-type SlotChoice =
+export type SlotChoice =
   | { kind: 'progger'; participantId: string }
   | { kind: 'helper'; discordId: string; displayName: string };
 

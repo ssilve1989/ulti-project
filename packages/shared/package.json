@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
+    },
+    "./rosters": {
+      "types": "./dist/board-api/rosters.d.ts",
+      "default": "./src/board-api/rosters.ts"
     }
   },
   "files": [
