@@ -173,6 +173,147 @@ button.primary {
   color: var(--acc);
 }
 
+/* Sign-in: the card alone on phones; the live preview beside it from 800px. */
+.sign-in .screen {
+  text-align: center;
+}
+
+.sign-in .wordmark {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.sign-in h1 {
+  margin-bottom: 0.4rem;
+}
+
+.tagline {
+  margin: 0 0 1.5rem;
+  color: var(--dim);
+  text-wrap: balance;
+}
+
+.sign-in button.primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  font-weight: 700;
+}
+
+.sign-in button.primary svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.sign-in-preview {
+  display: none;
+}
+
+@media (min-width: 800px) {
+  .sign-in {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 2.5rem;
+    max-width: 60rem;
+    margin: 15vh auto 0;
+    padding: 0 2rem;
+  }
+
+  .sign-in .screen {
+    width: auto;
+    margin: 0;
+  }
+
+  .sign-in-preview {
+    display: block;
+    padding: 1.25rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+  }
+}
+
+.preview-head {
+  margin: 0 0 0.75rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+}
+
+.sign-in-preview ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.preview-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--panel-2);
+  border-left: 3px solid var(--edge);
+  border-radius: 6px;
+}
+
+.preview-phase {
+  margin-left: auto;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.8125rem;
+  color: var(--dim);
+}
+
+/* One slow loop: rows slide in in turn, tokens snap on. Reduced motion keeps the full still frame. */
+@media (prefers-reduced-motion: no-preference) {
+  .preview-row,
+  .preview-row .squad-token {
+    animation: preview-row 12s ease-out calc(var(--i) * 0.6s) infinite both;
+  }
+
+  .preview-row .squad-token {
+    animation-name: preview-claim;
+  }
+}
+
+@keyframes preview-row {
+  0% {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  6%,
+  86% {
+    opacity: 1;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes preview-claim {
+  0%,
+  22% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  26%,
+  86% {
+    opacity: 1;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0;
+  }
+}
+
 .live-status {
   display: inline-flex;
   align-items: center;

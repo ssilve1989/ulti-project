@@ -47,7 +47,16 @@ describe('when nobody is signed in', () => {
     });
     openAt('/');
 
-    expect(await heading()).toBe('Sign in to the Ulti Project board');
+    expect(await heading()).toBe('Claim. Build. Post.');
+    // The live preview is decoration: screen readers skip it and Tab never stops in it.
+    const preview = screen
+      .getByText('LIVE · FRU · PROG PARTY')
+      .closest('[aria-hidden="true"]');
+    expect(
+      preview?.querySelectorAll(
+        'a, button, input, select, textarea, [tabindex]',
+      ).length,
+    ).toBe(0);
     fireEvent.click(
       screen.getByRole('button', { name: 'Sign in with Discord' }),
     );
@@ -193,7 +202,7 @@ describe('when a squad lead is signed in', () => {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Sign in to the Ulti Project board',
+        name: 'Claim. Build. Post.',
       }),
     ).toBeTruthy();
     expect(sent).toEqual([

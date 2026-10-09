@@ -97,7 +97,7 @@ describe('when the session has ended', () => {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Sign in to the Ulti Project board',
+        name: 'Claim. Build. Post.',
       }),
     ).toBeTruthy();
     expect(sent).toEqual([GET_ME, GET_EVENTS, GET_ME]);
