@@ -17,6 +17,10 @@ import type {
   EventPhase,
   ParticipantDocument,
 } from '../../firebase/models/event.model.js';
+import {
+  type RosterDocument,
+  rosterDocId,
+} from '../../firebase/models/roster.model.js';
 import { EventSchedulerModule } from '../../jobs/event-scheduler/event-scheduler.module.js';
 import {
   runTick,
@@ -990,6 +994,47 @@ describe('Withdraw', () => {
           participantId: 'alice-FRU',
         },
       ]);
+    });
+
+    it("empties her slot in the squad's roster and tells a board open on the event", async ({
+      flow,
+    }) => {
+      const eventId = onlyEventId(flow);
+      const path = `events/${eventId}/rosters/${rosterDocId(Encounter.FRU, CLAIM.squadId)}`;
+      const roster: RosterDocument = {
+        guildId: GUILD,
+        encounter: Encounter.FRU,
+        squadId: CLAIM.squadId,
+        teams: [
+          {
+            id: 'team0001',
+            slots: {
+              'shield-healer': {
+                kind: 'progger',
+                participantId: 'alice-FRU',
+                discordId: ALICE.id,
+              },
+            },
+          },
+        ],
+      };
+      flow.db.seed(path, roster);
+      const changes = recordChanges(flow, eventId);
+
+      await click(flow, 'withdraw', ALICE.id);
+
+      expect({ roster: flow.db.read(path), changes }).toEqual({
+        roster: { ...roster, teams: [{ id: 'team0001', slots: {} }] },
+        changes: [
+          { kind: 'participant', eventId, participantId: 'alice-FRU' },
+          {
+            kind: 'roster',
+            eventId,
+            encounter: Encounter.FRU,
+            squadId: CLAIM.squadId,
+          },
+        ],
+      });
     });
 
     it('confirms it and takes them off the post', async ({ flow }) => {

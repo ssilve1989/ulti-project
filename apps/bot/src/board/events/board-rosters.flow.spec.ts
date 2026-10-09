@@ -7,7 +7,7 @@ import {
 } from '@ulti-project/shared';
 import { Timestamp } from 'firebase-admin/firestore';
 import type { Agent } from 'supertest';
-import { test as base, describe, expect, vi } from 'vitest';
+import { test as base, describe, expect, onTestFinished, vi } from 'vitest';
 import { boardConfig } from '../../config/board.js';
 import {
   type EventDocument,
@@ -22,6 +22,7 @@ import {
   type DiscordAccount,
   signInAs,
 } from '../../test-utils/discord-oauth.js';
+import { recordChanges } from '../../test-utils/events.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type HttpFlowApp } from '../../test-utils/flow-app.js';
 import { type OpenStreams, openStreams } from '../../test-utils/sse.js';
@@ -589,5 +590,78 @@ describe('when a viewer adds a team', () => {
       body: { reason: 'no-squad' },
     });
     expect(flow.db.read(rosterPath(FROGS.id))).toEqual(FROGS_ROSTER);
+  });
+});
+
+/** Releases the Frogs' claim on `discordId`'s FRU sign-up. */
+async function release(agent: Agent, discordId: string) {
+  const { status, body } = await agent.delete(
+    `/api/events/${EVENT_ID}/participants/${fru(discordId)}/claim`,
+  );
+  return { status, body };
+}
+
+describe('when a Frogs lead releases Bob, whom Team 1 has in Melee', () => {
+  it.beforeEach(({ flow }) => signIn(flow, ALICE, [FROGS_ROLE]));
+
+  it('empties his slot, and a board open on the event hears him change, then the roster', async ({
+    flow,
+    streams,
+  }) => {
+    const stream = await streams.open(
+      flow.http,
+      `/api/events/${EVENT_ID}/stream`,
+    );
+    await stream.next();
+
+    const { body: released } = await release(flow.http, BOB_ID);
+
+    const emptied = [{ ...TEAM_1, slots: {} }, TEAM_2];
+    expect({
+      stored: flow.db.read(rosterPath(FROGS.id)),
+      heard: [await stream.next(), await stream.next()],
+    }).toEqual({
+      stored: storedFrogs(emptied),
+      heard: [
+        {
+          done: false,
+          value: {
+            id: '2',
+            data: { type: 'participant-upserted', participant: released },
+          },
+        },
+        {
+          done: false,
+          value: {
+            id: '3',
+            data: { type: 'roster-updated', roster: frogsRoster(emptied) },
+          },
+        },
+      ],
+    });
+  });
+});
+
+describe('when a Frogs lead releases Carol, who has no slot', () => {
+  it('writes no roster and tells a board open on the event only that she changed', async ({
+    flow,
+  }) => {
+    await signIn(flow, ALICE, [FROGS_ROLE]);
+    const changes = recordChanges(flow, EVENT_ID);
+    const written: string[] = [];
+    onTestFinished(flow.db.onWrite((path) => written.push(path)));
+
+    await release(flow.http, CAROL_ID);
+
+    expect({ written, changes }).toEqual({
+      written: [`events/${EVENT_ID}/participants/${fru(CAROL_ID)}`],
+      changes: [
+        {
+          kind: 'participant',
+          eventId: EVENT_ID,
+          participantId: fru(CAROL_ID),
+        },
+      ],
+    });
   });
 });

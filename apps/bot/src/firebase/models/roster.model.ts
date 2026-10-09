@@ -18,7 +18,7 @@ export function rosterDocId(encounter: Encounter, squadId: string): string {
 }
 
 /** The roster with `discordId` taken out of every slot they fill. */
-function clearFromRoster(
+export function clearFromRoster(
   roster: RosterDocument,
   discordId: string,
 ): RosterDocument {

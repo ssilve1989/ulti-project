@@ -40,6 +40,14 @@ export type SlotPick =
 
 const MAX_TEAMS = 6;
 
+/** The event's rosters: `events/{eventId}/rosters/{rosterDocId}`. */
+export function rostersOf(firestore: Firestore, eventId: string) {
+  return typedCollection<RosterDocument>(
+    firestore,
+    `events/${eventId}/rosters`,
+  );
+}
+
 /** Squads' rosters: `events/{eventId}/rosters/{encounter}-{squadId}`. */
 @Injectable()
 export class RostersCollection {
@@ -60,6 +68,19 @@ export class RostersCollection {
     return (
       await this.rosters(eventId).doc(rosterDocId(encounter, squadId)).get()
     ).data();
+  }
+
+  /** Deletes every squad's roster for `encounters`, which the event no longer has. */
+  @SentryTraced()
+  public async deleteForEncounters(
+    eventId: string,
+    encounters: readonly Encounter[],
+  ): Promise<void> {
+    if (encounters.length === 0) return;
+    const snapshot = await this.rosters(eventId)
+      .where('encounter', 'in', encounters)
+      .get();
+    await Promise.all(snapshot.docs.map(({ ref }) => ref.delete()));
   }
 
   /** Adds an empty team, up to six. */
@@ -215,9 +236,6 @@ export class RostersCollection {
   }
 
   private rosters(eventId: string) {
-    return typedCollection<RosterDocument>(
-      this.firestore,
-      `events/${eventId}/rosters`,
-    );
+    return rostersOf(this.firestore, eventId);
   }
 }

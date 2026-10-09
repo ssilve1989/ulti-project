@@ -12,6 +12,10 @@ import type {
   ParticipantDocument,
 } from '../../firebase/models/event.model.js';
 import type { EventScheduleDocument } from '../../firebase/models/event-schedule.model.js';
+import {
+  type RosterDocument,
+  rosterDocId,
+} from '../../firebase/models/roster.model.js';
 import { EventSchedulerModule } from '../../jobs/event-scheduler/event-scheduler.module.js';
 import {
   runTick,
@@ -2170,6 +2174,30 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
             ),
           ],
         });
+      },
+    );
+
+    itWithScheduler(
+      "deletes TOP's rosters and keeps DMU's",
+      async ({ flow }) => {
+        const roster = (encounter: Encounter): RosterDocument => ({
+          guildId: GUILD,
+          encounter,
+          squadId: CLAIM.squadId,
+          teams: [{ id: 'team0001', slots: {} }],
+        });
+        for (const encounter of [Encounter.TOP, Encounter.DMU]) {
+          flow.db.seed(
+            `${EVENT_PATH}/rosters/${rosterDocId(encounter, CLAIM.squadId)}`,
+            roster(encounter),
+          );
+        }
+
+        await removeTop(flow);
+
+        expect(
+          flow.db.documentsIn(`${EVENT_PATH}/rosters`).map(({ data }) => data),
+        ).toEqual([roster(Encounter.DMU)]);
       },
     );
 

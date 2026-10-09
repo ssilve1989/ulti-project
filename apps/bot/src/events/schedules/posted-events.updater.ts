@@ -10,6 +10,7 @@ import { DiscordService } from '../../discord/discord.service.js';
 import { ErrorService } from '../../error/error.service.js';
 import { EventSchedulesCollection } from '../../firebase/collections/event-schedules.collection.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
+import { RostersCollection } from '../../firebase/collections/rosters.collection.js';
 import {
   EventStatus,
   type ParticipantDocument,
@@ -112,6 +113,7 @@ export class PostedEventsUpdater {
     private readonly eventBus: EventBus,
     private readonly errors: ErrorService,
     private readonly changes: EventChangesBus,
+    private readonly rosters: RostersCollection,
   ) {}
 
   /**
@@ -187,6 +189,13 @@ export class PostedEventsUpdater {
       now,
     );
     if (!updated) return undefined;
+    // before the board hears of the edit, so its snapshot has no dropped rosters
+    await this.rosters.deleteForEncounters(
+      updated.id,
+      event.encounters.filter(
+        (encounter) => !updated.encounters.includes(encounter),
+      ),
+    );
     this.changes.publish({ kind: 'event', eventId: updated.id });
 
     const removed = await this.removeDroppedSignups(updated);
@@ -213,7 +222,9 @@ export class PostedEventsUpdater {
     const removed: ParticipantDocument[] = [];
     for (const { discordId, encounter } of dropped) {
       const id = EventsCollection.participantId(discordId, encounter);
-      const participant = await this.events.removeParticipant(event.id, id);
+      // their roster went with the encounter, so there's no slot to clear
+      const participant = (await this.events.removeParticipant(event.id, id))
+        ?.removed;
       // they withdrew meanwhile
       if (!participant) continue;
       removed.push(participant);

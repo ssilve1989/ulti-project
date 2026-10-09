@@ -460,7 +460,7 @@ describe('EventsCollection', () => {
 
       expect(
         await collection.removeParticipant(EVENT_ID, PARTICIPANT_ID),
-      ).toEqual(participant);
+      ).toEqual({ removed: participant, rosterChanged: false });
       expect(db.read(PARTICIPANT_PATH)).toBeUndefined();
       expect(
         await collection.removeParticipant(EVENT_ID, PARTICIPANT_ID),
@@ -657,7 +657,10 @@ describe('EventsCollection', () => {
       ]);
 
       expect({ outcomes, stored: db.read(PARTICIPANT_PATH) }).toEqual({
-        outcomes: [aParticipant(), { kind: 'participant-missing' }],
+        outcomes: [
+          { removed: aParticipant(), rosterChanged: false },
+          { kind: 'participant-missing' },
+        ],
         stored: undefined,
       });
     });
@@ -694,6 +697,7 @@ describe('EventsCollection', () => {
       expect(await release(collection)).toEqual({
         kind: 'released',
         participant: { ...aParticipant(), id: PARTICIPANT_ID },
+        rosterChanged: false,
       });
       expect(db.read(PARTICIPANT_PATH)).toEqual(aParticipant());
     });

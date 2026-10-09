@@ -92,9 +92,18 @@ export class EventWithdrawFlow {
     encounter: Encounter,
   ): Promise<void> {
     const id = EventsCollection.participantId(interaction.user.id, encounter);
-    const removed = await this.events.removeParticipant(eventId, id);
-    if (removed) {
+    const outcome = await this.events.removeParticipant(eventId, id);
+    if (outcome) {
+      const { removed, rosterChanged } = outcome;
       this.changes.publish({ kind: 'participant', eventId, participantId: id });
+      if (rosterChanged && removed.claim) {
+        this.changes.publish({
+          kind: 'roster',
+          eventId,
+          encounter,
+          squadId: removed.claim.squadId,
+        });
+      }
       this.eventBus.publish(
         new ParticipantWithdrawnEvent(eventId, { ...removed, id }, 'withdrew'),
       );

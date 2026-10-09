@@ -105,6 +105,14 @@ export class ClaimsController {
         });
       case 'released':
         this.changed(id, pid);
+        if (outcome.rosterChanged) {
+          this.changes.publish({
+            kind: 'roster',
+            eventId: id,
+            encounter: outcome.participant.encounter,
+            squadId,
+          });
+        }
         break;
       case 'not-claimed':
         break;

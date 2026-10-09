@@ -6,6 +6,7 @@ import {
   Firestore,
   type QuerySnapshot,
   Timestamp,
+  type Transaction,
 } from 'firebase-admin/firestore';
 import { InjectFirestore } from '../firebase.decorators.js';
 import {
@@ -15,6 +16,8 @@ import {
   type ParticipantDocument,
   type StoredEvent,
 } from '../models/event.model.js';
+import { clearFromRoster, rosterDocId } from '../models/roster.model.js';
+import { rostersOf } from './rosters.collection.js';
 
 type StoredParticipant = ParticipantDocument & { id: string };
 
@@ -28,7 +31,12 @@ type ClaimOutcome =
     };
 
 type ReleaseOutcome =
-  | { kind: 'released' | 'not-claimed'; participant: StoredParticipant }
+  | {
+      kind: 'released';
+      participant: StoredParticipant;
+      rosterChanged: boolean;
+    }
+  | { kind: 'not-claimed'; participant: StoredParticipant }
   | { kind: 'event-missing' | 'participant-missing' }
   | { kind: 'claimed-by-other' };
 
@@ -218,17 +226,26 @@ class EventsCollection {
     });
   }
 
-  /** Deletes the participant, returning what was deleted. */
+  /**
+   * Deletes the participant, taking them out of their claiming squad's roster,
+   * and returns what was deleted.
+   */
   @SentryTraced()
   public removeParticipant(
     eventId: string,
     participantId: string,
-  ): Promise<ParticipantDocument | undefined> {
+  ): Promise<
+    { removed: ParticipantDocument; rosterChanged: boolean } | undefined
+  > {
     return this.firestore.runTransaction(async (tx) => {
       const ref = this.participants(eventId).doc(participantId);
-      const existing = (await tx.get(ref)).data();
-      if (existing) tx.delete(ref);
-      return existing;
+      const removed = (await tx.get(ref)).data();
+      if (!removed) return undefined;
+      const rosterChanged = removed.claim
+        ? await this.unplace(tx, eventId, removed, removed.claim.squadId)
+        : false;
+      tx.delete(ref);
+      return { removed, rosterChanged };
     });
   }
 
@@ -305,10 +322,17 @@ class EventsCollection {
         };
       }
       if (claim.squadId !== squadId) return { kind: 'claimed-by-other' };
+      const rosterChanged = await this.unplace(
+        tx,
+        eventId,
+        participant,
+        squadId,
+      );
       tx.set(ref, unclaimed);
       return {
         kind: 'released',
         participant: { ...unclaimed, id: participantId },
+        rosterChanged,
       };
     });
   }
@@ -349,6 +373,29 @@ class EventsCollection {
       this.events.doc(eventId),
       'participants',
     );
+  }
+
+  /**
+   * In `tx`, takes the participant out of `squadId`'s roster for their
+   * encounter; false if they had no slot there. It reads, then writes, so
+   * call it before the transaction's own writes.
+   */
+  private async unplace(
+    tx: Transaction,
+    eventId: string,
+    { discordId, encounter }: ParticipantDocument,
+    squadId: string,
+  ): Promise<boolean> {
+    const ref = rostersOf(this.firestore, eventId).doc(
+      rosterDocId(encounter, squadId),
+    );
+    const roster = (await tx.get(ref)).data();
+    const placed = roster?.teams.some((team) =>
+      Object.values(team.slots).some((fill) => fill.discordId === discordId),
+    );
+    if (!roster || !placed) return false;
+    tx.set(ref, clearFromRoster(roster, discordId));
+    return true;
   }
 
   /**
