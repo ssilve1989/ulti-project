@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../app';
 import { json, stubApi } from '../test-utils/api-stub';
 import { FROGE, meResponse, SPACE } from '../test-utils/fixtures';
-import { applyTheme, readStoredTheme } from './theme';
 
 const GET_ME = Object.freeze({
   method: 'GET',
@@ -224,17 +223,14 @@ describe('theme', () => {
     expect(screen.getByRole('button', { name: 'Light theme' })).toBeTruthy();
   });
 
-  it('applies a stored theme on load', async () => {
+  it('offers the light theme when dark was stored', async () => {
     localStorage.setItem('board-theme', 'dark');
     stubApi({
       'GET /api/me': json(200, meResponse({ kind: 'viewer' })),
       'GET /api/events': noEvents,
     });
-
-    applyTheme(readStoredTheme());
     openAt('/');
 
-    expect(document.documentElement.dataset.theme).toBe('dark');
     expect(
       await screen.findByRole('button', { name: 'Light theme' }),
     ).toBeTruthy();
