@@ -21,6 +21,12 @@ export interface RosterTeam {
   slots: Partial<Record<RosterSlot, SlotFill>>;
 }
 
+/** A member of the caller's squad role, whom their leads can place in a team. */
+export interface SquadHelper {
+  discordId: string;
+  displayName: string;
+}
+
 /** A squad's teams for one of an event's encounters. */
 export interface BoardRoster {
   encounter: Encounter;

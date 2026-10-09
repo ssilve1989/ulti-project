@@ -73,6 +73,21 @@ class DiscordService {
     return members;
   }
 
+  /** Everyone holding the role, from a fresh fetch of the whole guild; none if the guild lacks the role. */
+  public async getRoleMembers({
+    guildId,
+    roleId,
+  }: {
+    guildId: string;
+    roleId: string;
+  }): Promise<GuildMember[]> {
+    const guild = await this.client.guilds.fetch(guildId);
+    // `role.members` only holds cached members
+    await guild.members.fetch();
+    const role = await guild.roles.fetch(roleId);
+    return [...(role?.members.values() ?? [])];
+  }
+
   public async sendDirectMessage(
     userId: string,
     message: Parameters<DMChannel['send']>[0],
