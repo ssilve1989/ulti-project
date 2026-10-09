@@ -1,3 +1,4 @@
+export * from './board-api/access.ts';
 export * from './config/app-types.ts';
 export * from './encounters/encounters.consts.ts';
 export * from './firebase/create-firestore.ts';
