@@ -11,6 +11,7 @@ import {
 import { type Command, InvalidArgumentError } from 'commander';
 import { type Firestore, Timestamp } from 'firebase-admin/firestore';
 import { ctx } from '../../config.ts';
+import { cancelIfCancel } from '../../utils/clack.ts';
 import { getAllProgPoints } from '../../utils/firestore.ts';
 import {
   eventPhases,
@@ -53,6 +54,26 @@ function assertSeedAllowed(): void {
   if (refusal) throw new Error(refusal);
 }
 
+/** Shows what's about to be written and where; true only on an explicit yes. */
+async function confirmWrite(
+  event: EventDocument,
+  plan: string,
+): Promise<boolean> {
+  clack.note(
+    `Database: ${process.env.FIRESTORE_DATABASE_ID}\nEvent: ${event.title}\n${plan}`,
+    'About to write',
+  );
+  const ok = cancelIfCancel(
+    await clack.confirm({ message: 'Write this?', initialValue: false }),
+  );
+  if (!ok) clack.outro('Nothing written.');
+  return ok;
+}
+
+function getEvent(db: Firestore, eventId: string) {
+  return typedCollection<EventDocument>(db, 'events').doc(eventId).get();
+}
+
 function participantsOf(db: Firestore, eventId: string) {
   return typedCollection<ParticipantDocument>(
     db,
@@ -66,9 +87,7 @@ async function runSeed(
   { count, claim }: { count: number; claim?: Claim },
 ): Promise<void> {
   clack.intro(`Seed event ${eventId}`);
-  const event = (
-    await typedCollection<EventDocument>(db, 'events').doc(eventId).get()
-  ).data();
+  const event = (await getEvent(db, eventId)).data();
   if (!event) throw new Error(`Event ${eventId} doesn't exist.`);
   const settings = (
     await typedCollection<SettingsDocument>(db, 'settings')
@@ -101,6 +120,10 @@ async function runSeed(
   }
 
   const players = seedPlayers(count, encounters, new Date());
+  const claimed = claim ? Math.min(claim.count, count) : 0;
+  const plan = `Seed ${count} participant(s) over ${event.encounters.join(', ')}${claimed ? `, ${claimed} claimed by ${claim?.tag}` : ''}`;
+  if (!(await confirmWrite(event, plan))) return;
+
   const participants = participantsOf(db, eventId);
   const claimedAt = Timestamp.now();
   const batch = db.batch();
@@ -124,7 +147,9 @@ async function runSeed(
     const prog = mine.filter((p) => p.phase.bucket === 'prog').length;
     clack.log.info(`${encounter}: ${prog} prog, ${mine.length - prog} clear`);
   }
-  const claimed = claim ? Math.min(claim.count, count) : 0;
+  clack.log.warn(
+    'Re-seeding drops claims on seeded sign-ups, but roster placements stay until `unseed`.',
+  );
   clack.outro(
     `Seeded ${count} participant(s)${claimed ? `, ${claimed} claimed by ${claim?.tag}` : ''}.`,
   );
@@ -132,6 +157,8 @@ async function runSeed(
 
 async function runUnseed(db: Firestore, eventId: string): Promise<void> {
   clack.intro(`Unseed event ${eventId}`);
+  const event = (await getEvent(db, eventId)).data();
+  if (!event) throw new Error(`Event ${eventId} doesn't exist.`);
   const batch = db.batch();
 
   const participants = await participantsOf(db, eventId).get();
@@ -164,6 +191,8 @@ async function runUnseed(db: Firestore, eventId: string): Promise<void> {
     rostersChanged++;
   }
 
+  const plan = `Delete ${seeded.length} seeded participant(s) and clear their slots in ${rostersChanged} roster(s)`;
+  if (!(await confirmWrite(event, plan))) return;
   await batch.commit();
   clack.outro(
     `Removed ${seeded.length} seeded participant(s) and cleared their slots in ${rostersChanged} roster(s).`,

@@ -1,10 +1,16 @@
 import {
   Encounter,
   type EventPhase,
+  PartyStatus,
   participantDocId,
 } from '@ulti-project/shared';
 import { describe, expect, it } from 'vitest';
-import { isSeeded, seedPlayers, seedRefusal } from './seed-data.ts';
+import {
+  eventPhases,
+  isSeeded,
+  seedPlayers,
+  seedRefusal,
+} from './seed-data.ts';
 
 describe('seedRefusal', () => {
   const dev = { ALLOW_TEST_SEED: 'true', FIRESTORE_DATABASE_ID: 'dev-db' };
@@ -22,6 +28,12 @@ describe('seedRefusal', () => {
   it('refuses without a database id', () => {
     expect(seedRefusal({ ...dev, FIRESTORE_DATABASE_ID: '' })).toContain(
       'FIRESTORE_DATABASE_ID',
+    );
+  });
+
+  it('refuses under pnpm cli:prod', () => {
+    expect(seedRefusal({ ...dev, npm_lifecycle_event: 'cli:prod' })).toContain(
+      'cli:prod',
     );
   });
 
@@ -70,5 +82,32 @@ describe('seedPlayers', () => {
   it('never marks a real snowflake as seeded', () => {
     expect(isSeeded('999000123456789012')).toBe(false);
     expect(isSeeded('1234567890123456789')).toBe(false);
+  });
+});
+
+describe('eventPhases', () => {
+  it('gives each role one phase, at the furthest prog point it maps to', () => {
+    const point = (id: string, order: number, clear = false) => ({
+      id,
+      label: id,
+      order,
+      active: true,
+      partyStatus: clear ? PartyStatus.ClearParty : PartyStatus.ProgParty,
+    });
+
+    const phases = eventPhases(
+      Encounter.FRU,
+      [point('p1', 0), point('p2', 1), point('p3', 2, true)],
+      {
+        progPointRoles: { FRU: { p1: 'early', p2: 'late', p3: 'late' } },
+        clearRoles: { FRU: 'cleared' },
+      },
+    );
+
+    expect(phases).toEqual([
+      { roleId: 'early', label: 'p1', order: 0, bucket: 'prog' },
+      { roleId: 'late', label: 'p3', order: 2, bucket: 'clear' },
+      { roleId: 'cleared', label: 'Cleared', order: 3, bucket: 'clear' },
+    ]);
   });
 });

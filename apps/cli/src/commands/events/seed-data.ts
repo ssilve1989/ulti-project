@@ -30,6 +30,9 @@ export function seedRefusal(
   if (env.NODE_ENV === 'production') {
     return 'Refusing to seed: NODE_ENV is production.';
   }
+  if (env.npm_lifecycle_event === 'cli:prod') {
+    return 'Refusing to seed: this is pnpm cli:prod.';
+  }
   if (env.ALLOW_TEST_SEED !== 'true') {
     return 'Refusing to seed: ALLOW_TEST_SEED is not "true". Only the development env (pnpm cli) sets it.';
   }
@@ -40,10 +43,10 @@ export function seedRefusal(
 }
 
 /**
- * Every phase a member could sign up with for `encounter`, as
- * EventEligibilityService.resolve builds one from a role, except the label:
- * the bot uses the Discord role's name, which needs Discord, so this uses the
- * prog point's label.
+ * Every phase a member could sign up with for `encounter`: like
+ * EventEligibilityService.resolve, one per role at the furthest prog point
+ * that role maps to, plus the clear role. The label differs: the bot uses the
+ * Discord role's name, which needs Discord, so this uses the prog point's.
  */
 export function eventPhases(
   encounter: Encounter,
@@ -51,13 +54,21 @@ export function eventPhases(
   settings: SettingsDocument | undefined,
 ): EventPhase[] {
   const mapping = settings?.progPointRoles?.[encounter] ?? {};
-  const phases = progPoints.flatMap((point): EventPhase[] => {
+  const byRole = new Map<string, EventPhase>();
+  for (const point of progPoints) {
     const roleId = mapping[point.id];
-    if (roleId === undefined) return [];
-    const bucket =
-      point.partyStatus === PartyStatus.ClearParty ? 'clear' : 'prog';
-    return [{ roleId, label: point.label, order: point.order, bucket }];
-  });
+    if (roleId === undefined) continue;
+    const furthest = byRole.get(roleId);
+    // strictly greater, so a tie keeps the first, as the bot's reduce does
+    if (furthest && point.order <= furthest.order) continue;
+    byRole.set(roleId, {
+      roleId,
+      label: point.label,
+      order: point.order,
+      bucket: point.partyStatus === PartyStatus.ClearParty ? 'clear' : 'prog',
+    });
+  }
+  const phases = [...byRole.values()];
   const clearRole = settings?.clearRoles?.[encounter];
   if (clearRole) {
     phases.push({
