@@ -13,6 +13,7 @@ import {
   type DiscordAccount,
   signInAs,
 } from '../../test-utils/discord-oauth.js';
+import { recordChanges } from '../../test-utils/events.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import { createFlowApp, type HttpFlowApp } from '../../test-utils/flow-app.js';
 
@@ -228,6 +229,13 @@ async function release(flow: HttpFlowApp, path = claimPath(EVENT_ID)) {
   return { status, body };
 }
 
+/** What a board open on the roster night hears when Bob changes. */
+const BOB_CHANGED = Object.freeze({
+  kind: 'participant',
+  eventId: EVENT_ID,
+  participantId: BOB_FRU_ID,
+});
+
 const NOT_FOUND = Object.freeze({ status: 404, body: { reason: 'not-found' } });
 
 /** The Frogs' claim on Bob, made by Alice at NOW. */
@@ -273,6 +281,17 @@ describe('when a Frogs member claims a player', () => {
     });
   });
 
+  it('tells a board open on the event that the player changed, once for a repeated claim', async ({
+    flow,
+  }) => {
+    const changes = recordChanges(flow, EVENT_ID);
+
+    await claim(flow);
+    await claim(flow);
+
+    expect(changes).toEqual([BOB_CHANGED]);
+  });
+
   describe('and claims them again a minute later', () => {
     it('keeps the first claim and answers with it', async ({ flow }) => {
       await claim(flow);
@@ -304,6 +323,17 @@ describe('when a Frogs member claims a player', () => {
         body: boardBob(null),
       });
       expect(flow.db.read(bobPath(EVENT_ID))).toEqual(BOB_FRU);
+    });
+
+    it('tells a board open on the event that the player changed, once for a repeated release', async ({
+      flow,
+    }) => {
+      const changes = recordChanges(flow, EVENT_ID);
+
+      await release(flow);
+      await release(flow);
+
+      expect(changes).toEqual([BOB_CHANGED]);
     });
 
     it('answers a second release with the unclaimed player', async ({

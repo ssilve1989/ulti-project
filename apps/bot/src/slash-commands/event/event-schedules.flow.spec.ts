@@ -19,7 +19,7 @@ import {
   spiedCron,
 } from '../../test-utils/cron-tick.js';
 import { shown } from '../../test-utils/discord/fake-message.js';
-import { eventButtonRow } from '../../test-utils/events.js';
+import { eventButtonRow, recordChanges } from '../../test-utils/events.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import {
   createFlowApp,
@@ -2107,6 +2107,29 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
     );
 
     itWithScheduler(
+      'tells a board open on the event that it changed, then each removed sign-up',
+      async ({ flow }) => {
+        const changes = recordChanges(flow, EVENT_ID);
+
+        await removeTop(flow);
+
+        expect(changes).toEqual([
+          { kind: 'event', eventId: EVENT_ID },
+          {
+            kind: 'participant',
+            eventId: EVENT_ID,
+            participantId: `${BOB.id}-TOP`,
+          },
+          {
+            kind: 'participant',
+            eventId: EVENT_ID,
+            participantId: `${CAROL.id}-TOP`,
+          },
+        ]);
+      },
+    );
+
+    itWithScheduler(
       'tells each member whose sign-up was removed',
       async ({ flow }) => {
         await removeTop(flow);
@@ -2293,7 +2316,37 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
       },
     );
 
+    itWithScheduler(
+      'tells a board open on the event that it changed, and again once it moved',
+      async ({ flow }) => {
+        const changes = recordChanges(flow, EVENT_ID);
+
+        await edit(flow, { channel: RAID_CHANNEL });
+
+        expect(changes).toEqual([
+          { kind: 'event', eventId: EVENT_ID },
+          { kind: 'event', eventId: EVENT_ID },
+        ]);
+      },
+    );
+
     describe('and the bot may not send messages there', () => {
+      itWithScheduler(
+        'tells a board open on the event only that it changed',
+        async ({ flow }) => {
+          flow.discord.denySendingIn(RAID_CHANNEL);
+          const changes = recordChanges(flow, EVENT_ID);
+
+          await edit(flow, { channel: RAID_CHANNEL });
+
+          flow.expectReported(/^Sentry exception: .*Missing Permissions/s);
+          flow.expectReported(
+            new RegExp(`^error: .*event ${EVENT_ID} could not be moved`, 's'),
+          );
+          expect(changes).toEqual([{ kind: 'event', eventId: EVENT_ID }]);
+        },
+      );
+
       itWithScheduler(
         'keeps the event in its old channel, reports it, and says it could not be moved',
         async ({ flow }) => {

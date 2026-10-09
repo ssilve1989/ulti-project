@@ -7,6 +7,7 @@ import { ErrorModule } from '../error/error.module.js';
 import { FirebaseModule } from '../firebase/firebase.module.js';
 import { EventComponentsListener } from './components/event-components.listener.js';
 import { EventEligibilityService } from './eligibility/event-eligibility.service.js';
+import { EventChangesBus } from './event-changes.bus.js';
 import { EventMessageService } from './event-message.service.js';
 import { PostedEventsUpdater } from './schedules/posted-events.updater.js';
 import { SchedulePanelSession } from './schedules/schedule-panel.session.js';
@@ -22,6 +23,7 @@ import { EventWithdrawFlow } from './signup/event-withdraw.flow.js';
     ErrorModule,
   ],
   providers: [
+    EventChangesBus,
     EventMessageService,
     EventEligibilityService,
     EventSignupFlow,
@@ -32,6 +34,7 @@ import { EventWithdrawFlow } from './signup/event-withdraw.flow.js';
     ClaimedWithdrawalHandler,
   ],
   exports: [
+    EventChangesBus,
     EventMessageService,
     EventEligibilityService,
     SchedulePanelSession,

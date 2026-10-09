@@ -19,6 +19,7 @@ import type {
   ScheduleSettings,
   StoredSchedule,
 } from '../../firebase/models/event-schedule.model.js';
+import { EventChangesBus } from '../event-changes.bus.js';
 import { EventMessageService } from '../event-message.service.js';
 import { ParticipantWithdrawnEvent } from '../signup/events.events.js';
 import {
@@ -110,6 +111,7 @@ export class PostedEventsUpdater {
     private readonly discord: DiscordService,
     private readonly eventBus: EventBus,
     private readonly errors: ErrorService,
+    private readonly changes: EventChangesBus,
   ) {}
 
   /**
@@ -185,6 +187,7 @@ export class PostedEventsUpdater {
       now,
     );
     if (!updated) return undefined;
+    this.changes.publish({ kind: 'event', eventId: updated.id });
 
     const removed = await this.removeDroppedSignups(updated);
     const stays = updated.channelId === schedule.channelId;
@@ -214,6 +217,11 @@ export class PostedEventsUpdater {
       // they withdrew meanwhile
       if (!participant) continue;
       removed.push(participant);
+      this.changes.publish({
+        kind: 'participant',
+        eventId: event.id,
+        participantId: id,
+      });
       this.eventBus.publish(
         new ParticipantWithdrawnEvent(
           event.id,
@@ -250,6 +258,7 @@ export class PostedEventsUpdater {
   ): Promise<boolean> {
     try {
       await this.messages.move(event, channelId);
+      this.changes.publish({ kind: 'event', eventId: event.id });
       return true;
     } catch (error) {
       this.errors.captureError(error, {

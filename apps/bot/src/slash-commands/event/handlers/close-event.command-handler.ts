@@ -7,6 +7,7 @@ import {
 } from 'discord.js';
 import { USTimeZones } from '../../../common/time-zones.js';
 import { ErrorService } from '../../../error/error.service.js';
+import { EventChangesBus } from '../../../events/event-changes.bus.js';
 import { EventMessageService } from '../../../events/event-message.service.js';
 import {
   isOrganizer,
@@ -33,6 +34,7 @@ class CloseEventCommandHandler implements ISlashCommand {
     private readonly eventsCollection: EventsCollection,
     private readonly eventMessages: EventMessageService,
     private readonly errorService: ErrorService,
+    private readonly changes: EventChangesBus,
   ) {}
 
   @SentryTraced()
@@ -62,6 +64,7 @@ class CloseEventCommandHandler implements ISlashCommand {
       );
       return;
     }
+    this.changes.publish({ kind: 'event', eventId: id });
 
     // it's closed either way, so a message that can't be updated is only reported
     await this.eventMessages.refresh(id).catch((error: unknown) =>

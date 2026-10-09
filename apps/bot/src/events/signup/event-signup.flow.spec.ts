@@ -27,6 +27,7 @@ import { shown } from '../../test-utils/discord/fake-message.js';
 import {
   type EventButtonsEnabled,
   eventButtonRow,
+  recordChanges,
 } from '../../test-utils/events.js';
 import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
 import {
@@ -556,6 +557,22 @@ describe('Sign up', () => {
       ]);
     });
 
+    it('tells a board open on the event that they signed up', async ({
+      flow,
+    }) => {
+      const changes = recordChanges(flow, onlyEventId(flow));
+
+      await aliceSignsUp(flow);
+
+      expect(changes).toEqual([
+        {
+          kind: 'participant',
+          eventId: onlyEventId(flow),
+          participantId: 'alice-FRU',
+        },
+      ]);
+    });
+
     describe('and picks a job', () => {
       it.beforeEach(({ flow }) => aliceSignsUp(flow));
 
@@ -957,6 +974,22 @@ describe('Withdraw', () => {
           ),
         ],
       });
+    });
+
+    it('tells a board open on the event that they withdrew', async ({
+      flow,
+    }) => {
+      const changes = recordChanges(flow, onlyEventId(flow));
+
+      await click(flow, 'withdraw', ALICE.id);
+
+      expect(changes).toEqual([
+        {
+          kind: 'participant',
+          eventId: onlyEventId(flow),
+          participantId: 'alice-FRU',
+        },
+      ]);
     });
 
     it('confirms it and takes them off the post', async ({ flow }) => {

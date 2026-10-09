@@ -7,6 +7,7 @@ import {
 import type { CronJob } from 'cron';
 import { Timestamp } from 'firebase-admin/firestore';
 import { ErrorService } from '../../error/error.service.js';
+import { EventChangesBus } from '../../events/event-changes.bus.js';
 import { EventMessageService } from '../../events/event-message.service.js';
 import { signupsCloseAt } from '../../events/schedules/next-occurrence.js';
 import { EventSchedulesCollection } from '../../firebase/collections/event-schedules.collection.js';
@@ -34,6 +35,7 @@ export class EventSchedulerJob
     private readonly messages: EventMessageService,
     private readonly schedules: EventSchedulesCollection,
     private readonly errors: ErrorService,
+    private readonly changes: EventChangesBus,
   ) {
     this.job = createJob('event-scheduler', {
       cronTime: '* * * * *',
@@ -66,7 +68,9 @@ export class EventSchedulerJob
     for (const due of await this.events.findDueToCloseSignups(now)) {
       try {
         const closed = await this.events.closeSignups(due.id);
-        if (closed) await this.messages.refresh(closed.id);
+        if (!closed) continue;
+        this.changes.publish({ kind: 'event', eventId: closed.id });
+        await this.messages.refresh(closed.id);
       } catch (error) {
         this.errors.captureError(error, {
           message: `Failed to close sign-ups for event ${due.id}`,

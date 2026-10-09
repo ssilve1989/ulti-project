@@ -12,6 +12,7 @@ import { shown } from '../../test-utils/discord/fake-message.js';
 import {
   type EventButtonsEnabled,
   eventButtonRow,
+  recordChanges,
 } from '../../test-utils/events.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import {
@@ -479,6 +480,21 @@ describe('/event close', () => {
     });
   });
 
+  describe('when an organizer closes an event a board has open', () => {
+    it('tells the board the event changed, and not again for a second close', async ({
+      flow,
+    }) => {
+      await createEvent(flow);
+      const id = onlyEventId(flow);
+      const changes = recordChanges(flow, id);
+
+      await event(flow, 'close', { event: id });
+      await event(flow, 'close', { event: id });
+
+      expect(changes).toEqual([{ kind: 'event', eventId: id }]);
+    });
+  });
+
   describe('when an organizer closes an event that does not exist', () => {
     it('says so, privately', async ({ flow }) => {
       await event(flow, 'close', { event: 'missing' });
@@ -713,6 +729,46 @@ describe('the event-scheduler job', () => {
         expect(flow.db.read(GONE_PATH)).toEqual({
           ...gone,
           status: 'signups-closed',
+        });
+      },
+    );
+  });
+
+  describe('when events boards have open pass their sign-up close time', () => {
+    itWithScheduler(
+      'tells each board its event changed once, even when the event cannot be shown',
+      async ({ flow, cron }) => {
+        await createEvent(flow, { 'signups-close': String(CLOSE_S) });
+        const id = onlyEventId(flow);
+        flow.db.seed('events/gone', {
+          guildId: 'left-guild',
+          title: 'Old server night',
+          startsAt: Timestamp.fromDate(START),
+          signupsCloseAt: Timestamp.fromDate(NOW),
+          signupsCloseDueAt: Timestamp.fromDate(NOW),
+          encounters: [Encounter.DMU],
+          channelId: 'left-channel',
+          messageId: 'left-message',
+          createdBy: ORGANIZER.id,
+          status: 'open',
+        });
+        const changes = {
+          own: recordChanges(flow, id),
+          gone: recordChanges(flow, 'gone'),
+        };
+        vi.setSystemTime(AFTER_CLOSE);
+
+        await runTick(cron.from);
+        await runTick(cron.from);
+        await flow.settle();
+
+        flow.expectReported(/^Sentry exception: .*Unknown Guild/s);
+        flow.expectReported(
+          /^error: .*Failed to close sign-ups for event gone/s,
+        );
+        expect(changes).toEqual({
+          own: [{ kind: 'event', eventId: id }],
+          gone: [{ kind: 'event', eventId: 'gone' }],
         });
       },
     );

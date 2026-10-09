@@ -10,6 +10,7 @@ import { recordExpiredPrompt } from '../../discord/discord.helpers.js';
 import { ErrorService } from '../../error/error.service.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
 import { EventStatus } from '../../firebase/models/event.model.js';
+import { EventChangesBus } from '../event-changes.bus.js';
 import { EventMessageService } from '../event-message.service.js';
 import { ParticipantWithdrawnEvent } from './events.events.js';
 import {
@@ -29,6 +30,7 @@ export class EventWithdrawFlow {
     private readonly eventMessages: EventMessageService,
     private readonly eventBus: EventBus,
     private readonly errorService: ErrorService,
+    private readonly changes: EventChangesBus,
   ) {}
 
   async start(
@@ -92,6 +94,7 @@ export class EventWithdrawFlow {
     const id = EventsCollection.participantId(interaction.user.id, encounter);
     const removed = await this.events.removeParticipant(eventId, id);
     if (removed) {
+      this.changes.publish({ kind: 'participant', eventId, participantId: id });
       this.eventBus.publish(
         new ParticipantWithdrawnEvent(eventId, { ...removed, id }, 'withdrew'),
       );

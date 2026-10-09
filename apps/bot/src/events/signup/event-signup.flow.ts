@@ -31,6 +31,7 @@ import {
   type StoredEvent,
 } from '../../firebase/models/event.model.js';
 import { EventEligibilityService } from '../eligibility/event-eligibility.service.js';
+import { EventChangesBus } from '../event-changes.bus.js';
 import { EventMessageService } from '../event-message.service.js';
 import { jobBadge } from '../render/event-message.renderer.js';
 import {
@@ -82,6 +83,7 @@ export class EventSignupFlow {
     private readonly settings: SettingsCollection,
     private readonly sessions: ComponentSessionService,
     private readonly eventMessages: EventMessageService,
+    private readonly changes: EventChangesBus,
   ) {}
 
   async start(
@@ -173,6 +175,14 @@ export class EventSignupFlow {
       ...signup,
       discordId: interaction.user.id,
       signedUpAt: Timestamp.now(),
+    });
+    this.changes.publish({
+      kind: 'participant',
+      eventId,
+      participantId: EventsCollection.participantId(
+        interaction.user.id,
+        signup.encounter,
+      ),
     });
     await interaction.editReply({
       content: `You're signed up for **${EncounterFriendlyDescription[signup.encounter]}** as ${jobBadge(signup.job, jobEmojis)} ${JOB_NAME[signup.job]}.`,
