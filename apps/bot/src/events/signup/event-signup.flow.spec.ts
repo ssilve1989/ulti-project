@@ -1052,6 +1052,42 @@ describe('Withdraw', () => {
     });
   });
 
+  describe('when Firestore becomes unreachable as a claimed member withdraws', () => {
+    it('removes them, confirms it, and reports the failed alert', async ({
+      flow,
+    }) => {
+      await configureModeration(flow);
+      await aliceIsClaimed(flow);
+      // her only sign-up; listing a collection fails once Firestore is unreachable
+      const aliceFru = `${participantsPath(flow)}/alice-FRU`;
+      // the removal lands; everything read after it fails
+      const stop = flow.db.onWrite((path) => {
+        if (path === aliceFru) flow.db.goOffline();
+      });
+      try {
+        await aliceWithdraws(flow);
+      } finally {
+        stop();
+      }
+
+      expect({
+        reply: replies(flow, ALICE.id).at(-1),
+        aliceFru: flow.db.read(aliceFru),
+        moderation: moderationChannel(flow),
+      }).toEqual({
+        reply: privately(ALICE.id, `You've withdrawn from **${FRU}**.`),
+        aliceFru: undefined,
+        moderation: [],
+      });
+      flow.expectReported(/^error: .*claimed-withdrawal alert failed/s);
+      flow.expectReported(
+        /^error: .*Failed to refresh event .* after a withdrawal/s,
+      );
+      flow.expectReported(/^Sentry exception: .*UNAVAILABLE/s);
+      flow.expectReported(/^Sentry exception: .*UNAVAILABLE/s);
+    });
+  });
+
   describe("when a member withdraws and the post can't be updated", () => {
     it('removes them and still confirms it', async ({ flow }) => {
       await aliceSignsUp(flow);

@@ -2,15 +2,18 @@ import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import { EncounterFriendlyDescription, JOB_NAME } from '@ulti-project/shared';
 import {
+  DiscordAPIError,
   EmbedBuilder,
   hyperlink,
   messageLink,
+  RESTJSONErrorCodes,
   TimestampStyles,
   time,
   userMention,
 } from 'discord.js';
 import { titleCase } from 'title-case';
 import { DiscordService } from '../../discord/discord.service.js';
+import { ErrorService } from '../../error/error.service.js';
 import { jobBadge } from '../../events/render/event-message.renderer.js';
 import { ParticipantWithdrawnEvent } from '../../events/signup/events.events.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
@@ -23,10 +26,20 @@ import type { SettingsDocument } from '../../firebase/models/settings.model.js';
 
 type Claim = NonNullable<ParticipantDocument['claim']>;
 
+/** Why Discord refuses a post to a channel that's gone or that the bot may not use. */
+const UNPOSTABLE: ReadonlySet<number | string> = new Set([
+  RESTJSONErrorCodes.UnknownChannel,
+  RESTJSONErrorCodes.MissingAccess,
+  RESTJSONErrorCodes.MissingPermissions,
+]);
+
+const isUnpostable = (error: unknown) =>
+  error instanceof DiscordAPIError && UNPOSTABLE.has(error.code);
+
 /**
  * Tells the guild's moderators when a player a squad had claimed leaves an
- * event. The withdrawal has already happened, so an alert that can't be sent
- * is only logged.
+ * event. The withdrawal has already happened, so the alert never throws: one
+ * with nowhere to go is only logged, and anything else is reported.
  */
 @EventsHandler(ParticipantWithdrawnEvent)
 export class ClaimedWithdrawalHandler
@@ -38,6 +51,7 @@ export class ClaimedWithdrawalHandler
     private readonly events: EventsCollection,
     private readonly settings: SettingsCollection,
     private readonly discord: DiscordService,
+    private readonly errors: ErrorService,
   ) {}
 
   async handle(withdrawn: ParticipantWithdrawnEvent): Promise<void> {
@@ -46,7 +60,13 @@ export class ClaimedWithdrawalHandler
     try {
       await this.alert(withdrawn, claim);
     } catch (error) {
-      this.warn(withdrawn, String(error));
+      if (isUnpostable(error)) {
+        this.warn(withdrawn, String(error));
+        return;
+      }
+      this.errors.captureError(error, {
+        message: 'claimed-withdrawal alert failed',
+      });
     }
   }
 
@@ -55,7 +75,10 @@ export class ClaimedWithdrawalHandler
     claim: Claim,
   ): Promise<void> {
     const event = await this.events.get(withdrawn.eventId);
-    if (!event) throw new Error('the event no longer exists');
+    if (!event) {
+      this.warn(withdrawn, 'the event no longer exists');
+      return;
+    }
     const settings = await this.settings.getSettings(event.guildId);
     const channelId = settings?.autoModChannelId;
     if (!channelId) {
@@ -66,7 +89,10 @@ export class ClaimedWithdrawalHandler
       guildId: event.guildId,
       channelId,
     });
-    if (!channel) throw new Error(`${channelId} is not a text channel`);
+    if (!channel) {
+      this.warn(withdrawn, `${channelId} is not a text channel`);
+      return;
+    }
     await channel.send({
       embeds: [claimedWithdrawalEmbed(withdrawn, claim, event, settings)],
       allowedMentions: { parse: [] },
