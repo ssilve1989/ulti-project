@@ -1,6 +1,7 @@
 import type { Encounter } from '../encounters/encounters.consts.ts';
 import type { Job, JobRole } from '../jobs/jobs.consts.ts';
 import type { SquadView } from './access.ts';
+import type { BoardRoster } from './rosters.ts';
 
 /** An event in `GET /api/events`. */
 export interface BoardEventSummary {
@@ -41,4 +42,6 @@ export interface BoardEvent {
   }[];
   participants: BoardParticipant[];
   squads: SquadView[];
+  /** Rosters of the squads still in settings. */
+  rosters: BoardRoster[];
 }

@@ -66,6 +66,7 @@ export function boardEvent(overrides?: Partial<BoardEvent>): BoardEvent {
     ],
     participants: [],
     squads: [FROGE, SPACE],
+    rosters: [],
     ...overrides,
   };
 }

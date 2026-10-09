@@ -25,6 +25,7 @@ const SNAPSHOT: BoardEvent = Object.freeze({
   encounters: [{ id: Encounter.FRU, name: '[FRU] Futures Rewritten' }],
   participants: [],
   squads: [],
+  rosters: [],
 });
 
 const participant = (discordId: string): BoardParticipant => ({

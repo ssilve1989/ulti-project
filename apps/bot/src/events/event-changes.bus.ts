@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import type { Encounter } from '@ulti-project/shared';
 import { filter, type Observable, Subject } from 'rxjs';
 
 /** What changed in an event, by id only: the board reads the rest. */
 export type EventChange =
   | { kind: 'participant'; eventId: string; participantId: string }
-  | { kind: 'event'; eventId: string };
+  | { kind: 'event'; eventId: string }
+  | { kind: 'roster'; eventId: string; encounter: Encounter; squadId: string };
 
 /**
  * Carries event changes, in process, to the board's open streams. Publish a

@@ -41,6 +41,17 @@ export class EventStreamService {
       }
       return { type: 'snapshot', event };
     }
+    if (change.kind === 'roster') {
+      return {
+        type: 'roster-updated',
+        roster: await this.reader.roster(
+          guildId,
+          change.eventId,
+          change.encounter,
+          change.squadId,
+        ),
+      };
+    }
     const participant = await this.reader.participant(
       guildId,
       change.eventId,

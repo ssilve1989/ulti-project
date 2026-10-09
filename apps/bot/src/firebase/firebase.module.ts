@@ -7,6 +7,7 @@ import { EncountersCollection } from './collections/encounters-collection.js';
 import { EventSchedulesCollection } from './collections/event-schedules.collection.js';
 import { EventsCollection } from './collections/events.collection.js';
 import { JobCollection } from './collections/job/job.collection.js';
+import { RostersCollection } from './collections/rosters.collection.js';
 import { SettingsCollection } from './collections/settings-collection.js';
 import { SignupCollection } from './collections/signup.collection.js';
 import { FIRESTORE } from './firebase.consts.js';
@@ -30,6 +31,7 @@ import { FIRESTORE } from './firebase.consts.js';
     EncountersCollection,
     EventsCollection,
     EventSchedulesCollection,
+    RostersCollection,
   ],
   exports: [
     FIRESTORE,
@@ -40,6 +42,7 @@ import { FIRESTORE } from './firebase.consts.js';
     EncountersCollection,
     EventsCollection,
     EventSchedulesCollection,
+    RostersCollection,
   ],
 })
 export class FirebaseModule {}

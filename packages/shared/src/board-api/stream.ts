@@ -1,4 +1,5 @@
 import type { BoardEvent, BoardParticipant } from './events.ts';
+import type { BoardRoster } from './rosters.ts';
 
 /**
  * A message on `GET /api/events/:id/stream`, as each SSE message's JSON
@@ -9,4 +10,5 @@ import type { BoardEvent, BoardParticipant } from './events.ts';
 export type BoardStreamMessage =
   | { type: 'snapshot'; event: BoardEvent }
   | { type: 'participant-upserted'; participant: BoardParticipant }
-  | { type: 'participant-removed'; participantId: string };
+  | { type: 'participant-removed'; participantId: string }
+  | { type: 'roster-updated'; roster: BoardRoster };

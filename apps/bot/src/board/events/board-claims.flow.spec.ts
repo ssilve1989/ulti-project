@@ -539,6 +539,7 @@ describe('when the Owls have claimed the player and an admin then removes the Ow
         encounters: [{ id: Encounter.FRU, name: '[FRU] Futures Rewritten' }],
         participants: [boardBob(null)],
         squads: [{ id: FROGS.id, name: 'Frogs', tag: 'FRG', color: '#16a34a' }],
+        rosters: [],
       },
     });
   });

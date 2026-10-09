@@ -2,6 +2,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import {
   type BoardEvent,
   type BoardParticipant,
+  type BoardRoster,
   type BoardStreamMessage,
   Encounter,
   Job,
@@ -23,6 +24,7 @@ import {
   type ParticipantDocument,
 } from '../../firebase/models/event.model.js';
 import type { EventScheduleDocument } from '../../firebase/models/event-schedule.model.js';
+import { rosterDocId } from '../../firebase/models/roster.model.js';
 import {
   type DiscordAccount,
   signInAs,
@@ -132,6 +134,25 @@ const BOB_FRU: ParticipantDocument = Object.freeze<ParticipantDocument>({
   signedUpAt: at('2026-10-07T12:00:00Z'),
 });
 
+/** The Frogs' FRU teams: a helper in the first, the second empty. */
+const FROGS_FRU_ROSTER: BoardRoster = Object.freeze<BoardRoster>({
+  encounter: Encounter.FRU,
+  squadId: FROGS.id,
+  teams: [
+    {
+      id: 'team-a',
+      slots: {
+        'shield-healer': {
+          kind: 'helper',
+          discordId: DAVE.id,
+          displayName: 'Dave',
+        },
+      },
+    },
+    { id: 'team-b', slots: {} },
+  ],
+});
+
 /** Bob as the board shows him, with `claim`. */
 function boardBob(claim: BoardParticipant['claim'] = null): BoardParticipant {
   return {
@@ -159,6 +180,7 @@ function boardRosterNight(overrides: Partial<BoardEvent> = {}): BoardEvent {
     encounters: [{ id: Encounter.FRU, name: '[FRU] Futures Rewritten' }],
     participants: [boardBob()],
     squads: [FROGS],
+    rosters: [FROGS_FRU_ROSTER],
     ...overrides,
   };
 }
@@ -175,7 +197,8 @@ const ENDED = Object.freeze({ done: true, value: undefined });
 /**
  * Boots the board at NOW with a viewer role, the Frogs and FRU's P4 role,
  * an organizer, Bob signed up for the roster night its schedule posted, Carol
- * approved for FRU, a second posted night, and another guild's night.
+ * approved for FRU, the Frogs' FRU teams, a second posted night, and another
+ * guild's night.
  */
 async function startFlow(): Promise<HttpFlowApp> {
   vi.useFakeTimers({ toFake: ['Date'] });
@@ -237,6 +260,10 @@ async function startFlow(): Promise<HttpFlowApp> {
     flow.db.seed(`events/${EVENT_ID}`, ROSTER_NIGHT);
     await flow.get(EventMessageService).post({ ...ROSTER_NIGHT, id: EVENT_ID });
     flow.db.seed(`events/${EVENT_ID}/participants/${BOB_FRU_ID}`, BOB_FRU);
+    flow.db.seed(
+      `events/${EVENT_ID}/rosters/${rosterDocId(Encounter.FRU, FROGS.id)}`,
+      { guildId: GUILD, ...FROGS_FRU_ROSTER },
+    );
     flow.db.seed(`events/${OTHER_EVENT_ID}`, OTHER_NIGHT);
     await flow
       .get(EventMessageService)

@@ -1,6 +1,7 @@
 import {
   type BoardEvent,
   type BoardEventSummary,
+  type BoardRoster,
   Encounter,
   Job,
 } from '@ulti-project/shared';
@@ -13,6 +14,10 @@ import {
   EventStatus,
   type ParticipantDocument,
 } from '../../firebase/models/event.model.js';
+import {
+  type RosterDocument,
+  rosterDocId,
+} from '../../firebase/models/roster.model.js';
 import {
   type DiscordAccount,
   signInAs,
@@ -110,6 +115,41 @@ const CAROL_TOP: ParticipantDocument = Object.freeze<ParticipantDocument>({
   signedUpAt: at('2026-10-07T13:00:00Z'),
 });
 
+/** The Frogs' FRU teams: Bob tanks and Alice helps in the first; the second is empty. */
+const FROGS_FRU_ROSTER: BoardRoster = Object.freeze<BoardRoster>({
+  encounter: Encounter.FRU,
+  squadId: FROGS.id,
+  teams: [
+    {
+      id: 'team-a',
+      slots: {
+        'tank-1': {
+          kind: 'progger',
+          participantId: `${BOB.id}-FRU`,
+          discordId: BOB.id,
+        },
+        'regen-healer': {
+          kind: 'helper',
+          discordId: ALICE.id,
+          displayName: 'Alice',
+        },
+      },
+    },
+    { id: 'team-b', slots: {} },
+  ],
+});
+
+function seedRoster(
+  flow: HttpFlowApp,
+  eventId: string,
+  roster: RosterDocument,
+): void {
+  flow.db.seed(
+    `events/${eventId}/rosters/${rosterDocId(roster.encounter, roster.squadId)}`,
+    roster,
+  );
+}
+
 function seedParticipant(
   flow: HttpFlowApp,
   eventId: string,
@@ -122,11 +162,62 @@ function seedParticipant(
   flow.db.seed(`events/${eventId}/participants/${id}`, participant);
 }
 
+/** The roster night as the board shows it. */
+const BOARD_ROSTER_EVENT: BoardEvent = Object.freeze<BoardEvent>({
+  id: ROSTER_EVENT_ID,
+  title: 'FRU + TOP prog night',
+  startsAt: '2026-10-12T20:00:00.000Z',
+  signupsCloseAt: '2026-10-12T18:00:00.000Z',
+  status: 'open',
+  encounters: [
+    {
+      id: Encounter.FRU,
+      name: '[FRU] Futures Rewritten',
+      progPartyThreshold: 'P3',
+      clearPartyThreshold: 'P5',
+    },
+    { id: Encounter.TOP, name: '[TOP] The Omega Protocol' },
+  ],
+  participants: [
+    {
+      id: `${BOB.id}-FRU`,
+      encounter: Encounter.FRU,
+      discordId: BOB.id,
+      displayName: BOB.nickname,
+      character: 'bob bobson',
+      world: 'jenova',
+      job: Job.WAR,
+      jobRole: 'tank',
+      phase: { label: 'P4', order: 4, bucket: 'prog' },
+      claim: {
+        squadId: FROGS.id,
+        claimedBy: ALICE.id,
+        claimedAt: '2026-10-08T09:30:00.000Z',
+      },
+    },
+    {
+      id: `${CAROL_ID}-TOP`,
+      encounter: Encounter.TOP,
+      discordId: CAROL_ID,
+      // she has left the guild, so she's named by her character
+      displayName: 'Carol Carolson',
+      character: 'carol carolson',
+      world: 'gilgamesh',
+      job: Job.SGE,
+      jobRole: 'healer',
+      phase: { label: 'Cleared', order: 9, bucket: 'clear' },
+      claim: null,
+    },
+  ],
+  squads: [FROGS],
+  rosters: [FROGS_FRU_ROSTER],
+});
+
 /**
  * Boots the board at NOW with a viewer role and a squad, Bob in the guild,
- * and the guild's events: the roster night (Bob, claimed by the Frogs, and
- * Carol, who has since left), a TOP night whose sign-ups have closed, a
- * closed event, and another guild's event.
+ * and the guild's events: the roster night (Bob, claimed by the Frogs, Carol,
+ * who has since left, and the Frogs' FRU teams), a TOP night whose sign-ups
+ * have closed, a closed event, and another guild's event.
  */
 async function startFlow(): Promise<HttpFlowApp> {
   vi.useFakeTimers({ toFake: ['Date'] });
@@ -167,6 +258,7 @@ async function startFlow(): Promise<HttpFlowApp> {
     flow.db.seed(`events/${ROSTER_EVENT_ID}`, ROSTER_EVENT);
     seedParticipant(flow, ROSTER_EVENT_ID, BOB_FRU);
     seedParticipant(flow, ROSTER_EVENT_ID, CAROL_TOP);
+    seedRoster(flow, ROSTER_EVENT_ID, { guildId: GUILD, ...FROGS_FRU_ROSTER });
     flow.db.seed(`events/${CLOSED_SIGNUPS_EVENT_ID}`, CLOSED_SIGNUPS_EVENT);
     seedParticipant(flow, CLOSED_SIGNUPS_EVENT_ID, {
       ...CAROL_TOP,
@@ -263,61 +355,28 @@ describe('when a viewer lists the events', () => {
 describe('when a viewer opens an event', () => {
   it.beforeEach(({ flow }) => signInAViewer(flow));
 
-  it('shows its roster by guild name, with claims, phases and squads', async ({
+  it('shows its roster by guild name, with claims, phases, squads and their teams', async ({
     flow,
   }) => {
-    const event: BoardEvent = {
-      id: ROSTER_EVENT_ID,
-      title: 'FRU + TOP prog night',
-      startsAt: '2026-10-12T20:00:00.000Z',
-      signupsCloseAt: '2026-10-12T18:00:00.000Z',
-      status: 'open',
-      encounters: [
-        {
-          id: Encounter.FRU,
-          name: '[FRU] Futures Rewritten',
-          progPartyThreshold: 'P3',
-          clearPartyThreshold: 'P5',
-        },
-        { id: Encounter.TOP, name: '[TOP] The Omega Protocol' },
-      ],
-      participants: [
-        {
-          id: `${BOB.id}-FRU`,
-          encounter: Encounter.FRU,
-          discordId: BOB.id,
-          displayName: BOB.nickname,
-          character: 'bob bobson',
-          world: 'jenova',
-          job: Job.WAR,
-          jobRole: 'tank',
-          phase: { label: 'P4', order: 4, bucket: 'prog' },
-          claim: {
-            squadId: FROGS.id,
-            claimedBy: ALICE.id,
-            claimedAt: '2026-10-08T09:30:00.000Z',
-          },
-        },
-        {
-          id: `${CAROL_ID}-TOP`,
-          encounter: Encounter.TOP,
-          discordId: CAROL_ID,
-          // she has left the guild, so she's named by her character
-          displayName: 'Carol Carolson',
-          character: 'carol carolson',
-          world: 'gilgamesh',
-          job: Job.SGE,
-          jobRole: 'healer',
-          phase: { label: 'Cleared', order: 9, bucket: 'clear' },
-          claim: null,
-        },
-      ],
-      squads: [FROGS],
-    };
+    await expect(get(flow, `/api/events/${ROSTER_EVENT_ID}`)).resolves.toEqual({
+      status: 200,
+      body: BOARD_ROSTER_EVENT,
+    });
+  });
+
+  it("hides the roster of a squad that's no longer in settings", async ({
+    flow,
+  }) => {
+    seedRoster(flow, ROSTER_EVENT_ID, {
+      guildId: GUILD,
+      encounter: Encounter.FRU,
+      squadId: 'disbanded',
+      teams: [{ id: 'team-c', slots: {} }],
+    });
 
     await expect(get(flow, `/api/events/${ROSTER_EVENT_ID}`)).resolves.toEqual({
       status: 200,
-      body: event,
+      body: BOARD_ROSTER_EVENT,
     });
   });
 

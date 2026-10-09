@@ -6,6 +6,7 @@ import { DISCORD_CLIENT } from '../../discord/discord.decorators.js';
 import { DiscordService } from '../../discord/discord.service.js';
 import { EncountersCollection } from '../../firebase/collections/encounters-collection.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
+import { RostersCollection } from '../../firebase/collections/rosters.collection.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { FIRESTORE } from '../../firebase/firebase.consts.js';
 import {
@@ -69,6 +70,7 @@ const it = base.extend<Fixtures>({
         EventsCollection,
         EncountersCollection,
         SettingsCollection,
+        RostersCollection,
         DiscordService,
         { provide: FIRESTORE, useValue: db },
         { provide: DISCORD_CLIENT, useValue: discord.client },

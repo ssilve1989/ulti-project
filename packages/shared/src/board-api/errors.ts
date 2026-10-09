@@ -17,6 +17,10 @@ export type BoardErrorBody =
         | 'bad-request'
         | 'payload-too-large'
         | 'unsupported-media-type'
+        | 'not-claimed'
+        | 'not-a-helper'
+        | 'team-limit'
+        | 'team-not-empty'
         | 'internal';
     }
   | {

@@ -3,6 +3,8 @@ import {
   type BoardEvent,
   type BoardEventSummary,
   type BoardParticipant,
+  type BoardRoster,
+  type Encounter,
   EncounterFriendlyDescription,
   JOB_ROLE,
 } from '@ulti-project/shared';
@@ -10,11 +12,13 @@ import { titleCase } from 'title-case';
 import { DiscordService } from '../../discord/discord.service.js';
 import { EncountersCollection } from '../../firebase/collections/encounters-collection.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
+import { RostersCollection } from '../../firebase/collections/rosters.collection.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import type {
   ParticipantDocument,
   StoredEvent,
 } from '../../firebase/models/event.model.js';
+import type { RosterDocument } from '../../firebase/models/roster.model.js';
 import { squadsOf } from '../squads.js';
 import { isEventId } from './board-ids.js';
 
@@ -26,6 +30,7 @@ export class BoardEventReader {
     private readonly encountersCollection: EncountersCollection,
     private readonly settingsCollection: SettingsCollection,
     private readonly discordService: DiscordService,
+    private readonly rostersCollection: RostersCollection,
   ) {}
 
   /** The guild's events that aren't closed, earliest first. */
@@ -48,7 +53,7 @@ export class BoardEventReader {
   async get(guildId: string, eventId: string): Promise<BoardEvent | undefined> {
     const event = await this.event(guildId, eventId);
     if (event === undefined) return undefined;
-    const [documents, encounters, settings] = await Promise.all([
+    const [documents, encounters, settings, rosters] = await Promise.all([
       this.eventsCollection.listParticipants(eventId),
       Promise.all(
         event.encounters.map(async (id) => {
@@ -66,7 +71,10 @@ export class BoardEventReader {
         }),
       ),
       this.settingsCollection.getSettings(guildId),
+      this.rostersCollection.list(eventId),
     ]);
+    const squads = squadsOf(settings);
+    const squadIds = new Set(squads.map(({ id }) => id));
     return {
       id: event.id,
       title: event.title,
@@ -75,13 +83,34 @@ export class BoardEventReader {
       status: event.status,
       encounters,
       participants: await this.participants(guildId, documents),
-      squads: squadsOf(settings).map(({ id, name, tag, color }) => ({
+      squads: squads.map(({ id, name, tag, color }) => ({
         id,
         name,
         tag,
         color,
       })),
+      // a squad the guild no longer has is hidden, as its claims are
+      rosters: rosters
+        .filter(({ squadId }) => squadIds.has(squadId))
+        .map(BoardEventReader.boardRoster),
     };
+  }
+
+  /** The squad's roster for the encounter, with no teams if it has none, or it's another guild's. */
+  async roster(
+    guildId: string,
+    eventId: string,
+    encounter: Encounter,
+    squadId: string,
+  ): Promise<BoardRoster> {
+    const document = await this.rostersCollection.get(
+      eventId,
+      encounter,
+      squadId,
+    );
+    return document?.guildId === guildId
+      ? BoardEventReader.boardRoster(document)
+      : { encounter, squadId, teams: [] };
   }
 
   /** One participant of the event, or undefined if they or the event are missing, or it's another guild's. */
@@ -111,6 +140,14 @@ export class BoardEventReader {
     if (!isEventId(eventId)) return undefined;
     const event = await this.eventsCollection.get(eventId);
     return event?.guildId === guildId ? event : undefined;
+  }
+
+  private static boardRoster({
+    encounter,
+    squadId,
+    teams,
+  }: RosterDocument): BoardRoster {
+    return { encounter, squadId, teams };
   }
 
   /**
