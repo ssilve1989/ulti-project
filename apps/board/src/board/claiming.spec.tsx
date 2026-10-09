@@ -329,7 +329,7 @@ describe('a player who withdraws while a claim is in flight', () => {
     source.send({ type: 'participant-removed', participantId: aeryn.id });
     answer.answer(json(200, aerynClaimedBy(FROGE.id)));
 
-    await waitFor(() => expect(strip()).not.toEqual([]));
+    await waitFor(() => expect(strip()).toEqual(CLAIMED_STRIP));
     expect(progRows()).toEqual([BRICKTOP_ROW]);
   });
 });
@@ -359,6 +359,20 @@ describe("releasing one of your squad's players", () => {
     );
     expect(progRows()).toEqual([AERYN_FRG, BRICKTOP_ROW]);
     expect(sent).toEqual([GET_ME, SENT_RELEASE, SENT_CLAIM]);
+  });
+
+  it('is rolled back when the network fails', async () => {
+    await openBoard(
+      { [RELEASE]: () => Promise.reject(new TypeError('Failed to fetch')) },
+      {
+        event: { ...EVENT, participants: [aerynClaimedBy(FROGE.id), bricktop] },
+      },
+    );
+
+    click(RELEASE_AERYN);
+
+    await waitFor(() => expect(strip()).toEqual([UNREACHABLE, 'Dismiss']));
+    expect(progRows()).toEqual([AERYN_FRG, BRICKTOP_ROW]);
   });
 });
 
