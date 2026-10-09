@@ -35,8 +35,9 @@ import { boardContextOf } from '../access/board-context.js';
 import { BoardSessionGuard } from '../access/board-session.guard.js';
 import { CanClaim } from '../access/can-claim.decorator.js';
 import { squadsOf } from '../squads.js';
-import { BoardEventReader } from './board-event.reader.js';
-import { isParticipantId } from './board-ids.js';
+import { isEventId, isParticipantId } from './board-ids.js';
+
+const GUILD = boardConfig.GUILD_ID;
 
 const notFound = () =>
   new BoardHttpError(HttpStatus.NOT_FOUND, { reason: 'not-found' });
@@ -58,7 +59,6 @@ const SlotBody = z.discriminatedUnion('kind', [
 @UseGuards(BoardSessionGuard)
 export class RostersController {
   constructor(
-    private readonly reader: BoardEventReader,
     private readonly rosters: RostersCollection,
     private readonly changes: EventChangesBus,
     private readonly settings: SettingsCollection,
@@ -74,14 +74,14 @@ export class RostersController {
     @Req() request: Request,
   ): Promise<BoardRoster> {
     const squadId = squadOf(request);
-    const known = await this.encounterOf(id, encounter);
+    const known = encounterOf(id, encounter);
     return this.answer(
       id,
       await this.rosters.addTeam(
         id,
         known,
         squadId,
-        boardConfig.GUILD_ID,
+        GUILD,
         randomUUID().slice(0, 8),
       ),
     );
@@ -96,10 +96,10 @@ export class RostersController {
     @Req() request: Request,
   ): Promise<BoardRoster> {
     const squadId = squadOf(request);
-    const known = await this.encounterOf(id, encounter);
+    const known = encounterOf(id, encounter);
     return this.answer(
       id,
-      await this.rosters.removeTeam(id, known, squadId, teamId),
+      await this.rosters.removeTeam(id, known, squadId, GUILD, teamId),
     );
   }
 
@@ -114,7 +114,7 @@ export class RostersController {
     @Req() request: Request,
   ): Promise<BoardRoster> {
     const squadId = squadOf(request);
-    const known = await this.encounterOf(id, encounter);
+    const known = encounterOf(id, encounter);
     const rosterSlot = slotOf(slot);
     const parsed = SlotBody.safeParse(body);
     if (!parsed.success) {
@@ -128,7 +128,15 @@ export class RostersController {
         : parsed.data;
     return this.answer(
       id,
-      await this.rosters.fillSlot(id, known, squadId, teamId, rosterSlot, pick),
+      await this.rosters.fillSlot(
+        id,
+        known,
+        squadId,
+        GUILD,
+        teamId,
+        rosterSlot,
+        pick,
+      ),
     );
   }
 
@@ -142,33 +150,27 @@ export class RostersController {
     @Req() request: Request,
   ): Promise<BoardRoster> {
     const squadId = squadOf(request);
-    const known = await this.encounterOf(id, encounter);
+    const known = encounterOf(id, encounter);
     return this.answer(
       id,
-      await this.rosters.clearSlot(id, known, squadId, teamId, slotOf(slot)),
+      await this.rosters.clearSlot(
+        id,
+        known,
+        squadId,
+        GUILD,
+        teamId,
+        slotOf(slot),
+      ),
     );
-  }
-
-  /** 404s unless the event is the board guild's and has the encounter. */
-  private async encounterOf(id: string, encounter: string): Promise<Encounter> {
-    const event = await this.reader.event(boardConfig.GUILD_ID, id);
-    if (
-      event === undefined ||
-      !isEncounter(encounter) ||
-      !event.encounters.includes(encounter)
-    ) {
-      throw notFound();
-    }
-    return encounter;
   }
 
   /** The member as a helper, named as the guild shows them; 403s unless they hold the squad's role. */
   private async helper(squadId: string, discordId: string): Promise<SlotPick> {
     const [settings, member] = await Promise.all([
-      this.settings.getSettings(boardConfig.GUILD_ID),
+      this.settings.getSettings(GUILD),
       this.discord.getGuildMember({
         memberId: discordId,
-        guildId: boardConfig.GUILD_ID,
+        guildId: GUILD,
       }),
     ]);
     const squad = squadsOf(settings).find(({ id }) => id === squadId);
@@ -213,6 +215,15 @@ function squadOf(request: Request): string {
     throw new Error('A roster route is missing @CanClaim');
   }
   return access.squad.id;
+}
+
+/**
+ * 404s unless the ids can name an event and an encounter; the transaction
+ * checks the event is the board guild's and has the encounter.
+ */
+function encounterOf(id: string, encounter: string): Encounter {
+  if (!isEventId(id) || !isEncounter(encounter)) throw notFound();
+  return encounter;
 }
 
 function slotOf(slot: string): RosterSlot {

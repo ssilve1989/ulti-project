@@ -71,7 +71,7 @@ export class RostersCollection {
     guildId: string,
     newTeamId: string,
   ): Promise<RosterOutcome> {
-    return this.change(eventId, encounter, squadId, (roster) => {
+    return this.change(eventId, encounter, squadId, guildId, (roster) => {
       const current = roster ?? { guildId, encounter, squadId, teams: [] };
       if (current.teams.length >= MAX_TEAMS) return { kind: 'team-limit' };
       return {
@@ -87,9 +87,10 @@ export class RostersCollection {
     eventId: string,
     encounter: Encounter,
     squadId: string,
+    guildId: string,
     teamId: string,
   ): Promise<RosterOutcome> {
-    return this.change(eventId, encounter, squadId, (roster) => {
+    return this.change(eventId, encounter, squadId, guildId, (roster) => {
       const team = roster?.teams.find(({ id }) => id === teamId);
       if (!roster || !team) return { kind: 'team-missing' };
       if (Object.keys(team.slots).length > 0) return { kind: 'team-not-empty' };
@@ -109,31 +110,38 @@ export class RostersCollection {
     eventId: string,
     encounter: Encounter,
     squadId: string,
+    guildId: string,
     teamId: string,
     slot: RosterSlot,
     pick: SlotPick,
   ): Promise<RosterOutcome> {
-    return this.change(eventId, encounter, squadId, async (roster, tx) => {
-      if (!roster?.teams.some(({ id }) => id === teamId)) {
-        return { kind: 'team-missing' };
-      }
-      let fill: SlotFill;
-      if (pick.kind === 'helper') {
-        fill = pick;
-      } else {
-        const participant = (
-          await tx.get(this.participants(eventId).doc(pick.participantId))
-        ).data();
-        if (
-          participant?.encounter !== encounter ||
-          participant.claim?.squadId !== squadId
-        ) {
-          return { kind: 'not-claimed' };
+    return this.change(
+      eventId,
+      encounter,
+      squadId,
+      guildId,
+      async (roster, tx) => {
+        if (!roster?.teams.some(({ id }) => id === teamId)) {
+          return { kind: 'team-missing' };
         }
-        fill = { ...pick, discordId: participant.discordId };
-      }
-      return placeInRoster(roster, teamId, slot, fill);
-    });
+        let fill: SlotFill;
+        if (pick.kind === 'helper') {
+          fill = pick;
+        } else {
+          const participant = (
+            await tx.get(this.participants(eventId).doc(pick.participantId))
+          ).data();
+          if (
+            participant?.encounter !== encounter ||
+            participant.claim?.squadId !== squadId
+          ) {
+            return { kind: 'not-claimed' };
+          }
+          fill = { ...pick, discordId: participant.discordId };
+        }
+        return placeInRoster(roster, teamId, slot, fill);
+      },
+    );
   }
 
   /** Empties the team's slot. */
@@ -142,10 +150,11 @@ export class RostersCollection {
     eventId: string,
     encounter: Encounter,
     squadId: string,
+    guildId: string,
     teamId: string,
     slot: RosterSlot,
   ): Promise<RosterOutcome> {
-    return this.change(eventId, encounter, squadId, (roster) => {
+    return this.change(eventId, encounter, squadId, guildId, (roster) => {
       if (!roster?.teams.some(({ id }) => id === teamId)) {
         return { kind: 'team-missing' };
       }
@@ -162,12 +171,13 @@ export class RostersCollection {
 
   /**
    * One transaction: reads the event and the squad's roster, and unless the
-   * event is missing or closed, writes the whole roster `update` makes of it.
+   * event is missing, another guild's, without the encounter, or closed, writes the whole roster `update` makes of it.
    */
   private change(
     eventId: string,
     encounter: Encounter,
     squadId: string,
+    guildId: string,
     update: (
       roster: RosterDocument | undefined,
       tx: Transaction,
@@ -182,7 +192,9 @@ export class RostersCollection {
         tx.get(this.events().doc(eventId)).then((doc) => doc.data()),
         tx.get(ref).then((doc) => doc.data()),
       ]);
-      if (!event) return { kind: 'event-missing' };
+      if (event?.guildId !== guildId || !event.encounters.includes(encounter)) {
+        return { kind: 'event-missing' };
+      }
       if (event.status === EventStatus.Closed) return { kind: 'event-closed' };
       const updated = await update(roster, tx);
       if ('kind' in updated) return updated;

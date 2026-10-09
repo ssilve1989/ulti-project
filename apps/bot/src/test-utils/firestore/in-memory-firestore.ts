@@ -617,7 +617,8 @@ export class InMemoryFirestore {
   /**
    * Makes the next `count` transactions overlap, as clients writing at the
    * same moment do: each one, once it has read, waits to commit until all
-   * `count` have read. A transaction that reruns doesn't wait again.
+   * `count` have read. A transaction that reruns doesn't wait again. One whose
+   * callback throws never arrives, so the others wait until the test times out.
    */
   overlapTransactions(count: number): void {
     this.overlap = { count, arrived: 0, all: Promise.withResolvers() };

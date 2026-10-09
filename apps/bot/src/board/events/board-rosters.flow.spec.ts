@@ -72,6 +72,7 @@ const STRANGER_ID = '121212121212121212';
 
 const EVENT_ID = 'roster-night';
 const CLOSED_EVENT_ID = 'closed-night';
+const OTHER_GUILD_EVENT_ID = 'other-guild-night';
 
 const at = (iso: string) => Timestamp.fromDate(new Date(iso));
 
@@ -197,6 +198,10 @@ async function startFlow(): Promise<HttpFlowApp> {
       status: EventStatus.Closed,
     });
     flow.db.seed(`events/${EVENT_ID}`, ROSTER_NIGHT);
+    flow.db.seed(`events/${OTHER_GUILD_EVENT_ID}`, {
+      ...ROSTER_NIGHT,
+      guildId: 'other-guild',
+    });
     for (const eventId of [EVENT_ID, CLOSED_EVENT_ID]) {
       const participant = (discordId: string) =>
         `events/${eventId}/participants/${fru(discordId)}`;
@@ -419,10 +424,6 @@ describe('when a Frogs lead edits their roster', () => {
   it.for([
     ['an unknown team', slotPath('no-team', 'melee')],
     ['an unknown slot', slotPath(TEAM_1.id, 'tank-3')],
-    [
-      'an encounter the event lacks',
-      api(`/teams/${TEAM_1.id}/slots/melee`, EVENT_ID, Encounter.TOP),
-    ],
   ])(
     'answers a slot in %s 404 not-found and leaves the roster',
     async ([, path], { flow }) => {
@@ -432,6 +433,45 @@ describe('when a Frogs lead edits their roster', () => {
       expect(flow.db.read(rosterPath(FROGS.id))).toEqual(FROGS_ROSTER);
     },
   );
+
+  it('answers a team on an encounter the event lacks 404 not-found and stores no roster', async ({
+    flow,
+  }) => {
+    await expect(
+      addTeam(flow.http, api('/teams', EVENT_ID, Encounter.TOP)),
+    ).resolves.toEqual(NOT_FOUND);
+    expect(
+      flow.db.read(
+        `events/${EVENT_ID}/rosters/${rosterDocId(Encounter.TOP, FROGS.id)}`,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("answers another guild's event 404 not-found and stores no roster", async ({
+    flow,
+  }) => {
+    await expect(
+      addTeam(flow.http, api('/teams', OTHER_GUILD_EVENT_ID)),
+    ).resolves.toEqual(NOT_FOUND);
+    expect(
+      flow.db.read(rosterPath(FROGS.id, OTHER_GUILD_EVENT_ID)),
+    ).toBeUndefined();
+  });
+
+  it('fills a slot on an event whose sign-ups have closed', async ({
+    flow,
+  }) => {
+    flow.db.seed(`events/${EVENT_ID}`, {
+      ...ROSTER_NIGHT,
+      status: EventStatus.SignupsClosed,
+    });
+    const placed = [TEAM_1, { ...TEAM_2, slots: { 'tank-1': CAROL } }];
+
+    await expect(
+      fill(flow.http, slotPath(TEAM_2.id, 'tank-1'), progger(CAROL_ID)),
+    ).resolves.toEqual({ status: 200, body: frogsRoster(placed) });
+    expect(flow.db.read(rosterPath(FROGS.id))).toEqual(storedFrogs(placed));
+  });
 
   it('answers a pick that is neither a progger nor a helper 400 bad-request', async ({
     flow,
