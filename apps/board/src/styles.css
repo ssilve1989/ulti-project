@@ -178,6 +178,66 @@ button.primary {
   padding: 0.05rem 0.4rem;
 }
 
+.event-list {
+  max-width: 48rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.event-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.event-list a {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
+  color: var(--text);
+  text-decoration: none;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.event-list a:hover {
+  border-color: var(--acc-line);
+}
+
+.event-title {
+  font-weight: 600;
+}
+
+.event-list time,
+.event-list .count {
+  color: var(--dim);
+  font-size: 0.875rem;
+}
+
+.chips {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.chip {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel-2);
+}
+
+.event-list .count {
+  margin-left: auto;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     /* biome-ignore lint/complexity/noImportantStyles: reduced motion has to win over every component's own transition */

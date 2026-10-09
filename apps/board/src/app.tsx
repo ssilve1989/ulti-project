@@ -1,15 +1,12 @@
 import { Route, Router } from '@solidjs/router';
+import { EventList } from './events/event-list';
 import { Shell } from './shell/shell';
 
-function Home() {
-  return null;
-}
-
-/** The router root. Later tasks add the event list and the `/events/:id` board. */
+/** The router root. A later task adds the `/events/:id` board. */
 export function App() {
   return (
     <Router root={Shell}>
-      <Route path="/" component={Home} />
+      <Route path="/" component={EventList} />
     </Router>
   );
 }

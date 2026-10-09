@@ -12,7 +12,14 @@ const GET_ME = Object.freeze({
   body: undefined,
   contentType: null,
 });
+const GET_EVENTS = Object.freeze({
+  method: 'GET',
+  path: '/api/events',
+  body: undefined,
+  contentType: null,
+});
 const signedOut = () => json(401, { reason: 'signed-out' });
+const noEvents = () => json(200, []);
 const discordRedirect = () =>
   json(200, { url: 'https://discord.com/oauth2/authorize?x', redirect: true });
 
@@ -107,7 +114,10 @@ describe.each([
 describe('when the API fails', () => {
   it('says the board is unreachable, and Try again shows the board once it answers', async () => {
     let answer = json(500, { reason: 'internal' });
-    const { sent } = stubApi({ 'GET /api/me': () => answer });
+    const { sent } = stubApi({
+      'GET /api/me': () => answer,
+      'GET /api/events': noEvents,
+    });
     openAt('/');
 
     expect(await heading()).toBe("The board isn't reachable right now");
@@ -115,7 +125,7 @@ describe('when the API fails', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
 
     expect(await screen.findByText('read-only')).toBeTruthy();
-    expect(sent).toEqual([GET_ME, GET_ME]);
+    await waitFor(() => expect(sent).toEqual([GET_ME, GET_ME, GET_EVENTS]));
   });
 });
 
@@ -123,6 +133,7 @@ describe('when a squad lead is signed in', () => {
   it('shows their avatar, name and squad token in the top bar', async () => {
     stubApi({
       'GET /api/me': json(200, meResponse({ kind: 'squad', squad: FROGE })),
+      'GET /api/events': noEvents,
     });
     openAt('/');
 
@@ -140,17 +151,24 @@ describe('when a squad lead is signed in', () => {
     let me = json(200, meResponse({ kind: 'squad', squad: FROGE }));
     const { sent } = stubApi({
       'GET /api/me': () => me,
+      'GET /api/events': noEvents,
       'POST /api/auth/sign-out': json(200, { success: true }),
     });
     openAt('/');
 
-    const signOut = await screen.findByRole('button', { name: 'Sign out' });
+    await screen.findByText('No open events.');
+    const signOut = screen.getByRole('button', { name: 'Sign out' });
     me = signedOut();
     fireEvent.click(signOut);
 
-    expect(await heading()).toBe('Sign in to the Ulti Project board');
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Sign in to the Ulti Project board',
+      }),
+    ).toBeTruthy();
     expect(sent).toEqual([
       GET_ME,
+      GET_EVENTS,
       {
         method: 'POST',
         path: '/api/auth/sign-out',
@@ -164,7 +182,10 @@ describe('when a squad lead is signed in', () => {
 
 describe('when a viewer is signed in', () => {
   it('marks the board read-only', async () => {
-    stubApi({ 'GET /api/me': json(200, meResponse({ kind: 'viewer' })) });
+    stubApi({
+      'GET /api/me': json(200, meResponse({ kind: 'viewer' })),
+      'GET /api/events': noEvents,
+    });
     openAt('/');
 
     expect(await screen.findByText('read-only')).toBeTruthy();
@@ -178,6 +199,7 @@ describe('when a member holds two squad roles', () => {
         200,
         meResponse({ kind: 'squad-conflict', squads: [FROGE, SPACE] }),
       ),
+      'GET /api/events': noEvents,
     });
     openAt('/');
 
@@ -189,7 +211,10 @@ describe('when a member holds two squad roles', () => {
 
 describe('theme', () => {
   it('switches to dark and remembers it', async () => {
-    stubApi({ 'GET /api/me': json(200, meResponse({ kind: 'viewer' })) });
+    stubApi({
+      'GET /api/me': json(200, meResponse({ kind: 'viewer' })),
+      'GET /api/events': noEvents,
+    });
     openAt('/');
 
     fireEvent.click(await screen.findByRole('button', { name: 'Dark theme' }));
@@ -201,7 +226,10 @@ describe('theme', () => {
 
   it('applies a stored theme on load', async () => {
     localStorage.setItem('board-theme', 'dark');
-    stubApi({ 'GET /api/me': json(200, meResponse({ kind: 'viewer' })) });
+    stubApi({
+      'GET /api/me': json(200, meResponse({ kind: 'viewer' })),
+      'GET /api/events': noEvents,
+    });
 
     applyTheme(readStoredTheme());
     openAt('/');
