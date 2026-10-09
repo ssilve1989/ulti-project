@@ -228,6 +228,17 @@ table.grid {
   width: 100%;
   border-collapse: collapse;
 }
+.squad-group th {
+  background: var(--panel-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  padding: 6px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
 table.grid thead th {
   text-align: left;
   font-family: var(--font-mono);
@@ -254,9 +265,6 @@ table.grid tbody tr:last-child td {
 }
 table.grid tbody tr.is-phase-start td {
   border-top: 1px solid var(--line);
-}
-table.grid tbody tr.is-phase-start:first-child td {
-  border-top: 0;
 }
 
 tr[data-role="tank"] {
@@ -329,6 +337,11 @@ tr[data-role="dps"] {
   border-left-width: 4px;
 }
 
+/* below the claimed-row rule: noDescendingSpecificity wants the more specific selector later */
+table.grid tbody tr.is-phase-start:first-child td {
+  border-top: 0;
+}
+
 .sq-cell {
   display: flex;
   align-items: center;
@@ -396,18 +409,6 @@ button.tok.is-mine:hover {
 button.tok.is-mine:disabled {
   cursor: progress;
   opacity: 0.6;
-}
-
-.squad-group th {
-  background: var(--panel-2);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--dim);
-  padding: 6px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--line);
 }
 
 .sub-empty {
