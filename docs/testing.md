@@ -130,7 +130,12 @@ against saved real responses, never the live API
   `.env.keys`). It paces itself under Google's 60 requests/minute/user limit.
   Credentials are redacted from recordings before they're written, and
   responses are stored as the plain JSON Google sent, so a recording diff shows
-  exactly what changed.
+  exactly what changed. A recording keeps only requests to Google
+  (`*.googleapis.com`), never a test's own server or other services.
+- **HTTP flow specs (`createFlowApp({ http: true })`) always replay**, even in
+  `pnpm test:record`: while nock records it ignores interceptors and sends
+  every request to the real network, which would send their intercepted Discord
+  sign-ins to the real Discord. So an HTTP flow spec can't make Sheets requests.
 - **Re-record when a test's Sheets traffic changes.** A replay fails if the app
   makes a request that isn't in the recording, or doesn't make one that is.
   That's the signal that behaviour changed. Check the diff of the recordings

@@ -224,8 +224,10 @@ export async function createFlowApp({
   const discord = new DiscordMock();
   const fflogs = new FFLogsMock();
   const logger = new ProblemRecorder();
-  // the tracker starts after recording: a failed start has nothing to dispose
-  const recording = await startSheetsRecording();
+  // the tracker starts after recording: a failed start has nothing to dispose.
+  // An HTTP app always replays: its tests intercept Discord's OAuth endpoints,
+  // which a recording run would send to the real Discord instead
+  const recording = await startSheetsRecording({ replayOnly: http });
   const activity = createActivityTracker();
   const sheetsRequests = captureSheetsRequests();
   const stopWatchingSentry = logger.watchSentry();
