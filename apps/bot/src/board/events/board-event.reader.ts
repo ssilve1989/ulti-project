@@ -16,6 +16,7 @@ import type {
   StoredEvent,
 } from '../../firebase/models/event.model.js';
 import { squadsOf } from '../squads.js';
+import { isEventId } from './board-ids.js';
 
 /** Reads a guild's events as the coordinator board shows them. */
 @Injectable()
@@ -102,12 +103,12 @@ export class BoardEventReader {
     return participant;
   }
 
-  private async event(
+  /** The event, or undefined if `eventId` isn't an event id, or it's missing or another guild's. */
+  async event(
     guildId: string,
     eventId: string,
   ): Promise<StoredEvent | undefined> {
-    // an id with a slash is a path Firestore can't read as an event
-    if (eventId.includes('/')) return undefined;
+    if (!isEventId(eventId)) return undefined;
     const event = await this.eventsCollection.get(eventId);
     return event?.guildId === guildId ? event : undefined;
   }

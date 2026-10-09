@@ -340,4 +340,8 @@ describe('when a viewer opens an event', () => {
       NOT_FOUND,
     );
   });
+
+  it('answers an id of .. 404 not-found', async ({ flow }) => {
+    await expect(get(flow, '/api/events/%2E%2E')).resolves.toEqual(NOT_FOUND);
+  });
 });

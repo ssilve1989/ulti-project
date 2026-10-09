@@ -16,6 +16,22 @@ import {
   type StoredEvent,
 } from '../models/event.model.js';
 
+type StoredParticipant = ParticipantDocument & { id: string };
+
+type ClaimOutcome =
+  | { kind: 'claimed' | 'already-yours'; participant: StoredParticipant }
+  | { kind: 'event-missing' | 'participant-missing' }
+  | { kind: 'event-closed' }
+  | {
+      kind: 'claimed-by-other';
+      claim: NonNullable<ParticipantDocument['claim']>;
+    };
+
+type ReleaseOutcome =
+  | { kind: 'released' | 'not-claimed'; participant: StoredParticipant }
+  | { kind: 'event-missing' | 'participant-missing' }
+  | { kind: 'claimed-by-other' };
+
 @Injectable()
 class EventsCollection {
   private readonly events: CollectionReference<EventDocument>;
@@ -213,6 +229,82 @@ class EventsCollection {
       const existing = (await tx.get(ref)).data();
       if (existing) tx.delete(ref);
       return existing;
+    });
+  }
+
+  /**
+   * Claims the participant for `squadId` unless the event is closed or another
+   * squad holds them. A participant who is missing (they withdrew) is never
+   * written, so a claim can't bring them back.
+   */
+  @SentryTraced()
+  public claim(
+    eventId: string,
+    participantId: string,
+    squadId: string,
+    by: string,
+    now: Date,
+  ): Promise<ClaimOutcome> {
+    return this.firestore.runTransaction(async (tx) => {
+      const ref = this.participants(eventId).doc(participantId);
+      const [event, participant] = await Promise.all([
+        tx.get(this.events.doc(eventId)).then((doc) => doc.data()),
+        tx.get(ref).then((doc) => doc.data()),
+      ]);
+      if (!event) return { kind: 'event-missing' };
+      if (event.status === EventStatus.Closed) return { kind: 'event-closed' };
+      if (!participant) return { kind: 'participant-missing' };
+      if (participant.claim) {
+        return participant.claim.squadId === squadId
+          ? {
+              kind: 'already-yours',
+              participant: { ...participant, id: participantId },
+            }
+          : { kind: 'claimed-by-other', claim: participant.claim };
+      }
+      const claimed: ParticipantDocument = {
+        ...participant,
+        claim: { squadId, claimedBy: by, claimedAt: Timestamp.fromDate(now) },
+      };
+      tx.set(ref, claimed);
+      return {
+        kind: 'claimed',
+        participant: { ...claimed, id: participantId },
+      };
+    });
+  }
+
+  /**
+   * Removes `squadId`'s claim on the participant; another squad's stays. A
+   * participant who is missing (they withdrew) is never written.
+   */
+  @SentryTraced()
+  public release(
+    eventId: string,
+    participantId: string,
+    squadId: string,
+  ): Promise<ReleaseOutcome> {
+    return this.firestore.runTransaction(async (tx) => {
+      const ref = this.participants(eventId).doc(participantId);
+      const [event, participant] = await Promise.all([
+        tx.get(this.events.doc(eventId)).then((doc) => doc.data()),
+        tx.get(ref).then((doc) => doc.data()),
+      ]);
+      if (!event) return { kind: 'event-missing' };
+      if (!participant) return { kind: 'participant-missing' };
+      const { claim, ...unclaimed } = participant;
+      if (!claim) {
+        return {
+          kind: 'not-claimed',
+          participant: { ...participant, id: participantId },
+        };
+      }
+      if (claim.squadId !== squadId) return { kind: 'claimed-by-other' };
+      tx.set(ref, unclaimed);
+      return {
+        kind: 'released',
+        participant: { ...unclaimed, id: participantId },
+      };
     });
   }
 

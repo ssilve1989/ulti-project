@@ -496,4 +496,203 @@ describe('EventsCollection', () => {
       );
     });
   });
+
+  describe('when a squad claims a participant', () => {
+    const NOW_CLAIM = Object.freeze({
+      squadId: 'squad-1',
+      claimedBy: 'lead-1',
+      claimedAt: Timestamp.fromDate(NOW),
+    });
+
+    function claim(collection: EventsCollection, squadId = 'squad-1') {
+      return collection.claim(EVENT_ID, PARTICIPANT_ID, squadId, 'lead-1', NOW);
+    }
+
+    it('stores the claim and returns the claimed participant', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+      db.seed(PARTICIPANT_PATH, aParticipant());
+
+      const claimed = { ...aParticipant(), claim: NOW_CLAIM };
+      expect(await claim(collection)).toEqual({
+        kind: 'claimed',
+        participant: { ...claimed, id: PARTICIPANT_ID },
+      });
+      expect(db.read(PARTICIPANT_PATH)).toEqual(claimed);
+    });
+
+    it('claims on an event whose sign-ups have closed', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, withStatus(anOpenEvent(), EventStatus.SignupsClosed));
+      db.seed(PARTICIPANT_PATH, aParticipant());
+
+      const claimed = { ...aParticipant(), claim: NOW_CLAIM };
+      expect(await claim(collection)).toEqual({
+        kind: 'claimed',
+        participant: { ...claimed, id: PARTICIPANT_ID },
+      });
+      expect(db.read(PARTICIPANT_PATH)).toEqual(claimed);
+    });
+
+    it('leaves a claim by the same squad as it was', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+      db.seed(PARTICIPANT_PATH, { ...aParticipant(), claim: CLAIM });
+
+      expect(await claim(collection)).toEqual({
+        kind: 'already-yours',
+        participant: { ...aParticipant(), claim: CLAIM, id: PARTICIPANT_ID },
+      });
+      expect(db.read(PARTICIPANT_PATH)).toEqual({
+        ...aParticipant(),
+        claim: CLAIM,
+      });
+    });
+
+    it("returns another squad's claim and leaves it", async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+      db.seed(PARTICIPANT_PATH, { ...aParticipant(), claim: CLAIM });
+
+      expect(await claim(collection, 'squad-2')).toEqual({
+        kind: 'claimed-by-other',
+        claim: CLAIM,
+      });
+      expect(db.read(PARTICIPANT_PATH)).toEqual({
+        ...aParticipant(),
+        claim: CLAIM,
+      });
+    });
+
+    it('refuses a closed event and leaves the participant', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, withStatus(anOpenEvent(), EventStatus.Closed));
+      db.seed(PARTICIPANT_PATH, aParticipant());
+
+      expect(await claim(collection)).toEqual({ kind: 'event-closed' });
+      expect(db.read(PARTICIPANT_PATH)).toEqual(aParticipant());
+    });
+
+    it('reports a missing event', async ({ db, collection }) => {
+      db.seed(PARTICIPANT_PATH, aParticipant());
+
+      expect(await claim(collection)).toEqual({ kind: 'event-missing' });
+      expect(db.read(PARTICIPANT_PATH)).toEqual(aParticipant());
+    });
+
+    it('gives a participant two squads claim at once to the first, and refuses the second', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+      db.seed(PARTICIPANT_PATH, aParticipant());
+
+      // both transactions read the unclaimed participant before either commits
+      const outcomes = await Promise.all([
+        claim(collection),
+        claim(collection, 'squad-2'),
+      ]);
+
+      const claimed = { ...aParticipant(), claim: NOW_CLAIM };
+      expect(outcomes).toEqual([
+        { kind: 'claimed', participant: { ...claimed, id: PARTICIPANT_ID } },
+        { kind: 'claimed-by-other', claim: NOW_CLAIM },
+      ]);
+      expect(db.read(PARTICIPANT_PATH)).toEqual(claimed);
+    });
+
+    it('reports a missing participant and stores nothing for them', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+
+      expect(await claim(collection)).toEqual({
+        kind: 'participant-missing',
+      });
+      expect(db.read(PARTICIPANT_PATH)).toBeUndefined();
+    });
+  });
+
+  describe("when a squad releases a participant's claim", () => {
+    function release(collection: EventsCollection, squadId = 'squad-1') {
+      return collection.release(EVENT_ID, PARTICIPANT_ID, squadId);
+    }
+
+    it('removes its claim and returns the participant', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+      db.seed(PARTICIPANT_PATH, { ...aParticipant(), claim: CLAIM });
+
+      expect(await release(collection)).toEqual({
+        kind: 'released',
+        participant: { ...aParticipant(), id: PARTICIPANT_ID },
+      });
+      expect(db.read(PARTICIPANT_PATH)).toEqual(aParticipant());
+    });
+
+    it('leaves an unclaimed participant as they were', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+      db.seed(PARTICIPANT_PATH, aParticipant());
+
+      expect(await release(collection)).toEqual({
+        kind: 'not-claimed',
+        participant: { ...aParticipant(), id: PARTICIPANT_ID },
+      });
+      expect(db.read(PARTICIPANT_PATH)).toEqual(aParticipant());
+    });
+
+    it("refuses another squad's claim and leaves it", async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+      db.seed(PARTICIPANT_PATH, { ...aParticipant(), claim: CLAIM });
+
+      expect(await release(collection, 'squad-2')).toEqual({
+        kind: 'claimed-by-other',
+      });
+      expect(db.read(PARTICIPANT_PATH)).toEqual({
+        ...aParticipant(),
+        claim: CLAIM,
+      });
+    });
+
+    it('reports a missing event', async ({ db, collection }) => {
+      db.seed(PARTICIPANT_PATH, { ...aParticipant(), claim: CLAIM });
+
+      expect(await release(collection)).toEqual({ kind: 'event-missing' });
+      expect(db.read(PARTICIPANT_PATH)).toEqual({
+        ...aParticipant(),
+        claim: CLAIM,
+      });
+    });
+
+    it('reports a missing participant and stores nothing for them', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+
+      expect(await release(collection)).toEqual({
+        kind: 'participant-missing',
+      });
+      expect(db.read(PARTICIPANT_PATH)).toBeUndefined();
+    });
+  });
 });
