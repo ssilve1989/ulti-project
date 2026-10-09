@@ -1,4 +1,10 @@
-import type { BoardAccess, MeResponse, SquadView } from '@ulti-project/shared';
+import {
+  type BoardAccess,
+  type BoardParticipant,
+  JOB_ROLE,
+  type MeResponse,
+  type SquadView,
+} from '@ulti-project/shared';
 
 export const FROGE: SquadView = Object.freeze({
   id: 'squad-froge',
@@ -20,5 +26,24 @@ export function meResponse(access: BoardAccess): MeResponse {
     displayName: 'Aeryn',
     avatarUrl: 'https://cdn.discordapp.com/avatars/lead-1/a.png',
     access,
+  };
+}
+
+export function participant(
+  overrides: Partial<BoardParticipant> &
+    Pick<BoardParticipant, 'discordId' | 'character'>,
+): BoardParticipant {
+  const encounter = overrides.encounter ?? 'FRU';
+  const job = overrides.job ?? 'PLD';
+  return {
+    id: `${overrides.discordId}-${encounter}`,
+    encounter,
+    displayName: overrides.character,
+    world: 'Jenova',
+    job,
+    jobRole: JOB_ROLE[job],
+    phase: { label: 'P4: Enrage', order: 40, bucket: 'prog' },
+    claim: null,
+    ...overrides,
   };
 }
