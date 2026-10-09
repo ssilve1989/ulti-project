@@ -114,7 +114,7 @@ export class ClaimsController {
   private async assertOwnParticipant(id: string, pid: string): Promise<void> {
     if (
       !isParticipantId(pid) ||
-      (await this.reader.event(boardConfig.BOARD_GUILD_ID, id)) === undefined
+      (await this.reader.event(boardConfig.GUILD_ID, id)) === undefined
     ) {
       throw notFound();
     }
@@ -125,7 +125,7 @@ export class ClaimsController {
     pid: string,
   ): Promise<BoardParticipant> {
     const participant = await this.reader.participant(
-      boardConfig.BOARD_GUILD_ID,
+      boardConfig.GUILD_ID,
       id,
       pid,
     );
