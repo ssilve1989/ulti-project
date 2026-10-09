@@ -15,7 +15,7 @@ import {
 import { from, lastValueFrom, mergeMap, reduce } from 'rxjs';
 import { InjectDiscordClient } from './discord.decorators.js';
 
-/** How long a fetch of guild members by id waits for the gateway's answer. */
+/** How long a fetch of guild members over the gateway waits for its answer. */
 const MEMBER_FETCH_TIMEOUT_MS = 10_000;
 
 @Injectable()
@@ -82,8 +82,9 @@ class DiscordService {
     roleId: string;
   }): Promise<GuildMember[]> {
     const guild = await this.client.guilds.fetch(guildId);
-    // `role.members` only holds cached members
-    await guild.members.fetch();
+    // `role.members` only holds cached members; asked over the gateway, so
+    // fail fast while it's down instead of waiting discord.js's default 120s
+    await guild.members.fetch({ time: MEMBER_FETCH_TIMEOUT_MS });
     const role = await guild.roles.fetch(roleId);
     return [...(role?.members.values() ?? [])];
   }

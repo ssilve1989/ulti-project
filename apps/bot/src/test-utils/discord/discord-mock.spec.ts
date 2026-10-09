@@ -896,6 +896,19 @@ describe('DiscordMock', () => {
         error: discordjsError(DiscordjsErrorCodes.GuildMembersTimeout),
       });
     });
+
+    it("gives up on the app's fetch of a role's members after 10 seconds", async ({
+      service,
+    }) => {
+      const fetching = track(
+        service.getRoleMembers({ guildId: 'g1', roleId: 'r1' }),
+      );
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      expect(fetching.now).toEqual({
+        error: discordjsError(DiscordjsErrorCodes.GuildMembersTimeout),
+      });
+    });
   });
 
   it("holds the guild's roles in its role cache, like discord.js", async ({

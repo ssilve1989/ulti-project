@@ -158,12 +158,12 @@ export class FakeViews {
       /**
        * Like GuildMemberManager.fetch: one member (10007 for a non-member),
        * the members among `{ user: ids }` (non-members are left out), or every
-       * member; all of them are cached. Members by id are asked for over the
-       * gateway, so while it's down that times out after `time` (discord.js's
-       * default is 120s).
+       * member; all of them are cached. Members by id, or all of them with
+       * options, are asked for over the gateway, so while it's down that times
+       * out after `time` (discord.js's default is 120s).
        */
       fetch: (
-        options?: string | { user: readonly string[]; time?: number },
+        options?: string | { user?: readonly string[]; time?: number },
       ) => {
         if (options === undefined) {
           return Promise.resolve(collectionOf(this.fetchAllMembers(guildId)));
@@ -173,6 +173,9 @@ export class FakeViews {
         }
         if (!this.world.gatewayConnected()) {
           return this.gatewayTimeout(options.time ?? 120_000);
+        }
+        if (options.user === undefined) {
+          return Promise.resolve(collectionOf(this.fetchAllMembers(guildId)));
         }
         return this.fetchMembers(guildId, options.user);
       },
