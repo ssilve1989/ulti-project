@@ -34,7 +34,7 @@
   padding: 8px 12px;
   background: var(--panel-head);
   border-bottom: 1px solid var(--line);
-  border-left: 4px solid var(--sq);
+  border-left: 3px solid var(--sq);
 }
 .team-head h4 {
   margin: 0;
@@ -102,6 +102,16 @@
   white-space: nowrap;
   font-size: 14px;
 }
+@media (prefers-reduced-motion: no-preference) {
+  .slot-name.is-new {
+    animation: slot-fill 0.15s ease-out;
+  }
+}
+@keyframes slot-fill {
+  from {
+    opacity: 0;
+  }
+}
 .slot-name.is-empty {
   color: var(--faint);
 }
@@ -160,6 +170,13 @@
 .team-others {
   margin-top: 14px;
 }
+/* A squad with no teams on a closed event draws an empty grid; it takes no room. */
+.team-grid:empty {
+  display: none;
+}
+.team-grid:empty + .team-others {
+  margin-top: 0;
+}
 .team-other .team-head {
   min-height: 44px;
   align-items: center;
@@ -175,7 +192,7 @@
   display: none;
 }
 .team-other .team-head::before {
-  content: "▸";
+  content: "▸" / "";
   margin-right: 0.35em;
   color: var(--dim);
   transition: transform 0.15s ease;
@@ -244,7 +261,8 @@
   gap: 8px;
   min-height: 96px;
   padding: 14px;
-  border: 1px dashed var(--line);
+  /* --line alone all but vanishes on the dark page. */
+  border: 1px dashed color-mix(in srgb, var(--faint) 60%, transparent);
   border-radius: 8px;
 }
 .team-add .team-error {

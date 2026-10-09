@@ -12,7 +12,16 @@ import type {
   BoardParticipant,
   SquadView,
 } from '@ulti-project/shared';
-import { createMemo, For, Match, Show, Switch } from 'solid-js';
+import {
+  createComputed,
+  createMemo,
+  createSignal,
+  For,
+  Match,
+  Show,
+  Switch,
+  untrack,
+} from 'solid-js';
 import type { Claims } from './claims';
 import {
   type Bucket,
@@ -47,6 +56,19 @@ const columns = column.columns([
 ]);
 
 type EncounterInfo = BoardEvent['encounters'][number];
+
+/** What a row was last drawn with: its look, and the squad holding it. */
+interface Drawn {
+  readonly look: string;
+  readonly squadId: string | undefined;
+}
+/** The rows of a party as last drawn, by id. */
+type Seen = Map<string, Drawn>;
+
+const drawn = (row: BoardParticipant): Drawn => ({
+  look: `${row.character}\n${row.job}\n${row.phase.label}`,
+  squadId: row.claim?.squadId,
+});
 
 /** Present when the user may claim on this board: their squad, and the claims to make with it. */
 export interface Claiming {
@@ -121,6 +143,7 @@ function Rows(props: {
   readonly rows: readonly BoardParticipant[];
   readonly squads: readonly SquadView[];
   readonly claiming: Claiming | undefined;
+  readonly seen: Seen;
 }) {
   const marks = createMemo(() => rowMarks(props.rows));
   return (
@@ -128,14 +151,27 @@ function Rows(props: {
       {(row, index) => {
         const squad = () =>
           props.squads.find((squad) => squad.id === row.claim?.squadId);
+        // Compared with what the party last drew, so a remounted row (regrouped, refiltered) stays still.
+        const [fresh, setFresh] = createSignal<'row' | 'claim'>();
+        createComputed(() => {
+          const now = drawn(row);
+          const before = props.seen.get(row.id);
+          props.seen.set(row.id, now);
+          if (before?.look !== now.look) setFresh('row');
+          else if (now.squadId !== undefined && now.squadId !== before?.squadId)
+            setFresh('claim');
+        });
         return (
           <tr
             data-role={row.jobRole}
             classList={{
               'is-phase-start': marks()[index()]?.phaseStart,
               'is-claimed': squad() !== undefined,
+              'is-fresh': fresh() === 'row',
+              'is-fresh-claim': fresh() === 'claim',
             }}
             style={{ '--sq': squad()?.color }}
+            onAnimationEnd={() => setFresh(undefined)}
           >
             <td>
               <span class="p-player">
@@ -190,6 +226,8 @@ export function PartyTable(props: {
   const party = createMemo(() =>
     partyOf(props.event.participants, props.encounter.id, props.bucket),
   );
+  // Seeded with the rows already there, so opening the board animates nothing.
+  const seen: Seen = new Map(untrack(party).map((row) => [row.id, drawn(row)]));
   const table = createTable({
     features,
     columns,
@@ -246,6 +284,7 @@ export function PartyTable(props: {
                     rows={displayed()}
                     squads={props.event.squads}
                     claiming={props.claiming}
+                    seen={seen}
                   />
                 }
               >
@@ -269,6 +308,7 @@ export function PartyTable(props: {
                         rows={section.rows}
                         squads={props.event.squads}
                         claiming={props.claiming}
+                        seen={seen}
                       />
                     </>
                   )}

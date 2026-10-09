@@ -8,7 +8,14 @@ import type {
   SquadView,
 } from '@ulti-project/shared';
 import { ROSTER_SLOTS } from '@ulti-project/shared/rosters';
-import { createMemo, createSignal, For, onCleanup, Show } from 'solid-js';
+import {
+  createMemo,
+  createSignal,
+  For,
+  onCleanup,
+  onMount,
+  Show,
+} from 'solid-js';
 import { type RosterActions, type SlotChoice, slotOptions } from './rosters';
 import { formatTeamMessage } from './team-message';
 
@@ -90,6 +97,11 @@ export function TeamCard(props: {
       <For each={ROSTER_SLOTS}>
         {({ slot, label }) => {
           const fill = () => props.team.slots[slot];
+          // A name shown after the card first drew is a new occupant; only that one fades in.
+          let drawn = false;
+          onMount(() => {
+            drawn = true;
+          });
           const busy = () =>
             editing()?.actions.pending(`${props.team.id}:${slot}`) ?? false;
           const name = () => {
@@ -114,7 +126,9 @@ export function TeamCard(props: {
                 >
                   {(shown) => (
                     <>
-                      <span class="slot-name">{shown()}</span>
+                      <span class="slot-name" classList={{ 'is-new': drawn }}>
+                        {shown()}
+                      </span>
                       <span class="slot-tag">{fill()?.kind}</span>
                     </>
                   )}

@@ -143,7 +143,8 @@
 }
 .tab:focus-visible {
   outline: 2px solid var(--acc);
-  outline-offset: -2px;
+  /* Inside the active tab's 3px bar, so both stay visible. */
+  outline-offset: -5px;
 }
 /* The crystal: outlined when idle, filled on the selected encounter. */
 .tab-crystal {
@@ -420,6 +421,9 @@ button.tok.is-mine:hover {
   outline-offset: 1px;
 }
 .claim-btn {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1;
@@ -492,6 +496,36 @@ button.tok.is-mine:disabled {
 .undo-x:focus-visible {
   outline: 2px solid var(--acc);
   outline-offset: 1px;
+}
+
+/* Motion marks a change: a row the stream adds or changes, a claim, a notice. Nothing moves on load. */
+@media (prefers-reduced-motion: no-preference) {
+  tr.is-fresh {
+    animation: row-in 0.2s ease-out;
+  }
+  tr.is-fresh-claim .sq-cell .tok {
+    animation: tok-pop 0.15s ease-out;
+  }
+  .undo {
+    animation: undo-in 0.15s ease-out;
+  }
+}
+@keyframes row-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes tok-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes undo-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 @media (max-width: 720px) {
