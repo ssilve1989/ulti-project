@@ -1,7 +1,7 @@
 import type { BoardEvent, Encounter } from '@ulti-project/shared';
 import { For } from 'solid-js';
 
-/** One tab per encounter, in event order; arrow keys move (with wrap-around), focus and select. */
+/** One tab per encounter, in event order; arrow keys move (with wrap-around), focus and select. Every tab controls the one panel, which shows the selected encounter. */
 export function EncounterTabs(props: {
   readonly encounters: BoardEvent['encounters'];
   readonly selected: Encounter;
@@ -27,7 +27,7 @@ export function EncounterTabs(props: {
             class="tab"
             classList={{ 'is-active': encounter.id === props.selected }}
             aria-selected={encounter.id === props.selected}
-            aria-controls={`panel-${encounter.id}`}
+            aria-controls="encounter-panel"
             tabIndex={encounter.id === props.selected ? 0 : -1}
             onClick={() => props.onSelect(encounter.id)}
             onKeyDown={(event) => {

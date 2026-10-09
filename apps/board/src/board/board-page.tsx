@@ -87,7 +87,7 @@ function Board(props: {
             <section
               class="enc-panel"
               role="tabpanel"
-              id={`panel-${encounter().id}`}
+              id="encounter-panel"
               aria-labelledby={`tab-${encounter().id}`}
             >
               <div class="enc-head">
