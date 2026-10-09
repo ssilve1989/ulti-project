@@ -37,7 +37,7 @@ export class EventStreamService {
     if (change.kind === 'event') {
       const event = await this.reader.get(guildId, change.eventId);
       if (event === undefined) {
-        throw new BoardHttpError(HttpStatus.NOT_FOUND, 'not-found');
+        throw new BoardHttpError(HttpStatus.NOT_FOUND, { reason: 'not-found' });
       }
       return { type: 'snapshot', event };
     }

@@ -60,7 +60,7 @@ export class StreamController {
     if (
       (await this.reader.event(boardConfig.BOARD_GUILD_ID, id)) === undefined
     ) {
-      throw new BoardHttpError(HttpStatus.NOT_FOUND, 'not-found');
+      throw new BoardHttpError(HttpStatus.NOT_FOUND, { reason: 'not-found' });
     }
     return merge(
       this.streams

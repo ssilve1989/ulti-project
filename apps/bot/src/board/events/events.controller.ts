@@ -19,7 +19,7 @@ export class EventsController {
   async get(@Param('id') id: string): Promise<BoardEvent> {
     const event = await this.reader.get(boardConfig.GUILD_ID, id);
     if (event === undefined) {
-      throw new BoardHttpError(HttpStatus.NOT_FOUND, 'not-found');
+      throw new BoardHttpError(HttpStatus.NOT_FOUND, { reason: 'not-found' });
     }
     return event;
   }

@@ -343,6 +343,14 @@ describe('when a Frogs member claims a player', () => {
       expect(changes).toEqual([BOB_CHANGED]);
     });
 
+    it('releases them with no request body', async ({ flow }) => {
+      const { status, body } = await flow.http.delete(claimPath(EVENT_ID));
+
+      expect({ status, body, stored: flow.db.read(bobPath(EVENT_ID)) }).toEqual(
+        { status: 200, body: boardBob(null), stored: BOB_FRU },
+      );
+    });
+
     it('answers a second release with the unclaimed player', async ({
       flow,
     }) => {

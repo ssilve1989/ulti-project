@@ -17,8 +17,12 @@ const OWLS = Object.freeze({
 const JSON_TYPE = 'application/json; charset=utf-8';
 
 /** The status and body a refusal answers with, or undefined if the claim may go ahead. */
-function refusal(access: BoardAccess, contentType: string | undefined) {
-  const error = claimRefusal(access, contentType);
+function refusal(
+  access: BoardAccess,
+  contentType: string | undefined,
+  method = 'POST',
+) {
+  const error = claimRefusal(access, { method, contentType });
   return error && { status: error.getStatus(), body: error.body };
 }
 
@@ -47,6 +51,19 @@ describe('claimRefusal', () => {
         'application/x-www-form-urlencoded',
       ),
     ).toEqual({ status: 415, body: { reason: 'json-required' } });
+  });
+
+  it('lets a squad member release with no body', () => {
+    expect(refusal({ kind: 'squad', squad: FROGS }, undefined, 'DELETE')).toBe(
+      undefined,
+    );
+  });
+
+  it('refuses a viewer releasing with 403 no-squad', () => {
+    expect(refusal({ kind: 'viewer' }, undefined, 'DELETE')).toEqual({
+      status: 403,
+      body: { reason: 'no-squad' },
+    });
   });
 
   it('refuses a squad member sending no body type with 415 json-required', () => {

@@ -5,27 +5,37 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import type { BoardErrorBody } from '@ulti-project/shared';
 import type { Response } from 'express';
 import type { ErrorService } from '../error/error.service.js';
 
-/** An expected outcome of a board request: its status, and a body `{ reason, ...extra }`. */
+/** An expected outcome of a board request: its status, and its body. */
 export class BoardHttpError extends HttpException {
-  readonly body: { readonly reason: string } & Record<string, unknown>;
-
   constructor(
     status: HttpStatus,
-    reason: string,
-    extra: Record<string, unknown> = {},
+    readonly body: BoardErrorBody,
   ) {
-    const body = { reason, ...extra };
     super(body, status);
-    this.body = body;
   }
 }
 
-/** The body for an HttpException that isn't ours, e.g. Nest's 404 for an unknown route: `not-found`. */
-function reasonFor(status: number): string {
-  return (HttpStatus[status] ?? 'error').toLowerCase().replaceAll('_', '-');
+/** The reasons for the statuses the API answers without a `BoardHttpError`. */
+const STATUS_REASONS: Partial<
+  Record<number, Exclude<BoardErrorBody['reason'], 'claimed'>>
+> = Object.freeze({
+  [HttpStatus.BAD_REQUEST]: 'bad-request',
+  [HttpStatus.NOT_FOUND]: 'not-found',
+  [HttpStatus.PAYLOAD_TOO_LARGE]: 'payload-too-large',
+  [HttpStatus.UNSUPPORTED_MEDIA_TYPE]: 'unsupported-media-type',
+});
+
+/**
+ * The body for a status that isn't from a `BoardHttpError`, e.g. Nest's 404
+ * for an unknown route: `not-found`; `internal` for a status the API doesn't
+ * otherwise send.
+ */
+export function bodyFor(status: number): BoardErrorBody {
+  return { reason: STATUS_REASONS[status] ?? 'internal' };
 }
 
 /**
@@ -47,13 +57,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
     response.status(status).json(body);
   }
 
-  private toReply(exception: unknown): { status: number; body: object } {
+  private toReply(exception: unknown): {
+    status: number;
+    body: BoardErrorBody;
+  } {
     if (exception instanceof BoardHttpError) {
       return { status: exception.getStatus(), body: exception.body };
     }
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      return { status, body: { reason: reasonFor(status) } };
+      return { status, body: bodyFor(status) };
     }
     this.errorService.captureError(exception, {
       message: 'HTTP request failed',

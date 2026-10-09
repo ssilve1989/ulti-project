@@ -27,11 +27,13 @@ export class BoardSessionGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const session = await getBoardSession(this.auth, request);
     if (session === undefined) {
-      throw new BoardHttpError(HttpStatus.UNAUTHORIZED, 'signed-out');
+      throw new BoardHttpError(HttpStatus.UNAUTHORIZED, {
+        reason: 'signed-out',
+      });
     }
     const access = await this.boardAccess.resolve(session.discordId);
     if (access.kind === 'denied') {
-      throw new BoardHttpError(HttpStatus.FORBIDDEN, access.reason);
+      throw new BoardHttpError(HttpStatus.FORBIDDEN, { reason: access.reason });
     }
     setBoardContext(request, { ...session, access });
     return true;

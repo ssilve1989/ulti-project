@@ -1,4 +1,5 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import type { BoardErrorBody } from '@ulti-project/shared';
 import { toNodeHandler } from 'better-auth/node';
 import express, {
   type NextFunction,
@@ -7,29 +8,51 @@ import express, {
 } from 'express';
 import { BOARD_AUTH, type BoardAuth } from '../board-auth/auth.js';
 import { ErrorService } from '../error/error.service.js';
-import { HttpExceptionFilter } from './http-exception.filter.js';
+import { bodyFor, HttpExceptionFilter } from './http-exception.filter.js';
 
-/** What `express.json()` fails with for a body that isn't valid JSON. */
-function isJsonParseError(error: unknown): boolean {
-  return (
-    error instanceof SyntaxError &&
-    'type' in error &&
-    error.type === 'entity.parse.failed'
-  );
+/**
+ * The status and kind of a request `express.json()` refused (body-parser's
+ * errors carry both: e.g. 413 `entity.too.large`, 415
+ * `charset.unsupported`), or undefined for any other error.
+ */
+function bodyParserRefusal(
+  error: unknown,
+): { status: number; type: string } | undefined {
+  if (
+    !(error instanceof Error) ||
+    !('type' in error) ||
+    typeof error.type !== 'string' ||
+    !('status' in error) ||
+    typeof error.status !== 'number' ||
+    error.status < 400 ||
+    error.status >= 500
+  ) {
+    return undefined;
+  }
+  return { status: error.status, type: error.type };
 }
 
-/** Answers a body that isn't valid JSON with 400 `invalid-json`; passes on anything else. */
-function answerInvalidJson(
+/**
+ * Answers a request body `express.json()` refused with its status and JSON
+ * `{ reason }`: 400 `invalid-json` for one that isn't valid JSON. Passes on
+ * anything else.
+ */
+export function answerBodyParserErrors(
   error: unknown,
   _request: Request,
   response: Response,
   next: NextFunction,
 ): void {
-  if (!isJsonParseError(error)) {
+  const refusal = bodyParserRefusal(error);
+  if (refusal === undefined) {
     next(error);
     return;
   }
-  response.status(400).json({ reason: 'invalid-json' });
+  const body: BoardErrorBody =
+    refusal.type === 'entity.parse.failed'
+      ? { reason: 'invalid-json' }
+      : bodyFor(refusal.status);
+  response.status(refusal.status).json(body);
 }
 
 /**
@@ -63,8 +86,8 @@ export function configureHttpApp(app: NestExpressApplication): void {
     server[method](path, handleAuth);
   }
   server.all('/api/auth/{*rest}', (_request: Request, response: Response) => {
-    response.status(404).json({ reason: 'not-found' });
+    response.status(404).json(bodyFor(404));
   });
   app.use(express.json());
-  app.use(answerInvalidJson);
+  app.use(answerBodyParserErrors);
 }

@@ -24,7 +24,8 @@ import { squadsOf } from '../squads.js';
 import { BoardEventReader } from './board-event.reader.js';
 import { isParticipantId } from './board-ids.js';
 
-const notFound = () => new BoardHttpError(HttpStatus.NOT_FOUND, 'not-found');
+const notFound = () =>
+  new BoardHttpError(HttpStatus.NOT_FOUND, { reason: 'not-found' });
 
 /** Squads claim players, and release their claims. */
 @Controller('events/:id/participants/:pid/claim')
@@ -62,10 +63,11 @@ export class ClaimsController {
       case 'participant-missing':
         throw notFound();
       case 'event-closed':
-        throw new BoardHttpError(HttpStatus.CONFLICT, 'closed');
+        throw new BoardHttpError(HttpStatus.CONFLICT, { reason: 'closed' });
       case 'claimed-by-other': {
         const { squadId, claimedBy, claimedAt } = outcome.claim;
-        throw new BoardHttpError(HttpStatus.CONFLICT, 'claimed', {
+        throw new BoardHttpError(HttpStatus.CONFLICT, {
+          reason: 'claimed',
           claim: {
             squadId,
             claimedBy,
@@ -102,7 +104,9 @@ export class ClaimsController {
       case 'participant-missing':
         throw notFound();
       case 'claimed-by-other':
-        throw new BoardHttpError(HttpStatus.FORBIDDEN, 'not-your-claim');
+        throw new BoardHttpError(HttpStatus.FORBIDDEN, {
+          reason: 'not-your-claim',
+        });
       case 'released':
         await this.changed(id, pid);
         break;

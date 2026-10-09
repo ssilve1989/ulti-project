@@ -21,8 +21,13 @@ class TestRoutesController {
 
   @Get('expected')
   expected(): never {
-    throw new BoardHttpError(HttpStatus.CONFLICT, 'already-claimed', {
-      claimedBy: 'squad-a',
+    throw new BoardHttpError(HttpStatus.CONFLICT, {
+      reason: 'claimed',
+      claim: {
+        squadId: 'squad-a',
+        claimedBy: 'lead-a',
+        claimedAt: '2026-10-08T12:00:00.000Z',
+      },
     });
   }
 
@@ -80,6 +85,34 @@ describe('when a request body is not valid JSON', () => {
   });
 });
 
+describe('when a request body is larger than the API accepts', () => {
+  it('answers 413 payload-too-large', async ({ flow }) => {
+    const { status, body } = await flow.http
+      .post('/api/test-routes/echo')
+      .set('Content-Type', 'application/json')
+      .send({ note: 'x'.repeat(200_000) });
+
+    expect({ status, body }).toEqual({
+      status: 413,
+      body: { reason: 'payload-too-large' },
+    });
+  });
+});
+
+describe('when a request body is in a charset the API does not read', () => {
+  it('answers 415 unsupported-media-type', async ({ flow }) => {
+    const { status, body } = await flow.http
+      .post('/api/test-routes/echo')
+      .set('Content-Type', 'application/json; charset=klingon')
+      .send('{}');
+
+    expect({ status, body }).toEqual({
+      status: 415,
+      body: { reason: 'unsupported-media-type' },
+    });
+  });
+});
+
 describe('when a route does not exist', () => {
   it('answers 404 not-found', async ({ flow }) => {
     const { status, body } = await flow.http.get('/api/nope');
@@ -97,7 +130,14 @@ describe('when a route refuses a request with a reason', () => {
 
     expect({ status, body }).toEqual({
       status: 409,
-      body: { reason: 'already-claimed', claimedBy: 'squad-a' },
+      body: {
+        reason: 'claimed',
+        claim: {
+          squadId: 'squad-a',
+          claimedBy: 'lead-a',
+          claimedAt: '2026-10-08T12:00:00.000Z',
+        },
+      },
     });
   });
 });
