@@ -190,12 +190,7 @@ export class PostedEventsUpdater {
     );
     if (!updated) return undefined;
     // before the board hears of the edit, so its snapshot has no dropped rosters
-    await this.rosters.deleteForEncounters(
-      updated.id,
-      event.encounters.filter(
-        (encounter) => !updated.encounters.includes(encounter),
-      ),
-    );
+    await this.rosters.deleteExcept(updated.id, updated.encounters);
     this.changes.publish({ kind: 'event', eventId: updated.id });
 
     const removed = await this.removeDroppedSignups(updated);

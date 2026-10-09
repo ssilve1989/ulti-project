@@ -70,17 +70,18 @@ export class RostersCollection {
     ).data();
   }
 
-  /** Deletes every squad's roster for `encounters`, which the event no longer has. */
+  /** Deletes every squad's roster for an encounter not in `keep`. */
   @SentryTraced()
-  public async deleteForEncounters(
+  public async deleteExcept(
     eventId: string,
-    encounters: readonly Encounter[],
+    keep: readonly Encounter[],
   ): Promise<void> {
-    if (encounters.length === 0) return;
-    const snapshot = await this.rosters(eventId)
-      .where('encounter', 'in', encounters)
-      .get();
-    await Promise.all(snapshot.docs.map(({ ref }) => ref.delete()));
+    const snapshot = await this.rosters(eventId).get();
+    await Promise.all(
+      snapshot.docs
+        .filter((doc) => !keep.includes(doc.data().encounter))
+        .map(({ ref }) => ref.delete()),
+    );
   }
 
   /** Adds an empty team, up to six. */

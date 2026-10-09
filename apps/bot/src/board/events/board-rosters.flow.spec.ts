@@ -665,3 +665,32 @@ describe('when a Frogs lead releases Carol, who has no slot', () => {
     });
   });
 });
+
+describe('when a Frogs lead releases Carol, whom Team 2 has as a helper', () => {
+  it('keeps her helper slot and writes no roster', async ({ flow }) => {
+    const asHelper = storedFrogs([
+      TEAM_1,
+      {
+        ...TEAM_2,
+        slots: {
+          'tank-1': {
+            kind: 'helper',
+            discordId: CAROL_ID,
+            displayName: 'Carol',
+          },
+        },
+      },
+    ]);
+    flow.db.seed(rosterPath(FROGS.id), asHelper);
+    await signIn(flow, ALICE, [FROGS_ROLE]);
+    const written: string[] = [];
+    onTestFinished(flow.db.onWrite((path) => written.push(path)));
+
+    await release(flow.http, CAROL_ID);
+
+    expect({ written, roster: flow.db.read(rosterPath(FROGS.id)) }).toEqual({
+      written: [`events/${EVENT_ID}/participants/${fru(CAROL_ID)}`],
+      roster: asHelper,
+    });
+  });
+});

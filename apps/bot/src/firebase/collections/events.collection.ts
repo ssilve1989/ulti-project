@@ -16,7 +16,7 @@ import {
   type ParticipantDocument,
   type StoredEvent,
 } from '../models/event.model.js';
-import { clearFromRoster, rosterDocId } from '../models/roster.model.js';
+import { clearProgger, rosterDocId } from '../models/roster.model.js';
 import { rostersOf } from './rosters.collection.js';
 
 type StoredParticipant = ParticipantDocument & { id: string };
@@ -242,7 +242,13 @@ class EventsCollection {
       const removed = (await tx.get(ref)).data();
       if (!removed) return undefined;
       const rosterChanged = removed.claim
-        ? await this.unplace(tx, eventId, removed, removed.claim.squadId)
+        ? await this.unplace(
+            tx,
+            eventId,
+            participantId,
+            removed.encounter,
+            removed.claim.squadId,
+          )
         : false;
       tx.delete(ref);
       return { removed, rosterChanged };
@@ -325,7 +331,8 @@ class EventsCollection {
       const rosterChanged = await this.unplace(
         tx,
         eventId,
-        participant,
+        participantId,
+        participant.encounter,
         squadId,
       );
       tx.set(ref, unclaimed);
@@ -376,25 +383,24 @@ class EventsCollection {
   }
 
   /**
-   * In `tx`, takes the participant out of `squadId`'s roster for their
-   * encounter; false if they had no slot there. It reads, then writes, so
-   * call it before the transaction's own writes.
+   * In `tx`, takes the progger out of `squadId`'s roster for `encounter`;
+   * false if they had no progger slot there. It reads, then writes, so call
+   * it before the transaction's own writes.
    */
   private async unplace(
     tx: Transaction,
     eventId: string,
-    { discordId, encounter }: ParticipantDocument,
+    participantId: string,
+    encounter: Encounter,
     squadId: string,
   ): Promise<boolean> {
     const ref = rostersOf(this.firestore, eventId).doc(
       rosterDocId(encounter, squadId),
     );
     const roster = (await tx.get(ref)).data();
-    const placed = roster?.teams.some((team) =>
-      Object.values(team.slots).some((fill) => fill.discordId === discordId),
-    );
-    if (!roster || !placed) return false;
-    tx.set(ref, clearFromRoster(roster, discordId));
+    const cleared = roster && clearProgger(roster, participantId);
+    if (!cleared) return false;
+    tx.set(ref, cleared);
     return true;
   }
 
