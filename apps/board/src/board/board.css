@@ -532,4 +532,31 @@ button.tok.is-mine:disabled {
   .sub-grid {
     grid-template-columns: 1fr;
   }
+  /* Phone: the player column takes what's left and truncates, so Phase and Squad always fit. */
+  table.grid tbody td:first-child {
+    width: 100%;
+    max-width: 0;
+  }
+  table.grid thead th,
+  .sq-cell {
+    padding-inline: 8px;
+  }
+  .p-player {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+  /* a long phase breaks onto a second line; the min-width keeps short ones ("P4: Enrage") on one */
+  .p-phase {
+    padding-inline: 8px;
+    white-space: normal;
+    min-width: 5.5rem;
+  }
+  /* 24px minimum targets (WCAG 2.5.8) */
+  .claim-btn {
+    width: 24px;
+    height: 24px;
+  }
+  button.tok {
+    min-height: 24px;
+  }
 }
