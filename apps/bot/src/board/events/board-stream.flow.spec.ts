@@ -396,6 +396,52 @@ describe('when a viewer opens an event stream', () => {
     await expect(get(flow, streamPath('%2E%2E'))).resolves.toEqual(NOT_FOUND);
   });
 
+  describe('and their access is read again at a ping after it expires', () => {
+    it.beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+    });
+
+    /** Over a minute later, so Alice's access is read again at the next ping. */
+    const pingAfterAccessExpires = () => {
+      vi.setSystemTime(NOW.getTime() + 61_000);
+      vi.advanceTimersByTime(25_000);
+    };
+    // the real setTimeout bounds the wait, so a stream left open fails here
+    const nextOf = (stream: { next(): Promise<unknown> }) =>
+      Promise.race([stream.next(), sleep(1_000, 'nothing')]);
+
+    it('ends the stream of a member who has lost their viewer role', async ({
+      flow,
+      streams,
+    }) => {
+      const stream = await openRosterNight(flow, streams);
+      flow.discord.addMember({
+        id: ALICE.id,
+        username: ALICE.username,
+        globalName: ALICE.globalName,
+        roles: [],
+      });
+
+      pingAfterAccessExpires();
+
+      await expect(nextOf(stream)).resolves.toEqual(ENDED);
+    });
+
+    it('keeps pinging a member who still has their viewer role', async ({
+      flow,
+      streams,
+    }) => {
+      const stream = await openRosterNight(flow, streams);
+
+      pingAfterAccessExpires();
+
+      await expect(nextOf(stream)).resolves.toEqual({
+        done: false,
+        value: { comment: 'ping' },
+      });
+    });
+  });
+
   describe('and the bot shuts down while the stream is open', () => {
     it('closes without waiting for the stream to end', async ({
       flow,
