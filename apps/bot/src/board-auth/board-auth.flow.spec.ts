@@ -41,6 +41,23 @@ function aliceUser(flow: HttpFlowApp) {
   };
 }
 
+describe('when a coordinator comes back from Discord', () => {
+  it('sets their session cookie and no cookie with their Discord tokens', async ({
+    flow,
+  }) => {
+    await expect(signInWithDiscord(flow, ALICE)).resolves.toEqual({
+      status: 302,
+      location: '/',
+      // the state cookie is cleared; no `better-auth.account_data`
+      cookies: [
+        'better-auth.oauth_state',
+        'better-auth.session_token',
+        'better-auth.session_data',
+      ],
+    });
+  });
+});
+
 describe('when a coordinator signs in with Discord', () => {
   it.beforeEach(({ flow }) => signInAs(flow, ALICE));
 
@@ -89,6 +106,7 @@ describe('when a coordinator signs in with Discord', () => {
         callback: {
           status: 302,
           location: `${flow.boardUrl}/api/auth/error?error=account_not_linked`,
+          cookies: ['better-auth.oauth_state'],
         },
         session: { status: 200, body: null },
       });

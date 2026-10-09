@@ -643,6 +643,25 @@ describe('EventsCollection', () => {
       expect(db.read(PARTICIPANT_PATH)).toEqual(claimed);
     });
 
+    it('gives a participant who withdraws as they are claimed to the withdrawal, and stores nothing for them', async ({
+      db,
+      collection,
+    }) => {
+      db.seed(EVENT_PATH, anOpenEvent());
+      db.seed(PARTICIPANT_PATH, aParticipant());
+
+      // both transactions read the participant before either commits
+      const outcomes = await Promise.all([
+        collection.removeParticipant(EVENT_ID, PARTICIPANT_ID),
+        claim(collection),
+      ]);
+
+      expect({ outcomes, stored: db.read(PARTICIPANT_PATH) }).toEqual({
+        outcomes: [aParticipant(), { kind: 'participant-missing' }],
+        stored: undefined,
+      });
+    });
+
     it('reports a missing participant and stores nothing for them', async ({
       db,
       collection,

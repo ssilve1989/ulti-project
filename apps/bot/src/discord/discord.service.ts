@@ -15,6 +15,9 @@ import {
 import { from, lastValueFrom, mergeMap, reduce } from 'rxjs';
 import { InjectDiscordClient } from './discord.decorators.js';
 
+/** How long a fetch of guild members by id waits for the gateway's answer. */
+const MEMBER_FETCH_TIMEOUT_MS = 10_000;
+
 @Injectable()
 class DiscordService {
   private readonly logger = new Logger(DiscordService.name);
@@ -61,6 +64,9 @@ class DiscordService {
     for (let start = 0; start < memberIds.length; start += 100) {
       const fetched = await guild.members.fetch({
         user: memberIds.slice(start, start + 100),
+        // asked over the gateway: while it's down, fail fast instead of
+        // waiting discord.js's default 120s
+        time: MEMBER_FETCH_TIMEOUT_MS,
       });
       for (const [id, member] of fetched) members.set(id, member);
     }

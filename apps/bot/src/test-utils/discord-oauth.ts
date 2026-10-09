@@ -40,6 +40,8 @@ function discordProfile(account: DiscordAccount) {
 export interface CallbackOutcome {
   readonly status: number;
   readonly location: string | undefined;
+  /** The names of the cookies the callback set, in order. */
+  readonly cookies: readonly string[];
 }
 
 /**
@@ -98,9 +100,13 @@ export async function signInWithDiscord(
     throw new Error(`Sign-in skipped Discord: ${discord.pendingMocks()}`);
   }
   const location: unknown = callback.headers.location;
+  const setCookie: unknown = callback.headers['set-cookie'];
   return {
     status: callback.status,
     location: typeof location === 'string' ? location : undefined,
+    cookies: Array.isArray(setCookie)
+      ? setCookie.map((cookie) => String(cookie).split('=')[0] ?? '')
+      : [],
   };
 }
 

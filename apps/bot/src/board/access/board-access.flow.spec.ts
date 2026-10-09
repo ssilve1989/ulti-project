@@ -171,6 +171,21 @@ describe('when a member with a viewer role signs in', () => {
       });
     });
   });
+
+  describe('and they leave the guild', () => {
+    it('answers 403 not-in-guild once their access expires, 61s later', async ({
+      flow,
+    }) => {
+      await getMe(flow);
+      flow.discord.removeMember(ALICE.id);
+      vi.setSystemTime(NOW.getTime() + 61_000);
+
+      await expect(getMe(flow)).resolves.toEqual({
+        status: 403,
+        body: { reason: 'not-in-guild' },
+      });
+    });
+  });
 });
 
 describe('when a member of a squad signs in', () => {

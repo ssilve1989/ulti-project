@@ -158,15 +158,23 @@ export class FakeViews {
       /**
        * Like GuildMemberManager.fetch: one member (10007 for a non-member),
        * the members among `{ user: ids }` (non-members are left out), or every
-       * member; all of them are cached.
+       * member; all of them are cached. Members by id are asked for over the
+       * gateway, so while it's down that times out after `time` (discord.js's
+       * default is 120s).
        */
-      fetch: (options?: string | { user: readonly string[] }) => {
+      fetch: (
+        options?: string | { user: readonly string[]; time?: number },
+      ) => {
         if (options === undefined) {
           return Promise.resolve(collectionOf(this.fetchAllMembers(guildId)));
         }
-        return typeof options === 'string'
-          ? this.fetchMember(guildId, options)
-          : this.fetchMembers(guildId, options.user);
+        if (typeof options === 'string') {
+          return this.fetchMember(guildId, options);
+        }
+        if (!this.world.gatewayConnected()) {
+          return this.gatewayTimeout(options.time ?? 120_000);
+        }
+        return this.fetchMembers(guildId, options.user);
       },
     };
     const roles = {
@@ -374,6 +382,16 @@ export class FakeViews {
             `/guilds/${guildId}/members/${userId}`,
           ),
         );
+  }
+
+  /** What discord.js's gateway member fetch rejects with when no answer comes within `time` ms. */
+  private gatewayTimeout(time: number): Promise<never> {
+    return new Promise((_, reject) => {
+      setTimeout(
+        () => reject(discordjsError(DiscordjsErrorCodes.GuildMembersTimeout)),
+        time,
+      );
+    });
   }
 
   /** Like a Request Guild Members by `user_ids`, which returns at most 100 members. */

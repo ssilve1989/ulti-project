@@ -21,7 +21,7 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from 'discord.js';
-import { test as base, describe, expect } from 'vitest';
+import { test as base, describe, expect, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { fresh } from '../fixtures.js';
 import { BOT_USER_ID, DiscordMock } from './discord-mock.js';
@@ -841,6 +841,61 @@ describe('DiscordMock', () => {
     await expect(guild.members.fetch({ user: ids })).rejects.toThrow(
       'at most 100',
     );
+  });
+
+  describe('while the gateway is down', () => {
+    it.beforeEach(({ discord }) => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      discord.disconnectGateway();
+      return () => {
+        vi.useRealTimers();
+      };
+    });
+
+    /** Tracks how `fetching` has settled: its value or error, or still pending. */
+    const track = (fetching: Promise<unknown>) => {
+      const state: { now: unknown } = { now: 'pending' };
+      fetching.then(
+        (value) => {
+          state.now = { value };
+        },
+        (error: unknown) => {
+          state.now = { error };
+        },
+      );
+      return state;
+    };
+
+    it('times out fetching members by id after the time asked for, like discord.js', async ({
+      discord,
+    }) => {
+      const guild = await discord.client.guilds.fetch('g1');
+
+      const fetching = track(
+        guild.members.fetch({ user: ['u1'], time: 5_000 }),
+      );
+      await vi.advanceTimersByTimeAsync(4_999);
+      const before = fetching.now;
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect([before, fetching.now]).toEqual([
+        'pending',
+        { error: discordjsError(DiscordjsErrorCodes.GuildMembersTimeout) },
+      ]);
+    });
+
+    it("gives up on the app's fetch of several members after 10 seconds", async ({
+      service,
+    }) => {
+      const fetching = track(
+        service.getGuildMembers({ guildId: 'g1', memberIds: ['u1', 'u2'] }),
+      );
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      expect(fetching.now).toEqual({
+        error: discordjsError(DiscordjsErrorCodes.GuildMembersTimeout),
+      });
+    });
   });
 
   it("holds the guild's roles in its role cache, like discord.js", async ({

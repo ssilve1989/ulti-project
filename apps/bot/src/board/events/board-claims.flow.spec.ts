@@ -299,6 +299,32 @@ describe('when a Frogs member claims a player', () => {
     expect(changes).toEqual([BOB_CHANGED]);
   });
 
+  describe("and the event's Discord message has been deleted", () => {
+    it.beforeEach(async ({ flow }) => {
+      for (const message of flow.discord.channel(EVENTS_CHANNEL)) {
+        await message.toMessage().delete();
+      }
+    });
+
+    it('claims them without touching the message', async ({ flow }) => {
+      const response = await claim(flow);
+      await flow.settle();
+
+      expect(response).toEqual({
+        status: 200,
+        body: boardBob({
+          squadId: FROGS.id,
+          claimedBy: ALICE.id,
+          claimedAt: NOW.toISOString(),
+        }),
+      });
+      // the event's message shows no claims, so a claim leaves it alone
+      expect(() => flow.expectReported(/was not found/)).toThrow(
+        'No reported problem matches',
+      );
+    });
+  });
+
   describe('and claims them again a minute later', () => {
     it('keeps the first claim and answers with it', async ({ flow }) => {
       await claim(flow);

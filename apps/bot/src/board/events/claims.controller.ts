@@ -11,9 +11,7 @@ import {
 import type { BoardParticipant } from '@ulti-project/shared';
 import type { Request } from 'express';
 import { boardConfig } from '../../config/board.js';
-import { ErrorService } from '../../error/error.service.js';
 import { EventChangesBus } from '../../events/event-changes.bus.js';
-import { EventMessageService } from '../../events/event-message.service.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import { BoardHttpError } from '../../http/http-exception.filter.js';
@@ -34,8 +32,6 @@ export class ClaimsController {
   constructor(
     private readonly reader: BoardEventReader,
     private readonly events: EventsCollection,
-    private readonly messages: EventMessageService,
-    private readonly errors: ErrorService,
     private readonly changes: EventChangesBus,
     private readonly settings: SettingsCollection,
   ) {}
@@ -76,7 +72,7 @@ export class ClaimsController {
         });
       }
       case 'claimed':
-        await this.changed(id, pid);
+        this.changed(id, pid);
         break;
       case 'already-yours':
         break;
@@ -108,7 +104,7 @@ export class ClaimsController {
           reason: 'not-your-claim',
         });
       case 'released':
-        await this.changed(id, pid);
+        this.changed(id, pid);
         break;
       case 'not-claimed':
         break;
@@ -157,19 +153,14 @@ export class ClaimsController {
   }
 
   /**
-   * Tells the board and the event's message that the claim changed. It has
-   * changed either way, so a message that can't be updated is only reported.
+   * Tells open boards that the claim changed. The event's Discord message
+   * shows no claims, so it's left alone.
    */
-  private async changed(id: string, pid: string): Promise<void> {
+  private changed(id: string, pid: string): void {
     this.changes.publish({
       kind: 'participant',
       eventId: id,
       participantId: pid,
     });
-    await this.messages.refresh(id).catch((error: unknown) =>
-      this.errors.captureError(error, {
-        message: `Failed to refresh event ${id} after a claim changed`,
-      }),
-    );
   }
 }

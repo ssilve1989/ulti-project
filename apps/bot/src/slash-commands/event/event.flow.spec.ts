@@ -734,7 +734,7 @@ describe('the event-scheduler job', () => {
     );
   });
 
-  describe('when events boards have open pass their sign-up close time', () => {
+  describe('when open events pass their sign-up close time', () => {
     itWithScheduler(
       'tells each board its event changed once, even when the event cannot be shown',
       async ({ flow, cron }) => {
