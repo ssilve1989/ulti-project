@@ -50,6 +50,7 @@ describe('renderSchedulePanel', () => {
             title: 'New schedule: DMU prog night',
             description: 'Pick at least one day.',
             fields: [
+              { name: 'Encounters', value: 'Dancing Mad (Ultimate)' },
               { name: 'Channel', value: '<#channel-1>' },
               { name: 'Post ahead', value: '72 hours' },
             ],
@@ -82,6 +83,7 @@ describe('renderSchedulePanel', () => {
               'Sign-ups close 2 hours before it starts (<t:1784066400:R>).',
             ].join('\n'),
             fields: [
+              { name: 'Encounters', value: 'Dancing Mad (Ultimate)' },
               { name: 'Channel', value: '<#channel-1>' },
               { name: 'Post ahead', value: '24 hours' },
             ],
@@ -114,6 +116,7 @@ describe('renderSchedulePanel', () => {
               'Sign-ups close 1 hour before it starts (<t:1784070000:R>).',
             ].join('\n'),
             fields: [
+              { name: 'Encounters', value: 'Dancing Mad (Ultimate)' },
               { name: 'Channel', value: '<#channel-1>' },
               { name: 'Post ahead', value: '24 hours' },
             ],
@@ -146,6 +149,7 @@ describe('renderSchedulePanel', () => {
               'Sign-ups close when it starts.',
             ].join('\n'),
             fields: [
+              { name: 'Encounters', value: 'Dancing Mad (Ultimate)' },
               { name: 'Channel', value: '<#channel-1>' },
               { name: 'Post ahead', value: '1 hour' },
             ],

@@ -1,3 +1,4 @@
+import { EncounterFriendlyDescription } from '@ulti-project/shared';
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -27,8 +28,8 @@ import {
   ZONE_NAMES,
 } from './next-occurrence.js';
 
+/** `encounters` and `weekdays` may be empty until the organizer picks some. */
 export interface ScheduleDraft extends Omit<ScheduleSettings, 'weekdays'> {
-  /** May be empty while the organizer hasn't picked a day yet. */
   weekdays: Weekday[];
 }
 
@@ -61,6 +62,17 @@ export function renderSchedulePanel(
     .setTitle(`${mode === 'create' ? 'New' : 'Edit'} schedule: ${draft.title}`)
     .setDescription(preview(draft, now))
     .addFields(
+      // Discord rejects an empty field; shown otherwise so encounters the menu doesn't offer stay visible
+      ...(draft.encounters.length > 0
+        ? [
+            {
+              name: 'Encounters',
+              value: draft.encounters
+                .map((encounter) => EncounterFriendlyDescription[encounter])
+                .join('\n'),
+            },
+          ]
+        : []),
       { name: 'Channel', value: channelMention(draft.channelId) },
       {
         name: 'Post ahead',

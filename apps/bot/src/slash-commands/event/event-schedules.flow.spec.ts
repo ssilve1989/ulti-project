@@ -198,8 +198,9 @@ function onlyScheduleId(flow: FlowApp): string {
   return schedule.id;
 }
 
-/** The panel's fields for a schedule in the events channel posted `postAhead` ahead. */
-const panelFields = (postAhead: string) => [
+/** The panel's fields for a schedule in the events channel posted `postAhead` ahead, with DMU if `dmu`. */
+const panelFields = (postAhead: string, dmu: boolean) => [
+  ...(dmu ? [{ name: 'Encounters', value: 'Dancing Mad (Ultimate)' }] : []),
   { name: 'Channel', value: `<#${EVENTS_CHANNEL}>` },
   { name: 'Post ahead', value: postAhead },
 ];
@@ -245,7 +246,7 @@ describe('/event schedule-create', () => {
             {
               title: `New schedule: ${TITLE}`,
               description: 'Pick at least one day.',
-              fields: panelFields('72 hours'),
+              fields: panelFields('72 hours', false),
             },
           ],
           components: [
@@ -272,7 +273,7 @@ describe('/event schedule-create', () => {
                   `The next event starts <t:${EASTERN_START_S}:F> and is posted <t:${EASTERN_POST_S}:R>.`,
                   'Sign-ups close when it starts.',
                 ].join('\n'),
-                fields: panelFields('72 hours'),
+                fields: panelFields('72 hours', false),
               },
             ],
             components: [
@@ -305,7 +306,7 @@ describe('/event schedule-create', () => {
                   `The next event starts <t:${EASTERN_START_S}:F> and is posted <t:${EASTERN_POST_S}:R>.`,
                   'Sign-ups close when it starts.',
                 ].join('\n'),
-                fields: panelFields('72 hours'),
+                fields: panelFields('72 hours', true),
               },
             ],
             components: [
@@ -332,7 +333,7 @@ describe('/event schedule-create', () => {
                     `The next event starts <t:${PACIFIC_START_S}:F> and is posted <t:${PACIFIC_POST_S}:R>.`,
                     'Sign-ups close when it starts.',
                   ].join('\n'),
-                  fields: panelFields('72 hours'),
+                  fields: panelFields('72 hours', true),
                 },
               ],
               components: [
@@ -549,7 +550,7 @@ describe('/event schedule-edit', () => {
                 `The next event starts <t:${NINE_PM_START_S}:F> and is posted <t:${NINE_PM_POST_S}:R>.`,
                 `Sign-ups close 2 hours before it starts (<t:${NINE_PM_CLOSE_S}:R>).`,
               ].join('\n'),
-              fields: panelFields('24 hours'),
+              fields: panelFields('24 hours', true),
             },
           ],
           components: [
