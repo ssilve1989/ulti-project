@@ -32,7 +32,7 @@ import { createFlowApp, type HttpFlowApp } from '../../test-utils/flow-app.js';
 import { seedSignup } from '../../test-utils/signups.js';
 import { type OpenStreams, openStreams } from '../../test-utils/sse.js';
 
-const GUILD = boardConfig.BOARD_GUILD_ID;
+const GUILD = boardConfig.GUILD_ID;
 const EVENTS_CHANNEL = 'events-channel';
 const VIEWER_ROLE = 'role-viewer';
 const FROGS_ROLE = 'role-frogs';

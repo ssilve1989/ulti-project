@@ -123,9 +123,7 @@ export class ClaimsController {
 
   /** The board guild's squads: a claim by any other squad (one removed since) counts as none. */
   private async squadIds(): Promise<string[]> {
-    const settings = await this.settings.getSettings(
-      boardConfig.BOARD_GUILD_ID,
-    );
+    const settings = await this.settings.getSettings(boardConfig.GUILD_ID);
     return squadsOf(settings).map(({ id }) => id);
   }
 

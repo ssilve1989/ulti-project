@@ -57,14 +57,12 @@ export class StreamController {
   ): Promise<Observable<MessageEvent>> {
     const { discordId } = boardContextOf(request);
     // checked before the stream opens: once it has, a 404 can't be sent
-    if (
-      (await this.reader.event(boardConfig.BOARD_GUILD_ID, id)) === undefined
-    ) {
+    if ((await this.reader.event(boardConfig.GUILD_ID, id)) === undefined) {
       throw new BoardHttpError(HttpStatus.NOT_FOUND, { reason: 'not-found' });
     }
     return merge(
       this.streams
-        .stream(boardConfig.BOARD_GUILD_ID, id)
+        .stream(boardConfig.GUILD_ID, id)
         .pipe(map((message): MessageEvent => ({ data: message }))),
       interval(PING_INTERVAL_MS).pipe(
         concatMap(() => this.boardAccess.resolve(discordId)),
