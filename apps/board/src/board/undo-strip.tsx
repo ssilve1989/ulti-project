@@ -13,37 +13,40 @@ export function UndoStrip(props: {
   });
 
   return (
-    <Show when={props.notice}>
-      {(notice) => (
-        <div class="undo">
-          <span role="status">{notice().message}</span>
-          <Show when={notice().undo}>
-            {(undo) => (
-              <button
-                type="button"
-                class="undo-btn"
-                aria-label="Undo"
-                onClick={() => {
-                  const run = undo();
-                  // Gone at once, so Undo can't be sent twice.
-                  props.onDismiss();
-                  run();
-                }}
-              >
-                Undo
-              </button>
-            )}
-          </Show>
-          <button
-            type="button"
-            class="undo-x"
-            aria-label="Dismiss"
-            onClick={() => props.onDismiss()}
-          >
-            ×
-          </button>
-        </div>
-      )}
-    </Show>
+    // The status region stays mounted, so a screen reader announces each new message; only a notice draws the strip.
+    <div classList={{ undo: props.notice !== undefined }}>
+      <span role="status">{props.notice?.message}</span>
+      <Show when={props.notice}>
+        {(notice) => (
+          <>
+            <Show when={notice().undo}>
+              {(undo) => (
+                <button
+                  type="button"
+                  class="undo-btn"
+                  aria-label="Undo"
+                  onClick={() => {
+                    const run = undo();
+                    // Gone at once, so Undo can't be sent twice.
+                    props.onDismiss();
+                    run();
+                  }}
+                >
+                  Undo
+                </button>
+              )}
+            </Show>
+            <button
+              type="button"
+              class="undo-x"
+              aria-label="Dismiss"
+              onClick={() => props.onDismiss()}
+            >
+              ×
+            </button>
+          </>
+        )}
+      </Show>
+    </div>
   );
 }

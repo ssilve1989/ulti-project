@@ -127,12 +127,15 @@ function progRows(): string[][] {
   );
 }
 
+const progStatus = () =>
+  within(screen.getByRole('region', { name: 'Prog Party' })).getByRole(
+    'status',
+  );
+
 /** The Prog party's undo strip: its message, then its buttons' names; empty when hidden. */
 function strip(): string[] {
-  const status = within(
-    screen.getByRole('region', { name: 'Prog Party' }),
-  ).queryByRole('status');
-  if (status === null) return [];
+  const status = progStatus();
+  if (status.textContent === '') return [];
   const buttons = status.parentElement?.querySelectorAll('button') ?? [];
   return [
     status.textContent ?? '',
@@ -194,6 +197,8 @@ describe('claiming a player', () => {
   it('shows the claim at once with its control disabled, then offers Undo once the API agrees', async () => {
     const answer = held();
     const { sent } = await openBoard({ [CLAIM]: answer.route });
+    // Mounted empty before any notice, so screen readers announce the first one.
+    expect(progStatus().textContent).toBe('');
 
     click(CLAIM_AERYN);
 
