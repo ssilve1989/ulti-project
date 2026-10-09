@@ -141,6 +141,7 @@
 }
 .slot.is-busy .slot-pick {
   cursor: progress;
+  pointer-events: none;
 }
 @keyframes slot-saving {
   50% {

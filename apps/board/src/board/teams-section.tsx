@@ -5,7 +5,7 @@ import type {
   SquadHelper,
   SquadView,
 } from '@ulti-project/shared';
-import { For, Show } from 'solid-js';
+import { Index, Show } from 'solid-js';
 import './teams.css';
 import type { RosterActions } from './rosters';
 import { TeamCard } from './team-card';
@@ -38,11 +38,12 @@ export function TeamsSection(props: {
     <section class="teams" aria-labelledby="teams-title">
       <h3 id="teams-title">Teams</h3>
       <div class="team-grid">
-        <For each={roster().teams}>
+        {/* By position, so a saved change updates cards in place and the focused picker stays. */}
+        <Index each={roster().teams}>
           {(team, index) => (
             <TeamCard
-              team={team}
-              number={index() + 1}
+              team={team()}
+              number={index + 1}
               squad={props.squad}
               startsAt={props.event.startsAt}
               roster={roster()}
@@ -52,7 +53,7 @@ export function TeamsSection(props: {
               actions={props.actions}
             />
           )}
-        </For>
+        </Index>
         <Show when={roster().teams.length < TEAM_LIMIT}>
           <div class="team-add">
             <button

@@ -121,13 +121,16 @@ function options(select: HTMLElement): (string | [string, string[]])[] {
   );
 }
 
-const picker = (name: string) => screen.getAllByRole('combobox', { name })[0];
-
-function choose(name: string, value: string): void {
-  const select = picker(name);
-  if (select === undefined) throw new Error(`No picker named ${name}`);
-  fireEvent.change(select, { target: { value } });
+/** The first picker named `name` (the two Tank slots share one). */
+function picker(name: string): HTMLSelectElement {
+  const select = screen.getAllByRole('combobox', { name })[0];
+  if (!(select instanceof HTMLSelectElement))
+    throw new Error(`No picker named ${name}`);
+  return select;
 }
+
+const choose = (name: string, value: string) =>
+  fireEvent.change(picker(name), { target: { value } });
 
 describe("your squad's teams", () => {
   it('adds an empty team of 8 open slots', async () => {
@@ -157,7 +160,6 @@ describe("your squad's teams", () => {
       { [`PUT ${ROSTERS}/teams/t1/slots/regen-healer`]: answer.route },
     );
     const select = picker('Regen healer for Team 1');
-    if (select === undefined) throw new Error('No regen healer picker');
     await waitFor(() =>
       expect(options(select)).toEqual([
         ['Suggested', ['Cass Ember']],
@@ -169,15 +171,26 @@ describe("your squad's teams", () => {
 
     choose('Regen healer for Team 1', `progger:${cass.id}`);
 
-    expect(select.hasAttribute('disabled')).toBe(true);
+    // Marked disabled without `disabled`, which would drop the picker's focus.
+    expect([select.getAttribute('aria-disabled'), select.disabled]).toEqual([
+      'true',
+      false,
+    ]);
+    // A second choice while it saves is ignored.
+    choose('Regen healer for Team 1', `helper:${HANA.discordId}`);
     await waitFor(() =>
-      expect(sent.at(-1)).toEqual({
-        method: 'PUT',
-        path: `${ROSTERS}/teams/t1/slots/regen-healer`,
-        body: `{"kind":"progger","participantId":"${cass.id}"}`,
-        contentType: 'application/json',
-      }),
+      expect(sent).toEqual([
+        GET_ME,
+        GET_HELPERS,
+        {
+          method: 'PUT',
+          path: `${ROSTERS}/teams/t1/slots/regen-healer`,
+          body: `{"kind":"progger","participantId":"${cass.id}"}`,
+          contentType: 'application/json',
+        },
+      ]),
     );
+    expect(select.value).toBe('');
     answer.answer(
       json(
         200,
@@ -198,7 +211,7 @@ describe("your squad's teams", () => {
         }),
       ),
     );
-    expect(select.hasAttribute('disabled')).toBe(false);
+    expect(select.getAttribute('aria-disabled')).toBe('false');
   });
 
   it('moves someone placed in another team, showing them once', async () => {
@@ -218,7 +231,6 @@ describe("your squad's teams", () => {
       },
     );
     const select = picker('Tank for Team 2');
-    if (select === undefined) throw new Error('No tank picker');
     await waitFor(() =>
       expect(options(select)).toEqual([
         ['Suggested', ['Aeryn Vail']],
@@ -347,6 +359,60 @@ describe("your squad's teams", () => {
       body: undefined,
       contentType: null,
     });
+  });
+
+  it("keeps a filled slot's picker on its occupant while the board changes around it", async () => {
+    const { source } = await openFrogeBoard(
+      withTeams({ id: 't1', slots: { 'tank-1': progger(aeryn) } }),
+    );
+    const select = picker('Tank for Team 1');
+    // The helpers arriving and a new claim both rebuild the picker's options.
+    await waitFor(() =>
+      expect(options(select)).toEqual([
+        ['Suggested', ['Aeryn Vail (Team 1 · Tank)']],
+        ['Other claimed proggers', ['Cass Ember', 'Dax Rook']],
+        ['Helpers', ['Hana']],
+        'Empty',
+      ]),
+    );
+    source.send({
+      type: 'participant-upserted',
+      participant: participant({
+        discordId: 'p7',
+        character: 'Gale Orrin',
+        claim: claimBy(FROGE.id),
+      }),
+    });
+    await waitFor(() =>
+      expect(options(select)).toEqual([
+        ['Suggested', ['Aeryn Vail (Team 1 · Tank)', 'Gale Orrin']],
+        ['Other claimed proggers', ['Cass Ember', 'Dax Rook']],
+        ['Helpers', ['Hana']],
+        'Empty',
+      ]),
+    );
+
+    expect(select.value).toBe(`progger:${aeryn.id}`);
+  });
+
+  it('keeps focus on the picker once its change is saved', async () => {
+    await openFrogeBoard(withTeams({ id: 't1', slots: {} }), {
+      [`PUT ${ROSTERS}/teams/t1/slots/regen-healer`]: json(
+        200,
+        roster([{ id: 't1', slots: { 'regen-healer': progger(cass) } }]),
+      ),
+    });
+    const select = picker('Regen healer for Team 1');
+    select.focus();
+
+    choose('Regen healer for Team 1', `progger:${cass.id}`);
+
+    await waitFor(() =>
+      expect(rows(1)).toEqual(
+        rowsWith({ 2: ['Regen healer', 'Cass Ember', 'progger'] }),
+      ),
+    );
+    expect(document.activeElement).toBe(select);
   });
 
   it('shows a change another lead made', async () => {

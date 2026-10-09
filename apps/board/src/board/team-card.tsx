@@ -8,7 +8,7 @@ import type {
   SquadView,
 } from '@ulti-project/shared';
 import { ROSTER_SLOTS } from '@ulti-project/shared/rosters';
-import { createSignal, For, onCleanup, Show } from 'solid-js';
+import { createMemo, createSignal, For, onCleanup, Show } from 'solid-js';
 import { type RosterActions, type SlotChoice, slotOptions } from './rosters';
 import { formatTeamMessage } from './team-message';
 
@@ -21,6 +21,15 @@ const pickerValue = (fill: SlotFill | undefined) =>
     : fill.kind === 'progger'
       ? `progger:${fill.participantId}`
       : `helper:${fill.discordId}`;
+
+const GROUPS: readonly {
+  label: string;
+  key: keyof ReturnType<typeof slotOptions>;
+}[] = Object.freeze([
+  { label: 'Suggested', key: 'suggested' },
+  { label: 'Other claimed proggers', key: 'otherProggers' },
+  { label: 'Helpers', key: 'helpers' },
+]);
 
 /** A picker's value back as a choice; '' (Empty) is null. */
 function choiceOf(
@@ -88,22 +97,13 @@ export function TeamCard(props: {
                 ? [...props.helpers, current]
                 : props.helpers;
             };
-            const groups = () => {
-              const options = slotOptions(
-                slot,
-                props.claimed,
-                helpers(),
-                props.roster,
-              );
-              return [
-                { label: 'Suggested', options: options.suggested },
-                {
-                  label: 'Other claimed proggers',
-                  options: options.otherProggers,
-                },
-                { label: 'Helpers', options: options.helpers },
-              ];
-            };
+            const options = createMemo(() =>
+              slotOptions(slot, props.claimed, helpers(), props.roster),
+            );
+            const labelOf = (value: string) =>
+              GROUPS.flatMap(({ key }) => options()[key]).find(
+                (option) => option.value === value,
+              )?.label;
             const name = () => {
               const current = fill();
               if (current === undefined) return undefined;
@@ -140,9 +140,14 @@ export function TeamCard(props: {
                   class="slot-pick"
                   aria-label={`${label} for Team ${props.number}`}
                   value={pickerValue(fill())}
-                  disabled={busy()}
+                  // aria-disabled, not disabled: disabling the focused picker would drop focus to the page.
+                  aria-disabled={busy()}
                   onChange={(event) => {
                     const select = event.currentTarget;
+                    if (busy()) {
+                      select.value = pickerValue(fill());
+                      return;
+                    }
                     props.actions.fill(
                       props.roster.encounter,
                       props.team.id,
@@ -153,20 +158,23 @@ export function TeamCard(props: {
                     select.value = pickerValue(fill());
                   }}
                 >
-                  <For each={groups()}>
-                    {(group) => (
-                      <Show when={group.options.length > 0}>
-                        <optgroup label={group.label}>
-                          <For each={group.options}>
-                            {(option) => (
-                              <option value={option.value}>
-                                {option.label}
-                              </option>
-                            )}
-                          </For>
-                        </optgroup>
-                      </Show>
-                    )}
+                  {/* Options keyed by value: a live update relabels them in place, so the chosen one is never swapped out. */}
+                  <For each={GROUPS}>
+                    {(group) => {
+                      const values = () =>
+                        options()[group.key].map((option) => option.value);
+                      return (
+                        <Show when={values().length > 0}>
+                          <optgroup label={group.label}>
+                            <For each={values()}>
+                              {(value) => (
+                                <option value={value}>{labelOf(value)}</option>
+                              )}
+                            </For>
+                          </optgroup>
+                        </Show>
+                      );
+                    }}
                   </For>
                   <option value="">Empty</option>
                 </select>
