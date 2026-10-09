@@ -21,6 +21,9 @@ const signedOut = () => json(401, { reason: 'signed-out' });
 const noEvents = () => json(200, []);
 const discordRedirect = () =>
   json(200, { url: 'https://discord.com/oauth2/authorize?x', redirect: true });
+// What better-auth answers when an endpoint throws unexpectedly.
+const authServerError = () =>
+  new Response(null, { status: 500, statusText: 'Internal Server Error' });
 
 function openAt(url: string): void {
   history.replaceState(null, '', url);
@@ -56,6 +59,34 @@ describe('when nobody is signed in', () => {
       body: JSON.stringify({ provider: 'discord', callbackURL: '/' }),
       contentType: 'application/json',
     });
+  });
+
+  it('says so when signing in cannot start, in place of an earlier Discord error', async () => {
+    const { sent } = stubApi({
+      'GET /api/me': signedOut,
+      'POST /api/auth/sign-in/social': authServerError,
+    });
+    openAt('/?error=state_not_found');
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Sign in with Discord' }),
+    );
+
+    // getByRole throws while two alerts show, so this also proves Discord's error is gone.
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toBe(
+        "Couldn't start signing in. Please try again.",
+      ),
+    );
+    expect(sent).toEqual([
+      GET_ME,
+      {
+        method: 'POST',
+        path: '/api/auth/sign-in/social',
+        body: JSON.stringify({ provider: 'discord', callbackURL: '/' }),
+        contentType: 'application/json',
+      },
+    ]);
   });
 
   describe('and Discord sent them back with an error', () => {
@@ -175,6 +206,61 @@ describe('when a squad lead is signed in', () => {
         contentType: 'application/json',
       },
       GET_ME,
+    ]);
+  });
+
+  it('says so when signing out fails, and stays signed in', async () => {
+    const { sent } = stubApi({
+      'GET /api/me': json(200, meResponse({ kind: 'squad', squad: FROGE })),
+      'GET /api/events': noEvents,
+      'POST /api/auth/sign-out': authServerError,
+    });
+    openAt('/');
+
+    await screen.findByText('No open events.');
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      "Couldn't sign out. Please try again.",
+    );
+    expect(screen.getByText('Aeryn')).toBeTruthy();
+    expect(sent).toEqual([
+      GET_ME,
+      GET_EVENTS,
+      {
+        method: 'POST',
+        path: '/api/auth/sign-out',
+        body: '{}',
+        contentType: 'application/json',
+      },
+    ]);
+  });
+
+  it('says so when the network fails while signing out', async () => {
+    const { sent } = stubApi({
+      'GET /api/me': json(200, meResponse({ kind: 'squad', squad: FROGE })),
+      'GET /api/events': noEvents,
+      // How `fetch` fails when the network is down.
+      'POST /api/auth/sign-out': () =>
+        Promise.reject(new TypeError('Failed to fetch')),
+    });
+    openAt('/');
+
+    await screen.findByText('No open events.');
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      "Couldn't sign out. Please try again.",
+    );
+    expect(sent).toEqual([
+      GET_ME,
+      GET_EVENTS,
+      {
+        method: 'POST',
+        path: '/api/auth/sign-out',
+        body: '{}',
+        contentType: 'application/json',
+      },
     ]);
   });
 });

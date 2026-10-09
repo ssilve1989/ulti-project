@@ -1,4 +1,4 @@
-import { authClient } from '../api/auth-client';
+import { SignOutButton } from './sign-out-button';
 
 const WHY = Object.freeze({
   'not-in-guild': "Your Discord account isn't in the Ulti Project server.",
@@ -14,15 +14,7 @@ export function NoAccessScreen(props: {
     <main class="screen">
       <h1>You don't have access</h1>
       <p>{WHY[props.reason]}</p>
-      <button
-        type="button"
-        onClick={async () => {
-          await authClient.signOut();
-          props.refetchMe();
-        }}
-      >
-        Sign out
-      </button>
+      <SignOutButton refetchMe={props.refetchMe} />
     </main>
   );
 }

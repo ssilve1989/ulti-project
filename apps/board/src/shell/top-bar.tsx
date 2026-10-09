@@ -1,8 +1,8 @@
 import { A } from '@solidjs/router';
 import type { BoardAccess, MeResponse } from '@ulti-project/shared';
 import { createSignal, Match, Show, Switch } from 'solid-js';
-import { authClient } from '../api/auth-client';
 import type { LiveStatus } from './shell-context';
+import { SignOutButton } from './sign-out-button';
 import { applyTheme, readStoredTheme, storeTheme } from './theme';
 
 function AccessBadge(props: { readonly access: BoardAccess }) {
@@ -76,15 +76,7 @@ export function TopBar(props: {
         <AccessBadge access={props.me.access} />
       </span>
       <ThemeToggle />
-      <button
-        type="button"
-        onClick={async () => {
-          await authClient.signOut();
-          props.refetchMe();
-        }}
-      >
-        Sign out
-      </button>
+      <SignOutButton refetchMe={props.refetchMe} />
     </header>
   );
 }
