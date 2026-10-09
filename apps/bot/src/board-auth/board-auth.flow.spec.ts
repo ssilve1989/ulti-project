@@ -4,6 +4,7 @@ import {
   discordEmail,
   signInAs,
   signInWithDiscord,
+  startSignIn,
 } from '../test-utils/discord-oauth.js';
 import { fresh } from '../test-utils/fixtures.js';
 import { createFlowApp, type HttpFlowApp } from '../test-utils/flow-app.js';
@@ -58,6 +59,21 @@ describe('when a coordinator comes back from Discord', () => {
   });
 });
 
+describe('when someone cancels sign-in on Discord', () => {
+  it('sends them to the board with the error', async ({ flow }) => {
+    const state = await startSignIn(flow);
+
+    const { status, headers } = await flow.http
+      .get('/api/auth/callback/discord')
+      .query({ error: 'access_denied', state });
+
+    expect({ status, location: headers.location }).toEqual({
+      status: 302,
+      location: `${flow.boardUrl}/?error=access_denied`,
+    });
+  });
+});
+
 describe('when a coordinator signs in with Discord', () => {
   it.beforeEach(({ flow }) => signInAs(flow, ALICE));
 
@@ -105,7 +121,7 @@ describe('when a coordinator signs in with Discord', () => {
       }).toEqual({
         callback: {
           status: 302,
-          location: `${flow.boardUrl}/api/auth/error?error=account_not_linked`,
+          location: `${flow.boardUrl}/?error=account_not_linked`,
           cookies: ['better-auth.oauth_state'],
         },
         session: { status: 200, body: null },

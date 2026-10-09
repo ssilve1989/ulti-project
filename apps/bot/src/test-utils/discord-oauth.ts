@@ -45,6 +45,32 @@ export interface CallbackOutcome {
 }
 
 /**
+ * Starts the board's Discord sign-in, as a browser would before going to
+ * Discord. Resolves to the `state` Discord is asked to send back; the agent
+ * holds the matching state cookie.
+ */
+export async function startSignIn(
+  flow: HttpFlowApp,
+  agent: Agent = flow.http,
+): Promise<string> {
+  const started = await agent
+    .post('/api/auth/sign-in/social')
+    .set('Origin', flow.boardUrl)
+    .send({ provider: 'discord', callbackURL: '/' });
+  const authorizeUrl: unknown = started.body?.url;
+  if (started.status !== 200 || typeof authorizeUrl !== 'string') {
+    throw new Error(
+      `Starting sign-in failed: ${started.status} ${JSON.stringify(started.body)}`,
+    );
+  }
+  const state = new URL(authorizeUrl).searchParams.get('state');
+  if (state === null) {
+    throw new Error(`Discord's authorize URL has no state: ${authorizeUrl}`);
+  }
+  return state;
+}
+
+/**
  * Goes through the board's real Discord sign-in as `account`, as a browser
  * would: start sign-in, then come back to the callback with Discord's code.
  * Discord's token and user endpoints are intercepted with nock, which the flow
@@ -78,20 +104,7 @@ export async function signInWithDiscord(
     .matchHeader('authorization', `Bearer ${accessToken}`)
     .reply(200, discordProfile(account));
 
-  const started = await agent
-    .post('/api/auth/sign-in/social')
-    .set('Origin', flow.boardUrl)
-    .send({ provider: 'discord', callbackURL: '/' });
-  const authorizeUrl: unknown = started.body?.url;
-  if (started.status !== 200 || typeof authorizeUrl !== 'string') {
-    throw new Error(
-      `Starting sign-in failed: ${started.status} ${JSON.stringify(started.body)}`,
-    );
-  }
-  const state = new URL(authorizeUrl).searchParams.get('state');
-  if (state === null) {
-    throw new Error(`Discord's authorize URL has no state: ${authorizeUrl}`);
-  }
+  const state = await startSignIn(flow, agent);
 
   const callback = await agent
     .get('/api/auth/callback/discord')

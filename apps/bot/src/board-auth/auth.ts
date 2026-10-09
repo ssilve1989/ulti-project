@@ -25,6 +25,8 @@ export function createBoardAuth(config: BoardAuthConfig) {
   return betterAuth({
     baseURL: config.BOARD_BASE_URL,
     secret: config.BETTER_AUTH_SECRET,
+    // A refused sign-in goes back to the board, which explains it (`?error=`).
+    onAPIError: { errorURL: new URL('/', config.BOARD_BASE_URL).href },
     account: {
       // Otherwise a sign-in whose Discord account isn't known yet is linked
       // to an existing user with the same verified email, and gets that
