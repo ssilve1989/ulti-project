@@ -14,7 +14,7 @@ import { boardContextOf } from './board-context.js';
 import { BoardSessionGuard } from './board-session.guard.js';
 import { CanClaim } from './can-claim.decorator.js';
 
-const GUILD = boardConfig.BOARD_GUILD_ID;
+const GUILD = boardConfig.GUILD_ID;
 const VIEWER_ROLE = 'role-viewer';
 const FROGS_ROLE = 'role-frogs';
 const OWLS_ROLE = 'role-owls';

@@ -17,7 +17,7 @@ export class MeController {
     // a member who left since their access was resolved has no guild name
     const member = await this.discordService.getGuildMember({
       memberId: discordId,
-      guildId: boardConfig.BOARD_GUILD_ID,
+      guildId: boardConfig.GUILD_ID,
     });
     return {
       discordId,

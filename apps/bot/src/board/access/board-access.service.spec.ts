@@ -10,7 +10,7 @@ import { InMemoryFirestore } from '../../test-utils/firestore/in-memory-firestor
 import { fresh } from '../../test-utils/fixtures.js';
 import { BoardAccessService } from './board-access.service.js';
 
-const GUILD = boardConfig.BOARD_GUILD_ID;
+const GUILD = boardConfig.GUILD_ID;
 const VIEWER_ROLE = 'role-viewer';
 const FROGS_ROLE = 'role-frogs';
 const OWLS_ROLE = 'role-owls';

@@ -31,7 +31,7 @@ export class BoardAccessService {
   }
 
   private async read(discordId: string): Promise<BoardAccess> {
-    const guildId = boardConfig.BOARD_GUILD_ID;
+    const guildId = boardConfig.GUILD_ID;
     const member = await this.discordService.getGuildMember({
       memberId: discordId,
       guildId,
