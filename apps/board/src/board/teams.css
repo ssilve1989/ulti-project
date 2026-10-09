@@ -73,7 +73,8 @@
   border-bottom: 1px solid var(--line-soft);
   border-left: 3px solid var(--role);
 }
-.slot:hover {
+/* Only a row with a picker reacts to the pointer. */
+.slot:has(.slot-pick):hover {
   background: var(--panel-2);
 }
 .slot:focus-within {
@@ -151,6 +152,52 @@
 @media (prefers-reduced-motion: reduce) {
   .slot.is-busy .slot-hint {
     animation: none;
+  }
+}
+
+/* Other squads' teams: the card's header is the disclosure; the rows show when expanded. */
+.team-others {
+  margin-top: 14px;
+}
+.team-other .team-head {
+  min-height: 44px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.3em;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+  border-bottom: 0;
+}
+.team-other .team-head::-webkit-details-marker {
+  display: none;
+}
+.team-other .team-head::before {
+  content: "▸";
+  margin-right: 0.35em;
+  color: var(--dim);
+  transition: transform 0.15s ease;
+}
+.team-other[open] .team-head::before {
+  transform: rotate(90deg);
+}
+.team-other[open] .team-head {
+  border-bottom: 1px solid var(--line);
+}
+.team-other .team-head:hover {
+  background: var(--line-soft);
+}
+.team-other .team-head:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
+}
+.team-other .team-count {
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  .team-other .team-head::before {
+    transition: none;
   }
 }
 

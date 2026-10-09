@@ -60,12 +60,9 @@ function Board(props: {
       ? { claims: props.claims, squad: access.squad }
       : undefined;
   };
-  // Same rule as claiming: a squad member on an event that isn't closed.
-  const editingTeams = () => {
-    const editing = claiming();
-    return editing && props.rosters
-      ? { squad: editing.squad, actions: props.rosters }
-      : undefined;
+  const ownSquad = () => {
+    const { access } = shell.me;
+    return access.kind === 'squad' ? access.squad : undefined;
   };
 
   return (
@@ -142,17 +139,14 @@ function Board(props: {
                   claims={props.claims}
                 />
               </div>
-              <Show when={editingTeams()}>
-                {(editing) => (
-                  <TeamsSection
-                    event={props.event}
-                    encounter={encounter().id}
-                    squad={editing().squad}
-                    helpers={props.helpers}
-                    actions={editing().actions}
-                  />
-                )}
-              </Show>
+              <TeamsSection
+                event={props.event}
+                encounter={encounter().id}
+                squad={ownSquad()}
+                helpers={props.helpers}
+                // Same rule as claiming: a squad member on an event that isn't closed.
+                actions={claiming() ? props.rosters : undefined}
+              />
             </section>
           </>
         )}

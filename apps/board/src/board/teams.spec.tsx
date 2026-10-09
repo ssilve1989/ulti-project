@@ -428,3 +428,60 @@ describe("your squad's teams", () => {
     );
   });
 });
+
+describe('read-only teams', () => {
+  const event = (status: BoardEvent['status']) =>
+    boardEvent({
+      status,
+      participants: [aeryn, cass, bricktop],
+      rosters: [
+        roster([
+          {
+            id: 't1',
+            slots: { 'tank-1': progger(aeryn), 'regen-healer': helper(HANA) },
+          },
+        ]),
+        {
+          encounter: 'FRU',
+          squadId: SPACE.id,
+          teams: [{ id: 's1', slots: { 'tank-1': progger(bricktop) } }],
+        },
+      ],
+    });
+  const teams = () => screen.getByRole('region', { name: 'Teams' });
+  /** Each collapsed card's summary text and whether it's open. */
+  const collapsed = () =>
+    Array.from(teams().querySelectorAll('details'), (details) => [
+      details.querySelector('summary')?.textContent,
+      details.open,
+    ]);
+
+  it("shows a viewer every squad's teams collapsed, with no pickers or buttons", async () => {
+    await openBoard({ event: event('open') });
+
+    expect(collapsed()).toEqual([
+      ['Froge Army · Team 1 · 2/8', false],
+      ['Space Travelers · Team 1 · 1/8', false],
+    ]);
+    expect(within(teams()).queryAllByRole('combobox')).toEqual([]);
+    expect(within(teams()).queryAllByRole('button')).toEqual([]);
+  });
+
+  it('keeps Copy message, and only that, on your own cards once the event is closed', async () => {
+    await openFrogeBoard(event('closed'));
+
+    expect(rows(1)).toEqual(
+      rowsWith({
+        0: ['Tank', 'Aeryn Vail', 'progger'],
+        2: ['Regen healer', 'Hana', 'helper'],
+      }),
+    );
+    expect(collapsed()).toEqual([['Space Travelers · Team 1 · 1/8', false]]);
+    expect(within(teams()).queryAllByRole('combobox')).toEqual([]);
+    expect(
+      within(teams())
+        .queryAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['Copy message']);
+  });
+});
