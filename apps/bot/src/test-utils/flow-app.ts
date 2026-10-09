@@ -186,8 +186,9 @@ export interface FlowAppOptions {
 }
 
 /**
- * Starts the app: as an HTTP app configured as in main.ts, or, without
- * `http`, as an application context (no server), as flows have always run.
+ * Starts the app: as an HTTP app configured as in main.ts, listening on a
+ * free loopback port, or, without `http`, as an application context (no
+ * server), as flows have always run.
  * Either way this runs onApplicationBootstrap.
  */
 async function startApp(
@@ -202,7 +203,10 @@ async function startApp(
     bodyParser: false,
   });
   configureHttpApp(app);
-  await app.init();
+  // listening for the whole test, as the bot does: otherwise supertest starts
+  // and stops the server around each request, and an open event stream would
+  // stop the next request's server from starting
+  await app.listen(0, '127.0.0.1');
   return app;
 }
 

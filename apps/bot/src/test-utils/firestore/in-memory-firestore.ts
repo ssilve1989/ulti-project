@@ -594,6 +594,11 @@ export class InMemoryFirestore {
     this.unreachable = true;
   }
 
+  /** Ends `goOffline`: Firestore is reachable again, as after an outage. */
+  goOnline(): void {
+    this.unreachable = false;
+  }
+
   /**
    * Makes `path` a hot document: from now on another client writes it while
    * every transaction that reads it runs, so each attempt conflicts and the

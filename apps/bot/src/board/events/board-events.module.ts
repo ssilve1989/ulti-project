@@ -6,7 +6,9 @@ import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { BoardModule } from '../access/board.module.js';
 import { BoardEventReader } from './board-event.reader.js';
 import { ClaimsController } from './claims.controller.js';
+import { EventStreamService } from './event-stream.service.js';
 import { EventsController } from './events.controller.js';
+import { StreamController } from './stream.controller.js';
 
 @Module({
   imports: [
@@ -16,7 +18,7 @@ import { EventsController } from './events.controller.js';
     EventsModule,
     FirebaseModule,
   ],
-  controllers: [EventsController, ClaimsController],
-  providers: [BoardEventReader],
+  controllers: [EventsController, ClaimsController, StreamController],
+  providers: [BoardEventReader, EventStreamService],
 })
 export class BoardEventsModule {}

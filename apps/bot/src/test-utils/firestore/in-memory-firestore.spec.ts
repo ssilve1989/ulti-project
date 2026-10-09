@@ -687,5 +687,17 @@ describe('InMemoryFirestore', () => {
         { name: 'seeded while offline' },
       ]);
     });
+
+    it('serves reads and writes again once it is back', async ({ db }) => {
+      db.seed('signups/a', { name: 'A' });
+      db.goOffline();
+      const ref = db.collection('signups').doc('a');
+      await expect(ref.get()).rejects.toThrow('14 UNAVAILABLE');
+
+      db.goOnline();
+      await ref.set({ name: 'B' });
+
+      expect((await ref.get()).data()).toEqual({ name: 'B' });
+    });
   });
 });
