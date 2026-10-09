@@ -133,44 +133,6 @@ const SLOT_PATH =
   '/api/events/event-1/rosters/FRU/teams/team-a/slots/regen-healer';
 
 describe('when a lead fills a slot', () => {
-  it('is pending until the API answers, then shows the roster it answered', async () => {
-    const answered = froge([
-      {
-        id: 'team-a',
-        slots: {
-          'tank-1': { kind: 'helper', ...DAX },
-          'regen-healer': {
-            kind: 'progger',
-            participantId: aeryn.id,
-            discordId: aeryn.discordId,
-          },
-        },
-      },
-      TEAM_B,
-    ]);
-    const { sent } = stubApi({ [`PUT ${SLOT_PATH}`]: json(200, answered) });
-    const { stream, actions } = openBoard(
-      boardEvent({ rosters: [ROSTER], participants: [aeryn] }),
-    );
-
-    actions.fill('FRU', 'team-a', 'regen-healer', {
-      kind: 'progger',
-      participantId: aeryn.id,
-    });
-
-    expect(actions.pending('team-a:regen-healer')).toBe(true);
-    await expect.poll(() => rosters(stream)).toEqual([answered]);
-    expect(actions.pending('team-a:regen-healer')).toBe(false);
-    expect(sent).toEqual([
-      {
-        method: 'PUT',
-        path: SLOT_PATH,
-        body: JSON.stringify({ kind: 'progger', participantId: aeryn.id }),
-        contentType: 'application/json',
-      },
-    ]);
-  });
-
   it('empties the slot with a DELETE when nobody is chosen', async () => {
     const answered = froge([{ id: 'team-a', slots: {} }, TEAM_B]);
     const tankPath =

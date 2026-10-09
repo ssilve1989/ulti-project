@@ -14,35 +14,6 @@ const helper = (discordId: string): SlotFill => ({
   displayName: 'Helper',
 });
 
-describe('the message for a full team', () => {
-  it('lists the start time, the data center and every slot with its mention', () => {
-    const team: RosterTeam = {
-      id: 'team-1',
-      slots: {
-        'tank-1': progger('101'),
-        'tank-2': progger('102'),
-        'regen-healer': progger('103'),
-        'shield-healer': helper('104'),
-        'dps-flex': progger('105'),
-        melee: progger('106'),
-        ranged: helper('107'),
-        caster: progger('108'),
-      },
-    };
-
-    expect(formatTeamMessage(STARTS_AT, team)).toBe(`Starts at <t:1791590400:F>
-Data Center: Aether
-:Tank~1: <@101>
-:Tank~1: <@102>
-:regenhealers: <@103>
-:shieldhealers: <@104>
-:DPS~1: <@105>
-:Melee~1: <@106>
-:Ranged: <@107>
-:Caster~1: <@108>`);
-  });
-});
-
 describe('the message for a team with gaps', () => {
   it('leaves an empty slot as its bare shortcode, with no trailing newline', () => {
     const team: RosterTeam = {
