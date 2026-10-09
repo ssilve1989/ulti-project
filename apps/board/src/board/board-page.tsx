@@ -180,6 +180,13 @@ export function BoardPage() {
           <A href="/">Back to events</A>
         </main>
       </Match>
+      {/* Shown while /api/me is asked again, and kept if it still lets the user in. */}
+      <Match when={stream.state().kind === 'refused'}>
+        <main class="screen">
+          <h1>You can't view this board right now.</h1>
+          <A href="/">Back to events</A>
+        </main>
+      </Match>
     </Switch>
   );
 }

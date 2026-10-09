@@ -425,6 +425,22 @@ describe('a board that is refused', () => {
     ).toBe('/');
   });
 
+  it("says the board can't be viewed, with a way back, when the event is refused but the user still has access", async () => {
+    const { source } = await openBoard('/events/event-1', {
+      'GET /api/me': signedIn,
+      'GET /api/events/event-1': json(403, { reason: 'no-role' }),
+    });
+
+    source.refuse();
+
+    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe(
+      "You can't view this board right now.",
+    );
+    expect(
+      screen.getByRole('link', { name: 'Back to events' }).getAttribute('href'),
+    ).toBe('/');
+  });
+
   it('asks who is signed in again when access is revoked, and shows the no-access screen', async () => {
     let me = signedIn;
     const { source, sent } = await openBoard('/events/event-1', {
