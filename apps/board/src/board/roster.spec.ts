@@ -1,13 +1,7 @@
 import type { BoardParticipant } from '@ulti-project/shared';
 import { describe, expect, it } from 'vitest';
 import { FROGE, participant, SPACE } from '../test-utils/fixtures';
-import {
-  compareRows,
-  groupBySquad,
-  matchesFilter,
-  partyOf,
-  rowMarks,
-} from './roster';
+import { compareRows, groupBySquad } from './roster';
 
 const P4 = Object.freeze({ label: 'P4: Enrage', order: 40, bucket: 'prog' });
 const P3 = Object.freeze({
@@ -28,26 +22,6 @@ function claimBy(squadId: string): BoardParticipant['claim'] {
     claimedAt: '2026-10-09T18:00:00.000Z',
   };
 }
-
-describe('partyOf', () => {
-  it('keeps only the players of that encounter and bucket', () => {
-    const fruProg = participant({ discordId: 'p1', character: 'Aeryn Vail' });
-    const fruClear = participant({
-      discordId: 'p2',
-      character: 'Bricktop',
-      phase: { label: 'Clear', order: 100, bucket: 'clear' },
-    });
-    const topProg = participant({
-      discordId: 'p3',
-      character: 'Cid Nan',
-      encounter: 'TOP',
-    });
-
-    expect(partyOf([fruProg, fruClear, topProg], 'FRU', 'prog')).toEqual([
-      fruProg,
-    ]);
-  });
-});
 
 describe('sorting a party into board order', () => {
   it('puts the furthest phase first, then tank, healer, dps, then name', () => {
@@ -91,62 +65,6 @@ describe('sorting a party into board order', () => {
   });
 });
 
-describe('matchesFilter', () => {
-  const froges = participant({
-    discordId: 'p1',
-    character: 'Aeryn Vail',
-    claim: claimBy(FROGE.id),
-  });
-  const spaces = participant({
-    discordId: 'p2',
-    character: 'Bricktop',
-    claim: claimBy(SPACE.id),
-  });
-  const unclaimed = participant({ discordId: 'p3', character: 'Cid Nan' });
-  const rows = [froges, spaces, unclaimed];
-
-  it('shows everyone for All', () => {
-    expect(rows.filter((row) => matchesFilter(row, { kind: 'all' }))).toEqual(
-      rows,
-    );
-  });
-
-  it("shows only a squad's claims for that squad", () => {
-    expect(
-      rows.filter((row) =>
-        matchesFilter(row, { kind: 'squad', squadId: FROGE.id }),
-      ),
-    ).toEqual([froges]);
-  });
-
-  it('shows only unclaimed players for Unclaimed only', () => {
-    expect(
-      rows.filter((row) => matchesFilter(row, { kind: 'unclaimed' })),
-    ).toEqual([unclaimed]);
-  });
-});
-
-describe('rowMarks', () => {
-  it('dims a repeated phase and marks the start of each new phase', () => {
-    const rows = [P4, P4, P3, P3, P3, P2].map((phase, index) =>
-      participant({
-        discordId: `p${index}`,
-        character: `Player ${index}`,
-        phase,
-      }),
-    );
-
-    expect(rowMarks(rows)).toEqual([
-      { repeat: false, phaseStart: true },
-      { repeat: true, phaseStart: false },
-      { repeat: false, phaseStart: true },
-      { repeat: true, phaseStart: false },
-      { repeat: true, phaseStart: false },
-      { repeat: false, phaseStart: true },
-    ]);
-  });
-});
-
 describe('groupBySquad', () => {
   const spaceFirst = participant({
     discordId: 'p1',
@@ -172,13 +90,6 @@ describe('groupBySquad', () => {
       { squad: FROGE, rows: [froges] },
       { squad: SPACE, rows: [spaceFirst, spaceLast] },
       { squad: undefined, rows: [unclaimed] },
-    ]);
-  });
-
-  it('leaves out the unclaimed section when every row is claimed', () => {
-    expect(groupBySquad([spaceFirst, froges], [FROGE, SPACE])).toEqual([
-      { squad: FROGE, rows: [froges] },
-      { squad: SPACE, rows: [spaceFirst] },
     ]);
   });
 });

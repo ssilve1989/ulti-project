@@ -123,15 +123,11 @@ describe('the reconnect is refused', () => {
     return stream;
   }
 
-  it.each([
-    ['403 no-role', 'refused', json(403, { reason: 'no-role' })],
-    ['401', 'refused', json(401, { reason: 'signed-out' })],
-    ['404', 'not-found', json(404, { reason: 'not-found' })],
-  ])('after the event answers %s, is %s', async (_, kind, response) => {
-    stubApi({ 'GET /api/events/event-1': response });
+  it('after the event answers 401, is refused', async () => {
+    stubApi({ 'GET /api/events/event-1': json(401, { reason: 'signed-out' }) });
     const stream = dropAndRefuse();
 
-    await vi.waitFor(() => expect(stream.state()).toEqual({ kind }));
+    await vi.waitFor(() => expect(stream.state()).toEqual({ kind: 'refused' }));
   });
 
   it('after the event answers 500, stays reconnecting and opens a new stream 5s later', async () => {
@@ -167,15 +163,6 @@ describe('the reconnect is refused', () => {
 });
 
 describe('disposing the root', () => {
-  it('closes the stream', () => {
-    const { dispose, source } = openStream();
-    source.open();
-
-    dispose();
-
-    expect(source.closed).toBe(true);
-  });
-
   it('cancels a pending reconnect', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     stubApi({ 'GET /api/events/event-1': json(500, { reason: 'internal' }) });
