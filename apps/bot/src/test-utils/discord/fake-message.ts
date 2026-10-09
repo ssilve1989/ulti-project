@@ -11,6 +11,7 @@ import {
   type Interaction,
   isJSONEncodable,
   type Message,
+  type MessageMentionOptions,
   RESTJSONErrorCodes,
 } from 'discord.js';
 import { mockOf } from '../mock-factory.js';
@@ -30,9 +31,15 @@ export type OutgoingPayload =
       content?: string | null;
       embeds?: readonly OutgoingEmbed[] | null;
       components?: readonly unknown[] | null;
+      allowedMentions?: MessageMentionOptions;
     };
 
-const SUPPORTED_PAYLOAD_KEYS = new Set(['content', 'embeds', 'components']);
+const SUPPORTED_PAYLOAD_KEYS = new Set([
+  'content',
+  'embeds',
+  'components',
+  'allowedMentions',
+]);
 
 type InteractionFilter = (interaction: Interaction) => boolean;
 
@@ -273,12 +280,14 @@ export const reactionKey = ({ id, name }: ReactionEmoji) => id ?? name;
 
 /** Everything a user sees of a message: where it is, its text, embeds, controls and reactions, and whether it's still there. */
 export function shown(message: FakeMessage) {
-  const { location, content, embeds, components, deleted } = message;
+  const { location, content, embeds, components, allowedMentions, deleted } =
+    message;
   return {
     location,
     content,
     embeds,
     components,
+    allowedMentions,
     reactions: reactionsOn(message),
     deleted,
   };
@@ -295,6 +304,8 @@ export class FakeMessage {
   content: string | undefined;
   embeds: APIEmbed[] = [];
   components: unknown[] = [];
+  /** Who the message may ping, when the bot limited it; undefined pings everyone it mentions. */
+  allowedMentions: MessageMentionOptions | undefined;
   deleted = false;
   /** emoji → ids of the users who reacted with it */
   readonly reactions = new Map<string, Set<string>>();
@@ -320,7 +331,7 @@ export class FakeMessage {
       this.content = payload;
       return;
     }
-    // anything else (allowedMentions, files, flags, …) changes what users see
+    // anything else (files, flags, …) changes what users see
     // or who gets pinged, so the fake refuses it rather than dropping it
     const unsupported = Object.keys(payload).filter(
       (key) => !SUPPORTED_PAYLOAD_KEYS.has(key),
@@ -337,6 +348,9 @@ export class FakeMessage {
       this.embeds = payload.embeds.map((embed) =>
         EmbedBuilder.from(embed).toJSON(),
       );
+    }
+    if (payload.allowedMentions !== undefined) {
+      this.allowedMentions = payload.allowedMentions;
     }
     if (payload.components) {
       this.components = payload.components.map((component) =>

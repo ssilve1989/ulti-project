@@ -10,7 +10,9 @@ import {
 import { ComponentType, TextInputStyle } from 'discord.js';
 import { Timestamp } from 'firebase-admin/firestore';
 import { test as base, describe, expect, vi } from 'vitest';
+import type { SquadConfig } from '../../board/squads.js';
 import { EventsCollection } from '../../firebase/collections/events.collection.js';
+import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import type {
   EventPhase,
   ParticipantDocument,
@@ -39,6 +41,7 @@ import { ParticipantWithdrawnEvent } from './events.events.js';
 
 const GUILD = 'guild-1';
 const EVENTS_CHANNEL = 'events-channel';
+const MOD_CHANNEL = 'mod-channel';
 const ORGANIZER_ROLE = 'organizer-role';
 const ORGANIZER = Object.freeze({
   id: 'organizer-1',
@@ -62,6 +65,8 @@ const TITLE = 'FRU prog night';
 const NOW = new Date('2026-10-07T16:00:00Z');
 const START = new Date('2026-10-12T16:00:00Z');
 const CLOSE = new Date('2026-10-12T14:00:00Z');
+/** When a claimed member withdraws, a day after being claimed at NOW. */
+const WITHDRAWN = new Date('2026-10-08T16:00:00Z');
 /** A moment after sign-ups close at CLOSE. */
 const AFTER_CLOSE = new Date(CLOSE.getTime() + 30_000);
 const seconds = (date: Date) => date.getTime() / 1000;
@@ -90,6 +95,7 @@ async function startFlow(): Promise<FlowApp> {
   try {
     const flow = await createFlowApp({ modules: [EventSchedulerModule] });
     flow.discord.addChannel(GUILD, EVENTS_CHANNEL);
+    flow.discord.addChannel(GUILD, MOD_CHANNEL);
     flow.discord.addRole(GUILD, { id: ORGANIZER_ROLE, name: 'Organizer' });
     for (const role of ['fru-p3', 'fru-p4', 'fru-clear', 'top-p2']) {
       flow.discord.addRole(GUILD, { id: role, name: role });
@@ -282,6 +288,63 @@ const CLAIM = Object.freeze({
   claimedBy: ORGANIZER.id,
   claimedAt: Timestamp.fromDate(NOW),
 });
+
+const FROGS = Object.freeze({
+  name: 'Frogs',
+  tag: 'FRG',
+  color: '#16a34a',
+  roleId: 'frogs-role',
+});
+
+/** The guild's moderation channel and squads, set as an admin would. */
+const configureModeration = (
+  flow: FlowApp,
+  {
+    channel = true,
+    squads = { [CLAIM.squadId]: FROGS },
+  }: { channel?: boolean; squads?: Record<string, SquadConfig> } = {},
+) =>
+  flow.get(SettingsCollection).upsert(GUILD, {
+    ...(channel ? { autoModChannelId: MOD_CHANNEL } : {}),
+    squads,
+  });
+
+/** What the moderation channel shows when alice's claimed FRU sign-up is withdrawn. */
+const claimedAliceWithdrew = (
+  flow: FlowApp,
+  { squad = 'Frogs (FRG)' } = {},
+) => ({
+  location: { kind: 'channel', guildId: GUILD, channelId: MOD_CHANNEL },
+  content: undefined,
+  embeds: [
+    {
+      title: 'Claimed player withdrew',
+      fields: [
+        { name: 'Player', value: `<@${ALICE.id}> Alice@Gilgamesh` },
+        { name: 'Job', value: `<:SGE:${SGE_EMOJI}> Sage` },
+        { name: 'Phase', value: 'fru-p4' },
+        {
+          name: 'Event',
+          value: `[${TITLE}](https://discord.com/channels/${GUILD}/${EVENTS_CHANNEL}/${eventPost(flow).id}) · <t:${START_S}:F>`,
+        },
+        { name: 'Encounter', value: FRU },
+        { name: 'Squad', value: squad },
+        {
+          name: 'Claimed by',
+          value: `<@${ORGANIZER.id}> <t:${seconds(NOW)}:R>`,
+        },
+        { name: 'Withdrew', value: `<t:${seconds(WITHDRAWN)}:R>` },
+      ],
+    },
+  ],
+  components: [],
+  allowedMentions: { parse: [] },
+  reactions: {},
+  deleted: false,
+});
+
+const moderationChannel = (flow: FlowApp) =>
+  flow.discord.channel(MOD_CHANNEL).map(shown);
 
 const ALICE_LINE = `<:SGE:${SGE_EMOJI}> <@${ALICE.id}> Alice@Gilgamesh`;
 const BOB_LINE = `\`WAR\` <@${BOB.id}> Bob Bobson@Jenova`;
@@ -852,11 +915,23 @@ describe('Sign up', () => {
 describe('Withdraw', () => {
   it.beforeEach(({ flow }) => postEvent(flow));
 
+  /** alice signs up for FRU, and a squad claims her. */
+  async function aliceIsClaimed(flow: FlowApp) {
+    await aliceSignsUp(flow);
+    const path = `${participantsPath(flow)}/alice-FRU`;
+    flow.db.seed(path, { ...flow.db.read(path), claim: CLAIM });
+  }
+
+  /** alice withdraws at WITHDRAWN. */
+  async function aliceWithdraws(flow: FlowApp) {
+    vi.setSystemTime(WITHDRAWN);
+    await click(flow, 'withdraw', ALICE.id);
+  }
+
   describe('when a member signed up for one encounter withdraws', () => {
     it.beforeEach(async ({ flow }) => {
-      await aliceSignsUp(flow);
-      const path = `${participantsPath(flow)}/alice-FRU`;
-      flow.db.seed(path, { ...flow.db.read(path), claim: CLAIM });
+      await configureModeration(flow);
+      await aliceIsClaimed(flow);
     });
 
     it('removes them and tells the board they withdrew, claim included', async ({
@@ -894,6 +969,86 @@ describe('Withdraw', () => {
         replies: privately(ALICE.id, `You've withdrawn from **${FRU}**.`),
         post: eventMessage(flow, NOBODY),
       });
+    });
+
+    it('alerts the moderators that a claimed player withdrew', async ({
+      flow,
+    }) => {
+      await aliceWithdraws(flow);
+
+      expect(moderationChannel(flow)).toEqual([claimedAliceWithdrew(flow)]);
+    });
+  });
+
+  describe('when a claimed member withdraws after their squad was deleted', () => {
+    it("alerts the moderators with the squad's id", async ({ flow }) => {
+      await configureModeration(flow, { squads: {} });
+      await aliceIsClaimed(flow);
+
+      await aliceWithdraws(flow);
+
+      expect(moderationChannel(flow)).toEqual([
+        claimedAliceWithdrew(flow, { squad: CLAIM.squadId }),
+      ]);
+    });
+  });
+
+  describe('when an unclaimed member withdraws', () => {
+    it('alerts nobody', async ({ flow }) => {
+      await configureModeration(flow);
+      await aliceSignsUp(flow);
+
+      await aliceWithdraws(flow);
+
+      expect({
+        participants: participants(flow),
+        moderation: moderationChannel(flow),
+      }).toEqual({ participants: {}, moderation: [] });
+    });
+  });
+
+  describe('when a claimed member withdraws and no moderation channel is configured', () => {
+    it('removes them, confirms it, and only logs that nobody was alerted', async ({
+      flow,
+    }) => {
+      await configureModeration(flow, { channel: false });
+      await aliceIsClaimed(flow);
+
+      await aliceWithdraws(flow);
+
+      expect({
+        reply: replies(flow, ALICE.id).at(-1),
+        participants: participants(flow),
+        moderation: moderationChannel(flow),
+      }).toEqual({
+        reply: privately(ALICE.id, `You've withdrawn from **${FRU}**.`),
+        participants: {},
+        moderation: [],
+      });
+      flow.expectReported(/^warning: .*no moderation channel/s);
+    });
+  });
+
+  describe("when a claimed member withdraws and the moderation channel can't be posted in", () => {
+    it('removes them, confirms it, and only logs the failed alert', async ({
+      flow,
+    }) => {
+      await configureModeration(flow);
+      await aliceIsClaimed(flow);
+      flow.discord.denySendingIn(MOD_CHANNEL);
+
+      await aliceWithdraws(flow);
+
+      expect({
+        reply: replies(flow, ALICE.id).at(-1),
+        participants: participants(flow),
+        moderation: moderationChannel(flow),
+      }).toEqual({
+        reply: privately(ALICE.id, `You've withdrawn from **${FRU}**.`),
+        participants: {},
+        moderation: [],
+      });
+      flow.expectReported(/^warning: .*alice.*Missing Permissions/s);
     });
   });
 

@@ -1039,10 +1039,31 @@ describe('DiscordMock', () => {
         channelId: 'c1',
       });
 
-      await expect(
-        channel?.send({ content: 'hi', allowedMentions: { parse: [] } }),
-      ).rejects.toThrow('does not support message options: allowedMentions');
+      await expect(channel?.send({ content: 'hi', tts: true })).rejects.toThrow(
+        'does not support message options: tts',
+      );
       expect(discord.channel('c1')).toEqual([]);
+    });
+
+    it('records who a message may ping', async ({ discord, service }) => {
+      const channel = await service.getTextChannel({
+        guildId: 'g1',
+        channelId: 'c1',
+      });
+
+      await channel?.send({ content: '<@u1>', allowedMentions: { parse: [] } });
+
+      expect(discord.channel('c1').map(shown)).toEqual([
+        {
+          location: { kind: 'channel', guildId: 'g1', channelId: 'c1' },
+          content: '<@u1>',
+          embeds: [],
+          components: [],
+          allowedMentions: { parse: [] },
+          reactions: {},
+          deleted: false,
+        },
+      ]);
     });
   });
 

@@ -6,6 +6,7 @@ import { test as base, describe, expect, vi } from 'vitest';
 import { USTimeZones } from '../../common/time-zones.js';
 import type { Weekday } from '../../events/schedules/next-occurrence.js';
 import { ParticipantWithdrawnEvent } from '../../events/signup/events.events.js';
+import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
 import type {
   EventDocument,
   ParticipantDocument,
@@ -2148,6 +2149,73 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
         });
       },
     );
+
+    describe('and a squad had claimed a member whose sign-up it removes', () => {
+      const MOD_CHANNEL = 'mod-channel';
+
+      itWithScheduler(
+        'alerts the moderators that the claimed player was removed',
+        async ({ flow }) => {
+          flow.discord.addChannel(GUILD, MOD_CHANNEL);
+          await flow.get(SettingsCollection).upsert(GUILD, {
+            autoModChannelId: MOD_CHANNEL,
+            squads: {
+              [CLAIM.squadId]: {
+                name: 'Frogs',
+                tag: 'FRG',
+                color: '#16a34a',
+                roleId: 'frogs-role',
+              },
+            },
+          });
+          flow.db.seed(`${EVENT_PATH}/participants/${BOB.id}-TOP`, {
+            ...BOB_TOP,
+            claim: CLAIM,
+          });
+
+          await removeTop(flow);
+
+          expect(flow.discord.channel(MOD_CHANNEL).map(shown)).toEqual([
+            {
+              location: {
+                kind: 'channel',
+                guildId: GUILD,
+                channelId: MOD_CHANNEL,
+              },
+              content: undefined,
+              embeds: [
+                {
+                  title: 'Claimed player removed',
+                  fields: [
+                    { name: 'Player', value: `<@${BOB.id}> Bob Bobson@Jenova` },
+                    { name: 'Job', value: '`WAR` Warrior' },
+                    { name: 'Phase', value: 'TOP P2' },
+                    {
+                      name: 'Event',
+                      value: `[${TITLE}](https://discord.com/channels/${GUILD}/${EVENTS_CHANNEL}/${thePost(flow).id}) · <t:${START.getTime() / 1000}:F>`,
+                    },
+                    { name: 'Encounter', value: TOP_NAME },
+                    { name: 'Squad', value: 'Frogs (FRG)' },
+                    {
+                      name: 'Claimed by',
+                      value: `<@${ORGANIZER.id}> <t:${POST.getTime() / 1000}:R>`,
+                    },
+                    {
+                      name: 'Withdrew',
+                      value: `<t:${EDITED_AT.getTime() / 1000}:R>`,
+                    },
+                  ],
+                },
+              ],
+              components: [],
+              allowedMentions: { parse: [] },
+              reactions: {},
+              deleted: false,
+            },
+          ]);
+        },
+      );
+    });
 
     describe('and a member whose sign-up is removed has closed DMs', () => {
       itWithScheduler(

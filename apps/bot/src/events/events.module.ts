@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
+import { ClaimedWithdrawalHandler } from '../board/alerts/claimed-withdrawal.handler.js';
 import { ComponentSessionModule } from '../discord/component-session.module.js';
 import { DiscordModule } from '../discord/discord.module.js';
 import { ErrorModule } from '../error/error.module.js';
@@ -28,6 +29,7 @@ import { EventWithdrawFlow } from './signup/event-withdraw.flow.js';
     EventComponentsListener,
     SchedulePanelSession,
     PostedEventsUpdater,
+    ClaimedWithdrawalHandler,
   ],
   exports: [
     EventMessageService,
