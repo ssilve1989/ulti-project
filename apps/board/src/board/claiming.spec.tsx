@@ -1,33 +1,16 @@
 // @vitest-environment jsdom
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@solidjs/testing-library';
+import { fireEvent, screen, waitFor, within } from '@solidjs/testing-library';
 import type { BoardAccess, BoardEvent } from '@ulti-project/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { App } from '../app';
 import { json, stubApi } from '../test-utils/api-stub';
+import { boardEvent, FROGE, participant, SPACE } from '../test-utils/fixtures';
 import {
-  type FakeEventSource,
-  installFakeEventSource,
-} from '../test-utils/fake-event-source';
-import {
-  boardEvent,
-  FROGE,
-  meResponse,
-  participant,
-  SPACE,
-} from '../test-utils/fixtures';
-
-const claimBy = (squadId: string) =>
-  Object.freeze({
-    squadId,
-    claimedBy: 'lead-2',
-    claimedAt: '2026-10-09T18:00:00.000Z',
-  });
+  claimBy,
+  GET_HELPERS,
+  GET_ME,
+  held,
+  openBoard,
+} from '../test-utils/open-board';
 
 const aeryn = participant({ discordId: 'p1', character: 'Aeryn Vail' });
 const bricktop = participant({
@@ -49,19 +32,6 @@ const AS_FROGE: BoardAccess = Object.freeze({ kind: 'squad', squad: FROGE });
 const CLAIM_PATH = `/api/events/event-1/participants/${aeryn.id}/claim`;
 const CLAIM = `POST ${CLAIM_PATH}`;
 const RELEASE = `DELETE ${CLAIM_PATH}`;
-const GET_ME = Object.freeze({
-  method: 'GET',
-  path: '/api/me',
-  body: undefined,
-  contentType: null,
-});
-// A squad member's board asks for the squad's helpers once, for its Teams section.
-const GET_HELPERS = Object.freeze({
-  method: 'GET',
-  path: '/api/squads/mine/helpers',
-  body: undefined,
-  contentType: null,
-});
 const SENT_CLAIM = Object.freeze({
   method: 'POST',
   path: CLAIM_PATH,
@@ -94,40 +64,16 @@ beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: false }));
 });
 
-/** Opens event-1's FRU board as `access`, after its snapshot. */
-async function openBoard(
+/** Opens event-1's FRU board as `access` (a Froge member by default), after its snapshot. */
+const openFrogeBoard = (
   routes: Parameters<typeof stubApi>[0] = {},
   options: { access?: BoardAccess; event?: BoardEvent } = {},
-): Promise<{
-  source: FakeEventSource;
-  sent: ReturnType<typeof stubApi>['sent'];
-}> {
-  const me = json(200, meResponse(options.access ?? AS_FROGE));
-  const { sent } = stubApi({
-    'GET /api/me': me,
-    'GET /api/squads/mine/helpers': json(200, []),
-    ...routes,
+) =>
+  openBoard({
+    access: options.access ?? AS_FROGE,
+    event: options.event ?? EVENT,
+    routes,
   });
-  const sources = installFakeEventSource();
-  history.replaceState(null, '', '/events/event-1?enc=FRU');
-  render(() => <App />);
-  await waitFor(() => expect(sources).toHaveLength(1));
-  const [source] = sources;
-  if (source === undefined) throw new Error('No EventSource was opened');
-  source.send({ type: 'snapshot', event: options.event ?? EVENT });
-  await screen.findByRole('tabpanel');
-  return { source, sent };
-}
-
-/** An API answer the test gives later, so it can look at the board in between. */
-function held() {
-  const { promise, resolve, reject } = Promise.withResolvers<Response>();
-  return {
-    route: () => promise,
-    answer: resolve,
-    failNetwork: () => reject(new TypeError('Failed to fetch')),
-  };
-}
 
 function progRows(): string[][] {
   const table = screen.getByRole('table', {
@@ -191,7 +137,7 @@ describe('a user who cannot claim', () => {
       status: 'closed',
     },
   ])('sees tokens and no controls as $who', async ({ access, status }) => {
-    await openBoard({}, { access, event: { ...withFrogeClaim, status } });
+    await openFrogeBoard({}, { access, event: { ...withFrogeClaim, status } });
 
     expect(progRows()).toEqual([
       ['Aeryn Vail PLD', 'P4: Enrage', ''],
@@ -207,7 +153,7 @@ describe('a user who cannot claim', () => {
 describe('claiming a player', () => {
   it('shows the claim at once with its control disabled, then offers Undo once the API agrees', async () => {
     const answer = held();
-    const { sent } = await openBoard({ [CLAIM]: answer.route });
+    const { sent } = await openFrogeBoard({ [CLAIM]: answer.route });
     // Mounted empty before any notice, so screen readers announce the first one.
     expect(progStatus().textContent).toBe('');
 
@@ -227,7 +173,7 @@ describe('claiming a player', () => {
   });
 
   it('is released again by Undo, and that release offers no Undo', async () => {
-    const { sent } = await openBoard({
+    const { sent } = await openFrogeBoard({
       [CLAIM]: json(200, aerynClaimedBy(FROGE.id)),
       [RELEASE]: json(200, aeryn),
     });
@@ -244,7 +190,7 @@ describe('claiming a player', () => {
   });
 
   it('shows the real owner when another squad got there first', async () => {
-    await openBoard({
+    await openFrogeBoard({
       [CLAIM]: json(409, { reason: 'claimed', claim: claimBy(SPACE.id) }),
     });
 
@@ -260,7 +206,7 @@ describe('claiming a player', () => {
   });
 
   it('is rolled back when the player is no longer signed up', async () => {
-    await openBoard({ [CLAIM]: json(404, { reason: 'not-found' }) });
+    await openFrogeBoard({ [CLAIM]: json(404, { reason: 'not-found' }) });
 
     click(CLAIM_AERYN);
 
@@ -287,7 +233,7 @@ describe('claiming a player', () => {
         }),
     },
   ])('is rolled back when $answer', async ({ route }) => {
-    await openBoard({ [CLAIM]: route });
+    await openFrogeBoard({ [CLAIM]: route });
 
     click(CLAIM_AERYN);
 
@@ -299,7 +245,7 @@ describe('claiming a player', () => {
 describe("another squad's claim arriving while a claim is in flight", () => {
   it('shows that squad once the API refuses ours', async () => {
     const answer = held();
-    const { source } = await openBoard({ [CLAIM]: answer.route });
+    const { source } = await openFrogeBoard({ [CLAIM]: answer.route });
     click(CLAIM_AERYN);
 
     source.send({
@@ -319,7 +265,7 @@ describe("another squad's claim arriving while a claim is in flight", () => {
 
   it('is not undone by rolling ours back when the network fails', async () => {
     const answer = held();
-    const { source } = await openBoard({ [CLAIM]: answer.route });
+    const { source } = await openFrogeBoard({ [CLAIM]: answer.route });
     click(CLAIM_AERYN);
 
     source.send({
@@ -336,7 +282,7 @@ describe("another squad's claim arriving while a claim is in flight", () => {
 describe('a player who withdraws while a claim is in flight', () => {
   it('stays gone when the claim is then confirmed', async () => {
     const answer = held();
-    const { source } = await openBoard({ [CLAIM]: answer.route });
+    const { source } = await openFrogeBoard({ [CLAIM]: answer.route });
     click(CLAIM_AERYN);
 
     source.send({ type: 'participant-removed', participantId: aeryn.id });
@@ -349,7 +295,7 @@ describe('a player who withdraws while a claim is in flight', () => {
 
 describe("releasing one of your squad's players", () => {
   it('shows the release with Undo, and Undo claims them again', async () => {
-    const { sent } = await openBoard(
+    const { sent } = await openFrogeBoard(
       {
         [RELEASE]: json(200, aeryn),
         [CLAIM]: json(200, aerynClaimedBy(FROGE.id)),
@@ -375,7 +321,7 @@ describe("releasing one of your squad's players", () => {
   });
 
   it('is rolled back when the network fails', async () => {
-    await openBoard(
+    await openFrogeBoard(
       { [RELEASE]: () => Promise.reject(new TypeError('Failed to fetch')) },
       {
         event: { ...EVENT, participants: [aerynClaimedBy(FROGE.id), bricktop] },
@@ -393,7 +339,7 @@ describe('the undo strip', () => {
   it('hides itself 5 seconds after it appears', async () => {
     // Only timeouts are faked: testing-library polls on a real interval.
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    await openBoard({ [CLAIM]: json(200, aerynClaimedBy(FROGE.id)) });
+    await openFrogeBoard({ [CLAIM]: json(200, aerynClaimedBy(FROGE.id)) });
     click(CLAIM_AERYN);
     await waitFor(() => expect(strip()).toEqual(CLAIMED_STRIP));
 
@@ -404,7 +350,7 @@ describe('the undo strip', () => {
   });
 
   it('hides at once when dismissed', async () => {
-    await openBoard({ [CLAIM]: json(200, aerynClaimedBy(FROGE.id)) });
+    await openFrogeBoard({ [CLAIM]: json(200, aerynClaimedBy(FROGE.id)) });
     click(CLAIM_AERYN);
     await waitFor(() => expect(strip()).toEqual(CLAIMED_STRIP));
 

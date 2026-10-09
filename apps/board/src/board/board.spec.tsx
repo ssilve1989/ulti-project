@@ -2,20 +2,15 @@
 import {
   cleanup,
   fireEvent,
-  render,
   screen,
   waitFor,
   within,
 } from '@solidjs/testing-library';
 import type { BoardEvent } from '@ulti-project/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { App } from '../app';
 import { formatStart } from '../format';
-import { json, stubApi } from '../test-utils/api-stub';
-import {
-  type FakeEventSource,
-  installFakeEventSource,
-} from '../test-utils/fake-event-source';
+import { json } from '../test-utils/api-stub';
+import { type FakeEventSource } from '../test-utils/fake-event-source';
 import {
   boardEvent,
   FROGE,
@@ -23,12 +18,7 @@ import {
   participant,
   SPACE,
 } from '../test-utils/fixtures';
-
-const claimBy = (squadId: string) => ({
-  squadId,
-  claimedBy: 'lead-1',
-  claimedAt: '2026-10-09T18:00:00.000Z',
-});
+import { claimBy, GET_ME, openBoard } from '../test-utils/open-board';
 
 const aeryn = participant({
   discordId: 'p1',
@@ -92,12 +82,6 @@ const EVENT: BoardEvent = Object.freeze(
   }),
 );
 
-const GET_ME = Object.freeze({
-  method: 'GET',
-  path: '/api/me',
-  body: undefined,
-  contentType: null,
-});
 const signedIn = () => json(200, meResponse({ kind: 'viewer' }));
 
 const AERYN_ROW = ['Aeryn Vail PLD', 'P4: Enrage', 'FRG'];
@@ -111,31 +95,11 @@ beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: false }));
 });
 
-/** Opens the board at `url` (signed in as a viewer) and returns its event source, before any message. */
-async function openBoard(
-  url: string,
-  routes: Parameters<typeof stubApi>[0] = { 'GET /api/me': signedIn },
-): Promise<{
-  source: FakeEventSource;
-  sent: ReturnType<typeof stubApi>['sent'];
-}> {
-  const { sent } = stubApi(routes);
-  const sources = installFakeEventSource();
-  history.replaceState(null, '', url);
-  render(() => <App />);
-  await waitFor(() => expect(sources).toHaveLength(1));
-  const [source] = sources;
-  if (source === undefined) throw new Error('No EventSource was opened');
-  return { source, sent };
-}
-
 async function openLiveBoard(
   url = '/events/event-1?enc=FRU',
   event: BoardEvent = EVENT,
 ): Promise<FakeEventSource> {
-  const { source } = await openBoard(url);
-  source.send({ type: 'snapshot', event });
-  await screen.findByRole('tabpanel');
+  const { source } = await openBoard({ url, event });
   return source;
 }
 
@@ -415,9 +379,11 @@ describe('the board header', () => {
 
 describe('the live stream', () => {
   it('shows Live after the snapshot and Reconnecting… when dropped, and leaving the board closes it', async () => {
-    const { source } = await openBoard('/events/event-1?enc=FRU', {
-      'GET /api/me': signedIn,
-      'GET /api/events': json(200, []),
+    const { source } = await openBoard({
+      url: '/events/event-1?enc=FRU',
+      routes: {
+        'GET /api/events': json(200, []),
+      },
     });
     source.send({ type: 'snapshot', event: EVENT });
     expect(await screen.findByText('Live')).toBeTruthy();
@@ -435,9 +401,11 @@ describe('the live stream', () => {
 
 describe('a board that is refused', () => {
   it("says the event doesn't exist when it's gone, with a way back", async () => {
-    const { source } = await openBoard('/events/event-1', {
-      'GET /api/me': signedIn,
-      'GET /api/events/event-1': json(404, { reason: 'not-found' }),
+    const { source } = await openBoard({
+      url: '/events/event-1',
+      routes: {
+        'GET /api/events/event-1': json(404, { reason: 'not-found' }),
+      },
     });
 
     source.refuse();
@@ -451,9 +419,11 @@ describe('a board that is refused', () => {
   });
 
   it("says the board can't be viewed, with a way back, when the event is refused but the user still has access", async () => {
-    const { source } = await openBoard('/events/event-1', {
-      'GET /api/me': signedIn,
-      'GET /api/events/event-1': json(403, { reason: 'no-role' }),
+    const { source } = await openBoard({
+      url: '/events/event-1',
+      routes: {
+        'GET /api/events/event-1': json(403, { reason: 'no-role' }),
+      },
     });
 
     source.refuse();
@@ -468,9 +438,12 @@ describe('a board that is refused', () => {
 
   it('asks who is signed in again when access is revoked, and shows the no-access screen', async () => {
     let me = signedIn;
-    const { source, sent } = await openBoard('/events/event-1', {
-      'GET /api/me': () => me(),
-      'GET /api/events/event-1': json(403, { reason: 'no-role' }),
+    const { source, sent } = await openBoard({
+      url: '/events/event-1',
+      routes: {
+        'GET /api/me': () => me(),
+        'GET /api/events/event-1': json(403, { reason: 'no-role' }),
+      },
     });
     source.send({ type: 'snapshot', event: EVENT });
     await screen.findByRole('tabpanel');

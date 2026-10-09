@@ -1,11 +1,5 @@
 // @vitest-environment jsdom
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@solidjs/testing-library';
+import { fireEvent, screen, waitFor, within } from '@solidjs/testing-library';
 import type {
   BoardEvent,
   BoardParticipant,
@@ -15,26 +9,15 @@ import type {
   SquadHelper,
 } from '@ulti-project/shared';
 import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
-import { App } from '../app';
 import { json, stubApi } from '../test-utils/api-stub';
+import { boardEvent, FROGE, participant, SPACE } from '../test-utils/fixtures';
 import {
-  type FakeEventSource,
-  installFakeEventSource,
-} from '../test-utils/fake-event-source';
-import {
-  boardEvent,
-  FROGE,
-  meResponse,
-  participant,
-  SPACE,
-} from '../test-utils/fixtures';
-
-const claimBy = (squadId: string) =>
-  Object.freeze({
-    squadId,
-    claimedBy: 'lead-1',
-    claimedAt: '2026-10-09T18:00:00.000Z',
-  });
+  claimBy,
+  GET_HELPERS,
+  GET_ME,
+  held,
+  openBoard,
+} from '../test-utils/open-board';
 
 const aeryn = participant({
   discordId: 'p1',
@@ -83,18 +66,6 @@ const withTeams = (...teams: RosterTeam[]): BoardEvent =>
   });
 
 const ROSTERS = '/api/events/event-1/rosters/FRU';
-const GET_ME = Object.freeze({
-  method: 'GET',
-  path: '/api/me',
-  body: undefined,
-  contentType: null,
-});
-const GET_HELPERS = Object.freeze({
-  method: 'GET',
-  path: '/api/squads/mine/helpers',
-  body: undefined,
-  contentType: null,
-});
 const EMPTY_ROWS = Object.freeze([
   ['Tank', '—'],
   ['Tank', '—'],
@@ -114,35 +85,16 @@ beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: false }));
 });
 
-/** Opens event-1's FRU board as a Froge member, after its snapshot. */
-async function openBoard(
+/** Opens event-1's FRU board as a Froge member whose squad has Hana as a helper, after its snapshot. */
+const openFrogeBoard = (
   event: BoardEvent,
   routes: Parameters<typeof stubApi>[0] = {},
-): Promise<{
-  source: FakeEventSource;
-  sent: ReturnType<typeof stubApi>['sent'];
-}> {
-  const { sent } = stubApi({
-    'GET /api/me': json(200, meResponse({ kind: 'squad', squad: FROGE })),
-    'GET /api/squads/mine/helpers': json(200, [HANA]),
-    ...routes,
+) =>
+  openBoard({
+    access: { kind: 'squad', squad: FROGE },
+    event,
+    routes: { 'GET /api/squads/mine/helpers': json(200, [HANA]), ...routes },
   });
-  const sources = installFakeEventSource();
-  history.replaceState(null, '', '/events/event-1?enc=FRU');
-  render(() => <App />);
-  await waitFor(() => expect(sources).toHaveLength(1));
-  const [source] = sources;
-  if (source === undefined) throw new Error('No EventSource was opened');
-  source.send({ type: 'snapshot', event });
-  await screen.findByRole('tabpanel');
-  return { source, sent };
-}
-
-/** An API answer the test gives later, so it can look at the board in between. */
-function held() {
-  const { promise, resolve } = Promise.withResolvers<Response>();
-  return { route: () => promise, answer: resolve };
-}
 
 const card = (team: number) =>
   screen.getByRole('article', { name: `Froge Army · Team ${team}` });
@@ -179,7 +131,7 @@ function choose(name: string, value: string): void {
 
 describe("your squad's teams", () => {
   it('adds an empty team of 8 open slots', async () => {
-    const { sent } = await openBoard(withTeams(), {
+    const { sent } = await openFrogeBoard(withTeams(), {
       [`POST ${ROSTERS}/teams`]: json(200, roster([{ id: 't1', slots: {} }])),
     });
 
@@ -200,7 +152,7 @@ describe("your squad's teams", () => {
 
   it('offers grouped choices, and saves a suggested progger with the slot busy until the answer', async () => {
     const answer = held();
-    const { sent } = await openBoard(
+    const { sent } = await openFrogeBoard(
       withTeams({ id: 't1', slots: { 'tank-1': progger(aeryn) } }),
       { [`PUT ${ROSTERS}/teams/t1/slots/regen-healer`]: answer.route },
     );
@@ -250,7 +202,7 @@ describe("your squad's teams", () => {
   });
 
   it('moves someone placed in another team, showing them once', async () => {
-    await openBoard(
+    await openFrogeBoard(
       withTeams(
         { id: 't1', slots: { melee: progger(dax) } },
         { id: 't2', slots: {} },
@@ -285,7 +237,7 @@ describe("your squad's teams", () => {
   });
 
   it("says so on the card when the progger isn't the squad's any more", async () => {
-    await openBoard(withTeams({ id: 't1', slots: {} }), {
+    await openFrogeBoard(withTeams({ id: 't1', slots: {} }), {
       [`PUT ${ROSTERS}/teams/t1/slots/regen-healer`]: json(409, {
         reason: 'not-claimed',
       }),
@@ -331,7 +283,7 @@ describe("your squad's teams", () => {
 
     it('copies the exact message and says Copied', async () => {
       const writeText = stubClipboard(async () => {});
-      await openBoard(withTeams(TEAM));
+      await openFrogeBoard(withTeams(TEAM));
 
       fireEvent.click(
         within(card(1)).getByRole('button', { name: 'Copy message' }),
@@ -345,7 +297,7 @@ describe("your squad's teams", () => {
 
     it("says Couldn't copy. when the clipboard refuses", async () => {
       stubClipboard(() => Promise.reject(new Error('NotAllowedError')));
-      await openBoard(withTeams(TEAM));
+      await openFrogeBoard(withTeams(TEAM));
 
       fireEvent.click(
         within(card(1)).getByRole('button', { name: 'Copy message' }),
@@ -360,7 +312,7 @@ describe("your squad's teams", () => {
   });
 
   it('removes only an empty team', async () => {
-    const { sent } = await openBoard(
+    const { sent } = await openFrogeBoard(
       withTeams(
         { id: 't1', slots: { 'tank-1': progger(aeryn) } },
         { id: 't2', slots: {} },
@@ -398,7 +350,7 @@ describe("your squad's teams", () => {
   });
 
   it('shows a change another lead made', async () => {
-    const { source } = await openBoard(withTeams({ id: 't1', slots: {} }));
+    const { source } = await openFrogeBoard(withTeams({ id: 't1', slots: {} }));
 
     source.send({
       type: 'roster-updated',
