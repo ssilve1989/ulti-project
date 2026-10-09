@@ -1851,8 +1851,8 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
     );
   });
 
+  // TOP isn't in the default menu, so this is the riskier untouched save
   describe('when members signed up and an organizer renames it, leaving the encounters', () => {
-    itWithScheduler.beforeEach(offerLegacyEncounters);
     itWithScheduler.beforeEach(async ({ flow }) => {
       seedSignups(flow);
       await edit(flow, { title: 'DMU reclear' });

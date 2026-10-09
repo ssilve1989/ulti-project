@@ -151,6 +151,19 @@ async function chooseEncounters(flow: FlowApp, encounters: Encounter[]) {
   await flow.settle();
 }
 
+/** Every open collector times out; resolves with the metrics recorded meanwhile. */
+async function expirePrompts(flow: FlowApp): Promise<Sentry.Metric[]> {
+  const metrics: Sentry.Metric[] = [];
+  const stop = watchSentryMetrics((metric) => metrics.push(metric));
+  try {
+    flow.discord.expireAll();
+    await flow.settle();
+  } finally {
+    stop();
+  }
+  return metrics;
+}
+
 async function click(flow: FlowApp, customId: 'eventPost' | 'eventCancel') {
   flow.discord.click(panel(flow), customId, ORGANIZER.id);
   await flow.settle();
@@ -461,15 +474,21 @@ describe('/event create', () => {
     describe('and cancels', () => {
       it.beforeEach(({ flow }) => click(flow, 'eventCancel'));
 
-      it('says so, and posts and stores nothing', ({ flow }) => {
+      it('says so, posts and stores nothing, and never expires', async ({
+        flow,
+      }) => {
+        const metrics = await expirePrompts(flow);
+
         expect({
           replies: repliesTo(flow, ORGANIZER.id),
           posted: flow.discord.channel(EVENTS_CHANNEL),
           events: eventIds(flow),
+          metrics,
         }).toEqual({
           replies: [privately(ORGANIZER.id, 'Cancelled.')],
           posted: [],
           events: [],
+          metrics: [],
         });
       });
     });
@@ -478,14 +497,7 @@ describe('/event create', () => {
       it('says so, stores nothing, and counts the expired prompt', async ({
         flow,
       }) => {
-        const metrics: Sentry.Metric[] = [];
-        const stop = watchSentryMetrics((metric) => metrics.push(metric));
-        try {
-          flow.discord.expireAll();
-          await flow.settle();
-        } finally {
-          stop();
-        }
+        const metrics = await expirePrompts(flow);
 
         expect({
           replies: repliesTo(flow, ORGANIZER.id),
@@ -514,7 +526,7 @@ describe('/event create', () => {
     });
 
     describe('and clicks Post', () => {
-      it('takes the buttons away at once, then posts and stores one event', async ({
+      it('takes the buttons away at once, then posts and stores one event, and never expires', async ({
         flow,
       }) => {
         await chooseEncounters(flow, [Encounter.DMU]);
@@ -522,17 +534,20 @@ describe('/event create', () => {
         // nothing is left to click a second time while it posts
         const whilePosting = shown(panel(flow));
         await flow.settle();
+        const metrics = await expirePrompts(flow);
 
         expect({
           whilePosting,
           posted: flow.discord.channel(EVENTS_CHANNEL).map(shown),
           event: flow.db.read(`events/${onlyEventId(flow)}`),
           replies: repliesTo(flow, ORGANIZER.id),
+          metrics,
         }).toEqual({
           whilePosting: privateReply(ORGANIZER.id, { content: SUMMARY }),
           posted: [eventMessage(onlyEventId(flow))],
           event: storedEvent(flow),
           replies: [postedReply(flow)],
+          metrics: [],
         });
       });
     });
