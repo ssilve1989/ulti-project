@@ -643,6 +643,32 @@ describe('InMemoryFirestore', () => {
     });
   });
 
+  describe('overlapping transactions', () => {
+    it('holds a transaction that has read until the other has read too, so the later commit reruns', async ({
+      db,
+    }) => {
+      db.seed('counters/a', { count: 0 });
+      const ref = db.collection('counters').doc('a');
+      const increment = vi.fn<
+        Parameters<InMemoryFirestore['runTransaction']>[0]
+      >(async (tx) => {
+        const count = (await tx.get(ref)).data()?.count;
+        tx.update(ref, { count: typeof count === 'number' ? count + 1 : -1 });
+      });
+      db.overlapTransactions(2);
+
+      const first = db.runTransaction(increment);
+      // long enough for the first to commit, were it not held
+      await new Promise((resolve) => setImmediate(resolve));
+      await Promise.all([first, db.runTransaction(increment)]);
+
+      expect({
+        attempts: increment.mock.calls.length,
+        stored: db.read('counters/a'),
+      }).toEqual({ attempts: 3, stored: { count: 2 } });
+    });
+  });
+
   describe('observing writes', () => {
     it('reports every write the app makes, but not seeds, until unsubscribed', async ({
       db,

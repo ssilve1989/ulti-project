@@ -584,6 +584,10 @@ export class InMemoryFirestore {
   private unreachable = false;
   /** paths another client keeps writing; see `contend` */
   private readonly contended = new Set<string>();
+  /** transactions held before commit until enough have read; see `overlapTransactions` */
+  private overlap:
+    | { count: number; arrived: number; all: PromiseWithResolvers<void> }
+    | undefined;
 
   /**
    * Makes every later read and write fail the way the Firestore client does
@@ -610,6 +614,15 @@ export class InMemoryFirestore {
     this.contended.add(path);
   }
 
+  /**
+   * Makes the next `count` transactions overlap, as clients writing at the
+   * same moment do: each one, once it has read, waits to commit until all
+   * `count` have read. A transaction that reruns doesn't wait again.
+   */
+  overlapTransactions(count: number): void {
+    this.overlap = { count, arrived: 0, all: Promise.withResolvers() };
+  }
+
   collection(path: string): CollectionReference {
     return new CollectionReference(this, path);
   }
@@ -621,6 +634,7 @@ export class InMemoryFirestore {
     for (let attempt = 1; attempt <= MAX_TRANSACTION_ATTEMPTS; attempt++) {
       const transaction = new Transaction(this);
       const result = await updateFunction(transaction);
+      if (attempt === 1) await this.overlapping();
       try {
         transaction.commit();
         return result;
@@ -631,6 +645,18 @@ export class InMemoryFirestore {
     throw new Error(
       `ABORTED: transaction still contended after ${MAX_TRANSACTION_ATTEMPTS} attempts`,
     );
+  }
+
+  /** Waits, if `overlapTransactions` holds this transaction, until the others have read too. */
+  private async overlapping(): Promise<void> {
+    const overlap = this.overlap;
+    if (overlap === undefined) return;
+    overlap.arrived += 1;
+    if (overlap.arrived === overlap.count) {
+      this.overlap = undefined;
+      overlap.all.resolve();
+    }
+    await overlap.all.promise;
   }
 
   /** Test setup: writes a document directly, bypassing the app. */
