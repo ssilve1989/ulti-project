@@ -1,19 +1,22 @@
 :root {
-  --bg2: #f7f6f3;
+  --bg2: linear-gradient(180deg, #f2f1fb 0%, #f7f6fc 100%);
   --panel: #ffffff;
-  --panel-2: #f1efe9;
-  --line: #dbd9d1;
-  --line-soft: #e8e6de;
-  --text: #1c1c22;
-  --dim: #54545e;
-  --faint: #63626b;
+  --panel-2: #f1f0fa;
+  --panel-head: linear-gradient(180deg, #f6f4ff, #efedfa);
+  --line: #dcd9ee;
+  --line-soft: #ebe9f6;
+  --text: #1d1b2e;
+  --dim: #55526e;
+  /* The mockup's #77749a is under 4.5:1 on --panel-2 and the page glow. */
+  --faint: #636088;
   --acc: #bf1270;
   --acc-line: #d81a7e;
   --on-acc: #ffffff;
   --tank: #2f6fd0;
   --heal: #1f8f5a;
   --dps: #c33a4f;
-  --chrome-bg: #eeece5;
+  --chrome-bg: #ffffffcc;
+  --shadow: 0 1px 2px #2a24660d, 0 8px 22px #2a246614;
   color-scheme: light;
 }
 
@@ -34,6 +37,9 @@
     --heal: #63c88c;
     --dps: #f2818f;
     --chrome-bg: #121216;
+    --panel-head: var(--panel-2);
+    /* No shadow in dark; a transparent one keeps `var(--shadow), …` lists valid. */
+    --shadow: 0 0 #0000;
     color-scheme: dark;
   }
 }
@@ -54,31 +60,43 @@
   --heal: #63c88c;
   --dps: #f2818f;
   --chrome-bg: #121216;
+  --panel-head: var(--panel-2);
+  --shadow: 0 0 #0000;
   color-scheme: dark;
 }
 
 :root[data-theme="light"] {
-  --bg2: #f7f6f3;
+  --bg2: linear-gradient(180deg, #f2f1fb 0%, #f7f6fc 100%);
   --panel: #ffffff;
-  --panel-2: #f1efe9;
-  --line: #dbd9d1;
-  --line-soft: #e8e6de;
-  --text: #1c1c22;
-  --dim: #54545e;
-  --faint: #63626b;
+  --panel-2: #f1f0fa;
+  --panel-head: linear-gradient(180deg, #f6f4ff, #efedfa);
+  --line: #dcd9ee;
+  --line-soft: #ebe9f6;
+  --text: #1d1b2e;
+  --dim: #55526e;
+  --faint: #636088;
   --acc: #bf1270;
   --acc-line: #d81a7e;
   --on-acc: #ffffff;
   --tank: #2f6fd0;
   --heal: #1f8f5a;
   --dps: #c33a4f;
-  --chrome-bg: #eeece5;
+  --chrome-bg: #ffffffcc;
+  --shadow: 0 1px 2px #2a24660d, 0 8px 22px #2a246614;
   color-scheme: light;
 }
 
+/* The accent glow behind every screen, over the theme's page background. */
 body {
   margin: 0;
-  background: var(--bg2);
+  background:
+    radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      color-mix(in srgb, var(--acc) 7%, transparent),
+      transparent
+    ),
+    var(--bg2);
+  background-attachment: fixed;
   color: var(--text);
   font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
 }
@@ -116,10 +134,21 @@ button.primary {
   border: 0;
 }
 
+/* The card the sign-in, no-access and "not reachable" screens share. */
 .screen {
-  max-width: 32rem;
+  box-sizing: border-box;
+  width: min(32rem, 100% - 2rem);
   margin: 15vh auto 0;
-  padding: 0 1rem;
+  padding: 1.5rem 1.75rem 1.75rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--acc-line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.screen h1 {
+  margin-top: 0;
 }
 
 .top-bar {
@@ -145,8 +174,39 @@ button.primary {
 }
 
 .live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   color: var(--dim);
   font-size: 0.875rem;
+}
+
+.live-status[data-state]::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--faint);
+}
+
+.live-status[data-state="live"]::before {
+  background: var(--heal);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .live-status[data-state="live"]::before {
+    animation: live-pulse 2.4s ease-out infinite;
+  }
+}
+
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--heal) 55%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 0.4rem transparent;
+  }
 }
 
 .who {
@@ -202,11 +262,29 @@ button.primary {
   text-decoration: none;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
 }
 
-.event-list a:hover {
+.event-list a:hover,
+.event-list a:focus-visible {
   border-color: var(--acc-line);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .event-list a {
+    transition:
+      transform 0.15s ease-out,
+      box-shadow 0.15s ease-out;
+  }
+
+  .event-list a:hover,
+  .event-list a:focus-visible {
+    transform: translateY(-2px);
+    box-shadow:
+      var(--shadow),
+      0 8px 20px color-mix(in srgb, var(--acc) 14%, transparent);
+  }
 }
 
 .event-title {

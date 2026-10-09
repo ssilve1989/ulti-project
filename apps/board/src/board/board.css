@@ -143,6 +143,7 @@
   border: 1px solid var(--line);
   border-top: 2px solid var(--acc-line);
   border-radius: 10px;
+  box-shadow: var(--shadow);
   padding: 15px 16px 18px;
   margin-top: 16px;
 }
@@ -247,7 +248,7 @@ table.grid thead th {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--faint);
-  background: var(--panel-2);
+  background: var(--panel-head);
   padding: 8px 12px;
   border-bottom: 1px solid var(--line);
 }

@@ -22,6 +22,7 @@
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
+  box-shadow: var(--shadow);
   overflow: hidden;
 }
 /* The squad's color on the card's edge, as on its claim tokens. */
@@ -31,7 +32,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 8px 12px;
-  background: var(--panel-2);
+  background: var(--panel-head);
   border-bottom: 1px solid var(--line);
   border-left: 4px solid var(--sq);
 }

@@ -64,7 +64,11 @@ export function TopBar(props: {
       <A href="/" class="wordmark">
         ULTI PROJECT <span aria-hidden="true">▪</span> BOARD
       </A>
-      <span class="live-status" aria-live="polite">
+      <span
+        class="live-status"
+        data-state={props.liveStatus}
+        aria-live="polite"
+      >
         {props.liveStatus === 'live' ? 'Live' : ''}
         {props.liveStatus === 'reconnecting' ? 'Reconnecting…' : ''}
       </span>
