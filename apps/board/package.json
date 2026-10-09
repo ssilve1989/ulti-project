@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@solidjs/router": "catalog:",
+    "@tanstack/solid-table": "catalog:",
     "better-auth": "catalog:",
     "solid-js": "catalog:"
   },

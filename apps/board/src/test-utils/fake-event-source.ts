@@ -23,12 +23,15 @@ export class FakeEventSource {
     this.readyState = FakeEventSource.CLOSED;
   }
 
+  // A closed EventSource delivers nothing more.
   open(): void {
+    if (this.closed) return;
     this.readyState = FakeEventSource.OPEN;
     this.onopen?.(new Event('open'));
   }
 
   send(message: BoardStreamMessage): void {
+    if (this.closed) return;
     this.onmessage?.(
       new MessageEvent('message', { data: JSON.stringify(message) }),
     );
@@ -36,12 +39,14 @@ export class FakeEventSource {
 
   /** The server ended the stream; the browser retries by itself. */
   drop(): void {
+    if (this.closed) return;
     this.readyState = FakeEventSource.CONNECTING;
     this.onerror?.(new Event('error'));
   }
 
   /** The connection was refused (401/403/404 before the stream) or the server is down. */
   refuse(): void {
+    if (this.closed) return;
     this.readyState = FakeEventSource.CLOSED;
     this.onerror?.(new Event('error'));
   }

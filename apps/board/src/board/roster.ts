@@ -40,6 +40,11 @@ export function compareRows(a: BoardParticipant, b: BoardParticipant): number {
   );
 }
 
+/** How many of `rows` a squad has claimed. */
+export function claimedCount(rows: readonly BoardParticipant[]): number {
+  return rows.filter((row) => row.claim !== null).length;
+}
+
 export function matchesFilter(
   participant: BoardParticipant,
   filter: SquadFilter,
