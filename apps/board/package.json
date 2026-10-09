@@ -1,0 +1,26 @@
+{
+  "name": "@ulti-project/board",
+  "version": "1.0.0",
+  "description": "The coordinator board for Ulti-Project",
+  "type": "module",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=26.8.2"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:check": "tsc -b"
+  },
+  "dependencies": {
+    "@solidjs/router": "catalog:",
+    "solid-js": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-solid": "catalog:",
+    "vitest": "catalog:"
+  }
+}

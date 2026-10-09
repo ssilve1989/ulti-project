@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // Browser app built by Vite; tsc only type-checks. Shared is imported for types only.
+  "extends": "../../tsconfig.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "vite.config.ts"],
+  "exclude": ["node_modules", "dist"],
+  "compilerOptions": {
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "types": ["vite/client"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "emitDecoratorMetadata": false,
+    "experimentalDecorators": false,
+    "noEmit": true,
+    "tsBuildInfoFile": "dist-types/tsconfig.tsbuildinfo"
+  },
+  "references": [{ "path": "../../packages/shared" }]
+}

@@ -1,12 +1,14 @@
 import { inspect } from 'node:util';
 import {
   ConsoleLogger,
+  type DynamicModule,
   Logger,
   type LoggerService,
   type Type,
 } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import { AbstractLoader, ExpressLoader } from '@nestjs/serve-static';
 import { Test, type TestingModule } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
 import supertest, { type Agent } from 'supertest';
@@ -180,7 +182,7 @@ export interface FlowAppOptions {
    * Modules to boot alongside the slash command features, e.g. a job the bot
    * runs on a schedule. None by default, so a spec only runs the jobs it tests.
    */
-  readonly modules?: readonly Type[];
+  readonly modules?: readonly (Type | DynamicModule)[];
   /** Serve the HTTP API too (`HttpFlowApp`). Off by default. */
   readonly http?: boolean;
 }
@@ -247,7 +249,12 @@ export async function createFlowApp({
         .overrideProvider(BOARD_AUTH)
         .useValue(
           createBoardAuth({ ...boardConfig, BOARD_BASE_URL: FLOW_BOARD_URL }),
-        );
+        )
+        // ServeStaticModule picks its loader when its providers are built,
+        // which a testing module does before the HTTP adapter exists (NestFactory
+        // creates it first), so it would pick the no-op loader and serve nothing
+        .overrideProvider(AbstractLoader)
+        .useValue(new ExpressLoader());
     }
     const moduleRef = await builder
       .overrideProvider(FIRESTORE)

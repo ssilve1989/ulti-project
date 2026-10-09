@@ -25,6 +25,7 @@
     "@nestjs/core": "catalog:",
     "@nestjs/cqrs": "catalog:",
     "@nestjs/platform-express": "catalog:",
+    "@nestjs/serve-static": "catalog:",
     "@sentry/nestjs": "catalog:",
     "@sentry/profiling-node": "catalog:",
     "@ulti-project/shared": "workspace:*",
