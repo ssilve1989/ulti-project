@@ -6,6 +6,10 @@ import type {
 import { ComponentSessionService } from '../../discord/component-session.service.js';
 import { recordExpiredPrompt } from '../../discord/discord.helpers.js';
 import {
+  EVENT_ENCOUNTERS_SELECT_ID,
+  readEncounterSelection,
+} from '../components/encounter-select.js';
+import {
   SCHEDULE_TIME_ZONES,
   type ScheduleTimeZone,
   type Weekday,
@@ -30,7 +34,25 @@ const isScheduleTimeZone = (
 ): value is ScheduleTimeZone =>
   SCHEDULE_TIME_ZONES.some((zone) => zone === value);
 
-/** The organizer's days and timezone picks on the schedule panel. */
+/** The draft changes picking `values` in the `customId` menu makes, if it's one of the panel's. */
+function selectChanges(
+  customId: string,
+  values: readonly string[],
+): Partial<ScheduleDraft> | undefined {
+  const [zone] = values;
+  switch (customId) {
+    case EVENT_ENCOUNTERS_SELECT_ID:
+      return { encounters: readEncounterSelection(values) };
+    case SCHEDULE_DAYS_SELECT_ID:
+      return { weekdays: values.filter(isWeekday) };
+    case SCHEDULE_ZONE_SELECT_ID:
+      return isScheduleTimeZone(zone) ? { timeZone: zone } : undefined;
+    default:
+      return undefined;
+  }
+}
+
+/** The organizer's encounters, days and timezone picks on the schedule panel. */
 @Injectable()
 export class SchedulePanelSession {
   constructor(private readonly sessions: ComponentSessionService) {}
@@ -72,15 +94,8 @@ export class SchedulePanelSession {
       onAbandoned: () => resolve(undefined),
       onCollect: async (i) => {
         if (i.isStringSelectMenu()) {
-          const [zone] = i.values;
-          if (i.customId === SCHEDULE_DAYS_SELECT_ID) {
-            await pick(i, { weekdays: i.values.filter(isWeekday) });
-          } else if (
-            i.customId === SCHEDULE_ZONE_SELECT_ID &&
-            isScheduleTimeZone(zone)
-          ) {
-            await pick(i, { timeZone: zone });
-          }
+          const changes = selectChanges(i.customId, i.values);
+          if (changes) await pick(i, changes);
           return;
         }
         if (i.customId === SCHEDULE_SAVE_ID) {

@@ -17,6 +17,7 @@ import {
   encounterRow,
   eventButtonRow,
   recordChanges,
+  ULTIMATE_CHOICES,
 } from '../../test-utils/events.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import {
@@ -240,10 +241,6 @@ const repliesTo = (flow: FlowApp, userId: string) =>
 
 /** The create panel's line about the event starting at START. */
 const SUMMARY = `**${TITLE}** · starts <t:${START_S}:F> · sign-ups close <t:${START_S}:R>`;
-
-const ULTIMATE_CHOICES: [string, string][] = [
-  ['DMU', 'Dancing Mad (Ultimate)'],
-];
 
 /** The create panel, privately, with `selected` picked and Post `postDisabled`. */
 const createPanel = (selected: Encounter[], postDisabled: boolean) =>

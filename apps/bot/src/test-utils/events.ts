@@ -36,6 +36,10 @@ export const eventButtonRow = (
   ],
 });
 
+/** The encounter menu's choices (value and label) in the default, ultimate, mode. */
+export const ULTIMATE_CHOICES: readonly (readonly [string, string])[] =
+  Object.freeze([['DMU', 'Dancing Mad (Ultimate)']]);
+
 /** The encounter menu offering `choices` (value and label) with `selected` pre-selected, as Discord receives it. */
 export const encounterRow = (
   choices: readonly (readonly [value: string, label: string])[],

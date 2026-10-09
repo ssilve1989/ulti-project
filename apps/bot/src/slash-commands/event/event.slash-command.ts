@@ -1,4 +1,3 @@
-import { getEncounterChoicesForMode } from '@ulti-project/shared';
 import {
   ChannelType,
   SlashCommandBuilder,
@@ -7,28 +6,6 @@ import {
   type SlashCommandStringOption,
   SlashCommandSubcommandBuilder,
 } from 'discord.js';
-import { appConfig } from '../../config/app.js';
-
-const encounterOption =
-  (
-    name: string,
-    required: boolean,
-    description = required ? 'Encounter' : 'Another encounter (optional)',
-  ) =>
-  (option: SlashCommandStringOption) =>
-    option
-      .setName(name)
-      .setDescription(description)
-      .setRequired(required)
-      .addChoices(...getEncounterChoicesForMode(appConfig.APPLICATION_MODE));
-
-/** On edit, any encounter given replaces all of the schedule's encounters. */
-const replacementEncounterOption = (name: string, first: boolean) =>
-  encounterOption(
-    name,
-    false,
-    first ? 'Replace the encounters (first)' : 'Another replacement encounter',
-  );
 
 const titleOption = (required: boolean) => (option: SlashCommandStringOption) =>
   option
@@ -100,16 +77,14 @@ const channelOption = (option: SlashCommandChannelOption) =>
 // Discord requires the required options before the optional ones
 const CreateScheduleSubcommand = new SlashCommandSubcommandBuilder()
   .setName('schedule-create')
-  .setDescription('Post an event every week; pick the days in the panel')
+  .setDescription(
+    'Post an event every week; pick the encounters and days in the panel',
+  )
   .addStringOption(titleOption(true))
-  .addStringOption(encounterOption('encounter-1', true))
   .addStringOption(timeOption(true))
   .addIntegerOption(postAheadOption)
   .addIntegerOption(signupsCloseBeforeOption)
-  .addChannelOption(channelOption)
-  .addStringOption(encounterOption('encounter-2', false))
-  .addStringOption(encounterOption('encounter-3', false))
-  .addStringOption(encounterOption('encounter-4', false));
+  .addChannelOption(channelOption);
 
 const scheduleOption = (option: SlashCommandStringOption) =>
   option
@@ -120,17 +95,15 @@ const scheduleOption = (option: SlashCommandStringOption) =>
 
 const EditScheduleSubcommand = new SlashCommandSubcommandBuilder()
   .setName('schedule-edit')
-  .setDescription('Change a weekly schedule; pick the days in the panel')
+  .setDescription(
+    'Change a weekly schedule; pick the encounters and days in the panel',
+  )
   .addStringOption(scheduleOption)
   .addStringOption(titleOption(false))
-  .addStringOption(replacementEncounterOption('encounter-1', true))
   .addStringOption(timeOption(false))
   .addIntegerOption(postAheadOption)
   .addIntegerOption(signupsCloseBeforeOption)
-  .addChannelOption(channelOption)
-  .addStringOption(replacementEncounterOption('encounter-2', false))
-  .addStringOption(replacementEncounterOption('encounter-3', false))
-  .addStringOption(replacementEncounterOption('encounter-4', false));
+  .addChannelOption(channelOption);
 
 const ListSchedulesSubcommand = new SlashCommandSubcommandBuilder()
   .setName('schedule-list')

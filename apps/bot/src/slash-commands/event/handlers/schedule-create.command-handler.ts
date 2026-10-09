@@ -46,7 +46,12 @@ class ScheduleCreateCommandHandler implements ISlashCommand {
 
     const draft = await this.panel.open(
       interaction,
-      { ...options.values, weekdays: [], timeZone: USTimeZones.EASTERN },
+      {
+        ...options.values,
+        encounters: [],
+        weekdays: [],
+        timeZone: USTimeZones.EASTERN,
+      },
       'create',
     );
     if (!draft) return;

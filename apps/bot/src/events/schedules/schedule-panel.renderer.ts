@@ -1,4 +1,3 @@
-import { EncounterFriendlyDescription } from '@ulti-project/shared';
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -14,6 +13,10 @@ import type {
   EventScheduleDocument,
   ScheduleSettings,
 } from '../../firebase/models/event-schedule.model.js';
+import {
+  EVENT_ENCOUNTERS_SELECT_ID,
+  encounterSelect,
+} from '../components/encounter-select.js';
 import {
   nextOccurrence,
   type Recurrence,
@@ -58,12 +61,6 @@ export function renderSchedulePanel(
     .setTitle(`${mode === 'create' ? 'New' : 'Edit'} schedule: ${draft.title}`)
     .setDescription(preview(draft, now))
     .addFields(
-      {
-        name: 'Encounters',
-        value: draft.encounters
-          .map((encounter) => EncounterFriendlyDescription[encounter])
-          .join('\n'),
-      },
       { name: 'Channel', value: channelMention(draft.channelId) },
       {
         name: 'Post ahead',
@@ -72,7 +69,12 @@ export function renderSchedulePanel(
     );
   return {
     embeds: [embed],
-    components: [daysRow(draft), zoneRow(draft, now), buttonRow(draft)],
+    components: [
+      encounterSelect(EVENT_ENCOUNTERS_SELECT_ID, draft.encounters),
+      daysRow(draft),
+      zoneRow(draft, now),
+      buttonRow(draft),
+    ],
   };
 }
 
@@ -177,7 +179,9 @@ function buttonRow(
       .setCustomId(SCHEDULE_SAVE_ID)
       .setLabel('Save')
       .setStyle(ButtonStyle.Primary)
-      .setDisabled(draft.weekdays.length === 0),
+      .setDisabled(
+        draft.weekdays.length === 0 || draft.encounters.length === 0,
+      ),
     new ButtonBuilder()
       .setCustomId(SCHEDULE_CANCEL_ID)
       .setLabel('Cancel')

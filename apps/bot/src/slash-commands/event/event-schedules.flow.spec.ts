@@ -4,6 +4,7 @@ import { Encounter } from '@ulti-project/shared';
 import { Timestamp } from 'firebase-admin/firestore';
 import { test as base, describe, expect, vi } from 'vitest';
 import { USTimeZones } from '../../common/time-zones.js';
+import { appConfig } from '../../config/app.js';
 import type { Weekday } from '../../events/schedules/next-occurrence.js';
 import { ParticipantWithdrawnEvent } from '../../events/signup/events.events.js';
 import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
@@ -23,7 +24,12 @@ import {
   spiedCron,
 } from '../../test-utils/cron-tick.js';
 import { shown } from '../../test-utils/discord/fake-message.js';
-import { eventButtonRow, recordChanges } from '../../test-utils/events.js';
+import {
+  encounterRow,
+  eventButtonRow,
+  recordChanges,
+  ULTIMATE_CHOICES,
+} from '../../test-utils/events.js';
 import { fresh } from '../../test-utils/fixtures.js';
 import {
   createFlowApp,
@@ -133,7 +139,7 @@ async function event(
   await flow.settle();
 }
 
-/** The organizer runs `/event schedule-create` for DMU at 8pm, with `options` on top. */
+/** The organizer runs `/event schedule-create` at 8pm, with `options` on top. */
 const createSchedule = (
   flow: FlowApp,
   options: Record<string, string | number> = {},
@@ -142,7 +148,7 @@ const createSchedule = (
   event(
     flow,
     'schedule-create',
-    { title: TITLE, 'encounter-1': Encounter.DMU, time: '8pm', ...options },
+    { title: TITLE, time: '8pm', ...options },
     userId,
   );
 
@@ -151,6 +157,11 @@ function panel(flow: FlowApp) {
   const reply = flow.discord.repliesTo(ORGANIZER.id).at(-1);
   if (!reply) throw new Error('expected the organizer to have a reply');
   return reply;
+}
+
+async function chooseEncounters(flow: FlowApp, encounters: Encounter[]) {
+  flow.discord.choose(panel(flow), encounters, ORGANIZER.id, 'eventEncounters');
+  await flow.settle();
 }
 
 async function chooseDays(flow: FlowApp, days: readonly Weekday[]) {
@@ -187,12 +198,20 @@ function onlyScheduleId(flow: FlowApp): string {
   return schedule.id;
 }
 
-/** The panel's fields for a DMU schedule in the events channel posted `postAhead` ahead. */
+/** The panel's fields for a schedule in the events channel posted `postAhead` ahead. */
 const panelFields = (postAhead: string) => [
-  { name: 'Encounters', value: 'Dancing Mad (Ultimate)' },
   { name: 'Channel', value: `<#${EVENTS_CHANNEL}>` },
   { name: 'Post ahead', value: postAhead },
 ];
+
+/** Offers legacy encounters such as TOP too, for the rest of the test. */
+function offerLegacyEncounters() {
+  const modes = appConfig.APPLICATION_MODE;
+  appConfig.APPLICATION_MODE = ['legacy', 'ultimate'];
+  return () => {
+    appConfig.APPLICATION_MODE = modes;
+  };
+}
 
 /** Every metric the app records while `act` runs. */
 async function metricsDuring(act: () => Promise<void>) {
@@ -217,7 +236,7 @@ describe('/event schedule-create', () => {
   describe('when an organizer starts a schedule', () => {
     it.beforeEach(({ flow }) => createSchedule(flow));
 
-    it('shows the panel, privately, asking for a day with Save disabled', ({
+    it('shows the panel, privately, asking for encounters and a day with Save disabled', ({
       flow,
     }) => {
       expect(repliesTo(flow, ORGANIZER.id)).toEqual([
@@ -230,6 +249,7 @@ describe('/event schedule-create', () => {
             },
           ],
           components: [
+            encounterRow(ULTIMATE_CHOICES, []),
             daysRow([]),
             zoneRow(SUMMER_LABELS, USTimeZones.EASTERN),
             buttonRow(true),
@@ -238,8 +258,39 @@ describe('/event schedule-create', () => {
       ]);
     });
 
-    describe('and picks Tuesday and Thursday', () => {
+    describe('and picks Tuesday and Thursday but no encounter', () => {
       it.beforeEach(({ flow }) => chooseDays(flow, ['tue', 'thu']));
+
+      it('previews the next event with Save still disabled', ({ flow }) => {
+        expect(repliesTo(flow, ORGANIZER.id)).toEqual([
+          privateReply(ORGANIZER.id, {
+            embeds: [
+              {
+                title: `New schedule: ${TITLE}`,
+                description: [
+                  'Tue, Thu at 8:00 PM Eastern.',
+                  `The next event starts <t:${EASTERN_START_S}:F> and is posted <t:${EASTERN_POST_S}:R>.`,
+                  'Sign-ups close when it starts.',
+                ].join('\n'),
+                fields: panelFields('72 hours'),
+              },
+            ],
+            components: [
+              encounterRow(ULTIMATE_CHOICES, []),
+              daysRow(['tue', 'thu']),
+              zoneRow(SUMMER_LABELS, USTimeZones.EASTERN),
+              buttonRow(true),
+            ],
+          }),
+        ]);
+      });
+    });
+
+    describe('and picks DMU, then Tuesday and Thursday', () => {
+      it.beforeEach(async ({ flow }) => {
+        await chooseEncounters(flow, [Encounter.DMU]);
+        await chooseDays(flow, ['tue', 'thu']);
+      });
 
       it('previews the next event in Eastern time and enables Save', ({
         flow,
@@ -258,6 +309,7 @@ describe('/event schedule-create', () => {
               },
             ],
             components: [
+              encounterRow(ULTIMATE_CHOICES, [Encounter.DMU]),
               daysRow(['tue', 'thu']),
               zoneRow(SUMMER_LABELS, USTimeZones.EASTERN),
               buttonRow(false),
@@ -284,6 +336,7 @@ describe('/event schedule-create', () => {
                 },
               ],
               components: [
+                encounterRow(ULTIMATE_CHOICES, [Encounter.DMU]),
                 daysRow(['tue', 'thu']),
                 zoneRow(SUMMER_LABELS, USTimeZones.PACIFIC),
                 buttonRow(false),
@@ -483,7 +536,7 @@ describe('/event schedule-edit', () => {
       });
     });
 
-    it("opens the panel with the schedule's days and zone picked", ({
+    it("opens the panel with the schedule's encounters, days and zone picked", ({
       flow,
     }) => {
       expect(repliesTo(flow, ORGANIZER.id)).toEqual([
@@ -500,6 +553,7 @@ describe('/event schedule-edit', () => {
             },
           ],
           components: [
+            encounterRow(ULTIMATE_CHOICES, [Encounter.DMU]),
             daysRow(['tue', 'thu']),
             zoneRow(SUMMER_LABELS, USTimeZones.PACIFIC),
             buttonRow(false),
@@ -1317,6 +1371,7 @@ describe('the event-scheduler job', () => {
 
     itWithScheduler.beforeEach(async ({ flow, cron }) => {
       await createSchedule(flow, { 'post-ahead': 24 });
+      await chooseEncounters(flow, [Encounter.DMU]);
       await chooseDays(flow, ['tue', 'thu']);
       await click(flow, 'scheduleSave');
       const nextPostAt = flow.db.read(
@@ -1795,6 +1850,28 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
     );
   });
 
+  describe('when members signed up and an organizer renames it, leaving the encounters', () => {
+    itWithScheduler.beforeEach(offerLegacyEncounters);
+    itWithScheduler.beforeEach(async ({ flow }) => {
+      seedSignups(flow);
+      await edit(flow, { title: 'DMU reclear' });
+    });
+
+    itWithScheduler('keeps its encounters and every sign-up', ({ flow }) => {
+      expect({
+        schedule: flow.db.read(SCHEDULE_PATH),
+        participants: participants(flow),
+      }).toEqual({
+        schedule: {
+          ...ADVANCED_SCHEDULE,
+          title: 'DMU reclear',
+          updatedBy: ORGANIZER.id,
+        },
+        participants: [ALICE_DMU, BOB_TOP, CAROL_TOP],
+      });
+    });
+  });
+
   describe("when an organizer renames it and its post can't be updated", () => {
     itWithScheduler(
       'still renames the event, reports the failed update, and says it was updated',
@@ -2082,9 +2159,13 @@ describe('/event schedule-edit, after the schedule posted an event', () => {
   });
 
   describe('when an organizer removes TOP from it', () => {
-    const removeTop = (flow: FlowApp) =>
-      edit(flow, { 'encounter-1': Encounter.DMU });
+    async function removeTop(flow: FlowApp) {
+      await event(flow, 'schedule-edit', { schedule: SCHEDULE_ID });
+      await chooseEncounters(flow, [Encounter.DMU]);
+      await click(flow, 'scheduleSave');
+    }
 
+    itWithScheduler.beforeEach(offerLegacyEncounters);
     itWithScheduler.beforeEach(({ flow }) => seedSignups(flow));
 
     itWithScheduler(

@@ -48,7 +48,6 @@ const run = (
 
 const REQUIRED = Object.freeze({
   title: 'DMU prog night',
-  'encounter-1': Encounter.DMU,
   time: '8pm',
 });
 
@@ -74,7 +73,6 @@ describe('readScheduleOptions', () => {
         ok: true,
         values: {
           title: 'DMU prog night',
-          encounters: [Encounter.DMU],
           startTime: '20:00',
           postLeadHours: 72,
           signupsCloseBeforeHours: 0,
@@ -84,22 +82,20 @@ describe('readScheduleOptions', () => {
     });
   });
 
-  describe('when every option is given, with an encounter twice', () => {
-    it('reads each one, and the encounter once', ({ discord }) => {
+  describe('when every option is given', () => {
+    it('reads each one', ({ discord }) => {
       const interaction = run(discord, 'schedule-create', {
         ...REQUIRED,
         time: '8:30 pm',
         'post-ahead': 48,
         'signups-close-before': 47,
         channel: ELSEWHERE,
-        'encounter-4': Encounter.DMU,
       });
 
       expect(readScheduleOptions(interaction)).toEqual({
         ok: true,
         values: {
           title: 'DMU prog night',
-          encounters: [Encounter.DMU],
           startTime: '20:30',
           postLeadHours: 48,
           signupsCloseBeforeHours: 47,
@@ -151,9 +147,7 @@ describe('readScheduleChanges', () => {
   });
 
   describe('when every option is given', () => {
-    it('changes each one, with the encounters given replacing the old ones', ({
-      discord,
-    }) => {
+    it('changes each one', ({ discord }) => {
       const interaction = run(discord, 'schedule-edit', {
         schedule: 's1',
         title: 'Reclear',
@@ -161,14 +155,12 @@ describe('readScheduleChanges', () => {
         'post-ahead': 6,
         'signups-close-before': 1,
         channel: ELSEWHERE,
-        'encounter-2': Encounter.DMU,
       });
 
       expect(readScheduleChanges(interaction, CURRENT)).toEqual({
         ok: true,
         values: {
           title: 'Reclear',
-          encounters: [Encounter.DMU],
           startTime: '21:15',
           postLeadHours: 6,
           signupsCloseBeforeHours: 1,

@@ -1,6 +1,7 @@
 import { Encounter } from '@ulti-project/shared';
 import { describe, expect, it } from 'vitest';
 import { USTimeZones } from '../../common/time-zones.js';
+import { encounterRow, ULTIMATE_CHOICES } from '../../test-utils/events.js';
 import {
   buttonRow,
   daysRow,
@@ -20,8 +21,8 @@ const JANUARY_NOW = new Date('2026-01-12T17:00:00Z');
 
 function aDraft(overrides: Partial<ScheduleDraft> = {}): ScheduleDraft {
   return {
-    title: 'DSR prog night',
-    encounters: [Encounter.DSR, Encounter.TOP],
+    title: 'DMU prog night',
+    encounters: [Encounter.DMU],
     channelId: 'channel-1',
     weekdays: [],
     startTime: '20:00',
@@ -46,19 +47,16 @@ describe('renderSchedulePanel', () => {
       expect(render(aDraft(), JULY_NOW, 'create')).toEqual({
         embeds: [
           {
-            title: 'New schedule: DSR prog night',
+            title: 'New schedule: DMU prog night',
             description: 'Pick at least one day.',
             fields: [
-              {
-                name: 'Encounters',
-                value: '[DSR] Dragonsong Reprise\n[TOP] The Omega Protocol',
-              },
               { name: 'Channel', value: '<#channel-1>' },
               { name: 'Post ahead', value: '72 hours' },
             ],
           },
         ],
         components: [
+          encounterRow(ULTIMATE_CHOICES, [Encounter.DMU]),
           daysRow([]),
           zoneRow(SUMMER_LABELS, USTimeZones.EASTERN),
           buttonRow(true),
@@ -77,23 +75,20 @@ describe('renderSchedulePanel', () => {
       expect(render(draft, JULY_NOW, 'create')).toEqual({
         embeds: [
           {
-            title: 'New schedule: DSR prog night',
+            title: 'New schedule: DMU prog night',
             description: [
               'Tue, Thu at 8:00 PM Eastern.',
               'The next event starts <t:1784073600:F> and is posted <t:1783987200:R>.',
               'Sign-ups close 2 hours before it starts (<t:1784066400:R>).',
             ].join('\n'),
             fields: [
-              {
-                name: 'Encounters',
-                value: '[DSR] Dragonsong Reprise\n[TOP] The Omega Protocol',
-              },
               { name: 'Channel', value: '<#channel-1>' },
               { name: 'Post ahead', value: '24 hours' },
             ],
           },
         ],
         components: [
+          encounterRow(ULTIMATE_CHOICES, [Encounter.DMU]),
           daysRow(['tue', 'thu']),
           zoneRow(SUMMER_LABELS, USTimeZones.EASTERN),
           buttonRow(false),
@@ -112,23 +107,20 @@ describe('renderSchedulePanel', () => {
       expect(render(draft, JULY_NOW, 'create')).toEqual({
         embeds: [
           {
-            title: 'New schedule: DSR prog night',
+            title: 'New schedule: DMU prog night',
             description: [
               'Tue, Thu at 8:00 PM Eastern.',
               'The next event starts <t:1784073600:F> and is posted <t:1783987200:R>.',
               'Sign-ups close 1 hour before it starts (<t:1784070000:R>).',
             ].join('\n'),
             fields: [
-              {
-                name: 'Encounters',
-                value: '[DSR] Dragonsong Reprise\n[TOP] The Omega Protocol',
-              },
               { name: 'Channel', value: '<#channel-1>' },
               { name: 'Post ahead', value: '24 hours' },
             ],
           },
         ],
         components: [
+          encounterRow(ULTIMATE_CHOICES, [Encounter.DMU]),
           daysRow(['tue', 'thu']),
           zoneRow(SUMMER_LABELS, USTimeZones.EASTERN),
           buttonRow(false),
@@ -140,7 +132,6 @@ describe('renderSchedulePanel', () => {
   describe('when an existing Pacific schedule is edited', () => {
     it('selects Pacific and says sign-ups close when it starts', () => {
       const draft = aDraft({
-        encounters: [Encounter.FRU],
         weekdays: ['sat'],
         timeZone: USTimeZones.PACIFIC,
         postLeadHours: 1,
@@ -148,20 +139,20 @@ describe('renderSchedulePanel', () => {
       expect(render(draft, JULY_NOW, 'edit')).toEqual({
         embeds: [
           {
-            title: 'Edit schedule: DSR prog night',
+            title: 'Edit schedule: DMU prog night',
             description: [
               'Sat at 8:00 PM Pacific.',
               'The next event starts <t:1784430000:F> and is posted <t:1784426400:R>.',
               'Sign-ups close when it starts.',
             ].join('\n'),
             fields: [
-              { name: 'Encounters', value: '[FRU] Futures Rewritten' },
               { name: 'Channel', value: '<#channel-1>' },
               { name: 'Post ahead', value: '1 hour' },
             ],
           },
         ],
         components: [
+          encounterRow(ULTIMATE_CHOICES, [Encounter.DMU]),
           daysRow(['sat']),
           zoneRow(SUMMER_LABELS, USTimeZones.PACIFIC),
           buttonRow(false),
@@ -172,7 +163,7 @@ describe('renderSchedulePanel', () => {
 
   describe('when the panel is opened in July', () => {
     it('labels the zones with their daylight-saving offsets', () => {
-      expect(render(aDraft(), JULY_NOW, 'create').components[1]).toEqual(
+      expect(render(aDraft(), JULY_NOW, 'create').components[2]).toEqual(
         zoneRow(SUMMER_LABELS, USTimeZones.EASTERN),
       );
     });
@@ -180,7 +171,7 @@ describe('renderSchedulePanel', () => {
 
   describe('when the panel is opened in January', () => {
     it('labels the zones with their standard offsets', () => {
-      expect(render(aDraft(), JANUARY_NOW, 'create').components[1]).toEqual(
+      expect(render(aDraft(), JANUARY_NOW, 'create').components[2]).toEqual(
         zoneRow(
           [
             'Eastern (UTC−5)',
