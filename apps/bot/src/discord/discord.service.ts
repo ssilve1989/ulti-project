@@ -47,6 +47,26 @@ class DiscordService {
     }
   }
 
+  /** The guild's members among `memberIds`; anyone not in the guild is left out. */
+  public async getGuildMembers({
+    memberIds,
+    guildId,
+  }: {
+    memberIds: readonly string[];
+    guildId: string;
+  }): Promise<Map<string, GuildMember>> {
+    const guild = await this.client.guilds.fetch(guildId);
+    const members = new Map<string, GuildMember>();
+    // Discord returns at most 100 members per request by id
+    for (let start = 0; start < memberIds.length; start += 100) {
+      const fetched = await guild.members.fetch({
+        user: memberIds.slice(start, start + 100),
+      });
+      for (const [id, member] of fetched) members.set(id, member);
+    }
+    return members;
+  }
+
   public async sendDirectMessage(
     userId: string,
     message: Parameters<DMChannel['send']>[0],

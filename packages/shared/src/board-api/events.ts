@@ -1,0 +1,44 @@
+import type { Encounter } from '../encounters/encounters.consts.ts';
+import type { Job, JobRole } from '../jobs/jobs.consts.ts';
+import type { SquadView } from './access.ts';
+
+/** An event in `GET /api/events`. */
+export interface BoardEventSummary {
+  id: string;
+  title: string;
+  startsAt: string;
+  encounters: Encounter[];
+  participantCount: number;
+}
+
+/** A player signed up for one of an event's encounters. */
+export interface BoardParticipant {
+  /** `${discordId}-${encounter}` */
+  id: string;
+  encounter: Encounter;
+  discordId: string;
+  displayName: string;
+  character: string;
+  world: string;
+  job: Job;
+  jobRole: JobRole;
+  phase: { label: string; order: number; bucket: 'prog' | 'clear' };
+  claim: { squadId: string; claimedBy: string; claimedAt: string } | null;
+}
+
+/** `GET /api/events/:id`. */
+export interface BoardEvent {
+  id: string;
+  title: string;
+  startsAt: string;
+  signupsCloseAt: string;
+  status: 'open' | 'signups-closed' | 'closed';
+  encounters: {
+    id: Encounter;
+    name: string;
+    progPartyThreshold?: string;
+    clearPartyThreshold?: string;
+  }[];
+  participants: BoardParticipant[];
+  squads: SquadView[];
+}

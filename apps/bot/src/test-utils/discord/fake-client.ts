@@ -155,11 +155,19 @@ export class FakeViews {
       get cache() {
         return collectionOf(views.cachedMemberViews(guildId));
       },
-      /** Like GuildMemberManager.fetch: one member (10007 for a non-member), or every member; either is cached. */
-      fetch: (userId?: string) =>
-        userId === undefined
-          ? Promise.resolve(collectionOf(this.fetchAllMembers(guildId)))
-          : this.fetchMember(guildId, userId),
+      /**
+       * Like GuildMemberManager.fetch: one member (10007 for a non-member),
+       * the members among `{ user: ids }` (non-members are left out), or every
+       * member; all of them are cached.
+       */
+      fetch: (options?: string | { user: readonly string[] }) => {
+        if (options === undefined) {
+          return Promise.resolve(collectionOf(this.fetchAllMembers(guildId)));
+        }
+        return typeof options === 'string'
+          ? this.fetchMember(guildId, options)
+          : this.fetchMembers(guildId, options.user);
+      },
     };
     const roles = {
       /** Like RoleManager.cache: every role the guild has, @everyone included. */
@@ -366,6 +374,27 @@ export class FakeViews {
             `/guilds/${guildId}/members/${userId}`,
           ),
         );
+  }
+
+  /** Like a Request Guild Members by `user_ids`, which returns at most 100 members. */
+  private fetchMembers(
+    guildId: string,
+    userIds: readonly string[],
+  ): Promise<Collection<string, GuildMember>> {
+    if (userIds.length === 0 || userIds.length > 100) {
+      return Promise.reject(
+        new Error(
+          `DiscordMock fetches 1 to at most 100 members by id, as Discord returns; got ${userIds.length}`,
+        ),
+      );
+    }
+    const members = userIds.flatMap((userId) => {
+      const member = this.world.member(userId);
+      if (member === undefined) return [];
+      this.cacheMember(guildId, userId);
+      return [this.member(guildId, member)];
+    });
+    return Promise.resolve(collectionOf(members));
   }
 
   private fetchUser(userId: string): Promise<User> {

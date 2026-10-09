@@ -818,6 +818,31 @@ describe('DiscordMock', () => {
     expect([before, role?.members.map(({ id }) => id)]).toEqual([[], ['u1']]);
   });
 
+  it('fetches several members by id, leaving out who is not in the guild, and caches them, like discord.js', async ({
+    discord,
+  }) => {
+    discord.removeMember('u2');
+    const guild = await discord.client.guilds.fetch('g1');
+
+    const fetched = await guild.members.fetch({ user: ['u1', 'u2'] });
+
+    expect([
+      fetched.map(({ id, displayName }) => ({ id, displayName })),
+      guild.members.cache.map(({ id }) => id),
+    ]).toEqual([[{ id: 'u1', displayName: 'one' }], ['u1']]);
+  });
+
+  it('refuses to fetch more than 100 members by id, which Discord never returns', async ({
+    discord,
+  }) => {
+    const guild = await discord.client.guilds.fetch('g1');
+    const ids = Array.from({ length: 101 }, (_, i) => `u${i}`);
+
+    await expect(guild.members.fetch({ user: ids })).rejects.toThrow(
+      'at most 100',
+    );
+  });
+
   it("holds the guild's roles in its role cache, like discord.js", async ({
     discord,
   }) => {
