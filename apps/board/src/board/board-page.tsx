@@ -116,34 +116,41 @@ function Board(props: {
                 <h2>{encounter().name}</h2>
                 <span class="signed">{signedUp(encounter().id)} signed up</span>
               </div>
-              <div class="sub-grid">
-                <PartyTable
-                  event={props.event}
-                  encounter={encounter()}
-                  bucket="prog"
-                  filter={filter()}
-                  grouped={grouping() === 'squad'}
-                  claiming={claiming()}
-                  claims={props.claims}
-                />
-                <PartyTable
-                  event={props.event}
-                  encounter={encounter()}
-                  bucket="clear"
-                  filter={filter()}
-                  grouped={grouping() === 'squad'}
-                  claiming={claiming()}
-                  claims={props.claims}
-                />
-              </div>
-              <TeamsSection
-                event={props.event}
-                encounter={encounter().id}
-                squad={ownSquad()}
-                helpers={props.helpers}
-                // Same rule as claiming: a squad member on an event that isn't closed.
-                actions={claiming() ? props.rosters : undefined}
-              />
+              {/* Keyed by encounter: a tab switch draws a fresh board, so its rows don't animate as changes. */}
+              <Show when={encounter().id} keyed>
+                {(encounterId) => (
+                  <>
+                    <div class="sub-grid">
+                      <PartyTable
+                        event={props.event}
+                        encounter={encounter()}
+                        bucket="prog"
+                        filter={filter()}
+                        grouped={grouping() === 'squad'}
+                        claiming={claiming()}
+                        claims={props.claims}
+                      />
+                      <PartyTable
+                        event={props.event}
+                        encounter={encounter()}
+                        bucket="clear"
+                        filter={filter()}
+                        grouped={grouping() === 'squad'}
+                        claiming={claiming()}
+                        claims={props.claims}
+                      />
+                    </div>
+                    <TeamsSection
+                      event={props.event}
+                      encounter={encounterId}
+                      squad={ownSquad()}
+                      helpers={props.helpers}
+                      // Same rule as claiming: a squad member on an event that isn't closed.
+                      actions={claiming() ? props.rosters : undefined}
+                    />
+                  </>
+                )}
+              </Show>
             </section>
           </>
         )}
