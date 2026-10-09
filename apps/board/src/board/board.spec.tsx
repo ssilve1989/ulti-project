@@ -184,6 +184,9 @@ describe("an encounter's players", () => {
 
     expect(rowsOf(PROG)).toEqual([AERYN_ROW, CASS_ROW, BRICKTOP_ROW]);
     expect(rowsOf(CLEAR)).toEqual([DAX_ROW, ECHO_ROW]);
+    expect(
+      within(screen.getByRole('tabpanel')).getByText('5 signed up'),
+    ).toBeTruthy();
   });
 
   it('dim a repeated phase label and mark where each phase starts', async () => {

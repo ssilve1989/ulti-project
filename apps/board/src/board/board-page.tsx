@@ -12,13 +12,18 @@ import { formatStart } from '../format';
 import { useShell } from '../shell/shell-context';
 import { readChoice, storeChoice } from '../stored-choice';
 import './board.css';
+import { type Claims, createClaims } from './claims';
 import { EncounterTabs } from './encounter-tabs';
 import { createEventStream } from './event-stream';
 import { PartyTable } from './party-table';
 import type { SquadFilter } from './roster';
 import { type ClaimStyle, type Grouping, Toolbar } from './toolbar';
 
-function Board(props: { readonly event: BoardEvent }) {
+function Board(props: {
+  readonly event: BoardEvent;
+  readonly claims: Claims | undefined;
+}) {
+  const shell = useShell();
   const [searchParams, setSearchParams] = useSearchParams<{ enc: string }>();
   const [filter, setFilter] = createSignal<SquadFilter>({ kind: 'all' });
   const [claimStyle, setClaimStyle] = createSignal<ClaimStyle>(
@@ -33,6 +38,15 @@ function Board(props: { readonly event: BoardEvent }) {
     props.event.encounters[0];
   const select = (encounter: Encounter) =>
     setSearchParams({ enc: encounter }, { replace: true });
+  // Read live: a refused claim re-asks /api/me, which may take the squad away.
+  const claiming = () => {
+    const { access } = shell.me;
+    return props.claims &&
+      access.kind === 'squad' &&
+      props.event.status !== 'closed'
+      ? { claims: props.claims, squad: access.squad }
+      : undefined;
+  };
 
   return (
     <main class="board" data-claim-style={claimStyle()}>
@@ -94,6 +108,8 @@ function Board(props: { readonly event: BoardEvent }) {
                   bucket="prog"
                   filter={filter()}
                   grouped={grouping() === 'squad'}
+                  claiming={claiming()}
+                  claims={props.claims}
                 />
                 <PartyTable
                   event={props.event}
@@ -101,6 +117,8 @@ function Board(props: { readonly event: BoardEvent }) {
                   bucket="clear"
                   filter={filter()}
                   grouped={grouping() === 'squad'}
+                  claiming={claiming()}
+                  claims={props.claims}
                 />
               </div>
             </section>
@@ -114,7 +132,8 @@ function Board(props: { readonly event: BoardEvent }) {
 /** `/events/:id`: the live board for one event. */
 export function BoardPage() {
   const params = useParams<{ id: string }>();
-  const { refetchMe, setLiveStatus } = useShell();
+  const { me, refetchMe, setLiveStatus } = useShell();
+  // shortcut: the stream is bound to the first :id; key the page on params.id if boards ever link to each other.
   const stream = createEventStream(params.id);
   const event = () => {
     const state = stream.state();
@@ -122,6 +141,18 @@ export function BoardPage() {
       ? state.event
       : undefined;
   };
+  // shortcut: claims exist only if the user was a squad member when the board opened; gaining a squad later needs a reload.
+  const claims =
+    me.access.kind === 'squad'
+      ? createClaims(
+          params.id,
+          stream,
+          { discordId: me.discordId, squad: me.access.squad },
+          (squadId) =>
+            event()?.squads.find((squad) => squad.id === squadId)?.name ??
+            'another squad',
+        )
+      : undefined;
 
   createEffect(() => {
     const { kind } = stream.state();
@@ -135,7 +166,9 @@ export function BoardPage() {
 
   return (
     <Switch>
-      <Match when={event()}>{(live) => <Board event={live()} />}</Match>
+      <Match when={event()}>
+        {(live) => <Board event={live()} claims={claims} />}
+      </Match>
       <Match when={stream.state().kind === 'connecting'}>
         <main class="screen">
           <p>Loading…</p>

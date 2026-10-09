@@ -7,15 +7,13 @@ export function EncounterTabs(props: {
   readonly selected: Encounter;
   readonly onSelect: (encounter: Encounter) => void;
 }) {
-  const tabs: HTMLButtonElement[] = [];
-
   function move(from: number, step: number): void {
     const count = props.encounters.length;
     const next = (from + step + count) % count;
     const encounter = props.encounters[next];
     if (encounter === undefined) return;
     props.onSelect(encounter.id);
-    tabs[next]?.focus();
+    document.getElementById(`tab-${encounter.id}`)?.focus();
   }
 
   return (
@@ -25,9 +23,6 @@ export function EncounterTabs(props: {
           <button
             type="button"
             role="tab"
-            ref={(tab) => {
-              tabs[index()] = tab;
-            }}
             id={`tab-${encounter.id}`}
             class="tab"
             classList={{ 'is-active': encounter.id === props.selected }}

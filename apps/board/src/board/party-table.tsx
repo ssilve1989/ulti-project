@@ -12,7 +12,8 @@ import type {
   BoardParticipant,
   SquadView,
 } from '@ulti-project/shared';
-import { createMemo, For, Show } from 'solid-js';
+import { createMemo, For, Match, Show, Switch } from 'solid-js';
+import type { Claims } from './claims';
 import {
   type Bucket,
   claimedCount,
@@ -23,6 +24,7 @@ import {
   rowMarks,
   type SquadFilter,
 } from './roster';
+import { UndoStrip } from './undo-strip';
 
 const features = tableFeatures({
   rowSortingFeature,
@@ -46,6 +48,12 @@ const columns = column.columns([
 
 type EncounterInfo = BoardEvent['encounters'][number];
 
+/** Present when the user may claim on this board: their squad, and the claims to make with it. */
+export interface Claiming {
+  readonly claims: Claims;
+  readonly squad: SquadView;
+}
+
 function SquadToken(props: { readonly squad: SquadView }) {
   return (
     <span
@@ -58,9 +66,61 @@ function SquadToken(props: { readonly squad: SquadView }) {
   );
 }
 
+/** The Squad cell: a claim or release control for the user's squad, otherwise the claimer's token. */
+function SquadCell(props: {
+  readonly row: BoardParticipant;
+  readonly squad: SquadView | undefined;
+  readonly claiming: Claiming | undefined;
+}) {
+  const pending = () => props.claiming?.claims.pending(props.row.id) ?? false;
+  return (
+    <Switch
+      fallback={
+        <Show when={props.squad}>
+          {(claimer) => <SquadToken squad={claimer()} />}
+        </Show>
+      }
+    >
+      <Match when={props.row.claim === null && props.claiming}>
+        {(claiming) => (
+          <button
+            type="button"
+            class="claim-btn"
+            aria-label={`Claim ${props.row.character} for ${claiming().squad.name}`}
+            disabled={pending()}
+            onClick={() => claiming().claims.claim(props.row)}
+          >
+            ＋
+          </button>
+        )}
+      </Match>
+      <Match
+        when={
+          props.row.claim?.squadId === props.claiming?.squad.id &&
+          props.claiming
+        }
+      >
+        {(claiming) => (
+          <button
+            type="button"
+            class="tok is-mine"
+            style={{ '--sq': claiming().squad.color }}
+            aria-label={`Release ${props.row.character} from ${claiming().squad.name}`}
+            disabled={pending()}
+            onClick={() => claiming().claims.release(props.row)}
+          >
+            {claiming().squad.tag}
+          </button>
+        )}
+      </Match>
+    </Switch>
+  );
+}
+
 function Rows(props: {
   readonly rows: readonly BoardParticipant[];
   readonly squads: readonly SquadView[];
+  readonly claiming: Claiming | undefined;
 }) {
   const marks = createMemo(() => rowMarks(props.rows));
   return (
@@ -96,9 +156,11 @@ function Rows(props: {
             </td>
             <td>
               <span class="sq-cell">
-                <Show when={squad()}>
-                  {(claimer) => <SquadToken squad={claimer()} />}
-                </Show>
+                <SquadCell
+                  row={row}
+                  squad={squad()}
+                  claiming={props.claiming}
+                />
               </span>
             </td>
           </tr>
@@ -115,6 +177,10 @@ export function PartyTable(props: {
   readonly bucket: Bucket;
   readonly filter: SquadFilter;
   readonly grouped: boolean;
+  /** Who may claim; undefined shows tokens only. */
+  readonly claiming: Claiming | undefined;
+  /** Where this party's claim notices come from, even once the user can no longer claim. */
+  readonly claims: Claims | undefined;
 }) {
   const title = () => (props.bucket === 'prog' ? 'Prog Party' : 'Clear Party');
   const threshold = () =>
@@ -176,7 +242,11 @@ export function PartyTable(props: {
               <Show
                 when={props.grouped}
                 fallback={
-                  <Rows rows={displayed()} squads={props.event.squads} />
+                  <Rows
+                    rows={displayed()}
+                    squads={props.event.squads}
+                    claiming={props.claiming}
+                  />
                 }
               >
                 <For each={groupBySquad(displayed(), props.event.squads)}>
@@ -195,7 +265,11 @@ export function PartyTable(props: {
                           {section.rows.length}
                         </th>
                       </tr>
-                      <Rows rows={section.rows} squads={props.event.squads} />
+                      <Rows
+                        rows={section.rows}
+                        squads={props.event.squads}
+                        claiming={props.claiming}
+                      />
                     </>
                   )}
                 </For>
@@ -203,6 +277,14 @@ export function PartyTable(props: {
             </tbody>
           </table>
         </div>
+      </Show>
+      <Show when={props.claims}>
+        {(claims) => (
+          <UndoStrip
+            notice={claims().notice(props.bucket)}
+            onDismiss={() => claims().dismiss(props.bucket)}
+          />
+        )}
       </Show>
     </section>
   );

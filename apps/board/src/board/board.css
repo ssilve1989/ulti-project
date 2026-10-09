@@ -391,6 +391,12 @@ button.tok.is-mine:hover {
   outline: 2px solid var(--acc);
   outline-offset: 1px;
 }
+/* a claim or release in flight */
+.claim-btn:disabled,
+button.tok.is-mine:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
 
 .squad-group th {
   background: var(--panel-2);
