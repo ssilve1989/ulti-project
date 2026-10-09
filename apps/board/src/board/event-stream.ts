@@ -1,6 +1,7 @@
 import type {
   BoardEvent,
   BoardParticipant,
+  BoardRoster,
   BoardStreamMessage,
 } from '@ulti-project/shared';
 import { createSignal, onCleanup } from 'solid-js';
@@ -21,6 +22,8 @@ export interface EventStream {
   readonly putParticipant: (participant: BoardParticipant) => void;
   /** The participant as currently shown, if any. */
   readonly participant: (id: string) => BoardParticipant | undefined;
+  /** Applies a squad's roster for an encounter, replacing the one shown. */
+  readonly putRoster: (roster: BoardRoster) => void;
 }
 
 /** Opens `/api/events/:id/stream` for the current owner; closed on cleanup. */
@@ -51,6 +54,21 @@ export function createEventStream(
     );
   }
 
+  function putRoster(roster: BoardRoster): void {
+    setBoard(
+      produce(({ event }) => {
+        if (!event) return;
+        const index = event.rosters.findIndex(
+          (row) =>
+            row.encounter === roster.encounter &&
+            row.squadId === roster.squadId,
+        );
+        if (index === -1) event.rosters.push(roster);
+        else event.rosters[index] = roster;
+      }),
+    );
+  }
+
   function connect(): void {
     source = new EventSource(`/api/events/${eventId}/stream`);
     source.onmessage = (message) => {
@@ -73,6 +91,9 @@ export function createEventStream(
                 );
             }),
           );
+          break;
+        case 'roster-updated':
+          putRoster(data.roster);
           break;
       }
     };
@@ -107,5 +128,6 @@ export function createEventStream(
     },
     putParticipant: (participant) => upsert(participant, false),
     participant: (id) => board.event?.participants.find((row) => row.id === id),
+    putRoster,
   };
 }

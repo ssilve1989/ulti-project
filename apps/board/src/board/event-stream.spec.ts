@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { BoardEvent } from '@ulti-project/shared';
+import type { BoardEvent, BoardRoster } from '@ulti-project/shared';
 import { createRoot } from 'solid-js';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { json, stubApi } from '../test-utils/api-stub';
@@ -7,7 +7,7 @@ import {
   type FakeEventSource,
   installFakeEventSource,
 } from '../test-utils/fake-event-source';
-import { boardEvent, participant } from '../test-utils/fixtures';
+import { boardEvent, FROGE, participant, SPACE } from '../test-utils/fixtures';
 import { createEventStream, type EventStream } from './event-stream';
 
 const STREAM_URL = '/api/events/event-1/stream';
@@ -91,6 +91,56 @@ describe('stream messages', () => {
     source.send({ type: 'snapshot', event: renamed });
 
     expect(stream.state()).toEqual({ kind: 'live', event: renamed });
+  });
+});
+
+describe('a roster-updated message', () => {
+  const roster = (
+    squadId: string,
+    teamIds: readonly string[],
+  ): BoardRoster => ({
+    encounter: 'FRU',
+    squadId,
+    teams: teamIds.map((id) => ({ id, slots: {} })),
+  });
+  const live = (rosters: BoardRoster[]) => ({
+    kind: 'live',
+    event: boardEvent({ rosters }),
+  });
+
+  it("replaces that squad's roster and leaves the others", () => {
+    const { stream, source } = openStream();
+    source.open();
+    source.send({
+      type: 'snapshot',
+      event: boardEvent({
+        rosters: [roster(FROGE.id, ['f1']), roster(SPACE.id, ['s1'])],
+      }),
+    });
+
+    source.send({
+      type: 'roster-updated',
+      roster: roster(FROGE.id, ['f1', 'f2']),
+    });
+
+    expect(stream.state()).toEqual(
+      live([roster(FROGE.id, ['f1', 'f2']), roster(SPACE.id, ['s1'])]),
+    );
+  });
+
+  it('adds the roster of a squad that had none', () => {
+    const { stream, source } = openStream();
+    source.open();
+    source.send({
+      type: 'snapshot',
+      event: boardEvent({ rosters: [roster(SPACE.id, ['s1'])] }),
+    });
+
+    source.send({ type: 'roster-updated', roster: roster(FROGE.id, ['f1']) });
+
+    expect(stream.state()).toEqual(
+      live([roster(SPACE.id, ['s1']), roster(FROGE.id, ['f1'])]),
+    );
   });
 });
 
