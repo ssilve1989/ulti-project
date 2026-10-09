@@ -41,6 +41,7 @@ function toFilter(value: string): SquadFilter {
 /** Show filter (not stored), claim indicator and grouping. */
 export function Toolbar(props: {
   readonly squads: readonly SquadView[];
+  readonly filter: SquadFilter;
   readonly onFilter: (filter: SquadFilter) => void;
   readonly claimStyle: ClaimStyle;
   readonly onClaimStyle: (style: ClaimStyle) => void;
@@ -59,11 +60,26 @@ export function Toolbar(props: {
           props.onFilter(toFilter(event.currentTarget.value))
         }
       >
-        <option value="all">All players</option>
+        {/* Selected per option, so an option a fresh snapshot recreates stays selected. */}
+        <option value="all" selected={props.filter.kind === 'all'}>
+          All players
+        </option>
         <For each={props.squads}>
-          {(squad) => <option value={squad.id}>{squad.name} only</option>}
+          {(squad) => (
+            <option
+              value={squad.id}
+              selected={
+                props.filter.kind === 'squad' &&
+                props.filter.squadId === squad.id
+              }
+            >
+              {squad.name} only
+            </option>
+          )}
         </For>
-        <option value="unclaimed">Unclaimed only</option>
+        <option value="unclaimed" selected={props.filter.kind === 'unclaimed'}>
+          Unclaimed only
+        </option>
       </select>
       <Segmented
         label="Indicator"

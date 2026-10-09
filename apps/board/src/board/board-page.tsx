@@ -25,7 +25,15 @@ function Board(props: {
 }) {
   const shell = useShell();
   const [searchParams, setSearchParams] = useSearchParams<{ enc: string }>();
-  const [filter, setFilter] = createSignal<SquadFilter>({ kind: 'all' });
+  const [chosenFilter, setFilter] = createSignal<SquadFilter>({ kind: 'all' });
+  // A squad a fresh snapshot removed falls back to All players.
+  const filter = (): SquadFilter => {
+    const chosen = chosenFilter();
+    return chosen.kind === 'squad' &&
+      !props.event.squads.some((squad) => squad.id === chosen.squadId)
+      ? { kind: 'all' }
+      : chosen;
+  };
   const [claimStyle, setClaimStyle] = createSignal<ClaimStyle>(
     readChoice('board-indicator', ['rich', 'min']) ?? 'rich',
   );
@@ -64,6 +72,7 @@ function Board(props: {
       </div>
       <Toolbar
         squads={props.event.squads}
+        filter={filter()}
         onFilter={setFilter}
         claimStyle={claimStyle()}
         onClaimStyle={(style) => {

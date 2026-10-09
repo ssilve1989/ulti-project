@@ -313,6 +313,31 @@ describe('the Show filter', () => {
     });
     await waitFor(() => expect(rowsOf(PROG)).toEqual([]));
   });
+
+  it('keeps its squad across a fresh snapshot, and goes back to All players once that squad is gone', async () => {
+    const source = await openLiveBoard();
+    const select = screen.getByRole('combobox', { name: 'Show' });
+    if (!(select instanceof HTMLSelectElement))
+      throw new Error('Show is not a select');
+    show('Froge Army only');
+
+    source.send({ type: 'snapshot', event: structuredClone(EVENT) });
+    await waitFor(() =>
+      expect(select.selectedOptions[0]?.textContent).toBe('Froge Army only'),
+    );
+    expect(rowsOf(PROG)).toEqual([AERYN_ROW]);
+
+    source.send({ type: 'snapshot', event: { ...EVENT, squads: [SPACE] } });
+    await waitFor(() =>
+      expect(select.selectedOptions[0]?.textContent).toBe('All players'),
+    );
+    // Aeryn's claim is still Froge's, but with Froge gone it has no token.
+    expect(rowsOf(PROG)).toEqual([
+      ['Aeryn Vail PLD', 'P4: Enrage', ''],
+      CASS_ROW,
+      BRICKTOP_ROW,
+    ]);
+  });
 });
 
 describe('the claim indicator', () => {
