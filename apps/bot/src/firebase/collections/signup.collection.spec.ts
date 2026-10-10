@@ -162,15 +162,17 @@ describe('SignupCollection', () => {
   });
 
   it('records an approval', async ({ db, collection }) => {
-    db.seed(PATH, aSignup());
+    db.seed(PATH, aSignup({ reviewMessageId: 'm1' }));
 
-    await collection.approveSignup(
+    const approved = await collection.approveSignup(
       { ...KEY, progPoint: 'P6', partyStatus: PartyStatus.ProgParty },
       'reviewer',
+      'm1',
     );
 
+    expect(approved).toBe(true);
     expect(db.read(PATH)).toEqual({
-      ...aSignup(),
+      ...aSignup({ reviewMessageId: 'm1' }),
       status: SignupStatus.APPROVED,
       progPoint: 'P6',
       partyStatus: PartyStatus.ProgParty,
@@ -178,19 +180,24 @@ describe('SignupCollection', () => {
     });
   });
 
-  it('clears an earlier decline reason when approving', async ({
+  it('clears a decline reason left on a signup from before resubmits cleared it', async ({
     db,
     collection,
   }) => {
-    db.seed(PATH, aDeclinedSignup({ declineReason: 'no proof' }));
+    // the model no longer allows this, but documents written before it do
+    db.seed(PATH, {
+      ...aSignup({ reviewMessageId: 'm1' }),
+      declineReason: 'no proof',
+    });
 
     await collection.approveSignup(
       { ...KEY, progPoint: 'P6', partyStatus: PartyStatus.ProgParty },
       'reviewer',
+      'm1',
     );
 
     expect(db.read(PATH)).toEqual({
-      ...aSignup(),
+      ...aSignup({ reviewMessageId: 'm1' }),
       status: SignupStatus.APPROVED,
       progPoint: 'P6',
       partyStatus: PartyStatus.ProgParty,
@@ -199,11 +206,12 @@ describe('SignupCollection', () => {
   });
 
   it('records a decline', async ({ db, collection }) => {
-    db.seed(PATH, aSignup());
+    db.seed(PATH, aSignup({ reviewMessageId: 'm1' }));
 
-    await collection.declineSignup(KEY, 'reviewer');
+    const declined = await collection.declineSignup(KEY, 'reviewer', 'm1');
 
-    expect(db.read(PATH)).toEqual(aDeclinedSignup());
+    expect(declined).toBe(true);
+    expect(db.read(PATH)).toEqual(aDeclinedSignup({ reviewMessageId: 'm1' }));
   });
 
   it('leaves what an earlier review decided when declining a resubmitted signup', async ({
@@ -214,19 +222,76 @@ describe('SignupCollection', () => {
       ...aRequest(),
       status: SignupStatus.UPDATE_PENDING,
       expiresAt: Timestamp.fromMillis(0),
+      reviewMessageId: 'm1',
       reviewedBy: null,
       progPoint: 'P6',
       partyStatus: PartyStatus.ProgParty,
     };
     db.seed(PATH, resubmitted);
 
-    await collection.declineSignup(KEY, 'reviewer');
+    await collection.declineSignup(KEY, 'reviewer', 'm1');
 
     expect(db.read(PATH)).toEqual({
       ...resubmitted,
       status: SignupStatus.DECLINED,
       reviewedBy: 'reviewer',
     });
+  });
+
+  describe('when the signup is no longer awaiting review on that message', () => {
+    const review = Object.freeze({
+      approve: (collection: SignupCollection) =>
+        collection.approveSignup(
+          { ...KEY, progPoint: 'P6', partyStatus: PartyStatus.ProgParty },
+          'reviewer',
+          'm1',
+        ),
+      decline: (collection: SignupCollection) =>
+        collection.declineSignup(KEY, 'reviewer', 'm1'),
+    });
+
+    it.for<[keyof typeof review, string, SignupDocument]>([
+      [
+        'approve',
+        'someone else already reviewed it',
+        aDeclinedSignup({ reviewMessageId: 'm1', reviewedBy: 'other' }),
+      ],
+      [
+        'decline',
+        'someone else already reviewed it',
+        aDeclinedSignup({ reviewMessageId: 'm1', reviewedBy: 'other' }),
+      ],
+      [
+        'approve',
+        'it was resubmitted for review on a new message',
+        aSignup({ reviewMessageId: 'm2' }),
+      ],
+      [
+        'decline',
+        'it was resubmitted for review on a new message',
+        aSignup({ reviewMessageId: 'm2' }),
+      ],
+    ])(
+      'does not %s it when %s',
+      async ([action, , current], { db, collection }) => {
+        db.seed(PATH, current);
+
+        const recorded = await review[action](collection);
+
+        expect(recorded).toBe(false);
+        expect(db.read(PATH)).toEqual(current);
+      },
+    );
+
+    it.for(['approve', 'decline'] as const)(
+      'does not %s it once it has been removed',
+      async (action, { db, collection }) => {
+        const recorded = await review[action](collection);
+
+        expect(recorded).toBe(false);
+        expect(db.read(PATH)).toBeUndefined();
+      },
+    );
   });
 
   describe('findByReviewId', () => {
