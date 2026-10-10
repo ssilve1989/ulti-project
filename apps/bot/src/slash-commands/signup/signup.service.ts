@@ -17,6 +17,7 @@ import {
   SignupStatus,
 } from '@ulti-project/shared';
 import {
+  DiscordAPIError,
   type Emoji,
   Events,
   Message,
@@ -24,16 +25,10 @@ import {
   type PartialMessage,
   type PartialMessageReaction,
   type PartialUser,
+  RESTJSONErrorCodes,
   User,
 } from 'discord.js';
-import {
-  concatMap,
-  debounceTime,
-  fromEvent,
-  groupBy,
-  mergeMap,
-  Subscription,
-} from 'rxjs';
+import { fromEvent, Subscription } from 'rxjs';
 import { match } from 'ts-pattern';
 import { withUnitOfWork } from '../../common/sentry.js';
 import { getMessageLink } from '../../discord/discord.consts.js';
@@ -58,7 +53,7 @@ import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
 } from './events/signup.events.js';
-import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
+import { SIGNUP_MESSAGES, SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import {
   getErrorReplyMessage,
   hasClearedStatus,
@@ -75,6 +70,7 @@ type ReactionEvent = {
 class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(SignupService.name);
   private subscription?: Subscription;
+  private readonly reactionQueues = new Map<string, Promise<void>>();
 
   constructor(
     private readonly approvalDecisionRequestService: ApprovalDecisionRequestService,
@@ -96,34 +92,44 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         reaction: MessageReaction | PartialMessageReaction,
         user: User | PartialUser,
       ) => ({ reaction, user }),
-    )
-      .pipe(
-        groupBy(({ reaction }) => reaction.message.id, {
-          duration: (group$) => group$.pipe(debounceTime(30_000)),
-        }),
-        mergeMap((group$) =>
-          group$.pipe(
-            concatMap((event) =>
-              withUnitOfWork(() =>
-                Sentry.withScope((scope) => {
-                  // Prevent Sentry from capturing the event if we've determined we aren't going to handle it anyway.
-                  // Only an explicit `false` drops it: errors thrown before that check (settings, hydration, a
-                  // missing reviewer role) must still be reported.
-                  scope.addEventProcessor((event) =>
-                    event.extra?.shouldHandleReaction === false ? null : event,
-                  );
+    ).subscribe((event) => this.enqueueReaction(event));
+  }
 
-                  return Sentry.startSpan(
-                    { name: Events.MessageReactionAdd },
-                    () => this.processEvent(event),
-                  );
-                }),
-              ),
-            ),
-          ),
+  /**
+   * Runs reactions on the same review message one at a time. A message's entry
+   * is dropped only once its chain has drained, so a reaction can never start
+   * while an earlier one is still waiting on the reviewer's approval prompt.
+   */
+  private enqueueReaction(event: ReactionEvent): void {
+    const messageId = event.reaction.message.id;
+    const next = (this.reactionQueues.get(messageId) ?? Promise.resolve())
+      .then(() =>
+        withUnitOfWork(() =>
+          Sentry.withScope((scope) => {
+            // Prevent Sentry from capturing the event if we've determined we aren't going to handle it anyway.
+            // Only an explicit `false` drops it: errors thrown before that check (settings, hydration, a
+            // missing reviewer role) must still be reported.
+            scope.addEventProcessor((event) =>
+              event.extra?.shouldHandleReaction === false ? null : event,
+            );
+
+            return Sentry.startSpan({ name: Events.MessageReactionAdd }, () =>
+              this.processEvent(event),
+            );
+          }),
         ),
       )
-      .subscribe();
+      // keep the chain alive for the next reaction on this message
+      .catch((error: unknown) => {
+        this.errorService.captureError(error);
+      });
+
+    this.reactionQueues.set(messageId, next);
+    void next.then(() => {
+      if (this.reactionQueues.get(messageId) === next) {
+        this.reactionQueues.delete(messageId);
+      }
+    });
   }
 
   onModuleDestroy() {
@@ -273,7 +279,17 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
       user,
       decision.progPoint,
     );
-    await this.persistApprovedSignup(approvedSignup, settings, user);
+    const persisted = await this.persistApprovedSignup(
+      approvedSignup,
+      settings,
+      user,
+      message.id,
+    );
+
+    if (!persisted) {
+      await this.rejectStaleReview(signup, message, user);
+      return undefined;
+    }
 
     return new SignupApprovedEvent(
       approvedSignup,
@@ -322,24 +338,14 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
     confirmedSignup: ApprovedSignupDocument,
     settings: SettingsDocument,
     user: User,
-  ): Promise<void> {
-    if (settings.spreadsheetId) {
-      await this.sheetsService.upsertSignup(
-        confirmedSignup,
-        settings.spreadsheetId,
-      );
-    }
-
+    reviewMessageId: string,
+  ): Promise<boolean> {
     const hasCleared = hasClearedStatus(confirmedSignup);
 
-    if (hasCleared) {
-      await this.repository.removeSignup({
-        character: confirmedSignup.character,
-        world: confirmedSignup.world,
-        encounter: confirmedSignup.encounter,
-      });
-    } else {
-      await this.repository.approveSignup(
+    // Firestore is the source of truth, so a stale review must be rejected
+    // there before anything reaches the sheet.
+    if (!hasCleared) {
+      const approved = await this.repository.approveSignup(
         {
           discordId: confirmedSignup.discordId,
           encounter: confirmedSignup.encounter,
@@ -347,25 +353,53 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
           progPoint: confirmedSignup.progPoint,
         },
         user.username,
+        reviewMessageId,
+      );
+
+      if (!approved) {
+        return false;
+      }
+    }
+
+    if (settings.spreadsheetId) {
+      await this.sheetsService.upsertSignup(
+        confirmedSignup,
+        settings.spreadsheetId,
       );
     }
+
+    if (hasCleared) {
+      await this.repository.removeSignup({
+        character: confirmedSignup.character,
+        world: confirmedSignup.world,
+        encounter: confirmedSignup.encounter,
+      });
+    }
+
+    return true;
   }
 
   private async handleDeclinedReaction(
     signup: AwaitingReviewSignupDocument,
     message: Message<true>,
     user: User,
-  ): Promise<SignupDeclinedEvent> {
+  ): Promise<SignupDeclinedEvent | undefined> {
     const declinedSignup = this.buildDeclinedSignup(signup, user);
 
     // Update signup status immediately (for sequential reaction processing)
-    await this.repository.declineSignup(
+    const declined = await this.repository.declineSignup(
       {
         discordId: declinedSignup.discordId,
         encounter: declinedSignup.encounter,
       },
       user.username,
+      message.id,
     );
+
+    if (!declined) {
+      await this.rejectStaleReview(signup, message, user);
+      return undefined;
+    }
 
     // Fire decline reason request with event dispatch context (non-blocking)
     this.declineReasonRequestService
@@ -413,6 +447,29 @@ class SignupService implements OnApplicationBootstrap, OnModuleDestroy {
         this.errorService.captureError(result.reason);
       }
     }
+  }
+
+  /** The signup was resubmitted or reviewed by someone else while this reviewer was deciding. */
+  private async rejectStaleReview(
+    signup: AwaitingReviewSignupDocument,
+    message: Message<true>,
+    user: User,
+  ): Promise<void> {
+    await Promise.all([
+      this.revertReviewReaction(user, message).catch((error: unknown) => {
+        // a resubmit deletes the old review message, so there's no reaction left to take back
+        if (
+          !(error instanceof DiscordAPIError) ||
+          error.code !== RESTJSONErrorCodes.UnknownMessage
+        ) {
+          throw error;
+        }
+      }),
+      this.discordService.sendDirectMessage(
+        user.id,
+        `${SIGNUP_MESSAGES.REVIEW_NOT_RECORDED}\n\nSignup: **${signup.encounter}** by **${signup.username}**`,
+      ),
+    ]);
   }
 
   private async revertReviewReaction(
