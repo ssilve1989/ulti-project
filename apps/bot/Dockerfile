@@ -77,6 +77,9 @@ COPY --from=prod-deps /usr/src/app/packages/shared/package.json ./packages/share
 COPY --from=build /usr/src/app/apps/bot/dist ./apps/bot/dist
 COPY --from=build /usr/src/app/apps/bot/instrumentation.ts ./apps/bot/instrumentation.ts
 COPY --from=build /usr/src/app/packages/shared/src ./packages/shared/src
+# The coordinator board SPA, built by build:all; the bot serves it.
+COPY --from=build /usr/src/app/apps/board/dist ./apps/board/dist
+ENV BOARD_STATIC_DIR=/usr/src/app/apps/board/dist
 
 EXPOSE 3000
 CMD ["node", "--import", "./apps/bot/instrumentation.ts", "apps/bot/dist/main.js"]

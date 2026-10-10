@@ -1,0 +1,668 @@
+/* Ported from the board artifact. Its page tokens map to ours: --surface → --panel,
+   --ink → --text, --ink-dim → --dim, --rule → --line, --accent → --acc, --on-accent → --on-acc. */
+.board {
+  --font-ui: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 16px;
+  font-family: var(--font-ui);
+}
+
+.board-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  margin-bottom: 14px;
+}
+
+.board-head h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.board-head time {
+  color: var(--dim);
+}
+
+.status-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--acc);
+  border: 1px solid var(--acc-line);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+/* ================= BOARD TOOLBAR ================= */
+.board-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-bottom: 14px;
+}
+.board-tools .lbl {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.seg-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+/* Floated, the legend is laid out as a flex item beside its buttons. */
+.seg-field legend {
+  float: left;
+  padding: 0;
+}
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--panel);
+}
+.seg-btn {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 6px 14px;
+  background: none;
+  border: 0;
+  color: var(--dim);
+  cursor: pointer;
+}
+.seg-btn.is-on {
+  background: var(--acc);
+  color: var(--on-acc);
+}
+.seg-btn:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
+}
+/* The native arrow ignores padding, so it's replaced by a ▾ drawn from two gradients. */
+.sel {
+  appearance: none;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--dim) 50%) right 14px center /
+    5px 5px no-repeat,
+    linear-gradient(135deg, var(--dim) 50%, transparent 50%) right 9px center /
+    5px 5px no-repeat,
+    var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 28px 6px 9px;
+}
+/* High-contrast themes don't recolour the gradient, so use the native arrow there. */
+@media (forced-colors: active) {
+  .sel {
+    appearance: auto;
+    padding-right: 9px;
+  }
+}
+.sel:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 1px;
+}
+
+/* ================= BOARD ================= */
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  color: var(--dim);
+  padding: 10px 14px 11px;
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 6px 6px 0 0;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+.tab.is-active {
+  color: var(--text);
+  border-bottom-color: var(--acc-line);
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--acc-line) 12%, transparent),
+    transparent
+  );
+}
+.tab:focus-visible {
+  outline: 2px solid var(--acc);
+  /* Inside the active tab's 3px bar, so both stay visible. */
+  outline-offset: -5px;
+}
+/* The crystal: outlined when idle, filled on the selected encounter. */
+.tab-crystal {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--faint);
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+.tab.is-active .tab-crystal {
+  background: var(--acc);
+  border-color: var(--acc);
+}
+.tab-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--faint);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 6px;
+}
+.tab.is-active .tab-count {
+  color: var(--dim);
+}
+
+.enc-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--acc-line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 15px 16px 18px;
+  margin-top: 16px;
+}
+.enc-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 13px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+.enc-head h2 {
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.enc-head .signed {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.subtable {
+  min-width: 0;
+}
+
+/* Wide screens: the players on the left, the squad's Teams on the right. */
+@media (min-width: 1200px) {
+  /* Room for both columns, so the players table keeps its width beside Teams. */
+  .board {
+    max-width: 1400px;
+  }
+  .enc-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 28px;
+    align-items: start;
+  }
+  .enc-split > .teams {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+.enc-main {
+  min-width: 0;
+}
+
+/* The prog-point rail: the encounter tabs' selection, turned on its side. */
+.party-layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin-top: 14px;
+}
+.pp-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pp-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 10px 9px 12px;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--dim);
+  text-align: left;
+  background: none;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: 0 6px 6px 0;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+.pp-tab:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+.pp-tab.is-active {
+  color: var(--text);
+  border-left-color: var(--acc-line);
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--acc-line) 14%, transparent),
+    transparent
+  );
+}
+.pp-tab:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
+}
+.pp-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pp-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--faint);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 6px;
+}
+.pp-tab.is-active .pp-count {
+  color: var(--dim);
+}
+
+/* The shown point's role mix, at the right of its header. */
+.role-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dim);
+}
+.role-count::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--role);
+}
+.role-count[data-role="tank"] {
+  --role: var(--tank);
+}
+.role-count[data-role="healer"] {
+  --role: var(--heal);
+}
+.role-count[data-role="dps"] {
+  --role: var(--dps);
+}
+.role-mix {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: auto;
+}
+.sub-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 9px;
+}
+.sub-head h3 {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.count {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 11px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--dim);
+}
+.count-claimed {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.grid-wrap {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+table.grid {
+  width: 100%;
+  border-collapse: collapse;
+}
+.squad-group th {
+  background: var(--panel-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  padding: 6px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+table.grid thead th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  background: var(--panel-head);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+table.grid thead th.col-squad {
+  text-align: right;
+}
+table.grid tbody td {
+  padding: 0;
+  font-size: 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+table.grid tbody tr:last-child td {
+  border-bottom: 0;
+}
+tr[data-role="tank"] {
+  --role: var(--tank);
+}
+tr[data-role="healer"] {
+  --role: var(--heal);
+}
+tr[data-role="dps"] {
+  --role: var(--dps);
+}
+
+.p-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-left: 3px solid var(--role, var(--line));
+  font-family: var(--font-ui);
+  line-height: 1.35;
+}
+.p-player .nm {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.p-player .job {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--dim);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 5px;
+  margin-left: auto;
+  flex: none;
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex: none;
+  display: inline-block;
+  background: var(--role);
+}
+
+.sq-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 7px 12px;
+}
+.tok {
+  --sq-ink: color-mix(in oklab, var(--sq) 55%, var(--text));
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--sq-ink);
+  background: var(--panel-2);
+  border: 1px solid var(--sq);
+  border-left-width: 3px;
+  border-radius: 5px;
+  padding: 2px 6px;
+  cursor: default;
+}
+button.tok {
+  cursor: default;
+}
+button.tok.is-mine {
+  cursor: pointer;
+}
+button.tok.is-mine::after {
+  content: " \00d7";
+  opacity: 0.6;
+  margin-left: 3px;
+}
+button.tok.is-mine:hover {
+  background: color-mix(in srgb, var(--sq) 16%, var(--panel-2));
+}
+.tok:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 1px;
+}
+.claim-btn {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px dashed var(--line);
+  background: none;
+  color: var(--dim);
+  cursor: pointer;
+}
+.claim-btn:hover {
+  border-color: var(--acc-line);
+  color: var(--acc);
+}
+.claim-btn:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 1px;
+}
+/* a claim or release in flight */
+.claim-btn:disabled,
+button.tok.is-mine:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.sub-empty {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 18px;
+  text-align: center;
+  color: var(--dim);
+  font-size: 13px;
+}
+
+.undo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 7px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--dim);
+}
+.undo-btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--acc);
+  background: none;
+  border: 1px solid var(--acc-line);
+  border-radius: 5px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+.undo-x {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  color: var(--faint);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.undo-btn:focus-visible,
+.undo-x:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 1px;
+}
+
+/* Motion marks a change: a row the stream adds or changes, a claim, a notice. Nothing moves on load. */
+@media (prefers-reduced-motion: no-preference) {
+  tr.is-fresh {
+    animation: row-in 0.2s ease-out;
+  }
+  tr.is-fresh-claim .sq-cell .tok {
+    animation: tok-pop 0.15s ease-out;
+  }
+  .undo {
+    animation: undo-in 0.15s ease-out;
+  }
+}
+@keyframes row-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes tok-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes undo-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (max-width: 720px) {
+  .party-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  /* The rail becomes a row of chips that scrolls on its own, never the page. */
+  .pp-rail {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 2px 2px 8px;
+  }
+  .pp-tab {
+    flex: none;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 12px;
+  }
+  .pp-tab.is-active {
+    border-color: var(--acc-line);
+    background: color-mix(in srgb, var(--acc-line) 14%, var(--panel-2));
+  }
+  .pp-label {
+    overflow: visible;
+  }
+  /* The role mix takes its own line rather than breaking partway. */
+  .role-mix {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+  /* Phone: the player column takes what's left and truncates, so Squad always fits. */
+  table.grid tbody td:first-child {
+    width: 100%;
+    max-width: 0;
+  }
+  table.grid thead th,
+  .sq-cell {
+    padding-inline: 8px;
+  }
+  .p-player {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+  /* 24px minimum targets (WCAG 2.5.8) */
+  .claim-btn {
+    width: 24px;
+    height: 24px;
+  }
+  button.tok {
+    min-height: 24px;
+  }
+}

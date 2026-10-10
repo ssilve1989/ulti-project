@@ -236,23 +236,13 @@ export function commandOptions(
   given: GivenCommand,
   targets: OptionTargets,
 ): CommandInteractionOption<'cached'>[] {
-  const commandName = [command.name, given.subcommand]
-    .filter((part) => part !== undefined)
-    .join(' ');
-  const declared = new Map(
-    declaredOptions(command, given.subcommand).map((option) => [
-      option.name,
-      option,
-    ]),
+  const { commandName, declared, optionNamed } = declaredFor(
+    command,
+    given.subcommand,
   );
   const values = Object.entries(given.options).flatMap(([name, value]) =>
     value === null ? [] : [{ name, value }],
   );
-  const optionNamed = (name: string) => {
-    const option = declared.get(name);
-    if (!option) throw new Error(`/${commandName} has no "${name}" option`);
-    return option;
-  };
   const resolved = [
     ...values.map(({ name, value }) =>
       resolveOption(commandName, optionNamed(name), value, targets),
@@ -277,13 +267,85 @@ export function commandOptions(
       `Discord won't send /${commandName} without its required ${missing.map(({ name }) => `"${name}"`).join(', ')} option`,
     );
   }
-  return given.subcommand === undefined
-    ? resolved
+  return withinSubcommand(given.subcommand, resolved);
+}
+
+/** What a test sends while a user types into an autocomplete option. */
+export interface GivenAutocomplete {
+  readonly subcommand?: string;
+  /** the option being typed into */
+  readonly focused: string;
+  /** what has been typed into it so far */
+  readonly value: string;
+  /** the other options already filled in */
+  readonly options: Readonly<Record<string, OptionValue>>;
+}
+
+/**
+ * The options of an autocomplete interaction as discord.js's
+ * CommandInteractionOptionResolver takes them. Discord sends the options filled
+ * in so far as plain values, required or not, plus the focused one with
+ * whatever has been typed, which only an autocomplete option can be.
+ */
+export function autocompleteOptions(
+  command: RegisteredCommand,
+  given: GivenAutocomplete,
+  targets: OptionTargets,
+): CommandInteractionOption<'cached'>[] {
+  const { commandName, optionNamed } = declaredFor(command, given.subcommand);
+  const focused = optionNamed(given.focused);
+  if (!('autocomplete' in focused && focused.autocomplete)) {
+    throw new Error(
+      `/${commandName}'s "${focused.name}" option is not an autocomplete option`,
+    );
+  }
+  const filled = Object.entries(given.options).map(([name, value]) => {
+    const option = resolveOption(
+      commandName,
+      optionNamed(name),
+      value,
+      targets,
+    );
+    return { name: option.name, type: option.type, value: option.value };
+  });
+  return withinSubcommand(given.subcommand, [
+    ...filled,
+    {
+      name: focused.name,
+      type: focused.type,
+      value: given.value,
+      focused: true,
+    },
+  ]);
+}
+
+/** The command's name as typed (with its subcommand), and its declared options by name. */
+function declaredFor(command: RegisteredCommand, subcommand?: string) {
+  const commandName = [command.name, subcommand]
+    .filter((part) => part !== undefined)
+    .join(' ');
+  const declared = new Map(
+    declaredOptions(command, subcommand).map((option) => [option.name, option]),
+  );
+  const optionNamed = (name: string) => {
+    const option = declared.get(name);
+    if (!option) throw new Error(`/${commandName} has no "${name}" option`);
+    return option;
+  };
+  return { commandName, declared, optionNamed };
+}
+
+function withinSubcommand(
+  subcommand: string | undefined,
+  options: CommandInteractionOption<'cached'>[],
+): CommandInteractionOption<'cached'>[] {
+  return subcommand === undefined
+    ? options
     : [
         {
-          name: given.subcommand,
+          name: subcommand,
           type: ApplicationCommandOptionType.Subcommand,
-          options: resolved,
+          options,
         },
       ];
 }

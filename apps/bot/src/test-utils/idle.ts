@@ -42,6 +42,19 @@ export function createdRequest(message: unknown): CreatedRequest | undefined {
     : undefined;
 }
 
+/** Whether a node:http response is a server-sent event stream. */
+function isEventStream(response: unknown): boolean {
+  const headers: unknown =
+    typeof response === 'object' && response !== null
+      ? Reflect.get(response, 'headers')
+      : undefined;
+  const type: unknown =
+    typeof headers === 'object' && headers !== null
+      ? Reflect.get(headers, 'content-type')
+      : undefined;
+  return typeof type === 'string' && type.startsWith('text/event-stream');
+}
+
 /** Consecutive event-loop turns with nothing pending that count as idle. */
 const IDLE_TURNS = 10;
 
@@ -53,7 +66,8 @@ export interface ActivityTracker {
    * HTTP requests in flight plus tracked calls whose promise hasn't settled.
    * node:http requests count until their `close` event, which fires once the
    * whole response body has arrived (not `response.finish`, which fires at the
-   * headers). Work a client does after a request closes (decompressing,
+   * headers), except an event stream, which counts until it opens. Work a
+   * client does after a request closes (decompressing,
    * parsing) is only covered by tracked calls, so route external HTTP through a
    * tracked adapter.
    */
@@ -107,6 +121,11 @@ export function createActivityTracker(): ActivityTracker {
     if (!created) return;
     begin(created.request);
     created.request.once('close', () => end(created.request));
+    // an event stream stays open until its client closes it, so it counts
+    // as finished once it has opened
+    created.request.once('response', (response: unknown) => {
+      if (isEventStream(response)) end(created.request);
+    });
   };
   subscribe(HTTP_REQUEST_CREATED, httpRequestCreated);
 

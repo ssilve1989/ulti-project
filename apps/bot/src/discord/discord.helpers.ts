@@ -5,6 +5,7 @@ import {
   type Embed,
   type InteractionReplyOptions,
   type Message,
+  type MessageComponentInteraction,
   MessageFlags,
   MessageReaction,
   type PartialMessageReaction,
@@ -59,7 +60,7 @@ export function getFirstEmbed(message: Message): Embed {
  * ephemerally).
  */
 export function replyPrivately(
-  interaction: ChatInputCommandInteraction,
+  interaction: ChatInputCommandInteraction | MessageComponentInteraction,
   payload: PrivateReplyOptions,
 ) {
   if (interaction.deferred) {
@@ -80,20 +81,31 @@ export const isCollectorTimeout = (error: unknown) =>
   error.code === DiscordjsErrorCodes.InteractionCollectorError;
 
 /**
- * Records that the user let `interaction`'s prompt expire: a
- * `discord.prompt.expired` count, and a Sentry log line, which carries the user
- * from the command's scope. It isn't an error, so it raises no Sentry issue.
+ * Records that the user let a prompt expire: a `discord.prompt.expired`
+ * count, and a Sentry log line, which carries the user from the command's
+ * scope. It isn't an error, so it raises no Sentry issue. `prompt` is the
+ * command it came from, or the name of a menu started from a component.
  */
 export function recordExpiredPrompt(
-  interaction: ChatInputCommandInteraction,
+  prompt: ChatInputCommandInteraction | string,
 ): void {
-  const subcommand = interaction.options.getSubcommand(false);
-  // Sentry logs keep an `undefined` attribute, as an empty string
-  const attributes = {
-    command: interaction.commandName,
-    ...(subcommand && { subcommand }),
-  };
+  const attributes =
+    typeof prompt === 'string'
+      ? { component: prompt }
+      : expiredPromptAttributes(prompt);
 
   Sentry.metrics.count('discord.prompt.expired', 1, { attributes });
   Sentry.logger.info('Prompt expired before the user answered', attributes);
+}
+
+/** A command's name and subcommand. */
+function expiredPromptAttributes(
+  interaction: ChatInputCommandInteraction,
+): Record<string, string> {
+  const subcommand = interaction.options.getSubcommand(false);
+  // Sentry logs keep an `undefined` attribute, as an empty string
+  return {
+    command: interaction.commandName,
+    ...(subcommand && { subcommand }),
+  };
 }

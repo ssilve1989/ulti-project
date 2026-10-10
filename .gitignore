@@ -1,5 +1,6 @@
 # compiled output
 **/dist
+apps/board/dist-types
 **/node_modules
 
 # Package manager lock files (use pnpm-lock.yaml only)

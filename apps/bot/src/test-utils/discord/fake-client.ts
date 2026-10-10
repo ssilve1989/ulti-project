@@ -57,6 +57,12 @@ export interface FakeRole {
 }
 
 /** A guild text channel, the only kind the app uses. */
+/** A custom emoji, which belongs to a guild. */
+export interface FakeEmoji {
+  readonly name: string;
+  readonly guildId: string;
+}
+
 export interface FakeChannel {
   readonly id: string;
   readonly guildId: string;
@@ -72,10 +78,15 @@ export interface FakeWorld {
   readonly member: (userId: string) => FakeMember | undefined;
   /** a guild member, or a user who isn't in the guild */
   readonly user: (userId: string) => FakeUser | undefined;
-  readonly emojis: () => ReadonlyMap<string, string>;
+  /** every emoji of the bot's guilds, by id */
+  readonly emojis: () => ReadonlyMap<string, FakeEmoji>;
   readonly canBeMessaged: (userId: string) => boolean;
+  /** whether the bot may send messages in the channel */
+  readonly canPostIn: (channelId: string) => boolean;
   /** whether Discord is failing guild fetches (an outage) */
   readonly guildsUnavailable: () => boolean;
+  /** whether the bot's gateway connection is up */
+  readonly gatewayConnected: () => boolean;
   readonly post: (
     channel: FakeChannel,
     payload: OutgoingPayload,
@@ -121,6 +132,7 @@ export class FakeViews {
     return Object.assign(
       emitter,
       mockOf<Client>({
+        isReady: () => this.world.gatewayConnected(),
         guilds: {
           get cache() {
             return views.guildCollection();
@@ -143,11 +155,30 @@ export class FakeViews {
       get cache() {
         return collectionOf(views.cachedMemberViews(guildId));
       },
-      /** Like GuildMemberManager.fetch: one member (10007 for a non-member), or every member; either is cached. */
-      fetch: (userId?: string) =>
-        userId === undefined
-          ? Promise.resolve(collectionOf(this.fetchAllMembers(guildId)))
-          : this.fetchMember(guildId, userId),
+      /**
+       * Like GuildMemberManager.fetch: one member (10007 for a non-member),
+       * the members among `{ user: ids }` (non-members are left out), or every
+       * member; all of them are cached. Members by id, or all of them with
+       * options, are asked for over the gateway, so while it's down that times
+       * out after `time` (discord.js's default is 120s).
+       */
+      fetch: (
+        options?: string | { user?: readonly string[]; time?: number },
+      ) => {
+        if (options === undefined) {
+          return Promise.resolve(collectionOf(this.fetchAllMembers(guildId)));
+        }
+        if (typeof options === 'string') {
+          return this.fetchMember(guildId, options);
+        }
+        if (!this.world.gatewayConnected()) {
+          return this.gatewayTimeout(options.time ?? 120_000);
+        }
+        if (options.user === undefined) {
+          return Promise.resolve(collectionOf(this.fetchAllMembers(guildId)));
+        }
+        return this.fetchMembers(guildId, options.user);
+      },
     };
     const roles = {
       /** Like RoleManager.cache: every role the guild has, @everyone included. */
@@ -163,7 +194,25 @@ export class FakeViews {
     const channels = {
       fetch: (channelId: string) => this.fetchChannel(guildId, channelId),
     };
-    return mockOf<Guild>({ id: guildId, members, roles, channels });
+    const emojis = {
+      /** Like GuildEmojiManager.cache: the guild's own emojis. */
+      get cache() {
+        return views.emojiCollection(guildId);
+      },
+      /** Like GuildEmojiManager.fetch: an emoji of another guild, or none, is the API's 10014. */
+      fetch: (emojiId: string) => {
+        const emoji = views.emojiCollection(guildId).get(emojiId);
+        return emoji
+          ? Promise.resolve(emoji)
+          : Promise.reject(
+              unknownResource(
+                RESTJSONErrorCodes.UnknownEmoji,
+                `/guilds/${guildId}/emojis/${emojiId}`,
+              ),
+            );
+      },
+    };
+    return mockOf<Guild>({ id: guildId, members, roles, channels, emojis });
   }
 
   user(userId: string): User {
@@ -191,6 +240,9 @@ export class FakeViews {
       user,
       permissions: member.permissions,
       displayAvatarURL: user.displayAvatarURL,
+      get guild() {
+        return views.guild(guildId);
+      },
       roles: {
         /** Like GuildMemberRoleManager.cache: the member's roles, and @everyone. */
         get cache() {
@@ -243,8 +295,15 @@ export class FakeViews {
       name: channel.name,
       type: ChannelType.GuildText,
       isTextBased: () => true,
+      isDMBased: () => false,
       send: (payload: OutgoingPayload) =>
-        Promise.try(() => this.world.post(channel, payload).toMessage<true>()),
+        this.world.canPostIn(channel.id)
+          ? Promise.try(() =>
+              this.world.post(channel, payload).toMessage<true>(),
+            )
+          : Promise.reject(
+              missingPermissions('POST', `/channels/${channel.id}/messages`),
+            ),
       messages: {
         fetch: (messageId: string) => {
           const message = this.world.message(channel.id, messageId);
@@ -292,12 +351,17 @@ export class FakeViews {
     return collectionOf(this.world.guildIds().map((id) => this.guild(id)));
   }
 
-  private emojiCollection(): Collection<string, GuildEmoji> {
+  /** The emojis of `guildId`, or of every guild. */
+  private emojiCollection(guildId?: string): Collection<string, GuildEmoji> {
     return new Collection(
-      [...this.world.emojis()].map(([id, name]) => [
-        id,
-        mockOf<GuildEmoji>({ id, name, toString: () => `<:${name}:${id}>` }),
-      ]),
+      [...this.world.emojis()]
+        .filter(
+          ([, emoji]) => guildId === undefined || emoji.guildId === guildId,
+        )
+        .map(([id, { name }]) => [
+          id,
+          mockOf<GuildEmoji>({ id, name, toString: () => `<:${name}:${id}>` }),
+        ]),
     );
   }
 
@@ -321,6 +385,37 @@ export class FakeViews {
             `/guilds/${guildId}/members/${userId}`,
           ),
         );
+  }
+
+  /** What discord.js's gateway member fetch rejects with when no answer comes within `time` ms. */
+  private gatewayTimeout(time: number): Promise<never> {
+    return new Promise((_, reject) => {
+      setTimeout(
+        () => reject(discordjsError(DiscordjsErrorCodes.GuildMembersTimeout)),
+        time,
+      );
+    });
+  }
+
+  /** Like a Request Guild Members by `user_ids`, which returns at most 100 members. */
+  private fetchMembers(
+    guildId: string,
+    userIds: readonly string[],
+  ): Promise<Collection<string, GuildMember>> {
+    if (userIds.length === 0 || userIds.length > 100) {
+      return Promise.reject(
+        new Error(
+          `DiscordMock fetches 1 to at most 100 members by id, as Discord returns; got ${userIds.length}`,
+        ),
+      );
+    }
+    const members = userIds.flatMap((userId) => {
+      const member = this.world.member(userId);
+      if (member === undefined) return [];
+      this.cacheMember(guildId, userId);
+      return [this.member(guildId, member)];
+    });
+    return Promise.resolve(collectionOf(members));
   }
 
   private fetchUser(userId: string): Promise<User> {

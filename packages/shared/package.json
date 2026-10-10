@@ -9,6 +9,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
+    },
+    "./rosters": {
+      "types": "./dist/board-api/rosters.d.ts",
+      "default": "./src/board-api/rosters.ts"
+    },
+    "./jobs": {
+      "types": "./dist/jobs/jobs.consts.d.ts",
+      "default": "./src/jobs/jobs.consts.ts"
     }
   },
   "files": [
