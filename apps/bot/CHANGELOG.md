@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.9.1](https://github.com/ssilve1989/ulti-project/compare/v2.9.0...v2.9.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **bot:** scope Sentry reports to their unit of work ([#1617](https://github.com/ssilve1989/ulti-project/issues/1617)) ([062b349](https://github.com/ssilve1989/ulti-project/commit/062b34986d967b354076eb7c619689145da90ec9))
+* **error:** log captureError's message option ([#1599](https://github.com/ssilve1989/ulti-project/issues/1599)) ([282bc1e](https://github.com/ssilve1989/ulti-project/commit/282bc1eff658043871430ae6693655a0b2692d10)), closes [#1582](https://github.com/ssilve1989/ulti-project/issues/1582)
+* **sheets:** treat sheet ID 0 as valid when removing and cleaning rows ([#1600](https://github.com/ssilve1989/ulti-project/issues/1600)) ([3030c4e](https://github.com/ssilve1989/ulti-project/commit/3030c4e21f8258897f280b1c0c1ac58a1dde071f))
+* **sheets:** write a signup's row and clear its stale row in one atomic batch ([#1606](https://github.com/ssilve1989/ulti-project/issues/1606)) ([783dea9](https://github.com/ssilve1989/ulti-project/commit/783dea97d9e8e903a8f2a09a057f30a72a8749e4))
+
+
+### Performance Improvements
+
+* **bot:** run independent awaits in parallel ([#1611](https://github.com/ssilve1989/ulti-project/issues/1611)) ([57a8ab5](https://github.com/ssilve1989/ulti-project/commit/57a8ab5391c4b8358f9763159ef4f8e13f691fa6)), closes [#1594](https://github.com/ssilve1989/ulti-project/issues/1594)
+* **clean-roles:** batch role removals per member ([#1610](https://github.com/ssilve1989/ulti-project/issues/1610)) ([1b54142](https://github.com/ssilve1989/ulti-project/commit/1b541426ee8b640f810e6f03171bb90a4815f16a))
+* **sheets:** add fields mask to getSheetMetadata request ([#1598](https://github.com/ssilve1989/ulti-project/issues/1598)) ([1777b32](https://github.com/ssilve1989/ulti-project/commit/1777b323101d86af377cb2212794e6257d6d4d22))
+* **sheets:** resolve sheet id and read ranges once per call ([#1601](https://github.com/ssilve1989/ulti-project/issues/1601)) ([cb650c4](https://github.com/ssilve1989/ulti-project/commit/cb650c433b7fe74b8a9553cb4f688c9b569a7dd4)), closes [#1590](https://github.com/ssilve1989/ulti-project/issues/1590)
+
 ## [2.9.0](https://github.com/ssilve1989/ulti-project/compare/v2.8.0...v2.9.0) (2026-10-03)
 
 
