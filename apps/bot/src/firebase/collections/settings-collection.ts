@@ -26,6 +26,23 @@ class SettingsCollection {
     await this.updateCache(guildId);
   }
 
+  /**
+   * Stores `value` as the whole `field`: mergeFields replaces it, so a key
+   * left out (a cleared job, a removed squad) disappears; { merge: true }
+   * would keep it.
+   */
+  @SentryTraced()
+  public async replaceField<K extends 'jobEmojis' | 'squads'>(
+    guildId: string,
+    field: K,
+    value: SettingsDocument[K],
+  ) {
+    await this.collection
+      .doc(guildId)
+      .set({ [field]: value }, { mergeFields: [field] });
+    await this.updateCache(guildId);
+  }
+
   @SentryTraced()
   public async setProgPointRoles(
     guildId: string,

@@ -1,18 +1,27 @@
 import { inspect } from 'node:util';
 import {
   ConsoleLogger,
+  type DynamicModule,
   Logger,
   type LoggerService,
   type Type,
 } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
-import { Test } from '@nestjs/testing';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { AbstractLoader, ExpressLoader } from '@nestjs/serve-static';
+import { Test, type TestingModule } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
+import supertest, { type Agent } from 'supertest';
 import { AppService } from '../app.service.js';
+import { BOARD_AUTH, createBoardAuth } from '../board-auth/auth.js';
+import { boardConfig } from '../config/board.js';
 import { DISCORD_CLIENT } from '../discord/discord.decorators.js';
 import { ErrorModule } from '../error/error.module.js';
 import { getFflogsSdkToken } from '../fflogs/fflogs.consts.js';
 import { FIRESTORE } from '../firebase/firebase.consts.js';
+import { configureHttpApp } from '../http/configure-http-app.js';
+import { HttpModule } from '../http/http.module.js';
+import { RaidHelperClient } from '../raid-helper/raid-helper.client.js';
 import { SheetsService } from '../sheets/sheets.service.js';
 import { SlashCommandRegistry } from '../slash-commands/slash-command-registry.service.js';
 import { SlashCommandsModule } from '../slash-commands/slash-commands.module.js';
@@ -45,6 +54,14 @@ const FLOW_PROVIDERS = Object.freeze([AppService]);
  * per-test character name, and remove them afterwards.
  */
 const TEST_SPREADSHEET_ID = '1D8OOrbeKyJWUIIR87ornoW6x2sqzVmGFc8pCvoiGPWY';
+
+/**
+ * Where an HTTP flow app's board is served from, as better-auth's base URL:
+ * plain HTTP on the address supertest calls, so its cookies (not `Secure`, as
+ * they are on the real HTTPS board) come back on later requests. Cookies ignore
+ * ports, so supertest's ephemeral one doesn't matter.
+ */
+const FLOW_BOARD_URL = 'http://127.0.0.1';
 
 interface TestSheet {
   readonly spreadsheetId: string;
@@ -90,6 +107,16 @@ export interface FlowApp {
    * request.
    */
   close(): Promise<void>;
+}
+
+/** A flow app that also serves the board's HTTP API, as the bot does. */
+export interface HttpFlowApp extends FlowApp {
+  /** The board's origin, which its browser sends as `Origin` (better-auth checks it on POSTs). */
+  readonly boardUrl: string;
+  /** Sends requests to the app; it keeps the cookies the app sets, like a browser. */
+  readonly http: Agent;
+  /** Another client of the app, with its own cookies: a second browser. */
+  agent(): Agent;
 }
 
 function describeLogged(value: unknown): string {
@@ -151,28 +178,91 @@ function restoreDefaultLogger(): void {
   Logger.overrideLogger(new ConsoleLogger({ logLevels: ['error'] }));
 }
 
+export interface FlowAppOptions {
+  /**
+   * Modules to boot alongside the slash command features, e.g. a job the bot
+   * runs on a schedule. None by default, so a spec only runs the jobs it tests.
+   */
+  readonly modules?: readonly (Type | DynamicModule)[];
+  /** Serve the HTTP API too (`HttpFlowApp`). Off by default. */
+  readonly http?: boolean;
+  /**
+   * Replay Sheets even in a recording run, for a spec that intercepts another
+   * service with nock (see `startSheetsRecording`). On by default for an HTTP
+   * app, whose tests intercept Discord's OAuth endpoints.
+   */
+  readonly replayOnly?: boolean;
+}
+
+/**
+ * Starts the app: as an HTTP app configured as in main.ts, listening on a
+ * free loopback port, or, without `http`, as an application context (no
+ * server), as flows have always run.
+ * Either way this runs onApplicationBootstrap.
+ */
+async function startApp(
+  moduleRef: TestingModule,
+  http: boolean,
+): Promise<NestExpressApplication | undefined> {
+  if (!http) {
+    await moduleRef.init();
+    return undefined;
+  }
+  const app = moduleRef.createNestApplication<NestExpressApplication>({
+    bodyParser: false,
+    forceCloseConnections: true,
+  });
+  configureHttpApp(app);
+  // listening for the whole test, as the bot does: otherwise supertest starts
+  // and stops the server around each request, and an open event stream would
+  // stop the next request's server from starting
+  await app.listen(0, '127.0.0.1');
+  return app;
+}
+
 /**
  * Boots the real feature modules with Firestore, Discord and the FFLogs API
  * replaced by fakes. Google Sheets traffic is replayed from recordings of the
  * real test spreadsheet (see recorded-sheets.ts). Call once per test.
  */
-export async function createFlowApp(): Promise<FlowApp> {
+export async function createFlowApp(
+  options: FlowAppOptions & { readonly http: true },
+): Promise<HttpFlowApp>;
+export async function createFlowApp(options?: FlowAppOptions): Promise<FlowApp>;
+export async function createFlowApp({
+  modules = [],
+  http = false,
+  replayOnly = http,
+}: FlowAppOptions = {}): Promise<FlowApp | HttpFlowApp> {
   const startedAt = Date.now();
   const db = new InMemoryFirestore();
   const discord = new DiscordMock();
   const fflogs = new FFLogsMock();
   const logger = new ProblemRecorder();
   // the tracker starts after recording: a failed start has nothing to dispose
-  const recording = await startSheetsRecording();
+  const recording = await startSheetsRecording({ replayOnly });
   const activity = createActivityTracker();
   const sheetsRequests = captureSheetsRequests();
   const stopWatchingSentry = logger.watchSentry();
 
   try {
-    const moduleRef = await Test.createTestingModule({
-      imports: [...FLOW_MODULES],
+    const builder = Test.createTestingModule({
+      imports: [...FLOW_MODULES, ...(http ? [HttpModule] : []), ...modules],
       providers: [...FLOW_PROVIDERS],
-    })
+    });
+    if (http) {
+      builder
+        .overrideProvider(BOARD_AUTH)
+        .useValue(
+          createBoardAuth({ ...boardConfig, BOARD_BASE_URL: FLOW_BOARD_URL }),
+        )
+        // ServeStaticModule picks its loader when its providers are built,
+        // which a testing module does before the HTTP adapter exists (NestFactory
+        // creates it first), so it would pick the no-op loader and serve nothing
+        .overrideProvider(AbstractLoader)
+        .useValue(new ExpressLoader());
+    }
+    const moduleRef = await builder
       .overrideProvider(FIRESTORE)
       .useValue(db)
       .overrideProvider(DISCORD_CLIENT)
@@ -184,7 +274,7 @@ export async function createFlowApp(): Promise<FlowApp> {
 
     // runs onApplicationBootstrap: CQRS handler registration, SignupService's
     // reaction listener, and SlashCommandsService's listener for commands
-    await moduleRef.init();
+    const app = await startApp(moduleRef, http);
     // what the bot registers with Discord, so the fake only sends commands
     // and options that exist
     discord.registerCommands(
@@ -192,6 +282,8 @@ export async function createFlowApp(): Promise<FlowApp> {
     );
 
     activity.trackCalls(moduleRef.get(SheetsService));
+    // fetch doesn't go through node:http, so its requests aren't counted on their own
+    activity.trackCalls(moduleRef.get(RaidHelperClient));
     let closed = false;
     const sheets: TestSheet = {
       spreadsheetId: TEST_SPREADSHEET_ID,
@@ -201,7 +293,7 @@ export async function createFlowApp(): Promise<FlowApp> {
         recording.valuesRead(range, sheetsRequests.readPaths(range)),
     };
 
-    return {
+    const flow: FlowApp = {
       startedAt,
       db,
       discord,
@@ -231,7 +323,7 @@ export async function createFlowApp(): Promise<FlowApp> {
           // time out anything still waiting on a click so it can't leak into the next test
           discord.expireAll();
           await waitUntilIdle(activity);
-          await moduleRef.close();
+          await (app ?? moduleRef).close();
           await Sentry.flush();
         } finally {
           restoreDefaultLogger();
@@ -261,6 +353,9 @@ export async function createFlowApp(): Promise<FlowApp> {
         }
       },
     };
+    if (app === undefined) return flow;
+    const agent = () => supertest.agent(app.getHttpServer());
+    return { ...flow, boardUrl: FLOW_BOARD_URL, http: agent(), agent };
   } catch (error) {
     // don't leave nock intercepting or listeners subscribed for later spec files
     restoreDefaultLogger();

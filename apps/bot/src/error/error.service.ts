@@ -4,8 +4,15 @@ import {
   type ChatInputCommandInteraction,
   Colors,
   EmbedBuilder,
+  type MessageComponentInteraction,
 } from 'discord.js';
 import { getErrorMessage } from '../common/error-guards.js';
+import { replyPrivately } from '../discord/discord.helpers.js';
+
+/** An interaction a user can be answered on: a slash command or a click on a message's component. */
+type ReportableInteraction =
+  | ChatInputCommandInteraction
+  | MessageComponentInteraction;
 
 interface ErrorHandlingOptions {
   log?: boolean;
@@ -26,7 +33,7 @@ export class ErrorService {
    */
   handleCommandError(
     error: unknown,
-    interaction: ChatInputCommandInteraction,
+    interaction: ReportableInteraction,
     options?: ErrorHandlingOptions,
   ): EmbedBuilder {
     this.processError(error, options);
@@ -37,6 +44,30 @@ export class ErrorService {
     }
 
     return this.createErrorEmbed(options?.message);
+  }
+
+  /**
+   * Reports an unexpected error from handling `interaction`, and tells the
+   * user privately, clearing any buttons or menus it was still showing.
+   */
+  async replyWithError(
+    error: unknown,
+    interaction: ReportableInteraction,
+  ): Promise<void> {
+    const errorEmbed = this.handleCommandError(error, interaction);
+    const payload = { embeds: [errorEmbed], components: [] };
+
+    try {
+      await replyPrivately(interaction, payload);
+    } catch (replyError) {
+      this.logger.error(
+        {
+          originalError: error,
+          replyError,
+        },
+        'Failed to send error response',
+      );
+    }
   }
 
   /**
@@ -69,13 +100,17 @@ export class ErrorService {
 
   private logInteractionError(
     error: unknown,
-    interaction: ChatInputCommandInteraction,
+    interaction: ReportableInteraction,
   ): void {
     const errorMessage = getErrorMessage(error);
+    const source =
+      'commandName' in interaction
+        ? { commandName: interaction.commandName }
+        : { customId: interaction.customId };
 
     this.logger.error(
       {
-        commandName: interaction.commandName,
+        ...source,
         userId: interaction.user.id,
         guildId: interaction.guildId,
       },

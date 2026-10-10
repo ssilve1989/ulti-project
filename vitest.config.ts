@@ -1,12 +1,13 @@
 import { fileURLToPath } from 'node:url';
+import solid from 'vite-plugin-solid';
 import { defineConfig } from 'vitest/config';
 
-const sharedIndex = fileURLToPath(
-  new URL('./packages/shared/src/index.ts', import.meta.url),
-);
 const setupFile = fileURLToPath(new URL('./test/setup.ts', import.meta.url));
 const botSetupFile = fileURLToPath(
   new URL('./test/setup-bot.ts', import.meta.url),
+);
+const boardSetupFile = fileURLToPath(
+  new URL('./apps/board/test/setup.ts', import.meta.url),
 );
 
 // Recording flow specs' Google Sheets traffic (pnpm test:record) talks to the
@@ -15,23 +16,24 @@ const botSetupFile = fileURLToPath(
 const recordingSheets = process.env.NOCK_BACK_MODE === 'update';
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      '@ulti-project/shared': sharedIndex,
-    },
-  },
   test: {
     chaiConfig: {
       truncateThreshold: 80,
     },
     // Root-only: coverage aggregates across every project below.
     coverage: {
-      include: ['apps/bot/src/**/*.ts', 'packages/shared/src/**/*.ts'],
+      include: [
+        'apps/bot/src/**/*.ts',
+        'apps/board/src/**/*.{ts,tsx}',
+        'packages/shared/src/**/*.ts',
+      ],
       exclude: [
         'apps/bot/src/slash-commands/**/*{-command.ts,.command.ts}',
         '**/*.module.ts',
         'apps/bot/src/test-utils/**',
         'apps/cli/**',
+        'apps/board/src/test-utils/**',
+        'apps/board/src/main.tsx',
       ],
       provider: 'v8',
     },
@@ -72,6 +74,25 @@ export default defineConfig({
         test: {
           name: 'cli',
           root: './apps/cli',
+          include: ['src/**/*.spec.ts'],
+        },
+      },
+      {
+        extends: true,
+        // Solid's JSX transform, for the board's component specs only.
+        plugins: [solid()],
+        test: {
+          name: 'board',
+          root: './apps/board',
+          include: ['src/**/*.spec.{ts,tsx}'],
+          setupFiles: [boardSetupFile],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'shared',
+          root: './packages/shared',
           include: ['src/**/*.spec.ts'],
         },
       },

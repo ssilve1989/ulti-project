@@ -1,0 +1,272 @@
+/* ================= TEAMS ================= */
+.teams {
+  margin-top: 22px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+.teams h3 {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  margin: 14px 0 9px;
+}
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.team {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+/* The squad's color on the card's edge, as on its claim tokens. */
+.team-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--panel-head);
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid var(--sq);
+}
+.team-head h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+.team-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.slot[data-role="tank"] {
+  --role: var(--tank);
+}
+.slot[data-role="healer"] {
+  --role: var(--heal);
+}
+.slot[data-role="dps"] {
+  --role: var(--dps);
+}
+/* The whole row is the picker: a transparent native select lies over it. */
+.slot {
+  position: relative;
+  display: grid;
+  grid-template-columns: 6.5rem 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line-soft);
+  border-left: 3px solid var(--role);
+}
+/* Only a row with a picker reacts to the pointer. */
+.slot:has(.slot-pick):hover {
+  background: var(--panel-2);
+}
+.slot:focus-within {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
+}
+.slot-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.slot-who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.slot-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .slot-name.is-new {
+    animation: slot-fill 0.15s ease-out;
+  }
+}
+@keyframes slot-fill {
+  from {
+    opacity: 0;
+  }
+}
+.slot-name.is-empty {
+  color: var(--faint);
+}
+.slot-tag {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 5px;
+}
+.slot-hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--faint);
+}
+.slot-pick {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  /* 16px stops iOS zooming in when the picker opens. */
+  font-size: 16px;
+  cursor: pointer;
+}
+.slot.is-busy {
+  background: var(--panel-2);
+}
+.slot.is-busy .slot-who {
+  opacity: 0.55;
+}
+.slot.is-busy .slot-hint {
+  color: var(--acc);
+  animation: slot-saving 1.2s ease-in-out infinite;
+}
+.slot.is-busy .slot-pick {
+  cursor: progress;
+  pointer-events: none;
+}
+@keyframes slot-saving {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slot.is-busy .slot-hint {
+    animation: none;
+  }
+}
+
+/* Other squads' teams: the card's header is the disclosure; the rows show when expanded. */
+.team-others {
+  margin-top: 14px;
+}
+/* A squad with no teams on a closed event draws an empty grid; it takes no room. */
+.team-grid:empty {
+  display: none;
+}
+.team-grid:empty + .team-others {
+  margin-top: 0;
+}
+.team-other .team-head {
+  min-height: 44px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.3em;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+  border-bottom: 0;
+}
+.team-other .team-head::-webkit-details-marker {
+  display: none;
+}
+.team-other .team-head::before {
+  content: "▸" / "";
+  margin-right: 0.35em;
+  color: var(--dim);
+  transition: transform 0.15s ease;
+}
+.team-other[open] .team-head::before {
+  transform: rotate(90deg);
+}
+.team-other[open] .team-head {
+  border-bottom: 1px solid var(--line);
+}
+.team-other .team-head:hover {
+  background: var(--line-soft);
+}
+.team-other .team-head:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
+}
+.team-other .team-count {
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  .team-other .team-head::before {
+    transition: none;
+  }
+}
+
+.team-error {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--dps);
+  background: color-mix(in srgb, var(--dps) 8%, transparent);
+  border-bottom: 1px solid var(--line-soft);
+}
+.team-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.team-copied {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dim);
+}
+.team-remove {
+  margin-left: auto;
+}
+.team-foot button,
+.team-add button {
+  min-height: 36px;
+  font-size: 13px;
+}
+.team-foot button:disabled,
+.team-add button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.team-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 96px;
+  padding: 14px;
+  /* --line alone all but vanishes on the dark page. */
+  border: 1px dashed color-mix(in srgb, var(--faint) 60%, transparent);
+  border-radius: 8px;
+}
+.team-add .team-error {
+  background: none;
+  border: 0;
+  padding: 0;
+}

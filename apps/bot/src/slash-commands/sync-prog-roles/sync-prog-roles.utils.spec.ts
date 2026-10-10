@@ -36,6 +36,19 @@ describe('buildDetailFields', () => {
     ]);
   });
 
+  it('leaves room in the fifth field for the count of lines left out', () => {
+    // two of these fit in 1024 characters, but not with the count after them
+    const long = (n: number) => `change ${n} `.padEnd(505, '.');
+
+    expect(buildDetailFields([...lines(1, 8), long(9), long(10)])).toEqual([
+      field('Changes', lines(1, 2).join('\n')),
+      field('Changes (cont.)', lines(3, 4).join('\n')),
+      field('Changes (cont.)', lines(5, 6).join('\n')),
+      field('Changes (cont.)', lines(7, 8).join('\n')),
+      field('Changes (cont.)', `${long(9)}\n… and 1 more`),
+    ]);
+  });
+
   it('adds no field for no changes', () => {
     expect(buildDetailFields([])).toEqual([]);
   });

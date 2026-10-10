@@ -1,4 +1,9 @@
-import { Encounter, getEncounterChoicesForMode } from '@ulti-project/shared';
+import {
+  Encounter,
+  getEncounterChoicesForMode,
+  JOB_NAME,
+  JOBS,
+} from '@ulti-project/shared';
 import {
   ChannelType,
   PermissionFlagsBits,
@@ -101,6 +106,73 @@ const EditProgPointRolesSubcommand = new SlashCommandSubcommandBuilder()
       .setRequired(false),
   );
 
+const EditJobEmojisSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('job-emojis')
+  .setDescription('Set the emoji shown for a job on event sign-ups')
+  .addStringOption((option) =>
+    option
+      .setName('job')
+      .setDescription('The job')
+      .setRequired(true)
+      .addChoices(
+        ...JOBS.map((job) => ({
+          name: `${JOB_NAME[job]} (${job})`,
+          value: job,
+        })),
+      ),
+  )
+  .addStringOption((option) =>
+    option
+      .setName('emoji')
+      .setDescription('A custom emoji (paste it, or its id). Omit to clear')
+      .setRequired(false),
+  );
+
+const EditBoardAccessSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('board-access')
+  .setDescription('Choose the roles that can view the coordinator board');
+
+const AddSquadSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('squad-add')
+  .setDescription('Add a squad to the coordinator board')
+  .addStringOption((option) =>
+    option
+      .setName('name')
+      .setDescription('The squad’s name')
+      .setRequired(true)
+      .setMinLength(1)
+      .setMaxLength(50),
+  )
+  .addStringOption((option) =>
+    option
+      .setName('tag')
+      .setDescription('2–4 letters or digits, like FRG')
+      .setRequired(true),
+  )
+  .addStringOption((option) =>
+    option
+      .setName('color')
+      .setDescription('A hex colour, like #16a34a')
+      .setRequired(true),
+  )
+  .addRoleOption((option) =>
+    option
+      .setName('role')
+      .setDescription('The role the squad’s members hold')
+      .setRequired(true),
+  );
+
+const RemoveSquadSubcommand = new SlashCommandSubcommandBuilder()
+  .setName('squad-remove')
+  .setDescription('Remove a squad from the coordinator board')
+  .addStringOption((option) =>
+    option
+      .setName('squad')
+      .setDescription('The squad to remove')
+      .setRequired(true)
+      .setAutocomplete(true),
+  );
+
 const EditSpreadsheetSubcommand = new SlashCommandSubcommandBuilder()
   .setName('spreadsheet')
   .setDescription('Edit spreadsheet settings')
@@ -126,5 +198,9 @@ export const SettingsSlashCommand = new SlashCommandBuilder()
   .addSubcommand(EditReviewerRoleSubcommand)
   .addSubcommand(EditEncounterRolesSubcommand)
   .addSubcommand(EditProgPointRolesSubcommand)
+  .addSubcommand(EditJobEmojisSubcommand)
+  .addSubcommand(EditBoardAccessSubcommand)
+  .addSubcommand(AddSquadSubcommand)
+  .addSubcommand(RemoveSquadSubcommand)
   .addSubcommand(EditSpreadsheetSubcommand)
   .addSubcommand(ViewSettingsSubcommand);

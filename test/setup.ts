@@ -21,6 +21,12 @@ vi.stubEnv('INVITE_CLEANER_CONCURRENCY', '5');
 // Firebase config
 vi.stubEnv('FIRESTORE_DATABASE_ID', 'test-db');
 
+// Coordinator board config
+vi.stubEnv('BOARD_BASE_URL', 'https://board.example.test');
+vi.stubEnv('GUILD_ID', 'test-board-guild-id');
+vi.stubEnv('BETTER_AUTH_SECRET', 'test-better-auth-secret-not-a-real-one');
+vi.stubEnv('DISCORD_OAUTH_CLIENT_SECRET', 'test-discord-oauth-client-secret');
+
 // Optional configs
 vi.stubEnv('FFLOGS_API_ACCESS_TOKEN', 'test-fflogs-token');
 

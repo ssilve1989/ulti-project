@@ -7,7 +7,7 @@ import {
 } from 'firebase-admin/firestore';
 
 type Data = Record<string, unknown>;
-type Operator = '==' | 'in';
+type Operator = '==' | 'in' | '<=';
 
 interface Condition {
   field: string;
@@ -31,7 +31,7 @@ interface SetOptions {
   mergeFields?: ReadonlyArray<string | FieldPath>;
 }
 
-const OPERATORS: ReadonlySet<string> = new Set<Operator>(['==', 'in']);
+const OPERATORS: ReadonlySet<string> = new Set<Operator>(['==', 'in', '<=']);
 
 function isOperator(value: string): value is Operator {
   return OPERATORS.has(value);
@@ -214,6 +214,9 @@ function withValueAt(
 
 function compare(a: unknown, b: unknown): number {
   if (typeof a === 'number' && typeof b === 'number') return a - b;
+  if (a instanceof Timestamp && b instanceof Timestamp) {
+    return compare(a.valueOf(), b.valueOf());
+  }
   if (typeof a === 'string' && typeof b === 'string') {
     if (a < b) return -1;
     if (a > b) return 1;
@@ -254,8 +257,16 @@ function condition(
   if (operator === 'in' && Array.isArray(value) && value.length > 30) {
     throw new Error("'in' filters support at most 30 values");
   }
-  if (operator === '==' && typeof value === 'object' && value !== null) {
+  if (
+    operator === '==' &&
+    typeof value === 'object' &&
+    value !== null &&
+    !(value instanceof Timestamp)
+  ) {
     return unsupported('== against maps, arrays or class instances');
+  }
+  if (operator === '<=' && !(value instanceof Timestamp)) {
+    return unsupported(`<= against a ${typeof value}`);
   }
   return { field, operator, value };
 }
@@ -300,9 +311,19 @@ function matches(data: Data, { field, operator, value }: Condition): boolean {
   const actual = data[field];
   switch (operator) {
     case '==':
-      return actual === value;
+      return value instanceof Timestamp
+        ? actual instanceof Timestamp && actual.isEqual(value)
+        : actual === value;
     case 'in':
       return Array.isArray(value) && value.includes(actual);
+    case '<=':
+      // Firestore compares only values of the same type, so a document whose
+      // field is missing or of another type never matches a range
+      return (
+        actual instanceof Timestamp &&
+        value instanceof Timestamp &&
+        actual.valueOf() <= value.valueOf()
+      );
   }
 }
 
@@ -382,18 +403,31 @@ class Query {
     return Promise.try(() => new QuerySnapshot(this.run()));
   }
 
+  /** Like Query.count(): an aggregation that answers how many documents match. */
+  count(): { get(): Promise<{ data(): { count: number } }> } {
+    return {
+      get: () =>
+        Promise.try(() => {
+          const count = this.run().length;
+          return { data: () => ({ count }) };
+        }),
+    };
+  }
+
   /**
    * Real Firestore rejects these unless a matching composite index is
    * deployed. This repo has no index config, so the fake can't know which
    * exist and refuses them rather than pretending they work.
    */
   private assertServableWithoutCompositeIndex(): void {
-    const [firstOrdering] = this.state.orderings;
+    // a range or an ordering is served from one field's index, so a filter on
+    // any other field needs a composite one
+    const [indexed] = this.orderings();
     const filterOnOtherField =
-      firstOrdering !== undefined &&
+      indexed !== undefined &&
       this.state.conditions
         .flatMap(conditionsIn)
-        .some(({ field }) => field !== firstOrdering.field);
+        .some(({ field }) => field !== indexed.field);
     if (filterOnOtherField) {
       throw new Error(
         `This query on "${this.collectionPath}" needs a composite index; real Firestore rejects it unless one is deployed, and this repo has no index config.`,
@@ -401,9 +435,21 @@ class Query {
     }
   }
 
+  /**
+   * The order results come in. Without an orderBy(), a range filter is served
+   * from its field's index, so Firestore returns results ordered by that field.
+   */
+  private orderings(): readonly Ordering[] {
+    if (this.state.orderings.length > 0) return this.state.orderings;
+    const range = this.state.conditions
+      .flatMap(conditionsIn)
+      .find(({ operator }) => operator === '<=');
+    return range === undefined ? [] : [{ field: range.field }];
+  }
+
   private run(): DocumentSnapshot[] {
     this.assertServableWithoutCompositeIndex();
-    const { orderings } = this.state;
+    const orderings = this.orderings();
     const docs = this.db
       .documentsIn(this.collectionPath)
       .filter(({ data }) =>
@@ -435,8 +481,15 @@ class Query {
 }
 
 class CollectionReference extends Query {
+  /** Like Firestore, an id with slashes is a relative path, which must lead to a document. */
   doc(id: string = randomUUID()): DocumentReference {
-    return new DocumentReference(this.db, `${this.collectionPath}/${id}`);
+    const path = `${this.collectionPath}/${id}`;
+    if (path.split('/').length % 2 !== 0) {
+      throw new Error(
+        `Value for argument "documentPath" must point to a document, but was "${id}". Your path does not contain an even number of components.`,
+      );
+    }
+    return new DocumentReference(this.db, path);
   }
 }
 
@@ -496,6 +549,7 @@ class Transaction {
       );
     }
     this.reads.set(ref.path, this.db.version(ref.path));
+    this.db.writeElsewhereIfContended(ref.path);
     return ref.get();
   }
 
@@ -520,6 +574,11 @@ class Transaction {
     this.writes.push(() => this.db.update(ref.path, data));
     return this;
   }
+
+  delete(ref: DocumentReference): this {
+    this.writes.push(() => this.db.delete(ref.path));
+    return this;
+  }
 }
 
 /**
@@ -534,6 +593,12 @@ export class InMemoryFirestore {
   private readonly versions = new Map<string, number>();
   private readonly writeListeners = new Set<(path: string) => void>();
   private unreachable = false;
+  /** paths another client keeps writing; see `contend` */
+  private readonly contended = new Set<string>();
+  /** transactions held before commit until enough have read; see `overlapTransactions` */
+  private overlap:
+    | { count: number; arrived: number; all: PromiseWithResolvers<void> }
+    | undefined;
 
   /**
    * Makes every later read and write fail the way the Firestore client does
@@ -544,8 +609,45 @@ export class InMemoryFirestore {
     this.unreachable = true;
   }
 
+  /** Ends `goOffline`: Firestore is reachable again, as after an outage. */
+  goOnline(): void {
+    this.unreachable = false;
+  }
+
+  /**
+   * Makes `path` a hot document: from now on another client writes it while
+   * every transaction that reads it runs, so each attempt conflicts and the
+   * transaction fails with ABORTED once Firestore's retries run out. Other
+   * documents, writes outside transactions, and seeding and reading as a
+   * test still work.
+   */
+  contend(path: string): void {
+    this.contended.add(path);
+  }
+
+  /**
+   * Makes the next `count` transactions overlap, as clients writing at the
+   * same moment do: each one, once it has read, waits to commit until all
+   * `count` have read. A transaction that reruns doesn't wait again. One whose
+   * callback throws never arrives, so the others wait until the test times out.
+   */
+  overlapTransactions(count: number): void {
+    this.overlap = { count, arrived: 0, all: Promise.withResolvers() };
+  }
+
   collection(path: string): CollectionReference {
     return new CollectionReference(this, path);
+  }
+
+  /** Like Firestore's, deletes the document and every document in its subcollections. */
+  recursiveDelete(ref: DocumentReference): Promise<void> {
+    return written(() => {
+      for (const path of [...this.documents.keys()]) {
+        if (path === ref.path || path.startsWith(`${ref.path}/`)) {
+          this.delete(path);
+        }
+      }
+    });
   }
 
   /** Like Firestore, reruns the callback when a document it read changed before commit. */
@@ -555,6 +657,7 @@ export class InMemoryFirestore {
     for (let attempt = 1; attempt <= MAX_TRANSACTION_ATTEMPTS; attempt++) {
       const transaction = new Transaction(this);
       const result = await updateFunction(transaction);
+      if (attempt === 1) await this.overlapping();
       try {
         transaction.commit();
         return result;
@@ -565,6 +668,18 @@ export class InMemoryFirestore {
     throw new Error(
       `ABORTED: transaction still contended after ${MAX_TRANSACTION_ATTEMPTS} attempts`,
     );
+  }
+
+  /** Waits, if `overlapTransactions` holds this transaction, until the others have read too. */
+  private async overlapping(): Promise<void> {
+    const overlap = this.overlap;
+    if (overlap === undefined) return;
+    overlap.arrived += 1;
+    if (overlap.arrived === overlap.count) {
+      this.overlap = undefined;
+      overlap.all.resolve();
+    }
+    await overlap.all.promise;
   }
 
   /** Test setup: writes a document directly, bypassing the app. */
@@ -592,6 +707,13 @@ export class InMemoryFirestore {
 
   version(path: string): number {
     return this.versions.get(path) ?? 0;
+  }
+
+  /** Another client's write to a contended `path`, which leaves its data as it was. */
+  writeElsewhereIfContended(path: string): void {
+    if (this.contended.has(path)) {
+      this.versions.set(path, this.version(path) + 1);
+    }
   }
 
   snapshot(ref: DocumentReference): DocumentSnapshot {

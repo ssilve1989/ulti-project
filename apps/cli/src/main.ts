@@ -1,6 +1,7 @@
 import * as clack from '@clack/prompts';
 import { Command } from 'commander';
 import { registerEncountersCommand } from './commands/encounters/index.ts';
+import { registerEventsCommand } from './commands/events/index.ts';
 import { initCtx } from './config.ts';
 
 const program = new Command()
@@ -12,6 +13,7 @@ program.hook('preAction', () => {
 });
 
 registerEncountersCommand(program);
+registerEventsCommand(program);
 
 await program.parseAsync().catch((error: unknown) => {
   clack.log.error(error instanceof Error ? error.message : String(error));
