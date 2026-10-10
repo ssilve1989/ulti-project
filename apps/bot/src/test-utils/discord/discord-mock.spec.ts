@@ -1,10 +1,13 @@
 import {
   ActionRowBuilder,
+  ApplicationCommandOptionType,
   ButtonBuilder,
+  type ButtonInteraction,
   ButtonStyle,
   ChannelSelectMenuBuilder,
   ChannelType,
   ComponentType,
+  DiscordAPIError,
   DiscordjsErrorCodes,
   DiscordjsTypeError,
   Events,
@@ -12,12 +15,13 @@ import {
   ModalBuilder,
   PermissionFlagsBits,
   RESTJSONErrorCodes,
+  RoleSelectMenuBuilder,
   SlashCommandBuilder,
   StringSelectMenuBuilder,
   TextInputBuilder,
   TextInputStyle,
 } from 'discord.js';
-import { test as base, describe, expect } from 'vitest';
+import { test as base, describe, expect, vi } from 'vitest';
 import { DiscordService } from '../../discord/discord.service.js';
 import { fresh } from '../fixtures.js';
 import { BOT_USER_ID, DiscordMock } from './discord-mock.js';
@@ -107,7 +111,26 @@ const it = base.extend<Bot>({
                 .setName('log')
                 .setDescription('Log channel')
                 .addChannelTypes(ChannelType.GuildText),
+            )
+            .addStringOption((option) =>
+              option
+                .setName('reason')
+                .setDescription('Reason')
+                .setAutocomplete(true),
             ),
+        ),
+      new SlashCommandBuilder()
+        .setName('pick')
+        .setDescription('A command with an autocomplete option')
+        .addStringOption((option) =>
+          option
+            .setName('event')
+            .setDescription('Event')
+            .setRequired(true)
+            .setAutocomplete(true),
+        )
+        .addStringOption((option) =>
+          option.setName('notes').setDescription('Notes').setRequired(true),
         ),
     ]);
     return discord;
@@ -127,6 +150,20 @@ const pressed = (interaction: {
 });
 
 describe('DiscordMock', () => {
+  it('has a ready client, as the app only starts once the bot has logged in', ({
+    discord,
+  }) => {
+    expect(discord.client.isReady()).toBe(true);
+  });
+
+  it('has a client that is not ready once the gateway disconnects', ({
+    discord,
+  }) => {
+    discord.disconnectGateway();
+
+    expect(discord.client.isReady()).toBe(false);
+  });
+
   /** DMs `userId` a go button, clicks it, and returns the click the bot received. */
   const clickGo = async ({ discord, service }: Bot, userId = 'u1') => {
     const message = await service.sendDirectMessage(userId, {
@@ -156,6 +193,7 @@ describe('DiscordMock', () => {
       | ActionRowBuilder<ButtonBuilder>
       | ActionRowBuilder<StringSelectMenuBuilder>
       | ActionRowBuilder<ChannelSelectMenuBuilder>
+      | ActionRowBuilder<RoleSelectMenuBuilder>
     >,
   ) => {
     const message = await service.sendDirectMessage('u1', {
@@ -296,6 +334,37 @@ describe('DiscordMock', () => {
     expect(collected).toEqual(['P6']);
   });
 
+  it('delivers a choice in the named menu when the message has several', async ({
+    discord,
+    service,
+  }) => {
+    const message = await service.sendDirectMessage('u1', {
+      components: [
+        pointSelect(),
+        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('zone')
+            .addOptions({ label: 'Eastern', value: 'east' }),
+        ),
+      ],
+    });
+    const collected: string[] = [];
+    message
+      .createMessageComponentCollector()
+      .on('collect', (i) =>
+        collected.push(
+          ...(i.isStringSelectMenu() ? [i.customId, ...i.values] : []),
+        ),
+      );
+
+    expect(() =>
+      discord.choose(discord.latestDmTo('u1'), 'east', 'u1'),
+    ).toThrow('must have exactly one');
+    discord.choose(discord.latestDmTo('u1'), 'east', 'u1', 'zone');
+
+    expect(collected).toEqual(['zone', 'east']);
+  });
+
   it('refuses to click a component the message does not have', async ({
     discord,
     service,
@@ -307,15 +376,184 @@ describe('DiscordMock', () => {
     );
   });
 
-  it('refuses an interaction nothing is waiting for', async ({
-    discord,
-    service,
-  }) => {
-    await service.sendDirectMessage('u1', { components: [goButton()] });
+  describe('when a user clicks a component nothing is collecting', () => {
+    /** Posts a go button in channel c1 of g1, with no collector on it. */
+    const postGoInC1 = async ({ discord, service }: Bot) => {
+      const channel = await service.getTextChannel({
+        guildId: 'g1',
+        channelId: 'c1',
+      });
+      await channel?.send({ components: [goButton()] });
+      const [message] = discord.channel('c1');
+      if (!message) throw new Error('expected the go button in c1');
+      return message;
+    };
 
-    expect(() => discord.click(discord.latestDmTo('u1'), 'go', 'u1')).toThrow(
-      'Nothing on message',
-    );
+    /** Every button click the client emits, as the app's listeners see it. */
+    const clicksOn = (discord: DiscordMock) => {
+      const clicks: ButtonInteraction[] = [];
+      discord.client.on(Events.InteractionCreate, (interaction) => {
+        if (interaction.isButton()) clicks.push(interaction);
+      });
+      return clicks;
+    };
+
+    /** What a listener reads off a click to route it and tell who and where it came from. */
+    const routing = (interaction: ButtonInteraction) => ({
+      customId: interaction.customId,
+      userId: interaction.user.id,
+      guildId: interaction.guildId,
+      memberId: interaction.member?.user.id ?? null,
+      inCachedGuild: interaction.inCachedGuild(),
+      isMessageComponent: interaction.isMessageComponent(),
+      isChatInputCommand: interaction.isChatInputCommand(),
+      isAutocomplete: interaction.isAutocomplete(),
+    });
+
+    it("delivers a channel message's click to the client's InteractionCreate listeners", async ({
+      discord,
+      service,
+    }) => {
+      const bot = { discord, service };
+      const message = await postGoInC1(bot);
+      const clicks = clicksOn(bot.discord);
+
+      bot.discord.click(message, 'go', 'u2');
+
+      expect(clicks.map(routing)).toEqual([
+        {
+          customId: 'go',
+          userId: 'u2',
+          guildId: 'g1',
+          memberId: 'u2',
+          inCachedGuild: true,
+          isMessageComponent: true,
+          isChatInputCommand: false,
+          isAutocomplete: false,
+        },
+      ]);
+    });
+
+    it('delivers a DM click with no guild or member, like discord.js', async ({
+      discord,
+      service,
+    }) => {
+      await service.sendDirectMessage('u1', { components: [goButton()] });
+      const clicks = clicksOn(discord);
+
+      discord.click(discord.latestDmTo('u1'), 'go', 'u1');
+
+      expect(clicks.map(routing)).toEqual([
+        {
+          customId: 'go',
+          userId: 'u1',
+          guildId: null,
+          memberId: null,
+          inCachedGuild: false,
+          isMessageComponent: true,
+          isChatInputCommand: false,
+          isAutocomplete: false,
+        },
+      ]);
+    });
+
+    it('delivers a click on an ephemeral reply in the guild the command was run in', async ({
+      discord,
+    }) => {
+      const { interaction, reply } = discord.command({
+        userId: 'u1',
+        guildId: 'g1',
+        commandName: 'test',
+      });
+      await interaction.reply({
+        components: [goButton()],
+        flags: MessageFlags.Ephemeral,
+      });
+      const clicks = clicksOn(discord);
+
+      discord.click(reply(), 'go', 'u1');
+
+      expect(clicks.map(routing)).toEqual([
+        {
+          customId: 'go',
+          userId: 'u1',
+          guildId: 'g1',
+          memberId: 'u1',
+          inCachedGuild: true,
+          isMessageComponent: true,
+          isChatInputCommand: false,
+          isAutocomplete: false,
+        },
+      ]);
+    });
+
+    it('reports the click as unacknowledged when nothing answers it', async ({
+      discord,
+      service,
+    }) => {
+      const bot = { discord, service };
+      const message = await postGoInC1(bot);
+
+      bot.discord.click(message, 'go', 'u2');
+
+      expect(bot.discord.unacknowledged()).toEqual(['go']);
+    });
+
+    it('opens an ephemeral reply to the clicker on deferReply, which editReply edits, leaving the clicked message as it was', async ({
+      discord,
+      service,
+    }) => {
+      const bot = { discord, service };
+      const message = await postGoInC1(bot);
+      const clicks = clicksOn(bot.discord);
+      bot.discord.click(message, 'go', 'u2');
+      const [click] = clicks;
+      if (!click) throw new Error('expected the click');
+
+      await click.deferReply({ flags: MessageFlags.Ephemeral });
+      await click.editReply('Signed up');
+
+      expect({
+        replies: bot.discord.repliesTo('u2').map(shown),
+        clicked: shown(message),
+      }).toEqual({
+        replies: [
+          {
+            location: { kind: 'reply', userId: 'u2', ephemeral: true },
+            content: 'Signed up',
+            embeds: [],
+            components: [],
+            reactions: {},
+            deleted: false,
+          },
+        ],
+        clicked: {
+          location: { kind: 'channel', guildId: 'g1', channelId: 'c1' },
+          content: undefined,
+          embeds: [],
+          components: [goButton().toJSON()],
+          reactions: {},
+          deleted: false,
+        },
+      });
+    });
+
+    it('rejects a second deferReply, as discord.js does', async ({
+      discord,
+      service,
+    }) => {
+      const bot = { discord, service };
+      const message = await postGoInC1(bot);
+      const clicks = clicksOn(bot.discord);
+      bot.discord.click(message, 'go', 'u2');
+      const [click] = clicks;
+      if (!click) throw new Error('expected the click');
+      await click.deferReply({ flags: MessageFlags.Ephemeral });
+
+      await expect(click.deferReply()).rejects.toEqual(
+        discordjsError(DiscordjsErrorCodes.InteractionAlreadyReplied),
+      );
+    });
   });
 
   it('lists pressed components the bot never acknowledged', async ({
@@ -352,6 +590,25 @@ describe('DiscordMock', () => {
       discordjsError(DiscordjsErrorCodes.InteractionCollectorError, ['time']),
     );
     expect(endReasons).toEqual(['time']);
+  });
+
+  it('tells whether anything awaits or collects a message, until it ends', async ({
+    discord,
+    service,
+  }) => {
+    const message = await service.sendDirectMessage('u1', {
+      components: [goButton()],
+    });
+    const before = discord.latestDmTo('u1').isCollected();
+    const collector = message.createMessageComponentCollector();
+    const during = discord.latestDmTo('u1').isCollected();
+    collector.stop();
+
+    expect([before, during, discord.latestDmTo('u1').isCollected()]).toEqual([
+      false,
+      true,
+      false,
+    ]);
   });
 
   it('emits MessageReactionAdd on the client when a user reacts', async ({
@@ -561,6 +818,116 @@ describe('DiscordMock', () => {
     expect([before, role?.members.map(({ id }) => id)]).toEqual([[], ['u1']]);
   });
 
+  it('fetches several members by id, leaving out who is not in the guild, and caches them, like discord.js', async ({
+    discord,
+  }) => {
+    discord.removeMember('u2');
+    const guild = await discord.client.guilds.fetch('g1');
+
+    const fetched = await guild.members.fetch({ user: ['u1', 'u2'] });
+
+    expect([
+      fetched.map(({ id, displayName }) => ({ id, displayName })),
+      guild.members.cache.map(({ id }) => id),
+    ]).toEqual([[{ id: 'u1', displayName: 'one' }], ['u1']]);
+  });
+
+  it('refuses to fetch more than 100 members by id, which Discord never returns', async ({
+    discord,
+  }) => {
+    const guild = await discord.client.guilds.fetch('g1');
+    const ids = Array.from({ length: 101 }, (_, i) => `u${i}`);
+
+    await expect(guild.members.fetch({ user: ids })).rejects.toThrow(
+      'at most 100',
+    );
+  });
+
+  describe('while the gateway is down', () => {
+    it.beforeEach(({ discord }) => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      discord.disconnectGateway();
+      return () => {
+        vi.useRealTimers();
+      };
+    });
+
+    /** Tracks how `fetching` has settled: its value or error, or still pending. */
+    const track = (fetching: Promise<unknown>) => {
+      const state: { now: unknown } = { now: 'pending' };
+      fetching.then(
+        (value) => {
+          state.now = { value };
+        },
+        (error: unknown) => {
+          state.now = { error };
+        },
+      );
+      return state;
+    };
+
+    it('times out fetching members by id after the time asked for, like discord.js', async ({
+      discord,
+    }) => {
+      const guild = await discord.client.guilds.fetch('g1');
+
+      const fetching = track(
+        guild.members.fetch({ user: ['u1'], time: 5_000 }),
+      );
+      await vi.advanceTimersByTimeAsync(4_999);
+      const before = fetching.now;
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect([before, fetching.now]).toEqual([
+        'pending',
+        { error: discordjsError(DiscordjsErrorCodes.GuildMembersTimeout) },
+      ]);
+    });
+
+    it("gives up on the app's fetch of several members after 10 seconds", async ({
+      service,
+    }) => {
+      const fetching = track(
+        service.getGuildMembers({ guildId: 'g1', memberIds: ['u1', 'u2'] }),
+      );
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      expect(fetching.now).toEqual({
+        error: discordjsError(DiscordjsErrorCodes.GuildMembersTimeout),
+      });
+    });
+
+    it("answers the app's fetch of members it has cached without the gateway", async ({
+      discord,
+      service,
+    }) => {
+      const guild = await discord.client.guilds.fetch('g1');
+      await guild.members.fetch('u1');
+
+      const members = await service.getGuildMembers({
+        guildId: 'g1',
+        memberIds: ['u1'],
+      });
+
+      expect(
+        [...members].map(([id, { displayName }]) => ({ id, displayName })),
+      ).toEqual([{ id: 'u1', displayName: 'one' }]);
+    });
+
+    it("gives up on the app's fetch of a role's members after 10 seconds", async ({
+      service,
+    }) => {
+      const fetching = track(
+        service.getRoleMembers({ guildId: 'g1', roleId: 'r1' }),
+      );
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      expect(fetching.now).toEqual({
+        error: discordjsError(DiscordjsErrorCodes.GuildMembersTimeout),
+      });
+    });
+  });
+
   it("holds the guild's roles in its role cache, like discord.js", async ({
     discord,
   }) => {
@@ -687,6 +1054,67 @@ describe('DiscordMock', () => {
       await expect(fetchFrom('c1')).rejects.toEqual(unknownMessage('c1'));
     });
 
+    it('links a channel message the way discord.js does', async ({
+      discord,
+      service,
+    }) => {
+      const sent = await postInC1({ discord, service }, 'hello');
+
+      expect(sent?.url).toBe(
+        `https://discord.com/channels/g1/c1/${discord.channel('c1')[0]?.id}`,
+      );
+    });
+
+    it('runs a command in the guild text channel it is given', async ({
+      discord,
+    }) => {
+      const { interaction } = discord.command({
+        userId: 'u1',
+        guildId: 'g1',
+        commandName: 'test',
+        channelId: 'c1',
+      });
+
+      await interaction.channel?.send('from the command');
+
+      expect({
+        channelId: interaction.channelId,
+        dmBased: interaction.channel?.isDMBased(),
+        posted: discord.channel('c1').map(({ content }) => content),
+      }).toEqual({
+        channelId: 'c1',
+        dmBased: false,
+        posted: ['from the command'],
+      });
+    });
+
+    it('refuses a command run in a channel the guild does not have', ({
+      discord,
+    }) => {
+      discord.addChannel('g2', 'c2');
+
+      expect(() =>
+        discord.command({
+          userId: 'u1',
+          guildId: 'g1',
+          commandName: 'test',
+          channelId: 'c2',
+        }),
+      ).toThrow('c2 is not a channel of guild g1');
+    });
+
+    it("rejects sending in a channel the bot may not send in, with the API's Missing Permissions", async ({
+      discord,
+      service,
+    }) => {
+      discord.denySendingIn('c1');
+
+      await expect(postInC1({ discord, service }, 'hello')).rejects.toEqual(
+        missingPermissions('POST', '/channels/c1/messages'),
+      );
+      expect(discord.channel('c1')).toEqual([]);
+    });
+
     it('refuses message options it does not model instead of dropping them', async ({
       discord,
       service,
@@ -696,10 +1124,31 @@ describe('DiscordMock', () => {
         channelId: 'c1',
       });
 
-      await expect(
-        channel?.send({ content: 'hi', allowedMentions: { parse: [] } }),
-      ).rejects.toThrow('does not support message options: allowedMentions');
+      await expect(channel?.send({ content: 'hi', tts: true })).rejects.toThrow(
+        'does not support message options: tts',
+      );
       expect(discord.channel('c1')).toEqual([]);
+    });
+
+    it('records who a message may ping', async ({ discord, service }) => {
+      const channel = await service.getTextChannel({
+        guildId: 'g1',
+        channelId: 'c1',
+      });
+
+      await channel?.send({ content: '<@u1>', allowedMentions: { parse: [] } });
+
+      expect(discord.channel('c1').map(shown)).toEqual([
+        {
+          location: { kind: 'channel', guildId: 'g1', channelId: 'c1' },
+          content: '<@u1>',
+          embeds: [],
+          components: [],
+          allowedMentions: { parse: [] },
+          reactions: {},
+          deleted: false,
+        },
+      ]);
     });
   });
 
@@ -750,6 +1199,40 @@ describe('DiscordMock', () => {
           'u1',
         ),
       ).toThrow('takes 0-2 values, not 3');
+    });
+
+    const roleSelect = () =>
+      new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(
+        new RoleSelectMenuBuilder()
+          .setCustomId('roles')
+          .setMinValues(0)
+          .setMaxValues(2),
+      );
+
+    it('delivers the roles chosen in a role select menu', async ({
+      discord,
+      service,
+    }) => {
+      const message = await service.sendDirectMessage('u1', {
+        components: [roleSelect()],
+      });
+      const pending = message.awaitMessageComponent();
+
+      discord.chooseRoles(discord.latestDmTo('u1'), ['r1', 'r2'], 'u1');
+
+      const chosen = await pending;
+      expect(chosen.isRoleSelectMenu() && chosen.values).toEqual(['r1', 'r2']);
+    });
+
+    it('refuses to choose a role the guild does not have', async ({
+      discord,
+      service,
+    }) => {
+      await dmAwaitingClick({ discord, service }, [roleSelect()]);
+
+      expect(() =>
+        discord.chooseRoles(discord.latestDmTo('u1'), ['missing'], 'u1'),
+      ).toThrow(`can't offer missing`);
     });
 
     it('refuses to choose several values in a menu that takes one', async ({
@@ -922,7 +1405,7 @@ describe('DiscordMock', () => {
       await click.reply('hi');
 
       await expect(click.editReply('again')).rejects.toThrow(
-        'only models editReply after deferUpdate or update',
+        'only models editReply after deferUpdate, update or deferReply',
       );
     });
 
@@ -1115,12 +1598,16 @@ describe('DiscordMock', () => {
       const message = await service.sendDirectMessage('u1', {
         components: [goButton()],
       });
-      void message
-        .awaitMessageComponent({ componentType: ComponentType.StringSelect })
-        .catch(() => undefined);
+      const pending = message.awaitMessageComponent({
+        componentType: ComponentType.StringSelect,
+      });
 
-      expect(() => discord.click(discord.latestDmTo('u1'), 'go', 'u1')).toThrow(
-        'Nothing on message',
+      discord.click(discord.latestDmTo('u1'), 'go', 'u1');
+      discord.expireAll();
+
+      // still waiting when it timed out: the button click never reached it
+      await expect(pending).rejects.toEqual(
+        discordjsError(DiscordjsErrorCodes.InteractionCollectorError, ['time']),
       );
     });
 
@@ -1563,6 +2050,125 @@ describe('DiscordMock', () => {
     });
   });
 
+  describe('autocomplete', () => {
+    it('resolves with the choices the bot responds with', async ({
+      discord,
+    }) => {
+      discord.client.on(Events.InteractionCreate, (interaction) => {
+        if (interaction.isAutocomplete()) {
+          void interaction.respond([{ name: 'A', value: 'a' }]);
+        }
+      });
+
+      const choices = await discord.autocomplete({
+        userId: 'u1',
+        guildId: 'g1',
+        commandName: 'pick',
+        focused: 'event',
+        value: 'sp',
+      });
+
+      expect(choices).toEqual([{ name: 'A', value: 'a' }]);
+    });
+
+    it('tells the bot which option is focused and what has been typed so far', async ({
+      discord,
+    }) => {
+      const seen: unknown[] = [];
+      discord.client.on(Events.InteractionCreate, (interaction) => {
+        if (interaction.isAutocomplete() && interaction.inCachedGuild()) {
+          seen.push({
+            commandName: interaction.commandName,
+            guildId: interaction.guildId,
+            userId: interaction.user.id,
+            subcommand: interaction.options.getSubcommand(false),
+            value: interaction.options.getFocused(),
+            focused: interaction.options.getFocused(true),
+            notes: interaction.options.getString('notes'),
+          });
+          void interaction.respond([]);
+        }
+      });
+
+      await discord.autocomplete({
+        userId: 'u1',
+        guildId: 'g1',
+        commandName: 'pick',
+        focused: 'event',
+        value: '',
+        options: { notes: 'hi' },
+      });
+
+      expect(seen).toEqual([
+        {
+          commandName: 'pick',
+          guildId: 'g1',
+          userId: 'u1',
+          subcommand: null,
+          value: '',
+          focused: {
+            name: 'event',
+            type: ApplicationCommandOptionType.String,
+            value: '',
+            focused: true,
+          },
+          notes: 'hi',
+        },
+      ]);
+    });
+
+    it('rejects a second response to the same autocomplete', async ({
+      discord,
+    }) => {
+      const second: Promise<void>[] = [];
+      discord.client.on(Events.InteractionCreate, (interaction) => {
+        if (interaction.isAutocomplete()) {
+          void interaction.respond([]);
+          second.push(interaction.respond([]));
+        }
+      });
+
+      await discord.autocomplete({
+        userId: 'u1',
+        guildId: 'g1',
+        commandName: 'pick',
+        focused: 'event',
+        value: '',
+      });
+
+      await expect(second[0]).rejects.toThrow('already');
+    });
+
+    it('only autocompletes an option registered with autocomplete', ({
+      discord,
+    }) => {
+      expect(() =>
+        discord.autocomplete({
+          userId: 'u1',
+          guildId: 'g1',
+          commandName: 'pick',
+          focused: 'notes',
+          value: '',
+        }),
+      ).toThrow('is not an autocomplete option');
+    });
+
+    it('only autocompletes a command for members with its permissions', ({
+      discord,
+    }) => {
+      expect(() =>
+        discord.autocomplete({
+          userId: 'u1',
+          guildId: 'g1',
+          commandName: 'grant',
+          subcommand: 'role',
+          focused: 'reason',
+          value: '',
+        }),
+      ).toThrow('u1 lacks the permissions /grant requires');
+    });
+  });
+
   describe('emojis', () => {
     it('mentions an emoji the bot has, and gives nothing for one it lacks', ({
       discord,
@@ -1595,6 +2201,27 @@ describe('DiscordMock', () => {
       expect([...(posted?.reactions.keys() ?? [])]).toEqual([
         '123456789012345678',
       ]);
+    });
+
+    it("fetches a guild's own emoji, and rejects another guild's with the API's 10014", async ({
+      discord,
+    }) => {
+      discord.addEmoji({ id: 'e1', name: 'cheer', guildId: 'g1' });
+      discord.addEmoji({ id: 'e2', name: 'hype', guildId: 'g2' });
+      const guild = await discord.client.guilds.fetch('g1');
+
+      const own = await guild.emojis.fetch('e1');
+      const other = await guild.emojis.fetch('e2').catch((error) => error);
+
+      expect({
+        own: String(own),
+        cached: [...guild.emojis.cache.keys()],
+        other: other instanceof DiscordAPIError && other.code,
+      }).toEqual({
+        own: '<:cheer:e1>',
+        cached: ['e1'],
+        other: RESTJSONErrorCodes.UnknownEmoji,
+      });
     });
 
     it('finds emojis by name in the order asked, skipping missing ones', ({

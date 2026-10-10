@@ -11,6 +11,7 @@ import {
   type Interaction,
   isJSONEncodable,
   type Message,
+  type MessageMentionOptions,
   RESTJSONErrorCodes,
 } from 'discord.js';
 import { mockOf } from '../mock-factory.js';
@@ -30,9 +31,15 @@ export type OutgoingPayload =
       content?: string | null;
       embeds?: readonly OutgoingEmbed[] | null;
       components?: readonly unknown[] | null;
+      allowedMentions?: MessageMentionOptions;
     };
 
-const SUPPORTED_PAYLOAD_KEYS = new Set(['content', 'embeds', 'components']);
+const SUPPORTED_PAYLOAD_KEYS = new Set([
+  'content',
+  'embeds',
+  'components',
+  'allowedMentions',
+]);
 
 type InteractionFilter = (interaction: Interaction) => boolean;
 
@@ -118,6 +125,7 @@ export function discordjsError(
 export function unknownResource(
   code:
     | RESTJSONErrorCodes.UnknownChannel
+    | RESTJSONErrorCodes.UnknownEmoji
     | RESTJSONErrorCodes.UnknownGuild
     | RESTJSONErrorCodes.UnknownMember
     | RESTJSONErrorCodes.UnknownMessage
@@ -128,6 +136,7 @@ export function unknownResource(
 ): DiscordAPIError {
   const message = {
     [RESTJSONErrorCodes.UnknownChannel]: 'Unknown Channel',
+    [RESTJSONErrorCodes.UnknownEmoji]: 'Unknown Emoji',
     [RESTJSONErrorCodes.UnknownGuild]: 'Unknown Guild',
     [RESTJSONErrorCodes.UnknownMember]: 'Unknown Member',
     [RESTJSONErrorCodes.UnknownMessage]: 'Unknown Message',
@@ -271,12 +280,14 @@ export const reactionKey = ({ id, name }: ReactionEmoji) => id ?? name;
 
 /** Everything a user sees of a message: where it is, its text, embeds, controls and reactions, and whether it's still there. */
 export function shown(message: FakeMessage) {
-  const { location, content, embeds, components, deleted } = message;
+  const { location, content, embeds, components, allowedMentions, deleted } =
+    message;
   return {
     location,
     content,
     embeds,
     components,
+    allowedMentions,
     reactions: reactionsOn(message),
     deleted,
   };
@@ -293,6 +304,8 @@ export class FakeMessage {
   content: string | undefined;
   embeds: APIEmbed[] = [];
   components: unknown[] = [];
+  /** Who the message may ping, when the bot limited it; undefined pings everyone it mentions. */
+  allowedMentions: MessageMentionOptions | undefined;
   deleted = false;
   /** emoji → ids of the users who reacted with it */
   readonly reactions = new Map<string, Set<string>>();
@@ -318,7 +331,7 @@ export class FakeMessage {
       this.content = payload;
       return;
     }
-    // anything else (allowedMentions, files, flags, …) changes what users see
+    // anything else (files, flags, …) changes what users see
     // or who gets pinged, so the fake refuses it rather than dropping it
     const unsupported = Object.keys(payload).filter(
       (key) => !SUPPORTED_PAYLOAD_KEYS.has(key),
@@ -335,6 +348,9 @@ export class FakeMessage {
       this.embeds = payload.embeds.map((embed) =>
         EmbedBuilder.from(embed).toJSON(),
       );
+    }
+    if (payload.allowedMentions !== undefined) {
+      this.allowedMentions = payload.allowedMentions;
     }
     if (payload.components) {
       this.components = payload.components.map((component) =>
@@ -360,7 +376,11 @@ export class FakeMessage {
     this.reactions.get(emoji)?.delete(userId);
   }
 
-  /** Hands an interaction to whatever is awaiting or collecting on this message. */
+  /**
+   * Hands an interaction to whatever is awaiting or collecting on this
+   * message, if anything. Nothing may be: Discord also delivers it to the
+   * client's listeners, and an unanswered one shows in `unacknowledged()`.
+   */
   dispatch(interaction: Interaction): void {
     const waiters = [...this.waiters].filter((waiter) =>
       accepts(waiter.options, interaction),
@@ -368,11 +388,6 @@ export class FakeMessage {
     const collectors = [...this.collectors].filter((collector) =>
       accepts(collector.options, interaction),
     );
-    if (waiters.length === 0 && collectors.length === 0) {
-      throw new Error(
-        `Nothing on message ${this.id} is waiting for this interaction`,
-      );
-    }
     for (const waiter of waiters) {
       this.waiters.delete(waiter);
       waiter.resolve(interaction);
@@ -412,6 +427,11 @@ export class FakeMessage {
     );
   }
 
+  /** Whether anything is awaiting or collecting this message's components. */
+  isCollected(): boolean {
+    return this.waiters.size > 0 || this.collectors.size > 0;
+  }
+
   /** Ends every await/collector on this message as a timeout. */
   expire(): void {
     for (const waiter of [...this.waiters]) {
@@ -443,6 +463,12 @@ export class FakeMessage {
       get guildId() {
         const located = fake.located();
         return located.kind === 'channel' ? located.guildId : null;
+      },
+      /** Like Message.url: a DM's channel is linked under `@me`. */
+      get url() {
+        const located = fake.located();
+        const guild = located.kind === 'channel' ? located.guildId : '@me';
+        return `https://discord.com/channels/${guild}/${fake.channelId}/${fake.id}`;
       },
       author: { id: this.authorId },
       get content() {

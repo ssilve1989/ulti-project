@@ -1,6 +1,8 @@
 import { EventEmitter } from 'node:events';
 import {
   type APIModalInteractionResponseCallbackData,
+  type ApplicationCommandOptionChoiceData,
+  type AutocompleteInteraction,
   type ButtonInteraction,
   type ChannelSelectMenuInteraction,
   ChannelType,
@@ -12,6 +14,8 @@ import {
   DiscordjsErrorCodes,
   DiscordjsTypeError,
   Events,
+  type GuildMember,
+  type Interaction,
   type Message,
   MessageFlags,
   MessageFlagsBitField,
@@ -21,11 +25,14 @@ import {
   type ModalSubmitInteraction,
   type PermissionResolvable,
   ReactionType,
+  type RoleSelectMenuInteraction,
   type StringSelectMenuInteraction,
+  type TextChannel,
 } from 'discord.js';
 import { mockOf } from '../mock-factory.js';
 import {
   assertPermitted,
+  autocompleteOptions,
   commandOptions,
   type OptionTargets,
   type OptionValue,
@@ -34,6 +41,7 @@ import {
 import {
   BOT_USER_ID,
   type FakeChannel,
+  type FakeEmoji,
   type FakeMember,
   type FakeRole,
   type FakeUser,
@@ -96,6 +104,9 @@ interface ModalWaiter {
   reject: (error: Error) => void;
 }
 
+/** The server an emoji added without a guild belongs to. */
+const EMOJI_GUILD_ID = 'emoji-guild';
+
 /** discord.js's per-interaction response state. */
 interface Acknowledgement {
   deferred: boolean;
@@ -114,6 +125,8 @@ const notReplied = () =>
 const isEphemeral = (flags: MessageFlagsResolvable | undefined) =>
   flags !== undefined &&
   new MessageFlagsBitField(flags).has(MessageFlags.Ephemeral);
+
+type ReplyLocation = Extract<MessageLocation, { kind: 'reply' }>;
 
 /** What the bot sends in answer to an interaction, which may be ephemeral. */
 type ReplyPayload =
@@ -150,7 +163,7 @@ function splitReply(payload: ReplyPayload): {
 class CommandReply {
   private readonly userId: string;
   private readonly create: (
-    location: MessageLocation,
+    location: ReplyLocation,
     payload: OutgoingPayload,
   ) => FakeMessage;
   private message: FakeMessage | undefined;
@@ -158,10 +171,7 @@ class CommandReply {
 
   constructor(
     userId: string,
-    create: (
-      location: MessageLocation,
-      payload: OutgoingPayload,
-    ) => FakeMessage,
+    create: (location: ReplyLocation, payload: OutgoingPayload) => FakeMessage,
   ) {
     this.userId = userId;
     this.create = create;
@@ -258,17 +268,20 @@ function assertInteractive(message: FakeMessage, userId: string): void {
 }
 
 /**
- * The message's only select menu of `type`, if `userId` could pick `values`
- * in it: it's enabled and takes that many values.
+ * The message's only select menu of `type` (or the one with `customId`), if
+ * `userId` could pick `values` in it: it's enabled and takes that many values.
  */
 function pickableMenu(
   message: FakeMessage,
   type: ComponentType,
   values: readonly string[],
   userId: string,
+  customId?: string,
 ): ComponentRef {
   assertInteractive(message, userId);
-  const [menu, ...others] = message.componentsOfType(type);
+  const [menu, ...others] = message
+    .componentsOfType(type)
+    .filter((menu) => customId === undefined || menu.customId === customId);
   if (menu === undefined || others.length > 0) {
     throw new Error(
       `Message ${message.id} must have exactly one ${ComponentType[type]} menu to choose from`,
@@ -298,14 +311,19 @@ export class DiscordMock {
   /** Discord users who aren't in any of the bot's guilds */
   private readonly users = new Map<string, FakeUser>();
   private readonly commands = new Map<string, RegisteredCommand>();
-  /** The bot's emoji cache: id → name */
-  private readonly emojis = new Map<string, string>();
+  /** The emojis of the bot's guilds, by id */
+  private readonly emojis = new Map<string, FakeEmoji>();
   /** guildId → its roles (besides @everyone), by id */
   private readonly guilds = new Map<string, Map<string, FakeRole>>();
   private readonly channels = new Map<string, FakeChannel>();
   private readonly messages: FakeMessage[] = [];
+  /** reply message id → the guild its interaction came from (null in a DM) */
+  private readonly replyGuilds = new Map<string, string | null>();
   private readonly failingDms = new Set<string>();
+  private readonly unpostableChannels = new Set<string>();
   private guildFetchesFail = false;
+  // the app only starts once the bot has logged in (DiscordModule waits for ClientReady)
+  private gatewayDown = false;
   private commandReplyEditsFail = false;
   private readonly pressed: Array<{ customId: string; ack: Acknowledgement }> =
     [];
@@ -402,9 +420,17 @@ export class DiscordMock {
     for (const member of this.members.values()) member.roles.delete(roleId);
   }
 
-  /** Adds a custom emoji the bot can use. */
-  addEmoji({ id, name }: { id: string; name: string }): void {
-    this.emojis.set(id, name);
+  /** Adds a custom emoji the bot can use, belonging to `guildId` (by default a server tests don't otherwise use). */
+  addEmoji({
+    id,
+    name,
+    guildId = EMOJI_GUILD_ID,
+  }: {
+    id: string;
+    name: string;
+    guildId?: string;
+  }): void {
+    this.emojis.set(id, { name, guildId });
   }
 
   /** Registers the bot's slash commands, as the bot does with Discord at startup. */
@@ -421,9 +447,19 @@ export class DiscordMock {
     this.failingDms.add(userId);
   }
 
+  /** The bot loses Send Messages in the channel: its sends there fail with the API's Missing Permissions. */
+  denySendingIn(channelId: string): void {
+    this.unpostableChannels.add(channelId);
+  }
+
   /** From now on Discord fails every guild fetch with a server error, as in an outage; interactions still work. */
   failGuildFetches(): void {
     this.guildFetchesFail = true;
+  }
+
+  /** From now on the bot's gateway connection is down, so the client isn't ready, as when discord.js loses its websocket. */
+  disconnectGateway(): void {
+    this.gatewayDown = true;
   }
 
   /** From now on Discord fails every edit of a command's reply with a server error, as in an outage; clicks still arrive. */
@@ -488,6 +524,7 @@ export class DiscordMock {
     guildId,
     commandName,
     subcommand,
+    channelId,
     options = {},
     attachments = {},
   }: {
@@ -495,6 +532,8 @@ export class DiscordMock {
     guildId: string;
     commandName: string;
     subcommand?: string;
+    /** the guild text channel the command is run in */
+    channelId?: string;
     /** option values; users, roles and channels are given by id */
     options?: Record<string, OptionValue | null>;
     attachments?: Record<string, { url: string }>;
@@ -502,35 +541,24 @@ export class DiscordMock {
     interaction: ChatInputCommandInteraction<'cached'>;
     reply: () => FakeMessage;
   } {
-    // a slash command reaches the bot only from a guild it's in, from a member
-    if (!this.guilds.has(guildId)) {
-      throw new Error(
-        `The bot is not in guild ${guildId}, so Discord can't deliver its commands`,
-      );
-    }
-    const member = this.members.get(userId);
-    if (!member) {
-      throw new Error(
-        `${userId} is not a member of guild ${guildId}, so they can't run /${commandName}`,
-      );
-    }
-    const registered = this.commands.get(commandName);
-    if (!registered) {
-      throw new Error(
-        `No /${commandName} command is registered (registered: ${[...this.commands.keys()].join(', ') || 'none'})`,
-      );
-    }
-    assertPermitted(registered, userId, member.permissions);
-    this.views.cacheMember(guildId, userId);
+    const { member, registered } = this.usableCommand(
+      userId,
+      guildId,
+      commandName,
+    );
     const resolverOptions = commandOptions(
       registered,
       { subcommand, options, attachments },
       this.optionTargets(guildId),
     );
+    const channel =
+      channelId === undefined
+        ? undefined
+        : this.commandChannel(guildId, channelId);
 
     const ack: Acknowledgement = { deferred: false, replied: false };
     const reply = new CommandReply(userId, (location, payload) =>
-      this.createMessage(location, payload),
+      this.createReply(location, payload, guildId),
     );
     const show = (payload: ReplyPayload) =>
       Promise.try(() => {
@@ -543,6 +571,8 @@ export class DiscordMock {
       mockOf<ChatInputCommandInteraction<'cached'>>({
         commandName,
         guildId,
+        guild: this.views.guild(guildId),
+        ...(channel && { channelId: channel.id, channel }),
         user: this.views.user(userId),
         member: this.views.member(guildId, member),
         memberPermissions: member.permissions,
@@ -576,14 +606,17 @@ export class DiscordMock {
             ? Promise.try(() => {
                 const { ephemeral, message } = splitReply(payload);
                 ack.replied = true;
-                return this.createMessage(
+                return this.createReply(
                   { kind: 'reply', userId, ephemeral },
                   message,
+                  guildId,
                 ).toMessage<true>();
               })
             : notReplied(),
         inCachedGuild: () => true,
+        isAutocomplete: () => false,
         isChatInputCommand: () => true,
+        isButton: () => false,
       }),
       ack,
     );
@@ -598,6 +631,66 @@ export class DiscordMock {
         return sent;
       },
     };
+  }
+
+  /**
+   * `userId` types `value` into the `focused` autocomplete option of a
+   * command, with `options` already filled in. Resolves with the choices the
+   * bot responds with.
+   */
+  autocomplete({
+    userId,
+    guildId,
+    commandName,
+    subcommand,
+    focused,
+    value,
+    options = {},
+  }: {
+    userId: string;
+    guildId: string;
+    commandName: string;
+    subcommand?: string;
+    focused: string;
+    value: string;
+    /** values of the options already filled in; users, roles and channels by id */
+    options?: Record<string, OptionValue>;
+  }): Promise<ApplicationCommandOptionChoiceData[]> {
+    const { member, registered } = this.usableCommand(
+      userId,
+      guildId,
+      commandName,
+    );
+    const resolverOptions = autocompleteOptions(
+      registered,
+      { subcommand, focused, value, options },
+      this.optionTargets(guildId),
+    );
+
+    const { promise, resolve } =
+      Promise.withResolvers<ApplicationCommandOptionChoiceData[]>();
+    let responded = false;
+    const interaction = mockOf<AutocompleteInteraction<'cached'>>({
+      commandName,
+      guildId,
+      user: this.views.user(userId),
+      member: this.views.member(guildId, member),
+      // discord.js's own resolver, so getFocused() behaves as in production
+      options: optionResolver(this.client, resolverOptions),
+      respond: (choices: ApplicationCommandOptionChoiceData[]) => {
+        if (responded) return alreadyReplied();
+        responded = true;
+        resolve(choices);
+        return Promise.resolve();
+      },
+      inCachedGuild: () => true,
+      isAutocomplete: () => true,
+      isChatInputCommand: () => false,
+      isButton: () => false,
+    });
+
+    this.client.emit(Events.InteractionCreate, interaction);
+    return promise;
   }
 
   /** `userId` reacts to `message` with `emoji` (a unicode emoji, a custom emoji or its mention). */
@@ -639,7 +732,8 @@ export class DiscordMock {
         `Button "${customId}" on message ${message.id} is disabled`,
       );
     }
-    message.dispatch(
+    this.deliver(
+      message,
       this.componentInteraction<ButtonInteraction>(
         message,
         userId,
@@ -649,11 +743,15 @@ export class DiscordMock {
     );
   }
 
-  /** Picks `values` (one, or several if it allows) in the message's only select menu. */
+  /**
+   * Picks `values` (one, or several if it allows) in the message's only select
+   * menu, or in the one with `menuId` when it has several.
+   */
   choose(
     message: FakeMessage,
     values: string | readonly string[],
     userId: string,
+    menuId?: string,
   ): void {
     this.assertKnownUser(userId);
     const picked = [values].flat();
@@ -662,6 +760,7 @@ export class DiscordMock {
       ComponentType.StringSelect,
       picked,
       userId,
+      menuId,
     );
     const unoffered = picked.filter((value) => !menu.values.includes(value));
     if (unoffered.length > 0) {
@@ -669,7 +768,8 @@ export class DiscordMock {
         `Select menu "${menu.customId}" does not offer "${unoffered.join('", "')}" (offers: ${menu.values.join(', ')})`,
       );
     }
-    message.dispatch(
+    this.deliver(
+      message,
       this.componentInteraction<StringSelectMenuInteraction>(
         message,
         userId,
@@ -701,13 +801,45 @@ export class DiscordMock {
         `Channel select menu "${menu.customId}" can't offer ${[...unknown, ...(offered(menu) ? [] : ['text channels'])].join(', ')}`,
       );
     }
-    message.dispatch(
+    this.deliver(
+      message,
       this.componentInteraction<ChannelSelectMenuInteraction>(
         message,
         userId,
         menu.customId,
         ComponentType.ChannelSelect,
         { values: [...channelIds] },
+      ),
+    );
+  }
+
+  /** Picks `roleIds` in the message's only role select menu. */
+  chooseRoles(
+    message: FakeMessage,
+    roleIds: readonly string[],
+    userId: string,
+  ): void {
+    this.assertKnownUser(userId);
+    const menu = pickableMenu(
+      message,
+      ComponentType.RoleSelect,
+      roleIds,
+      userId,
+    );
+    const unknown = roleIds.filter((id) => !this.hasRole(id));
+    if (unknown.length > 0) {
+      throw new Error(
+        `Role select menu "${menu.customId}" can't offer ${unknown.join(', ')}`,
+      );
+    }
+    this.deliver(
+      message,
+      this.componentInteraction<RoleSelectMenuInteraction>(
+        message,
+        userId,
+        menu.customId,
+        ComponentType.RoleSelect,
+        { values: [...roleIds] },
       ),
     );
   }
@@ -748,7 +880,7 @@ export class DiscordMock {
     this.pressed.push({ customId: modal.custom_id, ack });
     const submit = withAckFlags(
       mockOf<ModalSubmitInteraction>({
-        ...this.responses(message, userId, ack),
+        ...this.responses(message, userId, this.guildOf(message), ack),
         customId: modal.custom_id,
         user: this.views.user(userId),
         message: message.toMessage(),
@@ -797,6 +929,47 @@ export class DiscordMock {
 
   // --- internals
 
+  /**
+   * The command `userId` can use in `guildId`: a slash command reaches the bot
+   * only from a guild it's in, from a member, for a command the bot registered
+   * and the member has the permissions for.
+   */
+  private usableCommand(
+    userId: string,
+    guildId: string,
+    commandName: string,
+  ): { member: FakeMember; registered: RegisteredCommand } {
+    if (!this.guilds.has(guildId)) {
+      throw new Error(
+        `The bot is not in guild ${guildId}, so Discord can't deliver its commands`,
+      );
+    }
+    const member = this.members.get(userId);
+    if (!member) {
+      throw new Error(
+        `${userId} is not a member of guild ${guildId}, so they can't run /${commandName}`,
+      );
+    }
+    const registered = this.commands.get(commandName);
+    if (!registered) {
+      throw new Error(
+        `No /${commandName} command is registered (registered: ${[...this.commands.keys()].join(', ') || 'none'})`,
+      );
+    }
+    assertPermitted(registered, userId, member.permissions);
+    this.views.cacheMember(guildId, userId);
+    return { member, registered };
+  }
+
+  /** The guild's text channel a command is run in; Discord only offers a guild's commands in its own channels. */
+  private commandChannel(guildId: string, channelId: string): TextChannel {
+    const channel = this.channels.get(channelId);
+    if (channel?.guildId !== guildId) {
+      throw new Error(`${channelId} is not a channel of guild ${guildId}`);
+    }
+    return this.views.channel(channel);
+  }
+
   private createMessage(
     location: MessageLocation,
     payload: OutgoingPayload,
@@ -812,6 +985,55 @@ export class DiscordMock {
     return message;
   }
 
+  /** An interaction's reply, remembering the guild (null: a DM) the interaction came from. */
+  private createReply(
+    location: ReplyLocation,
+    payload: OutgoingPayload,
+    guildId: string | null,
+  ): FakeMessage {
+    const message = this.createMessage(location, payload);
+    this.replyGuilds.set(message.id, guildId);
+    return message;
+  }
+
+  /**
+   * The guild a component on `message` is used in: its channel's, none for a
+   * DM, and for a reply, the guild of the interaction it answered.
+   */
+  private guildOf(message: FakeMessage): string | null {
+    const { location } = message;
+    if (location.kind === 'channel') return location.guildId;
+    if (location.kind === 'dm') return null;
+    const guildId = this.replyGuilds.get(message.id);
+    if (guildId === undefined) {
+      throw new Error(`DiscordMock does not know where reply ${message.id} is`);
+    }
+    return guildId;
+  }
+
+  /**
+   * Delivers a component interaction as Discord does: to the client's
+   * InteractionCreate listeners (the app's, registered at startup, first),
+   * then to whatever discord.js collector is awaiting it on the message.
+   */
+  private deliver(message: FakeMessage, interaction: Interaction): void {
+    this.client.emit(Events.InteractionCreate, interaction);
+    message.dispatch(interaction);
+  }
+
+  /** The member using a component in `guildId`: only a guild's members can see its messages. */
+  private clicker(guildId: string, userId: string): GuildMember {
+    const member = this.members.get(userId);
+    if (!member) {
+      throw new Error(
+        `${userId} is not a member of guild ${guildId}, so they can't use its components`,
+      );
+    }
+    // discord.js caches the member an interaction comes from
+    this.views.cacheMember(guildId, userId);
+    return this.views.member(guildId, member);
+  }
+
   /** What the discord.js views read from, and do to, this fake's state. */
   private world(): FakeWorld {
     return {
@@ -823,7 +1045,9 @@ export class DiscordMock {
       user: (userId) => this.members.get(userId) ?? this.users.get(userId),
       emojis: () => this.emojis,
       canBeMessaged: (userId) => !this.failingDms.has(userId),
+      canPostIn: (channelId) => !this.unpostableChannels.has(channelId),
       guildsUnavailable: () => this.guildFetchesFail,
+      gatewayConnected: () => !this.gatewayDown,
       post: ({ guildId, id }, payload) =>
         this.createMessage(
           { kind: 'channel', guildId, channelId: id },
@@ -889,33 +1113,43 @@ export class DiscordMock {
   }
 
   /**
-   * deferUpdate/update/reply/followUp for an interaction on `message`,
-   * enforcing discord.js's rule that an interaction is answered exactly once
-   * before any follow-up.
+   * deferUpdate/update/deferReply/reply/followUp for an interaction on
+   * `message`, enforcing discord.js's rule that an interaction is answered
+   * exactly once before any follow-up.
    */
   private responses(
     message: FakeMessage,
     userId: string,
+    guildId: string | null,
     ack: Acknowledgement,
   ) {
     const post = (payload: ReplyPayload) => {
       const { ephemeral, message: reply } = splitReply(payload);
-      this.createMessage({ kind: 'reply', userId, ephemeral }, reply);
+      this.createReply({ kind: 'reply', userId, ephemeral }, reply, guildId);
     };
 
     // deferUpdate and update leave the component's message as the
-    // interaction's reply, which editReply then edits
-    const answeredOnMessage = { value: false };
-    const onMessage = () => {
-      answeredOnMessage.value = true;
-    };
+    // interaction's reply, and deferReply opens a new one; editReply edits
+    // whichever it is
+    const deferredReply = new CommandReply(userId, (location, payload) =>
+      this.createReply(location, payload, guildId),
+    );
+    let editing: 'message' | 'deferred reply' | undefined;
 
     return {
-      deferUpdate: () => answer(ack, 'deferred', onMessage),
+      deferUpdate: () =>
+        answer(ack, 'deferred', () => {
+          editing = 'message';
+        }),
       update: (payload: OutgoingPayload) =>
         answer(ack, 'replied', () => {
           message.apply(payload);
-          onMessage();
+          editing = 'message';
+        }),
+      deferReply: (options: { flags?: MessageFlagsResolvable } = {}) =>
+        answer(ack, 'deferred', () => {
+          deferredReply.defer(options.flags);
+          editing = 'deferred reply';
         }),
       reply: (payload: ReplyPayload) =>
         answer(ack, 'replied', () => post(payload)),
@@ -928,16 +1162,17 @@ export class DiscordMock {
           : notReplied(),
       editReply: (payload: OutgoingPayload) => {
         if (!answered(ack)) return notReplied();
-        if (!answeredOnMessage.value) {
+        if (editing === undefined) {
           return Promise.reject(
             new Error(
-              'DiscordMock only models editReply after deferUpdate or update',
+              'DiscordMock only models editReply after deferUpdate, update or deferReply',
             ),
           );
         }
         return Promise.try(() => {
-          message.apply(payload);
           ack.replied = true;
+          if (editing === 'deferred reply') return deferredReply.show(payload);
+          message.apply(payload);
           return message.toMessage();
         });
       },
@@ -948,7 +1183,8 @@ export class DiscordMock {
     T extends
       | ButtonInteraction
       | StringSelectMenuInteraction
-      | ChannelSelectMenuInteraction,
+      | ChannelSelectMenuInteraction
+      | RoleSelectMenuInteraction,
   >(
     message: FakeMessage,
     userId: string,
@@ -956,17 +1192,29 @@ export class DiscordMock {
     componentType: ComponentType,
     specific: Partial<Record<keyof T, unknown>> = {},
   ): T {
+    const guildId = this.guildOf(message);
+    const member = guildId === null ? null : this.clicker(guildId, userId);
     const ack: Acknowledgement = { deferred: false, replied: false };
     this.pressed.push({ customId, ack });
     return withAckFlags(
       mockOf<T>({
         ...specific,
-        ...this.responses(message, userId, ack),
+        ...this.responses(message, userId, guildId, ack),
+        // like Discord's snowflake: unique per interaction
+        id: `interaction-${this.nextId++}`,
+        guildId,
+        member,
+        // every guild the bot is in is cached; a DM's interaction has no guild
+        inCachedGuild: () => guildId !== null,
+        isMessageComponent: () => true,
+        isChatInputCommand: () => false,
+        isAutocomplete: () => false,
         componentType,
         isButton: () => componentType === ComponentType.Button,
         isStringSelectMenu: () => componentType === ComponentType.StringSelect,
         isChannelSelectMenu: () =>
           componentType === ComponentType.ChannelSelect,
+        isRoleSelectMenu: () => componentType === ComponentType.RoleSelect,
         customId,
         user: this.views.user(userId),
         message: message.toMessage(),

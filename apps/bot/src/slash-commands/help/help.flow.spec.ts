@@ -53,7 +53,7 @@ const PUBLIC_COMMANDS = Object.freeze({
 const MANAGEMENT_COMMANDS = Object.freeze({
   name: '⚙️ Management Commands',
   value:
-    '**/settings** - Configure/Review the bots roles and channel settings\n└ Subcommands: `blacklist-channels`, `channels`, `reviewer`, `encounter-roles`, `prog-point-roles`, `spreadsheet`, `view`',
+    '**/settings** - Configure/Review the bots roles and channel settings\n└ Subcommands: `blacklist-channels`, `channels`, `reviewer`, `encounter-roles`, `prog-point-roles`, `job-emojis`, `board-access`, `squad-add`, `squad-remove`, `spreadsheet`, `view`',
   inline: false,
 });
 
@@ -63,6 +63,7 @@ const ADMINISTRATOR_COMMANDS = Object.freeze({
     '**/blacklist** - Manage the blacklist\n└ Subcommands: `add`, `remove`, `display`',
     '**/clean-roles** - Remove clear/prog roles from members without active signups',
     '**/encounters** - View encounter configuration\n└ Subcommands: `view`',
+    '**/event** - Create and manage events\n└ Subcommands: `create`, `close`, `sync`, `schedule-create`, `schedule-edit`, `schedule-list`, `schedule-pause`, `schedule-resume`, `schedule-delete`',
     '**/lookup** - lookup a players signup information, including encounters, prog points, etc.',
     '**/remove-role** - Warning! This command will remove the selected role from all guild members',
     '**/retire** - Retire all members of the current helper role',
@@ -127,7 +128,7 @@ describe('Help', () => {
           flow,
           ADMIN.id,
           [PUBLIC_COMMANDS, MANAGEMENT_COMMANDS, ADMINISTRATOR_COMMANDS],
-          'Showing 12 available commands • You have Administrator permissions',
+          'Showing 13 available commands • You have Administrator permissions',
         ),
       );
     });

@@ -1,0 +1,57 @@
+import { Injectable } from '@nestjs/common';
+import { SentryTraced } from '@sentry/nestjs';
+import {
+  type AutocompleteInteraction,
+  type ChatInputCommandInteraction,
+  MessageFlags,
+} from 'discord.js';
+import {
+  autocompleteSchedules,
+  pickedSchedule,
+  SCHEDULE_MISSING,
+} from '../../../events/schedules/picked-schedule.js';
+import { EventSchedulesCollection } from '../../../firebase/collections/event-schedules.collection.js';
+import { SlashCommand } from '../../slash-command.decorator.js';
+import type { ISlashCommand } from '../../slash-command.interface.js';
+import { EventSlashCommand } from '../event.slash-command.js';
+
+@Injectable()
+@SlashCommand({ builder: EventSlashCommand, subcommand: 'schedule-pause' })
+class SchedulePauseCommandHandler implements ISlashCommand {
+  constructor(private readonly schedulesCollection: EventSchedulesCollection) {}
+
+  @SentryTraced()
+  async execute(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const schedule = await pickedSchedule(
+      this.schedulesCollection,
+      interaction,
+    );
+    if (!schedule) {
+      await interaction.editReply(SCHEDULE_MISSING);
+      return;
+    }
+    if (schedule.paused) {
+      await interaction.editReply(`**${schedule.title}** is already paused.`);
+      return;
+    }
+
+    const paused = await this.schedulesCollection.setPaused(
+      schedule.id,
+      true,
+      new Date(),
+    );
+    await interaction.editReply(
+      paused ? `Paused **${paused.title}**.` : SCHEDULE_MISSING,
+    );
+  }
+
+  autocomplete(interaction: AutocompleteInteraction<'cached'>): Promise<void> {
+    return autocompleteSchedules(this.schedulesCollection, interaction);
+  }
+}
+
+export { SchedulePauseCommandHandler };

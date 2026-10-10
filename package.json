@@ -41,14 +41,17 @@
     "@commitlint/config-conventional": "catalog:",
     "@commitlint/cz-commitlint": "catalog:",
     "@dotenvx/dotenvx": "catalog:",
+    "@solidjs/testing-library": "catalog:",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/ui": "catalog:",
     "commitizen": "catalog:",
+    "jsdom": "catalog:",
     "knip": "catalog:",
     "lefthook": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-plugin-solid": "catalog:",
     "vitest": "catalog:"
   },
   "config": {

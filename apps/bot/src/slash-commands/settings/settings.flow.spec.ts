@@ -16,6 +16,7 @@ import {
   textReply,
 } from '../../test-utils/replies.js';
 import { BLACKLIST_CHANNELS_SELECT_ID } from './subcommands/blacklist-channels/blacklist-channels.components.js';
+import { BOARD_ACCESS_SELECT_ID } from './subcommands/board-access/edit-board-access.command-handler.js';
 import { PROG_POINT_ROLES_SELECT_ID } from './subcommands/prog-point-roles/edit-prog-point-roles.command-handler.js';
 import {
   SETTINGS_VIEW_ENCOUNTER_ROLES_BUTTON_ID,
@@ -47,6 +48,10 @@ const CLEAR_ROLE = 'dmu-clear-role';
 const P6_ROLE = 'dmu-p6-role';
 const TOP_PROG_ROLE = 'top-prog-role';
 const TOP_CLEAR_ROLE = 'top-clear-role';
+const VIEWER_ROLE = 'viewer-role';
+const OFFICER_ROLE = 'officer-role';
+const FROG_ROLE = 'frog-role';
+const TOAD_ROLE = 'toad-role';
 
 /** Settings a guild has once an admin has configured everything but spreadsheets. */
 const CONFIGURED = Object.freeze({
@@ -77,6 +82,10 @@ function givenAGuild(flow: FlowApp): void {
     P6_ROLE,
     TOP_PROG_ROLE,
     TOP_CLEAR_ROLE,
+    VIEWER_ROLE,
+    OFFICER_ROLE,
+    FROG_ROLE,
+    TOAD_ROLE,
   ]) {
     flow.discord.addRole(GUILD, { id, name: id });
   }
@@ -546,6 +555,405 @@ describe('Settings', () => {
     });
   });
 
+  describe('board-access', () => {
+    const INSTRUCTIONS =
+      'Select the roles that can view the coordinator board. Squad roles can always view it.';
+
+    /** The role menu, with `selected` as its current roles. */
+    const roleMenu = (selected: string[]) => ({
+      type: ComponentType.ActionRow,
+      components: [
+        {
+          type: ComponentType.RoleSelect,
+          custom_id: BOARD_ACCESS_SELECT_ID,
+          placeholder: 'Select board viewer roles',
+          min_values: 0,
+          max_values: 25,
+          default_values: selected.map((id) => ({ id, type: 'role' })),
+        },
+      ],
+    });
+
+    const pick = async (
+      flow: FlowApp,
+      reply: Awaited<ReturnType<typeof settings>>,
+      roleIds: string[],
+    ) => {
+      flow.discord.chooseRoles(reply(), roleIds, ADMIN.id);
+      await flow.settle();
+    };
+
+    describe('when an admin opens the menu', () => {
+      it('shows them, privately, the current board viewer roles', async ({
+        flow,
+      }) => {
+        flow.db.seed(SETTINGS_PATH, { boardViewerRoles: [VIEWER_ROLE] });
+
+        await settings(flow, 'board-access');
+
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            content: INSTRUCTIONS,
+            components: [roleMenu([VIEWER_ROLE])],
+          }),
+        ]);
+      });
+    });
+
+    describe('when the admin picks two roles', () => {
+      it.beforeEach(async ({ flow }) => {
+        const reply = await settings(flow, 'board-access');
+        await pick(flow, reply, [VIEWER_ROLE, OFFICER_ROLE]);
+      });
+
+      it('stores them as the board viewer roles', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          boardViewerRoles: [VIEWER_ROLE, OFFICER_ROLE],
+        });
+      });
+
+      it('confirms them under the menu, which keeps them selected', ({
+        flow,
+      }) => {
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            content: `${INSTRUCTIONS}\n\nSaved! Board viewers: <@&${VIEWER_ROLE}>, <@&${OFFICER_ROLE}>`,
+            components: [roleMenu([VIEWER_ROLE, OFFICER_ROLE])],
+          }),
+        ]);
+      });
+    });
+
+    describe('when the admin picks no roles', () => {
+      it.beforeEach(async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, { boardViewerRoles: [VIEWER_ROLE] });
+        const reply = await settings(flow, 'board-access');
+        await pick(flow, reply, []);
+      });
+
+      it('stores that no extra role views the board', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          boardViewerRoles: [],
+        });
+      });
+
+      it('confirms only squad roles can view the board', ({ flow }) => {
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            content: `${INSTRUCTIONS}\n\nSaved! Only squad roles can view the board.`,
+            components: [roleMenu([])],
+          }),
+        ]);
+      });
+    });
+
+    describe('when the menu expires', () => {
+      it('says so and removes the menu', async ({ flow }) => {
+        await settings(flow, 'board-access');
+
+        flow.discord.expireAll();
+        await flow.settle();
+
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            content:
+              'This menu has expired. Run /settings board-access again if needed.',
+          }),
+        ]);
+      });
+    });
+  });
+
+  describe('squads', () => {
+    const FROGS = Object.freeze({
+      name: 'Frogs',
+      tag: 'FRG',
+      color: '#16a34a',
+      roleId: FROG_ROLE,
+    });
+    const TOADS = Object.freeze({
+      name: 'Toads',
+      tag: 'TOD',
+      color: '#a16207',
+      roleId: TOAD_ROLE,
+    });
+
+    const addSquad = (
+      flow: FlowApp,
+      squad: { name: string; tag: string; color: string; role: string },
+    ) => settings(flow, 'squad-add', squad);
+
+    const privately = (content: string) =>
+      textReply(ADMIN.id, content, { ephemeral: true });
+
+    describe('when an admin adds a squad', () => {
+      it.beforeEach(async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, { squads: { frg: FROGS } });
+        await addSquad(flow, {
+          name: 'Toads',
+          tag: ' tod ',
+          color: '#A16207',
+          role: TOAD_ROLE,
+        });
+      });
+
+      it('stores it under its tag, beside the others', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          squads: { frg: FROGS, tod: TOADS },
+        });
+      });
+
+      it('confirms privately', ({ flow }) => {
+        expect(repliesToAdmin(flow)).toEqual([
+          privately(`Added **Toads** (TOD) for <@&${TOAD_ROLE}>.`),
+        ]);
+      });
+    });
+
+    describe.each([
+      [
+        'the tag is not 2–4 letters or digits',
+        { tag: 'FROGS' },
+        'Squad tags are 2–4 letters or digits, like FRG.',
+      ],
+      [
+        'the colour is not a hex colour',
+        { color: 'green' },
+        'Colours look like #16a34a.',
+      ],
+      ['another squad has the tag', { tag: 'frg' }, 'FRG is already a squad.'],
+      [
+        'another squad has the role',
+        { role: FROG_ROLE },
+        `<@&${FROG_ROLE}> already belongs to Frogs.`,
+      ],
+    ])('when %s', (_scenario, change, refusal) => {
+      it('refuses the squad and stores nothing', async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, { squads: { frg: FROGS } });
+
+        await addSquad(flow, {
+          name: 'Toads',
+          tag: 'TOD',
+          color: '#a16207',
+          role: TOAD_ROLE,
+          ...change,
+        });
+
+        expect({
+          stored: flow.db.read(SETTINGS_PATH),
+          replies: repliesToAdmin(flow),
+        }).toEqual({
+          stored: { squads: { frg: FROGS } },
+          replies: [privately(refusal)],
+        });
+      });
+    });
+
+    describe('when the name is longer than 50 characters', () => {
+      it("can't be sent", ({ flow }) => {
+        expect(() =>
+          flow.discord.command({
+            userId: ADMIN.id,
+            guildId: GUILD,
+            commandName: 'settings',
+            subcommand: 'squad-add',
+            options: {
+              name: 'F'.repeat(51),
+              tag: 'TOD',
+              color: '#a16207',
+              role: TOAD_ROLE,
+            },
+          }),
+        ).toThrow('name');
+      });
+    });
+
+    describe('when an admin removes a squad', () => {
+      it.beforeEach(async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, { squads: { frg: FROGS, tod: TOADS } });
+        await settings(flow, 'squad-remove', { squad: 'frg' });
+      });
+
+      it('keeps only the others', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          squads: { tod: TOADS },
+        });
+      });
+
+      it('confirms privately', ({ flow }) => {
+        expect(repliesToAdmin(flow)).toEqual([privately('Removed **Frogs**.')]);
+      });
+    });
+
+    describe("when an admin removes a squad that doesn't exist", () => {
+      it('says so and stores nothing', async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, { squads: { frg: FROGS } });
+
+        await settings(flow, 'squad-remove', { squad: 'missing' });
+
+        expect({
+          stored: flow.db.read(SETTINGS_PATH),
+          replies: repliesToAdmin(flow),
+        }).toEqual({
+          stored: { squads: { frg: FROGS } },
+          replies: [privately("That squad doesn't exist.")],
+        });
+      });
+    });
+
+    describe('when an admin types into the squad to remove', () => {
+      const typed = (flow: FlowApp, value: string) =>
+        flow.discord.autocomplete({
+          userId: ADMIN.id,
+          guildId: GUILD,
+          commandName: 'settings',
+          subcommand: 'squad-remove',
+          focused: 'squad',
+          value,
+        });
+
+      it.beforeEach(({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, { squads: { tod: TOADS, frg: FROGS } });
+        flow.db.seed('settings/other-guild', {
+          squads: { oth: { ...FROGS, name: 'Others', tag: 'OTH' } },
+        });
+      });
+
+      it("offers this server's squads by name and tag", async ({ flow }) => {
+        expect(await typed(flow, '')).toEqual([
+          { name: 'Frogs (FRG)', value: 'frg' },
+          { name: 'Toads (TOD)', value: 'tod' },
+        ]);
+      });
+
+      it('offers only the squads matching what was typed', async ({ flow }) => {
+        expect(await typed(flow, 'tod')).toEqual([
+          { name: 'Toads (TOD)', value: 'tod' },
+        ]);
+      });
+    });
+  });
+
+  describe('job-emojis', () => {
+    const SGE_EMOJI = '123456789012345678';
+    const WHM_EMOJI = '223456789012345678';
+
+    describe("when an admin sets a job emoji from the server's emojis", () => {
+      it.beforeEach(async ({ flow }) => {
+        flow.discord.addEmoji({ id: SGE_EMOJI, name: 'sge', guildId: GUILD });
+        await settings(flow, 'job-emojis', {
+          job: 'SGE',
+          emoji: `<:sge:${SGE_EMOJI}>`,
+        });
+      });
+
+      it('stores the emoji id for that job', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          jobEmojis: { SGE: SGE_EMOJI },
+        });
+      });
+
+      it('confirms privately', ({ flow }) => {
+        expect(repliesToAdmin(flow)).toEqual([
+          textReply(ADMIN.id, `Sage (SGE) now shows as <:SGE:${SGE_EMOJI}>`, {
+            ephemeral: true,
+          }),
+        ]);
+      });
+    });
+
+    describe('when an admin clears a job emoji', () => {
+      it.beforeEach(async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, {
+          jobEmojis: { SGE: SGE_EMOJI, WHM: WHM_EMOJI },
+        });
+        await settings(flow, 'job-emojis', { job: 'SGE' });
+      });
+
+      it('removes only that job', ({ flow }) => {
+        expect(flow.db.read(SETTINGS_PATH)).toEqual({
+          jobEmojis: { WHM: WHM_EMOJI },
+        });
+      });
+
+      it('confirms privately that it shows as the job code', ({ flow }) => {
+        expect(repliesToAdmin(flow)).toEqual([
+          textReply(ADMIN.id, 'Sage (SGE) now shows as `SGE`', {
+            ephemeral: true,
+          }),
+        ]);
+      });
+    });
+
+    describe("when the emoji is not one of the server's", () => {
+      it('refuses it and stores nothing', async ({ flow }) => {
+        flow.discord.addEmoji({ id: SGE_EMOJI, name: 'sge' });
+
+        await settings(flow, 'job-emojis', {
+          job: 'SGE',
+          emoji: `<:sge:${SGE_EMOJI}>`,
+        });
+
+        expect({
+          stored: flow.db.read(SETTINGS_PATH),
+          replies: repliesToAdmin(flow),
+        }).toEqual({
+          stored: undefined,
+          replies: [
+            textReply(
+              ADMIN.id,
+              "I can't use that emoji. Pick one from this server.",
+              { ephemeral: true },
+            ),
+          ],
+        });
+      });
+    });
+
+    describe('when the emoji is not a custom emoji', () => {
+      it('refuses it and stores nothing', async ({ flow }) => {
+        await settings(flow, 'job-emojis', { job: 'SGE', emoji: '🙂' });
+
+        expect({
+          stored: flow.db.read(SETTINGS_PATH),
+          replies: repliesToAdmin(flow),
+        }).toEqual({
+          stored: undefined,
+          replies: [
+            textReply(
+              ADMIN.id,
+              'That isn’t a custom emoji. Paste the emoji itself, or its id.',
+              { ephemeral: true },
+            ),
+          ],
+        });
+      });
+    });
+
+    describe('when the emoji is animated', () => {
+      it('refuses it and stores nothing', async ({ flow }) => {
+        await settings(flow, 'job-emojis', {
+          job: 'SGE',
+          emoji: `<a:spin:${SGE_EMOJI}>`,
+        });
+
+        expect({
+          stored: flow.db.read(SETTINGS_PATH),
+          replies: repliesToAdmin(flow),
+        }).toEqual({
+          stored: undefined,
+          replies: [
+            textReply(
+              ADMIN.id,
+              "Animated emojis aren't supported. Use a static custom emoji.",
+              { ephemeral: true },
+            ),
+          ],
+        });
+      });
+    });
+  });
+
   describe('view', () => {
     /** The section buttons, with `active` disabled as the one shown. */
     const navRow = (
@@ -587,7 +995,12 @@ describe('Settings', () => {
     });
 
     /** The overview of the CONFIGURED settings, with `spreadsheetFields` among them. */
-    const overview = (spreadsheetFields: unknown[] = []) => ({
+    const overview = (
+      spreadsheetFields: unknown[] = [],
+      jobEmojis = 'Not set',
+      boardViewers = 'Not set',
+      squads = 'Not set',
+    ) => ({
       title: 'Settings',
       description:
         'Ulti-Project Bot Settings — use the buttons below to view role mappings',
@@ -601,6 +1014,9 @@ describe('Settings', () => {
         field('Prog Roles', '1 encounter configured'),
         field('Clear Roles', '1 encounter configured'),
         field('Prog Point Roles', '1 encounter configured (2 prog points)'),
+        field('Job emojis', jobEmojis),
+        field('Board viewers', boardViewers),
+        field('Squads', squads),
       ],
     });
 
@@ -654,6 +1070,85 @@ describe('Settings', () => {
         expect(repliesToAdmin(flow)).toEqual([
           privateReply(ADMIN.id, {
             embeds: [overview()],
+            components: [navRow('overview')],
+          }),
+        ]);
+      });
+
+      it('lists the jobs with an emoji, in job order', async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, {
+          ...CONFIGURED,
+          jobEmojis: { WHM: '223456789012345678', PLD: '123456789012345678' },
+        });
+
+        await view(flow);
+
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            embeds: [
+              overview(
+                [],
+                '<:PLD:123456789012345678> PLD <:WHM:223456789012345678> WHM',
+              ),
+            ],
+            components: [navRow('overview')],
+          }),
+        ]);
+      });
+
+      it('lists the board viewer roles', async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, {
+          ...CONFIGURED,
+          boardViewerRoles: [VIEWER_ROLE, OFFICER_ROLE],
+        });
+
+        await view(flow);
+
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            embeds: [
+              overview(
+                [],
+                'Not set',
+                `<@&${VIEWER_ROLE}>, <@&${OFFICER_ROLE}>`,
+              ),
+            ],
+            components: [navRow('overview')],
+          }),
+        ]);
+      });
+
+      it('lists the squads by tag', async ({ flow }) => {
+        flow.db.seed(SETTINGS_PATH, {
+          ...CONFIGURED,
+          squads: {
+            tod: {
+              name: 'Toads',
+              tag: 'TOD',
+              color: '#a16207',
+              roleId: TOAD_ROLE,
+            },
+            frg: {
+              name: 'Frogs',
+              tag: 'FRG',
+              color: '#16a34a',
+              roleId: FROG_ROLE,
+            },
+          },
+        });
+
+        await view(flow);
+
+        expect(repliesToAdmin(flow)).toEqual([
+          privateReply(ADMIN.id, {
+            embeds: [
+              overview(
+                [],
+                'Not set',
+                'Not set',
+                `FRG · Frogs · <@&${FROG_ROLE}>\nTOD · Toads · <@&${TOAD_ROLE}>`,
+              ),
+            ],
             components: [navRow('overview')],
           }),
         ]);
@@ -858,6 +1353,11 @@ describe('Settings', () => {
     ['spreadsheet', { 'spreadsheet-id': 'sheet-1' }],
     ['prog-point-roles', { encounter: Encounter.DMU, role: P6_ROLE }],
     ['blacklist-channels', {}],
+    [
+      'squad-add',
+      { name: 'Frogs', tag: 'FRG', color: '#16a34a', role: FROG_ROLE },
+    ],
+    ['squad-remove', { squad: 'frg' }],
     ['view', {}],
   ])('%s, when Firestore cannot be reached', (subcommand, options) => {
     it('replies with a command error, privately', async ({ flow }) => {

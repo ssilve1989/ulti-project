@@ -15,6 +15,12 @@ auto_start_machines = true
 min_machines_running = 1
 processes = ['app']
 
+# Fly sets no hard limit by default; cap connections (each board tab holds an SSE stream) so a flood can't swamp the bot
+[http_service.concurrency]
+type = "connections"
+soft_limit = 200
+hard_limit = 250
+
 [[vm]]
 cpu_kind = 'shared'
 cpus = 1

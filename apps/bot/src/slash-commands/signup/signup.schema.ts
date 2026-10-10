@@ -17,12 +17,24 @@ const PROG_PROOF_HOSTNAME = new RegExp(
   `^(?:.+\\.)?(?:${PROG_PROOF_HOSTS_WHITELIST.map((host) => host.replaceAll('.', '\\.')).join('|')})$`,
 );
 
+/** A character name, stored lowercase. */
+export const characterSchema = z
+  .string()
+  .min(1)
+  .transform((str) => str.toLowerCase());
+
+/** An NA world, stored lowercase. */
+export const worldSchema = z
+  .string()
+  .transform((str) => str.toLowerCase())
+  .refine(
+    (val) => NorthAmericanWorlds.has(val),
+    'Invalid World. Please check the spelling and make sure it is a valid world in the NA Region',
+  );
+
 export const signupSchema = z
   .object({
-    character: z
-      .string()
-      .min(1)
-      .transform((str) => str.toLowerCase()),
+    character: characterSchema,
 
     discordId: z.string().min(1),
 
@@ -58,13 +70,7 @@ export const signupSchema = z
       .min(1)
       .transform((str) => str.toLowerCase()),
 
-    world: z
-      .string()
-      .transform((str) => str.toLowerCase())
-      .refine(
-        (val) => NorthAmericanWorlds.has(val),
-        'Invalid World. Please check the spelling and make sure it is a valid world in the NA Region',
-      ),
+    world: worldSchema,
   })
   .check((ctx) => {
     const rawProofLink = ctx.value.proofOfProgLink;

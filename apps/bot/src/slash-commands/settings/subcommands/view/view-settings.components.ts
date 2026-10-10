@@ -2,6 +2,7 @@ import {
   type Encounter,
   EncounterFriendlyDescription,
   isEncounter,
+  JOBS,
 } from '@ulti-project/shared';
 import type { APIEmbedField } from 'discord.js';
 import {
@@ -13,6 +14,7 @@ import {
   roleMention,
   StringSelectMenuBuilder,
 } from 'discord.js';
+import { squadsOf } from '../../../../board/squads.js';
 import {
   getBlacklistChannelIds,
   type SettingsDocument,
@@ -154,6 +156,23 @@ export function createProgPointSectionComponents(
   return components;
 }
 
+function formatJobEmojis(jobEmojis: SettingsDocument['jobEmojis']): string {
+  const entries = JOBS.flatMap((job) => {
+    const emojiId = jobEmojis?.[job];
+    return emojiId ? [`<:${job}:${emojiId}> ${job}`] : [];
+  });
+  return entries.length ? entries.join(' ') : 'Not set';
+}
+
+function formatSquads(settings: SettingsDocument): string {
+  const lines = squadsOf(settings).map(
+    ({ tag, name, roleId }) => `${tag} · ${name} · ${roleMention(roleId)}`,
+  );
+  return lines.length
+    ? buildTruncatedList(lines, EMBED_FIELD_VALUE_LIMIT)
+    : 'Not set';
+}
+
 function countConfiguredRoles(
   roleSettings: Record<string, string | undefined> | undefined,
 ): number {
@@ -175,7 +194,9 @@ export function buildOverviewEmbed(
 ): EmbedBuilder {
   const {
     autoModChannelId,
+    boardViewerRoles,
     clearRoles,
+    jobEmojis,
     progPointRoles,
     progRoles,
     reviewChannel,
@@ -238,6 +259,23 @@ export function buildOverviewEmbed(
       value: progPointEncounters.length
         ? `${summarizeEncounterCount(progPointEncounters.length)} (${progPointCount} prog points)`
         : 'None configured',
+      inline: true,
+    },
+    {
+      name: 'Job emojis',
+      value: formatJobEmojis(jobEmojis),
+      inline: true,
+    },
+    {
+      name: 'Board viewers',
+      value: boardViewerRoles?.length
+        ? boardViewerRoles.map(roleMention).join(', ')
+        : 'Not set',
+      inline: true,
+    },
+    {
+      name: 'Squads',
+      value: formatSquads(settings),
       inline: true,
     },
   ];

@@ -1,5 +1,8 @@
 import { Test } from '@nestjs/testing';
-import type { ChatInputCommandInteraction } from 'discord.js';
+import type {
+  ChatInputCommandInteraction,
+  MessageComponentInteraction,
+} from 'discord.js';
 import {
   afterEach,
   beforeEach,
@@ -142,6 +145,26 @@ describe('ErrorService', () => {
           commandName: 'test-command',
           userId: 'user123',
           guildId: null,
+        },
+        'Command error: Test error',
+      );
+    });
+
+    test('logs the clicked component’s id for a component interaction', () => {
+      const error = new Error('Test error');
+      const click = mockOf<MessageComponentInteraction>({
+        customId: 'event:signup:event-1',
+        user: { id: 'user123' },
+        guildId: 'guild456',
+      });
+
+      service.handleCommandError(error, click);
+
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        {
+          customId: 'event:signup:event-1',
+          userId: 'user123',
+          guildId: 'guild456',
         },
         'Command error: Test error',
       );

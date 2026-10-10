@@ -18,6 +18,15 @@ export function initTestSentry(): void {
 }
 
 /**
+ * Runs a test in forks of Sentry's isolation and current scopes, for
+ * `aroundEach`: spec files share the scopes (isolate: false), so a user or
+ * context one test sets never reaches the next's reports.
+ */
+export function inFreshSentryScopes(runTest: () => Promise<void>) {
+  return Sentry.withIsolationScope(() => Sentry.withScope(() => runTest()));
+}
+
+/**
  * Calls `watch` with every event Sentry sends (after the scope's event
  * processors) until the returned function is called. Watchers live on the
  * client, which spec files share even when they re-evaluate this module.
@@ -28,4 +37,28 @@ export function watchSentryEvents(
   const client = Sentry.getClient();
   if (!client) throw new Error('Sentry is not initialised (initTestSentry)');
   return client.on('beforeSendEvent', watch);
+}
+
+/** Whether Sentry adds this attribute to every metric itself (its SDK, the host). */
+const isSdkAttribute = (key: string) =>
+  key.startsWith('sentry.') || key === 'server.address';
+
+/**
+ * Calls `watch` with every metric the app records, as it passed it to
+ * `Sentry.metrics` (without the attributes Sentry adds to each), until the
+ * returned function is called.
+ */
+export function watchSentryMetrics(
+  watch: (metric: Sentry.Metric) => void,
+): () => void {
+  const client = Sentry.getClient();
+  if (!client) throw new Error('Sentry is not initialised (initTestSentry)');
+  return client.on('processMetric', ({ attributes = {}, ...metric }) =>
+    watch({
+      ...metric,
+      attributes: Object.fromEntries(
+        Object.entries(attributes).filter(([key]) => !isSdkAttribute(key)),
+      ),
+    }),
+  );
 }

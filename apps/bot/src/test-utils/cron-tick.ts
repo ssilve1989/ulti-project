@@ -1,5 +1,32 @@
-import type { CronJob } from 'cron';
-import type { MockInstance } from 'vitest';
+import { CronJob } from 'cron';
+import { type MockInstance, vi } from 'vitest';
+import { fresh } from './fixtures.js';
+
+/** The spies `spiedCron` puts on cron. */
+export interface SpiedCron {
+  from: MockInstance<typeof CronJob.from>;
+  start: MockInstance<CronJob['start']>;
+}
+
+/**
+ * A fixture (for `test.extend`) that spies `CronJob.from` and makes `start` do
+ * nothing. Make the app's fixture depend on it, so the spy sees the jobs built
+ * at boot: `runTick(cron.from)` then runs a tick, and cron never schedules a
+ * real one that could fire mid-test.
+ */
+export const spiedCron = () =>
+  fresh<SpiedCron>(
+    () => ({
+      start: vi
+        .spyOn(CronJob.prototype, 'start')
+        .mockImplementation(() => undefined),
+      from: vi.spyOn(CronJob, 'from'),
+    }),
+    ({ start, from }) => {
+      start.mockRestore();
+      from.mockRestore();
+    },
+  );
 
 /**
  * Runs the `onTick` most recently handed to a spied `CronJob.from`. For a job
