@@ -54,7 +54,7 @@ catalog:
   google-auth-library: ^10.9.1
   graphql: ^16.14.2
   graphql-request: ^7.4.0
-  knip: ^6.38.0
+  knip: ^6.40.0
   lefthook: ^2.1.15
   nestjs-pino: ^5.2.1
   nock: ^14.0.17
