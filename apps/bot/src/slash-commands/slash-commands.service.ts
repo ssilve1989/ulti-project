@@ -1,12 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import {
-  ChatInputCommandInteraction,
-  Client,
-  Events,
-  REST,
-  Routes,
-} from 'discord.js';
+import { Client, Events, REST, Routes } from 'discord.js';
 import {
   catchError,
   defer,
@@ -20,7 +14,6 @@ import {
 import { withUnitOfWork } from '../common/sentry.js';
 import { appConfig } from '../config/app.js';
 import { InjectDiscordClient } from '../discord/discord.decorators.js';
-import { replyPrivately } from '../discord/discord.helpers.js';
 import { ErrorService } from '../error/error.service.js';
 import { SlashCommandRegistry } from './slash-command-registry.service.js';
 
@@ -36,6 +29,17 @@ class SlashCommandsService {
 
   listenToCommands() {
     this.client.on(Events.InteractionCreate, (interaction) => {
+      if (interaction.isAutocomplete() && interaction.inCachedGuild()) {
+        void this.registry
+          .dispatchAutocomplete(interaction)
+          .catch((error: unknown) =>
+            this.errorService.captureError(error, {
+              message: `autocomplete for /${interaction.commandName} failed`,
+            }),
+          );
+        return;
+      }
+
       if (!(interaction.isChatInputCommand() && interaction.inCachedGuild())) {
         return;
       }
@@ -72,7 +76,7 @@ class SlashCommandsService {
                 await this.registry.dispatch(interaction);
                 span.setStatus({ code: 1 });
               } catch (err) {
-                await this.handleCommandError(err, interaction);
+                await this.errorService.replyWithError(err, interaction);
                 span.setStatus({ code: 2 });
               } finally {
                 span.end();
@@ -128,27 +132,6 @@ class SlashCommandsService {
         return EMPTY;
       }),
     );
-  }
-
-  private async handleCommandError(
-    err: unknown,
-    interaction: ChatInputCommandInteraction,
-  ): Promise<void> {
-    const errorEmbed = this.errorService.handleCommandError(err, interaction);
-    // clear any buttons or menus the command was still showing
-    const payload = { embeds: [errorEmbed], components: [] };
-
-    try {
-      await replyPrivately(interaction, payload);
-    } catch (replyError) {
-      this.logger.error(
-        {
-          originalError: err,
-          replyError,
-        },
-        'Failed to send error response',
-      );
-    }
   }
 }
 

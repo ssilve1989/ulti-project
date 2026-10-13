@@ -1,6 +1,7 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
 import type {
+  AutocompleteInteraction,
   ChatInputCommandInteraction,
   SlashCommandBuilder,
   SlashCommandOptionsOnlyBuilder,
@@ -46,7 +47,7 @@ class SlashCommandRegistry implements OnModuleInit {
 
       for (const opts of entries) {
         const name = opts.builder.name;
-        const key = opts.subcommand ? `${name}:${opts.subcommand}` : name;
+        const key = this.keyOf(name, opts.subcommand);
         if (!isISlashCommand(wrapper.instance)) {
           this.logger.warn(
             `${wrapper.metatype.name} is decorated with @SlashCommand but does not implement ISlashCommand — skipping`,
@@ -66,15 +67,32 @@ class SlashCommandRegistry implements OnModuleInit {
   async dispatch(
     interaction: ChatInputCommandInteraction<'cached'>,
   ): Promise<void> {
-    const sub = interaction.options.getSubcommand(false);
-    const key = sub
-      ? `${interaction.commandName}:${sub}`
-      : interaction.commandName;
-
-    const handler = this.commandMap.get(key);
+    const handler = this.commandMap.get(
+      this.keyOf(
+        interaction.commandName,
+        interaction.options.getSubcommand(false),
+      ),
+    );
     if (!handler) return;
 
     await handler.execute(interaction);
+  }
+
+  async dispatchAutocomplete(
+    interaction: AutocompleteInteraction<'cached'>,
+  ): Promise<void> {
+    const handler = this.commandMap.get(
+      this.keyOf(
+        interaction.commandName,
+        interaction.options.getSubcommand(false),
+      ),
+    );
+    if (!handler?.autocomplete) return interaction.respond([]);
+    await handler.autocomplete(interaction);
+  }
+
+  private keyOf(name: string, sub: string | null | undefined): string {
+    return sub ? `${name}:${sub}` : name;
   }
 
   getAllBuilders(): (

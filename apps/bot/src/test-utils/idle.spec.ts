@@ -105,6 +105,25 @@ describe('waitUntilIdle', () => {
     await expect(settledBody(body)).resolves.toBe('first part and the rest');
   });
 
+  it('stops waiting for an event stream once it is open', async ({
+    tracker,
+    serve,
+  }) => {
+    const url = await serve((_request, response) => {
+      response.writeHead(200, { 'content-type': 'text/event-stream' });
+      response.write(': open\n\n');
+    });
+    const opened = new Promise<void>((resolve) => {
+      // the server never ends it: the fixture cuts it off when it stops the server
+      get(url, () => resolve()).on('error', () => {});
+    });
+    await opened;
+
+    await expect(
+      Promise.race([waitUntilIdle(tracker), sleep(1_000, 'still waiting')]),
+    ).resolves.toBeUndefined();
+  });
+
   // nock swaps http.ClientRequest while it intercepts, and the ESM view of
   // node:http can keep its class after it restores, so requests are
   // recognised by shape, not by class

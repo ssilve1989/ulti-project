@@ -5,11 +5,15 @@ import { ErrorModule } from '../../error/error.module.js';
 import { FirebaseModule } from '../../firebase/firebase.module.js';
 import { SheetsModule } from '../../sheets/sheets.module.js';
 import { EditBlacklistChannelsCommandHandler } from './subcommands/blacklist-channels/edit-blacklist-channels.command-handler.js';
+import { EditBoardAccessCommandHandler } from './subcommands/board-access/edit-board-access.command-handler.js';
 import { EditChannelsCommandHandler } from './subcommands/channels/edit-channels.command-handler.js';
+import { EditJobEmojisCommandHandler } from './subcommands/job-emojis/edit-job-emojis.command-handler.js';
 import { EditProgPointRolesCommandHandler } from './subcommands/prog-point-roles/edit-prog-point-roles.command-handler.js';
 import { EditReviewerCommandHandler } from './subcommands/reviewer/edit-reviewer.command-handler.js';
 import { EditEncounterRolesCommandHandler } from './subcommands/roles/edit-encounter-roles.command-handler.js';
 import { EditSpreadsheetCommandHandler } from './subcommands/spreadsheet/edit-spreadsheet.command-handler.js';
+import { AddSquadCommandHandler } from './subcommands/squads/add-squad.command-handler.js';
+import { RemoveSquadCommandHandler } from './subcommands/squads/remove-squad.command-handler.js';
 import { ViewSettingsCommandHandler } from './subcommands/view/view-settings.command-handler.js';
 
 @Module({
@@ -21,11 +25,15 @@ import { ViewSettingsCommandHandler } from './subcommands/view/view-settings.com
     EncountersModule,
   ],
   providers: [
+    AddSquadCommandHandler,
     EditBlacklistChannelsCommandHandler,
+    EditBoardAccessCommandHandler,
     EditChannelsCommandHandler,
     EditEncounterRolesCommandHandler,
+    EditJobEmojisCommandHandler,
     EditProgPointRolesCommandHandler,
     EditReviewerCommandHandler,
+    RemoveSquadCommandHandler,
     EditSpreadsheetCommandHandler,
     ViewSettingsCommandHandler,
   ],

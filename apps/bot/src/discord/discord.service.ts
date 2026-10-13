@@ -15,6 +15,9 @@ import {
 import { from, lastValueFrom, mergeMap, reduce } from 'rxjs';
 import { InjectDiscordClient } from './discord.decorators.js';
 
+/** How long a fetch of guild members over the gateway waits for its answer. */
+const MEMBER_FETCH_TIMEOUT_MS = 10_000;
+
 @Injectable()
 class DiscordService {
   private readonly logger = new Logger(DiscordService.name);
@@ -45,6 +48,52 @@ class DiscordService {
       }
       throw error;
     }
+  }
+
+  /** The guild's members among `memberIds`; anyone not in the guild is left out. */
+  public async getGuildMembers({
+    memberIds,
+    guildId,
+  }: {
+    memberIds: readonly string[];
+    guildId: string;
+  }): Promise<Map<string, GuildMember>> {
+    const guild = await this.client.guilds.fetch(guildId);
+    const members = new Map<string, GuildMember>();
+    const missing: string[] = [];
+    // the GuildMembers intent keeps cached members current
+    for (const id of memberIds) {
+      const cached = guild.members.cache.get(id);
+      if (cached) members.set(id, cached);
+      else missing.push(id);
+    }
+    // Discord returns at most 100 members per request by id
+    for (let start = 0; start < missing.length; start += 100) {
+      const fetched = await guild.members.fetch({
+        user: missing.slice(start, start + 100),
+        // asked over the gateway: while it's down, fail fast instead of
+        // waiting discord.js's default 120s
+        time: MEMBER_FETCH_TIMEOUT_MS,
+      });
+      for (const [id, member] of fetched) members.set(id, member);
+    }
+    return members;
+  }
+
+  /** Everyone holding the role, from a fresh fetch of the whole guild; none if the guild lacks the role. */
+  public async getRoleMembers({
+    guildId,
+    roleId,
+  }: {
+    guildId: string;
+    roleId: string;
+  }): Promise<GuildMember[]> {
+    const guild = await this.client.guilds.fetch(guildId);
+    // `role.members` only holds cached members; asked over the gateway, so
+    // fail fast while it's down instead of waiting discord.js's default 120s
+    await guild.members.fetch({ time: MEMBER_FETCH_TIMEOUT_MS });
+    const role = await guild.roles.fetch(roleId);
+    return [...(role?.members.values() ?? [])];
   }
 
   public async sendDirectMessage(

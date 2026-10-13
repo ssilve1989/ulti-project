@@ -1,23 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import type {
+  ButtonInteraction,
   ChatInputCommandInteraction,
   Message,
   MessageComponentInteraction,
 } from 'discord.js';
 import { isSameUserFilter } from '../common/collection-filters.js';
 import { ErrorService } from '../error/error.service.js';
+import { recordExpiredPrompt } from './discord.helpers.js';
 
 const COMPONENT_SESSION_TIMEOUT_MS = 5 * 60_000;
 
 interface ComponentSessionOptions {
   /**
    * Which menu this is (e.g. `search`), tagged on its Sentry reports as
-   * `component_session` and prefixed to its log lines
+   * `component_session` and prefixed to its log lines; for a menu started
+   * from a button, also its expired-prompt count's `component`
    */
   name: string;
   /** Shown, with the components removed, once the session times out */
   expiredContent: string;
+  /** Also remove the embeds on timeout, for menus whose embed is only a draft */
+  clearEmbedsOnExpiry?: boolean;
+  /**
+   * Called once the session ends any way but through the function `run`
+   * returns: it timed out, or its message, channel or guild was deleted
+   */
+  onAbandoned?: () => void;
   onCollect: (i: MessageComponentInteraction<'cached'>) => Promise<void>;
 }
 
@@ -27,13 +37,23 @@ export class ComponentSessionService {
 
   /**
    * Handles the invoking user's clicks on `message`'s components for five
-   * minutes, then replaces the reply with `expiredContent`.
+   * minutes, then records the expired prompt and replaces the reply with
+   * `expiredContent`. Returns a function that ends the session early, once
+   * it's done, so it never expires.
    */
   run(
-    interaction: ChatInputCommandInteraction<'cached'>,
+    interaction:
+      | ChatInputCommandInteraction<'cached'>
+      | ButtonInteraction<'cached'>,
     message: Message<true>,
-    { name, expiredContent, onCollect }: ComponentSessionOptions,
-  ): void {
+    {
+      name,
+      expiredContent,
+      clearEmbedsOnExpiry = false,
+      onAbandoned,
+      onCollect,
+    }: ComponentSessionOptions,
+  ): () => void {
     const collector = message.createMessageComponentCollector({
       filter: isSameUserFilter(interaction.user),
       time: COMPONENT_SESSION_TIMEOUT_MS,
@@ -75,13 +95,18 @@ export class ComponentSessionService {
 
     collector.on('end', (_collected, reason) =>
       inCommandScope(async () => {
+        if (reason !== 'done') onAbandoned?.();
         // it also ends when its message, channel or guild is deleted, and
         // then there's nothing left to edit
         if (reason !== 'time') return;
 
         try {
+          recordExpiredPrompt(
+            interaction.isChatInputCommand() ? interaction : name,
+          );
           await interaction.editReply({
             content: expiredContent,
+            ...(clearEmbedsOnExpiry && { embeds: [] }),
             components: [],
           });
         } catch (error) {
@@ -89,5 +114,7 @@ export class ComponentSessionService {
         }
       }),
     );
+
+    return () => collector.stop('done');
   }
 }

@@ -1,0 +1,651 @@
+:root {
+  --bg2: linear-gradient(180deg, #f2f1fb 0%, #f7f6fc 100%);
+  --panel: #ffffff;
+  --panel-2: #f1f0fa;
+  --panel-head: linear-gradient(180deg, #f6f4ff, #efedfa);
+  --line: #dcd9ee;
+  --line-soft: #ebe9f6;
+  --text: #1d1b2e;
+  --dim: #55526e;
+  /* The mockup's #77749a is under 4.5:1 on --panel-2 and the page glow. */
+  --faint: #636088;
+  --acc: #bf1270;
+  --acc-line: #d81a7e;
+  --on-acc: #ffffff;
+  --tank: #2f6fd0;
+  --heal: #1f8f5a;
+  --dps: #c33a4f;
+  --chrome-bg: #ffffffcc;
+  --shadow: 0 1px 2px #2a24660d, 0 8px 22px #2a246614;
+  --popover-shadow: 0 1px 2px #2a24660d, 0 12px 32px #2a246626;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg2: #17171b;
+    --panel: #1f1f25;
+    --panel-2: #26262d;
+    --line: #3b3b45;
+    --line-soft: #2f2f38;
+    --text: #f4f3f0;
+    --dim: #bdbdc6;
+    --faint: #90909a;
+    --acc: #ff66b3;
+    --acc-line: #ff33a1;
+    --on-acc: #1b0912;
+    --tank: #6ba5f2;
+    --heal: #63c88c;
+    --dps: #f2818f;
+    --chrome-bg: #121216;
+    --panel-head: var(--panel-2);
+    /* No shadow in dark; a transparent one keeps `var(--shadow), …` lists valid. */
+    --shadow: 0 0 #0000;
+    --popover-shadow: 0 12px 32px #000a;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg2: #17171b;
+  --panel: #1f1f25;
+  --panel-2: #26262d;
+  --line: #3b3b45;
+  --line-soft: #2f2f38;
+  --text: #f4f3f0;
+  --dim: #bdbdc6;
+  --faint: #90909a;
+  --acc: #ff66b3;
+  --acc-line: #ff33a1;
+  --on-acc: #1b0912;
+  --tank: #6ba5f2;
+  --heal: #63c88c;
+  --dps: #f2818f;
+  --chrome-bg: #121216;
+  --panel-head: var(--panel-2);
+  --shadow: 0 0 #0000;
+  --popover-shadow: 0 12px 32px #000a;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg2: linear-gradient(180deg, #f2f1fb 0%, #f7f6fc 100%);
+  --panel: #ffffff;
+  --panel-2: #f1f0fa;
+  --panel-head: linear-gradient(180deg, #f6f4ff, #efedfa);
+  --line: #dcd9ee;
+  --line-soft: #ebe9f6;
+  --text: #1d1b2e;
+  --dim: #55526e;
+  --faint: #636088;
+  --acc: #bf1270;
+  --acc-line: #d81a7e;
+  --on-acc: #ffffff;
+  --tank: #2f6fd0;
+  --heal: #1f8f5a;
+  --dps: #c33a4f;
+  --chrome-bg: #ffffffcc;
+  --shadow: 0 1px 2px #2a24660d, 0 8px 22px #2a246614;
+  --popover-shadow: 0 1px 2px #2a24660d, 0 12px 32px #2a246626;
+  color-scheme: light;
+}
+
+/* The accent glow behind every screen, over the theme's page background. */
+body {
+  margin: 0;
+  background:
+    radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      color-mix(in srgb, var(--acc) 7%, transparent),
+      transparent
+    ),
+    var(--bg2);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--acc);
+  border-color: var(--acc-line);
+  color: var(--on-acc);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The card the sign-in, no-access and "not reachable" screens share. */
+.screen {
+  box-sizing: border-box;
+  width: min(32rem, 100% - 2rem);
+  margin: 15vh auto 0;
+  padding: 1.5rem 1.75rem 1.75rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--acc-line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.screen h1 {
+  margin-top: 0;
+}
+
+.top-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--chrome-bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.wordmark {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.wordmark [aria-hidden="true"] {
+  color: var(--acc);
+}
+
+/* Sign-in: the card alone on phones; the live preview beside it from 800px. */
+.sign-in .screen {
+  text-align: center;
+}
+
+.sign-in .wordmark {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.sign-in h1 {
+  margin-bottom: 0.4rem;
+}
+
+.tagline {
+  margin: 0 0 1.5rem;
+  color: var(--dim);
+  text-wrap: balance;
+}
+
+.sign-in button.primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  font-weight: 700;
+  /* Discord's own blurple, as in the chosen mockup; white on it is 4.6:1. */
+  background: #5865f2;
+  border-color: #5865f2;
+  color: #ffffff;
+}
+
+.sign-in button.primary:hover {
+  background: #4752c4;
+  border-color: #4752c4;
+}
+
+.sign-in button.primary svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.sign-in-preview {
+  display: none;
+}
+
+@media (min-width: 800px) {
+  .sign-in {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 2rem;
+    max-width: 60rem;
+    margin: 15vh auto 0;
+    padding: 0 2rem;
+  }
+
+  .sign-in .screen {
+    width: auto;
+    margin: 0;
+  }
+
+  .sign-in-preview {
+    display: block;
+    padding: 1.25rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+  }
+}
+
+.preview-head {
+  margin: 0 0 0.75rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+}
+
+.sign-in-preview ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.preview-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--panel-2);
+  border-left: 3px solid var(--edge);
+  border-radius: 6px;
+}
+
+.preview-phase {
+  margin-left: auto;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.8125rem;
+  color: var(--dim);
+}
+
+/* Two slow plays, then it rests on the full frame (WCAG 2.2.2): 1.8 stops the second play inside the 6–86% hold, before the fade-out. Reduced motion keeps the full still frame. */
+@media (prefers-reduced-motion: no-preference) {
+  .preview-row,
+  .preview-row .squad-token {
+    animation: preview-row 12s ease-out calc(var(--i) * 0.6s) 1.8 both;
+  }
+
+  .preview-row .squad-token {
+    animation-name: preview-claim;
+  }
+}
+
+@keyframes preview-row {
+  0% {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  6%,
+  86% {
+    opacity: 1;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes preview-claim {
+  0%,
+  22% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  26%,
+  86% {
+    opacity: 1;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--dim);
+  font-size: 0.875rem;
+}
+
+.live-status[data-state]::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--faint);
+}
+
+.live-status[data-state="live"]::before {
+  background: var(--heal);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .live-status[data-state="live"]::before {
+    animation: live-pulse 2.4s ease-out infinite;
+  }
+}
+
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--heal) 55%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 0.4rem transparent;
+  }
+}
+
+/* The account button: avatar, name, access badge and chevron; opens the account menu. */
+.account {
+  anchor-name: --account;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  padding: 0.2rem 0.5rem 0.2rem 0.2rem;
+  border-color: transparent;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.account:hover,
+.account:has(+ :popover-open) {
+  background: var(--panel-2);
+  border-color: var(--line);
+}
+
+.chevron {
+  width: 1rem;
+  height: 1rem;
+  color: var(--faint);
+  transition: transform 0.15s;
+}
+
+.account:has(+ :popover-open) .chevron {
+  transform: rotate(180deg);
+}
+
+.account-menu {
+  position-anchor: --account;
+  position-area: bottom span-left;
+  inset: auto;
+  margin: 0.4rem 0 0;
+  box-sizing: border-box;
+  min-width: 15.5rem;
+  padding: 0.375rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--popover-shadow);
+}
+
+/* Without anchor positioning: under the bar's right end, where the button sits. */
+@supports not (position-area: bottom) {
+  .account-menu {
+    position: absolute;
+    top: 3rem;
+    right: 1rem;
+  }
+}
+
+.signed-in-as {
+  margin: 0;
+  padding: 0.5rem 0.625rem 0.625rem;
+  color: var(--dim);
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.theme-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.5rem 0.625rem;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+/* A legend won't sit in a flex row, so it floats left of the picker. */
+.theme-picker legend {
+  float: left;
+  padding: 0;
+  color: var(--dim);
+  font-size: 0.875rem;
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--panel-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+}
+
+.segmented label {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 1.75rem;
+  color: var(--faint);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.segmented label:has(:checked) {
+  color: var(--text);
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.segmented label:has(:focus-visible) {
+  outline: 2px solid var(--acc);
+  outline-offset: 1px;
+}
+
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.theme-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.account-menu > button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem 0.625rem;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+}
+
+.account-menu > button:hover {
+  background: var(--panel-2);
+}
+
+/* The exit icon, drawn here so the no-access screen's Sign out button stays plain. */
+.account-menu > button::before {
+  content: "";
+  width: 1.125rem;
+  height: 1.125rem;
+  background: var(--dim);
+  mask:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/%3E%3Cpath d='m16 17 5-5-5-5M21 12H9'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.account-menu [role="alert"] {
+  display: block;
+  padding: 0.25rem 0.625rem 0.5rem;
+  color: var(--dps);
+  font-size: 0.875rem;
+}
+
+/* Phone width: the bar stays on one line. */
+@media (max-width: 30rem) {
+  .top-bar {
+    gap: 0.5rem;
+    padding-inline: 0.75rem;
+  }
+
+  .wordmark .long {
+    display: none;
+  }
+
+  /* Still names the button for screen readers. */
+  .account .name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+.avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+}
+
+.badge {
+  color: var(--dim);
+  font-size: 0.875rem;
+}
+
+.squad-token {
+  --sq-ink: color-mix(in oklab, var(--sq) 55%, var(--text));
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--sq-ink);
+  border: 1.5px solid var(--sq);
+  border-radius: 4px;
+  padding: 0.05rem 0.4rem;
+}
+
+.event-list {
+  max-width: 48rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.event-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.event-list a {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
+  color: var(--text);
+  text-decoration: none;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.event-list a:hover,
+.event-list a:focus-visible {
+  border-color: var(--acc-line);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .event-list a {
+    transition:
+      transform 0.15s ease-out,
+      box-shadow 0.15s ease-out;
+  }
+
+  .event-list a:hover,
+  .event-list a:focus-visible {
+    transform: translateY(-2px);
+    box-shadow:
+      var(--shadow),
+      0 8px 20px color-mix(in srgb, var(--acc) 14%, transparent);
+  }
+}
+
+.event-title {
+  font-weight: 600;
+}
+
+.event-list time,
+.event-count {
+  color: var(--dim);
+  font-size: 0.875rem;
+}
+
+.chips {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.chip {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel-2);
+}
+
+.event-count {
+  margin-left: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion has to win over every component's own transition */
+    transition: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: as above, for animations */
+    animation: none !important;
+  }
+}

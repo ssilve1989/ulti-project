@@ -33,6 +33,14 @@ describe('InMemoryFirestore', () => {
       expect(snapshot.data()).toEqual({ name: 'A' });
     });
 
+    it('refuses an id whose slashes lead to a collection, as Firestore does', ({
+      db,
+    }) => {
+      expect(() => db.collection('events').doc('a/b')).toThrow(
+        'must point to a document',
+      );
+    });
+
     it('reports a missing document as not existing', async ({ db }) => {
       const snapshot = await db.collection('signups').doc('missing').get();
 
@@ -231,6 +239,16 @@ describe('InMemoryFirestore', () => {
       expect(snapshot.docs.map((doc) => doc.id)).toEqual(['x']);
     });
 
+    it('counts the matching documents', async ({ db }) => {
+      const snapshot = await db
+        .collection('signups')
+        .where('status', '==', 'PENDING')
+        .count()
+        .get();
+
+      expect(snapshot.data()).toEqual({ count: 2 });
+    });
+
     it('reports an empty result as empty', async ({ db }) => {
       const snapshot = await db
         .collection('signups')
@@ -298,6 +316,48 @@ describe('InMemoryFirestore', () => {
     });
   });
 
+  describe('range filters', () => {
+    const at = (iso: string) => Timestamp.fromDate(new Date(iso));
+
+    it.beforeEach(({ db }) => {
+      db.seed('events/past', { dueAt: at('2026-10-01T00:00:00Z') });
+      db.seed('events/now', { dueAt: at('2026-10-02T00:00:00Z') });
+      db.seed('events/future', { dueAt: at('2026-10-03T00:00:00Z') });
+      db.seed('events/undated', { title: 'no dueAt field' });
+      db.seed('events/string', { dueAt: '2026-09-01' });
+    });
+
+    it('matches Timestamps at or before the value, leaving out documents missing the field or holding another type', async ({
+      db,
+    }) => {
+      const snapshot = await db
+        .collection('events')
+        .where('dueAt', '<=', at('2026-10-02T00:00:00Z'))
+        .get();
+
+      expect(snapshot.docs.map((doc) => doc.id)).toEqual(['past', 'now']);
+    });
+
+    it('matches Timestamps equal to the value with ==, by time rather than identity', async ({
+      db,
+    }) => {
+      const snapshot = await db
+        .collection('events')
+        .where('dueAt', '==', at('2026-10-02T00:00:00Z'))
+        .get();
+
+      expect(snapshot.docs.map((doc) => doc.id)).toEqual(['now']);
+    });
+
+    it('refuses <= against anything but a Timestamp, which it does not implement', ({
+      db,
+    }) => {
+      expect(() =>
+        db.collection('events').where('dueAt', '<=', '2026-10-02'),
+      ).toThrow('does not support <= against a string');
+    });
+  });
+
   describe('result order, as Firestore returns it', () => {
     it.beforeEach(({ db }) => {
       db.seed('orders/a', { order: 5 });
@@ -335,6 +395,18 @@ describe('InMemoryFirestore', () => {
         status: 'DECLINED',
         declineReason: 'late',
       });
+    });
+
+    it('deletes a document in a transaction', async ({ db }) => {
+      db.seed('signups/a', { status: 'DECLINED' });
+      const ref = db.collection('signups').doc('a');
+
+      await db.runTransaction(async (tx) => {
+        await tx.get(ref);
+        tx.delete(ref);
+      });
+
+      expect(db.read('signups/a')).toBeUndefined();
     });
 
     it('applies nothing when the transaction callback throws', async ({
@@ -377,6 +449,18 @@ describe('InMemoryFirestore', () => {
           .collection('signups')
           .where('status', '==', 'PENDING')
           .orderBy('order')
+          .get(),
+      ).rejects.toThrow('composite index');
+    });
+
+    it('rejects running a range filter alongside a filter on another field, which needs a composite index', async ({
+      db,
+    }) => {
+      await expect(
+        db
+          .collection('events')
+          .where('guildId', '==', 'guild-1')
+          .where('dueAt', '<=', Timestamp.now())
           .get(),
       ).rejects.toThrow('composite index');
     });
@@ -538,6 +622,61 @@ describe('InMemoryFirestore', () => {
       expect(transaction).toHaveBeenCalledTimes(2);
       expect(db.read('counters/a')).toEqual({ count: 11 });
     });
+
+    it('aborts a transaction on a contended document after five attempts, writing nothing', async ({
+      db,
+    }) => {
+      db.seed('counters/hot', { count: 0 });
+      db.seed('counters/calm', { count: 0 });
+      db.contend('counters/hot');
+      const hot = db.collection('counters').doc('hot');
+      const calm = db.collection('counters').doc('calm');
+      const transaction = vi.fn<
+        Parameters<InMemoryFirestore['runTransaction']>[0]
+      >(async (tx) => {
+        await tx.get(hot);
+        tx.update(hot, { count: 1 });
+      });
+
+      await expect(db.runTransaction(transaction)).rejects.toThrow('ABORTED');
+      await db.runTransaction(async (tx) => {
+        await tx.get(calm);
+        tx.update(calm, { count: 1 });
+      });
+      await hot.update({ count: 2 });
+
+      expect({
+        attempts: transaction.mock.calls.length,
+        hot: db.read('counters/hot'),
+        calm: db.read('counters/calm'),
+      }).toEqual({ attempts: 5, hot: { count: 2 }, calm: { count: 1 } });
+    });
+  });
+
+  describe('overlapping transactions', () => {
+    it('holds a transaction that has read until the other has read too, so the later commit reruns', async ({
+      db,
+    }) => {
+      db.seed('counters/a', { count: 0 });
+      const ref = db.collection('counters').doc('a');
+      const increment = vi.fn<
+        Parameters<InMemoryFirestore['runTransaction']>[0]
+      >(async (tx) => {
+        const count = (await tx.get(ref)).data()?.count;
+        tx.update(ref, { count: typeof count === 'number' ? count + 1 : -1 });
+      });
+      db.overlapTransactions(2);
+
+      const first = db.runTransaction(increment);
+      // long enough for the first to commit, were it not held
+      await new Promise((resolve) => setImmediate(resolve));
+      await Promise.all([first, db.runTransaction(increment)]);
+
+      expect({
+        attempts: increment.mock.calls.length,
+        stored: db.read('counters/a'),
+      }).toEqual({ attempts: 3, stored: { count: 2 } });
+    });
   });
 
   describe('observing writes', () => {
@@ -583,6 +722,18 @@ describe('InMemoryFirestore', () => {
         { name: 'A' },
         { name: 'seeded while offline' },
       ]);
+    });
+
+    it('serves reads and writes again once it is back', async ({ db }) => {
+      db.seed('signups/a', { name: 'A' });
+      db.goOffline();
+      const ref = db.collection('signups').doc('a');
+      await expect(ref.get()).rejects.toThrow('14 UNAVAILABLE');
+
+      db.goOnline();
+      await ref.set({ name: 'B' });
+
+      expect((await ref.get()).data()).toEqual({ name: 'B' });
     });
   });
 });

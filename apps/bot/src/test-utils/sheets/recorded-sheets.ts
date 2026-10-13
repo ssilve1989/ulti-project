@@ -72,9 +72,8 @@ class SheetsQuotaPacer {
   }
 }
 
-/** Only a recording run makes real requests, so only it needs pacing. */
-const quotaPacer = isRecordingSheets ? new SheetsQuotaPacer() : undefined;
-if (quotaPacer) subscribe(HTTP_REQUEST_CREATED, quotaPacer.observe);
+/** Only a recording makes real requests, so it watches only while one runs. */
+const quotaPacer = new SheetsQuotaPacer();
 
 // Fixture names are paths relative to the repo root. The mode is set per
 // recording instead: setting it activates nock and blocks the network, which
@@ -139,12 +138,22 @@ function keepEncounterTabs(definition: Definition): Definition {
 }
 
 /**
- * Strips credentials before a recording is written: the OAuth token exchange
- * carries a signed JWT assertion (identifying the service account) and returns
- * an access token.
+ * Whether a recorded request went to Google (the Sheets API or its OAuth token
+ * endpoint). A recording keeps only these: anything else the test reached, such
+ * as its own local server, belongs to the test, not the recording.
  */
-function scrub(definitions: Definition[]): Definition[] {
-  return stableOrder(definitions).map((definition) => {
+function isGoogleTraffic({ scope }: Definition): boolean {
+  const { hostname } = new URL(String(scope));
+  return hostname === 'googleapis.com' || hostname.endsWith('.googleapis.com');
+}
+
+/**
+ * Prepares what a recording run captured to be written: keeps only Google
+ * traffic and strips credentials. The OAuth token exchange carries a signed JWT
+ * assertion (identifying the service account) and returns an access token.
+ */
+export function scrub(definitions: Definition[]): Definition[] {
+  return stableOrder(definitions.filter(isGoogleTraffic)).map((definition) => {
     // keep only the headers the client needs to read the body
     const headers: Record<string, string | string[]> = {};
     for (const name of ['content-type', 'content-encoding']) {
@@ -201,8 +210,17 @@ export function stableTestKey(): string {
  * When replaying, finishing fails if the app didn't make every recorded
  * request, meaning its Sheets usage changed and the recording must be
  * refreshed.
+ *
+ * `replayOnly` replays even in a recording run. While nock records, it sends
+ * every request to the real network and ignores the test's own interceptors,
+ * so a test that intercepts other services (e.g. Discord's OAuth endpoints)
+ * must replay; it then can't make Sheets requests, which fail as in any replay.
  */
-export async function startSheetsRecording(): Promise<{
+export async function startSheetsRecording({
+  replayOnly = false,
+}: {
+  readonly replayOnly?: boolean;
+} = {}): Promise<{
   /** The value grids the spreadsheet returned to the app's reads of `range` (e.g. `DSR!I:L`), made as `requestPaths` (from `readPaths`), in order. */
   valuesRead(range: string, requestPaths: string[]): unknown[];
   /** Stops recording/replaying; when replaying, fails if a recorded request went unused. */
@@ -211,7 +229,8 @@ export async function startSheetsRecording(): Promise<{
   abandon(): void;
 }> {
   const { testPath, testName } = currentTest();
-  await quotaPacer?.waitForBudget();
+  const recording = isRecordingSheets && !replayOnly;
+  if (recording) await quotaPacer.waitForBudget();
 
   const fixture = join(
     relative(process.cwd(), dirname(testPath)),
@@ -220,10 +239,11 @@ export async function startSheetsRecording(): Promise<{
     `${testName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.json`,
   );
   const fixturePath = join(process.cwd(), fixture);
-  nock.back.setMode(MODE);
+  nock.back.setMode(recording ? 'update' : 'lockdown');
   const { nockDone, context } = await nock.back(fixture, {
     afterRecord: scrub,
   });
+  if (recording) subscribe(HTTP_REQUEST_CREATED, quotaPacer.observe);
   // tests may run their own local servers (e.g. the harness's own spec)
   nock.enableNetConnect(/^(127\.0\.0\.1|localhost)(:\d+)?$/);
 
@@ -231,14 +251,13 @@ export async function startSheetsRecording(): Promise<{
     nock.cleanAll();
     nock.restore();
     nock.enableNetConnect();
+    if (recording) unsubscribe(HTTP_REQUEST_CREATED, quotaPacer.observe);
   };
 
   // what the recording holds so far, as it's (or will be) written to disk
   const definitions = (): Definition[] =>
-    isRecordingSheets
-      ? scrub(nock.recorder.play().filter(isDefinition))
-      : replayed;
-  const replayed: Definition[] = isRecordingSheets
+    recording ? scrub(nock.recorder.play().filter(isDefinition)) : replayed;
+  const replayed: Definition[] = recording
     ? []
     : existsSync(fixturePath)
       ? parseDefinitions(readFileSync(fixturePath, 'utf8'))
@@ -269,10 +288,7 @@ export async function startSheetsRecording(): Promise<{
       nockDone();
       // A test that made no Sheets requests needs no recording: replay blocks the
       // network, so a request it starts making later still fails the test.
-      if (
-        isRecordingSheets &&
-        readFileSync(fixturePath, 'utf8').trim() === '[]'
-      ) {
+      if (recording && readFileSync(fixturePath, 'utf8').trim() === '[]') {
         rmSync(fixturePath);
         // and the recordings folders above it, if that leaves them empty
         for (const folder of [
@@ -284,7 +300,7 @@ export async function startSheetsRecording(): Promise<{
         }
       }
       try {
-        if (!isRecordingSheets) context.assertScopesFinished();
+        if (!recording) context.assertScopesFinished();
       } finally {
         restore();
       }
