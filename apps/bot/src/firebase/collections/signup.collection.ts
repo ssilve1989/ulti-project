@@ -19,8 +19,8 @@ import {
   Timestamp,
   type UpdateData,
 } from 'firebase-admin/firestore';
-import { InjectFirestore } from '../firebase.decorators.js';
-import { DocumentNotFoundException } from '../firebase.exceptions.js';
+import { InjectFirestore } from '#src/firebase/firebase.decorators.js';
+import { DocumentNotFoundException } from '#src/firebase/firebase.exceptions.js';
 
 @Injectable()
 class SignupCollection {

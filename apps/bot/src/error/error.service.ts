@@ -5,7 +5,7 @@ import {
   Colors,
   EmbedBuilder,
 } from 'discord.js';
-import { getErrorMessage } from '../common/error-guards.js';
+import { getErrorMessage } from '#src/common/error-guards.js';
 
 interface ErrorHandlingOptions {
   log?: boolean;

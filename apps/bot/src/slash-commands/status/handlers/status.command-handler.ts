@@ -3,16 +3,13 @@ import * as Sentry from '@sentry/nestjs';
 import { type SignupDocument, SignupStatus } from '@ulti-project/shared';
 import type { APIEmbedField, ChatInputCommandInteraction } from 'discord.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
-import {
-  emptyField,
-  encounterField,
-} from '../../../common/components/fields.js';
-import { EncountersService } from '../../../encounters/encounters.service.js';
-import { SIGNUP_REVIEW_REACTIONS } from '../../signup/signup.consts.js';
-import { SlashCommand } from '../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../slash-command.interface.js';
-import { StatusService } from '../status.service.js';
-import { StatusSlashCommand } from '../status.slash-command.js';
+import { emptyField, encounterField } from '#src/common/components/fields.js';
+import { EncountersService } from '#src/encounters/encounters.service.js';
+import { SIGNUP_REVIEW_REACTIONS } from '#src/slash-commands/signup/signup.consts.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
+import { StatusService } from '#src/slash-commands/status/status.service.js';
+import { StatusSlashCommand } from '#src/slash-commands/status/status.slash-command.js';
 
 @Injectable()
 @SlashCommand({ builder: StatusSlashCommand })

@@ -5,8 +5,8 @@ import type {
   Message,
   MessageComponentInteraction,
 } from 'discord.js';
-import { isSameUserFilter } from '../common/collection-filters.js';
-import { ErrorService } from '../error/error.service.js';
+import { isSameUserFilter } from '#src/common/collection-filters.js';
+import { ErrorService } from '#src/error/error.service.js';
 
 const COMPONENT_SESSION_TIMEOUT_MS = 5 * 60_000;
 

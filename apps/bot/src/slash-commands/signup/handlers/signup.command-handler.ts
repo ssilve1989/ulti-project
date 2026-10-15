@@ -17,39 +17,39 @@ import {
 import { titleCase } from 'title-case';
 import { match } from 'ts-pattern';
 import type { ZodError } from 'zod';
-import { isSameUserFilter } from '../../../common/collection-filters.js';
-import {
-  CancelButton,
-  ConfirmButton,
-} from '../../../common/components/buttons.js';
+import { isSameUserFilter } from '#src/common/collection-filters.js';
+import { CancelButton, ConfirmButton } from '#src/common/components/buttons.js';
 import {
   characterField,
   emptyField,
   worldField,
-} from '../../../common/components/fields.js';
-import { createFields } from '../../../common/embed-helpers.js';
-import { appConfig } from '../../../config/app.js';
-import { UnhandledButtonInteractionException } from '../../../discord/discord.exceptions.js';
+} from '#src/common/components/fields.js';
+import { createFields } from '#src/common/embed-helpers.js';
+import { appConfig } from '#src/config/app.js';
+import { UnhandledButtonInteractionException } from '#src/discord/discord.exceptions.js';
 import {
   isCollectorTimeout,
   recordExpiredPrompt,
-} from '../../../discord/discord.helpers.js';
-import { DiscordService } from '../../../discord/discord.service.js';
-import { ErrorService } from '../../../error/error.service.js';
-import { FFLogsService } from '../../../fflogs/fflogs.service.js';
-import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
-import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import { SlashCommand } from '../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../slash-command.interface.js';
-import { SignupCreatedEvent } from '../events/signup.events.js';
-import { SIGNUP_MESSAGES } from '../signup.consts.js';
-import { type SignupSchema, signupSchema } from '../signup.schema.js';
-import { createSignupSlashCommand } from '../signup.slash-command.js';
+} from '#src/discord/discord.helpers.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { ErrorService } from '#src/error/error.service.js';
+import { FFLogsService } from '#src/fflogs/fflogs.service.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
+import { SignupCreatedEvent } from '#src/slash-commands/signup/events/signup.events.js';
+import { SIGNUP_MESSAGES } from '#src/slash-commands/signup/signup.consts.js';
+import {
+  type SignupSchema,
+  signupSchema,
+} from '#src/slash-commands/signup/signup.schema.js';
+import { createSignupSlashCommand } from '#src/slash-commands/signup/signup.slash-command.js';
 import {
   extractFflogsReportCode,
   isFFLogsUrl,
   shouldDeleteReviewMessageForSignup,
-} from '../signup.utils.js';
+} from '#src/slash-commands/signup/signup.utils.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
 
 // reusable object to clear a messages embed + button interaction
 const CLEAR_EMBED = {

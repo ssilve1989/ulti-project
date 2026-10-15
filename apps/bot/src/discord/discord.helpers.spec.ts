@@ -5,7 +5,7 @@ import {
   type PartialUser,
 } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
-import { mockOf } from '../test-utils/mock-factory.js';
+import { mockOf } from '#src/test-utils/mock-factory.js';
 import {
   CacheTime,
   hydrateReaction,

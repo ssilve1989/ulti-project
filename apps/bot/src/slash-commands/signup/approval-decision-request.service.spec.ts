@@ -16,14 +16,14 @@ import {
   type User,
 } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
-import { DiscordService } from '../../discord/discord.service.js';
-import { PROG_POINT_SELECT_ID } from '../../encounters/encounters.components.js';
-import { EncountersComponentsService } from '../../encounters/encounters-components.service.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { PROG_POINT_SELECT_ID } from '#src/encounters/encounters.components.js';
+import { EncountersComponentsService } from '#src/encounters/encounters-components.service.js';
 import {
   createAutoMock,
   mockOf,
   partialMock,
-} from '../../test-utils/mock-factory.js';
+} from '#src/test-utils/mock-factory.js';
 import {
   APPROVAL_CANCEL_BUTTON_ID,
   APPROVE_BUTTON_ID,

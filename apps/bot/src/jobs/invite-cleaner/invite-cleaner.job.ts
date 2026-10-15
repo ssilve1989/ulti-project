@@ -7,12 +7,12 @@ import {
 import { CronJob } from 'cron';
 import { EmbedBuilder, Invite } from 'discord.js';
 import { filter, from, lastValueFrom, mergeMap, reduce } from 'rxjs';
-import { CronTime } from '../../common/cron.js';
-import { inviteCleanerConfig } from '../../config/invite-cleaner.js';
-import { DiscordService } from '../../discord/discord.service.js';
-import { JobCollection } from '../../firebase/collections/job/job.collection.js';
-import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { createJob, jobDateFormatter } from '../jobs.consts.js';
+import { CronTime } from '#src/common/cron.js';
+import { inviteCleanerConfig } from '#src/config/invite-cleaner.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { JobCollection } from '#src/firebase/collections/job/job.collection.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { createJob, jobDateFormatter } from '#src/jobs/jobs.consts.js';
 
 const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 

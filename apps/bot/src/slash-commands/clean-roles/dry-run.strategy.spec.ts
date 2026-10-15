@@ -1,8 +1,8 @@
 import { Logger } from '@nestjs/common';
 import type { SignupDocument } from '@ulti-project/shared';
 import { test as base, describe, expect } from 'vitest';
-import { fresh } from '../../test-utils/fixtures.js';
-import { createAutoMock, partialMock } from '../../test-utils/mock-factory.js';
+import { fresh } from '#src/test-utils/fixtures.js';
+import { createAutoMock, partialMock } from '#src/test-utils/mock-factory.js';
 import type {
   DryRunRoleResult,
   ProcessingContext,

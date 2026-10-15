@@ -6,16 +6,16 @@ import type {
   StringSelectMenuBuilder,
 } from 'discord.js';
 import { ActionRowBuilder, MessageFlags, roleMention } from 'discord.js';
-import { isSameUserFilter } from '../../../../common/collection-filters.js';
+import { isSameUserFilter } from '#src/common/collection-filters.js';
 import {
   isCollectorTimeout,
   recordExpiredPrompt,
-} from '../../../../discord/discord.helpers.js';
-import { EncountersComponentsService } from '../../../../encounters/encounters-components.service.js';
-import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { SlashCommand } from '../../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../../slash-command.interface.js';
-import { SettingsSlashCommand } from '../../settings.slash-command.js';
+} from '#src/discord/discord.helpers.js';
+import { EncountersComponentsService } from '#src/encounters/encounters-components.service.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { SettingsSlashCommand } from '#src/slash-commands/settings/settings.slash-command.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
 
 export const PROG_POINT_ROLES_SELECT_ID = 'progPointRolesSelect';
 

@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { DiscordModule } from '../../discord/discord.module.js';
-import { ErrorModule } from '../../error/error.module.js';
-import { FirebaseModule } from '../../firebase/firebase.module.js';
-import { RoleManagerModule } from '../../role-manager/role-manager.module.js';
+import { DiscordModule } from '#src/discord/discord.module.js';
+import { ErrorModule } from '#src/error/error.module.js';
+import { FirebaseModule } from '#src/firebase/firebase.module.js';
+import { RoleManagerModule } from '#src/role-manager/role-manager.module.js';
 import { SyncProgRolesCommandHandler } from './handlers/sync-prog-roles.command-handler.js';
 
 @Module({

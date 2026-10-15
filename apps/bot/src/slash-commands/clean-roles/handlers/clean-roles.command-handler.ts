@@ -10,12 +10,10 @@ import {
   type Role,
   userMention,
 } from 'discord.js';
-import { DiscordService } from '../../../discord/discord.service.js';
-import { ErrorService } from '../../../error/error.service.js';
-import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
-import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import { SlashCommand } from '../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../slash-command.interface.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { ErrorService } from '#src/error/error.service.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
 import type {
   BaseRoleResult,
   CleanRolesResult,
@@ -25,11 +23,16 @@ import type {
   NormalRoleResult,
   ProcessingContext,
   ProcessingStrategy,
-} from '../clean-roles.interfaces.js';
-import { CleanRolesSlashCommand } from '../clean-roles.slash-command.js';
-import { planRoleRemovals, UNREMOVABLE_REASON } from '../clean-roles.utils.js';
-import { DryRunStrategy } from '../dry-run.strategy.js';
-import { NormalStrategy } from '../normal.strategy.js';
+} from '#src/slash-commands/clean-roles/clean-roles.interfaces.js';
+import { CleanRolesSlashCommand } from '#src/slash-commands/clean-roles/clean-roles.slash-command.js';
+import {
+  planRoleRemovals,
+  UNREMOVABLE_REASON,
+} from '#src/slash-commands/clean-roles/clean-roles.utils.js';
+import { DryRunStrategy } from '#src/slash-commands/clean-roles/dry-run.strategy.js';
+import { NormalStrategy } from '#src/slash-commands/clean-roles/normal.strategy.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
 
 const MAX_EMBED_FIELDS = 25;
 const MAX_EMBED_TOTAL_LENGTH = 6000;

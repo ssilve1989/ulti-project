@@ -11,11 +11,8 @@ import {
   type MockInstance,
   vi,
 } from 'vitest';
-import { runTick, settledState } from '../../test-utils/cron-tick.js';
-import {
-  createAutoMock,
-  withInternals,
-} from '../../test-utils/mock-factory.js';
+import { runTick, settledState } from '#src/test-utils/cron-tick.js';
+import { createAutoMock, withInternals } from '#src/test-utils/mock-factory.js';
 import { SheetCleanerJob } from './sheet-cleaner.job.js';
 
 type Internals = {

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ErrorModule } from '../../error/error.module.js';
+import { ErrorModule } from '#src/error/error.module.js';
 import { HelpCommandHandler } from './handlers/help.command-handler.js';
 
 @Module({

@@ -2,12 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { channelMention, MessageFlags } from 'discord.js';
-import { ComponentSessionService } from '../../../../discord/component-session.service.js';
-import { SettingsCollection } from '../../../../firebase/collections/settings-collection.js';
-import { getBlacklistChannelIds } from '../../../../firebase/models/settings.model.js';
-import { SlashCommand } from '../../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../../slash-command.interface.js';
-import { SettingsSlashCommand } from '../../settings.slash-command.js';
+import { ComponentSessionService } from '#src/discord/component-session.service.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { getBlacklistChannelIds } from '#src/firebase/models/settings.model.js';
+import { SettingsSlashCommand } from '#src/slash-commands/settings/settings.slash-command.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
 import {
   BLACKLIST_CHANNELS_SELECT_ID,
   createBlacklistChannelsSelectRow,

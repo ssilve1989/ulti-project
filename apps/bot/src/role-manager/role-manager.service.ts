@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { ChatInputCommandInteraction } from 'discord.js';
-import { DiscordService } from '../discord/discord.service.js';
-import { SettingsCollection } from '../firebase/collections/settings-collection.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
 
 @Injectable()
 class RoleManagerService {

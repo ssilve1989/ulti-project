@@ -12,11 +12,11 @@ import {
   characterField,
   emptyField,
   worldField,
-} from '../../../common/components/fields.js';
-import { ClearReactions } from '../../../common/emojis/emojis.js';
-import { DiscordService } from '../../../discord/discord.service.js';
-import { SignupApprovedEvent } from '../events/signup.events.js';
-import { hasClearedStatus } from '../signup.utils.js';
+} from '#src/common/components/fields.js';
+import { ClearReactions } from '#src/common/emojis/emojis.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { SignupApprovedEvent } from '#src/slash-commands/signup/events/signup.events.js';
+import { hasClearedStatus } from '#src/slash-commands/signup/signup.utils.js';
 
 @EventsHandler(SignupApprovedEvent)
 class SendApprovedMessageEventHandler

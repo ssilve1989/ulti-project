@@ -1,10 +1,10 @@
 import { sheets } from '@googleapis/sheets';
 import { Module } from '@nestjs/common';
 import { GoogleAuth } from 'google-auth-library';
-import { appConfig } from '../config/app.js';
-import { sheetsConfig } from '../config/sheets.js';
-import { EncountersModule } from '../encounters/encounters.module.js';
-import { ErrorModule } from '../error/error.module.js';
+import { appConfig } from '#src/config/app.js';
+import { sheetsConfig } from '#src/config/sheets.js';
+import { EncountersModule } from '#src/encounters/encounters.module.js';
+import { ErrorModule } from '#src/error/error.module.js';
 import { SHEETS_CLIENT } from './sheets.consts.js';
 import { SheetsService } from './sheets.service.js';
 

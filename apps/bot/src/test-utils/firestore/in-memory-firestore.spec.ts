@@ -5,7 +5,7 @@ import {
   Timestamp,
 } from 'firebase-admin/firestore';
 import { test as base, describe, expect, vi } from 'vitest';
-import { fresh } from '../fixtures.js';
+import { fresh } from '#src/test-utils/fixtures.js';
 import { InMemoryFirestore } from './in-memory-firestore.js';
 
 const it = base.extend<{ db: InMemoryFirestore }>({

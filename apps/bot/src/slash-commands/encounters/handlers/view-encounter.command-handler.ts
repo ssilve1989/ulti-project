@@ -8,10 +8,10 @@ import {
 } from '@ulti-project/shared';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { Colors, EmbedBuilder, MessageFlags } from 'discord.js';
-import { EncountersService } from '../../../encounters/encounters.service.js';
-import { SlashCommand } from '../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../slash-command.interface.js';
-import { EncountersSlashCommand } from '../encounters.slash-command.js';
+import { EncountersService } from '#src/encounters/encounters.service.js';
+import { EncountersSlashCommand } from '#src/slash-commands/encounters/encounters.slash-command.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
 
 @Injectable()
 @SlashCommand({ builder: EncountersSlashCommand, subcommand: 'view' })
