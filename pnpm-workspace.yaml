@@ -31,9 +31,9 @@ catalog:
   "@commitlint/cz-commitlint": ^21.2.3
   "@dotenvx/dotenvx": ^2.33.0
   "@googleapis/sheets": ^14.0.0
-  "@graphql-codegen/cli": 7.4.5
+  "@graphql-codegen/cli": 7.4.6
   "@graphql-codegen/schema-ast": ^6.1.1
-  "@graphql-codegen/typescript": 6.1.1
+  "@graphql-codegen/typescript": 6.1.2
   "@graphql-codegen/typescript-graphql-request": ^7.1.0
   "@graphql-codegen/typescript-operations": 6.1.10
   "@nestjs/common": ^12.1.2
