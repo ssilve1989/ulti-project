@@ -11,7 +11,7 @@ jobs:
     concurrency: deploy-group # optional: ensure only one action runs at a time
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # master
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # 1.6
       # The image build (apps/bot/Dockerfile) compiles the bot and, given the
       # sentry_auth build secret, injects Sentry Debug IDs into the shipped dist
       # and uploads the sourcemaps.

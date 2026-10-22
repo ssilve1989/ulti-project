@@ -16,7 +16,7 @@ jobs:
     #     os: [macos-latest, ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4
+      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
       - run: pnpm install --frozen-lockfile
       - run: pnpm graphql:codegen
         env:
@@ -35,7 +35,7 @@ jobs:
           - run: pnpm test:ci
           - run: pnpm knip
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: ./coverage/coverage-final.json
         env:
