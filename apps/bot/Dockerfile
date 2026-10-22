@@ -5,7 +5,7 @@
 #   docker build -f apps/bot/Dockerfile .                                           # from repo root
 #   mise run deploy:bot
 
-FROM node:26.7-slim AS base
+FROM node:26.12.1-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 # corepack is no longer bundled with Node 26; install it, then activate the
@@ -47,7 +47,7 @@ COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
   pnpm install --prod --frozen-lockfile --filter "@ulti-project/bot..."
 
-FROM node:26.7-slim AS runner
+FROM node:26.12.1-slim AS runner
 LABEL fly_launch_runtime="NestJS"
 ENV NODE_ENV="production"
 WORKDIR /usr/src/app
