@@ -1,4 +1,5 @@
 ---
+
 name: edit-encounter-prog-points
 description: Use when adding, editing, or deleting progression points in encounter YAML files, to avoid skipping validation or forgetting the required Firestore sync step
 ---
@@ -41,10 +42,10 @@ Each prog point MUST have these fields:
 
 ```yaml
 progPoints:
-  - id: "P3: Apocalypse"           # Required: Unique within encounter, uppercase+underscores
-    label: "Phase 3: Apocalypse"   # Required: Display name in Discord
-    partyStatus: Prog Party         # Required: One of 4 enums (see below)
-    active: true                    # Required: Boolean, controls tracking
+  - id: "P3: Apocalypse" # Required: Unique within encounter, uppercase+underscores
+    label: "Phase 3: Apocalypse" # Required: Display name in Discord
+    partyStatus: Prog Party # Required: One of 4 enums (see below)
+    active: true # Required: Boolean, controls tracking
 ```
 
 ### Required partyStatus Values
@@ -62,8 +63,8 @@ Must be EXACTLY one of:
 These reference prog point IDs by name:
 
 ```yaml
-progPartyThreshold: "P3: Apocalypse"      # Minimum prog point for a "prog party"
-clearPartyThreshold: "P5: Fulgent 1"      # Minimum prog point for a "clear party"
+progPartyThreshold: "P3: Apocalypse" # Minimum prog point for a "prog party"
+clearPartyThreshold: "P5: Fulgent 1" # Minimum prog point for a "clear party"
 ```
 
 ⚠️ **When editing a prog point ID**, check if `progPartyThreshold` or `clearPartyThreshold` reference it. If renamed, update thresholds too.
@@ -71,10 +72,12 @@ clearPartyThreshold: "P5: Fulgent 1"      # Minimum prog point for a "clear part
 ## Editing Checklist
 
 ### Before Editing
+
 - [ ] Have you read the current YAML file for the encounter?
 - [ ] Do you understand if this changes thresholds (see Threshold Fields above)?
 
 ### While Editing
+
 - [ ] Prog point has all 4 required fields: id, label, partyStatus, active
 - [ ] `id` matches pattern: `[A-Z0-9_]+` (uppercase letters, numbers, underscores only)
 - [ ] `partyStatus` is EXACTLY one of the 4 enums (check capitalization/spacing)
@@ -83,6 +86,7 @@ clearPartyThreshold: "P5: Fulgent 1"      # Minimum prog point for a "clear part
 - [ ] If renaming an `id`: update `progPartyThreshold` or `clearPartyThreshold` if they reference it
 
 ### After Editing
+
 - [ ] **MANDATORY: Run the sync command** (see Sync Commands below)
 - [ ] Confirm the CLI output shows correct encounter name and prog point count
 
@@ -133,15 +137,15 @@ Invalid encounter YAML:
 
 ## Common Mistakes
 
-| Mistake | Why It Breaks | Fix |
-|---------|---------------|-----|
-| Edit YAML, don't run sync | Changes never reach Firestore; bot shows old data | Always run `pnpm cli encounters push ENCOUNTER_ID` |
-| Use `Prog Party` in code but `progParty` in YAML | Schema validation fails, sync rejects file | Use exact enum: `Prog Party` with space and capitals |
-| Rename prog point id but forget threshold update | Thresholds reference broken id | If `progPartyThreshold: "P3: Old Name"` and you rename it, update the threshold field too |
-| Delete prog point without checking thresholds | Thresholds may reference deleted id; bot breaks silently | Before deleting, check if `progPartyThreshold` or `clearPartyThreshold` reference it; update thresholds first |
-| Copy-paste prog point with duplicate id | Schema validation fails (id must be unique) | Change id to something unique within encounter |
-| Assume YAML changes auto-reflect in bot | They don't—bot reads Firestore | Sync is mandatory step, not optional |
-| Don't check enum values for partyStatus | Invalid enum causes sync failure | Check against 4 valid values (Early Prog Party, Prog Party, Clear Party, Cleared) |
+| Mistake                                          | Why It Breaks                                            | Fix                                                                                                           |
+| ------------------------------------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Edit YAML, don't run sync                        | Changes never reach Firestore; bot shows old data        | Always run `pnpm cli encounters push ENCOUNTER_ID`                                                            |
+| Use `Prog Party` in code but `progParty` in YAML | Schema validation fails, sync rejects file               | Use exact enum: `Prog Party` with space and capitals                                                          |
+| Rename prog point id but forget threshold update | Thresholds reference broken id                           | If `progPartyThreshold: "P3: Old Name"` and you rename it, update the threshold field too                     |
+| Delete prog point without checking thresholds    | Thresholds may reference deleted id; bot breaks silently | Before deleting, check if `progPartyThreshold` or `clearPartyThreshold` reference it; update thresholds first |
+| Copy-paste prog point with duplicate id          | Schema validation fails (id must be unique)              | Change id to something unique within encounter                                                                |
+| Assume YAML changes auto-reflect in bot          | They don't—bot reads Firestore                           | Sync is mandatory step, not optional                                                                          |
+| Don't check enum values for partyStatus          | Invalid enum causes sync failure                         | Check against 4 valid values (Early Prog Party, Prog Party, Clear Party, Cleared)                             |
 
 ## Example: Adding a New Prog Point
 
@@ -156,7 +160,7 @@ progPoints:
     label: "Phase 3: Apocalypse"
     partyStatus: Prog Party
     active: true
-  
+
   # NEW: Adding this prog point
   - id: "P4: Adds"
     label: "Phase 4: Adds"
@@ -178,13 +182,13 @@ Renaming `P3: Enrage` → `P3: Curtain Call`:
 ```yaml
 # Update the prog point
 progPoints:
-  - id: "P3: Curtain Call"           # Changed id
-    label: "Phase 3: Curtain Call"   # Changed label
+  - id: "P3: Curtain Call" # Changed id
+    label: "Phase 3: Curtain Call" # Changed label
     partyStatus: Prog Party
     active: true
 
 # If threshold referenced the old id, update it too
-progPartyThreshold: "P3: Curtain Call"  # Updated to match new id
+progPartyThreshold: "P3: Curtain Call" # Updated to match new id
 ```
 
 Then sync:
@@ -195,7 +199,6 @@ pnpm cli encounters push FRU
 ## Red Flags - Stop and Validate
 
 These signal you're about to make a mistake:
-
 - **"I'll just edit YAML and it will show up"** → You MUST sync
 - **"PartyStatus should be `progParty`"** → Use `Prog Party` with exact capitalization
 - **"I renamed the id but thresholds don't need updating"** → Check if thresholds reference it

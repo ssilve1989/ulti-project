@@ -11,7 +11,6 @@ Encounters are the FFXIV content (ultimates, savages) that the bot manages signu
 ### Source of truth: the code
 
 Encounter identity lives entirely in TypeScript source files:
-
 - **`src/encounters/encounters.consts.ts`** — the `Encounter` enum, `ENCOUNTER_CHOICES` array, `EncounterEmoji` map, `EncounterFriendlyDescription` map
 - Adding a new encounter requires a code change, a deployment, and manual Discord command re-registration
 
@@ -19,10 +18,10 @@ Encounter identity lives entirely in TypeScript source files:
 
 Firestore stores per-encounter data that the code doesn't know at compile time:
 
-| Collection | Fields |
-|---|---|
-| `encounters/{id}` | `name`, `description`, `active`, `progPartyThreshold?`, `clearPartyThreshold?` |
-| `encounters/{id}/progPoints/{id}` | `id`, `label`, `partyStatus`, `order`, `active` |
+| Collection                        | Fields                                                                         |
+| --------------------------------- | ------------------------------------------------------------------------------ |
+| `encounters/{id}`                 | `name`, `description`, `active`, `progPartyThreshold?`, `clearPartyThreshold?` |
+| `encounters/{id}/progPoints/{id}` | `id`, `label`, `partyStatus`, `order`, `active`                                |
 
 Encounter documents must be seeded manually or via the Discord `/encounters` admin command. There was no bulk export/import mechanism.
 
@@ -30,11 +29,11 @@ Encounter documents must be seeded manually or via the Discord `/encounters` adm
 
 Available to admins in-server:
 
-| Subcommand | What it does |
-|---|---|
-| `set-thresholds` | Set `progPartyThreshold` / `clearPartyThreshold` |
+| Subcommand           | What it does                                      |
+| -------------------- | ------------------------------------------------- |
+| `set-thresholds`     | Set `progPartyThreshold` / `clearPartyThreshold`  |
 | `manage-prog-points` | Add, edit, reorder, toggle, or delete prog points |
-| `view` | Display encounter config |
+| `view`               | Display encounter config                          |
 
 Choices in these commands are driven by the hardcoded `Encounter` enum — adding a new encounter to the dropdown requires a code change.
 
@@ -94,10 +93,10 @@ The pull/push pair treats `data/encounters/*.yaml` as a portable representation 
 ```yaml
 id: FRU
 name: Futures Rewritten (Ultimate)
-description: '[FRU] Futures Rewritten'
+description: "[FRU] Futures Rewritten"
 mode: ultimate
 active: true
-emoji: '1314628063782506506'
+emoji: "1314628063782506506"
 fflogsEncounterIds:
   - 1002
 progPartyThreshold: P2_TRANSITION
@@ -187,7 +186,6 @@ async getActiveEncounters(): Promise<Encounter[]> {
 ### How the CLI fits in
 
 With dynamic encounters, the `pull`/`push` workflow becomes the primary way to manage encounter state:
-
 1. Edit `data/encounters/FRU.yaml` — adjust prog points, flip `active: true/false`
 2. `pnpm cli encounters push FRU` — write to Firestore
 3. Bot detects the change (or on next restart) and re-registers slash commands with updated choices

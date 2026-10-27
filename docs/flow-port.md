@@ -24,7 +24,6 @@ and no further review rounds are run.
 
 A review round produces findings. A finding is only a finding if it does all
 three:
-
 1. **Cites a numbered rule** in `docs/testing.md` (Rules 1–8, or the Core
    principle), quoted.
 2. **Names `file:line`** in this branch.
@@ -51,7 +50,6 @@ the end of this file, not into the branch.
 ## Status
 
 Met:
-
 - Flow harness built (`test-utils/flow-app.ts` and fakes), booting real feature
   modules with only external systems replaced.
 - Flow specs for `signup`, `status`, `settings`, `blacklist`, `lookup`,
@@ -77,11 +75,9 @@ Met:
   own for remove-role or clean-roles (only the flow coverage for them).
 
 Not met:
-
 - Nothing outstanding at time of writing.
 
 Deferred (not findings, not for this branch):
-
 - `clean-roles.command-handler.ts:309` logs `roles > 0 ? 'processed' :
   'processed'`; the ternary picks the same word either way. Cosmetic log
   wording, outside the four review categories.
