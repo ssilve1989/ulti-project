@@ -18,7 +18,6 @@ pnpm build:check      # Type-check + compile (tsc -b, emits dist/)
 ## What the Bot Does
 
 The bot provides Discord-based tooling for organizing FFXIV raid progression groups:
-
 - **Signups** — Players submit signup requests with proof of progression (FF Logs link or screenshot)
 - **Review workflow** — Coordinators review signups via emoji reactions in a dedicated channel; the bot assigns appropriate Discord roles on approval
 - **Sheets sync** — Approved signups are mirrored to Google Sheets for public roster visibility

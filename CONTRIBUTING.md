@@ -13,7 +13,6 @@ In this example, `feat` is the type of change, `user` is the scope of the change
 ### Commit Message Format
 
 Each commit message consists of a **header**, a **body**, and a **footer**. The header has a special format that includes the **type**, **scope**, and **subject**:
-
 - **Type**: Must be one of the following:
   - **build**: Changes that affect the build system or external dependencies
   - **ci**: Changes to our CI configuration files and scripts
