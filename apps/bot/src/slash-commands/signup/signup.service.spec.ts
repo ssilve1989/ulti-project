@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import * as Sentry from '@sentry/nestjs';
 import type { SignupDocument } from '@ulti-project/shared';
 import type { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
@@ -184,8 +185,12 @@ describe('SignupService', () => {
         }),
       });
 
+      // processEvent writes extras to the current scope; specs share Sentry's
+      // default one (`isolate: false`), so give it its own rather than leak
       await expect(
-        service.processEvent({ reaction, user: reviewer }),
+        Sentry.withScope(new Sentry.Scope(), () =>
+          service.processEvent({ reaction, user: reviewer }),
+        ),
       ).resolves.toBeUndefined();
 
       await vi.waitFor(() => {
