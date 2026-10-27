@@ -246,7 +246,9 @@ describe('ClearCheckerJob', () => {
         reportedExtras.push(Sentry.getCurrentScope().getScopeData().extra);
       });
 
-      await job.checkClears();
+      // specs share Sentry's default scope (`isolate: false`) and some leave
+      // extras on it, so start from an empty one
+      await Sentry.withScope(new Sentry.Scope(), () => job.checkClears());
 
       expect(reportedExtras).toEqual([{ signup: broken, index: 0 }]);
     });
