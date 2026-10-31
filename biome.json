@@ -10,6 +10,7 @@
   "files": {
     "includes": [
       "**",
+      "!**/pnpm-lock.yaml",
       "!**/src/fflogs/graphql/**/*.ts",
       "!**/src/fflogs/graphql/**/*.graphql"
     ]
