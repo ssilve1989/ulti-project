@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { createFirestore } from '@ulti-project/shared';
-import { appConfig } from '../config/app.js';
-import { firebaseConfig } from '../config/firebase.js';
+import { appConfig } from '#src/config/app.js';
+import { firebaseConfig } from '#src/config/firebase.js';
 import { BlacklistCollection } from './collections/blacklist-collection.js';
 import { EncountersCollection } from './collections/encounters-collection.js';
 import { JobCollection } from './collections/job/job.collection.js';

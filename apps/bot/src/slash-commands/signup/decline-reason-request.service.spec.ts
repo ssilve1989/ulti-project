@@ -16,14 +16,14 @@ import {
   DiscordjsErrorCodes,
 } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
-import { DiscordService } from '../../discord/discord.service.js';
-import { SignupCollection } from '../../firebase/collections/signup.collection.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
 import {
   createAutoMock,
   mockOf,
   partialMock,
   withInternals,
-} from '../../test-utils/mock-factory.js';
+} from '#src/test-utils/mock-factory.js';
 import { DECLINE_REASON_SELECT_ID } from './decline-reason.components.js';
 import {
   DeclineReasonRequestService,

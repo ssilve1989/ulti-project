@@ -8,8 +8,8 @@ import {
   type Firestore,
   type QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
-import { InjectFirestore } from '../firebase.decorators.js';
-import type { BlacklistDocument } from '../models/blacklist.model.js';
+import { InjectFirestore } from '#src/firebase/firebase.decorators.js';
+import type { BlacklistDocument } from '#src/firebase/models/blacklist.model.js';
 
 type BlacklistDocumentKeys = Pick<
   BlacklistDocument,

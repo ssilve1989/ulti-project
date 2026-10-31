@@ -8,7 +8,7 @@ import {
   type UpdatePendingSignupDocument,
 } from '@ulti-project/shared';
 import { Timestamp } from 'firebase-admin/firestore';
-import { SignupCollection } from '../firebase/collections/signup.collection.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
 import type { FlowApp } from './flow-app.js';
 
 export type ApprovedSeed = Partial<ApprovedSignupDocument> &

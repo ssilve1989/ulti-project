@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { EncountersModule } from '../../encounters/encounters.module.js';
-import { ErrorModule } from '../../error/error.module.js';
-import { FirebaseModule } from '../../firebase/firebase.module.js';
+import { EncountersModule } from '#src/encounters/encounters.module.js';
+import { ErrorModule } from '#src/error/error.module.js';
+import { FirebaseModule } from '#src/firebase/firebase.module.js';
 import { StatusCommandHandler } from './handlers/status.command-handler.js';
 import { StatusService } from './status.service.js';
 

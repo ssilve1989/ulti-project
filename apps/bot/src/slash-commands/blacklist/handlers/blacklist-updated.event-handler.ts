@@ -1,12 +1,15 @@
 import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import { EmbedBuilder } from 'discord.js';
-import { createFields } from '../../../common/embed-helpers.js';
-import { DiscordService } from '../../../discord/discord.service.js';
-import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
-import { getBlacklistChannelIds } from '../../../firebase/models/settings.model.js';
-import { getDisplayName, sendToBlacklistChannels } from '../blacklist.utils.js';
-import { BlacklistUpdatedEvent } from '../events/blacklist.events.js';
+import { createFields } from '#src/common/embed-helpers.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { getBlacklistChannelIds } from '#src/firebase/models/settings.model.js';
+import {
+  getDisplayName,
+  sendToBlacklistChannels,
+} from '#src/slash-commands/blacklist/blacklist.utils.js';
+import { BlacklistUpdatedEvent } from '#src/slash-commands/blacklist/events/blacklist.events.js';
 
 @EventsHandler(BlacklistUpdatedEvent)
 class BlacklistUpdatedEventHandler

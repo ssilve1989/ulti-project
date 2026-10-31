@@ -22,21 +22,21 @@ import {
   type MockInstance,
   vi,
 } from 'vitest';
-import { DiscordService } from '../../discord/discord.service.js';
-import { ErrorService } from '../../error/error.service.js';
-import { FFLogsService } from '../../fflogs/fflogs.service.js';
-import { EncountersCollection } from '../../firebase/collections/encounters-collection.js';
-import { JobCollection } from '../../firebase/collections/job/job.collection.js';
-import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import { SheetsService } from '../../sheets/sheets.service.js';
-import { RemoveSignupEvent } from '../../slash-commands/remove-signup/remove-signup.events.js';
-import { runTick, settledState } from '../../test-utils/cron-tick.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { ErrorService } from '#src/error/error.service.js';
+import { FFLogsService } from '#src/fflogs/fflogs.service.js';
+import { EncountersCollection } from '#src/firebase/collections/encounters-collection.js';
+import { JobCollection } from '#src/firebase/collections/job/job.collection.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
+import { SheetsService } from '#src/sheets/sheets.service.js';
+import { RemoveSignupEvent } from '#src/slash-commands/remove-signup/remove-signup.events.js';
+import { runTick, settledState } from '#src/test-utils/cron-tick.js';
 import {
   createAutoMock,
   mockOf,
   partialMock,
-} from '../../test-utils/mock-factory.js';
+} from '#src/test-utils/mock-factory.js';
 import { ClearCheckerJob } from './clear-checker.job.js';
 
 const GUILD_ID = 'guild-1';

@@ -8,30 +8,30 @@ import {
 import { Colors } from 'discord.js';
 import { titleCase } from 'title-case';
 import { test as base, describe, expect } from 'vitest';
-import { DiscordService } from '../../discord/discord.service.js';
-import { SignupCollection } from '../../firebase/collections/signup.collection.js';
-import { SheetsService } from '../../sheets/sheets.service.js';
-import { shown } from '../../test-utils/discord/fake-message.js';
-import { fresh } from '../../test-utils/fixtures.js';
-import { createFlowApp, type FlowApp } from '../../test-utils/flow-app.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
+import { SheetsService } from '#src/sheets/sheets.service.js';
+import { SIGNUP_MESSAGES } from '#src/slash-commands/signup/signup.consts.js';
+import { shown } from '#src/test-utils/discord/fake-message.js';
+import { fresh } from '#src/test-utils/fixtures.js';
+import { createFlowApp, type FlowApp } from '#src/test-utils/flow-app.js';
 import {
   commandErrorReply,
   expectCommandErrorReported,
   expectSagaCommandErrorReported,
   privateReply,
-} from '../../test-utils/replies.js';
+} from '#src/test-utils/replies.js';
 import {
   nextFreeRow,
   PROG_PARTY,
   rowCleared,
-} from '../../test-utils/sheets/dmu-sheet.js';
-import { stableTestKey } from '../../test-utils/sheets/recorded-sheets.js';
+} from '#src/test-utils/sheets/dmu-sheet.js';
+import { stableTestKey } from '#src/test-utils/sheets/recorded-sheets.js';
 import {
   type ApprovedSeed,
   type SeedOverrides,
   seedSignup,
-} from '../../test-utils/signups.js';
-import { SIGNUP_MESSAGES } from '../signup/signup.consts.js';
+} from '#src/test-utils/signups.js';
 import {
   REMOVAL_MISSING_PERMISSIONS,
   REMOVAL_NO_DB_ENTRY,

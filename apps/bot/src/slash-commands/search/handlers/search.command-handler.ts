@@ -15,13 +15,11 @@ import {
   MessageFlags,
   StringSelectMenuBuilder,
 } from 'discord.js';
-import { characterField } from '../../../common/components/fields.js';
-import { type ApplicationModeConfig, appConfig } from '../../../config/app.js';
-import { ComponentSessionService } from '../../../discord/component-session.service.js';
-import { EncountersService } from '../../../encounters/encounters.service.js';
-import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import { SlashCommand } from '../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../slash-command.interface.js';
+import { characterField } from '#src/common/components/fields.js';
+import { type ApplicationModeConfig, appConfig } from '#src/config/app.js';
+import { ComponentSessionService } from '#src/discord/component-session.service.js';
+import { EncountersService } from '#src/encounters/encounters.service.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
 import {
   createEncounterSelectMenu,
   createPaginationRow,
@@ -32,8 +30,10 @@ import {
   SEARCH_PREV_PAGE_BUTTON_ID,
   SEARCH_PROG_POINT_SELECT_ID,
   SEARCH_RESET_BUTTON_ID,
-} from '../search.components.js';
-import { SearchSlashCommand } from '../search.slash-command.js';
+} from '#src/slash-commands/search/search.components.js';
+import { SearchSlashCommand } from '#src/slash-commands/search/search.slash-command.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
 
 type SearchSessionState = {
   selectedEncounter: Encounter | null;

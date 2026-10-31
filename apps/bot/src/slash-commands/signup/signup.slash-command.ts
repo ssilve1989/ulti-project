@@ -1,6 +1,6 @@
 import { getEncounterChoicesForMode } from '@ulti-project/shared';
 import { SlashCommandBuilder } from 'discord.js';
-import type { ApplicationModeConfig } from '../../config/app.js';
+import type { ApplicationModeConfig } from '#src/config/app.js';
 
 // Extracted as its own variable since the command itself is dynamically created
 // but we need to reference the name when handling the interaction

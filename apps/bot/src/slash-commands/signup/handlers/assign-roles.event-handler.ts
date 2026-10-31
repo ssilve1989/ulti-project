@@ -2,9 +2,9 @@ import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import { PartyStatus } from '@ulti-project/shared';
 import { match, P } from 'ts-pattern';
-import { DiscordService } from '../../../discord/discord.service.js';
-import { ProgPointRolesService } from '../../../role-manager/prog-point-roles.service.js';
-import { SignupApprovedEvent } from '../events/signup.events.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { ProgPointRolesService } from '#src/role-manager/prog-point-roles.service.js';
+import { SignupApprovedEvent } from '#src/slash-commands/signup/events/signup.events.js';
 
 interface SetRoleParameters {
   discordId: string;

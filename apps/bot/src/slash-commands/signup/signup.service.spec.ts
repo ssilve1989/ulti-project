@@ -2,15 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { SignupDocument } from '@ulti-project/shared';
 import type { Message, MessageReaction, ReactionEmoji, User } from 'discord.js';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
-import { DiscordService } from '../../discord/discord.service.js';
-import { ErrorService } from '../../error/error.service.js';
-import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import type { SettingsDocument } from '../../firebase/models/settings.model.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { ErrorService } from '#src/error/error.service.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import type { SettingsDocument } from '#src/firebase/models/settings.model.js';
 import {
   createAutoMock,
   mockOf,
   partialMock,
-} from '../../test-utils/mock-factory.js';
+} from '#src/test-utils/mock-factory.js';
 import { ApprovalDecisionRequestService } from './approval-decision-request.service.js';
 import { SIGNUP_REVIEW_REACTIONS } from './signup.consts.js';
 import { SignupService } from './signup.service.js';

@@ -5,8 +5,8 @@ import type {
 } from '@ulti-project/shared';
 import { PartyStatus } from '@ulti-project/shared';
 import { beforeEach, describe, expect, it, type Mocked } from 'vitest';
-import { EncountersCollection } from '../firebase/collections/encounters-collection.js';
-import { createAutoMock } from '../test-utils/mock-factory.js';
+import { EncountersCollection } from '#src/firebase/collections/encounters-collection.js';
+import { createAutoMock } from '#src/test-utils/mock-factory.js';
 import { EncountersService } from './encounters.service.js';
 
 describe('EncountersService', () => {

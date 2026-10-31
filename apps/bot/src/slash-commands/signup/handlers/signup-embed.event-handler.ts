@@ -1,12 +1,12 @@
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import { Colors, EmbedBuilder, userMention } from 'discord.js';
 import { match, P } from 'ts-pattern';
-import { getFirstEmbed } from '../../../discord/discord.helpers.js';
-import { DiscordService } from '../../../discord/discord.service.js';
+import { getFirstEmbed } from '#src/discord/discord.helpers.js';
+import { DiscordService } from '#src/discord/discord.service.js';
 import {
   SignupApprovedEvent,
   SignupDeclinedEvent,
-} from '../events/signup.events.js';
+} from '#src/slash-commands/signup/events/signup.events.js';
 
 @EventsHandler(SignupApprovedEvent, SignupDeclinedEvent)
 class SignupEmbedEventHandler

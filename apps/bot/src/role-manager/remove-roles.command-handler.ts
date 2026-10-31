@@ -1,9 +1,9 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { SentryTraced } from '@sentry/nestjs';
-import { DiscordService } from '../discord/discord.service.js';
-import { SettingsCollection } from '../firebase/collections/settings-collection.js';
-import { RemoveRolesCommand } from '../slash-commands/signup/commands/signup.commands.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { RemoveRolesCommand } from '#src/slash-commands/signup/commands/signup.commands.js';
 
 @CommandHandler(RemoveRolesCommand)
 export class RemoveRolesCommandHandler

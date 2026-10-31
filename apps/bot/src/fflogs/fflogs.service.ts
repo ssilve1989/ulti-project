@@ -10,8 +10,8 @@ import {
   type Observable,
   of,
 } from 'rxjs';
-import { getErrorMessage } from '../common/error-guards.js';
-import { FFLOGS_REPORT_MAX_AGE_DAYS } from '../slash-commands/signup/signup.consts.js';
+import { getErrorMessage } from '#src/common/error-guards.js';
+import { FFLOGS_REPORT_MAX_AGE_DAYS } from '#src/slash-commands/signup/signup.consts.js';
 import { EncounterIds, expiredReportError } from './fflogs.consts.js';
 import { InjectFFLogsSDKClient } from './fflogs.decorators.js';
 import type { FFLogsSDKClient } from './fflogs.interfaces.js';

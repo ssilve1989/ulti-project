@@ -2,17 +2,17 @@ import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import type { SignupDocument } from '@ulti-project/shared';
 import { EmbedBuilder } from 'discord.js';
-import { getMessageLink } from '../../../discord/discord.consts.js';
-import { DiscordService } from '../../../discord/discord.service.js';
-import { BlacklistCollection } from '../../../firebase/collections/blacklist-collection.js';
-import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
-import type { BlacklistDocument } from '../../../firebase/models/blacklist.model.js';
-import { getBlacklistChannelIds } from '../../../firebase/models/settings.model.js';
-import { BlacklistSearchCommand } from '../blacklist.commands.js';
+import { getMessageLink } from '#src/discord/discord.consts.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { BlacklistCollection } from '#src/firebase/collections/blacklist-collection.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import type { BlacklistDocument } from '#src/firebase/models/blacklist.model.js';
+import { getBlacklistChannelIds } from '#src/firebase/models/settings.model.js';
+import { BlacklistSearchCommand } from '#src/slash-commands/blacklist/blacklist.commands.js';
 import {
   createBlacklistEmbedFields,
   sendToBlacklistChannels,
-} from '../blacklist.utils.js';
+} from '#src/slash-commands/blacklist/blacklist.utils.js';
 
 @CommandHandler(BlacklistSearchCommand)
 class BlacklistSearchCommandHandler

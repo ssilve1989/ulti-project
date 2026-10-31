@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { DiscordModule } from '../../discord/discord.module.js';
+import { DiscordModule } from '#src/discord/discord.module.js';
 import { RemoveRoleCommandHandler } from './handlers/remove-role.command-handler.js';
 
 @Module({

@@ -5,7 +5,7 @@ import type {
   User,
 } from 'discord.js';
 import { vi } from 'vitest';
-import { mockOf } from '../../test-utils/mock-factory.js';
+import { mockOf } from '#src/test-utils/mock-factory.js';
 import type {
   BaseRoleResult,
   ProcessingStrategy,

@@ -16,19 +16,19 @@ import {
   roleMention,
   userMention,
 } from 'discord.js';
-import { DiscordService } from '../../../discord/discord.service.js';
-import { ErrorService } from '../../../error/error.service.js';
-import { SettingsCollection } from '../../../firebase/collections/settings-collection.js';
-import { SignupCollection } from '../../../firebase/collections/signup.collection.js';
-import type { SettingsDocument } from '../../../firebase/models/settings.model.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { ErrorService } from '#src/error/error.service.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { SignupCollection } from '#src/firebase/collections/signup.collection.js';
+import type { SettingsDocument } from '#src/firebase/models/settings.model.js';
 import {
   type ProgPointRoleChanges,
   ProgPointRolesService,
-} from '../../../role-manager/prog-point-roles.service.js';
-import { SlashCommand } from '../../slash-command.decorator.js';
-import type { ISlashCommand } from '../../slash-command.interface.js';
-import { SyncProgRolesSlashCommand } from '../sync-prog-roles.slash-command.js';
-import { buildDetailFields } from '../sync-prog-roles.utils.js';
+} from '#src/role-manager/prog-point-roles.service.js';
+import { SlashCommand } from '#src/slash-commands/slash-command.decorator.js';
+import type { ISlashCommand } from '#src/slash-commands/slash-command.interface.js';
+import { SyncProgRolesSlashCommand } from '#src/slash-commands/sync-prog-roles/sync-prog-roles.slash-command.js';
+import { buildDetailFields } from '#src/slash-commands/sync-prog-roles/sync-prog-roles.utils.js';
 
 const ACTIVE_PARTY_STATUSES: ReadonlySet<PartyStatus> = new Set([
   PartyStatus.EarlyProgParty,

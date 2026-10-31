@@ -8,13 +8,13 @@ import * as Sentry from '@sentry/nestjs';
 import { isEncounter } from '@ulti-project/shared';
 import type { CronJob } from 'cron';
 import { filter, finalize, from, lastValueFrom, mergeMap } from 'rxjs';
-import { CronTime } from '../../common/cron.js';
-import { DiscordService } from '../../discord/discord.service.js';
-import { EncountersCollection } from '../../firebase/collections/encounters-collection.js';
-import { JobCollection } from '../../firebase/collections/job/job.collection.js';
-import { SettingsCollection } from '../../firebase/collections/settings-collection.js';
-import { SheetsService } from '../../sheets/sheets.service.js';
-import { createJob, jobDateFormatter } from '../jobs.consts.js';
+import { CronTime } from '#src/common/cron.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { EncountersCollection } from '#src/firebase/collections/encounters-collection.js';
+import { JobCollection } from '#src/firebase/collections/job/job.collection.js';
+import { SettingsCollection } from '#src/firebase/collections/settings-collection.js';
+import { createJob, jobDateFormatter } from '#src/jobs/jobs.consts.js';
+import { SheetsService } from '#src/sheets/sheets.service.js';
 
 // TODO: Jobs share a commonality for checking the job collection
 // for if they should run, this should be abstracted

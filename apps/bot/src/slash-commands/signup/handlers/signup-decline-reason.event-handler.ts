@@ -1,14 +1,14 @@
 import { Logger } from '@nestjs/common';
 import { EventsHandler, type IEventHandler } from '@nestjs/cqrs';
 import { EmbedBuilder } from 'discord.js';
-import { getFirstEmbed } from '../../../discord/discord.helpers.js';
-import { DiscordService } from '../../../discord/discord.service.js';
-import { SignupDeclineReasonCollectedEvent } from '../events/signup.events.js';
+import { getFirstEmbed } from '#src/discord/discord.helpers.js';
+import { DiscordService } from '#src/discord/discord.service.js';
+import { SignupDeclineReasonCollectedEvent } from '#src/slash-commands/signup/events/signup.events.js';
 import {
   DEFAULT_DECLINE_FOLLOWUP_MESSAGES,
   SIGNUP_DECLINE_REASONS_CONFIG,
   SIGNUP_MESSAGES,
-} from '../signup.consts.js';
+} from '#src/slash-commands/signup/signup.consts.js';
 
 @EventsHandler(SignupDeclineReasonCollectedEvent)
 export class SignupDeclineReasonEventHandler
