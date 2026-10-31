@@ -1,7 +1,6 @@
 # Testing
 
 The bot's tests form a pyramid:
-
 - **Flow specs** (`<feature>.flow.spec.ts`) boot the real Nest modules for a
   feature, fake only external systems, and describe what users see. Every
   slash-command feature is meant to have one, except the ones being removed
@@ -25,7 +24,6 @@ an approved signup deleted its approved review message in production. The test
 stayed green the whole time.
 
 So:
-
 - **Behaviour that crosses our own classes goes in a flow spec**, with the real
   classes wired together. Don't stub one of our classes to return a chosen
   value in order to test another.
@@ -66,7 +64,7 @@ So:
    behaviour; several `expect`s are fine when they describe that one behaviour.
 2. **Assert outcomes, not calls.** Check stored documents, return values, and
    what Discord, Sheets or FFLogs received. Use `toHaveBeenCalled*` only when a
-   call to an external system *is* the behaviour, never to check that one of our
+   call to an external system _is_ the behaviour, never to check that one of our
    own classes called another.
 3. **Assert the whole output.** Compare a return value, stored document or
    message with `toEqual` against all of it, not a few fields: a field nobody
@@ -108,19 +106,18 @@ So:
 `createFlowApp()` (`apps/bot/src/test-utils/flow-app.ts`) boots the real
 feature modules. Only what sits behind an external system is swapped:
 
-| External system | In flow specs | What tests do with it |
-|---|---|---|
-| Firestore | `InMemoryFirestore`, behind the `FIRESTORE` token | `db.seed(path, data)` / `db.read(path)`; `db.onWrite(listener)` to check what else had happened when the app wrote |
-| Discord | `DiscordMock`'s fake discord.js client, behind the `DISCORD_CLIENT` token, so the real `DiscordService` runs | set up channels, roles, members, other users and emojis (`addChannel(guildId, channelId)`, `addRole(guildId, role)`, `addMember` with roles that exist, `addUser` for someone outside the guild, `removeMember` when a member leaves, `addEmoji`); drive the bot with `command` (delivered through the real command listener, only with commands, subcommands and options the bot registered, and only by members with the command's permissions), `react`, `click`, `choose` (one value or several), `chooseChannels` and `submitModal`; assert with `channel`, `dmsTo`, `repliesTo`, `modalsShownTo`, `rolesOf` |
-| FFLogs | `FFLogsMock`, behind the SDK token, so the real `FFLogsService` runs | `fflogs.addReport(code, { daysAgo })`, `fflogs.goOffline()` |
-| Google Sheets | **Recorded real traffic.** The real `SheetsService` and client run; their HTTP is replayed from recordings of the shared test spreadsheet | `sheets.writes()`: every change the app sent to Sheets in this test, in full; `sheets.valuesRead(range)`: what the sheet returned each time the app has read it so far |
+| External system | In flow specs                                                                                                                             | What tests do with it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Firestore       | `InMemoryFirestore`, behind the `FIRESTORE` token                                                                                         | `db.seed(path, data)` / `db.read(path)`; `db.onWrite(listener)` to check what else had happened when the app wrote                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Discord         | `DiscordMock`'s fake discord.js client, behind the `DISCORD_CLIENT` token, so the real `DiscordService` runs                              | set up channels, roles, members, other users and emojis (`addChannel(guildId, channelId)`, `addRole(guildId, role)`, `addMember` with roles that exist, `addUser` for someone outside the guild, `removeMember` when a member leaves, `addEmoji`); drive the bot with `command` (delivered through the real command listener, only with commands, subcommands and options the bot registered, and only by members with the command's permissions), `react`, `click`, `choose` (one value or several), `chooseChannels` and `submitModal`; assert with `channel`, `dmsTo`, `repliesTo`, `modalsShownTo`, `rolesOf` |
+| FFLogs          | `FFLogsMock`, behind the SDK token, so the real `FFLogsService` runs                                                                      | `fflogs.addReport(code, { daysAgo })`, `fflogs.goOffline()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Google Sheets   | **Recorded real traffic.** The real `SheetsService` and client run; their HTTP is replayed from recordings of the shared test spreadsheet | `sheets.writes()`: every change the app sent to Sheets in this test, in full; `sheets.valuesRead(range)`: what the sheet returned each time the app has read it so far                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 ### Recorded Google Sheets traffic
 
 This follows the practice Google documents for its own API clients: test
 against saved real responses, never the live API
 ([Python guide](https://googleapis.github.io/google-api-python-client/docs/mocks.html)).
-
 - **Normal runs** (`pnpm test`, pre-commit, CI) replay each test's recording
   from `__recordings__/` next to the spec, with the network disabled. They need
   no credentials and use no quota. A test that makes no Sheets requests has no
