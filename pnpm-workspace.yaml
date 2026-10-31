@@ -68,4 +68,4 @@ catalog:
   vite: ^8.3.5
   vitest: ^5.0.5
   yaml: ^2.9.1
-  zod: ^4.5.4
+  zod: ^4.6.7
