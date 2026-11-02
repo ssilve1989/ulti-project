@@ -30,7 +30,6 @@
     "cron": "catalog:",
     "discord.js": "catalog:",
     "firebase-admin": "catalog:",
-    "google-auth-library": "catalog:",
     "graphql": "catalog:",
     "graphql-request": "catalog:",
     "nestjs-pino": "catalog:",

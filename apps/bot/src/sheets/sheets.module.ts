@@ -1,6 +1,5 @@
-import { sheets } from '@googleapis/sheets';
+import { auth, sheets } from '@googleapis/sheets';
 import { Module } from '@nestjs/common';
-import { GoogleAuth } from 'google-auth-library';
 import { appConfig } from '../config/app.js';
 import { sheetsConfig } from '../config/sheets.js';
 import { EncountersModule } from '../encounters/encounters.module.js';
@@ -17,7 +16,7 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
     {
       provide: SHEETS_CLIENT,
       useFactory: () => {
-        const client = new GoogleAuth({
+        const client = new auth.GoogleAuth({
           scopes: SCOPES,
           credentials: {
             client_email: appConfig.GCP_ACCOUNT_EMAIL,
