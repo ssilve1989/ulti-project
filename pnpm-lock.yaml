@@ -255,7 +255,7 @@ catalogs:
       specifier: ^7.4.0
       version: 7.4.0
     knip:
-      specifier: ^6.42.1
+      specifier: ^6.43.0
       version: 6.43.0
     lefthook:
       specifier: ^2.2.2
@@ -784,9 +784,6 @@ packages:
 
   '@dotenvx/providers@0.3.12':
     resolution: {integrity: sha512-myvAAeabjTTeqJRq/iURozIrzl5nYzxDprT3d00yJg5kqkXznl1TXxJS5s8Oy62gZnqSzSiDxM8W1KZRtj1Ojg==}
-
-  '@dotenvx/tooling@1.0.5':
-    resolution: {integrity: sha512-XMAwZpxIajWaP31zLl2GQS3grIQsRY4B4VMss8fDv70XbGF/9aXSMHc3v9iJNZZVX/i0Loz1MAn6oM8dycbN4A==}
 
   '@dotenvx/tooling@1.0.6':
     resolution: {integrity: sha512-d1AhKqlprzjR7+/7YTYbf9lTjeIUxr2WN+gYL5jf9O25wymlVWzuwOujq9IWJOt33sGWcLjr1eswSOmqm4SRMg==}
@@ -4299,10 +4296,6 @@ packages:
   sonic-boom@5.0.2:
     resolution: {integrity: sha512-/JEruzo6yhNVhsLblTRchgTQHIt7SsdJP0YyrfWaNKjIOQDfrdZv9gwYraYCAsmKV39/LAdV31FLL5NCDpoL/A==}
 
-  source-map-js@1.2.1:
-    resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
-    engines: {node: '>=0.10.0'}
-
   source-map-js@1.2.2:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
@@ -5128,9 +5121,7 @@ snapshots:
   '@dotenvx/providers@0.3.12':
     dependencies:
       '@dotenvx/primitives': 4.0.0
-      '@dotenvx/tooling': 1.0.5
-
-  '@dotenvx/tooling@1.0.5': {}
+      '@dotenvx/tooling': 1.0.6
 
   '@dotenvx/tooling@1.0.6': {}
 
@@ -8156,7 +8147,7 @@ snapshots:
     dependencies:
       '@babel/parser': 7.29.8
       '@babel/types': 7.29.8
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
 
   map-cache@0.2.2: {}
 
@@ -8741,8 +8732,6 @@ snapshots:
   sonic-boom@5.0.2:
     dependencies:
       atomic-sleep: 1.0.0
-
-  source-map-js@1.2.1: {}
 
   source-map-js@1.2.2: {}
 
