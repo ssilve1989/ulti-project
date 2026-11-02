@@ -245,9 +245,6 @@ catalogs:
     firebase-admin:
       specifier: ^14.5.0
       version: 14.5.0
-    google-auth-library:
-      specifier: ^10.9.1
-      version: 10.9.1
     graphql:
       specifier: ^16.14.2
       version: 16.14.2
@@ -299,9 +296,6 @@ catalogs:
     zod:
       specifier: ^4.6.7
       version: 4.6.7
-
-overrides:
-  googleapis-common>google-auth-library: ^10.9.1
 
 importers:
 
@@ -382,9 +376,6 @@ importers:
       firebase-admin:
         specifier: 'catalog:'
         version: 14.5.0(supports-color@8.1.1)
-      google-auth-library:
-        specifier: 'catalog:'
-        version: 10.9.1(supports-color@8.1.1)
       graphql:
         specifier: 'catalog:'
         version: 16.14.2
@@ -2977,10 +2968,6 @@ packages:
     resolution: {integrity: sha512-7VsaTExxjbDv2ZK1YuC4jbgfN33NI/6/7zdYWUHB6mcg51v4tCBZe+xzjqPzOpVzI+C5k1Kk9OQ80WVrXAHOqw==}
     engines: {node: '>=22'}
 
-  gcp-metadata@8.1.2:
-    resolution: {integrity: sha512-zV/5HKTfCeKWnxG0Dmrw51hEWFGfcF2xiXqcA3+J90WDuP0SvoiSO5ORvcBsifmx/FoIjgQN3oNOGaQ5PhLFkg==}
-    engines: {node: '>=18'}
-
   gcp-metadata@8.1.4:
     resolution: {integrity: sha512-iJ9KMsiu+xKtNRX0PmGLSaIU3bUBAyzWTyqKemKPzNPsmmsBCQYmlNg+brEbES7IHSXtdVwzBPzx1vz3FAaipw==}
     engines: {node: '>=18'}
@@ -3047,10 +3034,6 @@ packages:
 
   google-auth-library@10.5.0:
     resolution: {integrity: sha512-7ABviyMOlX5hIVD60YOfHw4/CxOfBhyduaYB+wbFWCWoni4N7SLcV46hrVRktuBbZjFC9ONyqamZITN7q3n32w==}
-    engines: {node: '>=18'}
-
-  google-auth-library@10.9.1:
-    resolution: {integrity: sha512-i1ydyHrqcIxXkWh/uBmVkzCvIuq5yiK2ATndIe5XxKholrG/MTYP9xGYka4sQhrbIAgGjL2B6NOE7rFaiF3fXw==}
     engines: {node: '>=18'}
 
   google-auth-library@11.3.1:
@@ -7104,14 +7087,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  gcp-metadata@8.1.2(supports-color@8.1.1):
-    dependencies:
-      gaxios: 7.3.1(supports-color@8.1.1)
-      google-logging-utils: 1.1.3
-      json-bigint: 1.0.0
-    transitivePeerDependencies:
-      - supports-color
-
   gcp-metadata@8.1.4(supports-color@8.1.1):
     dependencies:
       gaxios: 7.1.3(supports-color@8.1.1)
@@ -7119,7 +7094,6 @@ snapshots:
       json-bigint: 1.0.0
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   gcp-metadata@9.2.2(supports-color@8.1.1):
     dependencies:
@@ -7223,18 +7197,6 @@ snapshots:
       jws: 4.0.1
     transitivePeerDependencies:
       - supports-color
-    optional: true
-
-  google-auth-library@10.9.1(supports-color@8.1.1):
-    dependencies:
-      base64-js: 1.5.1
-      ecdsa-sig-formatter: 1.0.11
-      gaxios: 7.3.1(supports-color@8.1.1)
-      gcp-metadata: 8.1.2(supports-color@8.1.1)
-      google-logging-utils: 1.1.3
-      jws: 4.0.1
-    transitivePeerDependencies:
-      - supports-color
 
   google-auth-library@11.3.1(supports-color@8.1.1):
     dependencies:
@@ -7289,7 +7251,7 @@ snapshots:
     dependencies:
       extend: 3.0.2
       gaxios: 7.1.3(supports-color@8.1.1)
-      google-auth-library: 10.9.1(supports-color@8.1.1)
+      google-auth-library: 10.5.0(supports-color@8.1.1)
       google-logging-utils: 1.1.3
       qs: 6.17.0
       url-template: 2.0.8
@@ -7346,7 +7308,6 @@ snapshots:
       jws: 4.0.1
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   has-flag@3.0.0: {}
 
