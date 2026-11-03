@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.2](https://github.com/ssilve1989/ulti-project/compare/v2.9.1...v2.9.2) (2026-11-02)
+
+
+### Bug Fixes
+
+* **deps:** update dependencies to clear security advisories ([#1677](https://github.com/ssilve1989/ulti-project/issues/1677)) ([0cd5c98](https://github.com/ssilve1989/ulti-project/commit/0cd5c987850f9b0489b5c968707dd36aabb42f9a))
+
 ## [2.9.1](https://github.com/ssilve1989/ulti-project/compare/v2.9.0...v2.9.1) (2026-10-09)
 
 ### Bug Fixes
