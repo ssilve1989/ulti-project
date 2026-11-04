@@ -4,6 +4,7 @@ import {
   type ApprovedSignupDocument,
   type AwaitingReviewSignupDocument,
   type CreateSignupDocumentProps,
+  isAwaitingReview,
   type PendingSignupDocument,
   type SignupCompositeKeyProps as SignupCompositeKey,
   type SignupDocument,
@@ -155,7 +156,8 @@ class SignupCollection {
    * @param status - new status for the signup
    * @param key - composite key for the signup
    * @param reviewedBy - discordId of the user that reviewed the signup
-   * @returns
+   * @param reviewMessageId - the review message the reviewer reacted to
+   * @returns false, writing nothing, if the signup is no longer awaiting review on that message
    */
   @SentryTraced()
   public approveSignup(
@@ -166,25 +168,57 @@ class SignupCollection {
     }: SignupCompositeKey &
       Pick<ApprovedSignupDocument, 'progPoint' | 'partyStatus'>,
     reviewedBy: string,
-  ) {
-    const updateData: UpdateData<SignupDocument> = {
+    reviewMessageId: string,
+  ): Promise<boolean> {
+    return this.updateIfAwaitingReview(key, reviewMessageId, {
       declineReason: FieldValue.delete(),
       partyStatus,
       progPoint,
       reviewedBy,
       status: SignupStatus.APPROVED,
-    };
-
-    return this.collection
-      .doc(SignupCollection.getKeyForSignup(key))
-      .update(updateData);
+    });
   }
 
+  /**
+   * @returns false, writing nothing, if the signup is no longer awaiting review on that message
+   */
   @SentryTraced()
-  public declineSignup(key: SignupCompositeKey, reviewedBy: string) {
-    return this.collection
-      .doc(SignupCollection.getKeyForSignup(key))
-      .update({ reviewedBy, status: SignupStatus.DECLINED });
+  public declineSignup(
+    key: SignupCompositeKey,
+    reviewedBy: string,
+    reviewMessageId: string,
+  ): Promise<boolean> {
+    return this.updateIfAwaitingReview(key, reviewMessageId, {
+      reviewedBy,
+      status: SignupStatus.DECLINED,
+    });
+  }
+
+  /**
+   * Guards a review against one that landed first, or a resubmit, while the
+   * reviewer was still deciding.
+   */
+  private updateIfAwaitingReview(
+    key: SignupCompositeKey,
+    reviewMessageId: string,
+    updateData: UpdateData<SignupDocument>,
+  ): Promise<boolean> {
+    const ref = this.collection.doc(SignupCollection.getKeyForSignup(key));
+
+    return this.firestore.runTransaction(async (tx) => {
+      const current = (await tx.get(ref)).data();
+
+      if (
+        !current ||
+        !isAwaitingReview(current) ||
+        current.reviewMessageId !== reviewMessageId
+      ) {
+        return false;
+      }
+
+      tx.update(ref, updateData);
+      return true;
+    });
   }
 
   /**

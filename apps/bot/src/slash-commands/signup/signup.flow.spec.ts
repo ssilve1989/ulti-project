@@ -719,6 +719,15 @@ const declineReasonPrompt = ({ withMenu }: { withMenu: boolean }) => ({
 });
 
 /** The DM telling the player their signup was declined. */
+const staleReviewDm = () => ({
+  location: dmTo(REVIEWER.id),
+  reactions: {},
+  deleted: false,
+  content: `${SIGNUP_MESSAGES.REVIEW_NOT_RECORDED}\n\nSignup: **${Encounter.DMU}** by **${PLAYER.username}**`,
+  embeds: [],
+  components: [],
+});
+
 const declineDm = (flow: FlowApp, content: string) => ({
   location: dmTo(PLAYER.id),
   reactions: {},
@@ -1963,6 +1972,82 @@ describe('Signup lifecycle', () => {
             SIGNUP_MESSAGES.APPROVAL_CANCELLATION_RECEIVED,
             { ephemeral: false },
           ),
+        ]);
+      });
+    });
+
+    describe('and a second reviewer reacts while the first is still deciding', () => {
+      it.beforeEach(async ({ flow }) => {
+        flow.discord.addMember(OTHER_REVIEWER);
+        await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.APPROVED);
+        await reactToReview(
+          flow,
+          SIGNUP_REVIEW_REACTIONS.APPROVED,
+          OTHER_REVIEWER.id,
+        );
+      });
+
+      it('does not prompt the second reviewer while the first is deciding', async ({
+        flow,
+      }) => {
+        expect(flow.discord.dmsTo(OTHER_REVIEWER.id)).toEqual([]);
+
+        await cancelApprovalPrompt(flow);
+        flow.discord.click(
+          flow.discord.latestDmTo(OTHER_REVIEWER.id),
+          APPROVAL_CANCEL_BUTTON_ID,
+          OTHER_REVIEWER.id,
+        );
+        await flow.settle();
+      });
+
+      it('prompts the second reviewer once the first cancels', async ({
+        flow,
+      }) => {
+        await cancelApprovalPrompt(flow);
+
+        expect(flow.discord.dmsTo(OTHER_REVIEWER.id).map(shown)).toEqual([
+          {
+            ...approvalPrompt([
+              progPointMenu(),
+              approvalButtons({ canApprove: false }),
+            ]),
+            location: dmTo(OTHER_REVIEWER.id),
+          },
+        ]);
+
+        flow.discord.click(
+          flow.discord.latestDmTo(OTHER_REVIEWER.id),
+          APPROVAL_CANCEL_BUTTON_ID,
+          OTHER_REVIEWER.id,
+        );
+        await flow.settle();
+      });
+    });
+
+    describe('and the player resubmits while the reviewer is still deciding', () => {
+      it.beforeEach(async ({ flow }) => {
+        await reactToReview(flow, SIGNUP_REVIEW_REACTIONS.APPROVED);
+        await submitSignup(flow, 'confirm', { job: 'healer' });
+      });
+
+      it('does not record the approval or touch the sheet, and tells the reviewer', async ({
+        flow,
+      }) => {
+        await chooseProgPoint(flow, 'P6');
+        await pressInApprovalPrompt(flow, APPROVE_BUTTON_ID);
+
+        expect(flow.sheets.writes()).toEqual([]);
+        expect(flow.db.read(SIGNUP_PATH)).toEqual(
+          storedSignup(flow, {
+            role: 'healer',
+            reviewMessageId: latestReview(flow).id,
+            reviewedBy: null,
+          }),
+        );
+        expect(flow.discord.dmsTo(REVIEWER.id).map(shown)).toEqual([
+          approvalPrompt([]),
+          staleReviewDm(),
         ]);
       });
     });

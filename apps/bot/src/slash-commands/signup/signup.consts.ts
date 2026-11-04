@@ -40,6 +40,8 @@ You can reach out to a coordinator to discuss any issues.
     'An error occurred while processing your response. The signup may not have been added to the Google Sheet, please verify it or add it manually',
   SIGNUP_NOT_FOUND_FOR_REACTION:
     'No signup was found in the database to correspond to this reaction. Check if you are reacting to a message that has already been handled, like a Cleared post. In those cases the document would be removed. If not please report this error.',
+  REVIEW_NOT_RECORDED:
+    'The signup you reviewed was re-submitted or reviewed by someone else before your review was saved, so your review was not recorded. Please check its latest review message.',
   DECLINE_REASON_NOT_RECORDED:
     'The signup you declined has changed since you reacted, so the reason was not recorded and the user was not notified of the decline. Please check if the signup has been re-submitted',
 } as const;
