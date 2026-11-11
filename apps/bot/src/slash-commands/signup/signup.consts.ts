@@ -37,7 +37,7 @@ You can reach out to a coordinator to discuss any issues.
   PROG_SELECTION_TIMEOUT:
     'Your response timed out and could not be recorded to set the prog point for this signup. The signup has not been added to the googlesheet since we could not determine what kind party it should be, please add it manually.',
   GENERIC_APPROVAL_ERROR:
-    'An error occurred while processing your response. The signup may not have been added to the Google Sheet, please verify it or add it manually',
+    'An error occurred while processing your review, so it was not saved. The signup is still awaiting review, please react to it again',
   SIGNUP_NOT_FOUND_FOR_REACTION:
     'No signup was found in the database to correspond to this reaction. Check if you are reacting to a message that has already been handled, like a Cleared post. In those cases the document would be removed. If not please report this error.',
   DECLINE_REASON_NOT_RECORDED:
