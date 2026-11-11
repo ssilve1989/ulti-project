@@ -9,7 +9,6 @@
 - **sheets:** treat sheet ID 0 as valid when removing and cleaning rows ([#1600](https://github.com/ssilve1989/ulti-project/issues/1600)) ([3030c4e](https://github.com/ssilve1989/ulti-project/commit/3030c4e21f8258897f280b1c0c1ac58a1dde071f))
 - **sheets:** write a signup's row and clear its stale row in one atomic batch ([#1606](https://github.com/ssilve1989/ulti-project/issues/1606)) ([783dea9](https://github.com/ssilve1989/ulti-project/commit/783dea97d9e8e903a8f2a09a057f30a72a8749e4))
 
-
 ### Performance Improvements
 
 - **bot:** run independent awaits in parallel ([#1611](https://github.com/ssilve1989/ulti-project/issues/1611)) ([57a8ab5](https://github.com/ssilve1989/ulti-project/commit/57a8ab5391c4b8358f9763159ef4f8e13f691fa6)), closes [#1594](https://github.com/ssilve1989/ulti-project/issues/1594)
@@ -22,7 +21,6 @@
 ### Features
 
 - **bot:** record a Sentry counter per slash command invocation ([#1564](https://github.com/ssilve1989/ulti-project/issues/1564)) ([9eac551](https://github.com/ssilve1989/ulti-project/commit/9eac551311985bfcf80ef40f92ec8fc9b6ac39f9))
-
 
 ### Bug Fixes
 
@@ -38,7 +36,6 @@
 ### Features
 
 - **status:** show approved prog point in /status embed ([#1551](https://github.com/ssilve1989/ulti-project/issues/1551)) ([42c71b2](https://github.com/ssilve1989/ulti-project/commit/42c71b216dc882ee5d087a513f502cc599457940))
-
 
 ### Bug Fixes
 
@@ -78,7 +75,6 @@
 - **signup:** add Cancel button to approval decision flow ([#1504](https://github.com/ssilve1989/ulti-project/issues/1504)) ([f5168bb](https://github.com/ssilve1989/ulti-project/commit/f5168bb2ee7581432a2dc5e8bf824fdba616b8c2))
 - **signup:** optional approval comment ([#1501](https://github.com/ssilve1989/ulti-project/issues/1501)) ([a9211d2](https://github.com/ssilve1989/ulti-project/commit/a9211d2e2a21653a33ad6a1ad7bfc895ae008f53))
 - **signup:** show previously approved prog point on review embed ([#1493](https://github.com/ssilve1989/ulti-project/issues/1493)) ([9ad4c83](https://github.com/ssilve1989/ulti-project/commit/9ad4c836ed1692168eaccbdf8348c633ffc78044))
-
 
 ### Bug Fixes
 
@@ -130,7 +126,6 @@
 
 - integrate knip for unused code detection ([6c7f404](https://github.com/ssilve1989/ulti-project/commit/6c7f404923cd82ab3a9fd679aee94c7faa3c54dd))
 
-
 ### Bug Fixes
 
 - **sheets:** raise getSheetValues timeout to 30s ([2616ed4](https://github.com/ssilve1989/ulti-project/commit/2616ed4c6a0857c9e2811fd64cd077c8b3f068b8))
@@ -140,7 +135,6 @@
 ### Features
 
 - **settings:** configurable blacklist notification channel list ([d6662c0](https://github.com/ssilve1989/ulti-project/commit/d6662c0331a4ade417fda5882b42aa66c5d4942d))
-
 
 ### Bug Fixes
 
@@ -176,7 +170,6 @@
 
 - add/push DMU prog point config ([c6a6bd5](https://github.com/ssilve1989/ulti-project/commit/c6a6bd511a270939a09d4eb06679d15852fe6b39))
 
-
 ### Bug Fixes
 
 - z.coerce.boolean to z.stringbool ([8450ca2](https://github.com/ssilve1989/ulti-project/commit/8450ca2ce680f4462ab9de73e66863eaca0ee891))
@@ -190,7 +183,6 @@
 ### Features
 
 - **encounters:** add Dancing Mad (Ultimate) (DMU) ([ec4b410](https://github.com/ssilve1989/ulti-project/commit/ec4b410611f7815a0e88bba4a964baf1d6dc01f9))
-
 
 ### Bug Fixes
 
@@ -208,11 +200,9 @@
 - **signup:** add getFirstEmbed helper and guard Object.groupBy results ([770bd87](https://github.com/ssilve1989/ulti-project/commit/770bd874c88f5a3d0e8923e26003914279dffe1f))
 - tsgo release exclude ([1947029](https://github.com/ssilve1989/ulti-project/commit/19470297cefd201de4cbdda3c475c858efca72a3))
 
-
 ### Performance Improvements
 
 - **sheets:** use Map lookup for prog point sort index ([6283261](https://github.com/ssilve1989/ulti-project/commit/62832619231de6308fa8b191f3afc65b4b003dad))
-
 
 ### Miscellaneous Chores
 
@@ -237,7 +227,6 @@
 ### Bug Fixes
 
 - **signup:** resolve race condition in role assignment ([7150841](https://github.com/ssilve1989/ulti-project/commit/715084128ffb25478a94203c28ec28b981dd6d36))
-
 
 ### Performance Improvements
 
@@ -264,7 +253,6 @@
 - **signups:** enforce reviewer role requirement and improve error handling ([#888](https://github.com/ssilve1989/ulti-project/issues/888)) ([e4a09db](https://github.com/ssilve1989/ulti-project/commit/e4a09dbbecc505126057cd7c1081464d021fa359))
 - **signups:** optimize upsert to preserve existing data and reduce db reads ([#889](https://github.com/ssilve1989/ulti-project/issues/889)) ([18fb74a](https://github.com/ssilve1989/ulti-project/commit/18fb74a390a4180bd9be1bef584fa94d7e662d45))
 
-
 ### Performance Improvements
 
 - **signups:** optimize upsert method to reduce redundant reads ([#885](https://github.com/ssilve1989/ulti-project/issues/885)) ([dde5cc9](https://github.com/ssilve1989/ulti-project/commit/dde5cc946eb630a1439790c7b497f57140670f98))
@@ -286,7 +274,6 @@
 ### Features
 
 - **search:** search command now shows results from at least selected prog point ([38e065c](https://github.com/ssilve1989/ulti-project/commit/38e065c3a1dd9326534888afb8c56a75b2e77f63))
-
 
 ### Reverts
 
@@ -343,7 +330,6 @@
 
 - improve prog points management UX and fix edit functionality ([c90af35](https://github.com/ssilve1989/ulti-project/commit/c90af350dc2f3c9bd7659999432d9b4767501b32))
 - **slash-commands:** add /help command with permission-aware filtering ([51b50c2](https://github.com/ssilve1989/ulti-project/commit/51b50c267edd476163274b688e8fa27f5ac1fa1a))
-
 
 ### Bug Fixes
 
@@ -481,7 +467,6 @@
 
 - **signups:** support Futures Rewritten ([#576](https://github.com/ssilve1989/ulti-project/issues/576)) ([f057b52](https://github.com/ssilve1989/ulti-project/commit/f057b5290870f9adace2b264f837fb35d37eca73))
 
-
 ### Bug Fixes
 
 - **tasks:** fix clear check cron timer ([94406bb](https://github.com/ssilve1989/ulti-project/commit/94406bb4f4461d257c1b5bb77538bc5d20279520))
@@ -492,7 +477,6 @@
 ### Features
 
 - **signups:** clear-checker cron ([#497](https://github.com/ssilve1989/ulti-project/issues/497)) ([4814608](https://github.com/ssilve1989/ulti-project/commit/4814608d598008e651e9b22de6b4341af8833af9))
-
 
 ### Bug Fixes
 
@@ -575,11 +559,9 @@
 - **settings:** moderation channel setting ([#458](https://github.com/ssilve1989/ulti-project/issues/458)) ([14cc49f](https://github.com/ssilve1989/ulti-project/commit/14cc49f8863d4b13b188304904af487927a191e7))
 - **signups:** publishes alerts on blacklisted signups ([#460](https://github.com/ssilve1989/ulti-project/issues/460)) ([14366de](https://github.com/ssilve1989/ulti-project/commit/14366dee430e98f5b6036efa3ccef8a27cd795a9))
 
-
 ### Bug Fixes
 
 - **settings:** fix cache value setting ([#457](https://github.com/ssilve1989/ulti-project/issues/457)) ([418b47e](https://github.com/ssilve1989/ulti-project/commit/418b47eb3e3aae00b69020bc183250f92bac481a))
-
 
 ### Performance Improvements
 
@@ -691,7 +673,6 @@
 
 - **signups:** adding tag and avatar to embed ([#294](https://github.com/ssilve1989/ulti-project/issues/294)) ([0851b83](https://github.com/ssilve1989/ulti-project/commit/0851b834cc9608a4f63fb5cab2d6b04fd46fe8ae))
 
-
 ### Bug Fixes
 
 - **settings:** prevent prog roles from being overridden ([#288](https://github.com/ssilve1989/ulti-project/issues/288)) ([b0fb768](https://github.com/ssilve1989/ulti-project/commit/b0fb768101df4ce1860b8473e8fd52a1b0a825f1))
@@ -728,7 +709,6 @@
 
 - **signups:** embed now displays coordinator selected prog point ([#273](https://github.com/ssilve1989/ulti-project/issues/273)) ([9bbd5b7](https://github.com/ssilve1989/ulti-project/commit/9bbd5b7013fdd5441d12a4ec159d163cef192793))
 
-
 ### Bug Fixes
 
 - adjusts labels for certain encounters ([#274](https://github.com/ssilve1989/ulti-project/issues/274)) ([af49fc3](https://github.com/ssilve1989/ulti-project/commit/af49fc356e541007a815e45e9e84c086b8212e2d))
@@ -742,7 +722,6 @@
 ### Features
 
 - **signups:** add prog point to embed ([#261](https://github.com/ssilve1989/ulti-project/issues/261)) ([9fc2aae](https://github.com/ssilve1989/ulti-project/commit/9fc2aaea8dc6274dd981915c526f16cb33b93e38))
-
 
 ### Bug Fixes
 
@@ -822,11 +801,9 @@
 
 - **signups:** support early prog ([#160](https://github.com/ssilve1989/ulti-project/issues/160)) ([22b284b](https://github.com/ssilve1989/ulti-project/commit/22b284b912754f58fb25657d14ff14b4d69b86c0))
 
-
 ### Bug Fixes
 
 - **signups:** handle urls missing protocol ([#159](https://github.com/ssilve1989/ulti-project/issues/159)) ([1638b53](https://github.com/ssilve1989/ulti-project/commit/1638b538196f05a0e9a5ec3320280c4b37c99b17))
-
 
 ### Miscellaneous Chores
 
@@ -839,7 +816,6 @@
 - **lookup:** adds /lookup command to find users availability ([#122](https://github.com/ssilve1989/ulti-project/issues/122)) ([1739ef7](https://github.com/ssilve1989/ulti-project/commit/1739ef707c4763bc67967a4802693165972dbf11))
 - **signups:** allow users to remove their own signups ([#73](https://github.com/ssilve1989/ulti-project/issues/73)) ([a6e3455](https://github.com/ssilve1989/ulti-project/commit/a6e3455fed2d3c95bb4ca27b6623456cce27d2eb))
 - **signups:** require prog point confirmation upon review ([d5c7f74](https://github.com/ssilve1989/ulti-project/commit/d5c7f74aea6663ae075d9bee176f5aabdc32512a))
-
 
 ### Bug Fixes
 
@@ -866,7 +842,6 @@
 - **signups:** implement signup review process ([a1d9a7d](https://github.com/ssilve1989/ulti-project/commit/a1d9a7d7fa4b783d18d917cf8c9fbcb2426a8855))
 - **signups:** integrate google sheets signup tracking ([ff2314e](https://github.com/ssilve1989/ulti-project/commit/ff2314e278dfd7d5421e91edd35c0a4c1b1b3dea))
 - **status-command:** adds `/status` as a slash command ([b896157](https://github.com/ssilve1989/ulti-project/commit/b8961570b89ac3ffb0a092c0f8bb3fca32bf4576))
-
 
 ### Bug Fixes
 
