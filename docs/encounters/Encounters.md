@@ -11,6 +11,7 @@ Encounters are the FFXIV content (ultimates, savages) that the bot manages signu
 ### Source of truth: the code
 
 Encounter identity lives entirely in TypeScript source files:
+
 - **`src/encounters/encounters.consts.ts`** — the `Encounter` enum, `ENCOUNTER_CHOICES` array, `EncounterEmoji` map, `EncounterFriendlyDescription` map
 - Adding a new encounter requires a code change, a deployment, and manual Discord command re-registration
 
@@ -78,11 +79,13 @@ apps/cli/src/
 The pull/push pair treats `data/encounters/*.yaml` as a portable representation of Firestore encounter state.
 
 **`pnpm cli encounters pull`**
+
 - Reads all active encounters from Firestore (plus their prog points)
 - Writes one YAML file per encounter to `data/encounters/{ID}.yaml`
 - `order` is omitted from YAML — it is derived from array position on push
 
 **`pnpm cli encounters push [--dry-run] [--yes] [encounter-id]`**
+
 - Reads and validates YAML files against the `EncounterYamlConfig` schema
 - For each encounter: upserts the Firestore document, clears all existing prog points, re-seeds from the YAML array in order
 - `--dry-run` validates and prints what would change, no writes
@@ -167,25 +170,30 @@ async getActiveEncounters(): Promise<Encounter[]> {
 ### Four implementation phases
 
 **Phase 1 — Service enhancement**
+
 - `getActiveEncounters()` and `getActiveEncounterChoices()` on `EncountersService`
 - Startup validation to warn when enum and Firestore are out of sync
 
 **Phase 2 — Schema updates**
+
 - Zod validation on `/signup` checks encounter is both in enum AND active in Firestore
 - Replaces the current static enum check
 
 **Phase 3 — Dynamic slash command registration**
+
 - Slash command choices are built from `getActiveEncounterChoices()` at startup
 - Commands re-registered when encounter active state changes (toggle via Discord or CLI)
 - Inactive encounters disappear from the `/signup` dropdown without a deployment
 
 **Phase 4 — Startup consistency checks**
+
 - `EncounterValidationService` warns at boot if any enum values lack a Firestore document, or vice versa
 - Catches drift between code and data early
 
 ### How the CLI fits in
 
 With dynamic encounters, the `pull`/`push` workflow becomes the primary way to manage encounter state:
+
 1. Edit `data/encounters/FRU.yaml` — adjust prog points, flip `active: true/false`
 2. `pnpm cli encounters push FRU` — write to Firestore
 3. Bot detects the change (or on next restart) and re-registers slash commands with updated choices

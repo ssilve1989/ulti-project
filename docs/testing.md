@@ -1,6 +1,7 @@
 # Testing
 
 The bot's tests form a pyramid:
+
 - **Flow specs** (`<feature>.flow.spec.ts`) boot the real Nest modules for a
   feature, fake only external systems, and describe what users see. Every
   slash-command feature is meant to have one, except the ones being removed
@@ -24,6 +25,7 @@ an approved signup deleted its approved review message in production. The test
 stayed green the whole time.
 
 So:
+
 - **Behaviour that crosses our own classes goes in a flow spec**, with the real
   classes wired together. Don't stub one of our classes to return a chosen
   value in order to test another.
@@ -118,6 +120,7 @@ feature modules. Only what sits behind an external system is swapped:
 This follows the practice Google documents for its own API clients: test
 against saved real responses, never the live API
 ([Python guide](https://googleapis.github.io/google-api-python-client/docs/mocks.html)).
+
 - **Normal runs** (`pnpm test`, pre-commit, CI) replay each test's recording
   from `__recordings__/` next to the spec, with the network disabled. They need
   no credentials and use no quota. A test that makes no Sheets requests has no

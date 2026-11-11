@@ -51,6 +51,7 @@ progPoints:
 ### Required partyStatus Values
 
 Must be EXACTLY one of:
+
 - `Early Prog Party` — very early progression
 - `Prog Party` — active progression milestones
 - `Clear Party` — post-clear content
@@ -109,6 +110,7 @@ pnpm cli encounters push FRU --yes
 ```
 
 **What the sync does:**
+
 1. Validates YAML against schema
 2. Clears old prog points from Firestore
 3. Writes all prog points from YAML to Firestore
@@ -121,6 +123,7 @@ If this doesn't appear, the sync failed and changes are **not in Firestore**.
 ### If Sync Validation Fails
 
 The CLI will report errors like:
+
 ```
 Invalid encounter YAML:
   • progPoints.0.partyStatus: "invalid value"
@@ -130,6 +133,7 @@ Invalid encounter YAML:
 **What this means:** Your YAML has an error. Do NOT skip the sync and hope it works—fix the error and retry.
 
 **Common validation errors:**
+
 - `partyStatus: "invalid value"` → Check you used exact enum: `Early Prog Party`, `Prog Party`, `Clear Party`, or `Cleared`
 - `id: "must be uppercase..."` → Rename id to use only uppercase letters, numbers, underscores (e.g., `P3_APOCALYPSE` not `p3-apocalypse`)
 - `required field missing` → Check prog point has id, label, partyStatus, active
@@ -169,6 +173,7 @@ progPoints:
 ```
 
 Then sync:
+
 ```bash
 pnpm cli encounters push FRU
 ```
@@ -192,6 +197,7 @@ progPartyThreshold: "P3: Curtain Call" # Updated to match new id
 ```
 
 Then sync:
+
 ```bash
 pnpm cli encounters push FRU
 ```
@@ -199,6 +205,7 @@ pnpm cli encounters push FRU
 ## Red Flags - Stop and Validate
 
 These signal you're about to make a mistake:
+
 - **"I'll just edit YAML and it will show up"** → You MUST sync
 - **"PartyStatus should be `progParty`"** → Use `Prog Party` with exact capitalization
 - **"I renamed the id but thresholds don't need updating"** → Check if thresholds reference it
@@ -234,6 +241,7 @@ Am I about to run pnpm cli encounters push?
 ## Why This Matters
 
 The sync step is not optional because:
+
 1. **Discord bot reads Firestore, not YAML** — YAML is source-of-truth for data, but bot needs live data in Firestore
 2. **Schema validation catches typos** — Invalid enum values or missing fields fail silently without sync
 3. **Ordering is preserved** — Prog point order in Discord comes from Firestore document order

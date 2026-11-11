@@ -9,6 +9,7 @@ This directory contains YAML configurations for raid encounters that are synced 
 Edit the YAML files in the `encounters/` directory to update encounter progression points. Each file follows the JSON schema defined in `encounter.schema.yaml`.
 
 Example fields:
+
 - `id`: Unique identifier (uppercase letters and underscores only)
 - `name`: Display name for the encounter
 - `description`: Encounter description
@@ -40,6 +41,7 @@ pnpm cli encounters push --yes
 ```
 
 The CLI will:
+
 - Load and validate all YAML files against `encounter.schema.yaml`
 - Prompt for confirmation before syncing each encounter
 - Clear existing progression points and re-add them from the YAML
