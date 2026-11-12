@@ -11,6 +11,7 @@
     "includes": [
       "**",
       "!**/pnpm-lock.yaml",
+      "!**/CHANGELOG.md",
       "!**/src/fflogs/graphql/**/*.ts",
       "!**/src/fflogs/graphql/**/*.graphql"
     ]
