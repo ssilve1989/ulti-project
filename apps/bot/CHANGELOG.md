@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.3](https://github.com/ssilve1989/ulti-project/compare/v2.9.2...v2.9.3) (2026-11-12)
+
+
+### Miscellaneous Chores
+
+* release 2.9.3 ([6f2bc17](https://github.com/ssilve1989/ulti-project/commit/6f2bc179bb217f738704d1579f17d36da1757851))
+
 ## [2.9.2](https://github.com/ssilve1989/ulti-project/compare/v2.9.1...v2.9.2) (2026-11-11)
 
 ### Bug Fixes
