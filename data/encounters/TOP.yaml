@@ -3,41 +3,41 @@ id: TOP
 name: "[TOP] The Omega Protocol"
 description: "[TOP] The Omega Protocol"
 active: true
-progPartyThreshold: P5 Delta
+progPartyThreshold: P5 Sigma
 clearPartyThreshold: P6 Wave Cannon 1
 progPoints:
   - id: P2 Party Synergy
     label: "Phase 2: Party Synergy"
     partyStatus: Early Prog Party
-    active: true
+    active: false
   - id: P2 Limitless
     label: "Phase 2: Limitless Synergy"
     partyStatus: Early Prog Party
-    active: true
+    active: false
   - id: P3 Transition
     label: "Phase 3: Transition"
     partyStatus: Early Prog Party
-    active: true
+    active: false
   - id: P3 Hello World
     label: "Phase 3: Hello World"
     partyStatus: Early Prog Party
-    active: true
+    active: false
   - id: P3 Monitors
     label: "Phase 3: Monitors"
     partyStatus: Early Prog Party
-    active: true
+    active: false
   - id: P3 Enrage
     label: "Phase 3: Enrage"
     partyStatus: Early Prog Party
-    active: true
+    active: false
   - id: P4
     label: "Phase 4: Blue Screen"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: P5 Delta
     label: "Phase 5: Delta"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: P5 Sigma
     label: "Phase 5: Sigma"
     partyStatus: Prog Party

@@ -3,7 +3,7 @@ id: FRU
 name: "[FRU] Futures Rewritten"
 description: "[FRU] Futures Rewritten"
 active: true
-progPartyThreshold: "P3: Apocalypse"
+progPartyThreshold: "P4: Crystalize Time"
 clearPartyThreshold: "P5: Fulgent 1"
 progPoints:
   - id: "P2: Light Rampant"
@@ -21,19 +21,19 @@ progPoints:
   - id: "P3: Apocalypse"
     label: "Phase 3: Apocalypse"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: "P3: Enrage"
     label: "Phase 3: Enrage"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: "P4: Darklit"
     label: "Phase 4: Darklit Dragonsong"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: "P4: AM 1"
     label: "Phase 4: Akh Morn 1"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: "P4: Crystalize Time"
     label: "Phase 4: Crystalize Time"
     partyStatus: Prog Party
