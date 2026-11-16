@@ -9,7 +9,7 @@ progPoints:
   - id: Ifrit
     label: "Phase 2: Ifrit"
     partyStatus: Early Prog Party
-    active: true
+    active: false
   - id: Titan
     label: "Phase 3: Titan"
     partyStatus: Prog Party

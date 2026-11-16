@@ -9,7 +9,7 @@ progPoints:
   - id: Nael
     label: "Phase 2: Nael"
     partyStatus: Early Prog Party
-    active: true
+    active: false
   - id: QMT
     label: "Phase 3: Quickmarch Trio"
     partyStatus: Prog Party

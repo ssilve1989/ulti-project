@@ -9,11 +9,11 @@ progPoints:
   - id: Limit Cut
     label: "Phase 1: Limit Cut"
     partyStatus: Early Prog Party
-    active: true
+    active: false
   - id: BJCC
     label: "Phase 2: BJCC"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: Gavel
     label: "Phase 2: Gavel"
     partyStatus: Prog Party
