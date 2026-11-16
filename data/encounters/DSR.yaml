@@ -3,45 +3,45 @@ id: DSR
 name: "[DSR] Dragonsong Reprise"
 description: "[DSR] Dragonsong Reprise"
 active: true
-progPartyThreshold: Nidhogg
+progPartyThreshold: Wroth Flames
 clearPartyThreshold: P6 Enrage
 progPoints:
   - id: Strength
     label: "Phase 2: Strength of the Ward"
     partyStatus: Early Prog Party
-    active: true
+    active: false
   - id: Sanctity
     label: "Phase 2: Sanctity of the Ward"
     partyStatus: Early Prog Party
-    active: true
+    active: false
   - id: Nidhogg
     label: "Phase 3: Nidhogg"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: Eyes
     label: "Phase 4: Eyes"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: Rewind
     label: "Phase 4: Rewind"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: WOTH
     label: "Phase 5: Wrath of the Heavens"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: DOTH
     label: "Phase 5: Death of the Heavens"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: WB1
     label: "Phase 6: Wyrmsbreath 1"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: HW1
     label: "Phase 6: Hallowed Wings 1"
     partyStatus: Prog Party
-    active: true
+    active: false
   - id: Wroth Flames
     label: "Phase 6: Wroth Flames"
     partyStatus: Prog Party
