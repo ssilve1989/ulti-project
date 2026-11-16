@@ -231,8 +231,8 @@ catalogs:
       specifier: ^5.1.0
       version: 5.1.0
     commander:
-      specifier: ^15.0.0
-      version: 15.0.0
+      specifier: ^15.1.0
+      version: 15.1.0
     commitizen:
       specifier: ^4.3.2
       version: 4.3.2
@@ -451,7 +451,7 @@ importers:
         version: link:../../packages/shared
       commander:
         specifier: 'catalog:'
-        version: 15.0.0
+        version: 15.1.0
       firebase-admin:
         specifier: 'catalog:'
         version: 14.5.0(supports-color@8.1.1)
@@ -2630,8 +2630,8 @@ packages:
   colorette@2.0.20:
     resolution: {integrity: sha512-IfEDxwoWIjkeXL1eXcDiow4UbKjhLdq6/EuSVR9GMN7KVH3r9gQ83e73hsz1Nd1T3ijd5xv1wcWRYO+D6kCI2w==}
 
-  commander@15.0.0:
-    resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
+  commander@15.1.0:
+    resolution: {integrity: sha512-cgnQ88TRrWcC7pVq46RzJVRMktu3W2RcbnoidnfBsl1bmDCBwJS/udcIZpKoCrbAYYaCqsz1yZCVIgbIaU3ddQ==}
     engines: {node: '>=22.12.0'}
 
   commitizen@4.3.2:
@@ -6738,7 +6738,7 @@ snapshots:
 
   colorette@2.0.20: {}
 
-  commander@15.0.0: {}
+  commander@15.1.0: {}
 
   commitizen@4.3.2(@types/node@26.6.6)(typescript@7.0.2):
     dependencies:
