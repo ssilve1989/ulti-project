@@ -29,11 +29,11 @@ progPoints:
   - id: "P4: Darklit"
     label: "Phase 4: Darklit Dragonsong"
     partyStatus: Prog Party
-    active: false
+    active: true
   - id: "P4: AM 1"
     label: "Phase 4: Akh Morn 1"
     partyStatus: Prog Party
-    active: false
+    active: true
   - id: "P4: Crystalize Time"
     label: "Phase 4: Crystalize Time"
     partyStatus: Prog Party

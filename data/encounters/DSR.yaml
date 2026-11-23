@@ -33,15 +33,15 @@ progPoints:
   - id: DOTH
     label: "Phase 5: Death of the Heavens"
     partyStatus: Prog Party
-    active: false
+    active: true
   - id: WB1
     label: "Phase 6: Wyrmsbreath 1"
     partyStatus: Prog Party
-    active: false
+    active: true
   - id: HW1
     label: "Phase 6: Hallowed Wings 1"
     partyStatus: Prog Party
-    active: false
+    active: true
   - id: Wroth Flames
     label: "Phase 6: Wroth Flames"
     partyStatus: Prog Party
