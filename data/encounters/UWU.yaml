@@ -12,15 +12,15 @@ progPoints:
     active: false
   - id: Titan
     label: "Phase 3: Titan"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: Predation
     label: "Phase 4: Predation"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: Annihilation
     label: "Phase 4: Annihilation"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: Suppression
     label: "Phase 4: Suppression"

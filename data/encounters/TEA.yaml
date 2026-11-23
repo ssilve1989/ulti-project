@@ -16,15 +16,15 @@ progPoints:
     active: false
   - id: Gavel
     label: "Phase 2: Gavel"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: Time Stop
     label: "Phase 3: Time Stop"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: Inception
     label: "Phase 3: Inception"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: Wormhole
     label: "Phase 3: Wormhole"

@@ -32,27 +32,27 @@ progPoints:
     active: false
   - id: DOTH
     label: "Phase 5: Death of the Heavens"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: WB1
     label: "Phase 6: Wyrmsbreath 1"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: HW1
     label: "Phase 6: Hallowed Wings 1"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: Wroth Flames
     label: "Phase 6: Wroth Flames"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: HW2
     label: "Phase 6: Hallowed Wings 2"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: WB2
     label: "Phase 6: Wyrmsbreath 2"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: P6 Enrage
     label: "Phase 6: Enrage"

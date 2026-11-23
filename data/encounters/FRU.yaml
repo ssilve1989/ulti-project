@@ -28,23 +28,23 @@ progPoints:
     active: false
   - id: "P4: Darklit"
     label: "Phase 4: Darklit Dragonsong"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: "P4: AM 1"
     label: "Phase 4: Akh Morn 1"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: "P4: Crystalize Time"
     label: "Phase 4: Crystalize Time"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: "P4: AM 2"
     label: "Phase 4: Akh Morn 2"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: "P4: Enrage"
     label: "Phase 4: Enrage"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: "P5: Fulgent 1"
     label: "Phase 5: Fulgent Blade 1"

@@ -27,11 +27,11 @@ progPoints:
     active: false
   - id: "P3 Enrage"
     label: "Phase 3: Enrage/Blizzard"
-    partyStatus: "Prog Party"
+    partyStatus: "Clear Party"
     active: true
   - id: "P4 Kefka Says"
     label: "Phase 4: Kefka Says"
-    partyStatus: "Prog Party"
+    partyStatus: "Clear Party"
     active: true
   - id: "P4 Enrage"
     label: "Phase 4: Enrage"

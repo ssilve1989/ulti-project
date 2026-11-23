@@ -40,23 +40,23 @@ progPoints:
     active: false
   - id: P5 Sigma
     label: "Phase 5: Sigma"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: P5 Omega
     label: "Phase 5: Omega"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: P5 Enrage
     label: "Phase 5: Enrage"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: P6 Exasquares 1
     label: "Phase 6: Exasquares 1"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: P6 Cosmo Dive 1
     label: "Phase 6: Cosmo Dive 1"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: P6 Wave Cannon 1
     label: "Phase 6: Wave Cannon 1"

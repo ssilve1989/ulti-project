@@ -12,27 +12,27 @@ progPoints:
     active: false
   - id: QMT
     label: "Phase 3: Quickmarch Trio"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: BFT
     label: "Phase 3: Blackfire Trio"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: Fellruin
     label: "Phase 3: Fellruin Trio"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: Heavensfall
     label: "Phase 3: Heavensfall Trio"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: Tenstrike
     label: "Phase 3: Tenstrike Trio"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: Grand Octet
     label: "Phase 3: Grand Octet"
-    partyStatus: Prog Party
+    partyStatus: Clear Party
     active: true
   - id: Adds
     label: "Phase 4: Adds"
