@@ -4,7 +4,7 @@ name: "[TEA] The Epic of Alexander"
 description: "[TEA] The Epic of Alexander"
 active: true
 progPartyThreshold: BJCC
-clearPartyThreshold: Final Word
+clearPartyThreshold: Gavel
 progPoints:
   - id: Limit Cut
     label: "Phase 1: Limit Cut"

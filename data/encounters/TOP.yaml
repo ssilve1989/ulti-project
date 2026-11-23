@@ -4,7 +4,7 @@ name: "[TOP] The Omega Protocol"
 description: "[TOP] The Omega Protocol"
 active: true
 progPartyThreshold: P5 Sigma
-clearPartyThreshold: P6 Wave Cannon 1
+clearPartyThreshold: P5 Sigma
 progPoints:
   - id: P2 Party Synergy
     label: "Phase 2: Party Synergy"

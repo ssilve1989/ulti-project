@@ -4,7 +4,7 @@ name: "[UCoB] The Unending Coil of Bahamut"
 description: "[UCoB] The Unending Coil of Bahamut"
 active: true
 progPartyThreshold: QMT
-clearPartyThreshold: Adds
+clearPartyThreshold: QMT
 progPoints:
   - id: Nael
     label: "Phase 2: Nael"
