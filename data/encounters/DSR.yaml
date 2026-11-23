@@ -4,7 +4,7 @@ name: "[DSR] Dragonsong Reprise"
 description: "[DSR] Dragonsong Reprise"
 active: true
 progPartyThreshold: Wroth Flames
-clearPartyThreshold: P6 Enrage
+clearPartyThreshold: DOTH
 progPoints:
   - id: Strength
     label: "Phase 2: Strength of the Ward"

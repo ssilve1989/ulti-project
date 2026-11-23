@@ -4,7 +4,7 @@ name: "[UwU] The Weapons Refrain"
 description: "[UwU] The Weapons Refrain"
 active: true
 progPartyThreshold: Titan
-clearPartyThreshold: Suppression
+clearPartyThreshold: Titan
 progPoints:
   - id: Ifrit
     label: "Phase 2: Ifrit"
