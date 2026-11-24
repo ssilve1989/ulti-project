@@ -243,8 +243,8 @@ catalogs:
       specifier: ^14.28.1
       version: 14.28.1
     firebase-admin:
-      specifier: ^14.5.0
-      version: 14.5.0
+      specifier: ^14.5.1
+      version: 14.5.1
     graphql:
       specifier: ^16.15.0
       version: 16.15.0
@@ -375,7 +375,7 @@ importers:
         version: 14.28.1
       firebase-admin:
         specifier: 'catalog:'
-        version: 14.5.0(supports-color@8.1.1)
+        version: 14.5.1(supports-color@8.1.1)
       graphql:
         specifier: 'catalog:'
         version: 16.15.0
@@ -454,7 +454,7 @@ importers:
         version: 15.1.0
       firebase-admin:
         specifier: 'catalog:'
-        version: 14.5.0(supports-color@8.1.1)
+        version: 14.5.1(supports-color@8.1.1)
       graphql-request:
         specifier: 'catalog:'
         version: 7.4.0(graphql@16.15.0)
@@ -479,7 +479,7 @@ importers:
     dependencies:
       firebase-admin:
         specifier: 'catalog:'
-        version: 14.5.0(supports-color@8.1.1)
+        version: 14.5.1(supports-color@8.1.1)
 
 packages:
 
@@ -1784,9 +1784,6 @@ packages:
   '@oxc-project/types@0.152.0':
     resolution: {integrity: sha512-oM/5rLBm2tPkg0iBgkH/FOeR3PCDpY19GTgAZjMFM8h9WI9VW7cLgzp6nwtarYKmovavIQZ+Fe/RKX/8C8O/Rw==}
 
-  '@oxc-project/types@0.155.0':
-    resolution: {integrity: sha512-SeE8JPwW1xs1tHeNycjUtUBdhorRa8o4jlvjwk49R7/Z291i+4DQa7JJIgOm/TaYQZx+QrPQbVJ/9c8dMIZN8Q==}
-
   '@oxc-project/types@0.156.0':
     resolution: {integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==}
 
@@ -2044,6 +2041,7 @@ packages:
   '@sapphire/shapeshift@4.0.0':
     resolution: {integrity: sha512-d9dUmWVA7MMiKobL3VpLF8P2aeanRTu6ypG2OIaEv/ZHH/SUQ2iHOVyi5wAPjQ+HmnMuL0whK9ez8I/raWbtIg==}
     engines: {node: '>=v16'}
+    deprecated: Shapeshift was created when other validation libraries had significant limitations in performance and error reporting. Those advantages have diminished as libraries such as Zod have become faster and improved their error messages, while also gaining broader environment support, a larger community, and custom error printers.
 
   '@sapphire/snowflake@3.5.5':
     resolution: {integrity: sha512-xzvBr1Q1c4lCe7i6sRnrofxeO1QTP/LKQ6A6qy0iB4x5yfiSfARMEQEghojzTNALDTcv8En04qYNIco9/K9eZQ==}
@@ -2935,8 +2933,8 @@ packages:
     resolution: {integrity: sha512-6jvvn/12IC4quLBL1KNokxC7wWTvYncaVUYSoxWw7YykPLuRrnv4qdHcSOywOI5RpkOVGeQRtWM8/q+G6W6qfQ==}
     engines: {node: '>= 8'}
 
-  firebase-admin@14.5.0:
-    resolution: {integrity: sha512-DElmgmaH9aPXu2dWXGQiDoan33UfTnbfAAKaue4fwEZxmpdaNrTk5DmuFn+vVDki2KZ6TiaC0IHRWcEzcDxB3Q==}
+  firebase-admin@14.5.1:
+    resolution: {integrity: sha512-3NSWRREeFCET2tyiOd0ENvRFdagi9voBRGCiNbGSIRbwuMJh2Eh/dcmItNWd82rcqd+fyW5/77/oZOZxC27/sA==}
     engines: {node: '>=22'}
 
   flatted@3.4.4:
@@ -6017,8 +6015,6 @@ snapshots:
 
   '@oxc-project/types@0.152.0': {}
 
-  '@oxc-project/types@0.155.0': {}
-
   '@oxc-project/types@0.156.0': {}
 
   '@oxc-resolver/binding-android-arm-eabi@11.24.2':
@@ -7066,7 +7062,7 @@ snapshots:
       micromatch: 4.0.8
       resolve-dir: 1.0.1
 
-  firebase-admin@14.5.0(supports-color@8.1.1):
+  firebase-admin@14.5.1(supports-color@8.1.1):
     dependencies:
       '@fastify/busboy': 3.2.4
       '@firebase/database-compat': 2.1.7
